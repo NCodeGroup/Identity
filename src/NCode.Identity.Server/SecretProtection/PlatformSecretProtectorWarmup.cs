@@ -21,13 +21,13 @@ namespace NCode.Identity.Server.SecretProtection;
 /// It also warns when a Production host protects its master keys under a root key that is a local file.
 /// </remarks>
 // See ADR-1235.
-internal class ServerSecretProtectorWarmup(
+internal class PlatformSecretProtectorWarmup(
     ISecretProtectorProvider provider,
     IOptions<OpenIdOptions> openIdOptions,
     IOptions<SecretProtectionOptions> protectionOptions,
     IHostEnvironment hostEnvironment,
-    ServerSecretProtectorHolder holder,
-    ILogger<ServerSecretProtectorWarmup> logger
+    PlatformSecretProtectorHolder holder,
+    ILogger<PlatformSecretProtectorWarmup> logger
 ) : IHostedService
 {
     private ISecretProtectorProvider Provider { get; } = provider;
@@ -40,17 +40,17 @@ internal class ServerSecretProtectorWarmup(
 
     private IHostEnvironment HostEnvironment { get; } = hostEnvironment;
 
-    private ServerSecretProtectorHolder Holder { get; } = holder;
+    private PlatformSecretProtectorHolder Holder { get; } = holder;
 
-    private ILogger<ServerSecretProtectorWarmup> Logger { get; } = logger;
+    private ILogger<PlatformSecretProtectorWarmup> Logger { get; } = logger;
 
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var serverId = GetServerId();
+        var serverId = GetPlatformId();
 
         Holder.Protector = await Provider.GetProtectorAsync(
-            SecretOwner.ForServer(serverId),
+            SecretOwner.ForPlatform(serverId),
             [],
             cancellationToken
         );
@@ -74,13 +74,13 @@ internal class ServerSecretProtectorWarmup(
     /// <summary>
     /// Gets the <c>ServerId</c> from the configurable options, or uses the default if not set.
     /// </summary>
-    private string GetServerId()
+    private string GetPlatformId()
     {
-        var serverId = OpenIdOptionsAccessor.Value.Server.ServerId;
+        var serverId = OpenIdOptionsAccessor.Value.Platform.ServerId;
 
         if (string.IsNullOrEmpty(serverId))
         {
-            serverId = OpenIdServerOptions.DefaultServerId;
+            serverId = OpenIdPlatformOptions.DefaultPlatformId;
         }
 
         return serverId;

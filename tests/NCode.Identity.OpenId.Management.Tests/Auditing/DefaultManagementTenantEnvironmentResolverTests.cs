@@ -79,7 +79,7 @@ public sealed class DefaultManagementTenantEnvironmentResolverTests : IDisposabl
         var mockServerSettings = MockRepository.Create<IReadOnlySettingCollection>();
         var mockTenantSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(CancellationToken.None))
+            .Setup(x => x.ResolvePlatformAsync(CancellationToken.None))
             .ReturnsAsync(mockServerSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver

@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // The server records the effective settings it reconciled against in the form the setting serializer reads back, so
 // the next reconciliation can compare a change with them. See ADR-1234.
-public class ReconciledServerSettingsTests
+public class ReconciledPlatformSettingsTests
 {
     #region Reconciliation Tests
 
@@ -42,7 +42,11 @@ public class ReconciledServerSettingsTests
             .JsonSerializerOptions;
         var settings = serviceScope
             .ServiceProvider.GetRequiredService<ISettingSerializer>()
-            .DeserializeSettings(reconciledSettings.Value, OpenIdSettingScopes.Server, jsonOptions);
+            .DeserializeSettings(
+                reconciledSettings.Value,
+                OpenIdSettingScopes.Platform,
+                jsonOptions
+            );
         Assert.Equal(reconciledSettings.Value.EnumerateObject().Count(), settings.Count);
         Assert.Contains(
             settings,
@@ -62,17 +66,17 @@ public class ReconciledServerSettingsTests
     )
     {
         var stopwatch = Stopwatch.StartNew();
-        var server = await GetServerAsync(factory);
+        var server = await GetPlatformAsync(factory);
         while (server?.ReconciledSettings is null && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
         {
             await Task.Delay(TimeSpan.FromMilliseconds(100));
-            server = await GetServerAsync(factory);
+            server = await GetPlatformAsync(factory);
         }
 
         return server?.ReconciledSettings;
     }
 
-    private static async Task<PersistedServer?> GetServerAsync(HostApplicationFactory factory)
+    private static async Task<PersistedServer?> GetPlatformAsync(HostApplicationFactory factory)
     {
         using var serviceScope = factory.Services.CreateScope();
         await using var storeManager = await serviceScope
@@ -80,7 +84,7 @@ public class ReconciledServerSettingsTests
             .CreateAsync(CancellationToken.None);
         return await storeManager
             .GetStore<IServerStore>()
-            .GetOrDefaultAsync(OpenIdServerOptions.DefaultServerId, CancellationToken.None);
+            .GetOrDefaultAsync(OpenIdPlatformOptions.DefaultPlatformId, CancellationToken.None);
     }
 
     #endregion

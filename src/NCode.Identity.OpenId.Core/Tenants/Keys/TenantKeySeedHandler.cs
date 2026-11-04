@@ -142,7 +142,9 @@ internal class TenantKeySeedHandler(
         CancellationToken cancellationToken
     )
     {
-        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            cancellationToken
+        );
         return EffectiveSettingsResolver.Resolve(
             serverSettings,
             OpenIdSettingScopes.Tenant,

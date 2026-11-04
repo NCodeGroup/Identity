@@ -36,7 +36,7 @@ public static class ManagementResourceTypes
     /// <summary>
     /// An OpenID server.
     /// </summary>
-    public const string Server = "server";
+    public const string Platform = "platform";
 
     /// <summary>
     /// A secret belonging to an OpenID server.

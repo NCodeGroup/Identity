@@ -7,7 +7,7 @@ using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -239,9 +239,9 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     private static JsonElement CreateDocument(string name) =>
         JsonElement.Parse($$"""{"name":"{{name}}"}""");
 
-    private ReconcileServerSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
+    private ReconcilePlatformSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
 
-    private ReconcileServerSettingsCommand CreateCommandWithPreviousSettings() =>
+    private ReconcilePlatformSettingsCommand CreateCommandWithPreviousSettings() =>
         new(ServerId, ServerSettings) { PreviousSettings = PreviousServerSettings };
 
     private void SetupReadsChangedSetting(

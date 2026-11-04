@@ -20,5 +20,5 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 public sealed record ServerChangedAuditEvent : ResourceChangeAuditEvent
 {
     /// <inheritdoc />
-    public override string ResourceType => ManagementResourceTypes.Server;
+    public override string ResourceType => ManagementResourceTypes.Platform;
 }

@@ -15,7 +15,7 @@ using Xunit;
 
 namespace NCode.Identity.Server.Tests;
 
-public class ServerSecretProtectorWarmupTests : BaseTests
+public class PlatformSecretProtectorWarmupTests : BaseTests
 {
     private const string ServerId = "server-a";
 
@@ -38,7 +38,7 @@ public class ServerSecretProtectorWarmupTests : BaseTests
         mockProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForServer(expectedServerId),
+                    SecretOwner.ForPlatform(expectedServerId),
                     It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
                     cancellationToken
                 )
@@ -49,15 +49,15 @@ public class ServerSecretProtectorWarmupTests : BaseTests
     }
 
     private static OpenIdOptions CreateOpenIdOptions(string serverId) =>
-        new() { Server = new OpenIdServerOptions { ServerId = serverId } };
+        new() { Platform = new OpenIdPlatformOptions { ServerId = serverId } };
 
-    private static ServerSecretProtectorWarmup CreateWarmup(
+    private static PlatformSecretProtectorWarmup CreateWarmup(
         ISecretProtectorProvider provider,
         OpenIdOptions openIdOptions,
         SecretProtectionOptions protectionOptions,
         IHostEnvironment hostEnvironment,
-        ServerSecretProtectorHolder holder,
-        ILogger<ServerSecretProtectorWarmup> logger
+        PlatformSecretProtectorHolder holder,
+        ILogger<PlatformSecretProtectorWarmup> logger
     ) =>
         new(
             provider,
@@ -76,14 +76,14 @@ public class ServerSecretProtectorWarmupTests : BaseTests
         using var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;
         var protector = CreateProtector();
-        var holder = new ServerSecretProtectorHolder();
+        var holder = new PlatformSecretProtectorHolder();
         var warmup = CreateWarmup(
             CreateProvider(ServerId, protector, cancellationToken),
             CreateOpenIdOptions(ServerId),
             new SecretProtectionOptions(),
             CreateEnvironment(Environments.Development),
             holder,
-            CreateLooseMock<ILogger<ServerSecretProtectorWarmup>>().Object
+            CreateLooseMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );
 
         await warmup.StartAsync(cancellationToken);
@@ -96,14 +96,18 @@ public class ServerSecretProtectorWarmupTests : BaseTests
     public async Task StartAsync_NoServerIdConfigured_UsesDefaultServerId()
     {
         var protector = CreateProtector();
-        var holder = new ServerSecretProtectorHolder();
+        var holder = new PlatformSecretProtectorHolder();
         var warmup = CreateWarmup(
-            CreateProvider(OpenIdServerOptions.DefaultServerId, protector, CancellationToken.None),
+            CreateProvider(
+                OpenIdPlatformOptions.DefaultPlatformId,
+                protector,
+                CancellationToken.None
+            ),
             CreateOpenIdOptions(string.Empty),
             new SecretProtectionOptions(),
             CreateEnvironment(Environments.Development),
             holder,
-            CreateLooseMock<ILogger<ServerSecretProtectorWarmup>>().Object
+            CreateLooseMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );
 
         await warmup.StartAsync(CancellationToken.None);
@@ -114,7 +118,7 @@ public class ServerSecretProtectorWarmupTests : BaseTests
     [Fact]
     public async Task StartAsync_ProductionWithLocalRootKey_LogsWarning()
     {
-        var mockLogger = CreateStrictMock<ILogger<ServerSecretProtectorWarmup>>();
+        var mockLogger = CreateStrictMock<ILogger<PlatformSecretProtectorWarmup>>();
         mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
         mockLogger
             .Setup(x =>
@@ -132,7 +136,7 @@ public class ServerSecretProtectorWarmupTests : BaseTests
             CreateOpenIdOptions(ServerId),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Local },
             CreateEnvironment(Environments.Production),
-            new ServerSecretProtectorHolder(),
+            new PlatformSecretProtectorHolder(),
             mockLogger.Object
         );
 
@@ -148,8 +152,8 @@ public class ServerSecretProtectorWarmupTests : BaseTests
             CreateOpenIdOptions(ServerId),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.AwsKms },
             CreateEnvironment(Environments.Production),
-            new ServerSecretProtectorHolder(),
-            CreateStrictMock<ILogger<ServerSecretProtectorWarmup>>().Object
+            new PlatformSecretProtectorHolder(),
+            CreateStrictMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );
 
         await warmup.StartAsync(CancellationToken.None);
@@ -164,8 +168,8 @@ public class ServerSecretProtectorWarmupTests : BaseTests
             CreateOpenIdOptions(ServerId),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Local },
             CreateEnvironment(Environments.Development),
-            new ServerSecretProtectorHolder(),
-            CreateStrictMock<ILogger<ServerSecretProtectorWarmup>>().Object
+            new PlatformSecretProtectorHolder(),
+            CreateStrictMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );
 
         await warmup.StartAsync(CancellationToken.None);
@@ -183,8 +187,8 @@ public class ServerSecretProtectorWarmupTests : BaseTests
             CreateOpenIdOptions(ServerId),
             new SecretProtectionOptions(),
             CreateStrictMock<IHostEnvironment>().Object,
-            new ServerSecretProtectorHolder(),
-            CreateStrictMock<ILogger<ServerSecretProtectorWarmup>>().Object
+            new PlatformSecretProtectorHolder(),
+            CreateStrictMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );
 
         await warmup.StopAsync(CancellationToken.None);
@@ -197,7 +201,7 @@ public class ServerSecretProtectorWarmupTests : BaseTests
     [Fact]
     public void GetRequired_NotLoaded_Throws()
     {
-        var holder = new ServerSecretProtectorHolder();
+        var holder = new PlatformSecretProtectorHolder();
 
         var exception = Assert.Throws<InvalidOperationException>(() => holder.GetRequired());
 

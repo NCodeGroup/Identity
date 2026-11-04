@@ -21,9 +21,9 @@ namespace NCode.Identity.Server.SecretProtection;
 /// </remarks>
 /// <param name="holder">The holder of the protector of the server.</param>
 // See ADR-1235.
-internal class MasterKeyXmlEncryptor(ServerSecretProtectorHolder holder) : IXmlEncryptor
+internal class MasterKeyXmlEncryptor(PlatformSecretProtectorHolder holder) : IXmlEncryptor
 {
-    private ServerSecretProtectorHolder Holder { get; } = holder;
+    private PlatformSecretProtectorHolder Holder { get; } = holder;
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">Thrown when the protector of the server is not loaded.</exception>

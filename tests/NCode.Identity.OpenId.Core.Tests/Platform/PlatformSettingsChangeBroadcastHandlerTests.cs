@@ -2,22 +2,22 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Moq;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class ServerSettingsChangeBroadcastHandlerTests : BaseTests
 {
     private const string ServerId = "server-1";
 
-    private Mock<IMaterializedServerRegistry> MockRegistry { get; }
-    private ServerSettingsChangeBroadcastHandler Handler { get; }
+    private Mock<IMaterializedPlatformRegistry> MockRegistry { get; }
+    private PlatformSettingsChangeBroadcastHandler Handler { get; }
 
     public ServerSettingsChangeBroadcastHandlerTests()
     {
-        MockRegistry = CreateStrictMock<IMaterializedServerRegistry>();
-        Handler = new ServerSettingsChangeBroadcastHandler(MockRegistry.Object);
+        MockRegistry = CreateStrictMock<IMaterializedPlatformRegistry>();
+        Handler = new PlatformSettingsChangeBroadcastHandler(MockRegistry.Object);
     }
 
     #region Channel Tests
@@ -25,8 +25,8 @@ public class ServerSettingsChangeBroadcastHandlerTests : BaseTests
     [Fact]
     public void Channel_IsTheServerSettingsChangedChannel()
     {
-        Assert.Equal("server-settings-changed", Handler.Channel);
-        Assert.Equal(ServerSettingsChangeBroadcastHandler.ChannelName, Handler.Channel);
+        Assert.Equal("platform-settings-changed", Handler.Channel);
+        Assert.Equal(PlatformSettingsChangeBroadcastHandler.ChannelName, Handler.Channel);
     }
 
     #endregion

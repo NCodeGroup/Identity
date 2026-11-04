@@ -20,17 +20,17 @@ using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdServerFactory"/> abstraction.
+/// Provides a default implementation of the <see cref="IOpenIdPlatformFactory"/> abstraction.
 /// </summary>
 /// <remarks>
 /// The server's persisted settings document is loaded through <see cref="ISecurityProfileCatalog"/>, like every other
 /// scope's, so the security profiles it selects contribute their ceilings at the top of the cascade.
 /// </remarks>
 // See ADR-1148 (security profiles accumulate down the cascade).
-internal class DefaultOpenIdServerFactory(
+internal class DefaultOpenIdPlatformFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IServiceProvider serviceProvider,
     ISecretSerializer secretSerializer,
@@ -41,7 +41,7 @@ internal class DefaultOpenIdServerFactory(
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ISecurityProfileCatalog securityProfileCatalog,
     IIdGenerator<long> idGenerator
-) : IOpenIdServerFactory
+) : IOpenIdPlatformFactory
 {
     // Read on use: Value runs the OpenIdOptions validators, which construct the client-authentication handlers, which depend on this factory (ADR-1204).
     private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
@@ -62,29 +62,29 @@ internal class DefaultOpenIdServerFactory(
     /// <summary>
     /// Gets the <c>ServerId</c> from the configurable options, or uses the default if not set.
     /// </summary>
-    protected virtual string GetServerId()
+    protected virtual string GetPlatformId()
     {
-        var serverId = Options.Server.ServerId;
+        var serverId = Options.Platform.ServerId;
 
         if (string.IsNullOrEmpty(serverId))
         {
-            serverId = OpenIdServerOptions.DefaultServerId;
+            serverId = OpenIdPlatformOptions.DefaultPlatformId;
         }
 
         return serverId;
     }
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdServer> CreateAsync(
+    public async ValueTask<OpenIdPlatform> CreateAsync(
         OpenIdEnvironment openIdEnvironment,
         CancellationToken cancellationToken
     )
     {
-        var serverId = GetServerId();
+        var serverId = GetPlatformId();
 
         var disposables = new List<object>(3);
         var propertyBag = openIdEnvironment.PropertyBag.Clone();
-        var persistedServer = await GetPersistedServerAsync(
+        var persistedServer = await GetPersistedPlatformAsync(
             serverId,
             propertyBag,
             cancellationToken
@@ -102,7 +102,7 @@ internal class DefaultOpenIdServerFactory(
             IReadOnlySettingCollectionProvider settingsProvider;
             try
             {
-                serverSettingsDataSource = await CreateServerSettingsDataSourceAsync(
+                serverSettingsDataSource = await CreatePlatformSettingsDataSourceAsync(
                     openIdEnvironment,
                     persistedServer,
                     propertyBag,
@@ -154,9 +154,9 @@ internal class DefaultOpenIdServerFactory(
     }
 
     /// <summary>
-    /// Factory method to create an instance of <see cref="OpenIdServer"/>.
+    /// Factory method to create an instance of <see cref="OpenIdPlatform"/>.
     /// </summary>
-    protected internal virtual OpenIdServer Create(
+    protected internal virtual OpenIdPlatform Create(
         string serverId,
         IReadOnlySettingCollectionProvider configuredSettingsProvider,
         IReadOnlySettingCollectionProvider settingsProvider,
@@ -164,7 +164,7 @@ internal class DefaultOpenIdServerFactory(
         Func<CancellationToken, ValueTask> refreshSettingsAsync,
         IPropertyBag propertyBag
     ) =>
-        new DefaultOpenIdServer(
+        new DefaultOpenIdPlatform(
             serverId,
             configuredSettingsProvider,
             settingsProvider,
@@ -177,7 +177,7 @@ internal class DefaultOpenIdServerFactory(
     /// Attempts to retrieve the <see cref="PersistedServer"/> with the specified server ID from the store.
     /// If not found, creates a new instance and persists it.
     /// </summary>
-    protected internal virtual async ValueTask<PersistedServer> GetPersistedServerAsync(
+    protected internal virtual async ValueTask<PersistedServer> GetPersistedPlatformAsync(
         string serverId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
@@ -190,7 +190,7 @@ internal class DefaultOpenIdServerFactory(
         if (persistedServer is not null)
             return persistedServer;
 
-        persistedServer = CreateEmptyPersistedServer(serverId);
+        persistedServer = CreateEmptyPersistedPlatform(serverId);
 
         await store.AddAsync(persistedServer, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
@@ -201,7 +201,7 @@ internal class DefaultOpenIdServerFactory(
     /// <summary>
     /// Creates an empty <see cref="PersistedServer"/> instance with the specified server ID.
     /// </summary>
-    protected internal virtual PersistedServer CreateEmptyPersistedServer(string serverId)
+    protected internal virtual PersistedServer CreateEmptyPersistedPlatform(string serverId)
     {
         var settings = new PersistedServerSettings
         {
@@ -249,7 +249,7 @@ internal class DefaultOpenIdServerFactory(
     /// <summary>
     /// Used to create a data source for the server's settings that are persisted in a store.
     /// </summary>
-    protected internal virtual ValueTask<RefreshableSettingsCollectionDataSource> CreateServerSettingsDataSourceAsync(
+    protected internal virtual ValueTask<RefreshableSettingsCollectionDataSource> CreatePlatformSettingsDataSourceAsync(
         OpenIdEnvironment openIdEnvironment,
         PersistedServer persistedServer,
         IPropertyBag propertyBag,
@@ -261,19 +261,19 @@ internal class DefaultOpenIdServerFactory(
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var initialSettings = SecurityProfileCatalog.Expand(
             persistedServer.Settings.Value,
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             jsonOptions
         );
 
         Func<CancellationToken, ValueTask<IReadOnlyCollection<Setting>?>> loadChangedSettingsAsync =
             ct => LoadChangedSettingsAsync(openIdEnvironment, persistedServer, ct);
 
-        // A committed change is read at once through OpenIdServer.RefreshSettingsAsync; the interval is the fallback (ADR-1219).
+        // A committed change is read at once through OpenIdPlatform.RefreshSettingsAsync; the interval is the fallback (ADR-1219).
         var dataSource = ActivatorUtilities.CreateInstance<RefreshableSettingsCollectionDataSource>(
             ServiceProvider,
             initialSettings,
             loadChangedSettingsAsync,
-            Options.Server.SettingsPeriodicRefreshInterval
+            Options.Platform.SettingsPeriodicRefreshInterval
         );
 
         return ValueTask.FromResult(dataSource);
@@ -304,7 +304,7 @@ internal class DefaultOpenIdServerFactory(
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var settings = SecurityProfileCatalog.Expand(
             newSettings.Value,
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             jsonOptions
         );
 
@@ -326,7 +326,7 @@ internal class DefaultOpenIdServerFactory(
         cancellationToken.ThrowIfCancellationRequested();
 
         var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
-            SecretOwner.ForServer(persistedServer.ServerId),
+            SecretOwner.ForPlatform(persistedServer.ServerId),
             persistedServer.Secrets.Value,
             cancellationToken
         );
@@ -339,7 +339,7 @@ internal class DefaultOpenIdServerFactory(
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
             persistedServer,
             initialSecrets,
-            Options.Server.SecretsPeriodicRefreshInterval,
+            Options.Platform.SecretsPeriodicRefreshInterval,
             RefreshSecretsAsync
         );
 
@@ -371,7 +371,7 @@ internal class DefaultOpenIdServerFactory(
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
         var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
-            SecretOwner.ForServer(serverId),
+            SecretOwner.ForPlatform(serverId),
             newSecrets.Value,
             cancellationToken
         );

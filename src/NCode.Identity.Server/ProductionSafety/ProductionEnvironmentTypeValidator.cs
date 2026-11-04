@@ -35,7 +35,7 @@ internal class ProductionEnvironmentTypeValidator(IEnumerable<ITenantEnvironment
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var typeName = options.Server.Settings?[OpenIdSettingNames.EnvironmentType];
+        var typeName = options.Platform.Settings?[OpenIdSettingNames.EnvironmentType];
         if (string.IsNullOrEmpty(typeName))
             return ValidateOptionsResult.Success;
 

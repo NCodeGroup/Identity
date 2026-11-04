@@ -26,12 +26,12 @@ internal class DefaultSettingScopeDataSource(INullChangeToken nullChangeToken)
     {
         get
         {
-            yield return new SettingScopeDescriptor { Name = OpenIdSettingScopes.Server };
+            yield return new SettingScopeDescriptor { Name = OpenIdSettingScopes.Platform };
 
             yield return new SettingScopeDescriptor
             {
                 Name = OpenIdSettingScopes.Tenant,
-                ParentName = OpenIdSettingScopes.Server,
+                ParentName = OpenIdSettingScopes.Platform,
             };
 
             yield return new SettingScopeDescriptor

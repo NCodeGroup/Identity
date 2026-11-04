@@ -9,7 +9,7 @@ using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.SharedState;
 using NCode.Persistence.Stores;
 
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Sessions;
 /// </summary>
 // See ADR-1223 and ADR-1395.
 internal sealed class EndedSessionTerminationService(
-    IMaterializedServerAccessor materializedServerAccessor,
+    IMaterializedPlatformAccessor materializedServerAccessor,
     IServiceScopeFactory serviceScopeFactory,
     IStoreManagerFactory storeManagerFactory,
     IOpenIdContextFactory openIdContextFactory,
@@ -47,7 +47,7 @@ internal sealed class EndedSessionTerminationService(
     /// </summary>
     internal const int PageSize = 100;
 
-    private IMaterializedServerAccessor MaterializedServerAccessor { get; } =
+    private IMaterializedPlatformAccessor MaterializedPlatformAccessor { get; } =
         materializedServerAccessor;
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -68,7 +68,7 @@ internal sealed class EndedSessionTerminationService(
         {
             // The pass waits until the replica materializes its server: when it starts, or, when the store cannot be
             // read then, at its first request.
-            await MaterializedServerAccessor.GetServerAsync(stoppingToken);
+            await MaterializedPlatformAccessor.GetPlatformAsync(stoppingToken);
 
             using var timer = new PeriodicTimer(Options.Interval, TimeProvider);
             while (await timer.WaitForNextTickAsync(stoppingToken))

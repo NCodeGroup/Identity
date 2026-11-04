@@ -314,7 +314,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
 
         Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Empty(await ListAsync(SecretOwner.ForServer(TenantOneId)));
+        Assert.Empty(await ListAsync(SecretOwner.ForPlatform(TenantOneId)));
     }
 
     [Fact]
@@ -365,7 +365,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
 
         Assert.Null(await FindActiveAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Null(await FindActiveAsync(SecretOwner.ForServer(TenantOneId)));
+        Assert.Null(await FindActiveAsync(SecretOwner.ForPlatform(TenantOneId)));
     }
 
     #endregion
@@ -444,7 +444,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1),
-            CreateMasterKey(SecretOwnerTypes.Server, ServerId, 1)
+            CreateMasterKey(SecretOwnerTypes.Platform, ServerId, 1)
         );
 
         int removed;
@@ -462,7 +462,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         Assert.Equal(2, removed);
         Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
         Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Single(await ListAsync(SecretOwner.ForServer(ServerId)));
+        Assert.Single(await ListAsync(SecretOwner.ForPlatform(ServerId)));
     }
 
     #endregion

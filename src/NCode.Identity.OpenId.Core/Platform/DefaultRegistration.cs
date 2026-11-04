@@ -10,7 +10,7 @@ using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.Registration;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Provides extension methods to configure services for the OpenID server.
@@ -25,34 +25,40 @@ internal static class DefaultRegistration
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
-        public IServiceBuilder<OpenIdCoreLibrary> AddServerServices()
+        public IServiceBuilder<OpenIdCoreLibrary> AddPlatformServices()
         {
             var serviceCollection = builder.ServiceCollection;
 
-            // DefaultOpenIdServerFactory and the persistence stores mint entity ids via IIdGenerator<long>. Register a
+            // DefaultOpenIdPlatformFactory and the persistence stores mint entity ids via IIdGenerator<long>. Register a
             // single-node default (generator id 0); multi-node hosts override it with AddIdGen(nodeId) to keep ids unique.
             serviceCollection.TryAddSingleton<IIdGenerator<long>>(new IdGenerator(0));
 
-            serviceCollection.TryAddSingleton<IOpenIdServerFactory, DefaultOpenIdServerFactory>();
-            serviceCollection.TryAddSingleton<IOpenIdServerProvider, DefaultOpenIdServerProvider>();
+            serviceCollection.TryAddSingleton<
+                IOpenIdPlatformFactory,
+                DefaultOpenIdPlatformFactory
+            >();
+            serviceCollection.TryAddSingleton<
+                IOpenIdPlatformProvider,
+                DefaultOpenIdPlatformProvider
+            >();
 
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<
-                IMaterializedServerRegistry,
-                DefaultMaterializedServerRegistry
+                IMaterializedPlatformRegistry,
+                DefaultMaterializedPlatformRegistry
             >();
 
             // Background work in another package waits for the server through the public accessor (ADR-1223).
-            serviceCollection.TryAddSingleton<IMaterializedServerAccessor>(serviceProvider =>
-                serviceProvider.GetRequiredService<IMaterializedServerRegistry>()
+            serviceCollection.TryAddSingleton<IMaterializedPlatformAccessor>(serviceProvider =>
+                serviceProvider.GetRequiredService<IMaterializedPlatformRegistry>()
             );
 
             // A committed server settings change is applied on this replica before the write returns and then announced
             // to every replica (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    ICommandHandler<ServerSettingsChangedCommand>,
-                    ServerSettingsChangedHandler
+                    ICommandHandler<PlatformSettingsChangedCommand>,
+                    PlatformSettingsChangedHandler
                 >()
             );
 
@@ -61,17 +67,17 @@ internal static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IReplicaBroadcastHandler,
-                    ServerSettingsChangeBroadcastHandler
+                    PlatformSettingsChangeBroadcastHandler
                 >()
             );
 
             // Each replica reconciles every tenant and client with the server's effective settings whenever they change,
             // one replica per change (ADR-1219).
             serviceCollection.TryAddSingleton<
-                IServerSettingsReconciler,
-                DefaultServerSettingsReconciler
+                IPlatformSettingsReconciler,
+                DefaultPlatformSettingsReconciler
             >();
-            serviceCollection.AddHostedService<ServerSettingsReconciliationService>();
+            serviceCollection.AddHostedService<PlatformSettingsReconciliationService>();
 
             // A server or tenant interval that a timer refuses stops the host when it starts instead of failing the
             // first time a timer is created (ADR-1221).

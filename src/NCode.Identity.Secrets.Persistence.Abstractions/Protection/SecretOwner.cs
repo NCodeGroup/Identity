@@ -45,7 +45,8 @@ public readonly record struct SecretOwner
     /// </summary>
     /// <param name="serverId">The identifier of the server.</param>
     /// <returns>The <see cref="SecretOwner"/> for the server.</returns>
-    public static SecretOwner ForServer(string serverId) => new(SecretOwnerTypes.Server, serverId);
+    public static SecretOwner ForPlatform(string serverId) =>
+        new(SecretOwnerTypes.Platform, serverId);
 
     /// <summary>
     /// Creates the owner that represents a single tenant.

@@ -11,7 +11,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// from other threads afterwards.
 /// </summary>
 // See ADR-1235.
-internal class ServerSecretProtectorHolder
+internal class PlatformSecretProtectorHolder
 {
     // A volatile field rather than an auto-property: the protector is published once at startup and read from other
     // threads, and a property cannot be declared volatile.

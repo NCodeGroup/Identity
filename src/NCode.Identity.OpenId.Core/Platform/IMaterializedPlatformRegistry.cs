@@ -1,10 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Holds the <see cref="OpenIdServer"/> that this replica materialized, so background work can wait for it and a
+/// Holds the <see cref="OpenIdPlatform"/> that this replica materialized, so background work can wait for it and a
 /// committed change to its settings can refresh it at once.
 /// </summary>
 /// <remarks>
@@ -12,17 +12,17 @@ namespace NCode.Identity.OpenId.Servers;
 /// a cycle through the services that need the server.
 /// </remarks>
 // See ADR-1219.
-internal interface IMaterializedServerRegistry : IMaterializedServerAccessor
+internal interface IMaterializedPlatformRegistry : IMaterializedPlatformAccessor
 {
     /// <summary>
     /// Registers the server that this replica materialized. A replica materializes its server once, so a registration
     /// after the first is ignored.
     /// </summary>
-    /// <param name="server">The <see cref="OpenIdServer"/> to register.</param>
-    void Register(OpenIdServer server);
+    /// <param name="server">The <see cref="OpenIdPlatform"/> to register.</param>
+    void Register(OpenIdPlatform server);
 
     /// <summary>
-    /// Reads the settings of the registered server again when its <see cref="OpenIdServer.ServerId"/> equals
+    /// Reads the settings of the registered server again when its <see cref="OpenIdPlatform.ServerId"/> equals
     /// <paramref name="serverId"/> ordinally. Does nothing when no server is registered or when the identifiers differ.
     /// </summary>
     /// <param name="serverId">The identifier of the server whose settings changed.</param>

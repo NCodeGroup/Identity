@@ -8,7 +8,7 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Computes the fingerprint of a server's effective settings: the Base64Url encoding of a SHA-256 hash over each
@@ -18,7 +18,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// have the same fingerprint, whatever order they enumerate in.
 /// </summary>
 // See ADR-1219.
-internal static class ServerSettingsFingerprint
+internal static class SettingsFingerprint
 {
     /// <summary>
     /// Computes the fingerprint of the specified <paramref name="settings"/>.

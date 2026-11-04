@@ -10,17 +10,17 @@ namespace NCode.Identity.OpenId;
 /// Contains the options used to configure the OpenID server.
 /// </summary>
 [PublicAPI]
-public sealed class OpenIdServerOptions
+public sealed class OpenIdPlatformOptions
 {
     /// <summary>
     /// Contains the default value for the server's identifier.
     /// </summary>
-    public const string DefaultServerId = "default";
+    public const string DefaultPlatformId = "default";
 
     /// <summary>
     /// Gets or sets the identifier for the server.
     /// </summary>
-    public string ServerId { get; set; } = DefaultServerId;
+    public string ServerId { get; set; } = DefaultPlatformId;
 
     /// <summary>
     /// Gets or sets the period of time after which the server's persisted settings are read again.

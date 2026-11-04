@@ -76,7 +76,7 @@ public class TokenEndpointClientJwksUriTests
             new Dictionary<string, string>
             {
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
                 ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                 ["client_assertion"] = assertion,
             }
@@ -106,7 +106,7 @@ public class TokenEndpointClientJwksUriTests
             ClientId,
             "it-jwks-rs-api",
             "https://api.jwks.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = factory.CreateClient(
@@ -142,7 +142,7 @@ public class TokenEndpointClientJwksUriTests
             ClientId,
             "it-jwks-rs-api",
             "https://api.jwks.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = factory.CreateClient(

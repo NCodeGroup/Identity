@@ -140,12 +140,12 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
 
         var options = serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("primary", options.Server.ServerId);
-        Assert.Equal(TimeSpan.FromMinutes(20), options.Server.ReconciliationLeaseDuration);
+        Assert.Equal("primary", options.Platform.ServerId);
+        Assert.Equal(TimeSpan.FromMinutes(20), options.Platform.ReconciliationLeaseDuration);
         Assert.Equal(TimeSpan.FromMinutes(30), options.Tenant.TenantCacheLifetime);
-        Assert.NotNull(options.Server.Settings);
-        Assert.Equal("OpenId:Server:Settings", options.Server.Settings.Path);
-        Assert.Equal("authorization_code", options.Server.Settings["grant_types_supported:0"]);
+        Assert.NotNull(options.Platform.Settings);
+        Assert.Equal("OpenId:Server:Settings", options.Platform.Settings.Path);
+        Assert.Equal("authorization_code", options.Platform.Settings["grant_types_supported:0"]);
     }
 
     [Fact]
@@ -155,8 +155,8 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
 
         var options = serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.NotNull(options.Server.Settings);
-        Assert.Equal("OpenId:Server:Settings", options.Server.Settings.Path);
+        Assert.NotNull(options.Platform.Settings);
+        Assert.Equal("OpenId:Server:Settings", options.Platform.Settings.Path);
     }
 
     [Fact]
@@ -430,8 +430,8 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             .GetRequiredService<IOptions<MutualTlsForwardingOptions>>()
             .Value;
 
-        Assert.Equal("primary", openIdOptions.Server.ServerId);
-        Assert.Equal("Identity:Server:Settings", openIdOptions.Server.Settings?.Path);
+        Assert.Equal("primary", openIdOptions.Platform.ServerId);
+        Assert.Equal("Identity:Server:Settings", openIdOptions.Platform.Settings?.Path);
         Assert.Equal("acme", tenantResolutionOptions.StaticSingle?.TenantId);
         Assert.Equal("X-Client-Cert", mutualTlsOptions.CertificateHeaderName);
     }
@@ -471,7 +471,7 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         secretProtectorProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForServer(OpenIdServerOptions.DefaultServerId),
+                    SecretOwner.ForPlatform(OpenIdPlatformOptions.DefaultPlatformId),
                     It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
                     It.IsAny<CancellationToken>()
                 )

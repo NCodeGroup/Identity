@@ -1303,7 +1303,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             // Widen the server ceiling (registered after the library default, so it unions on top):
             // enables the client_credentials and resource-owner password grants plus a custom "api" scope for
             // integration coverage. Both grants stay off in the host's own secure defaults.
-            serviceCollection.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
+            serviceCollection.AddSingleton<
+                IDefaultSettingsProvider,
+                TestPlatformSettingsProvider
+            >();
 
             // A supplied client_secret is stored as a PBKDF2 verifier whose work factor would make every seeded
             // client's token request cost what a password check costs; a verifier records its own count, so a low one
@@ -1370,7 +1373,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             if (PersistedServerSettings is { } persistedServerSettings)
             {
                 serviceCollection.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(
-                    provider => new PersistedServerSeedService(
+                    provider => new PersistedPlatformSeedService(
                         provider.GetRequiredService<IServiceScopeFactory>(),
                         persistedServerSettings
                     )

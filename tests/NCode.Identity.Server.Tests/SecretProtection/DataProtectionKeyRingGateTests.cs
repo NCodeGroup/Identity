@@ -21,7 +21,7 @@ namespace NCode.Identity.Server.Tests;
 
 public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
 {
-    private static SecretOwner ServerOwner { get; } = SecretOwner.ForServer("server-a");
+    private static SecretOwner PlatformOwner { get; } = SecretOwner.ForPlatform("server-a");
 
     private static DateTimeOffset Now { get; } = new(2026, 10, 24, 12, 0, 0, TimeSpan.Zero);
 
@@ -72,15 +72,15 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
             CreateLooseMock<ILogger<DataProtectionKeyRingGate>>().Object
         );
 
-    private async Task<ServerSecretProtectorHolder> CreateLoadedHolderAsync() =>
+    private async Task<PlatformSecretProtectorHolder> CreateLoadedHolderAsync() =>
         new()
         {
-            Protector = await GetProtectorAsync(CreateSecretServices(ServerOwner), ServerOwner),
+            Protector = await GetProtectorAsync(CreateSecretServices(PlatformOwner), PlatformOwner),
         };
 
     private ServiceProvider CreateDataProtectionServices(
         IXmlRepository repository,
-        ServerSecretProtectorHolder holder
+        PlatformSecretProtectorHolder holder
     )
     {
         var serviceCollection = new ServiceCollection();

@@ -31,7 +31,7 @@ public abstract class BasePersistedServerResource : ISupportPersistedServerResou
     /// Gets the prefix for the resource type.
     /// </summary>
     [MaxLength(MaxLengths.ResourceType)]
-    protected const string ResourceTypePrefix = OpenIdResourceTypes.Server;
+    protected const string ResourceTypePrefix = OpenIdResourceTypes.Platform;
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]

@@ -292,7 +292,9 @@ internal class ClientApiEndpointHandler(
             return null;
         }
 
-        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var serverEffective = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            cancellationToken
+        );
         return EffectiveSettingsResolver.ResolveStored(
             serverEffective,
             OpenIdSettingScopes.Tenant,

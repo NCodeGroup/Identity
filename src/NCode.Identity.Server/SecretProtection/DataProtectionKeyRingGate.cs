@@ -12,7 +12,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// <summary>
 /// Refuses to start the host while a live Data Protection key cannot be decrypted with the master key of the server,
 /// and revokes the keys that <see cref="DataProtectionKeyRingOptions.RevokedKeyIds"/> lists. It starts after
-/// <see cref="ServerSecretProtectorWarmup"/>, which loads the protector that decrypts the keys, and before the hosted
+/// <see cref="PlatformSecretProtectorWarmup"/>, which loads the protector that decrypts the keys, and before the hosted
 /// service of Data Protection, which would otherwise load the key ring and fail on the first key it cannot read.
 /// </summary>
 /// <remarks>

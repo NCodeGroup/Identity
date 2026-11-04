@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.Settings;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class ServerSettingsFingerprintTests
 {
@@ -28,12 +28,12 @@ public class ServerSettingsFingerprintTests
     [Fact]
     public void Compute_WhenTheSettingsAreInAnotherOrder_ReturnsTheSameFingerprint()
     {
-        var first = ServerSettingsFingerprint.Compute(
+        var first = SettingsFingerprint.Compute(
             [CreateFlag(true), CreateList("a", "b")],
             JsonOptions
         );
 
-        var second = ServerSettingsFingerprint.Compute(
+        var second = SettingsFingerprint.Compute(
             [CreateList("a", "b"), CreateFlag(true)],
             JsonOptions
         );
@@ -44,9 +44,9 @@ public class ServerSettingsFingerprintTests
     [Fact]
     public void Compute_WhenAListIsInAnotherOrder_ReturnsTheSameFingerprint()
     {
-        var first = ServerSettingsFingerprint.Compute([CreateList("a", "b", "c")], JsonOptions);
+        var first = SettingsFingerprint.Compute([CreateList("a", "b", "c")], JsonOptions);
 
-        var second = ServerSettingsFingerprint.Compute([CreateList("c", "a", "b")], JsonOptions);
+        var second = SettingsFingerprint.Compute([CreateList("c", "a", "b")], JsonOptions);
 
         Assert.Equal(first, second);
     }
@@ -54,9 +54,9 @@ public class ServerSettingsFingerprintTests
     [Fact]
     public void Compute_WhenAValueChanges_ReturnsAnotherFingerprint()
     {
-        var first = ServerSettingsFingerprint.Compute([CreateFlag(true)], JsonOptions);
+        var first = SettingsFingerprint.Compute([CreateFlag(true)], JsonOptions);
 
-        var second = ServerSettingsFingerprint.Compute([CreateFlag(false)], JsonOptions);
+        var second = SettingsFingerprint.Compute([CreateFlag(false)], JsonOptions);
 
         Assert.NotEqual(first, second);
     }
@@ -64,12 +64,9 @@ public class ServerSettingsFingerprintTests
     [Fact]
     public void Compute_WhenASettingIsAdded_ReturnsAnotherFingerprint()
     {
-        var first = ServerSettingsFingerprint.Compute([CreateFlag(true)], JsonOptions);
+        var first = SettingsFingerprint.Compute([CreateFlag(true)], JsonOptions);
 
-        var second = ServerSettingsFingerprint.Compute(
-            [CreateFlag(true), CreateList("a")],
-            JsonOptions
-        );
+        var second = SettingsFingerprint.Compute([CreateFlag(true), CreateList("a")], JsonOptions);
 
         Assert.NotEqual(first, second);
     }
@@ -77,7 +74,7 @@ public class ServerSettingsFingerprintTests
     [Fact]
     public void Compute_ReturnsABase64UrlSha256()
     {
-        var fingerprint = ServerSettingsFingerprint.Compute([CreateFlag(true)], JsonOptions);
+        var fingerprint = SettingsFingerprint.Compute([CreateFlag(true)], JsonOptions);
 
         Assert.Equal(43, fingerprint.Length);
         Assert.DoesNotContain('=', fingerprint);

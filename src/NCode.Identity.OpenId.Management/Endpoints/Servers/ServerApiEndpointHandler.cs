@@ -23,7 +23,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -117,7 +117,7 @@ internal class ServerApiEndpointHandler(
             .Produces<ServerResource>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
         servers.MapGet("", ListServersAsync).Produces<CollectionResource<ServerResource>>();
-        servers.MapGet("/{serverId}", GetServerAsync).Produces<ServerResource>();
+        servers.MapGet("/{serverId}", GetPlatformAsync).Produces<ServerResource>();
         servers.MapPatch("/{serverId}", UpdateServerAsync).Produces(StatusCodes.Status204NoContent);
         servers
             .MapDelete("/{serverId}", DeleteServerAsync)
@@ -243,7 +243,7 @@ internal class ServerApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested server.</response>
     [EndpointName("api/servers/get")]
-    internal virtual async ValueTask<IResult> GetServerAsync(
+    internal virtual async ValueTask<IResult> GetPlatformAsync(
         HttpContext httpContext,
         [FromRoute] string serverId,
         CancellationToken cancellationToken
@@ -314,7 +314,7 @@ internal class ServerApiEndpointHandler(
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             jsonOptions
         );
         if (settingErrors.Count > 0)
@@ -555,11 +555,18 @@ internal class ServerApiEndpointHandler(
     {
         try
         {
-            return await EffectiveSettingsResolver.ResolveServerAsync(settings, cancellationToken);
+            return await EffectiveSettingsResolver.ResolvePlatformAsync(
+                settings,
+                cancellationToken
+            );
         }
         catch (JsonException exception)
         {
-            throw new UnreadableSettingsException(OpenIdSettingScopes.Server, serverId, exception);
+            throw new UnreadableSettingsException(
+                OpenIdSettingScopes.Platform,
+                serverId,
+                exception
+            );
         }
     }
 
@@ -581,7 +588,7 @@ internal class ServerApiEndpointHandler(
             Settings = ToEffectiveSettingsElement(
                 settings,
                 SettingScopeCollectionProvider.Collection,
-                OpenIdSettingScopes.Server
+                OpenIdSettingScopes.Platform
             ),
         };
     }
@@ -655,7 +662,7 @@ internal class ServerApiEndpointHandler(
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
         var settingErrors = SettingSerializer.ValidateSettings(
             settingsValue,
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             jsonOptions
         );
         if (settingErrors.Count > 0)
@@ -668,7 +675,7 @@ internal class ServerApiEndpointHandler(
             serverSettings.Value,
             cancellationToken
         );
-        var newServerSettings = await EffectiveSettingsResolver.ResolveServerAsync(
+        var newServerSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
             settingsValue,
             cancellationToken
         );
@@ -731,14 +738,14 @@ internal class ServerApiEndpointHandler(
     {
         try
         {
-            return await EffectiveSettingsResolver.ResolveServerAsync(
+            return await EffectiveSettingsResolver.ResolvePlatformAsync(
                 replacedSettings,
                 cancellationToken
             );
         }
         catch (JsonException exception)
         {
-            Logger.ServerSettingsUnreadable(serverId, exception.Message);
+            Logger.PlatformSettingsUnreadable(serverId, exception.Message);
             return null;
         }
     }
@@ -891,7 +898,7 @@ internal class ServerApiEndpointHandler(
         var secretId = CryptoService.GenerateResourceId();
 
         var protector = await SecretProtectorProvider.GetProtectorAsync(
-            SecretOwner.ForServer(serverId),
+            SecretOwner.ForPlatform(serverId),
             [],
             cancellationToken
         );
@@ -1262,7 +1269,11 @@ internal class ServerApiEndpointHandler(
     {
         var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
         return mediator.SendAsync(
-            new ServerSettingsChangedCommand(serverId, previousSettings.Clone(), settings.Clone()),
+            new PlatformSettingsChangedCommand(
+                serverId,
+                previousSettings.Clone(),
+                settings.Clone()
+            ),
             cancellationToken
         );
     }

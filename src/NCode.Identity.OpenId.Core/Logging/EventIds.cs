@@ -18,7 +18,7 @@ internal static class EventIds
 
     public const int ClientError = Base + 2;
 
-    public const int ServerSettingsReloadRejected = Base + 3;
+    public const int PlatformSettingsReloadRejected = Base + 3;
 
     public const int TenantKeyProvisioned = Base + 4;
 
@@ -26,21 +26,21 @@ internal static class EventIds
 
     public const int TenantChangeBroadcastFailed = Base + 6;
 
-    public const int ServerSettingsRefreshFailed = Base + 7;
+    public const int PlatformSettingsRefreshFailed = Base + 7;
 
-    public const int ServerSettingsChangeRefreshFailed = Base + 8;
+    public const int PlatformSettingsChangeRefreshFailed = Base + 8;
 
-    public const int ServerSettingsChangeBroadcastFailed = Base + 9;
+    public const int PlatformSettingsChangeBroadcastFailed = Base + 9;
 
-    public const int ServerSettingsReconciliationStarted = Base + 10;
+    public const int PlatformSettingsReconciliationStarted = Base + 10;
 
-    public const int ServerSettingsReconciled = Base + 11;
+    public const int PlatformSettingsReconciled = Base + 11;
 
-    public const int ServerSettingsReconciliationFailed = Base + 12;
+    public const int PlatformSettingsReconciliationFailed = Base + 12;
 
-    public const int ReconciledServerSettingsUnreadable = Base + 13;
+    public const int ReconciledPlatformSettingsUnreadable = Base + 13;
 
     public const int TenantCacheClearFailed = Base + 14;
 
-    public const int ServerMaterializationAtStartFailed = Base + 15;
+    public const int PlatformMaterializationAtStartFailed = Base + 15;
 }

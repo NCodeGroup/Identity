@@ -6,7 +6,7 @@ using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
@@ -21,7 +21,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
 
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<IOpenIdPlatformProvider> MockServerProvider { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ITenantEnvironmentCatalog> MockTenantEnvironmentCatalog { get; }
@@ -32,7 +32,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     {
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
         MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
-        MockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
+        MockServerProvider = CreateStrictMock<IOpenIdPlatformProvider>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockSettingSerializer = CreateStrictMock<ISettingSerializer>();
         MockTenantEnvironmentCatalog = CreateStrictMock<ITenantEnvironmentCatalog>();
@@ -168,7 +168,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
 
     #endregion
 
-    #region ResolveServerAsync Tests
+    #region ResolvePlatformAsync Tests
 
     [Fact]
     public async Task ResolveServerAsync_WithADocument_MergesItOntoTheConfiguredSettings()
@@ -176,13 +176,13 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
         IReadOnlyCollection<Setting> expanded = new List<Setting>();
-        SetupExpand(OpenIdSettingScopes.Server, "proposed", jsonOptions, expanded);
+        SetupExpand(OpenIdSettingScopes.Platform, "proposed", jsonOptions, expanded);
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockConfigured = CreateStrictMock<IReadOnlySettingCollection>();
         mockConfigured.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
         SetupServer(mockConfigured.Object);
 
-        var result = await Resolver.ResolveServerAsync(
+        var result = await Resolver.ResolvePlatformAsync(
             CreateDocument("proposed"),
             CancellationToken.None
         );
@@ -197,7 +197,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
         IReadOnlyCollection<Setting> expanded = new List<Setting>();
-        SetupExpand(OpenIdSettingScopes.Server, "committed", jsonOptions, expanded);
+        SetupExpand(OpenIdSettingScopes.Platform, "committed", jsonOptions, expanded);
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockConfigured = CreateStrictMock<IReadOnlySettingCollection>();
         mockConfigured.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
@@ -216,7 +216,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             )
             .Verifiable();
 
-        var result = await Resolver.ResolveServerAsync(CancellationToken.None);
+        var result = await Resolver.ResolvePlatformAsync(CancellationToken.None);
 
         Assert.Same(effective, result);
     }
@@ -229,7 +229,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
         SetupExpandThrows(
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             "committed",
             jsonOptions,
             new JsonException(documentError)
@@ -251,10 +251,10 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .Verifiable();
 
         var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
-            await Resolver.ResolveServerAsync(CancellationToken.None)
+            await Resolver.ResolvePlatformAsync(CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdSettingScopes.Server, exception.ScopeName);
+        Assert.Equal(OpenIdSettingScopes.Platform, exception.ScopeName);
         Assert.Equal(ServerId, exception.OwnerId);
         Assert.Equal(documentError, exception.DocumentError);
     }
@@ -273,7 +273,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .ReturnsAsync((PersistedServerSettings?)null)
             .Verifiable();
 
-        var result = await Resolver.ResolveServerAsync(CancellationToken.None);
+        var result = await Resolver.ResolvePlatformAsync(CancellationToken.None);
 
         Assert.Same(configured, result);
     }
@@ -361,12 +361,12 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .Throws(exception)
             .Verifiable();
 
-    private Mock<OpenIdServer> SetupServer(IReadOnlySettingCollection configuredSettings)
+    private Mock<OpenIdPlatform> SetupServer(IReadOnlySettingCollection configuredSettings)
     {
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         mockSettingsProvider.SetupGet(x => x.Collection).Returns(configuredSettings).Verifiable();
 
-        var mockServer = CreateStrictMock<OpenIdServer>();
+        var mockServer = CreateStrictMock<OpenIdPlatform>();
         mockServer
             .SetupGet(x => x.ConfiguredSettingsProvider)
             .Returns(mockSettingsProvider.Object)

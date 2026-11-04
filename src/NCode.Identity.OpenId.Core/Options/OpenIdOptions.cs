@@ -22,7 +22,7 @@ public sealed class OpenIdOptions
     /// <summary>
     /// Gets or sets the configurable options for server features.
     /// </summary>
-    public OpenIdServerOptions Server { get; set; } = new();
+    public OpenIdPlatformOptions Platform { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the configurable options for tenant features.

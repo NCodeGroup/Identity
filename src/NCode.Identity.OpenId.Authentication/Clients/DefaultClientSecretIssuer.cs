@@ -52,7 +52,7 @@ internal sealed class DefaultClientSecretIssuer(
 
         try
         {
-            var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(
+            var serverEffective = await EffectiveSettingsResolver.ResolvePlatformAsync(
                 cancellationToken
             );
             var tenantEffective = EffectiveSettingsResolver.ResolveStored(

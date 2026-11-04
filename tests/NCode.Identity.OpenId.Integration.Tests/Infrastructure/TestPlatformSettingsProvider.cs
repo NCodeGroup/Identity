@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// <c>client_credentials</c> grant type and a custom <c>api</c> scope on top of the library baseline.
 /// Demonstrates that an extension can contribute capabilities the library does not bake in.
 /// </summary>
-internal sealed class TestServerSettingsProvider : IDefaultSettingsProvider
+internal sealed class TestPlatformSettingsProvider : IDefaultSettingsProvider
 {
     public const string ApiScope = "api";
 

@@ -22,21 +22,21 @@ internal sealed class OpenIdIntervalsOptionsValidator : IValidateOptions<OpenIdO
 
         Check(
             failures,
-            nameof(OpenIdOptions.Server),
-            nameof(OpenIdServerOptions.SettingsPeriodicRefreshInterval),
-            options.Server.SettingsPeriodicRefreshInterval
+            nameof(OpenIdOptions.Platform),
+            nameof(OpenIdPlatformOptions.SettingsPeriodicRefreshInterval),
+            options.Platform.SettingsPeriodicRefreshInterval
         );
         Check(
             failures,
-            nameof(OpenIdOptions.Server),
-            nameof(OpenIdServerOptions.SecretsPeriodicRefreshInterval),
-            options.Server.SecretsPeriodicRefreshInterval
+            nameof(OpenIdOptions.Platform),
+            nameof(OpenIdPlatformOptions.SecretsPeriodicRefreshInterval),
+            options.Platform.SecretsPeriodicRefreshInterval
         );
         Check(
             failures,
-            nameof(OpenIdOptions.Server),
-            nameof(OpenIdServerOptions.ReconciliationLeaseDuration),
-            options.Server.ReconciliationLeaseDuration
+            nameof(OpenIdOptions.Platform),
+            nameof(OpenIdPlatformOptions.ReconciliationLeaseDuration),
+            options.Platform.ReconciliationLeaseDuration
         );
         Check(
             failures,

@@ -5,7 +5,7 @@ using JetBrains.Annotations;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Represents a mediator command that brings everything derived from the server's effective settings in line with
@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// <param name="Settings">The server's effective settings that everything derived from them is brought in line with.</param>
 // See ADR-1219 and ADR-1234.
 [PublicAPI]
-public readonly record struct ReconcileServerSettingsCommand(
+public readonly record struct ReconcilePlatformSettingsCommand(
     string ServerId,
     IReadOnlySettingCollection Settings
 ) : ICommand

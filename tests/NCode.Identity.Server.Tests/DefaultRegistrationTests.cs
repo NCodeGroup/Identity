@@ -15,7 +15,7 @@ using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
@@ -98,7 +98,7 @@ public sealed class DefaultRegistrationTests
 
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("OpenId:Server:Settings", options.Server.Settings?.Path);
+        Assert.Equal("OpenId:Server:Settings", options.Platform.Settings?.Path);
     }
 
     [Theory]
@@ -149,10 +149,10 @@ public sealed class DefaultRegistrationTests
         using var host = BuildHost([]);
         var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
 
-        Assert.True(scopes.TryGet(OpenIdSettingScopes.Server, out var server));
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.Platform, out var server));
         Assert.Null(server.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Tenant, out var tenant));
-        Assert.Equal(OpenIdSettingScopes.Server, tenant.ParentName);
+        Assert.Equal(OpenIdSettingScopes.Platform, tenant.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Client, out var client));
         Assert.Equal(OpenIdSettingScopes.Tenant, client.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.ResourceServer, out var resourceServer));
@@ -220,7 +220,7 @@ public sealed class DefaultRegistrationTests
 
         Assert.Single(
             host.Services.GetServices<IReplicaBroadcastHandler>().Select(x => x.Channel),
-            "server-settings-changed"
+            "platform-settings-changed"
         );
     }
 
@@ -230,11 +230,11 @@ public sealed class DefaultRegistrationTests
         // Without this handler a server settings change reaches the replicas only at their next poll.
         using var host = BuildHost([]);
 
-        var handlers = host.Services.GetServices<ICommandHandler<ServerSettingsChangedCommand>>();
+        var handlers = host.Services.GetServices<ICommandHandler<PlatformSettingsChangedCommand>>();
 
         Assert.Contains(
             handlers,
-            handler => handler.GetType().Name == "ServerSettingsChangedHandler"
+            handler => handler.GetType().Name == "PlatformSettingsChangedHandler"
         );
     }
 
@@ -247,7 +247,7 @@ public sealed class DefaultRegistrationTests
 
         Assert.Contains(
             host.Services.GetServices<IHostedService>(),
-            service => service.GetType().Name == "ServerSettingsReconciliationService"
+            service => service.GetType().Name == "PlatformSettingsReconciliationService"
         );
     }
 
@@ -264,7 +264,7 @@ public sealed class DefaultRegistrationTests
             .ToList();
         var dataProtectionIndex = names.IndexOf("DataProtectionHostedService");
 
-        Assert.Equal("ServerSecretProtectorWarmup", names[0]);
+        Assert.Equal("PlatformSecretProtectorWarmup", names[0]);
         Assert.Equal("DataProtectionKeyRingGate", names[1]);
         Assert.InRange(dataProtectionIndex, 2, names.Count - 1);
     }
@@ -290,8 +290,8 @@ public sealed class DefaultRegistrationTests
         using var host = BuildHost([]);
 
         Assert.Equal(
-            "DefaultMaterializedServerRegistry",
-            host.Services.GetRequiredService<IMaterializedServerAccessor>().GetType().Name
+            "DefaultMaterializedPlatformRegistry",
+            host.Services.GetRequiredService<IMaterializedPlatformAccessor>().GetType().Name
         );
     }
 
@@ -302,7 +302,9 @@ public sealed class DefaultRegistrationTests
         // materialized.
         using var host = BuildHost([]);
 
-        var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
+        var handlers = host.Services.GetServices<
+            ICommandHandler<ReconcilePlatformSettingsCommand>
+        >();
 
         Assert.Contains(
             handlers,
@@ -373,7 +375,7 @@ public sealed class DefaultRegistrationTests
 
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.NotNull(options.Server.Settings);
+        Assert.NotNull(options.Platform.Settings);
     }
 
     [Fact]
@@ -446,7 +448,9 @@ public sealed class DefaultRegistrationTests
         // makes incoherent unreported until they fail at their next request (ADR-1219).
         using var host = BuildHost([]);
 
-        var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
+        var handlers = host.Services.GetServices<
+            ICommandHandler<ReconcilePlatformSettingsCommand>
+        >();
 
         Assert.Contains(
             handlers,
@@ -629,7 +633,7 @@ public sealed class DefaultRegistrationTests
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
         Assert.Empty(
-            serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Server, jsonOptions)
+            serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Platform, jsonOptions)
         );
         Assert.Empty(
             serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Tenant, jsonOptions)
@@ -685,7 +689,7 @@ public sealed class DefaultRegistrationTests
             scopeSettings.Set(OpenIdSettingKeys.SecurityProfiles, [profile.ProfileName]);
 
             var expanded = settingCollectionFactory.Create(
-                catalog.Expand(scopeSettings, OpenIdSettingScopes.Server)
+                catalog.Expand(scopeSettings, OpenIdSettingScopes.Platform)
             );
 
             Assert.True(expanded.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var selected));
@@ -1027,7 +1031,7 @@ public sealed class DefaultRegistrationTests
         // Resolving the options runs their validators, which read the server settings through the descriptors.
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("OpenId:Server:Settings", options.Server.Settings?.Path);
+        Assert.Equal("OpenId:Server:Settings", options.Platform.Settings?.Path);
     }
 
     [Fact]

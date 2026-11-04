@@ -43,7 +43,7 @@ public class TokenEndpointSecurityProfileTests
             new Dictionary<string, string>
             {
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
                 ["client_id"] = clientId,
                 ["client_secret"] = ClientSecret,
             }
@@ -65,7 +65,7 @@ public class TokenEndpointSecurityProfileTests
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
     }
 

@@ -5,13 +5,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class DefaultOpenIdServerProviderTests : BaseTests
 {
@@ -19,13 +19,13 @@ public class DefaultOpenIdServerProviderTests : BaseTests
 
     private (
         Mock<OpenIdEnvironment> Environment,
-        Mock<OpenIdServer> Server,
+        Mock<OpenIdPlatform> Server,
         Mock<IOpenIdTenantCache> TenantCache,
-        DefaultOpenIdServerProvider Provider
+        DefaultOpenIdPlatformProvider Provider
     ) CreateProvider()
     {
         var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        var mockServer = CreateStrictMock<OpenIdServer>();
+        var mockServer = CreateStrictMock<OpenIdPlatform>();
 
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         mockSettingsProvider
@@ -34,22 +34,22 @@ public class DefaultOpenIdServerProviderTests : BaseTests
             .Verifiable();
         mockServer.Setup(x => x.SettingsProvider).Returns(mockSettingsProvider.Object).Verifiable();
 
-        var mockFactory = CreateStrictMock<IOpenIdServerFactory>();
+        var mockFactory = CreateStrictMock<IOpenIdPlatformFactory>();
         mockFactory
             .Setup(x => x.CreateAsync(mockEnvironment.Object, CancellationToken.None))
             .ReturnsAsync(mockServer.Object)
             .Verifiable(Times.Once());
 
-        var mockRegistry = CreateStrictMock<IMaterializedServerRegistry>();
+        var mockRegistry = CreateStrictMock<IMaterializedPlatformRegistry>();
         mockRegistry.Setup(x => x.Register(mockServer.Object)).Verifiable(Times.Once());
 
         var mockTenantCache = CreateStrictMock<IOpenIdTenantCache>();
 
-        var provider = new DefaultOpenIdServerProvider(
+        var provider = new DefaultOpenIdPlatformProvider(
             mockFactory.Object,
             mockRegistry.Object,
             mockTenantCache.Object,
-            CreateLooseMock<ILogger<DefaultOpenIdServerProvider>>().Object
+            CreateLooseMock<ILogger<DefaultOpenIdPlatformProvider>>().Object
         );
 
         return (mockEnvironment, mockServer, mockTenantCache, provider);

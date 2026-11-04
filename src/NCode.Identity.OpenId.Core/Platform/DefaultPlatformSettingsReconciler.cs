@@ -15,20 +15,20 @@ using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IServerSettingsReconciler"/> abstraction. It reads the server's
+/// Provides a default implementation of the <see cref="IPlatformSettingsReconciler"/> abstraction. It reads the server's
 /// row, resolves the server's effective settings from the row's committed document and this replica's configuration,
 /// and compares their fingerprint with the one recorded as reconciled. On a difference it takes a lease in the
 /// <see cref="IExpiringKeySet"/> that names the row's concurrency token and the fingerprint, so one replica reconciles
-/// each change, sends a <see cref="ReconcileServerSettingsCommand"/> that carries the settings recorded as reconciled
+/// each change, sends a <see cref="ReconcilePlatformSettingsCommand"/> that carries the settings recorded as reconciled
 /// (none when the record is missing or cannot be read), and records the fingerprint and the settings it reconciled
 /// while the row is unchanged. A lease that is held, a pass that fails, and a record that loses a race with a change
 /// to the row leave the settings unreconciled, so the caller tries again.
 /// </summary>
 // See ADR-1219.
-internal sealed class DefaultServerSettingsReconciler(
+internal sealed class DefaultPlatformSettingsReconciler(
     IStoreManagerFactory storeManagerFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
@@ -38,13 +38,13 @@ internal sealed class DefaultServerSettingsReconciler(
     IServiceScopeFactory serviceScopeFactory,
     IOptions<OpenIdOptions> optionsAccessor,
     TimeProvider timeProvider,
-    ILogger<DefaultServerSettingsReconciler> logger
-) : IServerSettingsReconciler
+    ILogger<DefaultPlatformSettingsReconciler> logger
+) : IPlatformSettingsReconciler
 {
     /// <summary>
     /// Contains the purpose that prefixes the key of the reconciliation lease.
     /// </summary>
-    internal const string LeasePurpose = "server-settings-reconciliation";
+    internal const string LeasePurpose = "platform-settings-reconciliation";
 
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
@@ -57,7 +57,7 @@ internal sealed class DefaultServerSettingsReconciler(
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private ILogger<DefaultServerSettingsReconciler> Logger { get; } = logger;
+    private ILogger<DefaultPlatformSettingsReconciler> Logger { get; } = logger;
 
     // Read on use, never in the constructor, so the options are not built while the container composes this service.
     private OpenIdOptions Options => OptionsAccessor.Value;
@@ -68,17 +68,17 @@ internal sealed class DefaultServerSettingsReconciler(
         CancellationToken cancellationToken
     )
     {
-        var persistedServer = await GetServerOrDefaultAsync(serverId, cancellationToken);
+        var persistedServer = await GetPlatformOrDefaultAsync(serverId, cancellationToken);
         if (persistedServer is null)
             return true;
 
         // The committed document and this replica's configuration, read from one row so the token matches the document.
-        var settings = await EffectiveSettingsResolver.ResolveServerAsync(
+        var settings = await EffectiveSettingsResolver.ResolvePlatformAsync(
             persistedServer.Settings.Value,
             cancellationToken
         );
         var jsonOptions = OpenIdEnvironmentProvider.Get().JsonSerializerOptions;
-        var fingerprint = ServerSettingsFingerprint.Compute(settings, jsonOptions);
+        var fingerprint = SettingsFingerprint.Compute(settings, jsonOptions);
         if (
             string.Equals(
                 persistedServer.ReconciledSettingsFingerprint,
@@ -92,24 +92,24 @@ internal sealed class DefaultServerSettingsReconciler(
         var leaseKey =
             $"{LeasePurpose}:{serverId}:{persistedServer.ConcurrencyToken}:{fingerprint}";
         var leaseExpiresWhen =
-            TimeProvider.GetUtcNow() + Options.Server.ReconciliationLeaseDuration;
+            TimeProvider.GetUtcNow() + Options.Platform.ReconciliationLeaseDuration;
         if (!await ExpiringKeySet.TryAddAsync(leaseKey, leaseExpiresWhen, cancellationToken))
             return false;
 
         var previousSettings = ReadReconciledSettings(persistedServer, jsonOptions);
-        Logger.ServerSettingsReconciliationStarted(serverId, fingerprint);
-        var command = new ReconcileServerSettingsCommand(serverId, settings)
+        Logger.PlatformSettingsReconciliationStarted(serverId, fingerprint);
+        var command = new ReconcilePlatformSettingsCommand(serverId, settings)
         {
             PreviousSettings = previousSettings,
         };
         await SendAsync(command, cancellationToken);
 
         persistedServer.ReconciledSettingsFingerprint = fingerprint;
-        persistedServer.ReconciledSettings = ServerSettingsSnapshot.Write(settings, jsonOptions);
+        persistedServer.ReconciledSettings = SettingsSnapshot.Write(settings, jsonOptions);
         if (!await TryRecordAsync(persistedServer, cancellationToken))
             return false;
 
-        Logger.ServerSettingsReconciled(serverId, fingerprint);
+        Logger.PlatformSettingsReconciled(serverId, fingerprint);
         return true;
     }
 
@@ -126,19 +126,19 @@ internal sealed class DefaultServerSettingsReconciler(
         {
             var settings = SettingSerializer.DeserializeSettings(
                 json,
-                OpenIdSettingScopes.Server,
+                OpenIdSettingScopes.Platform,
                 jsonOptions
             );
             return SettingCollectionFactory.Create(settings);
         }
         catch (JsonException exception)
         {
-            Logger.ReconciledServerSettingsUnreadable(persistedServer.ServerId, exception);
+            Logger.ReconciledPlatformSettingsUnreadable(persistedServer.ServerId, exception);
             return null;
         }
     }
 
-    private async ValueTask<PersistedServer?> GetServerOrDefaultAsync(
+    private async ValueTask<PersistedServer?> GetPlatformOrDefaultAsync(
         string serverId,
         CancellationToken cancellationToken
     )
@@ -151,7 +151,7 @@ internal sealed class DefaultServerSettingsReconciler(
     // The mediator is scoped (its handlers' unit of work is), and the pass runs outside any request, so the command
     // is sent in its own scope.
     private async ValueTask SendAsync(
-        ReconcileServerSettingsCommand command,
+        ReconcilePlatformSettingsCommand command,
         CancellationToken cancellationToken
     )
     {

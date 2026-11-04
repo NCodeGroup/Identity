@@ -9,7 +9,7 @@ using Microsoft.Extensions.Primitives;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Logging;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Reconciles everything derived from the server's effective settings in the background, whenever those settings
@@ -19,27 +19,28 @@ namespace NCode.Identity.OpenId.Servers;
 /// settings provider signals a change: a configuration reload, a read of the committed settings document, or a poll
 /// that saw a change. Signals that arrive during a reconciliation coalesce into one more. A reconciliation that is
 /// unsettled, because another replica holds its lease or the pass failed, is attempted again when the
-/// <see cref="OpenIdServerOptions.ReconciliationLeaseDuration"/> has passed. The service never throws on stop.
+/// <see cref="OpenIdPlatformOptions.ReconciliationLeaseDuration"/> has passed. The service never throws on stop.
 /// </summary>
 // See ADR-1219.
-internal sealed class ServerSettingsReconciliationService(
-    IMaterializedServerRegistry materializedServerRegistry,
-    IOpenIdServerProvider serverProvider,
+internal sealed class PlatformSettingsReconciliationService(
+    IMaterializedPlatformRegistry materializedServerRegistry,
+    IOpenIdPlatformProvider serverProvider,
     IOpenIdEnvironmentProvider environmentProvider,
-    IServerSettingsReconciler serverSettingsReconciler,
+    IPlatformSettingsReconciler serverSettingsReconciler,
     IOptions<OpenIdOptions> optionsAccessor,
     TimeProvider timeProvider,
-    ILogger<ServerSettingsReconciliationService> logger
+    ILogger<PlatformSettingsReconciliationService> logger
 ) : BackgroundService
 {
-    private IMaterializedServerRegistry MaterializedServerRegistry { get; } =
+    private IMaterializedPlatformRegistry MaterializedPlatformRegistry { get; } =
         materializedServerRegistry;
-    private IOpenIdServerProvider ServerProvider { get; } = serverProvider;
+    private IOpenIdPlatformProvider PlatformProvider { get; } = serverProvider;
     private IOpenIdEnvironmentProvider EnvironmentProvider { get; } = environmentProvider;
-    private IServerSettingsReconciler ServerSettingsReconciler { get; } = serverSettingsReconciler;
+    private IPlatformSettingsReconciler PlatformSettingsReconciler { get; } =
+        serverSettingsReconciler;
     private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
     private TimeProvider TimeProvider { get; } = timeProvider;
-    private ILogger<ServerSettingsReconciliationService> Logger { get; } = logger;
+    private ILogger<PlatformSettingsReconciliationService> Logger { get; } = logger;
 
     // Read on use, never in the constructor, so the options are not built while the container composes this service.
     private OpenIdOptions Options => OptionsAccessor.Value;
@@ -55,7 +56,7 @@ internal sealed class ServerSettingsReconciliationService(
     {
         try
         {
-            var server = await GetServerAsync(stoppingToken);
+            var server = await GetPlatformAsync(stoppingToken);
 
             // The provider signals a configuration reload, a refresh of the committed document, and a poll that saw one.
             using var registration = ChangeToken.OnChange(
@@ -79,18 +80,18 @@ internal sealed class ServerSettingsReconciliationService(
 
     private void Trigger() => Triggers.Writer.TryWrite(true);
 
-    private async ValueTask<OpenIdServer> GetServerAsync(CancellationToken stoppingToken)
+    private async ValueTask<OpenIdPlatform> GetPlatformAsync(CancellationToken stoppingToken)
     {
         try
         {
             var environment = EnvironmentProvider.Get();
-            return await ServerProvider.GetAsync(environment, stoppingToken);
+            return await PlatformProvider.GetAsync(environment, stoppingToken);
         }
         catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
         {
             // The database may be unreachable while the replica starts; the first request materializes the server.
-            Logger.ServerMaterializationAtStartFailed(exception);
-            return await MaterializedServerRegistry.GetServerAsync(stoppingToken);
+            Logger.PlatformMaterializationAtStartFailed(exception);
+            return await MaterializedPlatformRegistry.GetPlatformAsync(stoppingToken);
         }
     }
 
@@ -104,7 +105,7 @@ internal sealed class ServerSettingsReconciliationService(
 
         // An unsettled reconciliation is attempted again when the lease another replica may hold has expired.
         using var leaseExpired = new CancellationTokenSource(
-            Options.Server.ReconciliationLeaseDuration,
+            Options.Platform.ReconciliationLeaseDuration,
             TimeProvider
         );
         using var wait = CancellationTokenSource.CreateLinkedTokenSource(
@@ -125,11 +126,11 @@ internal sealed class ServerSettingsReconciliationService(
     {
         try
         {
-            return await ServerSettingsReconciler.ReconcileAsync(serverId, stoppingToken);
+            return await PlatformSettingsReconciler.ReconcileAsync(serverId, stoppingToken);
         }
         catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
         {
-            Logger.ServerSettingsReconciliationFailed(serverId, exception);
+            Logger.PlatformSettingsReconciliationFailed(serverId, exception);
             return false;
         }
     }

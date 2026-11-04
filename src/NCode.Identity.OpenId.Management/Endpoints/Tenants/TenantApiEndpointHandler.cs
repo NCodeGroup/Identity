@@ -229,7 +229,9 @@ internal class TenantApiEndpointHandler(
         IReadOnlySettingCollection serverSettings;
         try
         {
-            serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+            serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+                cancellationToken
+            );
         }
         catch (UnreadableSettingsException exception)
         {
@@ -996,7 +998,9 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var serverEffective = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            cancellationToken
+        );
         return EffectiveSettingsResolver.ResolveStored(
             serverEffective,
             OpenIdSettingScopes.Tenant,
@@ -1027,7 +1031,9 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            cancellationToken
+        );
         var newEffective = EffectiveSettingsResolver.Resolve(
             serverSettings,
             OpenIdSettingScopes.Tenant,

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
 using NCode.PropertyBag;
@@ -17,13 +17,13 @@ namespace NCode.Identity.OpenId.Contexts;
 /// </summary>
 internal class DefaultOpenIdContextFactory(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
-    IOpenIdServerProvider openIdServerProvider,
+    IOpenIdPlatformProvider openIdServerProvider,
     IOpenIdTenantFactory openIdTenantFactory
 ) : IOpenIdContextFactory
 {
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
         openIdEnvironmentProvider;
-    private IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
+    private IOpenIdPlatformProvider OpenIdServerProvider { get; } = openIdServerProvider;
     private IOpenIdTenantFactory OpenIdTenantFactory { get; } = openIdTenantFactory;
 
     /// <inheritdoc />
@@ -34,7 +34,7 @@ internal class DefaultOpenIdContextFactory(
     )
     {
         var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var openIdServer = await OpenIdServerProvider.GetAsync(
+        var openIdPlatform = await OpenIdServerProvider.GetAsync(
             openIdEnvironment,
             cancellationToken
         );
@@ -42,8 +42,8 @@ internal class DefaultOpenIdContextFactory(
         await using var tenantReference = await OpenIdTenantFactory.CreateTenantForRequestAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
-            openIdServer.PropertyBag,
+            openIdPlatform,
+            openIdPlatform.PropertyBag,
             cancellationToken
         );
 
@@ -51,7 +51,7 @@ internal class DefaultOpenIdContextFactory(
             httpContext,
             mediator,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             tenantReference
         );
     }
@@ -64,7 +64,7 @@ internal class DefaultOpenIdContextFactory(
     )
     {
         var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var openIdServer = await OpenIdServerProvider.GetAsync(
+        var openIdPlatform = await OpenIdServerProvider.GetAsync(
             openIdEnvironment,
             cancellationToken
         );
@@ -72,8 +72,8 @@ internal class DefaultOpenIdContextFactory(
         await using var tenantReference = await OpenIdTenantFactory.CreateControlPlaneTenantAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
-            openIdServer.PropertyBag,
+            openIdPlatform,
+            openIdPlatform.PropertyBag,
             cancellationToken
         );
 
@@ -81,7 +81,7 @@ internal class DefaultOpenIdContextFactory(
             httpContext,
             mediator,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             tenantReference
         );
     }
@@ -90,7 +90,7 @@ internal class DefaultOpenIdContextFactory(
         HttpContext httpContext,
         IMediator mediator,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         AsyncSharedReferenceLease<OpenIdTenant> tenantReference
     )
     {
@@ -100,7 +100,7 @@ internal class DefaultOpenIdContextFactory(
             httpContext,
             mediator,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             tenantReference,
             propertyBag
         );
@@ -120,7 +120,7 @@ internal class DefaultOpenIdContextFactory(
     )
     {
         var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        var openIdServer = await OpenIdServerProvider.GetAsync(
+        var openIdPlatform = await OpenIdServerProvider.GetAsync(
             openIdEnvironment,
             cancellationToken
         );
@@ -128,9 +128,9 @@ internal class DefaultOpenIdContextFactory(
         await using var tenantReference = await OpenIdTenantFactory.CreateTenantByIdAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             tenantId,
-            openIdServer.PropertyBag,
+            openIdPlatform.PropertyBag,
             cancellationToken
         );
 
@@ -142,7 +142,7 @@ internal class DefaultOpenIdContextFactory(
             httpContext,
             mediator,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             tenantReference,
             propertyBag
         );
@@ -168,14 +168,14 @@ internal class DefaultOpenIdContextFactory(
         HttpContext httpContext,
         IMediator mediator,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         AsyncSharedReferenceLease<OpenIdTenant> tenantReference,
         IPropertyBag propertyBag
     ) =>
         new DefaultOpenIdContext(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             tenantReference,
             mediator,
             propertyBag

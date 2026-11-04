@@ -13,7 +13,7 @@ using NCode.Identity.Models;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Results;
 using NCode.Identity.Secrets.Collections;
@@ -112,7 +112,7 @@ public class DefaultOpenIdTenantFactory(
     > CreateTenantForRequestAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
@@ -150,7 +150,7 @@ public class DefaultOpenIdTenantFactory(
         return await MaterializeTenantAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             persistedTenant.TenantId,
             propertyBag,
             cancellationToken
@@ -163,7 +163,7 @@ public class DefaultOpenIdTenantFactory(
     > CreateControlPlaneTenantAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
@@ -192,7 +192,7 @@ public class DefaultOpenIdTenantFactory(
         return await MaterializeTenantAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             persistedTenant.TenantId,
             propertyBag,
             cancellationToken
@@ -202,7 +202,7 @@ public class DefaultOpenIdTenantFactory(
     private async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> MaterializeTenantAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         string tenantId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
@@ -219,7 +219,7 @@ public class DefaultOpenIdTenantFactory(
         await using var tenantSettings = await GetTenantSettingsAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             persistedTenant,
             tenantPropertyBag,
             cancellationToken
@@ -245,7 +245,7 @@ public class DefaultOpenIdTenantFactory(
         await using var tenantSecrets = await GetTenantSecretsAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             persistedTenant,
             tenantIssuer,
             tenantBaseAddress,
@@ -279,7 +279,7 @@ public class DefaultOpenIdTenantFactory(
     public virtual async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantByIdAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         string tenantId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
@@ -295,7 +295,7 @@ public class DefaultOpenIdTenantFactory(
         await using var tenantSettings = await GetTenantSettingsAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             persistedTenant,
             tenantPropertyBag,
             cancellationToken
@@ -322,7 +322,7 @@ public class DefaultOpenIdTenantFactory(
         await using var tenantSecrets = await GetTenantSecretsAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            openIdPlatform,
             persistedTenant,
             tenantIssuer,
             tenantBaseAddress,
@@ -399,7 +399,7 @@ public class DefaultOpenIdTenantFactory(
 
     /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with current request.</param>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> instance associated with the current request.</param>
+    /// <param name="openIdPlatform">The <see cref="OpenIdPlatform"/> instance associated with the current request.</param>
     /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -409,20 +409,20 @@ public class DefaultOpenIdTenantFactory(
     > GetTenantSettingsAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         PersistedTenant persistedTenant,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
         var initialSettings = EffectiveSettingsResolver.ReadScopeSettings(
-            openIdServer.SettingsProvider.Collection,
+            openIdPlatform.SettingsProvider.Collection,
             OpenIdSettingScopes.Tenant,
             persistedTenant.Settings.Value
         );
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            new RefreshSettingsState(openIdEnvironment, openIdServer, persistedTenant),
+            new RefreshSettingsState(openIdEnvironment, openIdPlatform, persistedTenant),
             initialSettings,
             OpenIdOptions.Tenant.SettingsPeriodicRefreshInterval,
             RefreshSettingsAsync
@@ -430,7 +430,7 @@ public class DefaultOpenIdTenantFactory(
 
         var dataSources = new List<ICollectionDataSource<Setting>>
         {
-            openIdServer.SettingsProvider.AsDataSource(),
+            openIdPlatform.SettingsProvider.AsDataSource(),
             periodicPollingSource,
         };
 
@@ -441,7 +441,7 @@ public class DefaultOpenIdTenantFactory(
 
     private readonly record struct RefreshSettingsState(
         OpenIdEnvironment OpenIdEnvironment,
-        OpenIdServer OpenIdServer,
+        OpenIdPlatform OpenIdPlatform,
         PersistedTenant PersistedTenant
     );
 
@@ -468,7 +468,7 @@ public class DefaultOpenIdTenantFactory(
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
         var settings = EffectiveSettingsResolver.ReadScopeSettings(
-            state.OpenIdServer.SettingsProvider.Collection,
+            state.OpenIdPlatform.SettingsProvider.Collection,
             OpenIdSettingScopes.Tenant,
             newSettings.Value
         );
@@ -529,7 +529,7 @@ public class DefaultOpenIdTenantFactory(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with the current request.</param>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> instance associated with the current request.</param>
+    /// <param name="openIdPlatform">The <see cref="OpenIdPlatform"/> instance associated with the current request.</param>
     /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
@@ -543,7 +543,7 @@ public class DefaultOpenIdTenantFactory(
     > GetTenantSecretsAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         PersistedTenant persistedTenant,
         string tenantIssuer,
         UriDescriptor tenantBaseAddress,

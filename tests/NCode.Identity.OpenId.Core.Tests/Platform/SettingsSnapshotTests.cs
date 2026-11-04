@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.Settings;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class ServerSettingsSnapshotTests
 {
@@ -34,7 +34,7 @@ public class ServerSettingsSnapshotTests
     [Fact]
     public void Write_WritesEachSettingByNameInOrdinalOrder()
     {
-        var snapshot = ServerSettingsSnapshot.Write(
+        var snapshot = SettingsSnapshot.Write(
             [CreateList("b", "a"), CreateFlag(true)],
             JsonOptions
         );
@@ -45,7 +45,7 @@ public class ServerSettingsSnapshotTests
     [Fact]
     public void Write_WritesATimeSpanAsTheSerializerReadsIt()
     {
-        var snapshot = ServerSettingsSnapshot.Write(
+        var snapshot = SettingsSnapshot.Write(
             [CreateLifetime(TimeSpan.FromMinutes(5))],
             JsonOptions
         );
@@ -56,7 +56,7 @@ public class ServerSettingsSnapshotTests
     [Fact]
     public void Write_WithNoSettings_WritesAnEmptyObject()
     {
-        var snapshot = ServerSettingsSnapshot.Write([], JsonOptions);
+        var snapshot = SettingsSnapshot.Write([], JsonOptions);
 
         Assert.Equal("{}", snapshot.GetRawText());
     }

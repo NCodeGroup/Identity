@@ -910,7 +910,9 @@ internal class ResourceServerApiEndpointHandler(
             return null;
         }
 
-        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var serverEffective = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            cancellationToken
+        );
         var tenantEffective = EffectiveSettingsResolver.ResolveStored(
             serverEffective,
             OpenIdSettingScopes.Tenant,

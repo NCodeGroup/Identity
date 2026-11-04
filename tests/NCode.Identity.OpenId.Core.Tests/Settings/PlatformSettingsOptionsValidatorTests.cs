@@ -7,7 +7,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
-public class ServerSettingsOptionsValidatorTests : BaseTests
+public class PlatformSettingsOptionsValidatorTests : BaseTests
 {
     private static IConfigurationSection CreateSection() =>
         new ConfigurationBuilder()
@@ -22,7 +22,7 @@ public class ServerSettingsOptionsValidatorTests : BaseTests
     [Fact]
     public void Validate_WhenNoSettingsSection_Succeeds()
     {
-        var validator = new ServerSettingsOptionsValidator(
+        var validator = new PlatformSettingsOptionsValidator(
             CreateStrictMock<ISettingConfigurationReader>().Object
         );
 
@@ -37,11 +37,11 @@ public class ServerSettingsOptionsValidatorTests : BaseTests
         var section = CreateSection();
         var mockReader = CreateStrictMock<ISettingConfigurationReader>();
         mockReader
-            .Setup(x => x.Validate(section, OpenIdSettingScopes.Server))
+            .Setup(x => x.Validate(section, OpenIdSettingScopes.Platform))
             .Returns([])
             .Verifiable();
-        var validator = new ServerSettingsOptionsValidator(mockReader.Object);
-        var options = new OpenIdOptions { Server = { Settings = section } };
+        var validator = new PlatformSettingsOptionsValidator(mockReader.Object);
+        var options = new OpenIdOptions { Platform = { Settings = section } };
 
         var result = validator.Validate(name: null, options);
 
@@ -54,11 +54,11 @@ public class ServerSettingsOptionsValidatorTests : BaseTests
         var section = CreateSection();
         var mockReader = CreateStrictMock<ISettingConfigurationReader>();
         mockReader
-            .Setup(x => x.Validate(section, OpenIdSettingScopes.Server))
+            .Setup(x => x.Validate(section, OpenIdSettingScopes.Platform))
             .Returns(["first error.", "second error."])
             .Verifiable();
-        var validator = new ServerSettingsOptionsValidator(mockReader.Object);
-        var options = new OpenIdOptions { Server = { Settings = section } };
+        var validator = new PlatformSettingsOptionsValidator(mockReader.Object);
+        var options = new OpenIdOptions { Platform = { Settings = section } };
 
         var result = validator.Validate(name: null, options);
 

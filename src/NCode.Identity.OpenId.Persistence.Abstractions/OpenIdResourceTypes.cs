@@ -21,7 +21,7 @@ public static class OpenIdResourceTypes
     /// <summary>
     /// Contains the value used to identify the resource type for a server.
     /// </summary>
-    public const string Server = "server";
+    public const string Platform = "platform";
 
     /// <summary>
     /// Contains the value used to identify the resource type for a tenant.

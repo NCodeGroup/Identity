@@ -43,7 +43,7 @@ public class ClientRegistrationEndpointTests
                 ["contacts"] = new[] { "ops@example.com" },
                 ["software_id"] = "integration-tests",
                 ["software_version"] = "1.0",
-                ["scope"] = $"openid {TestServerSettingsProvider.ApiScope}",
+                ["scope"] = $"openid {TestPlatformSettingsProvider.ApiScope}",
             }
         );
 
@@ -63,13 +63,13 @@ public class ClientRegistrationEndpointTests
         // requested 'api' scope is not among them.
         var scopes = root.GetProperty("scope").GetString()?.Split(' ') ?? [];
         Assert.Contains(OpenIdProtocol.ScopeTypes.OpenId, scopes);
-        Assert.DoesNotContain(TestServerSettingsProvider.ApiScope, scopes);
+        Assert.DoesNotContain(TestPlatformSettingsProvider.ApiScope, scopes);
 
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         // Authenticating the client loads its persisted settings (every registered metadata key included) through the
@@ -80,7 +80,7 @@ public class ClientRegistrationEndpointTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 

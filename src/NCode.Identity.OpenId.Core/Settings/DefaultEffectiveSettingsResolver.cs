@@ -4,7 +4,7 @@
 using System.Text.Json;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -19,13 +19,13 @@ namespace NCode.Identity.OpenId.Settings;
 /// never depends on this replica's last poll.
 /// </summary>
 /// <remarks>
-/// It depends on <see cref="IOpenIdServerProvider"/>, so the server's own factory and the root settings data source,
+/// It depends on <see cref="IOpenIdPlatformProvider"/>, so the server's own factory and the root settings data source,
 /// which the provider builds on, keep calling <see cref="ISecurityProfileCatalog"/> directly.
 /// </remarks>
 // See ADR-1204.
 internal sealed class DefaultEffectiveSettingsResolver(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider,
-    IOpenIdServerProvider openIdServerProvider,
+    IOpenIdPlatformProvider openIdServerProvider,
     IStoreManagerFactory storeManagerFactory,
     ISettingSerializer settingSerializer,
     ITenantEnvironmentCatalog tenantEnvironmentCatalog,
@@ -34,7 +34,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
 {
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
         openIdEnvironmentProvider;
-    private IOpenIdServerProvider OpenIdServerProvider { get; } = openIdServerProvider;
+    private IOpenIdPlatformProvider OpenIdServerProvider { get; } = openIdServerProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
@@ -99,7 +99,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
     }
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlySettingCollection> ResolveServerAsync(
+    public async ValueTask<IReadOnlySettingCollection> ResolvePlatformAsync(
         JsonElement settings,
         CancellationToken cancellationToken
     )
@@ -111,14 +111,14 @@ internal sealed class DefaultEffectiveSettingsResolver(
 
         return Resolve(
             server.ConfiguredSettingsProvider.Collection,
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             settings
         );
     }
 
     /// <inheritdoc />
     // See ADR-1245.
-    public async ValueTask<IReadOnlySettingCollection> ResolveServerAsync(
+    public async ValueTask<IReadOnlySettingCollection> ResolvePlatformAsync(
         CancellationToken cancellationToken
     )
     {
@@ -142,7 +142,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
 
         return ResolveStored(
             configuredSettings,
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             server.ServerId,
             serverSettings.Value
         );

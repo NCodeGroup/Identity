@@ -15,7 +15,7 @@ using NCode.Identity.Models;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Collections;
@@ -82,7 +82,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
         await using var result = await factory.CreateTenantForRequestAsync(
             new DefaultHttpContext(),
             Mock.Of<OpenIdEnvironment>(),
-            Mock.Of<OpenIdServer>(),
+            Mock.Of<OpenIdPlatform>(),
             Mock.Of<IPropertyBag>(),
             CancellationToken.None
         );
@@ -140,7 +140,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             await factory.CreateTenantForRequestAsync(
                 httpContext,
                 Mock.Of<OpenIdEnvironment>(),
-                Mock.Of<OpenIdServer>(),
+                Mock.Of<OpenIdPlatform>(),
                 Mock.Of<IPropertyBag>(),
                 CancellationToken.None
             )
@@ -180,7 +180,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
         await using var result = await factory.CreateControlPlaneTenantAsync(
             new DefaultHttpContext(),
             Mock.Of<OpenIdEnvironment>(),
-            Mock.Of<OpenIdServer>(),
+            Mock.Of<OpenIdPlatform>(),
             Mock.Of<IPropertyBag>(),
             CancellationToken.None
         );
@@ -237,7 +237,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             await factory.CreateControlPlaneTenantAsync(
                 httpContext,
                 Mock.Of<OpenIdEnvironment>(),
-                Mock.Of<OpenIdServer>(),
+                Mock.Of<OpenIdPlatform>(),
                 Mock.Of<IPropertyBag>(),
                 CancellationToken.None
             )
@@ -285,7 +285,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             await factory.CreateTenantByIdAsync(
                 new DefaultHttpContext(),
                 Mock.Of<OpenIdEnvironment>(),
-                Mock.Of<OpenIdServer>(),
+                Mock.Of<OpenIdPlatform>(),
                 "missing",
                 Mock.Of<IPropertyBag>(),
                 CancellationToken.None
@@ -458,7 +458,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var persistedTenant = CreatePersistedTenant("https://op.example/acme");
         var parentCollection = mocks.Create<IReadOnlySettingCollection>();
-        var openIdServer = CreateServerWithSettings(mocks, parentCollection.Object);
+        var openIdPlatform = CreateServerWithSettings(mocks, parentCollection.Object);
         var resolver = mocks.Create<IEffectiveSettingsResolver>();
         resolver
             .Setup(x =>
@@ -475,7 +475,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
         var lease = await factory.InvokeGetTenantSettingsAsync(
             Mock.Of<OpenIdEnvironment>(),
-            openIdServer.Object,
+            openIdPlatform.Object,
             persistedTenant
         );
 
@@ -492,7 +492,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var persistedTenant = CreatePersistedTenant("https://op.example/acme");
         var tenantDocument = persistedTenant.Settings.Value;
         var parentCollection = mocks.Create<IReadOnlySettingCollection>();
-        var openIdServer = CreateServerWithSettings(mocks, parentCollection.Object);
+        var openIdPlatform = CreateServerWithSettings(mocks, parentCollection.Object);
         var resolver = mocks.Create<IEffectiveSettingsResolver>();
         resolver
             .Setup(x =>
@@ -509,7 +509,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
         var lease = await factory.InvokeGetTenantSettingsAsync(
             Mock.Of<OpenIdEnvironment>(),
-            openIdServer.Object,
+            openIdPlatform.Object,
             persistedTenant
         );
 
@@ -530,7 +530,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
             "sandbox"
         );
 
-    private static Mock<OpenIdServer> CreateServerWithSettings(
+    private static Mock<OpenIdPlatform> CreateServerWithSettings(
         MockRepository mocks,
         IReadOnlySettingCollection parentCollection
     )
@@ -538,9 +538,9 @@ public sealed class DefaultOpenIdTenantFactoryTests
         var parentProvider = mocks.Create<IReadOnlySettingCollectionProvider>();
         parentProvider.Setup(x => x.Collection).Returns(parentCollection).Verifiable();
 
-        var openIdServer = mocks.Create<OpenIdServer>();
-        openIdServer.Setup(x => x.SettingsProvider).Returns(parentProvider.Object).Verifiable();
-        return openIdServer;
+        var openIdPlatform = mocks.Create<OpenIdPlatform>();
+        openIdPlatform.Setup(x => x.SettingsProvider).Returns(parentProvider.Object).Verifiable();
+        return openIdPlatform;
     }
 
     private static TestableTenantFactory CreateSettingsFactory(
@@ -647,13 +647,13 @@ public sealed class DefaultOpenIdTenantFactoryTests
             AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider>
         > InvokeGetTenantSettingsAsync(
             OpenIdEnvironment openIdEnvironment,
-            OpenIdServer openIdServer,
+            OpenIdPlatform openIdPlatform,
             PersistedTenant persistedTenant
         ) =>
             GetTenantSettingsAsync(
                 CreateHttpContext(),
                 openIdEnvironment,
-                openIdServer,
+                openIdPlatform,
                 persistedTenant,
                 Mock.Of<IPropertyBag>(),
                 CancellationToken.None

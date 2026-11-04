@@ -1,20 +1,20 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IMaterializedServerRegistry"/> abstraction. The first
+/// Provides a default implementation of the <see cref="IMaterializedPlatformRegistry"/> abstraction. The first
 /// registration wins and completes every wait for the server.
 /// </summary>
 // See ADR-1219.
-internal sealed class DefaultMaterializedServerRegistry : IMaterializedServerRegistry
+internal sealed class DefaultMaterializedPlatformRegistry : IMaterializedPlatformRegistry
 {
-    private TaskCompletionSource<OpenIdServer> Registered { get; } =
+    private TaskCompletionSource<OpenIdPlatform> Registered { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     /// <inheritdoc />
-    public void Register(OpenIdServer server)
+    public void Register(OpenIdPlatform server)
     {
         // A replica materializes its server once, so a later registration is ignored.
         ArgumentNullException.ThrowIfNull(server);
@@ -22,7 +22,7 @@ internal sealed class DefaultMaterializedServerRegistry : IMaterializedServerReg
     }
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdServer> GetServerAsync(CancellationToken cancellationToken) =>
+    public async ValueTask<OpenIdPlatform> GetPlatformAsync(CancellationToken cancellationToken) =>
         await Registered.Task.WaitAsync(cancellationToken);
 
     /// <inheritdoc />

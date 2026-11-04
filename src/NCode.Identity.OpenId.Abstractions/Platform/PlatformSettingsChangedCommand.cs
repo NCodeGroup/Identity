@@ -5,7 +5,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Mediator;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Represents a mediator command that announces a committed change to a server's persisted settings document,
@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Servers;
 /// <param name="Settings">The server's persisted settings document after the change.</param>
 // See ADR-1169 and ADR-1219.
 [PublicAPI]
-public readonly record struct ServerSettingsChangedCommand(
+public readonly record struct PlatformSettingsChangedCommand(
     string ServerId,
     JsonElement PreviousSettings,
     JsonElement Settings

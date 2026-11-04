@@ -9,7 +9,7 @@ using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
@@ -17,7 +17,7 @@ using NCode.Mediator;
 using NCode.Persistence.Stores;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public sealed class DefaultServerSettingsReconcilerTests : BaseTests
 {
@@ -42,9 +42,9 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
     private Mock<IMediator> MockMediator { get; }
     private IReadOnlySettingCollection Settings { get; }
     private string Fingerprint { get; }
-    private string SettingsSnapshot { get; }
+    private string SnapshotText { get; }
     private ServiceProvider ServiceProvider { get; }
-    private DefaultServerSettingsReconciler Reconciler { get; }
+    private DefaultPlatformSettingsReconciler Reconciler { get; }
 
     public DefaultServerSettingsReconcilerTests()
     {
@@ -63,14 +63,14 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             CreateLooseMock<ISettingDescriptorCollectionProvider>().Object,
             [new Setting<bool>(FlagDescriptor, true)]
         );
-        Fingerprint = ServerSettingsFingerprint.Compute(Settings, JsonOptions);
-        SettingsSnapshot = ServerSettingsSnapshot.Write(Settings, JsonOptions).GetRawText();
+        Fingerprint = SettingsFingerprint.Compute(Settings, JsonOptions);
+        SnapshotText = SettingsSnapshot.Write(Settings, JsonOptions).GetRawText();
 
         ServiceProvider = new ServiceCollection()
             .AddScoped(_ => MockMediator.Object)
             .BuildServiceProvider();
 
-        Reconciler = new DefaultServerSettingsReconciler(
+        Reconciler = new DefaultPlatformSettingsReconciler(
             MockStoreManagerFactory.Object,
             MockEffectiveSettingsResolver.Object,
             MockOpenIdEnvironmentProvider.Object,
@@ -80,7 +80,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
             Options.Create(OpenIdOptions),
             TimeProvider.System,
-            CreateLooseMock<ILogger<DefaultServerSettingsReconciler>>().Object
+            CreateLooseMock<ILogger<DefaultPlatformSettingsReconciler>>().Object
         );
     }
 
@@ -128,7 +128,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
         var leaseDuration = TimeSpan.FromMinutes(7);
-        OpenIdOptions.Server.ReconciliationLeaseDuration = leaseDuration;
+        OpenIdOptions.Platform.ReconciliationLeaseDuration = leaseDuration;
         var earliestExpiry = DateTimeOffset.UtcNow + leaseDuration;
         DateTimeOffset? leaseExpiresWhen = null;
         SetupStoreManager();
@@ -151,7 +151,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockMediator
             .Setup(x =>
                 x.SendAsync(
-                    It.Is<ReconcileServerSettingsCommand>(command =>
+                    It.Is<ReconcilePlatformSettingsCommand>(command =>
                         command.ServerId == ServerId
                         && ReferenceEquals(command.Settings, Settings)
                         && command.PreviousSettings == null
@@ -169,7 +169,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
                         && server.ConcurrencyToken == ConcurrencyToken
                         && server.ReconciledSettingsFingerprint == Fingerprint
                         && server.ReconciledSettings.HasValue
-                        && server.ReconciledSettings.Value.GetRawText() == SettingsSnapshot
+                        && server.ReconciledSettings.Value.GetRawText() == SnapshotText
                     ),
                     cancellationToken
                 )
@@ -204,7 +204,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Setup(x =>
                 x.DeserializeSettings(
                     It.Is<JsonElement>(element => element.GetRawText() == """{"flag":false}"""),
-                    OpenIdSettingScopes.Server,
+                    OpenIdSettingScopes.Platform,
                     JsonOptions
                 )
             )
@@ -217,7 +217,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockMediator
             .Setup(x =>
                 x.SendAsync(
-                    It.Is<ReconcileServerSettingsCommand>(command =>
+                    It.Is<ReconcilePlatformSettingsCommand>(command =>
                         command.ServerId == ServerId
                         && ReferenceEquals(command.Settings, Settings)
                         && ReferenceEquals(command.PreviousSettings, previousSettings)
@@ -248,7 +248,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Setup(x =>
                 x.DeserializeSettings(
                     It.IsAny<JsonElement>(),
-                    OpenIdSettingScopes.Server,
+                    OpenIdSettingScopes.Platform,
                     JsonOptions
                 )
             )
@@ -257,7 +257,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockMediator
             .Setup(x =>
                 x.SendAsync(
-                    It.Is<ReconcileServerSettingsCommand>(command =>
+                    It.Is<ReconcilePlatformSettingsCommand>(command =>
                         command.ServerId == ServerId
                         && ReferenceEquals(command.Settings, Settings)
                         && command.PreviousSettings == null
@@ -284,7 +284,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockMediator
             .Setup(x =>
                 x.SendAsync(
-                    It.IsAny<ReconcileServerSettingsCommand>(),
+                    It.IsAny<ReconcilePlatformSettingsCommand>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -395,7 +395,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
     {
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(
+                x.ResolvePlatformAsync(
                     It.Is<JsonElement>(element => HasVersion(element, 1)),
                     It.IsAny<CancellationToken>()
                 )

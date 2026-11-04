@@ -48,7 +48,7 @@ public class RateLimitTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 

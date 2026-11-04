@@ -129,7 +129,7 @@ internal sealed class RefreshableSettingsCollectionDataSource
         }
         catch (Exception exception)
         {
-            Logger.ServerSettingsRefreshFailed(exception);
+            Logger.PlatformSettingsRefreshFailed(exception);
         }
     }
 

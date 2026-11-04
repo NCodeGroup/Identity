@@ -87,7 +87,7 @@ public interface IEffectiveSettingsResolver
     /// <returns>The effective settings of the server if <paramref name="settings"/> were committed.</returns>
     /// <exception cref="JsonException">The document cannot be honored, including a <c>security_profiles</c> value that
     /// names no registered profile.</exception>
-    ValueTask<IReadOnlySettingCollection> ResolveServerAsync(
+    ValueTask<IReadOnlySettingCollection> ResolvePlatformAsync(
         JsonElement settings,
         CancellationToken cancellationToken
     );
@@ -101,5 +101,5 @@ public interface IEffectiveSettingsResolver
     /// <exception cref="UnreadableSettingsException">The committed document cannot be honored, including a
     /// <c>security_profiles</c> value that names no registered profile; the exception names the server.</exception>
     // See ADR-1245.
-    ValueTask<IReadOnlySettingCollection> ResolveServerAsync(CancellationToken cancellationToken);
+    ValueTask<IReadOnlySettingCollection> ResolvePlatformAsync(CancellationToken cancellationToken);
 }

@@ -6,13 +6,13 @@ using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Provides contextual information and configuration details for an <c>OAuth</c> or <c>OpenID Connect</c> authorization server.
 /// </summary>
 [PublicAPI]
-public abstract class OpenIdServer
+public abstract class OpenIdPlatform
 {
     /// <summary>
     /// Gets the unique identifier for the server.

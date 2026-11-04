@@ -157,7 +157,7 @@ public class TokenEndpointMutualTlsTests
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
         return factory;
     }
@@ -186,7 +186,7 @@ public class TokenEndpointMutualTlsTests
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
         return factory;
     }
@@ -216,7 +216,7 @@ public class TokenEndpointMutualTlsTests
                 new Dictionary<string, string>
                 {
                     ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = TestServerSettingsProvider.ApiScope,
+                    ["scope"] = TestPlatformSettingsProvider.ApiScope,
                     ["client_id"] = clientId,
                 }
             ),
@@ -249,7 +249,7 @@ public class TokenEndpointMutualTlsTests
             clientId,
             "it-mtls-ss-rs-api",
             "https://api.mtls-ss.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = CreateClient(factory);
@@ -279,7 +279,7 @@ public class TokenEndpointMutualTlsTests
             clientId,
             "it-mtls-ssc-rs-api",
             "https://api.mtls-ssc.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         // Traefik's passTLSClientCert (pem: true) forwards each certificate of the presented chain as base64 DER,
@@ -337,7 +337,7 @@ public class TokenEndpointMutualTlsTests
             clientId,
             "it-mtls-ssw-rs-api",
             "https://api.mtls-ssw.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = CreateClient(factory);
@@ -397,7 +397,7 @@ public class TokenEndpointMutualTlsTests
             clientId,
             "it-mtls-jwks-rs-api",
             "https://api.mtls-jwks.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = CreateClient(factory);

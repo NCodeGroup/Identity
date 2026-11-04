@@ -74,11 +74,11 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSettingsUnreadable,
+        EventId = EventIds.PlatformSettingsUnreadable,
         Level = LogLevel.Warning,
         Message = "The settings document of server '{ServerId}' that a settings change replaces cannot be honored, so the change was not checked against any client: {DocumentError}"
     )]
-    internal static partial void ServerSettingsUnreadable(
+    internal static partial void PlatformSettingsUnreadable(
         this ILogger logger,
         string serverId,
         string documentError

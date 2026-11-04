@@ -32,7 +32,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
             .Setup(x =>
                 x.Expand(
                     It.IsAny<IReadOnlyCollection<Setting>>(),
-                    OpenIdSettingScopes.Server,
+                    OpenIdSettingScopes.Platform,
                     It.IsAny<IReadOnlyCollection<Setting>>()
                 )
             )
@@ -53,7 +53,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
     {
         var options = new OpenIdOptions
         {
-            Server = { Settings = configuration.GetSection(SectionPath) },
+            Platform = { Settings = configuration.GetSection(SectionPath) },
         };
 
         var mockAlgorithmCollection = CreateStrictMock<IAlgorithmCollection>();
@@ -123,7 +123,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
             .Setup(x =>
                 x.Expand(
                     It.IsAny<IReadOnlyCollection<Setting>>(),
-                    OpenIdSettingScopes.Server,
+                    OpenIdSettingScopes.Platform,
                     It.IsAny<IReadOnlyCollection<Setting>>()
                 )
             )

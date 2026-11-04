@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> for a collection of <see cref="Setting"/> instances
-/// that are loaded from the server's configured settings (<see cref="OpenIdServerOptions.Settings"/>) and the default
+/// that are loaded from the server's configured settings (<see cref="OpenIdPlatformOptions.Settings"/>) and the default
 /// values from <see cref="ISettingDescriptorCollectionProvider"/>.
 /// </summary>
 /// <remarks>
@@ -68,7 +68,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         ILogger<RootSettingsCollectionDataSource> logger
     )
     {
-        ConfigurationSection = optionsAccessor.Value.Server.Settings;
+        ConfigurationSection = optionsAccessor.Value.Platform.Settings;
         AlgorithmCollectionProvider = algorithmCollectionProvider;
         SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
         SettingCollectionFactory = settingCollectionFactory;
@@ -224,7 +224,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
         return SecurityProfileCatalog.Expand(
             configuredSettings,
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             baselineSettings
         );
     }
@@ -398,13 +398,13 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
         var errors = SettingConfigurationReader.Validate(
             configurationSection,
-            OpenIdSettingScopes.Server
+            OpenIdSettingScopes.Platform
         );
         if (errors.Count == 0)
             return true;
 
         var details = string.Join(" ", errors);
-        Logger.ServerSettingsReloadRejected(configurationSection.Path, details);
+        Logger.PlatformSettingsReloadRejected(configurationSection.Path, details);
         return false;
     }
 
@@ -416,7 +416,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         foreach (
             var setting in SettingConfigurationReader.Read(
                 ConfigurationSection,
-                OpenIdSettingScopes.Server
+                OpenIdSettingScopes.Platform
             )
         )
         {

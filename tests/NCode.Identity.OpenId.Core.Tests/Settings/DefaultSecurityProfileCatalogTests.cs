@@ -455,7 +455,7 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
         layered.Setup(x => x.Set(scopeSetting)).Verifiable();
         SelectProfiles(layered);
 
-        var result = catalog.Expand(scopeSettings, OpenIdSettingScopes.Server, baseline);
+        var result = catalog.Expand(scopeSettings, OpenIdSettingScopes.Platform, baseline);
 
         Assert.Same(layered.Object, result);
     }
@@ -487,7 +487,7 @@ public class DefaultSecurityProfileCatalogTests : BaseTests
             .Verifiable();
         withDefaults.Setup(x => x.Set(setting)).Verifiable();
 
-        var result = catalog.Expand(scopeSettings, OpenIdSettingScopes.Server, baseline);
+        var result = catalog.Expand(scopeSettings, OpenIdSettingScopes.Platform, baseline);
 
         Assert.Same(withDefaults.Object, result);
     }

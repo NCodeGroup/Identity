@@ -42,7 +42,7 @@ public class TokenEndpointClientAuthenticationTests
             new Dictionary<string, string>
             {
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 
@@ -53,7 +53,7 @@ public class TokenEndpointClientAuthenticationTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = clientSecret,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 
@@ -62,7 +62,7 @@ public class TokenEndpointClientAuthenticationTests
             ClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
     private static async Task<HttpResponseMessage> SendBasicAsync(
@@ -211,7 +211,7 @@ public class TokenEndpointClientAuthenticationTests
             ClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = CreateClient(factory);
@@ -241,7 +241,7 @@ public class TokenEndpointClientAuthenticationTests
             EncodedClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = CreateClient(factory);
@@ -326,7 +326,7 @@ public class TokenEndpointClientAuthenticationTests
             ClientId,
             "it-auth-rs-api",
             "https://api.auth.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = CreateClient(factory);
@@ -360,7 +360,7 @@ public class TokenEndpointClientAuthenticationTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = "wrong-secret",
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
         using var response = await client.PostAsync(TokenPath, content);

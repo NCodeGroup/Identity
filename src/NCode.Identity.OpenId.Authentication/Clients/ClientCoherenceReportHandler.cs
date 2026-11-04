@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -13,7 +13,7 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Handles <see cref="ReconcileServerSettingsCommand"/> by checking the stored clients of the tenants a change to the
+/// Handles <see cref="ReconcilePlatformSettingsCommand"/> by checking the stored clients of the tenants a change to the
 /// server's settings affects against the server's effective settings and logging a warning for each client that the
 /// settings make incoherent. When the command carries the settings it was last reconciled against, a tenant's clients
 /// are checked only if a setting that a coherence rule reads has a different effective value for the tenant; without
@@ -34,7 +34,7 @@ internal sealed class ClientCoherenceReportHandler(
     IClientCoherenceValidator clientCoherenceValidator,
     IClientCoherenceReporter clientCoherenceReporter,
     ILogger<ClientCoherenceReportHandler> logger
-) : ICommandHandler<ReconcileServerSettingsCommand>
+) : ICommandHandler<ReconcilePlatformSettingsCommand>
 {
     // The tenants and the clients of a tenant are read in pages, so the pass never holds every one at once.
     private const int PageSize = 100;
@@ -48,7 +48,7 @@ internal sealed class ClientCoherenceReportHandler(
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
-        ReconcileServerSettingsCommand command,
+        ReconcilePlatformSettingsCommand command,
         CancellationToken cancellationToken
     )
     {
@@ -88,7 +88,7 @@ internal sealed class ClientCoherenceReportHandler(
     // Returns the number of incoherent clients of the tenant.
     private async ValueTask<int> ReportTenantAsync(
         IStoreManager storeManager,
-        ReconcileServerSettingsCommand command,
+        ReconcilePlatformSettingsCommand command,
         PersistedTenantSettings tenantSettings,
         CancellationToken cancellationToken
     )

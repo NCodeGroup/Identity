@@ -5,7 +5,7 @@ abstract NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedServerReso
 abstract NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTenantResource.ResourceType.get -> string!
 const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedClientResource.ResourceTypePrefix = "client" -> string!
 const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedResourceServerResource.ResourceTypePrefix = "resource_server" -> string!
-const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedServerResource.ResourceTypePrefix = "server" -> string!
+const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedServerResource.ResourceTypePrefix = "platform" -> string!
 const NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTenantResource.ResourceTypePrefix = "tenant" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.GrantType = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.HashedKey = 1000 -> int
@@ -23,7 +23,7 @@ const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.ResourceServerIdentifie
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.ScopeValue = 300 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Client = "client" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.ResourceServer = "resource_server" -> string!
-const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Server = "server" -> string!
+const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Platform = "platform" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Settings = "settings" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Tenant = "tenant" -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedClientResource

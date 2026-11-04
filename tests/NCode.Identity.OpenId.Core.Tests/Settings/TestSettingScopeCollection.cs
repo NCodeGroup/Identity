@@ -18,11 +18,11 @@ internal sealed class TestSettingScopeCollection(params SettingScopeDescriptor[]
 {
     public static TestSettingScopeCollection OpenId { get; } =
         new(
-            new SettingScopeDescriptor { Name = OpenIdSettingScopes.Server },
+            new SettingScopeDescriptor { Name = OpenIdSettingScopes.Platform },
             new SettingScopeDescriptor
             {
                 Name = OpenIdSettingScopes.Tenant,
-                ParentName = OpenIdSettingScopes.Server,
+                ParentName = OpenIdSettingScopes.Platform,
             },
             new SettingScopeDescriptor
             {

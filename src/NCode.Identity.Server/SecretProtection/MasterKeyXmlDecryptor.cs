@@ -34,10 +34,10 @@ internal class MasterKeyXmlDecryptor : IXmlDecryptor
         // IServiceProvider, so this constructor cannot be a primary constructor or take the holder directly.
         ArgumentNullException.ThrowIfNull(services);
 
-        Holder = services.GetRequiredService<ServerSecretProtectorHolder>();
+        Holder = services.GetRequiredService<PlatformSecretProtectorHolder>();
     }
 
-    private ServerSecretProtectorHolder Holder { get; }
+    private PlatformSecretProtectorHolder Holder { get; }
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">Thrown when the protector of the server is not loaded.</exception>

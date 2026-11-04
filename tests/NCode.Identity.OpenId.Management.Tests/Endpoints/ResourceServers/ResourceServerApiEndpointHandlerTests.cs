@@ -597,7 +597,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
 
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(serverSettings)
             .Verifiable();
         MockEffectiveSettingsResolver

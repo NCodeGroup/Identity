@@ -15,7 +15,7 @@ public static class SecretOwnerTypes
     /// <summary>
     /// Contains the owner type for secrets that belong to the server as a whole.
     /// </summary>
-    public const string Server = "server";
+    public const string Platform = "platform";
 
     /// <summary>
     /// Contains the owner type for secrets that belong to a single tenant.

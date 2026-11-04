@@ -314,7 +314,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
 
         var mockServerSettings = CreateStrictMock<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockServerSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver

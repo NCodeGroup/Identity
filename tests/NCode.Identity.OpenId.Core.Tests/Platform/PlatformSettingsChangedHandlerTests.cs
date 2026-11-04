@@ -4,24 +4,24 @@
 using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.SharedState;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class ServerSettingsChangedHandlerTests : BaseTests
 {
     private const string ServerId = "server-1";
 
-    private Mock<IMaterializedServerRegistry> MockRegistry { get; }
+    private Mock<IMaterializedPlatformRegistry> MockRegistry { get; }
     private Mock<IReplicaBroadcaster> MockReplicaBroadcaster { get; }
     private Mock<TimeProvider> MockTimeProvider { get; }
-    private ServerSettingsChangedHandler Handler { get; }
+    private PlatformSettingsChangedHandler Handler { get; }
 
     public ServerSettingsChangedHandlerTests()
     {
-        MockRegistry = CreateStrictMock<IMaterializedServerRegistry>();
+        MockRegistry = CreateStrictMock<IMaterializedPlatformRegistry>();
         MockReplicaBroadcaster = CreateStrictMock<IReplicaBroadcaster>();
         MockTimeProvider = CreateStrictMock<TimeProvider>();
         MockTimeProvider
@@ -31,11 +31,11 @@ public class ServerSettingsChangedHandlerTests : BaseTests
                     TimeProvider.System.CreateTimer(callback, state, dueTime, period)
             )
             .Verifiable();
-        Handler = new ServerSettingsChangedHandler(
+        Handler = new PlatformSettingsChangedHandler(
             MockRegistry.Object,
             MockReplicaBroadcaster.Object,
             MockTimeProvider.Object,
-            CreateLooseMock<ILogger<ServerSettingsChangedHandler>>().Object
+            CreateLooseMock<ILogger<PlatformSettingsChangedHandler>>().Object
         );
     }
 
@@ -48,7 +48,8 @@ public class ServerSettingsChangedHandlerTests : BaseTests
                 Timeout.InfiniteTimeSpan
             );
 
-    private static ServerSettingsChangedCommand CreateCommand() => new(ServerId, default, default);
+    private static PlatformSettingsChangedCommand CreateCommand() =>
+        new(ServerId, default, default);
 
     #region HandleAsync Tests
 
@@ -66,7 +67,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         MockReplicaBroadcaster
             .Setup(x =>
                 x.PublishAsync(
-                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    PlatformSettingsChangeBroadcastHandler.ChannelName,
                     ServerId,
                     It.IsAny<CancellationToken>()
                 )
@@ -90,7 +91,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         MockReplicaBroadcaster
             .Setup(x =>
                 x.PublishAsync(
-                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    PlatformSettingsChangeBroadcastHandler.ChannelName,
                     ServerId,
                     It.IsAny<CancellationToken>()
                 )
@@ -111,7 +112,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         MockReplicaBroadcaster
             .Setup(x =>
                 x.PublishAsync(
-                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    PlatformSettingsChangeBroadcastHandler.ChannelName,
                     ServerId,
                     It.IsAny<CancellationToken>()
                 )
@@ -132,7 +133,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         MockReplicaBroadcaster
             .Setup(x =>
                 x.PublishAsync(
-                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    PlatformSettingsChangeBroadcastHandler.ChannelName,
                     ServerId,
                     It.IsAny<CancellationToken>()
                 )
@@ -153,7 +154,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         MockReplicaBroadcaster
             .Setup(x =>
                 x.PublishAsync(
-                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    PlatformSettingsChangeBroadcastHandler.ChannelName,
                     ServerId,
                     It.IsAny<CancellationToken>()
                 )
@@ -179,7 +180,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         MockReplicaBroadcaster
             .Setup(x =>
                 x.PublishAsync(
-                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    PlatformSettingsChangeBroadcastHandler.ChannelName,
                     ServerId,
                     It.IsAny<CancellationToken>()
                 )
@@ -206,7 +207,7 @@ public class ServerSettingsChangedHandlerTests : BaseTests
         MockReplicaBroadcaster
             .Setup(x =>
                 x.PublishAsync(
-                    ServerSettingsChangeBroadcastHandler.ChannelName,
+                    PlatformSettingsChangeBroadcastHandler.ChannelName,
                     ServerId,
                     It.IsAny<CancellationToken>()
                 )

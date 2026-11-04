@@ -153,7 +153,7 @@ public class DefaultClientSecretIssuerTests : BaseTests
         var serverSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var tenantSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         MockResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(serverSettings)
             .Verifiable();
         MockResolver
@@ -225,10 +225,10 @@ public class DefaultClientSecretIssuerTests : BaseTests
     public async Task GetTokenEndpointAuthMethodAsync_WhenASettingsDocumentIsUnreadable_ResolvesNoMethod()
     {
         MockResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
             .ThrowsAsync(
                 new UnreadableSettingsException(
-                    OpenIdSettingScopes.Server,
+                    OpenIdSettingScopes.Platform,
                     "server",
                     new JsonException("unreadable")
                 )

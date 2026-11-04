@@ -4,14 +4,14 @@
 using System.Text.Json;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Writes a server's effective settings as the JSON object that records what every tenant and client was reconciled
 /// against: each setting's name and its value as the setting serializer reads it back, in ordinal order of the names.
 /// </summary>
 // See ADR-1234.
-internal static class ServerSettingsSnapshot
+internal static class SettingsSnapshot
 {
     /// <summary>
     /// Writes the specified <paramref name="settings"/> as a JSON object of each setting's name and value.

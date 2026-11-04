@@ -9,7 +9,7 @@ using Moq;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
@@ -235,9 +235,9 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         && element.TryGetProperty("tenant", out var value)
         && value.GetString() == tenantId;
 
-    private ReconcileServerSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
+    private ReconcilePlatformSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
 
-    private ReconcileServerSettingsCommand CreateCommandWithPreviousSettings() =>
+    private ReconcilePlatformSettingsCommand CreateCommandWithPreviousSettings() =>
         new(ServerId, ServerSettings) { PreviousSettings = PreviousServerSettings };
 
     private void SetupSpecifications() =>

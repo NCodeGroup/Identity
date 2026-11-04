@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Moq;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class DefaultMaterializedServerRegistryTests : BaseTests
 {
@@ -13,24 +13,24 @@ public class DefaultMaterializedServerRegistryTests : BaseTests
 
     private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(5.0);
 
-    private DefaultMaterializedServerRegistry Registry { get; } = new();
+    private DefaultMaterializedPlatformRegistry Registry { get; } = new();
 
-    private Mock<OpenIdServer> CreateServer(string? serverId = null)
+    private Mock<OpenIdPlatform> CreateServer(string? serverId = null)
     {
-        var mockServer = CreateStrictMock<OpenIdServer>();
+        var mockServer = CreateStrictMock<OpenIdPlatform>();
         if (serverId is not null)
             mockServer.Setup(x => x.ServerId).Returns(serverId).Verifiable();
 
         return mockServer;
     }
 
-    #region GetServerAsync Tests
+    #region GetPlatformAsync Tests
 
     [Fact]
     public async Task GetServerAsync_WhenAServerIsRegisteredLater_ReturnsIt()
     {
         var mockServer = CreateServer();
-        var pending = Registry.GetServerAsync(CancellationToken.None);
+        var pending = Registry.GetPlatformAsync(CancellationToken.None);
         Assert.False(pending.IsCompleted);
 
         Registry.Register(mockServer.Object);
@@ -52,7 +52,7 @@ public class DefaultMaterializedServerRegistryTests : BaseTests
 
         Registry.Register(mockSecond.Object);
 
-        var actual = await Registry.GetServerAsync(CancellationToken.None);
+        var actual = await Registry.GetPlatformAsync(CancellationToken.None);
         Assert.Same(mockFirst.Object, actual);
     }
 

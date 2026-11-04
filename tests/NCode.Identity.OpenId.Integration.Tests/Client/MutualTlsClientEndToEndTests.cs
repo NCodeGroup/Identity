@@ -55,7 +55,7 @@ public class MutualTlsClientEndToEndTests
             clientId,
             clientId + "-rs",
             "https://api.client.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var services = new ServiceCollection();
@@ -101,7 +101,7 @@ public class MutualTlsClientEndToEndTests
             .GetRequiredService<ITokenClient>()
             .RequestTokenAsync(
                 registration,
-                new ClientCredentialsTokenRequest { Scope = TestServerSettingsProvider.ApiScope },
+                new ClientCredentialsTokenRequest { Scope = TestPlatformSettingsProvider.ApiScope },
                 CancellationToken.None
             );
 

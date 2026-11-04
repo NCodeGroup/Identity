@@ -44,16 +44,16 @@ public class SecretOwnerTests
 
     #endregion
 
-    #region ForServer Tests
+    #region ForPlatform Tests
 
     [Fact]
     public void ForServer_SetsServerType()
     {
         const string serverId = "server-1";
 
-        var owner = SecretOwner.ForServer(serverId);
+        var owner = SecretOwner.ForPlatform(serverId);
 
-        Assert.Equal(SecretOwnerTypes.Server, owner.OwnerType);
+        Assert.Equal(SecretOwnerTypes.Platform, owner.OwnerType);
         Assert.Equal(serverId, owner.OwnerId);
     }
 

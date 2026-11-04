@@ -5,19 +5,19 @@ using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="OpenIdServer"/> abstraction.
+/// Provides a default implementation of the <see cref="OpenIdPlatform"/> abstraction.
 /// </summary>
-internal class DefaultOpenIdServer(
+internal class DefaultOpenIdPlatform(
     string serverId,
     IReadOnlySettingCollectionProvider configuredSettingsProvider,
     IReadOnlySettingCollectionProvider settingsProvider,
     ISecretKeyCollectionProvider secretsProvider,
     Func<CancellationToken, ValueTask> refreshSettingsAsync,
     IPropertyBag propertyBag
-) : OpenIdServer, IAsyncDisposable
+) : OpenIdPlatform, IAsyncDisposable
 {
     private Func<CancellationToken, ValueTask> RefreshSettings { get; } = refreshSettingsAsync;
 

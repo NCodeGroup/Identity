@@ -6,10 +6,10 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Serialization;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Registration;
@@ -39,7 +39,7 @@ public static class DefaultRegistration
                 .AddMessageServices()
                 .AddResultServices()
                 .AddContextServices()
-                .AddServerServices()
+                .AddPlatformServices()
                 .AddSettingServices()
                 .AddTenantResolutionServices()
                 .AddPrincipalResolutionServices();

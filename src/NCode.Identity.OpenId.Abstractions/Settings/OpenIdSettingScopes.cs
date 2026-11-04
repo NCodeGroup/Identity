@@ -19,7 +19,7 @@ public static class OpenIdSettingScopes
     /// <summary>
     /// Contains the name of the server scope, the root of the cascade.
     /// </summary>
-    public const string Server = "server";
+    public const string Platform = "platform";
 
     /// <summary>
     /// Contains the name of the tenant scope, beneath the server.

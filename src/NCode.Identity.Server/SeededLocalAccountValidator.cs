@@ -41,7 +41,9 @@ internal sealed class SeededLocalAccountValidator(
         CancellationToken cancellationToken
     )
     {
-        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var serverSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            cancellationToken
+        );
         var tenantSettings = EffectiveSettingsResolver.Resolve(
             serverSettings,
             OpenIdSettingScopes.Tenant,

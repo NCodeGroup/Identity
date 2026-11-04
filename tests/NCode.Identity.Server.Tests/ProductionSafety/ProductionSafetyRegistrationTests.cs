@@ -338,7 +338,7 @@ public class ProductionSafetyRegistrationTests
             options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
         });
         services.Configure<OpenIdOptions>(options =>
-            options.Server.Settings = configuration.GetSection("OpenId:Server:Settings")
+            options.Platform.Settings = configuration.GetSection("OpenId:Server:Settings")
         );
         services.AddSingleton<ITenantEnvironmentType>(new StubEnvironmentType("production", true));
         services.AddSingleton<ITenantEnvironmentType>(

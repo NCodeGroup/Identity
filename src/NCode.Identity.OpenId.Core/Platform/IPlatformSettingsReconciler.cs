@@ -1,14 +1,14 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Brings everything derived from a server's effective settings in line with them whenever those settings differ from
 /// the ones they were last reconciled against.
 /// </summary>
 // See ADR-1219.
-internal interface IServerSettingsReconciler
+internal interface IPlatformSettingsReconciler
 {
     /// <summary>
     /// Reconciles the server's effective settings when they differ from the ones recorded as reconciled, with one

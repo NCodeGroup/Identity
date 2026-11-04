@@ -222,7 +222,7 @@ public sealed class ManagementAuditEventShapeTests
         Assert.Equal(
             [
                 new AuditResource(ManagementResourceTypes.ServerSecret, "secret-1"),
-                new AuditResource(ManagementResourceTypes.Server, "server-1"),
+                new AuditResource(ManagementResourceTypes.Platform, "server-1"),
             ],
             auditEvent.Resources
         );

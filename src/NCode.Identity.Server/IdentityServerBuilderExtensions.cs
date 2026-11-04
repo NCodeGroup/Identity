@@ -36,7 +36,7 @@ public static class IdentityServerBuilderExtensions
     private static FrozenSet<string> OpenIdSubsections { get; } =
         FrozenSet.Create(
             StringComparer.OrdinalIgnoreCase,
-            nameof(OpenIdOptions.Server),
+            nameof(OpenIdOptions.Platform),
             nameof(OpenIdOptions.Tenant),
             TenantResolutionSubsection,
             MutualTlsSubsection,
@@ -57,7 +57,7 @@ public static class IdentityServerBuilderExtensions
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
         /// <paramref name="sectionName"/> names another) holds eleven subsections, each bound to one options type:
         /// <list type="bullet">
-        /// <item><description><c>Server</c> — <see cref="OpenIdServerOptions"/>, including the server's
+        /// <item><description><c>Server</c> — <see cref="OpenIdPlatformOptions"/>, including the server's
         /// <c>Settings</c>.</description></item>
         /// <item><description><c>Tenant</c> — <see cref="OpenIdTenantOptions"/>: how a resolved tenant is
         /// materialized and cached, and which keys every tenant is provisioned with.</description></item>
@@ -115,9 +115,9 @@ public static class IdentityServerBuilderExtensions
                 : sectionName;
 
             var openIdSection = configuration.GetSection(resolvedSectionName);
-            var serverSection = openIdSection.GetSection(nameof(OpenIdOptions.Server));
+            var serverSection = openIdSection.GetSection(nameof(OpenIdOptions.Platform));
             var serverSettingsSection = serverSection.GetSection(
-                nameof(OpenIdServerOptions.Settings)
+                nameof(OpenIdPlatformOptions.Settings)
             );
             var tenantSection = openIdSection.GetSection(nameof(OpenIdOptions.Tenant));
             var tenantResolutionSection = openIdSection.GetSection(TenantResolutionSubsection);
@@ -150,12 +150,12 @@ public static class IdentityServerBuilderExtensions
                 .Configure(options =>
                 {
                     ThrowOnUnknownSubsection(openIdSection);
-                    serverSection.BindStrictly(options.Server);
+                    serverSection.BindStrictly(options.Platform);
                     tenantSection.BindStrictly(options.Tenant);
 
                     // The binder only assigns the settings section when the server section has keys; assign it
                     // regardless so settings added by a later configuration reload are still observed.
-                    options.Server.Settings ??= serverSettingsSection;
+                    options.Platform.Settings ??= serverSettingsSection;
                 })
                 .ValidateOnStart();
 

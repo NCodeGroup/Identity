@@ -11,7 +11,7 @@ using Moq;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
@@ -24,13 +24,13 @@ using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class DefaultOpenIdServerFactoryTests : BaseTests
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5.0);
 
-    private DefaultOpenIdServerFactory CreateFactory(
+    private DefaultOpenIdPlatformFactory CreateFactory(
         ISecretSerializer secretSerializer,
         ISecretProtectorProvider secretProtectorProvider,
         ICollectionDataSourceFactory? collectionDataSourceFactory = null,
@@ -100,7 +100,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
     {
         var mockOptionsAccessor = CreateStrictMock<IOptions<OpenIdOptions>>();
 
-        var factory = new DefaultOpenIdServerFactory(
+        var factory = new DefaultOpenIdPlatformFactory(
             mockOptionsAccessor.Object,
             CreateStrictMock<IServiceProvider>().Object,
             CreateStrictMock<ISecretSerializer>().Object,
@@ -153,7 +153,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
         mockSecretProtectorProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForServer("server-a"),
+                    SecretOwner.ForPlatform("server-a"),
                     It.Is<IReadOnlyCollection<string>>(v =>
                         v.Count == 1 && v.Contains("nce1.private")
                     ),
@@ -205,7 +205,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
         mockSecretProtectorProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForServer("server-a"),
+                    SecretOwner.ForPlatform("server-a"),
                     It.IsAny<IReadOnlyCollection<string>>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -290,7 +290,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
         IDisposableCollectionDataSource<Setting> rootSettingsDataSource,
         RefreshableSettingsCollectionDataSource serverSettingsDataSource
     )
-        : DefaultOpenIdServerFactory(
+        : DefaultOpenIdPlatformFactory(
             Options.Create(new OpenIdOptions()),
             tests.CreateStrictMock<IServiceProvider>().Object,
             tests.CreateStrictMock<ISecretSerializer>().Object,
@@ -303,11 +303,11 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
             tests.CreateStrictMock<IIdGenerator<long>>().Object
         )
     {
-        protected internal override ValueTask<PersistedServer> GetPersistedServerAsync(
+        protected internal override ValueTask<PersistedServer> GetPersistedPlatformAsync(
             string serverId,
             IPropertyBag propertyBag,
             CancellationToken cancellationToken
-        ) => ValueTask.FromResult(CreateEmptyPersistedServer(serverId));
+        ) => ValueTask.FromResult(CreateEmptyPersistedPlatform(serverId));
 
         protected internal override ValueTask<
             IDisposableCollectionDataSource<Setting>
@@ -316,7 +316,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
             CancellationToken cancellationToken
         ) => ValueTask.FromResult(rootSettingsDataSource);
 
-        protected internal override ValueTask<RefreshableSettingsCollectionDataSource> CreateServerSettingsDataSourceAsync(
+        protected internal override ValueTask<RefreshableSettingsCollectionDataSource> CreatePlatformSettingsDataSourceAsync(
             OpenIdEnvironment openIdEnvironment,
             PersistedServer persistedServer,
             IPropertyBag propertyBag,

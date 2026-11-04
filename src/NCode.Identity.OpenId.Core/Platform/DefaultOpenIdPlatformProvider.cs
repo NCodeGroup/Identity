@@ -9,29 +9,29 @@ using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Tenants;
 using NCode.PropertyBag;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
-/// Provides a default implementation of the <see cref="IOpenIdServerProvider"/> abstraction. The server it
-/// materializes is registered with <see cref="IMaterializedServerRegistry"/>, so background work can wait for the
+/// Provides a default implementation of the <see cref="IOpenIdPlatformProvider"/> abstraction. The server it
+/// materializes is registered with <see cref="IMaterializedPlatformRegistry"/>, so background work can wait for the
 /// server and a committed change to its settings can refresh it. Whenever the server's settings change, by any path,
 /// every cached tenant is evicted from <see cref="IOpenIdTenantCache"/>, because a tenant's settings derive from the
 /// server's when it is materialized.
 /// </summary>
 // See ADR-1219 and ADR-1289.
-internal class DefaultOpenIdServerProvider(
-    IOpenIdServerFactory factory,
-    IMaterializedServerRegistry materializedServerRegistry,
+internal class DefaultOpenIdPlatformProvider(
+    IOpenIdPlatformFactory factory,
+    IMaterializedPlatformRegistry materializedServerRegistry,
     IOpenIdTenantCache tenantCache,
-    ILogger<DefaultOpenIdServerProvider> logger
-) : IOpenIdServerProvider, IAsyncDisposable
+    ILogger<DefaultOpenIdPlatformProvider> logger
+) : IOpenIdPlatformProvider, IAsyncDisposable
 {
-    private IOpenIdServerFactory Factory { get; } = factory;
-    private IMaterializedServerRegistry MaterializedServerRegistry { get; } =
+    private IOpenIdPlatformFactory Factory { get; } = factory;
+    private IMaterializedPlatformRegistry MaterializedPlatformRegistry { get; } =
         materializedServerRegistry;
     private IOpenIdTenantCache TenantCache { get; } = tenantCache;
-    private ILogger<DefaultOpenIdServerProvider> Logger { get; } = logger;
-    private OpenIdServer? InstanceOrNull { get; set; }
+    private ILogger<DefaultOpenIdPlatformProvider> Logger { get; } = logger;
+    private OpenIdPlatform? InstanceOrNull { get; set; }
     private IDisposable? SettingsChangeRegistration { get; set; }
     private SemaphoreSlim SyncRoot { get; } = new(initialCount: 1, maxCount: 1);
 
@@ -58,7 +58,7 @@ internal class DefaultOpenIdServerProvider(
     }
 
     /// <inheritdoc />
-    public async ValueTask<OpenIdServer> GetAsync(
+    public async ValueTask<OpenIdPlatform> GetAsync(
         OpenIdEnvironment openIdEnvironment,
         CancellationToken cancellationToken
     )
@@ -75,7 +75,7 @@ internal class DefaultOpenIdServerProvider(
                     InstanceOrNull = server;
 
                     // Background work waits for the server this replica materializes, and a committed change refreshes it (ADR-1219).
-                    MaterializedServerRegistry.Register(server);
+                    MaterializedPlatformRegistry.Register(server);
 
                     // A tenant computes the profiles its environment type implies from the server's settings when it is
                     // materialized, so a changed server reaches cached tenants at once rather than when they expire (ADR-1289).

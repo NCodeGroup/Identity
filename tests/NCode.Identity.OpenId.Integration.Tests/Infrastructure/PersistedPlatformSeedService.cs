@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// </summary>
 /// <param name="scopeFactory">The <see cref="IServiceScopeFactory"/> that creates the scope the seed runs in.</param>
 /// <param name="settings">The server's settings document.</param>
-internal sealed class PersistedServerSeedService(
+internal sealed class PersistedPlatformSeedService(
     IServiceScopeFactory scopeFactory,
     IReadOnlyDictionary<string, object> settings
 ) : IHostedLifecycleService
@@ -28,7 +28,7 @@ internal sealed class PersistedServerSeedService(
     /// <inheritdoc />
     public async Task StartingAsync(CancellationToken cancellationToken)
     {
-        const string serverId = OpenIdServerOptions.DefaultServerId;
+        const string serverId = OpenIdPlatformOptions.DefaultPlatformId;
 
         await using var scope = ScopeFactory.CreateAsyncScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();

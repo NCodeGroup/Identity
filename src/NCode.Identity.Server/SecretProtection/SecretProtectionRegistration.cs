@@ -94,7 +94,7 @@ internal static class SecretProtectionRegistration
             .Configure(options => keyRingSection.BindStrictly(options))
             .ValidateOnStart();
 
-        serviceCollection.TryAddSingleton<ServerSecretProtectorHolder>();
+        serviceCollection.TryAddSingleton<PlatformSecretProtectorHolder>();
         serviceCollection.TryAddSingleton(TimeProvider.System);
 
         // The gate resolves IKeyManager, which Data Protection registers.
@@ -108,13 +108,13 @@ internal static class SecretProtectionRegistration
         if (
             !serviceCollection.Any(descriptor =>
                 descriptor.ServiceType == typeof(IHostedService)
-                && descriptor.ImplementationType == typeof(ServerSecretProtectorWarmup)
+                && descriptor.ImplementationType == typeof(PlatformSecretProtectorWarmup)
             )
         )
         {
             serviceCollection.Insert(
                 0,
-                ServiceDescriptor.Singleton<IHostedService, ServerSecretProtectorWarmup>()
+                ServiceDescriptor.Singleton<IHostedService, PlatformSecretProtectorWarmup>()
             );
         }
 
@@ -133,7 +133,7 @@ internal static class SecretProtectionRegistration
 
         serviceCollection
             .AddOptions<KeyManagementOptions>()
-            .Configure<ServerSecretProtectorHolder>(
+            .Configure<PlatformSecretProtectorHolder>(
                 (options, holder) => options.XmlEncryptor = new MasterKeyXmlEncryptor(holder)
             );
     }

@@ -609,8 +609,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         SetupTenantPage();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(CreateUnreadableSettingsException(OpenIdSettingScopes.Server, "server"))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(CreateUnreadableSettingsException(OpenIdSettingScopes.Platform, "server"))
             .Verifiable();
 
         var result = await Handler.ListTenantsAsync(
@@ -887,7 +887,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
 
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(serverSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver
@@ -907,7 +907,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(serverSettings.Object)
             .Verifiable();
         return serverSettings.Object;
@@ -1016,7 +1016,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     {
         var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(serverSettings.Object)
             .Verifiable();
 
@@ -1116,7 +1116,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var serverSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(serverSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver

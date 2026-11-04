@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Mediator;
@@ -16,7 +16,7 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Tenants.Keys;
 
 /// <summary>
-/// Handles <see cref="ReconcileServerSettingsCommand"/> by seeding, through a <see cref="TenantChangedCommand"/> with
+/// Handles <see cref="ReconcilePlatformSettingsCommand"/> by seeding, through a <see cref="TenantChangedCommand"/> with
 /// <see cref="TenantChangedCommand.SettingsChanged"/>, every tenant whose effective settings use a configured algorithm
 /// that the tenant holds no satisfying key for. The announcement evicts the tenant, seeds it, and tells the other
 /// replicas, so the key the server's settings permit is provisioned without waiting for the tenant to be materialized
@@ -41,7 +41,7 @@ internal sealed class TenantKeyReconciliationHandler(
     IStoreManagerFactory storeManagerFactory,
     IServiceScopeFactory serviceScopeFactory,
     ILogger<TenantKeyReconciliationHandler> logger
-) : ICommandHandler<ReconcileServerSettingsCommand>
+) : ICommandHandler<ReconcilePlatformSettingsCommand>
 {
     // The tenants are read in pages, so the pass never holds every tenant's settings at once.
     private const int TenantPageSize = 100;
@@ -58,7 +58,7 @@ internal sealed class TenantKeyReconciliationHandler(
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
-        ReconcileServerSettingsCommand command,
+        ReconcilePlatformSettingsCommand command,
         CancellationToken cancellationToken
     )
     {
@@ -116,7 +116,7 @@ internal sealed class TenantKeyReconciliationHandler(
 
     private async ValueTask<bool> LacksKeyAsync(
         ITenantStore tenantStore,
-        ReconcileServerSettingsCommand command,
+        ReconcilePlatformSettingsCommand command,
         PersistedTenantSettings tenantSettings,
         IReadOnlyList<TenantKeySpecification> specifications,
         CancellationToken cancellationToken

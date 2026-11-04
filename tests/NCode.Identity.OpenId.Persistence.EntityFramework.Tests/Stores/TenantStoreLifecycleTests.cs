@@ -264,7 +264,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     {
         await SeedTenantAsync();
         var otherTenantKey = CreateMasterKey(SecretOwnerTypes.Tenant, "tenant-2", 1);
-        var serverKey = CreateMasterKey(SecretOwnerTypes.Server, TenantId, 1);
+        var serverKey = CreateMasterKey(SecretOwnerTypes.Platform, TenantId, 1);
         await SeedMasterKeysAsync(
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantId, 1),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantId.ToUpperInvariant(), 2),

@@ -84,7 +84,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         );
 
         var settings = reader
-            .Read(section, OpenIdSettingScopes.Server)
+            .Read(section, OpenIdSettingScopes.Platform)
             .ToDictionary(x => x.Descriptor.Name, x => x.GetValue());
 
         Assert.Equal("value", settings["text"]);
@@ -100,7 +100,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("list", null));
 
-        var setting = Assert.Single(reader.Read(section, OpenIdSettingScopes.Server));
+        var setting = Assert.Single(reader.Read(section, OpenIdSettingScopes.Platform));
 
         Assert.Empty(Assert.IsAssignableFrom<IEnumerable<string>>(setting.GetValue()));
     }
@@ -110,7 +110,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
     {
         var reader = CreateReader();
 
-        var settings = reader.Read(CreateSection(), OpenIdSettingScopes.Server);
+        var settings = reader.Read(CreateSection(), OpenIdSettingScopes.Platform);
 
         Assert.Empty(settings);
     }
@@ -125,7 +125,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            reader.Read(section, OpenIdSettingScopes.Server)
+            reader.Read(section, OpenIdSettingScopes.Platform)
         );
 
         Assert.Contains($"'{SectionPath}'", exception.Message, StringComparison.Ordinal);
@@ -144,7 +144,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var section = CreateSection(("mode", "pull"), ("text", "value"));
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            reader.Read(section, OpenIdSettingScopes.Server)
+            reader.Read(section, OpenIdSettingScopes.Platform)
         );
 
         Assert.Contains($"{SectionPath}:mode", exception.Message, StringComparison.Ordinal);
@@ -160,7 +160,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("text", ""), ("flag", "false"), ("list:0", "a"));
 
-        var errors = reader.Validate(section, OpenIdSettingScopes.Server);
+        var errors = reader.Validate(section, OpenIdSettingScopes.Platform);
 
         Assert.Empty(errors);
     }
@@ -171,7 +171,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("unregistered_setting", "https://op.example"));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Equal($"'{SectionPath}:unregistered_setting' is not a registered setting.", error);
     }
@@ -182,7 +182,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("Flag", "true"));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Contains("not a registered setting", error, StringComparison.Ordinal);
     }
@@ -196,7 +196,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection((name, value));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Contains($"{SectionPath}:{name}", error, StringComparison.Ordinal);
     }
@@ -207,7 +207,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("list", "authorization_code"));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Contains("must be a list of values", error, StringComparison.Ordinal);
     }
@@ -220,7 +220,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection((key, "true"));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Contains("must be a single value", error, StringComparison.Ordinal);
     }
@@ -231,7 +231,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("mode", "pull"));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Equal($"'{SectionPath}:mode' must be one of 'poll', 'ping', or 'push'.", error);
     }
@@ -242,7 +242,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("timeout", "-00:05:00"));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Equal($"'{SectionPath}:timeout' must be at least 00:00:01.", error);
     }
@@ -253,7 +253,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("methods:0", "S256"), ("methods:1", "S512"));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Contains($"'{SectionPath}:methods'", error, StringComparison.Ordinal);
         Assert.Contains("'S512' is not", error, StringComparison.Ordinal);
@@ -269,7 +269,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
             ("methods:0", "S256")
         );
 
-        var errors = reader.Validate(section, OpenIdSettingScopes.Server);
+        var errors = reader.Validate(section, OpenIdSettingScopes.Platform);
 
         Assert.Empty(errors);
     }
@@ -291,7 +291,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("nowhere", "true"));
 
-        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Server));
+        var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
         Assert.Equal($"'{SectionPath}:nowhere' does not apply to the 'server' scope.", error);
     }
@@ -323,7 +323,7 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
         var reader = CreateReader();
         var section = CreateSection(("tenant_only", "true"), ("flag", "true"));
 
-        var errors = reader.Validate(section, OpenIdSettingScopes.Server);
+        var errors = reader.Validate(section, OpenIdSettingScopes.Platform);
 
         Assert.Empty(errors);
     }

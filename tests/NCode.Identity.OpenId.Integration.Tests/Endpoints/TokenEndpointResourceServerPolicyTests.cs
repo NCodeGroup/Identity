@@ -32,7 +32,7 @@ public class TokenEndpointResourceServerPolicyTests
             new Dictionary<string, string>
             {
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
                 ["client_id"] = clientId,
                 ["client_secret"] = ClientSecret,
             }
@@ -53,7 +53,7 @@ public class TokenEndpointResourceServerPolicyTests
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
             resourceServerSettings,
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
         return factory;
     }
@@ -95,7 +95,7 @@ public class TokenEndpointResourceServerPolicyTests
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
             resourceServerSettings,
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
         return factory;
     }
@@ -111,7 +111,7 @@ public class TokenEndpointResourceServerPolicyTests
                 new Dictionary<string, string>
                 {
                     ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                    ["scope"] = TestServerSettingsProvider.ApiScope,
+                    ["scope"] = TestPlatformSettingsProvider.ApiScope,
                     ["client_id"] = clientId,
                 }
             ),
@@ -258,7 +258,7 @@ public class TokenEndpointResourceServerPolicyTests
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         using var response = await CreateClient(factory)

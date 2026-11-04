@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
@@ -41,9 +41,9 @@ public abstract class OpenIdContext : IAsyncDisposable
     public virtual IOpenIdErrorFactory ErrorFactory => Environment.ErrorFactory;
 
     /// <summary>
-    /// Gets the <see cref="OpenIdServer"/> associated with the current request.
+    /// Gets the <see cref="OpenIdPlatform"/> associated with the current request.
     /// </summary>
-    public abstract OpenIdServer Server { get; }
+    public abstract OpenIdPlatform Server { get; }
 
     /// <summary>
     /// Gets the <see cref="OpenIdTenant"/> associated with the current request.

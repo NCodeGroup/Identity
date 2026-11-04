@@ -6,11 +6,11 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.Settings;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Servers;
+namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public sealed class ServerSettingsReconciliationServiceTests : BaseTests
 {
@@ -19,16 +19,16 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
     private static TimeSpan Deadline { get; } = TimeSpan.FromSeconds(5);
 
     private OpenIdOptions OpenIdOptions { get; } =
-        new() { Server = { ReconciliationLeaseDuration = TimeSpan.FromMilliseconds(20) } };
+        new() { Platform = { ReconciliationLeaseDuration = TimeSpan.FromMilliseconds(20) } };
 
-    private Mock<IMaterializedServerRegistry> MockRegistry { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<IMaterializedPlatformRegistry> MockRegistry { get; }
+    private Mock<IOpenIdPlatformProvider> MockServerProvider { get; }
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
-    private Mock<IServerSettingsReconciler> MockReconciler { get; }
-    private Mock<OpenIdServer> MockServer { get; }
+    private Mock<IPlatformSettingsReconciler> MockReconciler { get; }
+    private Mock<OpenIdPlatform> MockServer { get; }
     private Mock<IReadOnlySettingCollectionProvider> MockSettingsProvider { get; }
-    private ServerSettingsReconciliationService Service { get; }
+    private PlatformSettingsReconciliationService Service { get; }
 
     // The source of the change token that the settings provider hands out next.
     private CancellationTokenSource Changes { get; set; } = new();
@@ -45,22 +45,22 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
 
     public ServerSettingsReconciliationServiceTests()
     {
-        MockRegistry = CreateStrictMock<IMaterializedServerRegistry>();
-        MockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
+        MockRegistry = CreateStrictMock<IMaterializedPlatformRegistry>();
+        MockServerProvider = CreateStrictMock<IOpenIdPlatformProvider>();
         MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        MockReconciler = CreateStrictMock<IServerSettingsReconciler>();
-        MockServer = CreateStrictMock<OpenIdServer>();
+        MockReconciler = CreateStrictMock<IPlatformSettingsReconciler>();
+        MockServer = CreateStrictMock<OpenIdPlatform>();
         MockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
 
-        Service = new ServerSettingsReconciliationService(
+        Service = new PlatformSettingsReconciliationService(
             MockRegistry.Object,
             MockServerProvider.Object,
             MockEnvironmentProvider.Object,
             MockReconciler.Object,
             Options.Create(OpenIdOptions),
             TimeProvider.System,
-            CreateLooseMock<ILogger<ServerSettingsReconciliationService>>().Object
+            CreateLooseMock<ILogger<PlatformSettingsReconciliationService>>().Object
         );
     }
 
@@ -98,7 +98,7 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
             .ThrowsAsync(new InvalidOperationException("unreachable"))
             .Verifiable();
         MockRegistry
-            .Setup(x => x.GetServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetPlatformAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockServer.Object)
             .Verifiable();
         SetupReconciler(_ => ValueTask.FromResult(true));
@@ -182,7 +182,7 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
 
     #region Scaffolding
 
-    private static async ValueTask<OpenIdServer> WaitForeverAsync(
+    private static async ValueTask<OpenIdPlatform> WaitForeverAsync(
         CancellationToken cancellationToken
     )
     {

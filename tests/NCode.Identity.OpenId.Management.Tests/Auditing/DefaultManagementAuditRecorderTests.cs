@@ -514,7 +514,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.NotNull(captured);
         Assert.Equal("server.updated", captured.EventName);
         Assert.Equal(AuditEventSources.Management, captured.EventSource);
-        Assert.Equal(ManagementResourceTypes.Server, captured.ResourceType);
+        Assert.Equal(ManagementResourceTypes.Platform, captured.ResourceType);
         Assert.Equal(ResourceChangeTypes.Updated, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Null(captured.TenantId);
@@ -527,7 +527,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal("test-endpoint", captured.Request.Endpoint);
         Assert.Equal(7, captured.EventId.Version);
         Assert.Equal(
-            [new AuditResource(ManagementResourceTypes.Server, "server-1")],
+            [new AuditResource(ManagementResourceTypes.Platform, "server-1")],
             captured.Resources
         );
         Assert.NotNull(captured.ResourceValues);
@@ -589,7 +589,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(
             [
                 new AuditResource(ManagementResourceTypes.ServerSecret, "secret-1"),
-                new AuditResource(ManagementResourceTypes.Server, "server-1"),
+                new AuditResource(ManagementResourceTypes.Platform, "server-1"),
             ],
             captured.Resources
         );

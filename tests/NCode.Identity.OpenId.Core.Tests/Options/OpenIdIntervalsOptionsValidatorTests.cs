@@ -27,7 +27,7 @@ public sealed class OpenIdIntervalsOptionsValidatorTests
     {
         var options = new OpenIdOptions
         {
-            Server = new OpenIdServerOptions { ReconciliationLeaseDuration = TimeSpan.Zero },
+            Platform = new OpenIdPlatformOptions { ReconciliationLeaseDuration = TimeSpan.Zero },
         };
 
         var result = Validator.Validate(null, options);
@@ -66,7 +66,7 @@ public sealed class OpenIdIntervalsOptionsValidatorTests
     {
         var options = new OpenIdOptions
         {
-            Server = new OpenIdServerOptions
+            Platform = new OpenIdPlatformOptions
             {
                 SettingsPeriodicRefreshInterval = TimeSpan.FromMinutes(-1),
             },

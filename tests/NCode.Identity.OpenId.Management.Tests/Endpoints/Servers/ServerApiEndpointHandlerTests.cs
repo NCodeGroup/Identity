@@ -21,7 +21,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
@@ -324,7 +324,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
     #endregion
 
-    #region GetServerAsync Tests
+    #region GetPlatformAsync Tests
 
     [Fact]
     public async Task GetServerAsync_WhenFoundAndAuthorized_ReturnsJsonWithETag()
@@ -339,7 +339,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetServerAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
 
         var json = Assert.IsType<JsonHttpResult<ServerResource>>(result);
         Assert.Equal(ServerId, json.Value?.ServerId);
@@ -358,7 +358,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetServerAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
     }
@@ -375,7 +375,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetServerAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
 
         Assert.IsType<ForbidHttpResult>(result);
     }
@@ -392,7 +392,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: false);
 
-        var result = await Handler.GetServerAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -409,7 +409,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true, ifNoneMatch: "server-ct");
 
-        var result = await Handler.GetServerAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
 
         var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
         Assert.Equal(StatusCodes.Status304NotModified, statusCode.StatusCode);
@@ -517,7 +517,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(It.IsAny<JsonElement>(), It.IsAny<CancellationToken>())
+                x.ResolvePlatformAsync(It.IsAny<JsonElement>(), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(effective)
             .Verifiable();
@@ -568,7 +568,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(It.IsAny<JsonElement>(), It.IsAny<CancellationToken>())
+                x.ResolvePlatformAsync(It.IsAny<JsonElement>(), It.IsAny<CancellationToken>())
             )
             .ThrowsAsync(new JsonException("boom"))
             .Verifiable();
@@ -579,7 +579,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             await Handler.GetEffectiveSettingsAsync(httpContext, ServerId, CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdSettingScopes.Server, exception.ScopeName);
+        Assert.Equal(OpenIdSettingScopes.Platform, exception.ScopeName);
         Assert.Equal(ServerId, exception.OwnerId);
         Assert.Equal("boom", exception.DocumentError);
     }
@@ -651,7 +651,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var newServer = CreateSettingCollection();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(
+                x.ResolvePlatformAsync(
                     It.Is<JsonElement>(e => !HasProperty(e, "foo")),
                     It.IsAny<CancellationToken>()
                 )
@@ -660,7 +660,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(
+                x.ResolvePlatformAsync(
                     It.Is<JsonElement>(e => HasProperty(e, "foo")),
                     It.IsAny<CancellationToken>()
                 )
@@ -732,7 +732,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockMediator
             .Setup(x =>
                 x.SendAsync(
-                    It.Is<ServerSettingsChangedCommand>(c =>
+                    It.Is<PlatformSettingsChangedCommand>(c =>
                         c.ServerId == ServerId
                         && HasProperty(c.Settings, "foo")
                         && !HasProperty(c.PreviousSettings, "foo")
@@ -772,7 +772,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(
+                x.ResolvePlatformAsync(
                     It.Is<JsonElement>(e => !HasProperty(e, "foo")),
                     It.IsAny<CancellationToken>()
                 )
@@ -781,7 +781,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(
+                x.ResolvePlatformAsync(
                     It.Is<JsonElement>(e => HasProperty(e, "foo")),
                     It.IsAny<CancellationToken>()
                 )
@@ -835,7 +835,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(
+                x.ResolvePlatformAsync(
                     It.Is<JsonElement>(e => !HasProperty(e, "foo")),
                     It.IsAny<CancellationToken>()
                 )
@@ -848,7 +848,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
-                x.ResolveServerAsync(
+                x.ResolvePlatformAsync(
                     It.Is<JsonElement>(e => HasProperty(e, "foo")),
                     It.IsAny<CancellationToken>()
                 )
@@ -1062,7 +1062,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockMediator.Verify(
             x =>
                 x.SendAsync(
-                    It.IsAny<ServerSettingsChangedCommand>(),
+                    It.IsAny<PlatformSettingsChangedCommand>(),
                     It.IsAny<CancellationToken>()
                 ),
             Times.Once
@@ -1302,7 +1302,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockSecretProtectorProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForServer(ServerId),
+                    SecretOwner.ForPlatform(ServerId),
                     It.Is<IReadOnlyCollection<string>>(v => v.Count == 0),
                     It.IsAny<CancellationToken>()
                 )

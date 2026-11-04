@@ -21,7 +21,7 @@ internal static class EventIds
     public const int LostConcurrencyRace = Base + 5;
     public const int ClientSettingsUnreadable = Base + 6;
     public const int TenantSettingsUnreadable = Base + 7;
-    public const int ServerSettingsUnreadable = Base + 8;
+    public const int PlatformSettingsUnreadable = Base + 8;
     public const int StoredSettingsUnreadable = Base + 9;
     public const int TenantEnvironmentTypeUnreadable = Base + 10;
     public const int TenantEnvironmentUnresolved = Base + 11;

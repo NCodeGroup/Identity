@@ -3,7 +3,7 @@
 
 using NCode.Identity.SharedState;
 
-namespace NCode.Identity.OpenId.Servers;
+namespace NCode.Identity.OpenId.Platform;
 
 /// <summary>
 /// Handles the announcement that a server's settings changed by reading the committed settings of the announced server
@@ -14,16 +14,16 @@ namespace NCode.Identity.OpenId.Servers;
 /// settings again too.
 /// </summary>
 // See ADR-1205 and ADR-1219.
-internal sealed class ServerSettingsChangeBroadcastHandler(
-    IMaterializedServerRegistry materializedServerRegistry
+internal sealed class PlatformSettingsChangeBroadcastHandler(
+    IMaterializedPlatformRegistry materializedServerRegistry
 ) : IReplicaBroadcastHandler
 {
     /// <summary>
     /// The name of the replica broadcast channel on which a changed server's settings are announced.
     /// </summary>
-    public const string ChannelName = "server-settings-changed";
+    public const string ChannelName = "platform-settings-changed";
 
-    private IMaterializedServerRegistry MaterializedServerRegistry { get; } =
+    private IMaterializedPlatformRegistry MaterializedPlatformRegistry { get; } =
         materializedServerRegistry;
 
     /// <inheritdoc />
@@ -31,9 +31,9 @@ internal sealed class ServerSettingsChangeBroadcastHandler(
 
     /// <inheritdoc />
     public ValueTask HandleAsync(string message, CancellationToken cancellationToken) =>
-        MaterializedServerRegistry.RefreshSettingsAsync(message, cancellationToken);
+        MaterializedPlatformRegistry.RefreshSettingsAsync(message, cancellationToken);
 
     /// <inheritdoc />
     public ValueTask HandleMissedMessagesAsync(CancellationToken cancellationToken) =>
-        MaterializedServerRegistry.RefreshSettingsAsync(cancellationToken);
+        MaterializedPlatformRegistry.RefreshSettingsAsync(cancellationToken);
 }

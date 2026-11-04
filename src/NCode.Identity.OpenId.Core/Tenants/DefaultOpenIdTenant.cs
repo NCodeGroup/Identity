@@ -3,6 +3,7 @@
 
 using NCode.Disposables;
 using NCode.Identity.Models;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
@@ -14,12 +15,14 @@ namespace NCode.Identity.OpenId.Tenants;
 /// </summary>
 internal class DefaultOpenIdTenant(
     string tenantId,
+    string teamId,
     string displayName,
     string issuer,
     string? mtlsEndpointAliasAuthority,
     UriDescriptor baseAddress,
     AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> settingsReference,
     AsyncSharedReferenceLease<ISecretKeyCollectionProvider> secretsReference,
+    AsyncSharedReferenceLease<OpenIdTeam> teamReference,
     IPropertyBag propertyBag
 ) : OpenIdTenant
 {
@@ -27,9 +30,13 @@ internal class DefaultOpenIdTenant(
         settingsReference.AddReference();
     private AsyncSharedReferenceLease<ISecretKeyCollectionProvider> SecretsReference { get; set; } =
         secretsReference.AddReference();
+    private AsyncSharedReferenceLease<OpenIdTeam> TeamReference { get; set; } = teamReference;
 
     /// <inheritdoc />
     public override string TenantId { get; } = tenantId;
+
+    /// <inheritdoc />
+    public override string TeamId { get; } = teamId;
 
     /// <inheritdoc />
     public override string DisplayName { get; } = displayName;
@@ -60,5 +67,8 @@ internal class DefaultOpenIdTenant(
 
         await SecretsReference.DisposeAsync();
         SecretsReference = default;
+
+        await TeamReference.DisposeAsync();
+        TeamReference = default;
     }
 }

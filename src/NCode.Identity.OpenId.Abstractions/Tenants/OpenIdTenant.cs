@@ -21,6 +21,11 @@ public abstract class OpenIdTenant : IAsyncDisposable
     public abstract string TenantId { get; }
 
     /// <summary>
+    /// Gets the identifier of the team the tenant belongs to. A tenant never moves between teams.
+    /// </summary>
+    public abstract string TeamId { get; }
+
+    /// <summary>
     /// Gets the display name for the tenant.
     /// </summary>
     public abstract string DisplayName { get; }

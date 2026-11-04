@@ -1,21 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import { GLOBAL_SCOPE, tenantScope } from '@ncode/api';
+import { PLATFORM_SCOPE, teamScope, tenantScope } from '@ncode/api';
 import {
   DEFAULT_ROUTE,
-  globalRoute,
   parseRoute,
+  platformRoute,
+  PLATFORM_SURFACES,
   resolveRoute,
   routePath,
   routeScope,
+  teamRoute,
+  TEAM_SURFACES,
   tenantRoute,
   TENANT_SURFACES,
-  GLOBAL_SURFACES,
 } from './routes.js';
 
 describe('routePath', () => {
-  it('formats the global surfaces without a tenant segment', () => {
-    expect(routePath(globalRoute('tenants'))).toBe('/tenants');
-    expect(routePath(globalRoute('servers'))).toBe('/servers');
+  it('formats the platform surfaces without a scope segment', () => {
+    expect(routePath(platformRoute('teams'))).toBe('/teams');
+    expect(routePath(platformRoute('settings'))).toBe('/settings');
+  });
+
+  it('nests a team surface under its team', () => {
+    expect(routePath(teamRoute('acme', 'usage'))).toBe('/teams/acme/usage');
+    expect(routePath(teamRoute('acme', 'settings'))).toBe('/teams/acme/settings');
+  });
+
+  it('opens a team on its tenants by default', () => {
+    expect(routePath(teamRoute('acme'))).toBe('/teams/acme/tenants');
+  });
+
+  it('percent-encodes the team id as a single segment', () => {
+    expect(routePath(teamRoute('a/b c', 'tenants'))).toBe('/teams/a%2Fb%20c/tenants');
   });
 
   it('nests a tenant surface under its tenant', () => {
@@ -38,6 +53,12 @@ describe('routePath', () => {
   });
 });
 
+describe('teamRoute', () => {
+  it('rejects a blank team id', () => {
+    expect(() => teamRoute('  ')).toThrow(/non-empty/);
+  });
+});
+
 describe('tenantRoute', () => {
   it('rejects a blank tenant id', () => {
     expect(() => tenantRoute('  ')).toThrow(/non-empty/);
@@ -45,8 +66,12 @@ describe('tenantRoute', () => {
 });
 
 describe('parseRoute', () => {
-  it.each(GLOBAL_SURFACES)('round-trips the global %s surface', (surface) => {
-    expect(parseRoute(routePath(globalRoute(surface)))).toEqual(globalRoute(surface));
+  it.each(PLATFORM_SURFACES)('round-trips the platform %s surface', (surface) => {
+    expect(parseRoute(routePath(platformRoute(surface)))).toEqual(platformRoute(surface));
+  });
+
+  it.each(TEAM_SURFACES)('round-trips the team %s surface', (surface) => {
+    expect(parseRoute(routePath(teamRoute('acme', surface)))).toEqual(teamRoute('acme', surface));
   });
 
   it.each(TENANT_SURFACES)('round-trips the tenant %s surface', (surface) => {
@@ -55,13 +80,22 @@ describe('parseRoute', () => {
     );
   });
 
+  it('decodes a percent-encoded team id', () => {
+    expect(parseRoute('/teams/a%2Fb%20c/usage')).toEqual(teamRoute('a/b c', 'usage'));
+  });
+
   it('decodes a percent-encoded tenant id', () => {
     expect(parseRoute('/tenants/a%2Fb%20c/grants')).toEqual(tenantRoute('a/b c', 'grants'));
   });
 
   it('tolerates a single trailing slash', () => {
-    expect(parseRoute('/servers/')).toEqual(globalRoute('servers'));
+    expect(parseRoute('/settings/')).toEqual(platformRoute('settings'));
+    expect(parseRoute('/teams/acme/usage/')).toEqual(teamRoute('acme', 'usage'));
     expect(parseRoute('/tenants/acme/grants/')).toEqual(tenantRoute('acme', 'grants'));
+  });
+
+  it('names the default surface for a team path without one', () => {
+    expect(parseRoute('/teams/acme')).toEqual(teamRoute('acme'));
   });
 
   it('names the default surface for a tenant path without one', () => {
@@ -70,10 +104,16 @@ describe('parseRoute', () => {
 
   it.each([
     ['the bare origin', '/'],
-    ['a relative path', 'tenants'],
-    ['an unknown global surface', '/settings'],
+    ['a relative path', 'teams'],
+    ['an unknown platform surface', '/servers'],
+    ['an unknown platform root', '/platform/x'],
+    ['an unknown team surface', '/teams/acme/clients'],
     ['an unknown tenant surface', '/tenants/acme/servers'],
-    ['a surface outside the tenants root', '/servers/acme/clients'],
+    ['a surface outside the teams root', '/settings/acme/usage'],
+    ['a blank team id', '/teams/%20/tenants'],
+    ['an empty team id', '/teams//tenants'],
+    ['a malformed team percent-encoding', '/teams/%E0%A4%A/tenants'],
+    ['extra team segments', '/teams/acme/tenants/web'],
     ['a blank tenant id', '/tenants/%20/clients'],
     ['an empty tenant id', '/tenants//clients'],
     ['a malformed percent-encoding', '/tenants/%E0%A4%A/clients'],
@@ -93,16 +133,21 @@ describe('resolveRoute', () => {
 
   it('canonicalizes a path that names a route', () => {
     expect(resolveRoute('/tenants/acme').path).toBe('/tenants/acme/clients');
+    expect(resolveRoute('/teams/acme').path).toBe('/teams/acme/tenants');
   });
 
   it('falls back to the default route for a path that names none', () => {
-    expect(resolveRoute('/nowhere')).toEqual({ route: DEFAULT_ROUTE, path: '/tenants' });
+    expect(resolveRoute('/nowhere')).toEqual({ route: DEFAULT_ROUTE, path: '/teams' });
   });
 });
 
 describe('routeScope', () => {
-  it('derives the global scope from a global route', () => {
-    expect(routeScope(globalRoute('servers'))).toEqual(GLOBAL_SCOPE);
+  it('derives the platform scope from a platform route', () => {
+    expect(routeScope(platformRoute('settings'))).toEqual(PLATFORM_SCOPE);
+  });
+
+  it('derives the team scope from a team route', () => {
+    expect(routeScope(teamRoute('acme', 'usage'))).toEqual(teamScope('acme'));
   });
 
   it('derives the tenant scope from a tenant route', () => {

@@ -420,5 +420,47 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         Assert.Equal(["assign-tenant-2"], remaining);
     }
 
+    [Fact]
+    public async Task RemoveAsync_KeepsTheTenantsUsageRows()
+    {
+        await SeedTenantWithSystemRowsAsync(TenantOneId);
+        var day = new DateOnly(2026, 10, 21);
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var usageStore = new TenantUsageStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        await usageStore.AddAsync(
+            Guid.NewGuid(),
+            1,
+            [
+                new PersistedTenantUsage
+                {
+                    TenantId = TenantOneId,
+                    TeamId = "platform",
+                    Day = day,
+                    Meter = "requests",
+                    Count = 7,
+                },
+            ],
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.True(removed);
+        Assert.Empty(await _dbContext.Tenants.ToListAsync());
+        var entries = await usageStore.ListByTeamAsync(
+            "platform",
+            day,
+            day,
+            CancellationToken.None
+        );
+        var entry = Assert.Single(entries);
+        Assert.Equal(TenantOneId, entry.TenantId);
+        Assert.Equal(7, entry.Count);
+    }
+
     #endregion
 }

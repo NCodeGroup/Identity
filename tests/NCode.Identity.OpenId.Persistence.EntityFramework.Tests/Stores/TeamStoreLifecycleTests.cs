@@ -331,6 +331,57 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task GetOrDefaultAsync_WithADifferentCasing_FindsTheTeam()
+    {
+        await SeedTeamAsync();
+
+        var team = await _store.GetOrDefaultAsync("TEAM-1", CancellationToken.None);
+
+        Assert.NotNull(team);
+        Assert.Equal(TeamId, team.TeamId);
+    }
+
+    [Fact]
+    public async Task GetSettingsAsync_WithADifferentCasing_FindsTheTeam()
+    {
+        await SeedTeamAsync();
+
+        var settings = await _store.GetSettingsAsync("TEAM-1", CancellationToken.None);
+
+        Assert.Equal(TeamId, settings.TeamId);
+    }
+
+    [Fact]
+    public async Task HasDependentsAsync_WithADifferentCasing_FindsTheTeam()
+    {
+        await SeedTenantInTeamAsync();
+
+        Assert.True(await _store.HasDependentsAsync("TEAM-1", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WithADifferentCasing_RemovesTheTeam()
+    {
+        await SeedTeamAsync();
+
+        var removed = await _store.RemoveAsync("TEAM-1", CancellationToken.None);
+        await SaveAndClearAsync();
+
+        Assert.True(removed);
+        Assert.Null(await _store.GetOrDefaultAsync(TeamId, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task IsTeamIdRetiredAsync_WithADifferentCasing_ReturnsTrueAfterRemoval()
+    {
+        await SeedTeamAsync();
+        await _store.RemoveAsync(TeamId, CancellationToken.None);
+        await SaveAndClearAsync();
+
+        Assert.True(await _store.IsTeamIdRetiredAsync("TEAM-1", CancellationToken.None));
+    }
+
+    [Fact]
     public async Task IsTeamIdRetiredAsync_AfterRemoval_ReturnsTrue()
     {
         await SeedTeamAsync();

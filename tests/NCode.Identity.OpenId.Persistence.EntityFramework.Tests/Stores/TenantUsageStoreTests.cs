@@ -352,7 +352,7 @@ public sealed class TenantUsageStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task ListByTeamAsync_KeepsADeletedTenantsRows()
+    public async Task ListByTeamAsync_ListsRowsOfATenantWithNoTenantRow()
     {
         // No tenant row exists for the usage row.
         await AddAsync("deleted-tenant", Day, Requests, 7, "team-a");

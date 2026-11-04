@@ -175,6 +175,11 @@ NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.RequiresAlgorithm.get -> bool
 NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.RequiresAlgorithm.init -> void
 NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors
 NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers
+NCode.Identity.Cose.Keys.ICoseKeyConverter
+NCode.Identity.Cose.Keys.ICoseKeyConverter.ReadPublicKey(System.ReadOnlyMemory<byte> encodedKey) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Cose.Keys.ICoseKeyConverter.ReadPublicKeySet(System.ReadOnlyMemory<byte> encodedKeySet) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.Cose.Keys.ICoseKeyConverter.WritePublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> byte[]!
+NCode.Identity.Cose.Keys.ICoseKeyConverter.WritePublicKeySet(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! secretKeys) -> byte[]!
 NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog
 NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.Curves.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.Keys.CoseEllipticCurve!>!
 NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.KeyTypes.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!>!

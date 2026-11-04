@@ -39,6 +39,17 @@ public interface ISecretProtectorProvider
     );
 
     /// <summary>
+    /// Reads the identifier of the master key that protects a value, without loading any master key. The identifier is
+    /// not secret.
+    /// </summary>
+    /// <param name="protectedValue">The protected value.</param>
+    /// <param name="masterKeyId">The identifier of the master key that protects the value, when the method returns
+    /// <see langword="true"/>.</param>
+    /// <returns><see langword="true"/> when the value is a protected value that names a master key; otherwise
+    /// <see langword="false"/>.</returns>
+    bool TryReadMasterKeyId(ReadOnlySpan<char> protectedValue, out Guid masterKeyId);
+
+    /// <summary>
     /// Removes the master keys of the specified owner from memory so that the next call to
     /// <see cref="GetProtectorAsync"/> loads them again. Protectors that were already obtained remain usable.
     /// </summary>

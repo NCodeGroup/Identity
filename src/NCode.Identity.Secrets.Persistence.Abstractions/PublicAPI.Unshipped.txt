@@ -252,3 +252,6 @@ static NCode.Identity.Secrets.Persistence.SecretLifecycle.TryResolveUpdate(NCode
 static NCode.Identity.Secrets.Persistence.SecretLifecycle.TryValidate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, out string? error) -> bool
 static NCode.Identity.Secrets.Persistence.SecretLifecycle.TryValidate(System.DateTimeOffset createdWhen, System.DateTimeOffset activatesWhen, System.DateTimeOffset retiresWhen, System.DateTimeOffset expiresWhen, out string? error) -> bool
 override NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ToString() -> string!
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtector.Rewrap<TWriter>(System.ReadOnlySpan<char> protectedValue, NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext context, ref TWriter destination) -> void
+NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider.TryReadMasterKeyId(System.ReadOnlySpan<char> protectedValue, out System.Guid masterKeyId) -> bool
+NCode.Identity.Secrets.Persistence.Protection.SecretProtectorExtensions.extension(NCode.Identity.Secrets.Persistence.Protection.ISecretProtector!).RewrapToString(System.ReadOnlySpan<char> protectedValue, NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext context) -> string!

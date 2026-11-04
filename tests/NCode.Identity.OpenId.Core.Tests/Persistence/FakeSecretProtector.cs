@@ -55,4 +55,16 @@ internal sealed class FakeSecretProtector(SecretOwner owner) : ISecretProtector
         bytes.CopyTo(span);
         destination.Advance(bytes.Length);
     }
+
+    public void Rewrap<TWriter>(
+        ReadOnlySpan<char> protectedValue,
+        SecretProtectionContext context,
+        ref TWriter destination
+    )
+        where TWriter : IBufferWriter<char>, allows ref struct
+    {
+        var span = destination.GetSpan(protectedValue.Length);
+        protectedValue.CopyTo(span);
+        destination.Advance(protectedValue.Length);
+    }
 }

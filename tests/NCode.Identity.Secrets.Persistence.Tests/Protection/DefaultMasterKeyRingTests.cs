@@ -239,6 +239,25 @@ public class DefaultMasterKeyRingTests : IDisposable
         return writer.WrittenSpan.ToArray();
     }
 
+    #region TryReadMasterKeyId Tests
+
+    [Fact]
+    public void TryReadMasterKeyId_Envelope_ReturnsKeyId()
+    {
+        var keyId = Guid.NewGuid();
+
+        Assert.True(CreateRing().TryReadMasterKeyId(CreateEnvelopeFor(keyId), out var result));
+        Assert.Equal(keyId, result);
+    }
+
+    [Fact]
+    public void TryReadMasterKeyId_OtherText_ReturnsFalse()
+    {
+        Assert.False(CreateRing().TryReadMasterKeyId("not an envelope", out _));
+    }
+
+    #endregion
+
     #region GetProtectorAsync Tests
 
     [Fact]

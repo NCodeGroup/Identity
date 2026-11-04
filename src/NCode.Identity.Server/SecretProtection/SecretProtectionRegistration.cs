@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.Options;
+using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.SharedState;
 using NCode.Registration;
 
 namespace NCode.Identity.Server.SecretProtection;
@@ -98,6 +100,17 @@ internal static class SecretProtectionRegistration
             .ValidateOnStart();
 
         serviceCollection.TryAddSingleton<ServerSecretProtectorHolder>();
+        serviceCollection.TryAddSingleton<DataProtectionKeyRingReader>();
+        serviceCollection.TryAddSingleton<ServerSecretProtectorLoader>();
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IProtectedValueSource, DataProtectionKeyRingValueSource>()
+        );
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IReplicaBroadcastHandler,
+                ServerMasterKeyChangeBroadcastHandler
+            >()
+        );
         serviceCollection.TryAddSingleton(TimeProvider.System);
 
         // The gate resolves IKeyManager, which Data Protection registers.
@@ -132,6 +145,17 @@ internal static class SecretProtectionRegistration
                 1,
                 ServiceDescriptor.Singleton<IHostedService, DataProtectionKeyRingGate>()
             );
+        }
+
+        // The refresh follows the gate, so it never runs before the server's protector is loaded and checked.
+        if (
+            !serviceCollection.Any(descriptor =>
+                descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType == typeof(ServerSecretProtectorRefreshService)
+            )
+        )
+        {
+            serviceCollection.AddHostedService<ServerSecretProtectorRefreshService>();
         }
 
         serviceCollection

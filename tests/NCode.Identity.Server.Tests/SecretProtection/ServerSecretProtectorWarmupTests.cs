@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -51,7 +52,7 @@ public class ServerSecretProtectorWarmupTests : BaseTests
     private static OpenIdOptions CreateOpenIdOptions(string serverId) =>
         new() { Server = new OpenIdServerOptions { ServerId = serverId } };
 
-    private static ServerSecretProtectorWarmup CreateWarmup(
+    private ServerSecretProtectorWarmup CreateWarmup(
         ISecretProtectorProvider provider,
         OpenIdOptions openIdOptions,
         SecretProtectionOptions protectionOptions,
@@ -60,11 +61,19 @@ public class ServerSecretProtectorWarmupTests : BaseTests
         ILogger<ServerSecretProtectorWarmup> logger
     ) =>
         new(
-            provider,
-            Options.Create(openIdOptions),
+            // A key ring this code cannot read names no master key, so the loader asks the provider for the server's
+            // protector alone.
+            new ServerSecretProtectorLoader(
+                provider,
+                new DataProtectionKeyRingReader(Options.Create(new KeyManagementOptions())),
+                Options.Create(openIdOptions),
+                Options.Create(protectionOptions),
+                TimeProvider.System,
+                holder,
+                CreateLooseMock<ILogger<ServerSecretProtectorLoader>>().Object
+            ),
             Options.Create(protectionOptions),
             hostEnvironment,
-            holder,
             logger
         );
 

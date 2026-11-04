@@ -21,4 +21,6 @@ internal static class EventIds
     public const int LocalRootKeyInProduction = Base + 5;
     public const int KeyRingKeyUndecryptable = Base + 6;
     public const int KeyRingKeyRevoked = Base + 7;
+    public const int KeyRingMasterKeyNotLoaded = Base + 8;
+    public const int ServerSecretProtectorRefreshFailed = Base + 9;
 }

@@ -80,4 +80,25 @@ internal static partial class Log
         Message = "Revoked the Data Protection key '{KeyId}': {Reason}."
     )]
     internal static partial void KeyRingKeyRevoked(this ILogger logger, Guid keyId, string reason);
+
+    [LoggerMessage(
+        EventId = EventIds.KeyRingMasterKeyNotLoaded,
+        Level = LogLevel.Error,
+        Message = "The master key {MasterKeyId} that a Data Protection key names is missing or cannot be unwrapped; the key ring gate reports the keys it protects."
+    )]
+    internal static partial void KeyRingMasterKeyNotLoaded(
+        this ILogger logger,
+        Exception exception,
+        Guid masterKeyId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSecretProtectorRefreshFailed,
+        Level = LogLevel.Error,
+        Message = "Loading the server's secret protector again failed; the protector in use stays, and the next refresh tries again."
+    )]
+    internal static partial void ServerSecretProtectorRefreshFailed(
+        this ILogger logger,
+        Exception exception
+    );
 }

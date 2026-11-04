@@ -66,15 +66,15 @@ public class SeededLocalAccountValidatorTests : BaseTests
 
     private IReadOnlySettingCollection SetupTenantResolution()
     {
-        var server = CreateLooseMock<ISettingCollection>().Object;
+        var platform = CreateLooseMock<ISettingCollection>().Object;
         var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
 
         MockEffectiveSettingsResolver
             .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(server)
+            .ReturnsAsync(platform)
             .Verifiable();
         MockEffectiveSettingsResolver
-            .Setup(x => x.Resolve(server, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Setup(x => x.Resolve(platform, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
             .Returns(tenantSettings)
             .Verifiable();
 

@@ -7,7 +7,7 @@ using NCode.Identity.Settings;
 namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 
 /// <summary>
-/// A test <see cref="IDefaultSettingsProvider"/> that widens the server ceiling by unioning the
+/// A test <see cref="IDefaultSettingsProvider"/> that widens the platform ceiling by unioning the
 /// <c>client_credentials</c> grant type and a custom <c>api</c> scope on top of the library baseline.
 /// Demonstrates that an extension can contribute capabilities the library does not bake in.
 /// </summary>

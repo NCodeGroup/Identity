@@ -11,24 +11,24 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// A committed change to the server's settings takes effect on the replica that made it before the write returns, not at
+// A committed change to the platform's settings takes effect on the replica that made it before the write returns, not at
 // its next poll (ADR-1219).
 public class PlatformSettingsConvergenceTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";
     private const string BootstrapClientSecret = "bootstrap-secret-value";
 
-    #region PatchServerSettings Tests
+    #region PatchPlatformSettings Tests
 
     [Fact]
-    public async Task PatchServerSettings_WhenItNarrowsADiscoverableList_ServesTheChangeAtOnce()
+    public async Task PatchPlatformSettings_WhenItNarrowsADiscoverableList_ServesTheChangeAtOnce()
     {
         using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         var before = await GetIdTokenSigningAlgorithmsAsync(administrator);
         Assert.Contains("PS256", before);
 
-        await PatchServerSettingAsync(
+        await PatchPlatformSettingAsync(
             administrator,
             OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
             ["RS256"]
@@ -73,7 +73,7 @@ public class PlatformSettingsConvergenceTests
             .ToList();
     }
 
-    private static async Task PatchServerSettingAsync(
+    private static async Task PatchPlatformSettingAsync(
         HttpClient administrator,
         string settingName,
         string[] values

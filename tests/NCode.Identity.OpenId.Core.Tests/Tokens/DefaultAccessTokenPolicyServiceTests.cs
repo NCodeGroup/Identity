@@ -122,7 +122,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
 
     #region Scaffolding
 
-    // The values the server's root settings give every scope, in the server's order; each scope's effective settings
+    // The values the platform's root settings give every scope, in the platform's order; each scope's effective settings
     // descend from them.
     private static Dictionary<string, object> RootValues() =>
         new(StringComparer.Ordinal)
@@ -359,7 +359,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     #region Evaluate Tests — signing
 
     [Fact]
-    public void Evaluate_WhenNothingNarrowsSigning_SignsWithTheTenantKeyInTheServersOrder()
+    public void Evaluate_WhenNothingNarrowsSigning_SignsWithTheTenantKeyInThePlatformsOrder()
     {
         var client = CreateClient();
 
@@ -372,7 +372,7 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
     [Fact]
     public void Evaluate_WhenAResourceServerNarrowsTheSigningAlgorithms_KeepsTheServersOrderAmongThem()
     {
-        // A resource server states a preference by narrowing, not by reordering: the server's order governs.
+        // A resource server states a preference by narrowing, not by reordering: the platform's order governs.
         var client = CreateClient();
         var resourceServer = CreateResourceServer(
             "rs-api",

@@ -312,15 +312,15 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         var mockEffectiveSettings = CreateLooseMock<ISettingCollection>();
         mockEffectiveSettings.Setup(x => x.TryGetValue(settingName, out value)).Returns(true);
 
-        var mockServerSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        var mockPlatformSettings = CreateStrictMock<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
             .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServerSettings.Object)
+            .ReturnsAsync(mockPlatformSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    mockServerSettings.Object,
+                    mockPlatformSettings.Object,
                     OpenIdSettingScopes.Tenant,
                     It.IsAny<JsonElement>()
                 )

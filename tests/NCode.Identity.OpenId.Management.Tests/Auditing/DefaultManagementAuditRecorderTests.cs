@@ -43,7 +43,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     }
 
     // The actor id is derived through the host-configured environment seam; mirror the default `sub` extraction.
-    // A change in a tenant whose event carries no environment type resolves the tenant's; a server change or an event
+    // A change in a tenant whose event carries no environment type resolves the tenant's; a platform change or an event
     // already stamped with one does not.
     private DefaultManagementAuditRecorder CreateRecorder(
         IEventPublisher eventPublisher,

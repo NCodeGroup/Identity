@@ -38,7 +38,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
         TimeSpan.Zero
     );
 
-    private Mock<IMaterializedPlatformAccessor> MockMaterializedServerAccessor { get; }
+    private Mock<IMaterializedPlatformAccessor> MockMaterializedPlatformAccessor { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IGrantStore> MockGrantStore { get; }
@@ -52,7 +52,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
 
     public EndedSessionTerminationServiceTests()
     {
-        MockMaterializedServerAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
+        MockMaterializedPlatformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockGrantStore = CreateStrictMock<IGrantStore>();
@@ -61,7 +61,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
         RootServiceProvider = new ServiceCollection().BuildServiceProvider();
         Service = new EndedSessionTerminationService(
-            MockMaterializedServerAccessor.Object,
+            MockMaterializedPlatformAccessor.Object,
             RootServiceProvider.GetRequiredService<IServiceScopeFactory>(),
             MockStoreManagerFactory.Object,
             MockOpenIdContextFactory.Object,

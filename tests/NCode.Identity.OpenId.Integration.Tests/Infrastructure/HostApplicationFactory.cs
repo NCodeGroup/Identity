@@ -95,7 +95,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <summary>
     /// Gets a value indicating whether the developer clients of the Development overlay are seeded. They are seeded
     /// only when a derived factory returns <see langword="true"/>, because they are public clients with <c>http</c>
-    /// redirect URIs that a test narrowing the server's or the tenant's ceilings would make incoherent.
+    /// redirect URIs that a test narrowing the platform's or the tenant's ceilings would make incoherent.
     /// </summary>
     protected virtual bool SeedsDeveloperClients => false;
 
@@ -113,7 +113,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     private string RootKey { get; } = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>
-    /// Gets or sets the server's own settings document, persisted before the host starts so the server materializes
+    /// Gets or sets the platform's own settings document, persisted before the host starts so the platform materializes
     /// with it. Set it before the factory serves any request or reads <see cref="WebApplicationFactory{TEntryPoint}.Services"/>.
     /// </summary>
     public IReadOnlyDictionary<string, object>? PersistedPlatformSettings { get; set; }
@@ -1320,7 +1320,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 .AddDataProtection()
                 .PersistKeysToDbContext<DeveloperDataProtectionDbContext>();
 
-            // Widen the server ceiling (registered after the library default, so it unions on top):
+            // Widen the platform ceiling (registered after the library default, so it unions on top):
             // enables the client_credentials and resource-owner password grants plus a custom "api" scope for
             // integration coverage. Both grants stay off in the host's own secure defaults.
             serviceCollection.AddSingleton<
@@ -1388,14 +1388,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     .ConfigurePrimaryHttpMessageHandler(CreateStub);
             }
 
-            // The reconciliation service materializes and persists the server when the host starts, so a persisted
-            // server document is seeded from the host's own lifecycle, before any hosted service starts.
-            if (PersistedPlatformSettings is { } persistedServerSettings)
+            // The reconciliation service materializes and persists the platform when the host starts, so a persisted
+            // platform document is seeded from the host's own lifecycle, before any hosted service starts.
+            if (PersistedPlatformSettings is { } persistedPlatformSettings)
             {
                 serviceCollection.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(
                     provider => new PersistedPlatformSeedService(
                         provider.GetRequiredService<IServiceScopeFactory>(),
-                        persistedServerSettings
+                        persistedPlatformSettings
                     )
                 );
             }

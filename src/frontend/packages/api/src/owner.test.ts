@@ -9,13 +9,13 @@ const platform: ManagementOwner = { kind: 'platform' };
 const team: ManagementOwner = { kind: 'team', teamId: 'acme' };
 const tenant: ManagementOwner = { kind: 'tenant', tenantId: 'acme' };
 const tenantClient: ManagementOwner = { kind: 'client', scope: acme, clientId: 'web' };
-const globalClient: ManagementOwner = { kind: 'client', scope: PLATFORM_SCOPE, clientId: 'web' };
+const platformClient: ManagementOwner = { kind: 'client', scope: PLATFORM_SCOPE, clientId: 'web' };
 const tenantResourceServer: ManagementOwner = {
   kind: 'resource-server',
   scope: acme,
   resourceServerId: 'rs-1',
 };
-const globalResourceServer: ManagementOwner = {
+const platformResourceServer: ManagementOwner = {
   kind: 'resource-server',
   scope: PLATFORM_SCOPE,
   resourceServerId: 'rs-1',
@@ -36,12 +36,12 @@ describe('ownerScope', () => {
 
   it('uses the scope of a client', () => {
     expect(ownerScope(tenantClient)).toEqual(acme);
-    expect(ownerScope(globalClient)).toEqual(PLATFORM_SCOPE);
+    expect(ownerScope(platformClient)).toEqual(PLATFORM_SCOPE);
   });
 
   it('uses the scope of a resource server', () => {
     expect(ownerScope(tenantResourceServer)).toEqual(acme);
-    expect(ownerScope(globalResourceServer)).toEqual(PLATFORM_SCOPE);
+    expect(ownerScope(platformResourceServer)).toEqual(PLATFORM_SCOPE);
   });
 });
 
@@ -60,12 +60,12 @@ describe('ownerApiPath', () => {
 
   it('nests a client under its scope', () => {
     expect(ownerApiPath(tenantClient)).toBe('api/tenants/acme/clients/web');
-    expect(ownerApiPath(globalClient)).toBe('api/clients/web');
+    expect(ownerApiPath(platformClient)).toBe('api/clients/web');
   });
 
   it('nests a resource server under its scope', () => {
     expect(ownerApiPath(tenantResourceServer)).toBe('api/tenants/acme/resource-servers/rs-1');
-    expect(ownerApiPath(globalResourceServer)).toBe('api/resource-servers/rs-1');
+    expect(ownerApiPath(platformResourceServer)).toBe('api/resource-servers/rs-1');
   });
 
   it('url-encodes the owner id to prevent path escape', () => {
@@ -95,7 +95,7 @@ describe('ownerTagId', () => {
   });
 
   it('tags a resource server in its scope', () => {
-    expect(ownerTagId(globalResourceServer)).toBe('platform:resource-server:rs-1');
+    expect(ownerTagId(platformResourceServer)).toBe('platform:resource-server:rs-1');
   });
 
   it('url-encodes the owner id so it cannot run into the key', () => {

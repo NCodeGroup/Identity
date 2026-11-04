@@ -104,10 +104,10 @@ public class UnreadableSettingsDocumentTests
 
     #endregion
 
-    #region PatchServerSettings Tests
+    #region PatchPlatformSettings Tests
 
     [Fact]
-    public async Task PatchServerSettings_WhenAStoredClientDocumentCannotBeHonored_ReturnsNoContent()
+    public async Task PatchPlatformSettings_WhenAStoredClientDocumentCannotBeHonored_ReturnsNoContent()
     {
         using var factory = CreateFactory();
         using var administrator = await SeedUnreadableClientAsync(factory);

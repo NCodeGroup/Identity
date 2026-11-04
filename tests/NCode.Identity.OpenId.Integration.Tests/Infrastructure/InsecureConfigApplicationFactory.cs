@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// domain, and PKCE <c>plain</c> is not a registered transformation, so neither can be re-enabled.
 /// </summary>
 /// <remarks>
-/// Server settings read from <c>OpenId:Platform:Settings</c> are applied last and overwrite the baseline, so an
+/// Platform settings read from <c>OpenId:Platform:Settings</c> are applied last and overwrite the baseline, so an
 /// operator widens a ceiling simply by configuring it — this fixture proves that operator override path and that
 /// the widened values are then advertised in discovery and accepted by the authorization endpoint.
 /// </remarks>

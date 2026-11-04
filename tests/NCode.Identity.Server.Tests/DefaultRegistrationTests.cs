@@ -151,8 +151,8 @@ public sealed class DefaultRegistrationTests
         using var host = BuildHost([]);
         var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
 
-        Assert.True(scopes.TryGet(OpenIdSettingScopes.Platform, out var server));
-        Assert.Null(server.ParentName);
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.Platform, out var platform));
+        Assert.Null(platform.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Team, out var team));
         Assert.Equal(OpenIdSettingScopes.Platform, team.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Tenant, out var tenant));
@@ -219,7 +219,7 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegistersThePlatformSettingsChangeBroadcastHandler()
     {
-        // Without this handler a server settings change reaches only the replica that handled it.
+        // Without this handler a platform settings change reaches only the replica that handled it.
         using var host = BuildHost([]);
 
         Assert.Single(
@@ -231,7 +231,7 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegistersThePlatformSettingsChangedHandler()
     {
-        // Without this handler a server settings change reaches the replicas only at their next poll.
+        // Without this handler a platform settings change reaches the replicas only at their next poll.
         using var host = BuildHost([]);
 
         var handlers = host.Services.GetServices<ICommandHandler<PlatformSettingsChangedCommand>>();
@@ -287,9 +287,9 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_ResolvesTheMaterializedServerAccessorToTheRegistry()
+    public void AddIdentityServer_ResolvesTheMaterializedPlatformAccessorToTheRegistry()
     {
-        // Background work in another package waits for the replica's server through the public accessor, which is
+        // Background work in another package waits for the replica's platform through the public accessor, which is
         // the registry that the first request completes.
         using var host = BuildHost([]);
 
@@ -302,7 +302,7 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegistersTheTenantKeyReconciliationHandler()
     {
-        // Without this handler a key that the server's settings permit is provisioned only when a tenant is next
+        // Without this handler a key that the platform's settings permit is provisioned only when a tenant is next
         // materialized.
         using var host = BuildHost([]);
 
@@ -446,7 +446,7 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegistersTheClientCoherenceReportHandler()
     {
-        // Without this handler a change to the server's settings that is not a write leaves the stored clients that it
+        // Without this handler a change to the platform's settings that is not a write leaves the stored clients that it
         // makes incoherent unreported until they fail at their next request (ADR-1219).
         using var host = BuildHost([]);
 
@@ -1034,7 +1034,7 @@ public sealed class DefaultRegistrationTests
             }
         );
 
-        // Resolving the options runs their validators, which read the server settings through the descriptors.
+        // Resolving the options runs their validators, which read the platform settings through the descriptors.
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
         Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings?.Path);

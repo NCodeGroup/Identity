@@ -10,12 +10,12 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 
 /// <summary>
-/// Persists the server's own settings document before any hosted service starts, so the server materializes with it.
+/// Persists the platform's own settings document before any hosted service starts, so the platform materializes with it.
 /// The host runs every <see cref="StartingAsync"/> before any <see cref="StartAsync"/>, so the seed precedes the
-/// service that materializes the server when the host starts, whatever the order they are registered in.
+/// service that materializes the platform when the host starts, whatever the order they are registered in.
 /// </summary>
 /// <param name="scopeFactory">The <see cref="IServiceScopeFactory"/> that creates the scope the seed runs in.</param>
-/// <param name="settings">The server's settings document.</param>
+/// <param name="settings">The platform's settings document.</param>
 internal sealed class PersistedPlatformSeedService(
     IServiceScopeFactory scopeFactory,
     IReadOnlyDictionary<string, object> settings

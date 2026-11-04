@@ -99,7 +99,7 @@ public class RateLimitTests
     [Fact]
     public async Task Discovery_WhenTheTenantIsOverItsRateLimit_ReturnsTooManyRequests()
     {
-        // The server's settings cascade into the tenant, so a server-wide limit of two applies to the static tenant.
+        // The platform's settings cascade into the tenant, so a platform-wide limit of two applies to the static tenant.
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {

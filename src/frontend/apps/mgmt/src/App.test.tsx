@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
@@ -121,12 +121,18 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     fireEvent.click(screen.getByTestId('team-row-acme'));
     expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
     expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+    // The team and the tenant share an id, so the badge's icon tells the scopes apart.
+    expect(within(screen.getByTestId('scope-badge')).getByTestId('GroupsIcon')).toBeInTheDocument();
 
     // Cross into the tenant.
     fireEvent.click(screen.getByTestId('tenant-row-acme'));
 
     expect(await screen.findByText('web')).toBeInTheDocument();
     expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+    expect(
+      within(screen.getByTestId('scope-badge')).getByTestId('BusinessIcon'),
+    ).toBeInTheDocument();
+    expect(within(screen.getByTestId('scope-badge')).queryByTestId('GroupsIcon')).toBeNull();
     const requestedUrls = fetchMock.mock.calls.map(([input]) =>
       input instanceof Request ? input.url : String(input),
     );
@@ -301,6 +307,40 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();
     expect(screen.getByTestId('scope-badge')).toHaveTextContent('Platform');
     expect(screen.queryByTestId('exit-scope')).not.toBeInTheDocument();
+  });
+
+  it('exits a tenant that has not loaded to the platform team list', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/acme')) {
+          return new Promise<Response>(() => undefined);
+        }
+        if (url.endsWith('/api/tenants/acme/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    window.history.replaceState(null, '', '/tenants/acme/clients');
+    renderApp();
+
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('scope-badge')).getByTestId('BusinessIcon'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('exit-scope')).toHaveTextContent('Platform');
+
+    fireEvent.click(screen.getByTestId('exit-scope'));
+
+    expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams');
   });
 
   it('reaches the grants and tenant surfaces, and re-enters a tenant on its clients', async () => {

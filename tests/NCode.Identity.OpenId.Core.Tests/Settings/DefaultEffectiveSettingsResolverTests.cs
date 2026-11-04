@@ -19,7 +19,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
 {
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
-    private Mock<IOpenIdPlatformProvider> MockServerProvider { get; }
+    private Mock<IOpenIdPlatformProvider> MockPlatformProvider { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ITenantEnvironmentCatalog> MockTenantEnvironmentCatalog { get; }
@@ -30,7 +30,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     {
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
         MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
-        MockServerProvider = CreateStrictMock<IOpenIdPlatformProvider>();
+        MockPlatformProvider = CreateStrictMock<IOpenIdPlatformProvider>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockSettingSerializer = CreateStrictMock<ISettingSerializer>();
         MockTenantEnvironmentCatalog = CreateStrictMock<ITenantEnvironmentCatalog>();
@@ -38,7 +38,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
 
         Resolver = new DefaultEffectiveSettingsResolver(
             MockEnvironmentProvider.Object,
-            MockServerProvider.Object,
+            MockPlatformProvider.Object,
             MockStoreManagerFactory.Object,
             MockSettingSerializer.Object,
             MockTenantEnvironmentCatalog.Object,
@@ -169,7 +169,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     #region ResolvePlatformAsync Tests
 
     [Fact]
-    public async Task ResolveServerAsync_WithADocument_MergesItOntoTheConfiguredSettings()
+    public async Task ResolvePlatformAsync_WithADocument_MergesItOntoTheConfiguredSettings()
     {
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
@@ -178,7 +178,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockConfigured = CreateStrictMock<IReadOnlySettingCollection>();
         mockConfigured.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
-        SetupServer(mockConfigured.Object);
+        SetupPlatform(mockConfigured.Object);
 
         var result = await Resolver.ResolvePlatformAsync(
             CreateDocument("proposed"),
@@ -189,9 +189,9 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     }
 
     [Fact]
-    public async Task ResolveServerAsync_ReadsTheCommittedDocumentFromTheStore()
+    public async Task ResolvePlatformAsync_ReadsTheCommittedDocumentFromTheStore()
     {
-        // The server's polled settings provider is strict with no setup: reading it fails the test.
+        // The platform's polled settings provider is strict with no setup: reading it fails the test.
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
         IReadOnlyCollection<Setting> expanded = new List<Setting>();
@@ -199,9 +199,9 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockConfigured = CreateStrictMock<IReadOnlySettingCollection>();
         mockConfigured.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
-        SetupServer(mockConfigured.Object);
-        var mockServerStore = SetupServerStore();
-        mockServerStore
+        SetupPlatform(mockConfigured.Object);
+        var mockPlatformStore = SetupPlatformStore();
+        mockPlatformStore
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new PersistedPlatformSettings
@@ -218,9 +218,9 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     }
 
     [Fact]
-    public async Task ResolveServerAsync_WhenTheCommittedDocumentCannotBeHonored_ThrowsNamingTheServer()
+    public async Task ResolvePlatformAsync_WhenTheCommittedDocumentCannotBeHonored_ThrowsNamingThePlatform()
     {
-        // The server's polled settings provider is strict with no setup, and so is its Merge: neither is reached.
+        // The platform's polled settings provider is strict with no setup, and so is its Merge: neither is reached.
         const string documentError = "boom";
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
@@ -231,9 +231,9 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             new JsonException(documentError)
         );
         var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        SetupServer(configured);
-        var mockServerStore = SetupServerStore();
-        mockServerStore
+        SetupPlatform(configured);
+        var mockPlatformStore = SetupPlatformStore();
+        mockPlatformStore
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new PersistedPlatformSettings
@@ -254,14 +254,14 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     }
 
     [Fact]
-    public async Task ResolveServerAsync_WhenTheStoreHoldsNoSettings_ReturnsTheConfiguredSettings()
+    public async Task ResolvePlatformAsync_WhenTheStoreHoldsNoSettings_ReturnsTheConfiguredSettings()
     {
         // The catalog is strict with no setup: expanding a document fails the test.
         SetupEnvironment();
         var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        SetupServer(configured);
-        var mockServerStore = SetupServerStore();
-        mockServerStore
+        SetupPlatform(configured);
+        var mockPlatformStore = SetupPlatformStore();
+        mockPlatformStore
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
@@ -285,7 +285,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
         mockPlatform.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
-        SetupServer(mockPlatform.Object);
+        SetupPlatform(mockPlatform.Object);
         var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
         mockPlatformStore
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
@@ -313,7 +313,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             jsonOptions,
             new JsonException(documentError)
         );
-        SetupServer(CreateStrictMock<IReadOnlySettingCollection>().Object);
+        SetupPlatform(CreateStrictMock<IReadOnlySettingCollection>().Object);
         var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
         mockPlatformStore
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
@@ -337,7 +337,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     public async Task ResolveTeamAsync_WhenTheTeamIsMissing_Throws()
     {
         SetupEnvironment();
-        SetupServer(CreateStrictMock<IReadOnlySettingCollection>().Object);
+        SetupPlatform(CreateStrictMock<IReadOnlySettingCollection>().Object);
         var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
         mockPlatformStore
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
@@ -365,8 +365,8 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
         mockPlatform.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
-        SetupServer(mockPlatform.Object);
-        var mockPlatformStore = SetupServerStore();
+        SetupPlatform(mockPlatform.Object);
+        var mockPlatformStore = SetupPlatformStore();
         mockPlatformStore
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedPlatformSettings?)null)
@@ -495,32 +495,32 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .Throws(exception)
             .Verifiable();
 
-    private Mock<OpenIdPlatform> SetupServer(IReadOnlySettingCollection configuredSettings)
+    private Mock<OpenIdPlatform> SetupPlatform(IReadOnlySettingCollection configuredSettings)
     {
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         mockSettingsProvider.SetupGet(x => x.Collection).Returns(configuredSettings).Verifiable();
 
-        var mockServer = CreateStrictMock<OpenIdPlatform>();
-        mockServer
+        var mockPlatform = CreateStrictMock<OpenIdPlatform>();
+        mockPlatform
             .SetupGet(x => x.ConfiguredSettingsProvider)
             .Returns(mockSettingsProvider.Object)
             .Verifiable();
 
-        MockServerProvider
+        MockPlatformProvider
             .Setup(x => x.GetAsync(MockEnvironment.Object, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+            .ReturnsAsync(mockPlatform.Object)
             .Verifiable();
 
-        return mockServer;
+        return mockPlatform;
     }
 
-    private Mock<IPlatformStore> SetupServerStore()
+    private Mock<IPlatformStore> SetupPlatformStore()
     {
-        var mockServerStore = CreateStrictMock<IPlatformStore>();
+        var mockPlatformStore = CreateStrictMock<IPlatformStore>();
         var mockStoreManager = CreateStrictMock<IStoreManager>();
         mockStoreManager
             .Setup(x => x.GetStore<IPlatformStore>())
-            .Returns(mockServerStore.Object)
+            .Returns(mockPlatformStore.Object)
             .Verifiable();
         mockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
 
@@ -529,7 +529,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .ReturnsAsync(mockStoreManager.Object)
             .Verifiable();
 
-        return mockServerStore;
+        return mockPlatformStore;
     }
 
     #endregion

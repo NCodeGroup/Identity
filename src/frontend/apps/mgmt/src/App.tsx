@@ -64,9 +64,12 @@ export function App() {
   const openTenant = (tenantId: string) => navigateTo(tenantRoute(tenantId));
   const openTeam = (teamId: string) => navigateTo(teamRoute(teamId));
 
-  // A tenant's enclosing scope is its team; until the tenant loads, the exit returns to the platform.
+  // A tenant's enclosing scope is its team; until the tenant loads, the exit returns to the platform. Only the
+  // current tenant's data counts, so a previously viewed tenant's team never labels the exit.
   const tenantId = route.kind === 'tenant' ? route.tenantId : undefined;
-  const { data: tenant } = useGetTenantQuery(tenantId ?? '', { skip: tenantId === undefined });
+  const { currentData: tenant } = useGetTenantQuery(tenantId ?? '', {
+    skip: tenantId === undefined,
+  });
 
   // Clear local tokens, then hand off to the OP's RP-Initiated Logout so the server session and its
   // participating relying parties are also ended; when no end_session_endpoint is advertised, clearing
@@ -118,7 +121,7 @@ export function App() {
         </>
       ) : route.kind === 'team' ? (
         // Keyed by team, like a tenant: no per-team UI state leaks across the boundary.
-        <Fragment key={route.teamId}>
+        <Fragment key={`team:${route.teamId}`}>
           <Tabs
             value={route.surface}
             onChange={(_event, value: TeamSurface) => navigateTo(teamRoute(route.teamId, value))}
@@ -139,7 +142,7 @@ export function App() {
       ) : (
         // Keyed by tenant: moving between tenants (e.g. back/forward) remounts the surface, so no per-tenant UI
         // state such as an open detail view leaks across the boundary.
-        <Fragment key={route.tenantId}>
+        <Fragment key={`tenant:${route.tenantId}`}>
           <Tabs
             value={route.surface}
             onChange={(_event, value: TenantSurface) =>

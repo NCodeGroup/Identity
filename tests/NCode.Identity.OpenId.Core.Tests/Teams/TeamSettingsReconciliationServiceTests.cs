@@ -195,7 +195,8 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
                     reconciled.Writer.TryWrite(teamId);
                     return ValueTask.FromResult(settled);
                 }
-            );
+            )
+            .Verifiable();
         SetupPlatform();
         SetupTeams(TeamId);
         using var service = new TeamSettingsReconciliationService(
@@ -349,8 +350,11 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
             .Verifiable();
-        MockStoreManager.Setup(x => x.GetStore<ITeamStore>()).Returns(MockTeamStore.Object);
-        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        MockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(MockTeamStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         MockTeamStore
             .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(

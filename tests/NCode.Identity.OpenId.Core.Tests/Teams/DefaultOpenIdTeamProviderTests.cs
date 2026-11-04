@@ -48,14 +48,16 @@ public sealed class DefaultOpenIdTeamProviderTests
         var teamStore = mocks.Create<ITeamStore>();
         teamStore
             .Setup(x => x.GetOrDefaultAsync("platform", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(persistedTeam);
+            .ReturnsAsync(persistedTeam)
+            .Verifiable();
         var storeManager = mocks.Create<IStoreManager>();
-        storeManager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object);
-        storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        storeManager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object).Verifiable();
+        storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         var factory = mocks.Create<IStoreManagerFactory>();
         factory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(storeManager.Object);
+            .ReturnsAsync(storeManager.Object)
+            .Verifiable();
         return factory.Object;
     }
 
@@ -159,7 +161,8 @@ public sealed class DefaultOpenIdTeamProviderTests
             .Setup(x =>
                 x.TryGetAsync("platform", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
             )
-            .ReturnsAsync(empty);
+            .ReturnsAsync(empty)
+            .Verifiable();
         var provider = new DefaultOpenIdTeamProvider(
             CreateStoreManagerFactory(mocks, null),
             cache.Object,
@@ -175,6 +178,8 @@ public sealed class DefaultOpenIdTeamProviderTests
                 CancellationToken.None
             )
         );
+
+        mocks.Verify();
     }
 
     #endregion

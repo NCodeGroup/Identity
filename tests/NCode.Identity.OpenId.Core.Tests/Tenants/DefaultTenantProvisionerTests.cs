@@ -43,11 +43,6 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         MockTenantResolver = Mocks.Create<ITenantResolver>();
         MockMediator = Mocks.Create<IMediator>();
         MockTeamProvisioner = Mocks.Create<ITeamProvisioner>();
-        MockTeamProvisioner
-            .Setup(x =>
-                x.EnsureCreatedAsync(TeamId, TeamDisplayName, It.IsAny<CancellationToken>())
-            )
-            .ReturnsAsync(CreateTeam());
 
         Provisioner = new DefaultTenantProvisioner(
             MockStoreManagerFactory.Object,
@@ -94,6 +89,14 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             Settings = null!,
             Secrets = null!,
         };
+
+    private void SetupTeam() =>
+        MockTeamProvisioner
+            .Setup(x =>
+                x.EnsureCreatedAsync(TeamId, TeamDisplayName, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateTeam())
+            .Verifiable();
 
     private void SetupStoreManager()
     {
@@ -168,6 +171,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     [Fact]
     public async Task EnsureCreatedAsync_WhenTenantExists_ReturnsItWithoutWriting()
     {
+        SetupTeam();
         var existing = CreateTenant(WorkloadTenantId, WorkloadIssuer);
         SetupStoreManager();
         SetupGetTenant(WorkloadTenantId, existing);
@@ -185,6 +189,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     [Fact]
     public async Task EnsureCreatedAsync_WhenTenantIsNew_CreatesItAtItsDefaultAddress()
     {
+        SetupTeam();
         const string workloadAlias = "https://acme.mtls.example";
 
         SetupStoreManager();
@@ -245,6 +250,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     [Fact]
     public async Task EnsureCreatedAsync_WhenDefaultAddressCannotBeServed_ThrowsWithoutWriting()
     {
+        SetupTeam();
         SetupStoreManager();
         SetupGetTenant(WorkloadTenantId, (PersistedTenant?)null);
         MockTenantResolver
@@ -294,6 +300,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     [Fact]
     public async Task EnsureCreatedAsync_WhenConcurrentCreatorWins_ReturnsTheirTenant()
     {
+        SetupTeam();
         var concurrent = CreateTenant(WorkloadTenantId, WorkloadIssuer);
         SetupStoreManager();
         SetupGetTenant(WorkloadTenantId, null, concurrent);
@@ -344,6 +351,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     [Fact]
     public async Task EnsureCreatedAsync_WhenInsertFailsAndTenantIsStillMissing_Rethrows()
     {
+        SetupTeam();
         SetupStoreManager();
         SetupGetTenant(WorkloadTenantId, (PersistedTenant?)null);
         MockTenantResolver
@@ -419,6 +427,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     [Fact]
     public async Task SeedAsync_WhenWorkloadTenant_EnsuresAndSeedsRootFirst()
     {
+        SetupTeam();
         var root = CreateTenant(RootTenantId);
         var workload = CreateTenant(WorkloadTenantId, WorkloadIssuer);
         var seeded = new List<SeedTenantCommand>();
@@ -448,6 +457,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     [Fact]
     public async Task SeedAsync_WhenWorkloadTenantAndRootIsMissing_CreatesRootWithItsConfiguredName()
     {
+        SetupTeam();
         const string rootIssuer = "https://op.example/root";
         var workload = CreateTenant(WorkloadTenantId, WorkloadIssuer);
         var seeded = new List<SeedTenantCommand>();

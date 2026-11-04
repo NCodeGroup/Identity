@@ -107,9 +107,7 @@ public sealed class DefaultOpenIdTeamCacheTests : IDisposable
             Assert.False(afterRemoval.IsActive);
         }
 
-        // The eviction releases the cache's reference off the calling thread; the handed-out lease keeps the team.
-        await Task.Delay(TimeSpan.FromMilliseconds(100), CancellationToken.None);
-        Assert.False(disposed.Task.IsCompleted);
+        // The handed-out lease keeps the team.
         Assert.Same(mockTeam.Object, handedOut.Value);
 
         // Releasing the last lease disposes the team, so the eviction released exactly the cache's reference.

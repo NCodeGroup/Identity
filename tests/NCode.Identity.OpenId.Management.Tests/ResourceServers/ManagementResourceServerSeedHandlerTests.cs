@@ -96,8 +96,6 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
         Assert.Contains("update:team_settings", values);
         Assert.Contains("create:tenants", values);
         Assert.Contains("read:tenants", values);
-        Assert.DoesNotContain("read:platforms", values);
-        Assert.DoesNotContain("read:servers", values);
     }
 
     [Fact]

@@ -109,7 +109,8 @@ public sealed class DefaultOpenIdTeamFactoryTests
                     It.IsAny<JsonElement>()
                 )
             )
-            .Returns([]);
+            .Returns([])
+            .Verifiable();
         var persistedTeam = CreatePersistedTeam();
 
         var teamStore = mocks.Create<ITeamStore>();
@@ -125,12 +126,13 @@ public sealed class DefaultOpenIdTeamFactoryTests
             )
             .Verifiable();
         var storeManager = mocks.Create<IStoreManager>();
-        storeManager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object);
-        storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        storeManager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object).Verifiable();
+        storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         var storeManagerFactory = mocks.Create<IStoreManagerFactory>();
         storeManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(storeManager.Object);
+            .ReturnsAsync(storeManager.Object)
+            .Verifiable();
 
         var fixture = CreateFixture(mocks, resolver.Object, storeManagerFactory.Object);
 
@@ -177,10 +179,10 @@ public sealed class DefaultOpenIdTeamFactoryTests
     )
     {
         var parentProvider = mocks.Create<IReadOnlySettingCollectionProvider>();
-        parentProvider.Setup(x => x.Collection).Returns(parentCollection);
+        parentProvider.Setup(x => x.Collection).Returns(parentCollection).Verifiable();
 
         var platform = mocks.Create<OpenIdPlatform>();
-        platform.Setup(x => x.SettingsProvider).Returns(parentProvider.Object);
+        platform.Setup(x => x.SettingsProvider).Returns(parentProvider.Object).Verifiable();
         return platform;
     }
 
@@ -211,10 +213,11 @@ public sealed class DefaultOpenIdTeamFactoryTests
                     fixture.CapturedRefresh = invocation.Arguments[3];
                 })
             )
-            .Returns(pollingSource.Object);
+            .Returns(pollingSource.Object)
+            .Verifiable();
 
         var provider = mocks.Create<IReadOnlySettingCollectionProvider>();
-        provider.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        provider.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         var providerFactory = mocks.Create<IReadOnlySettingCollectionProviderFactory>();
         providerFactory
             .Setup(x => x.Create(It.IsAny<IEnumerable<ICollectionDataSource<Setting>>>(), true))
@@ -222,7 +225,8 @@ public sealed class DefaultOpenIdTeamFactoryTests
                 (IEnumerable<ICollectionDataSource<Setting>> dataSources, bool _) =>
                     fixture.DataSources.AddRange(dataSources)
             )
-            .Returns(provider.Object);
+            .Returns(provider.Object)
+            .Verifiable();
 
         fixture.Factory = new DefaultOpenIdTeamFactory(
             Options.Create(new OpenIdOptions()),

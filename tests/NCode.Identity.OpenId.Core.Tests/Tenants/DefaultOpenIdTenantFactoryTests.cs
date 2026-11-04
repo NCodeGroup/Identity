@@ -61,8 +61,11 @@ public sealed class DefaultOpenIdTenantFactoryTests
     )
     {
         var team = mocks.Create<OpenIdTeam>();
-        team.Setup(x => x.IsDisabled).Returns(isDisabled);
-        team.Protected().Setup<ValueTask>("DisposeAsyncCore").Returns(ValueTask.CompletedTask);
+        team.Setup(x => x.IsDisabled).Returns(isDisabled).Verifiable();
+        team.Protected()
+            .Setup<ValueTask>("DisposeAsyncCore")
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         var teamProvider = mocks.Create<IOpenIdTeamProvider>();
         teamProvider
@@ -504,26 +507,31 @@ public sealed class DefaultOpenIdTenantFactoryTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(teamLease.AddReference());
+            .ReturnsAsync(teamLease.AddReference())
+            .Verifiable();
 
         var tenantId = "acme";
         tenantResolver
             .Setup(x => x.TryGetTenantId(It.IsAny<HttpContext>(), out tenantId))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
         tenantCache
             .Setup(x =>
                 x.TryGetAsync("acme", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
             )
-            .ReturnsAsync(default(AsyncSharedReferenceLease<OpenIdTenant>));
+            .ReturnsAsync(default(AsyncSharedReferenceLease<OpenIdTenant>))
+            .Verifiable();
         var persistedTenant = CreatePersistedTenant("https://op.example/acme");
         tenantResolver
             .Setup(x =>
                 x.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>())
             )
-            .ReturnsAsync(persistedTenant);
+            .ReturnsAsync(persistedTenant)
+            .Verifiable();
         provisioner
             .Setup(x => x.SeedAsync("acme", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(persistedTenant);
+            .ReturnsAsync(persistedTenant)
+            .Verifiable();
 
         // The cache keeps its own reference to the tenant it is given, as the real cache does.
         AsyncSharedReferenceLease<OpenIdTenant> cachedTenant = default;
@@ -547,7 +555,8 @@ public sealed class DefaultOpenIdTenantFactoryTests
                     cachedTenant = tenant.AddReference();
                     return ValueTask.CompletedTask;
                 }
-            );
+            )
+            .Verifiable();
 
         var httpContext = new DefaultHttpContext
         {
@@ -580,6 +589,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
         await cachedTenant.DisposeAsync();
         Assert.Equal(1, Volatile.Read(ref teamReleases));
+        mocks.Verify();
     }
 
     #endregion

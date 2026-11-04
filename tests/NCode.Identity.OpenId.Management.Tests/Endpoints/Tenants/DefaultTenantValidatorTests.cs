@@ -284,7 +284,9 @@ public sealed class DefaultTenantValidatorTests : IDisposable
                 x.AuthorizeAsync(
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<object?>(),
-                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
+                        r.Contains(Operations.Create)
+                    )
                 )
             )
             .Callback(

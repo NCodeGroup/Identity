@@ -313,7 +313,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
 
         Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Empty(await ListAsync(SecretOwner.Platform));
+        Assert.Empty(await ListAsync(new SecretOwner(SecretOwnerTypes.Platform, TenantOneId)));
     }
 
     [Fact]
@@ -364,7 +364,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
 
         Assert.Null(await FindActiveAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Null(await FindActiveAsync(SecretOwner.Platform));
+        Assert.Null(await FindActiveAsync(new SecretOwner(SecretOwnerTypes.Platform, TenantOneId)));
     }
 
     #endregion

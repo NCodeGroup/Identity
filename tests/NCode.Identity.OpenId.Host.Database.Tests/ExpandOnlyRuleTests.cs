@@ -414,7 +414,7 @@ public sealed class ExpandOnlyRuleTests
             {
                 Table = Table,
                 Name = "FK_Tenants_Teams_TeamId",
-                Columns = ["PlatformId"],
+                Columns = ["TeamId"],
                 PrincipalTable = "Teams",
                 PrincipalColumns = ["Id"],
             },

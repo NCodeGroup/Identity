@@ -156,6 +156,48 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateAsync_PersistsIsDisabledAndDisplayName()
+    {
+        await SeedTeamAsync();
+        var team = await GetTeamAsync();
+        team.IsDisabled = true;
+        team.DisplayName = "Renamed Team";
+
+        await _store.UpdateAsync(team, CancellationToken.None);
+        await SaveAndClearAsync();
+
+        var after = await GetTeamAsync();
+        Assert.True(after.IsDisabled);
+        Assert.Equal("Renamed Team", after.DisplayName);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenTokenMismatch_Throws()
+    {
+        await SeedTeamAsync();
+        var team = await GetTeamAsync();
+        var settings = NewSettings(team, "a");
+        settings.ConcurrencyToken = "stale";
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await _store.UpdateSettingsAsync(settings, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task UpdateReconciledSettingsAsync_WhenTheRowChanged_Throws()
+    {
+        await SeedTeamAsync();
+        var team = await GetTeamAsync();
+        team.ConcurrencyToken = "stale";
+        team.ReconciledSettingsFingerprint = "fingerprint";
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await _store.UpdateReconciledSettingsAsync(team, CancellationToken.None)
+        );
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_ClearsTheReconciledSettingsFingerprint()
     {
         await SeedTeamAsync();
@@ -237,26 +279,29 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     {
         await SeedTeamAsync();
         var tenant = _dbContext.SeedTenant(_idGenerator, "tenant-1");
+        RoleAssignmentEntity CreateAssignment(string assignmentId, string resourceType) =>
+            new()
+            {
+                Id = _idGenerator.CreateId(),
+                TenantId = tenant.Id,
+                Tenant = tenant,
+                NormalizedTenantId = tenant.NormalizedTenantId,
+                AssignmentId = assignmentId,
+                NormalizedAssignmentId = assignmentId,
+                PrincipalId = "principal-1",
+                NormalizedPrincipalId = "principal-1",
+                RoleName = "owner",
+                NormalizedRoleName = "owner",
+                ResourceType = resourceType,
+                ResourceId = TeamId,
+                NormalizedResourceId = TeamId,
+                ConcurrencyToken = string.Empty,
+            };
         _dbContext
             .Set<RoleAssignmentEntity>()
-            .Add(
-                new RoleAssignmentEntity
-                {
-                    Id = _idGenerator.CreateId(),
-                    TenantId = tenant.Id,
-                    Tenant = tenant,
-                    NormalizedTenantId = tenant.NormalizedTenantId,
-                    AssignmentId = "assignment-1",
-                    NormalizedAssignmentId = "assignment-1",
-                    PrincipalId = "principal-1",
-                    NormalizedPrincipalId = "principal-1",
-                    RoleName = "owner",
-                    NormalizedRoleName = "owner",
-                    ResourceType = OpenIdResourceTypes.Team,
-                    ResourceId = TeamId,
-                    NormalizedResourceId = TeamId,
-                    ConcurrencyToken = string.Empty,
-                }
+            .AddRange(
+                CreateAssignment("assignment-1", OpenIdResourceTypes.Team),
+                CreateAssignment("assignment-2", OpenIdResourceTypes.Tenant)
             );
         await SaveAndClearAsync();
 
@@ -265,7 +310,10 @@ public sealed class TeamStoreLifecycleTests : IDisposable
 
         Assert.True(removed);
         Assert.Null(await _store.GetOrDefaultAsync(TeamId, CancellationToken.None));
-        Assert.Empty(await _dbContext.Set<RoleAssignmentEntity>().ToListAsync());
+        Assert.True(await _store.IsTeamIdRetiredAsync(TeamId, CancellationToken.None));
+        var remaining = await _dbContext.Set<RoleAssignmentEntity>().ToListAsync();
+        var survivor = Assert.Single(remaining);
+        Assert.Equal(OpenIdResourceTypes.Tenant, survivor.ResourceType);
     }
 
     [Fact]

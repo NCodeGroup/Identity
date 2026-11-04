@@ -1260,7 +1260,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         new()
         {
             TenantId = tenantId,
-            TeamId = "platform",
+            TeamId = TeamId,
             Issuer = TestServerIssuer,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,

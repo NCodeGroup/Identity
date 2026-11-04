@@ -266,11 +266,8 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     {
         await SeedTenantAsync();
         var otherTenantKey = CreateMasterKey(SecretOwnerTypes.Tenant, "tenant-2", 1);
-        var platformKey = CreateMasterKey(
-            SecretOwnerTypes.Platform,
-            SecretOwner.PlatformOwnerId,
-            1
-        );
+        // The platform key's owner id matches the tenant's on purpose: only the owner type keeps it.
+        var platformKey = CreateMasterKey(SecretOwnerTypes.Platform, TenantId, 1);
         await SeedMasterKeysAsync(
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantId, 1),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantId.ToUpperInvariant(), 2),

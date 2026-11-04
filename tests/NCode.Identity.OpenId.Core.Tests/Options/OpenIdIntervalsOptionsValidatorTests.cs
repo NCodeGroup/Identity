@@ -44,13 +44,21 @@ public sealed class OpenIdIntervalsOptionsValidatorTests
     }
 
     [Theory]
-    [InlineData(nameof(OpenIdTeamOptions.SettingsPeriodicRefreshInterval))]
-    [InlineData(nameof(OpenIdTeamOptions.TeamCacheLifetime))]
-    [InlineData(nameof(OpenIdTeamOptions.ReconciliationLeaseDuration))]
-    public void Validate_WhenATeamIntervalIsNegative_FailsNamingItsKey(string member)
+    [InlineData(nameof(OpenIdTeamOptions.SettingsPeriodicRefreshInterval), -1.0)]
+    [InlineData(nameof(OpenIdTeamOptions.TeamCacheLifetime), -1.0)]
+    [InlineData(nameof(OpenIdTeamOptions.ReconciliationLeaseDuration), -1.0)]
+    [InlineData(nameof(OpenIdTeamOptions.SettingsPeriodicRefreshInterval), 0.0)]
+    [InlineData(nameof(OpenIdTeamOptions.TeamCacheLifetime), 0.0)]
+    [InlineData(nameof(OpenIdTeamOptions.ReconciliationLeaseDuration), 0.0)]
+    public void Validate_WhenATeamIntervalIsNotPositive_FailsNamingItsKey(
+        string member,
+        double minutes
+    )
     {
         var team = new OpenIdTeamOptions();
-        typeof(OpenIdTeamOptions).GetProperty(member)!.SetValue(team, TimeSpan.FromMinutes(-1));
+        typeof(OpenIdTeamOptions)
+            .GetProperty(member)!
+            .SetValue(team, TimeSpan.FromMinutes(minutes));
         var options = new OpenIdOptions { Team = team };
 
         var result = Validator.Validate(null, options);

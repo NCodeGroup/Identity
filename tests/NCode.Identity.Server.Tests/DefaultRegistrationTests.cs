@@ -584,6 +584,8 @@ public sealed class DefaultRegistrationTests
     [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Platform, true)]
     [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Team, true)]
     [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Tenant, false)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Client, false)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.ResourceServer, false)]
     public void AddIdentityServer_ASettingAppliesWithinTheScopesThatReadIt(
         string settingName,
         string scopeName,

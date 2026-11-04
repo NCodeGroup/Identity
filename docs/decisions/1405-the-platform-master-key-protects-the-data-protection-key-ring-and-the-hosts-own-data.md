@@ -1,4 +1,4 @@
-# 1405. The platform master key protects only the Data Protection key ring
+# 1405. The platform master key protects the Data Protection key ring and the host's own data
 
 - **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
   and [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md))
@@ -21,13 +21,14 @@ have a master key and what each protects.
 
 ## Decision
 
-**The platform and each tenant own a master key, and the platform's protects only the Data Protection key ring and the
-application data a host protects under the platform.**
+**The platform and each tenant own a master key, and the platform's protects the Data Protection key ring and the
+application data a host protects under the platform, and no stored secret of the family.**
 
 1. **Master-key owners are the platform and each tenant.** The platform is `SecretOwner.Platform`, with the owner type
    `platform` and the owner id `platform`.
 2. **The platform master key protects the key ring and host data.** It protects the Data Protection key ring and the
-   application data a host protects under `SecretOwner.Platform`, and nothing else.
+   application data a host protects under `SecretOwner.Platform`, and no stored secret of the family: the family's
+   stored secrets are protected under the key hierarchy ADR-1235 describes.
 3. **A team has no master key.** The platform and a team hold no stored secret, so only a tenant's secrets sit under a
    tenant master key, and a team owns nothing that needs one.
 4. **The protector is loaded before the ring is judged.** `PlatformSecretProtectorWarmup` loads the platform's

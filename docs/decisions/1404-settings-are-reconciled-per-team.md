@@ -44,8 +44,10 @@ were last reconciled against.**
    is handled by `TenantKeyReconciliationHandler` and `ClientCoherenceReportHandler`, which page only the team's
    tenants. `PreviousSettings` is `null` when the team has no record or its record cannot be read, and every tenant and
    client of the team is then reconciled.
-5. **A settings write keeps the record under ADR-1234's rule.** `ITeamStore.UpdateSettingsAsync` clears the
-   fingerprint exactly when the write leaves an earlier write unreconciled, and keeps the record otherwise.
+5. **A settings write keeps the record under ADR-1234's rule.** `ITeamStore.UpdateSettingsAsync` clears
+   `ReconciledSettingsFingerprint` on every write and keeps `ReconciledSettings`, unless the fingerprint was already
+   clear (an earlier write was never reconciled), in which case it clears `ReconciledSettings` too, as ADR-1234
+   records.
 6. **Two broadcast channels announce a change.** `platform-settings-changed` carries the message `platform`, and
    `team-changed` carries the team's identifier
    ([ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md)). A committed change is applied and
@@ -68,7 +70,7 @@ were last reconciled against.**
 
 - A change to one team's settings reads that team's tenants and no others, and replicas contend per team.
 - A platform settings change fires one pass per team, each under its own lease.
-- The team row grows by two columns, and the platform row has none.
+- The team row carries the two reconciliation columns and the platform row carries none.
 - A handler a package registers receives the team's identifier and settings, never a deployment-wide walk.
 
 ## References

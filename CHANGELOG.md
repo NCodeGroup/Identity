@@ -1888,7 +1888,7 @@ describes the family as it is rather than its changes
   ([ADR-1233](docs/decisions/1233-the-management-api-lists-a-tenants-incoherent-clients.md), issue
   [#278](https://github.com/NCodeGroup/Identity/issues/278)).
 
-- **A tenant is named by whoever creates it.** `POST /api/tenants` requires `CreateTenantRequest.TenantId`: 1 to 63
+- **A tenant is named by whoever creates it.** `POST /api/teams/{teamId}/tenants` requires `CreateTenantRequest.TenantId`: 1 to 63
   lowercase letters, digits or hyphens that starts and ends with a letter or digit, and never changes. It reads the same
   in the management API (`/api/tenants/acme`), in a path tenant's issuer (`https://op.example/acme`) and in a host
   tenant's hostname (`acme.auth.example`), so a path tenant can be created with its issuer in one request; `displayName`
@@ -3336,7 +3336,7 @@ describes the family as it is rather than its changes
   /api/platform/settings` and previewed through `GET /api/platform/effective-settings`, are the root of every team's and
   tenant's settings; its authority node is `(platform, platform)`, and its master key protects the Data Protection key
   ring ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1405](docs/decisions/1405-the-platform-master-key-protects-only-the-data-protection-key-ring.md)).
+  [ADR-1405](docs/decisions/1405-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
 
 - **A team groups a customer's related tenants.** `POST /api/teams` creates a team named by its creator (the tenant-id
   form) with a display name, an `isDisabled` flag and a settings document; `GET`/`PATCH`/`DELETE /api/teams/{teamId}`,
@@ -3670,7 +3670,7 @@ describes the family as it is rather than its changes
 - **The Data Protection key ring is encrypted under the platform master key, and a key it cannot decrypt stops the host.**
   The host configures the key ring through the `SecretProtection` section, and the Helm chart through its
   `secretProtection` values, which the chart's schema, render-time refusals and CI releases check.
-  `DataProtectionKeyRingGate` checks the live keys after the server's protector loads and before Data Protection loads
+  `DataProtectionKeyRingGate` checks the live keys after the platform's protector loads and before Data Protection loads
   its key ring, and the host names each undecryptable key rather than letting Data Protection write a default key over
   them; a Development host revokes the key and logs a warning. `DataProtectionKeyRing:RevokedKeyIds`
   (`DataProtectionKeyRingOptions`) revokes keys by ID, and `AddConfiguration` registers Data Protection
@@ -4512,7 +4512,7 @@ describes the family as it is rather than its changes
   issue [#296](https://github.com/NCodeGroup/Identity/issues/296)).
 
 - **The management API authenticates every caller against the control-plane tenant and takes its data scope from the
-  route.** Whatever host or path it is reached on (a collection route such as `POST /api/tenants` under `DynamicByPath`,
+  route.** Whatever host or path it is reached on (a collection route such as `POST /api/teams/{teamId}/tenants` under `DynamicByPath`,
   a `/api/tenants/{tenantId}/…` route, or the `manage.<apex>` host under `DynamicByHost`), the caller's token is
   validated with the control-plane tenant (the root tenant, or a static strategy's own tenant). `ITenantStrategy` and
   `ITenantResolver` expose `ResolveControlPlaneTenantAsync`, `IOpenIdTenantFactory` exposes

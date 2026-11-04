@@ -136,8 +136,8 @@ than inlining the rationale.
     - A persisted or wire value is its string name, never an ordinal, so an older node that meets a newer member fails
       closed by name instead of misreading a number.
 
-    The lesson behind the rule: setting scopes were first a `[Flags]` enum of the platform, team, tenant, client, and
-    resource server, with their cascade hard-coded in a `switch`, judged closed because the library owned all five entities — which
+    The lesson behind the rule: setting scopes were first a `[Flags]` enum of the deployment root, the tenant, the client
+    and the resource server, with their cascade hard-coded in a `switch`, judged closed because the library owned all four entities — which
     shut out every extension that stores settings for an entity of its own. They are registered `SettingScopeDescriptor`
     data. See [ADR-1150](../../docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md).
 
@@ -412,8 +412,8 @@ than inlining the rationale.
   See [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md) and
   [ADR-1141](../../docs/decisions/1141-response-types-are-whole-values.md).
 - 👁 **A security profile binds every scope below the one that selects it.** Outside the live providers, resolve a
-  scope's effective settings only through `IEffectiveSettingsResolver`. Use `Resolve(parent, scope, document)`, and
-  `ResolvePlatformAsync` for the platform's committed settings and `ResolveTeamAsync` for a team's effective settings.
+  scope's effective settings only through `IEffectiveSettingsResolver`. Use `Resolve(parent, scope, document)`,
+  the platform's committed one with `ResolvePlatformAsync`, and a team's effective settings with `ResolveTeamAsync`.
   Never hand-merge a deserialized document, and never take platform settings from this replica's poll for a seed or a
   check. Only the platform factory and the root settings source
   call the catalog directly

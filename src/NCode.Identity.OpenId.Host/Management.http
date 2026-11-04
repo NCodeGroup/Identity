@@ -45,7 +45,9 @@ Content-Type: application/json
 
 {
   "tenantId": "acme-dev",
-  "displayName": "Acme (development)"
+  "displayName": "Acme (development)",
+  "isDisabled": false,
+  "settings": {}
 }
 
 ### List a team's tenants

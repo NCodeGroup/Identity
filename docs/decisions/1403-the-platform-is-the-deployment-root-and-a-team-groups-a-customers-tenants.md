@@ -64,14 +64,15 @@ the platform and its tenants in the settings cascade and in authority.**
    scope, merges with `Min`, and a creation past it answers `409`; the ceiling is checked before the insert and never
    serialized on the team row, so two creations that race may overshoot it by one.
 4. **Authority runs platform, team, tenant, leaf.** `TeamAdmin` at a team creates its tenants and manages everything
-   beneath it; `Owner` never creates. Role-assignment lookups span tenants. Tenants are created and listed under
+   beneath it; `Owner` never creates. Granting or revoking `TeamAdmin` is creation authority at the team node
+   (`Operations.Create`), so an `Owner` can neither mint nor revoke it. Role-assignment lookups span tenants. Tenants are created and listed under
    `/api/teams/{teamId}/tenants`. The root tenant holds the `platform_settings`, `teams`, `team_settings` and `tenants`
    scope families.
 5. **Lifecycle.** A disabled team's tenants answer `404` on the protocol surface and stay manageable. A team with
    tenants cannot be deleted. A deleted team's identifier is retired
    ([ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)). The platform's own team can be neither
-   disabled nor deleted. An assignment at the platform node (or `GlobalAdmin`) disables and restores a team, never the
-   team's own admins or owners.
+   disabled nor deleted. An assignment at the platform node (or `GlobalAdmin`) disables and restores a team, and a
+   team's own owner or admin cannot.
 6. **Audit and usage carry the team.** Usage rows and tenant audit events carry the team. Team and platform audit
    events are recorded in the control-plane tenant with the resource types `team` and `platform`.
 7. **The console addresses the tiers.** Its routes are `/teams`, `/settings`, `/teams/{teamId}/{tenants|settings|usage}`
@@ -100,8 +101,8 @@ the platform and its tenants in the settings cascade and in authority.**
   administrator never needs to be a member of a customer's tenant.
 - Every tenant has a team, so a tenant cannot be created without one and its creation path takes a team identifier.
 - A disabled team switches off all of a customer's protocol surface in one write, while its tenants stay manageable.
-- The cascade has one more tier to resolve, cache and invalidate; a change to a team document reaches its cached
-  tenants on every replica.
+- The cascade resolves four tiers: the platform, the team, the tenant and the client or resource server; a change to a
+  team document reaches its cached tenants on every replica.
 - A tenant never moves between teams, so a customer that reorganizes recreates tenants rather than relocating them.
 - A package extends the cascade by registering a setting that applies to the `team` or `platform` scope, never by
   editing the library ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).

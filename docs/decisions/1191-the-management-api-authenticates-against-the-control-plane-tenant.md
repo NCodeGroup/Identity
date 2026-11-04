@@ -1,6 +1,8 @@
 # 1191. The management API authenticates against the control-plane tenant
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a tenant is created
+  under its team at `POST /api/teams/{teamId}/tenants`)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

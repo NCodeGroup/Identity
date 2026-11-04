@@ -62,7 +62,8 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     private static PersistedTenant CreateTenant(
         string tenantId = TenantId,
         string concurrencyToken = "tenant-ct",
-        string? issuer = Issuer
+        string? issuer = Issuer,
+        string displayName = "Tenant One"
     ) =>
         new()
         {
@@ -71,7 +72,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             ConcurrencyToken = concurrencyToken,
             Issuer = issuer,
             IsDisabled = false,
-            DisplayName = "Tenant One",
+            DisplayName = displayName,
             Settings = new PersistedTenantSettings
             {
                 TenantId = tenantId,
@@ -165,6 +166,28 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task ValidateCreateAsync_WhenTheDisplayNameIsBlank_ReturnsBadRequest(
+        string displayName
+    )
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.ValidateCreateAsync(
+            CreateUser(authenticated: true),
+            ControlPlaneTenantId,
+            CreateTenant(displayName: displayName),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal("The 'displayName' is required.", error.Detail);
     }
 
     [Fact]
@@ -348,6 +371,25 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status412PreconditionFailed, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenTheDisplayNameIsWhitespace_ReturnsBadRequest()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.ValidateUpdateAsync(
+            CreateUser(authenticated: true),
+            CreateTenant(),
+            new UpdateTenantRequest { DisplayName = "   " },
+            ifMatch: null,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal("The 'displayName' is required.", error.Detail);
     }
 
     [Fact]

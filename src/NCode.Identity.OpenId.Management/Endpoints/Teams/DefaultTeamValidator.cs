@@ -67,6 +67,15 @@ internal class DefaultTeamValidator(
             };
         }
 
+        if (string.IsNullOrWhiteSpace(team.DisplayName))
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                Detail = "The display name is required.",
+            };
+        }
+
         var store = storeManager.GetStore<ITeamStore>();
 
         var existing = await store.GetOrDefaultAsync(team.TeamId, cancellationToken);

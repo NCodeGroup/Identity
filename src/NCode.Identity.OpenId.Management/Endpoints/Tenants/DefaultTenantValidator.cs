@@ -48,6 +48,15 @@ internal class DefaultTenantValidator(
             return error;
         }
 
+        if (string.IsNullOrWhiteSpace(tenant.DisplayName))
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                Detail = "The 'displayName' is required.",
+            };
+        }
+
         var failures = await TenantResolver.ValidateTenantAsync(
             tenant.TenantId,
             tenant.Issuer,
@@ -111,7 +120,7 @@ internal class DefaultTenantValidator(
             };
         }
 
-        if (string.IsNullOrEmpty(model.DisplayName))
+        if (string.IsNullOrWhiteSpace(model.DisplayName))
         {
             return new ManagementError
             {

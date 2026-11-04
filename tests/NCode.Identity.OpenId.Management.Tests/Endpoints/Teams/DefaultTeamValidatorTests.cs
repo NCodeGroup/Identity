@@ -56,14 +56,15 @@ public sealed class DefaultTeamValidatorTests : IDisposable
 
     private static PersistedTeam CreateTeam(
         string teamId = TeamId,
-        string concurrencyToken = "team-ct"
+        string concurrencyToken = "team-ct",
+        string displayName = "Team One"
     ) =>
         new()
         {
             TeamId = teamId,
             ConcurrencyToken = concurrencyToken,
             IsDisabled = false,
-            DisplayName = "Team One",
+            DisplayName = displayName,
             Settings = new PersistedTeamSettings
             {
                 TeamId = teamId,
@@ -198,6 +199,22 @@ public sealed class DefaultTeamValidatorTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task ValidateCreateAsync_WhenTheDisplayNameIsBlank_ReturnsBadRequest(
+        string displayName
+    )
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Create(authenticated: true, CreateTeam(displayName: displayName));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal("The display name is required.", error.Detail);
     }
 
     [Fact]

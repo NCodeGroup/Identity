@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Specialized;
 using System.Net;
 using System.Text.Json;
 using System.Web;
@@ -97,10 +98,9 @@ public class InteractiveUiLocalesTests
 
         Assert.Equal(HttpStatusCode.Found, response.StatusCode);
         Assert.NotNull(response.Headers.Location);
-        var location = new Uri(
-            new Uri("http://localhost"),
-            response.Headers.Location.OriginalString
-        );
+        var baseUri = new Uri("http://localhost");
+        var redirect = response.Headers.Location.OriginalString;
+        var location = new Uri(baseUri, redirect);
         Assert.Equal(expectedPath, location.AbsolutePath);
         return location;
     }
@@ -252,6 +252,95 @@ public class InteractiveUiLocalesTests
             html,
             StringComparison.Ordinal
         );
+    }
+
+    [Fact]
+    public async Task PostLogin_WhenACredentialIsMissing_RedirectsBackInTheSameLocale()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        using var client = CreateClient(factory);
+
+        using var response = await InteractiveLogin.PostFormAsync(
+            client,
+            $"{LoginPath}?ReturnUrl=%2Ffoo&ui_locales=fr",
+            LoginPath,
+            sessionCookie: null,
+            new Dictionary<string, string>
+            {
+                ["username"] = "nobody",
+                ["ReturnUrl"] = "/foo",
+                ["ui_locales"] = "fr",
+            }
+        );
+
+        var query = AssertRedirectsToTheLoginPage(response);
+        Assert.Equal("/foo", query["ReturnUrl"]);
+        Assert.Equal("invalid_request", query["error"]);
+        Assert.Equal("fr", query["ui_locales"]);
+    }
+
+    [Fact]
+    public async Task PostConsent_WhenNoSessionExists_RedirectsToTheLoginPageInTheSameLocale()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        using var client = CreateClient(factory);
+
+        using var response = await InteractiveLogin.PostFormAsync(
+            client,
+            $"{ConsentPath}?ReturnUrl=%2Ffoo&ui_locales=fr",
+            ConsentPath,
+            sessionCookie: null,
+            new Dictionary<string, string>
+            {
+                ["action"] = "allow",
+                ["ReturnUrl"] = "/foo",
+                ["ui_locales"] = "fr",
+            }
+        );
+
+        var query = AssertRedirectsToTheLoginPage(response);
+        Assert.Equal("/foo", query["ReturnUrl"]);
+        Assert.Equal("invalid_request", query["error"]);
+        Assert.Equal("fr", query["ui_locales"]);
+    }
+
+    [Fact]
+    public async Task PostConsent_WhenTheReturnUrlIsMissing_RedirectsToTheLoginPageInTheSameLocale()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedTenantSettingsAsync(EnglishAndFrench);
+        await factory.SeedLocalAccountAsync(UserName, Password);
+        using var client = CreateClient(factory);
+        var sessionCookie = await InteractiveLogin.SignInAsync(client, UserName, Password);
+
+        using var response = await InteractiveLogin.PostFormAsync(
+            client,
+            $"{ConsentPath}?ui_locales=fr",
+            ConsentPath,
+            sessionCookie,
+            new Dictionary<string, string> { ["action"] = "allow", ["ui_locales"] = "fr" }
+        );
+
+        var query = AssertRedirectsToTheLoginPage(response);
+        Assert.Equal("/", query["ReturnUrl"]);
+        Assert.Equal("invalid_request", query["error"]);
+        Assert.Equal("fr", query["ui_locales"]);
+    }
+
+    // The query of the login page a form post redirects back to: the page's return URL, the error it shows and the
+    // locale it renders in.
+    private static NameValueCollection AssertRedirectsToTheLoginPage(HttpResponseMessage response)
+    {
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.NotNull(response.Headers.Location);
+        var location = new Uri(
+            new Uri("http://localhost"),
+            response.Headers.Location.OriginalString
+        );
+        Assert.Equal(LoginPath, location.AbsolutePath);
+        return HttpUtility.ParseQueryString(location.Query);
     }
 
     [Theory]

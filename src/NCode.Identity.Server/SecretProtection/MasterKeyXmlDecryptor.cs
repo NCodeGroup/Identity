@@ -13,7 +13,7 @@ using Nerdbank.Streams;
 namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
-/// Decrypts the keys of the Data Protection key ring that were encrypted under the master key of the server.
+/// Decrypts the keys of the Data Protection key ring that were encrypted under the master key of the platform.
 /// </summary>
 /// <remarks>
 /// Data Protection calls this decryptor synchronously, so it uses the protector that was loaded when the host started.
@@ -27,7 +27,7 @@ internal class MasterKeyXmlDecryptor : IXmlDecryptor
     /// <summary>
     /// Initializes a new instance of the <see cref="MasterKeyXmlDecryptor"/> class.
     /// </summary>
-    /// <param name="services">The service provider that supplies the holder of the protector of the server.</param>
+    /// <param name="services">The service provider that supplies the holder of the protector of the platform.</param>
     public MasterKeyXmlDecryptor(IServiceProvider services)
     {
         // Data Protection finds the decryptor by reflection and requires a public constructor that takes exactly one
@@ -40,10 +40,10 @@ internal class MasterKeyXmlDecryptor : IXmlDecryptor
     private PlatformSecretProtectorHolder Holder { get; }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">Thrown when the protector of the server is not loaded.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the protector of the platform is not loaded.</exception>
     /// <exception cref="CryptographicException">
     /// Thrown when the element has no protected value, or when the value was not protected by the master key of the
-    /// server for the key ring, or when the value was altered.
+    /// platform for the key ring, or when the value was altered.
     /// </exception>
     public XElement Decrypt(XElement encryptedElement)
     {

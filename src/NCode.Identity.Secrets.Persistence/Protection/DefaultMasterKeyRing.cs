@@ -155,7 +155,7 @@ internal class DefaultMasterKeyRing(
         if (owner.OwnerType is null)
         {
             throw new ArgumentException(
-                "The owner is the default value of SecretOwner, which identifies no owner; create it with SecretOwner.ForPlatform, SecretOwner.ForTenant or its constructor.",
+                "The owner is the default value of SecretOwner, which identifies no owner; create it with SecretOwner.Platform, SecretOwner.ForTenant or its constructor.",
                 nameof(owner)
             );
         }

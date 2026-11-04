@@ -199,7 +199,6 @@ NCode.Identity.Secrets.Persistence.Protection.SecretProtectorProviderExtensions
 NCode.Identity.Secrets.Persistence.Protection.SecretProtectorProviderExtensions.extension(NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider!)
 NCode.Identity.Secrets.Persistence.Protection.SecretProtectorProviderExtensions.extension(NCode.Identity.Secrets.Persistence.Protection.ISecretProtectorProvider!).GetProtectorForSecretsAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! secrets, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.ISecretProtector!>
 override NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ToString() -> string!
-static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ForPlatform(string! platformId) -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.ForTenant(string! tenantId) -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 static NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ForGrantPayload(string! hashedKey) -> NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext
 static NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ForPersistedSecret(string! secretId) -> NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext
@@ -220,3 +219,6 @@ const NCode.Identity.Secrets.Persistence.SecretOrigins.Supplied = "supplied" -> 
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.Origin = 100 -> int
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Origin.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Origin.init -> void
+
+const NCode.Identity.Secrets.Persistence.Protection.SecretOwner.PlatformOwnerId = "platform" -> string!
+static NCode.Identity.Secrets.Persistence.Protection.SecretOwner.Platform.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner

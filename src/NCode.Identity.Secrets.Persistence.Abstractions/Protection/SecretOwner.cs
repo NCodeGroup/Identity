@@ -7,7 +7,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
 /// Identifies the owner of a set of persisted secrets by the kind of owner and the identifier of the owner within
-/// that kind, for example a tenant or the server itself.
+/// that kind, for example a tenant or the platform.
 /// </summary>
 [PublicAPI]
 public readonly record struct SecretOwner
@@ -41,12 +41,15 @@ public readonly record struct SecretOwner
     public string OwnerId { get; }
 
     /// <summary>
-    /// Creates the owner that represents the server as a whole.
+    /// Contains the identifier of the platform owner.
     /// </summary>
-    /// <param name="platformId">The identifier of the server.</param>
-    /// <returns>The <see cref="SecretOwner"/> for the server.</returns>
-    public static SecretOwner ForPlatform(string platformId) =>
-        new(SecretOwnerTypes.Platform, platformId);
+    public const string PlatformOwnerId = "platform";
+
+    /// <summary>
+    /// Gets the owner of the one master key that protects the Data Protection key ring. The platform owns no stored
+    /// secret.
+    /// </summary>
+    public static SecretOwner Platform => new(SecretOwnerTypes.Platform, PlatformOwnerId);
 
     /// <summary>
     /// Creates the owner that represents a single tenant.

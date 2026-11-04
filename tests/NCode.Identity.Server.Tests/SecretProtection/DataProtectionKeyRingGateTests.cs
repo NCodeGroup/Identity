@@ -21,7 +21,7 @@ namespace NCode.Identity.Server.Tests;
 
 public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
 {
-    private static SecretOwner PlatformOwner { get; } = SecretOwner.ForPlatform("server-a");
+    private static SecretOwner PlatformOwner { get; } = SecretOwner.Platform;
 
     private static DateTimeOffset Now { get; } = new(2026, 10, 24, 12, 0, 0, TimeSpan.Zero);
 

@@ -465,7 +465,7 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         secretProtectorProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForPlatform(OpenIdConstants.PlatformResourceId),
+                    SecretOwner.Platform,
                     It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
                     It.IsAny<CancellationToken>()
                 )

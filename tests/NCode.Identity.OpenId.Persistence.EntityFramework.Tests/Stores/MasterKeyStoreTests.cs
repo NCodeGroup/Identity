@@ -18,7 +18,6 @@ public sealed class MasterKeyStoreTests : IDisposable
 {
     private const string TenantOneId = "Tenant-One";
     private const string TenantTwoId = "tenant-two";
-    private const string PlatformId = "server-1";
 
     private static readonly DateTimeOffset CreatedWhen = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
@@ -314,7 +313,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
 
         Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Empty(await ListAsync(SecretOwner.ForPlatform(TenantOneId)));
+        Assert.Empty(await ListAsync(SecretOwner.Platform));
     }
 
     [Fact]
@@ -365,7 +364,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
 
         Assert.Null(await FindActiveAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Null(await FindActiveAsync(SecretOwner.ForPlatform(TenantOneId)));
+        Assert.Null(await FindActiveAsync(SecretOwner.Platform));
     }
 
     #endregion
@@ -444,7 +443,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1),
-            CreateMasterKey(SecretOwnerTypes.Platform, PlatformId, 1)
+            CreateMasterKey(SecretOwnerTypes.Platform, SecretOwner.PlatformOwnerId, 1)
         );
 
         int removed;
@@ -462,7 +461,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         Assert.Equal(2, removed);
         Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
         Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Single(await ListAsync(SecretOwner.ForPlatform(PlatformId)));
+        Assert.Single(await ListAsync(SecretOwner.Platform));
     }
 
     #endregion

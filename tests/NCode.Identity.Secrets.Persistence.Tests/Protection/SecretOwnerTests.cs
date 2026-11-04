@@ -44,17 +44,17 @@ public class SecretOwnerTests
 
     #endregion
 
-    #region ForPlatform Tests
+    #region Platform Tests
 
     [Fact]
-    public void ForServer_SetsServerType()
+    public void Platform_IsThePlatformOwner()
     {
-        const string platformId = "server-1";
-
-        var owner = SecretOwner.ForPlatform(platformId);
+        var owner = SecretOwner.Platform;
 
         Assert.Equal(SecretOwnerTypes.Platform, owner.OwnerType);
-        Assert.Equal(platformId, owner.OwnerId);
+        Assert.Equal("platform", owner.OwnerType);
+        Assert.Equal(SecretOwner.PlatformOwnerId, owner.OwnerId);
+        Assert.Equal("platform", owner.OwnerId);
     }
 
     #endregion

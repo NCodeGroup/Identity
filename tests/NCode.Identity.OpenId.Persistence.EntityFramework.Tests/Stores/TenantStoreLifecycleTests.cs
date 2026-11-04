@@ -264,12 +264,16 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     {
         await SeedTenantAsync();
         var otherTenantKey = CreateMasterKey(SecretOwnerTypes.Tenant, "tenant-2", 1);
-        var serverKey = CreateMasterKey(SecretOwnerTypes.Platform, TenantId, 1);
+        var platformKey = CreateMasterKey(
+            SecretOwnerTypes.Platform,
+            SecretOwner.PlatformOwnerId,
+            1
+        );
         await SeedMasterKeysAsync(
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantId, 1),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantId.ToUpperInvariant(), 2),
             otherTenantKey,
-            serverKey
+            platformKey
         );
 
         var removed = await _store.RemoveAsync(TenantId, CancellationToken.None);
@@ -282,7 +286,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             .ToListAsync();
         Assert.Equal(2, remainingKeyIds.Count);
         Assert.Contains(otherTenantKey.KeyId, remainingKeyIds);
-        Assert.Contains(serverKey.KeyId, remainingKeyIds);
+        Assert.Contains(platformKey.KeyId, remainingKeyIds);
     }
 
     [Fact]

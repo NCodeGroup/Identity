@@ -16,9 +16,7 @@ namespace NCode.Identity.Server.Tests;
 
 public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
 {
-    private const string PlatformId = "server-a";
-
-    private static readonly SecretOwner PlatformOwner = SecretOwner.ForPlatform(PlatformId);
+    private static readonly SecretOwner PlatformOwner = SecretOwner.Platform;
 
     #region Helpers
 

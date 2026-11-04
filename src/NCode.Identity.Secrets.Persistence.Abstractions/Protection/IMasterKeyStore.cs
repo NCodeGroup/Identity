@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// Provides an abstraction for a store which persists <see cref="PersistedMasterKey"/> instances.
 /// </summary>
 /// <remarks>
-/// A master key is not scoped to a tenant because the master key of the server has no tenant, so every query
+/// A master key is not scoped to a tenant because the master key of the platform has no tenant, so every query
 /// identifies the owner explicitly.
 /// </remarks>
 // See ADR-1235.

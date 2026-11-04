@@ -4,7 +4,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -13,7 +12,7 @@ using NCode.Identity.Server.Logging;
 namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
-/// Loads the <see cref="ISecretProtector"/> of the server when the host starts, so that the Data Protection key ring,
+/// Loads the <see cref="ISecretProtector"/> of the platform when the host starts, so that the Data Protection key ring,
 /// which protects and unprotects synchronously, finds it ready. It must start before the hosted service that loads the
 /// key ring.
 /// </summary>
@@ -44,7 +43,7 @@ internal class PlatformSecretProtectorWarmup(
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         Holder.Protector = await Provider.GetProtectorAsync(
-            SecretOwner.ForPlatform(OpenIdConstants.PlatformResourceId),
+            SecretOwner.Platform,
             [],
             cancellationToken
         );

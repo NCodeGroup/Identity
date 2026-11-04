@@ -15,7 +15,7 @@ namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
 /// Binds the <see cref="SecretProtectionOptions.DefaultSectionName"/> configuration section and protects the Data
-/// Protection key ring under the master key of the server.
+/// Protection key ring under the master key of the platform.
 /// </summary>
 // See ADR-1235.
 // See ADR-1370.
@@ -35,7 +35,7 @@ internal static class SecretProtectionRegistration
 
     /// <summary>
     /// Binds the options that configure how stored secrets are protected from <paramref name="configuration"/> and
-    /// encrypts the Data Protection key ring under the master key of the server. The server's protector is loaded by a
+    /// encrypts the Data Protection key ring under the master key of the platform. The platform's protector is loaded by a
     /// hosted service that is placed before every other one, and the key ring gate is placed right after it, so the
     /// protector is ready and every live key of the ring is known to decrypt before Data Protection loads the key ring.
     /// </summary>

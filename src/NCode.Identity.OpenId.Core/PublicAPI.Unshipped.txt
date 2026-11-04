@@ -86,6 +86,7 @@ NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.Interval.get -> System.Time
 NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.Interval.set -> void
 NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.OpenIdTenantKeyRolloverOptions() -> void
 NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.TokenLifetimeSettings.get -> System.Collections.Generic.List<string!>!
+static NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.DefaultTokenLifetimeSettings.get -> System.Collections.Immutable.ImmutableArray<string!>
 NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.TokenLifetimeSettings.set -> void
 NCode.Identity.OpenId.OpenIdTenantOptions.KeyRollover.get -> NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions!
 NCode.Identity.OpenId.OpenIdTenantOptions.KeyRollover.set -> void

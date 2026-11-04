@@ -3448,7 +3448,7 @@ describes the family as it is rather than its changes
 - **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's, a
   server's and a resource server's keys all carry an active window inside a validity window: a key that is not yet
   active or has retired signs and encrypts nothing, and an expired key verifies and decrypts nothing, is not published
-  and no longer authenticates, on every path. A tenant's provisioned signing and encryption keys roll over every 90
+  and does not authenticate, on every path. A tenant's provisioned signing and encryption keys roll over every 90
   days by default, so the window a compromised key can be abused in is bounded, each successor is published two days
   before the first token it signs, and a retired key stays published for seven days or the longest token lifetime plus
   the clock skew, whichever is longer, so no token outlives the key that verifies it

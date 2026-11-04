@@ -21,15 +21,17 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// <summary>
 /// Rolls the keys of every seeded tenant over in the background, once the replica's server is materialized and then
 /// every <see cref="OpenIdTenantKeyRolloverOptions.Interval"/>: it generates the successor of a key that nears its
-/// retirement, activates a published key when no key signs, retires a key the tenant's settings no longer use, and
+/// retirement, activates a published key when no key signs, retires a key the tenant's settings do not use, and
 /// removes an expired key the server generated. One replica runs each pass, under a lease on the shared-state port
 /// that lasts half the interval, and each tenant is changed in its own unit of work under the tenant's optimistic
 /// concurrency, so a pass that overlaps a seed or another pass loses the race for that tenant and leaves it to the
 /// winner; the audit event of each change is published once the unit of work has committed, so a lost race records
 /// nothing. A tenant that holds no key is left to its first materialization, which seeds it in full. A tenant the
-/// pass changed is announced, so every replica evicts it and serves its keys as they are.
+/// pass changed is announced, so every replica evicts it and serves its keys as they are. The publishing and the
+/// announcement follow a committed change, so each runs on its own bounded token, never the host's stopping token,
+/// and the announcement follows whatever the publishing did.
 /// </summary>
-// See ADR-1404.
+// See ADR-1351 (an effect that follows a committed change runs on its own bounded token) and ADR-1404.
 internal sealed class TenantKeyRolloverService(
     IMaterializedServerAccessor materializedServerAccessor,
     IOptions<OpenIdOptions> optionsAccessor,
@@ -157,21 +159,16 @@ internal sealed class TenantKeyRolloverService(
             {
                 try
                 {
-                    var changed = await RollOverTenantAsync(
+                    var committed = await RollOverTenantAsync(
                         tenantSettings,
                         serverSettings,
                         resolution.Specifications,
                         cancellationToken
                     );
-                    if (!changed)
+                    if (committed is null)
                         continue;
 
-                    // The change is committed, so every replica evicts the tenant and serves its keys as they are;
-                    // the settings did not change, so nothing seeds the tenant again in the announcement.
-                    await mediator.SendAsync(
-                        new TenantChangedCommand(tenantSettings.TenantId, SettingsChanged: false),
-                        cancellationToken
-                    );
+                    await RunAfterCommitAsync(mediator, tenantSettings.TenantId, committed);
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
@@ -185,8 +182,63 @@ internal sealed class TenantKeyRolloverService(
         } while (page.Cursor is not null);
     }
 
-    // Changes one tenant's keys in its own unit of work and returns whether anything was committed.
-    private async ValueTask<bool> RollOverTenantAsync(
+    // The change is committed, so its audit events are published and the tenant is announced on their own bounded
+    // tokens: the host's stopping token reaches neither, so a host that stops between the commit and the publish
+    // cannot leave a committed change unrecorded, and the announcement follows whatever the publishing did, because
+    // every replica must still evict the tenant and serve its keys as they are. See ADR-1351.
+    private async ValueTask RunAfterCommitAsync(
+        IMediator mediator,
+        string tenantId,
+        TenantKeyRolloverResult committed
+    )
+    {
+        try
+        {
+            await PostCommitWork.RunAsync(
+                TimeProvider,
+                PublishAuditEventsAsync,
+                (tenantId, committed.AuditEvents)
+            );
+        }
+        finally
+        {
+            // The settings did not change, so nothing seeds the tenant again in the announcement.
+            await PostCommitWork.RunAsync(
+                TimeProvider,
+                static (state, token) =>
+                    state.Mediator.SendAsync(
+                        new TenantChangedCommand(state.TenantId, SettingsChanged: false),
+                        token
+                    ),
+                (Mediator: mediator, TenantId: tenantId)
+            );
+        }
+    }
+
+    // A change is audited once it is committed; a change a lost race discarded never is. No caller token reaches the
+    // publishing, so every failure, its timeout included, is logged: the change stands, and the audit trail is the
+    // one record that lacks it.
+    private async ValueTask PublishAuditEventsAsync(
+        (string TenantId, IReadOnlyList<TenantKeyAuditEvent> AuditEvents) state,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            foreach (var auditEvent in state.AuditEvents)
+            {
+                await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.TenantKeyAuditPublishFailed(state.TenantId, exception);
+        }
+    }
+
+    // Changes one tenant's keys in its own unit of work and returns the committed result, or null when nothing was
+    // committed.
+    private async ValueTask<TenantKeyRolloverResult?> RollOverTenantAsync(
         PersistedTenantSettings tenantSettings,
         IReadOnlySettingCollection serverSettings,
         IReadOnlyList<TenantKeySpecification> specifications,
@@ -202,7 +254,7 @@ internal sealed class TenantKeyRolloverService(
         // materialization, which gives it every key it uses; the pass only rolls over the keys of a seeded tenant.
         var secrets = await tenantStore.GetSecretsOrDefaultAsync(tenantId, cancellationToken);
         if (secrets is null || secrets.Value.Count == 0)
-            return false;
+            return null;
 
         var settings = EffectiveSettingsResolver.Resolve(
             serverSettings,
@@ -212,7 +264,7 @@ internal sealed class TenantKeyRolloverService(
 
         var plan = Planner.Plan(specifications, secrets.Value, settings, TimeProvider.GetUtcNow());
         if (plan.IsEmpty)
-            return false;
+            return null;
 
         var result = await Rollover.ApplyAsync(
             tenantStore,
@@ -231,15 +283,9 @@ internal sealed class TenantKeyRolloverService(
             // A seed or another pass changed the tenant's keys first, from the same facts; its change stands, and the
             // next pass plans again from what it wrote.
             Logger.TenantKeyRolloverLostRace(tenantId);
-            return false;
+            return null;
         }
 
-        // The change is committed, so it is audited; a change a lost race discarded never is.
-        foreach (var auditEvent in result.AuditEvents)
-        {
-            await EventPublisher.PublishAsync(auditEvent, cancellationToken);
-        }
-
-        return true;
+        return result;
     }
 }

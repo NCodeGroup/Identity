@@ -5,7 +5,7 @@
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md), decision 3's key lifetime and
   decisions 4, 8 and 9's rule that the server never removes, replaces or rotates a key: a provisioned key has a
-  lifetime, its successor is generated ahead of its retirement, a key the tenant's settings no longer use is retired,
+  lifetime, its successor is generated ahead of its retirement, a key the tenant's settings do not use is retired,
   and an expired key the server generated is removed; [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md):
   `OpenIdTenantKeyRolloverOptions.Interval` is a timer period validated when the host starts
 
@@ -41,9 +41,11 @@ change the server makes to a tenant's key on its own is an audit event.**
    `Max`) is how long a key is published before it activates; `tenant_key_retirement_grace` (default seven days, a
    floor: `Max`) is how long a retired key stays published and verifies or decrypts. The grace is raised to the
    longest lifetime of the tokens the tenant protects with its keys plus its `clock_skew`, so no token outlives the
-   key that verifies it; `OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names those lifetime settings, by default
-   `id_token_lifetime`, `access_token_lifetime`, `authorization_response_lifetime` and `request_object_max_lifetime`,
-   and a package that signs or encrypts another token with the tenant's keys adds its own. The host refuses to start
+   key that verifies it; `OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names those lifetime settings:
+   `id_token_lifetime`, `access_token_lifetime`, `authorization_response_lifetime` and `request_object_max_lifetime`
+   when configuration names none, and exactly the names configuration lists otherwise, because a bound collection
+   starts empty and takes its defaults only when nothing is configured, so a deployment can drop or replace a
+   default; a package that signs or encrypts another token with the tenant's keys adds its own. The host refuses to start
    when an entry names no registered setting that a tenant's effective settings read as a duration, so a misspelled
    name cannot silently drop a token's lifetime from the floor. The grace is read at every plan, so a key whose
    retirement plus the grace, as it stands, reaches past its expiry expires at the end of the grace instead: a token
@@ -65,7 +67,7 @@ change the server makes to a tenant's key on its own is an audit event.**
    manager of its lifecycle: `PersistedSecret.ManagedBy` is `tenant_key_rollover` (`SecretManagers`), an open
    vocabulary beside `Origin`, because the origin of a key's material says nothing about who manages it: a key an
    operator generates through the management API has the `generated` origin too. A managed key for a provisioned
-   algorithm the tenant's settings no longer use retires now and expires at the end of the grace: the keys it signed
+   algorithm the tenant's settings do not use retires now and expires at the end of the grace: the keys it signed
    stay verifiable, and nothing signs with it; one published ahead of an activation that never comes activates and
    retires at that same instant, so its instants stay in order, and stays published for the grace because a client
    may have encrypted to it. An expired managed key is removed. A key the rollover did not provision, whether an
@@ -74,7 +76,7 @@ change the server makes to a tenant's key on its own is an audit event.**
    a key at once on suspicion of compromise, after which the next seed or pass replaces it. A key bound to no
    algorithm is never retired for an unused algorithm, because it serves any.
 4. **Two paths, one planner.** The seed contributor applies the plan whenever the tenant is materialized, so a tenant
-   that is served gets its first key, its successors, and the retirement and removal of what it no longer needs, in
+   that is served gets its first key, its successors, and the retirement and removal of what it does not need, in
    the seed's unit of work. `TenantKeyRolloverService` applies it in the background: once the replica's server is
    materialized and then every `OpenId:Tenant:KeyRollover:Interval` (default one hour), one replica takes a lease on
    the shared-state port for half the interval and walks every seeded tenant, changing each in its own unit of work
@@ -95,8 +97,14 @@ change the server makes to a tenant's key on its own is an audit event.**
    request, because the operation is the server's own whether a seed in a request or the pass performed it, and never
    key material. The rollover describes the events and the caller publishes them once its unit of work has committed,
    as the management plane records its own changes after its save: the pass publishes them after its save, and the
-   seed queues them on `TenantSeedContext.RunAfterCommit`, whose steps the provisioner runs on their own bounded
-   token once the seed has committed, so a change a lost race discarded is never in the audit trail.
+   seed queues them on `TenantSeedContext.RunAfterCommit`, whose steps the provisioner runs once the seed has
+   committed, so a change a lost race discarded is never in the audit trail. The publishing follows a committed
+   change, so it runs on its own bounded token ([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)):
+   the pass runs the publishing and then the announcement through `PostCommitWork`, the announcement whatever the
+   publishing did, and logs a failed publish; the provisioner runs each queued step the same way, logs one that fails
+   and runs the rest, because the seed has committed and the tenant must materialize. The audit event is the one
+   record of a change: the rollover logs nothing for a change its commit may yet discard, and the audit pipeline
+   writes the log entry of each event it publishes.
 
 ## Options considered
 
@@ -129,8 +137,14 @@ change the server makes to a tenant's key on its own is an audit event.**
   that verifies it; the grace is read at every plan and an expiry moves later to follow it.
 - **Publish the audit events as the changes are made.** Rejected: a lost race discards the change but not the event,
   so the trail names keys that never existed; the events are published once the unit of work has committed.
+- **Log each change beside its audit event.** Rejected: the log entry is written before the commit the audit event
+  waits for, so a lost race logs changes that were discarded, and the audit pipeline already writes one log entry per
+  event; the rollover logs only its mechanics, a lost race, a failed tenant, a failed pass and a failed publish.
+- **Apply each change to the key as the plan read it.** Rejected: a plan that activates and extends one key would
+  write the extension from the original record and undo the activation; the rollover applies each change to the key
+  as the changes before it left it.
 - **A lease that lasts the whole interval.** Rejected: the timer ticks one interval after the pass started, when a
-  lease taken moments later is still held, so every other pass is skipped and the successor horizon no longer covers
+  lease taken moments later is still held, so every other pass is skipped and the successor horizon stops covering
   the time to the next effective pass.
 
 ## Consequences
@@ -139,11 +153,11 @@ change the server makes to a tenant's key on its own is an audit event.**
   days ahead and takes over the instant it retires, and the retired key verifies for seven days more.
 - A tenant whose settings stop using an algorithm keeps verifying with the key it signed with for the grace and then
   holds no key for it; a tenant that starts using one again is seeded with a new key.
-- `OpenIdTenantOptions` gains `KeyRollover`, the tenant key seed handler takes the planner, the rollover and the
-  event publisher, the reconciliation handler takes the planner and a `TimeProvider`, the tenant provisioner takes a
-  `TimeProvider` to run a seed's post-commit steps, the rollover options validator takes the setting descriptor and
-  scope collections, and `NCode.Identity.OpenId.Core` references the events abstractions to publish the audit
-  events.
+- `OpenIdTenantOptions` has `KeyRollover`; the tenant key seed handler depends on the planner, the rollover and the
+  event publisher, the reconciliation handler on the planner and a `TimeProvider`, the tenant provisioner on a
+  `TimeProvider` and a logger to run a seed's post-commit steps, and the rollover options validator on the setting
+  descriptor and scope collections; `NCode.Identity.OpenId.Core` references the events abstractions to publish the
+  audit events.
 - `PersistedSecret`, `SecretEntity`, `GenerateSecretRequest`, `SecretResource` and `CreatedSecretResource` carry
   `ManagedBy`, the host database's `Secrets` table holds it, and the management console marks a managed key.
 - A tenant whose key lifetime is shorter than its activation delay plus the pass interval holds several upcoming
@@ -160,7 +174,8 @@ change the server makes to a tenant's key on its own is an audit event.**
   [`TenantKeySeedHandler`](../../src/NCode.Identity.OpenId.Core/Tenants/Keys/TenantKeySeedHandler.cs),
   [`TenantKeyLifetimes`](../../src/NCode.Identity.OpenId.Core/Tenants/Keys/TenantKeyLifetimes.cs),
   [`TenantKeyAuditEvent`](../../src/NCode.Identity.OpenId.Core/Tenants/Keys/TenantKeyAuditEvent.cs),
-  [`OpenIdTenantKeyRolloverOptions`](../../src/NCode.Identity.OpenId.Core/Options/OpenIdTenantKeyRolloverOptions.cs)
+  [`OpenIdTenantKeyRolloverOptions`](../../src/NCode.Identity.OpenId.Core/Options/OpenIdTenantKeyRolloverOptions.cs),
+  [`TenantKeyRolloverOptionsDefaults`](../../src/NCode.Identity.OpenId.Core/Tenants/Keys/TenantKeyRolloverOptionsDefaults.cs)
 - [Audit records](../audit-records.md), the `tenant.key.*` events
 - [Key rollover](../capabilities/key-rollover.md), the capability page
 - [OpenID Connect Core 1.0 §10.1.1](https://openid.net/specs/openid-connect-core-1_0.html#RotateSigKeys),

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -51,7 +52,8 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
                 }
             ),
             MockMediator.Object,
-            TimeProvider
+            TimeProvider,
+            NullLogger<DefaultTenantProvisioner>.Instance
         );
     }
 
@@ -532,6 +534,44 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
 
         Assert.Single(seeded);
         Assert.Equal([true], ran);
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenAStepAfterTheCommitFails_RunsTheRemainingStepsAndReturnsTheSeededTenant()
+    {
+        // The seed has committed, so a failed effect is logged, the later effects still run, and the tenant
+        // materializes with the keys the seed wrote.
+        var root = CreateTenant(RootTenantId);
+        var ran = new List<string>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root);
+        SetupScope();
+        MockMediator
+            .Setup(x => x.SendAsync(It.IsAny<SeedTenantCommand>(), It.IsAny<CancellationToken>()))
+            .Callback(
+                (SeedTenantCommand command, CancellationToken _) =>
+                {
+                    command.Context.RunAfterCommit(_ =>
+                        ValueTask.FromException(new InvalidOperationException("publish failed"))
+                    );
+                    command.Context.RunAfterCommit(_ =>
+                    {
+                        ran.Add("second");
+                        return ValueTask.CompletedTask;
+                    });
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var tenant = await Provisioner.SeedAsync(RootTenantId, CancellationToken.None);
+
+        Assert.Same(root, tenant);
+        Assert.Equal(["second"], ran);
     }
 
     [Fact]

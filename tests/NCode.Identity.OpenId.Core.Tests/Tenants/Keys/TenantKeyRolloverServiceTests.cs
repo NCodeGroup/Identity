@@ -139,8 +139,6 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         SetupPlan([second], empty: true);
 
         await Service.RollOverAsync(ServerId, CancellationToken.None);
-
-        MockStoreManager.Verify(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -188,13 +186,20 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         // The lease lasts half the interval, so the same replica's next tick, one interval after the pass started,
         // finds it expired; one that lasted the whole interval would still be held by the moments the pass took to
-        // start, and every other pass would be skipped. The store is strict: a pass that reads no tenant fails.
+        // start, and every other pass would be skipped. The page is read exactly once per pass that holds the lease.
         var keySet = new FakeExpiringKeySet(TimeProvider);
         using var service = CreateService(TimeProvider, keySet);
         SetupSpecifications();
         SetupServerSettings();
         SetupStoreManager();
-        SetupTenantPage(cursor: null, nextCursor: null);
+        MockTenantStore
+            .Setup(x =>
+                x.GetSettingsPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(
+                new PagedResult<PersistedTenantSettings> { Items = [], NextCursor = null }
+            )
+            .Verifiable(Times.Exactly(2));
 
         await service.RollOverAsync(ServerId, CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromMilliseconds(5));
@@ -203,10 +208,89 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         await service.RollOverAsync(ServerId, CancellationToken.None);
 
         Assert.Equal(2, keySet.Taken);
-        MockTenantStore.Verify(
-            x => x.GetSettingsPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(2)
-        );
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WhenATenantsChangeIsCommitted_PublishesAndAnnouncesOnATokenOfTheirOwn()
+    {
+        // The change is committed, so neither the publishing nor the announcement runs on the pass's token: a host
+        // that stops after the commit cannot leave the change unrecorded or unannounced.
+        using var stopping = new CancellationTokenSource();
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupServerSettings();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        var first = CreateSecret("first");
+        SetupTenantSettings(FirstTenantId);
+        SetupSecrets(FirstTenantId, [first]);
+        var plan = SetupPlan([first], empty: false);
+        var auditEvent = CreateAuditEvent("first");
+        SetupApply(FirstTenantId, [first], plan, auditEvent);
+        SetupSave();
+        CancellationToken? publishToken = null;
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(auditEvent, It.IsAny<CancellationToken>()))
+            .Callback((TenantKeyAuditEvent _, CancellationToken token) => publishToken = token)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        CancellationToken? announceToken = null;
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(
+                    It.Is<TenantChangedCommand>(command =>
+                        command.TenantId == FirstTenantId && !command.SettingsChanged
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback((TenantChangedCommand _, CancellationToken token) => announceToken = token)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Service.RollOverAsync(ServerId, stopping.Token);
+
+        Assert.NotNull(publishToken);
+        Assert.NotEqual(stopping.Token, publishToken.Value);
+        Assert.NotNull(announceToken);
+        Assert.NotEqual(stopping.Token, announceToken.Value);
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WhenPublishingTheAuditEventsFails_StillAnnouncesTheTenantAndContinues()
+    {
+        // The change is committed whatever the publisher did, so every replica must still evict the tenant, and the
+        // next tenant is still rolled over.
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupServerSettings();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
+
+        var first = CreateSecret("first");
+        var second = CreateSecret("second");
+        SetupTenantSettings(FirstTenantId);
+        SetupSecrets(FirstTenantId, [first]);
+        var firstPlan = SetupPlan([first], empty: false);
+        var firstEvent = CreateAuditEvent("first");
+        SetupApply(FirstTenantId, [first], firstPlan, firstEvent);
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(firstEvent, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("sink unavailable"))
+            .Verifiable();
+        SetupAnnouncement(FirstTenantId);
+        SetupTenantSettings(SecondTenantId);
+        SetupSecrets(SecondTenantId, [second]);
+        var secondPlan = SetupPlan([second], empty: false);
+        SetupApply(SecondTenantId, [second], secondPlan);
+        SetupAnnouncement(SecondTenantId);
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(2));
+
+        await Service.RollOverAsync(ServerId, CancellationToken.None);
     }
 
     [Fact]
@@ -443,11 +527,12 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
+    // Every test that saves commits one tenant's change exactly once.
     private void SetupSave() =>
         MockStoreManager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+            .Verifiable(Times.Once);
 
     private void SetupTenantPage(string? cursor, string? nextCursor, params string[] tenantIds) =>
         MockTenantStore

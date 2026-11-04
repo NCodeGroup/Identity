@@ -86,7 +86,7 @@ public readonly record struct KeyMetadata
     public DateTimeOffset? ActivatesWhen { get; init; }
 
     /// <summary>
-    /// Gets the instant the key's active window closes: from then on the key no longer signs or encrypts, while it
+    /// Gets the instant the key's active window closes: from then on the key signs and encrypts nothing, while it
     /// still verifies and decrypts until it expires.
     /// </summary>
     /// <value>
@@ -97,7 +97,7 @@ public readonly record struct KeyMetadata
 
     /// <summary>
     /// Gets the expiration time for the secret key: the instant its validity window closes, after which it neither
-    /// verifies nor decrypts and is no longer published.
+    /// verifies nor decrypts and is not published.
     /// </summary>
     /// <value>
     /// A <see cref="DateTimeOffset"/> indicating when the key expires and is no longer valid,

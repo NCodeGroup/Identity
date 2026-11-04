@@ -50,7 +50,7 @@ timeline
    horizon.
 3. At the hand-over the credential selector on every replica picks the successor, because the predecessor has retired
    and the successor is active; the key set still publishes both.
-4. After the grace the predecessor expires: it is no longer published or tried, and the next pass removes it. A grace
+4. After the grace the predecessor expires: it is neither published nor tried, and the next pass removes it. A grace
    raised in the meantime, by a setting or a longer token lifetime, moves the expiry later first.
 5. Every step is recorded in the audit trail once it is committed.
 
@@ -98,9 +98,10 @@ only an unexpired key.
 | `tenant_key_activation_delay`  | 2 days  | `Max` (floor) | How long a successor is published before it activates.                                                                                    |
 | `tenant_key_retirement_grace`  | 7 days  | `Max` (floor) | How long a retired key stays published. Raised to the longest lifetime of the tokens the tenant protects with its keys plus `clock_skew`. |
 
-`OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names the settings whose lifetimes the grace covers (by default the
-ID token, access token, JWT-secured authorization response and request object lifetimes); the host refuses to start
-when an entry names no registered setting a tenant's effective settings read as a duration.
+`OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names the settings whose lifetimes the grace covers: the ID token,
+access token, JWT-secured authorization response and request object lifetimes when configuration names none, and
+exactly the names configuration lists otherwise, so a deployment can drop or replace a default; the host refuses to
+start when an entry names no registered setting a tenant's effective settings read as a duration.
 `OpenId:Tenant:KeyRollover:Interval` (one hour) is how often the background pass runs. A key lifetime longer than the
 activation delay plus the interval keeps one upcoming key per algorithm; a shorter one keeps as many upcoming keys as
 fit in the delay plus the interval, each generated under the tenant's master key, so the successor is always
@@ -123,8 +124,10 @@ materialized, in the seed's unit of work, and `TenantKeyRolloverService` applies
 interval takes a lease on the shared-state port, for half the interval so the next tick finds it free, and walks every
 seeded tenant, each in its own unit of work under the tenant's optimistic concurrency, so an overlapping seed or pass
 loses the race for that tenant and leaves it to the winner. The audit events of a change are published once its unit
-of work has committed, so a lost race records nothing. A tenant the pass changed is announced, so every replica evicts
-it and serves its keys as they are.
+of work has committed, so a lost race records nothing; they are the one record of the change, and the publishing and
+the announcement that follow a commit run on their own bounded token, so a stopping host or a failed publish leaves
+the committed change in place. A tenant the pass changed is announced, so every replica evicts it and serves its keys
+as they are.
 
 > [!TIP]
 > [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),

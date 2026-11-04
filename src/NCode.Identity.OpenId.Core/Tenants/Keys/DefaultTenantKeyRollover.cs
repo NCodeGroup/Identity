@@ -1,10 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
-using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
@@ -17,22 +15,22 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// Provides the default implementation of <see cref="ITenantKeyRollover"/>. A generated key is protected under the
 /// tenant's master key, which is loaded only when a key is generated, and carries the rollover as the manager of its
 /// lifecycle; an activated, retired or extended key keeps its material and changes only the instants of its
-/// lifecycle, which stay in order or the change is refused; a removed key leaves the store. Every change is described
-/// by a <see cref="TenantKeyAuditEvent"/> with the <c>system</c> actor, because the server made it on its own, which
-/// the caller publishes once its unit of work has committed.
+/// lifecycle, which stay in order or the change is refused; a removed key leaves the store. Each change to a key is
+/// applied to the key as the changes before it left it, so a plan that activates and extends one key keeps both.
+/// Every change is described by a <see cref="TenantKeyAuditEvent"/> with the <c>system</c> actor, because the server
+/// made it on its own, which the caller publishes once its unit of work has committed; the audit event is the one
+/// record of the change, so nothing is logged for a change the commit may yet discard.
 /// </summary>
 // See ADR-1404.
 internal sealed class DefaultTenantKeyRollover(
     ISecretGenerator secretGenerator,
     ISecretProtectorProvider secretProtectorProvider,
-    ICryptoService cryptoService,
-    ILogger<DefaultTenantKeyRollover> logger
+    ICryptoService cryptoService
 ) : ITenantKeyRollover
 {
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private ICryptoService CryptoService { get; } = cryptoService;
-    private ILogger<DefaultTenantKeyRollover> Logger { get; } = logger;
 
     /// <inheritdoc />
     public async ValueTask<TenantKeyRolloverResult> ApplyAsync(
@@ -48,6 +46,8 @@ internal sealed class DefaultTenantKeyRollover(
         ArgumentNullException.ThrowIfNull(held);
         ArgumentNullException.ThrowIfNull(plan);
 
+        // The keys as the changes so far left them: a later change to a key starts from the earlier one, so an
+        // extension written after an activation keeps the activation.
         var secrets = new Dictionary<string, PersistedSecret>(StringComparer.Ordinal);
         foreach (var secret in held)
         {
@@ -58,13 +58,13 @@ internal sealed class DefaultTenantKeyRollover(
 
         foreach (var removal in plan.Removals)
         {
-            await tenantStore.RemoveSecretAsync(tenantId, removal.SecretId, cancellationToken);
-            secrets.Remove(removal.SecretId);
-            Logger.TenantKeyRemoved(tenantId, removal.Algorithm, removal.SecretId);
+            var removed = secrets[removal.SecretId];
+            await tenantStore.RemoveSecretAsync(tenantId, removed.SecretId, cancellationToken);
+            secrets.Remove(removed.SecretId);
             auditEvents.Add(
                 CreateAuditEvent(
                     tenantId,
-                    removal,
+                    removed,
                     TenantKeyChanges.Removed,
                     TenantKeyChangeReasons.Expired,
                     plan.Now
@@ -75,19 +75,13 @@ internal sealed class DefaultTenantKeyRollover(
         foreach (var retirement in plan.Retirements)
         {
             var retired = WithLifecycle(
-                retirement.Secret,
+                secrets[retirement.Secret.SecretId],
                 retirement.ActivatesWhen,
                 retirement.RetiresWhen,
                 retirement.ExpiresWhen
             );
             await tenantStore.UpdateSecretAsync(tenantId, retired, cancellationToken);
             secrets[retired.SecretId] = retired;
-            Logger.TenantKeyRetired(
-                tenantId,
-                retired.Algorithm,
-                retired.SecretId,
-                retired.ExpiresWhen
-            );
             auditEvents.Add(
                 CreateAuditEvent(
                     tenantId,
@@ -101,15 +95,15 @@ internal sealed class DefaultTenantKeyRollover(
 
         foreach (var activation in plan.Activations)
         {
+            var current = secrets[activation.Secret.SecretId];
             var activated = WithLifecycle(
-                activation.Secret,
+                current,
                 activation.ActivatesWhen,
-                activation.Secret.RetiresWhen,
-                activation.Secret.ExpiresWhen
+                current.RetiresWhen,
+                current.ExpiresWhen
             );
             await tenantStore.UpdateSecretAsync(tenantId, activated, cancellationToken);
             secrets[activated.SecretId] = activated;
-            Logger.TenantKeyActivated(tenantId, activated.Algorithm, activated.SecretId);
             auditEvents.Add(
                 CreateAuditEvent(
                     tenantId,
@@ -123,20 +117,15 @@ internal sealed class DefaultTenantKeyRollover(
 
         foreach (var extension in plan.Extensions)
         {
+            var current = secrets[extension.Secret.SecretId];
             var extended = WithLifecycle(
-                extension.Secret,
-                extension.Secret.ActivatesWhen,
-                extension.Secret.RetiresWhen,
+                current,
+                current.ActivatesWhen,
+                current.RetiresWhen,
                 extension.ExpiresWhen
             );
             await tenantStore.UpdateSecretAsync(tenantId, extended, cancellationToken);
             secrets[extended.SecretId] = extended;
-            Logger.TenantKeyExtended(
-                tenantId,
-                extended.Algorithm,
-                extended.SecretId,
-                extended.ExpiresWhen
-            );
             auditEvents.Add(
                 CreateAuditEvent(
                     tenantId,
@@ -162,13 +151,6 @@ internal sealed class DefaultTenantKeyRollover(
             var generated = Generate(protector, generation, plan.Now);
             await tenantStore.AddSecretAsync(tenantId, generated, cancellationToken);
             secrets[generated.SecretId] = generated;
-            Logger.TenantKeyProvisioned(
-                tenantId,
-                generation.Specification.Algorithm,
-                generated.SecretId,
-                generated.ActivatesWhen,
-                generated.RetiresWhen
-            );
             auditEvents.Add(
                 CreateAuditEvent(
                     tenantId,
@@ -227,24 +209,11 @@ internal sealed class DefaultTenantKeyRollover(
         DateTimeOffset expiresWhen
     )
     {
-        var changed = new PersistedSecret
+        var changed = secret with
         {
-            SecretId = secret.SecretId,
-            KeyId = secret.KeyId,
-            ConcurrencyToken = secret.ConcurrencyToken,
-            Use = secret.Use,
-            Algorithm = secret.Algorithm,
-            CreatedWhen = secret.CreatedWhen,
             ActivatesWhen = activatesWhen,
             RetiresWhen = retiresWhen,
             ExpiresWhen = expiresWhen,
-            SecretType = secret.SecretType,
-            SecretEncoding = secret.SecretEncoding,
-            Origin = secret.Origin,
-            ManagedBy = secret.ManagedBy,
-            KeySizeBits = secret.KeySizeBits,
-            EncodedValue = secret.EncodedValue,
-            PublicKey = secret.PublicKey,
         };
 
         if (!SecretLifecycle.TryValidate(changed, out var error))

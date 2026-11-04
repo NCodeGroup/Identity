@@ -49,7 +49,9 @@ public class TenantKeyRolloverTests
         Assert.Equal(SecretManagers.TenantKeyRollover, rs256.ManagedBy);
 
         // The key retires in an hour, within the activation delay and the pass interval, so the seed that follows the
-        // change generates its successor, published now and activating at the hand-over.
+        // change generates its successor, published now and activating at the hand-over. The host reads the system
+        // clock, so the retirement is set from it; every instant the test asserts is derived from the stored records,
+        // never from the clock, and the hour is the margin the test allows itself to reach the next request.
         var retiresWhen = DateTimeOffset.UtcNow.AddHours(1);
         await UpdateLifecycleAsync(
             administrator,

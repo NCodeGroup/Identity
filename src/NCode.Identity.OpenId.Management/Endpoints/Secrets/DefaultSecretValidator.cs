@@ -38,15 +38,17 @@ internal sealed class DefaultSecretValidator(
     private static SecretCreateValidation Invalid(string detail) =>
         SecretCreateValidation.Invalid(Error(detail));
 
-    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
-        algorithmCollectionProvider;
-
-    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
-
-    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
-
-    // The instants of a secret's lifecycle are resolved and checked by the one rule the generator and the importer
-    // apply, so a request they would refuse is answered 400 with the reason (ADR-1403).
+    /// <summary>
+    /// Checks the instants of a secret's lifecycle a create or import request names, resolved and judged by the one
+    /// rule the generator and the importer apply, so a request they would refuse is answered <c>400</c> with the
+    /// reason.
+    /// </summary>
+    /// <param name="createdWhen">The instant the secret is created.</param>
+    /// <param name="activatesWhen">The instant the request activates the secret, or <c>null</c> for its creation.</param>
+    /// <param name="retiresWhen">The instant the request retires the secret, or <c>null</c> for its expiry.</param>
+    /// <param name="expiresWhen">The instant the secret expires.</param>
+    /// <returns>The error that names the instants out of order, or <c>null</c> when they are in order.</returns>
+    // See ADR-1403.
     private static ManagementError? ValidateLifecycle(
         DateTimeOffset createdWhen,
         DateTimeOffset? activatesWhen,
@@ -63,6 +65,13 @@ internal sealed class DefaultSecretValidator(
         )
             ? null
             : Error(error);
+
+    private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
+        algorithmCollectionProvider;
+
+    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+
+    private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     /// <inheritdoc />
     // See ADR-1389 and ADR-1392.

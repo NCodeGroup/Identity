@@ -245,3 +245,6 @@ NCode.Identity.Secrets.Keys.KeyMetadataExtensions
 NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata)
 NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata).IsActive(System.DateTimeOffset now) -> bool
 NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata).IsExpired(System.DateTimeOffset now) -> bool
+NCode.Identity.Secrets.Keys.KeyLifecycle
+static NCode.Identity.Secrets.Keys.KeyLifecycle.IsActive(System.DateTimeOffset? activatesWhen, System.DateTimeOffset? retiresWhen, System.DateTimeOffset? expiresWhen, System.DateTimeOffset now) -> bool
+static NCode.Identity.Secrets.Keys.KeyLifecycle.IsExpired(System.DateTimeOffset? expiresWhen, System.DateTimeOffset now) -> bool

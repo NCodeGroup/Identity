@@ -26,7 +26,7 @@ internal readonly record struct TenantKeyGeneration
     public required DateTimeOffset RetiresWhen { get; init; }
 
     /// <summary>
-    /// Gets the instant the key expires and is no longer published.
+    /// Gets the instant the key expires and leaves the published key set.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
 

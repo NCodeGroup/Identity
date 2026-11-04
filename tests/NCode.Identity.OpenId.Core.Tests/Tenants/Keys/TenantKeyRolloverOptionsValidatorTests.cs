@@ -25,8 +25,12 @@ public sealed class TenantKeyRolloverOptionsValidatorTests : BaseTests
         MockDescriptors = CreateStrictMock<ISettingDescriptorCollection>();
         MockScopeProvider = CreateStrictMock<ISettingScopeCollectionProvider>();
         MockScopes = CreateStrictMock<ISettingScopeCollection>();
-        MockDescriptorProvider.Setup(x => x.Collection).Returns(MockDescriptors.Object);
-        MockScopeProvider.Setup(x => x.Collection).Returns(MockScopes.Object);
+        // Every validation reads both collections before it walks the names, so each setup is verified.
+        MockDescriptorProvider
+            .Setup(x => x.Collection)
+            .Returns(MockDescriptors.Object)
+            .Verifiable();
+        MockScopeProvider.Setup(x => x.Collection).Returns(MockScopes.Object).Verifiable();
         Validator = new TenantKeyRolloverOptionsValidator(
             MockDescriptorProvider.Object,
             MockScopeProvider.Object
@@ -36,10 +40,15 @@ public sealed class TenantKeyRolloverOptionsValidatorTests : BaseTests
     #region Validate Tests
 
     [Fact]
-    public void Validate_WithTheDefaults_Succeeds()
+    public void Validate_WithTheDefaultTokenLifetimeSettings_Succeeds()
     {
-        // The token lifetimes apply to clients, whose settings a tenant's effective settings cascade into.
+        // The token lifetimes apply to clients, whose settings a tenant's effective settings cascade into. The
+        // registration fills the defaults into the empty list when configuration names none.
         var options = new OpenIdOptions();
+        options.Tenant.KeyRollover.TokenLifetimeSettings.AddRange(
+            OpenIdTenantKeyRolloverOptions.DefaultTokenLifetimeSettings
+        );
+        Assert.NotEmpty(options.Tenant.KeyRollover.TokenLifetimeSettings);
         foreach (var settingName in options.Tenant.KeyRollover.TokenLifetimeSettings)
         {
             SetupDescriptor(

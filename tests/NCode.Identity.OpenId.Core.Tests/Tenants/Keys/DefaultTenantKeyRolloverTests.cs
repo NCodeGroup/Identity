@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
@@ -38,8 +37,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Rollover = new DefaultTenantKeyRollover(
             MockSecretGenerator.Object,
             MockSecretProtectorProvider.Object,
-            MockCryptoService.Object,
-            CreateLooseMock<ILogger<DefaultTenantKeyRollover>>().Object
+            MockCryptoService.Object
         );
     }
 
@@ -102,11 +100,12 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
     [Fact]
     public async Task ApplyAsync_WhenThePlanGeneratesSeveralKeys_LoadsTheTenantsProtectorOnce()
     {
+        // The protector setup is verified once: a second load fails the test.
         var plan = new TenantKeyRolloverPlan { Now = Now };
         plan.Generations.Add(CreateGeneration());
         plan.Generations.Add(CreateGeneration());
         SetupGeneration();
-        SetupAddSecret();
+        var added = SetupAddSecret();
 
         await Rollover.ApplyAsync(
             MockTenantStore.Object,
@@ -116,15 +115,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
             CancellationToken.None
         );
 
-        MockSecretProtectorProvider.Verify(
-            x =>
-                x.GetProtectorAsync(
-                    SecretOwner.ForTenant(TenantId),
-                    It.IsAny<IReadOnlyCollection<string>>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
+        Assert.Equal(2, added.Count);
     }
 
     [Fact]
@@ -260,6 +251,61 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
     }
 
     [Fact]
+    public async Task ApplyAsync_WhenThePlanActivatesAndExtendsOneKey_KeepsTheActivationInTheExtension()
+    {
+        // The extension is written after the activation, from the key as the activation left it: one written from
+        // the record the plan read would put the future activation back and leave the algorithm without a key.
+        var held = CreateSecret(
+            "held",
+            Now.AddDays(1),
+            Now.AddDays(91),
+            createdWhen: Now.AddDays(-1)
+        );
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Activations.Add(new TenantKeyActivation { Secret = held, ActivatesWhen = Now });
+        plan.Extensions.Add(
+            new TenantKeyExtension { Secret = held, ExpiresWhen = Now.AddDays(121) }
+        );
+        var updated = SetupUpdateSecret();
+
+        var result = await Rollover.ApplyAsync(
+            MockTenantStore.Object,
+            TenantId,
+            [held],
+            plan,
+            CancellationToken.None
+        );
+
+        Assert.Collection(
+            updated,
+            activated =>
+            {
+                Assert.Equal(Now, activated.ActivatesWhen);
+                Assert.Equal(held.ExpiresWhen, activated.ExpiresWhen);
+            },
+            extended =>
+            {
+                Assert.Equal(Now, extended.ActivatesWhen);
+                Assert.Equal(held.RetiresWhen, extended.RetiresWhen);
+                Assert.Equal(Now.AddDays(121), extended.ExpiresWhen);
+            }
+        );
+        var stored = Assert.Single(result.Secrets);
+        Assert.Equal(Now, stored.ActivatesWhen);
+        Assert.Equal(Now.AddDays(121), stored.ExpiresWhen);
+        Assert.Collection(
+            result.AuditEvents,
+            activation => Assert.Equal(TenantKeyChanges.Activated, activation.Change),
+            extension =>
+            {
+                Assert.Equal(TenantKeyChanges.Extended, extension.Change);
+                Assert.Equal(Now, extension.ActivatesWhen);
+                Assert.Equal(Now.AddDays(121), extension.ExpiresWhen);
+            }
+        );
+    }
+
+    [Fact]
     public async Task ApplyAsync_WhenThePlanRemovesAKey_RemovesItFromTheStoreAndDescribesIt()
     {
         var kept = CreateSecret("kept", Now.AddDays(-30), Now.AddDays(60));
@@ -349,7 +395,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
                 )
             )
             .ReturnsAsync(MockSecretProtector.Object)
-            .Verifiable();
+            .Verifiable(Times.Once);
 
         var requests = new List<GenerateSecretRequest>();
         MockSecretGenerator

@@ -117,6 +117,15 @@ internal static class DefaultRegistration
             );
 
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
+
+            // The token lifetime settings are a bound collection, so they start empty and take their defaults only
+            // when configuration names none; the validators run after this, so they check the names in force.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IPostConfigureOptions<OpenIdOptions>,
+                    TenantKeyRolloverOptionsDefaults
+                >()
+            );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<OpenIdOptions>,

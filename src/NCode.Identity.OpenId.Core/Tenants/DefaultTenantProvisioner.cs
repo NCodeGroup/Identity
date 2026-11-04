@@ -3,7 +3,9 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -17,7 +19,8 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Provides the default implementation of <see cref="ITenantProvisioner"/>. It creates a tenant at the address its
 /// strategy derives for it, judged by the same rules as every other tenant written, and it seeds a tenant — after the root
 /// tenant — by fanning out <see cref="SeedTenantCommand"/> to every registered handler within a single unit of work,
-/// then runs the steps the handlers queued for after the commit.
+/// then runs the steps the handlers queued for after the commit, each on its own bounded token; a step that fails is
+/// logged, the remaining steps run, and the seed stands, because its unit of work has committed.
 /// </summary>
 // See ADR-1045 (one seeding pipeline), ADR-1166 (a tenant is provisioned through one pipeline under every strategy)
 // and ADR-1351 (an effect that follows a committed change runs on its own bounded token).
@@ -27,7 +30,8 @@ internal sealed class DefaultTenantProvisioner(
     ITenantResolver tenantResolver,
     IOptions<TenantResolutionOptions> optionsAccessor,
     IMediator mediator,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    ILogger<DefaultTenantProvisioner> logger
 ) : ITenantProvisioner
 {
     // One retry is enough to converge after losing a race to a concurrent seed of the same tenant (see SeedAsync).
@@ -38,6 +42,7 @@ internal sealed class DefaultTenantProvisioner(
     private ITenantResolver TenantResolver { get; } = tenantResolver;
     private IMediator Mediator { get; } = mediator;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<DefaultTenantProvisioner> Logger { get; } = logger;
 
     private RootTenantOptions RootOptions => optionsAccessor.Value.Root;
 
@@ -164,14 +169,23 @@ internal sealed class DefaultTenantProvisioner(
             }
 
             // The seed is committed, so each effect that follows it runs on its own bounded token: the request's token
-            // reaches none of them, and a disconnect cannot leave the seed committed without its effects.
+            // reaches none of them, and a disconnect cannot leave the seed committed without its effects. No caller
+            // token reaches a step, so every failure, its timeout included, is logged, and the remaining steps run:
+            // the seed has committed, and a tenant whose keys are in the store must materialize.
             foreach (var step in context.PostCommitSteps)
             {
-                await PostCommitWork.RunAsync(
-                    TimeProvider,
-                    static (step, token) => step(token),
-                    step
-                );
+                try
+                {
+                    await PostCommitWork.RunAsync(
+                        TimeProvider,
+                        static (step, token) => step(token),
+                        step
+                    );
+                }
+                catch (Exception exception)
+                {
+                    Logger.TenantSeedPostCommitStepFailed(tenantId, exception);
+                }
             }
 
             return persistedTenant;

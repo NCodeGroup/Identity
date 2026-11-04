@@ -2201,6 +2201,42 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateSecretAsync_WhenASharedSecretNamesAnActivationOrARetirement_ReturnsBadRequest()
+    {
+        // A shared secret is active for its whole validity, so an instant it cannot honor is refused rather than
+        // dropped: the issuer is strict with no setup, so nothing is generated.
+        SetupSecretCreateValidation();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            new CreateSecretRequest
+            {
+                SecretType = SecretTypes.Symmetric,
+                KeySizeBits = 256,
+                Use = "sig",
+                Algorithm = "HS256",
+                ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(1),
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Contains("shared secret", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CreateSecretAsync_WhenSharedSecretIsBelowTheMinimumEntropy_ReturnsBadRequest()
     {
         SetupSecretCreateValidation();

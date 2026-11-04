@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// <summary>
 /// Seeds every tenant with the keys its settings use, and rolls them over, whenever the tenant is materialized: it
 /// applies the rollover plan the tenant's keys and settings call for, so a tenant that is served gets its first key,
-/// the successor of a key that nears its retirement, and the retirement and removal of the keys it no longer needs,
+/// the successor of a key that nears its retirement, and the retirement and removal of the keys it does not need,
 /// without waiting for the background pass. Keys are generated through the normal secret-persistence path, so the
 /// runtime, the JSON Web Key Set, and the management API all read the same keys. The audit event of each change is
 /// published once the seed's unit of work has committed, so a seed that loses its commit records nothing.

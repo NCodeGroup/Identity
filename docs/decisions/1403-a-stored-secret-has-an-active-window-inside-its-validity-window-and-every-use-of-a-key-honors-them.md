@@ -39,7 +39,9 @@ use of a key applies the windows.**
    two neighbors may coincide. `Resolve` fills the instants a request leaves out, activation from creation and
    retirement from expiry, and throws on a request out of order; `TryValidate` reports it. `ISecretGenerator` and
    `ISecretImporter` apply it before any material is generated or imported, and the management secret validator
-   applies it to every create, import and update, answering `400` with the pair out of order. A request names the
+   applies it to every create, import and update, answering `400` with the pair out of order. `PersistedSecret` is a
+   record, so every path that changes a stored secret's metadata or lifecycle, the rollover and the management
+   update alike, is a `with` copy that keeps every other member. A request names the
    instants through `GenerateSecretRequest`, `SecretKeyImportRequest`, `CreateSecretRequest`, `ImportSecretRequest`
    and `UpdateSecretRequest`, each optional. A management update that omits an instant keeps the stored one, the
    retirement bounded by the new expiry (`ResolveUpdate`), so a retired or upcoming key stays so unless the update
@@ -47,7 +49,8 @@ use of a key applies the windows.**
    resumes signing is a deliberate act, never the side effect of extending an expiry.
 3. **A secret with no lifecycle of its own is active for its whole validity.** A shared secret is a credential its
    holder presents, so it activates when it is created and retires when it expires; `SharedSecretRequest` names no
-   other instants. A rotation that shortens a rotated secret's expiry bounds its activation and retirement with it,
+   other instants, and a client secret create that names an activation or a retirement is answered `400`, because an
+   instant the secret cannot honor is refused rather than dropped. A rotation that shortens a rotated secret's expiry bounds its activation and retirement with it,
    and a requested expiry before the secret's creation stops it at its creation, the earliest instant its lifecycle
    can hold, so a secret stopped at once stays in order. A key an operator imports or generates through the
    management API without naming its instants is the same as a shared secret.
@@ -94,6 +97,16 @@ secret keeps the instants its creator gave it.
   whose expiry is judged without it refuses a token the same validator accepts by its own lifetime.
 - **Filter expired keys out of the tenant's key collection.** Rejected: the collection is read once per poll, so a
   key expiring between polls stays in use for up to the poll interval; the instants are judged at each use.
+- **Keep the lifecycle rule out of the abstractions packages.** Rejected: the rule guards the data contract's own
+  invariant and has one implementation every path calls, and its callers, the secret generator and importer, the
+  management validator and the tenant key rollover, are implementation packages that reference only abstractions
+  ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), so `SecretLifecycle`, `KeyLifecycle`
+  and the `IsActive`, `IsExpired` and `GetLifecycleState` extensions are the deliberate exception that
+  `PersistedSecretExtensions.HasPublicKey` already is
+  ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md)): a pure
+  judgment on the contract's own members, with no dependency and no logging. `KeyLifecycle` is the one window rule,
+  which the `KeyMetadata` and `PersistedSecret` extensions both call, so a stored secret and its runtime key never
+  disagree.
 
 ## Consequences
 
@@ -101,7 +114,7 @@ secret keeps the instants its creator gave it.
   published or authenticates, on every path and for every owner.
 - A verifier that caches a key set holds a successor for the whole activation delay before the first token it signs,
   and a retired key for the whole grace after the last.
-- The host database's `Secrets` table holds two more instants, and every persisted secret carries them; the host
+- The host database's `Secrets` table holds the four instants, and every persisted secret carries them; the host
   database context's `InitialCreate` holds them
   ([ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
 - A key built in code without instants has no bound and no window.

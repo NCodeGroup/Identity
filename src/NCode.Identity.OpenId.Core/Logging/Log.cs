@@ -47,70 +47,6 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.TenantKeyProvisioned,
-        Level = LogLevel.Information,
-        Message = "Provisioned the tenant '{TenantId}' with a new {Algorithm} key '{SecretId}' that signs from {ActivatesWhen} to {RetiresWhen}"
-    )]
-    internal static partial void TenantKeyProvisioned(
-        this ILogger logger,
-        string tenantId,
-        string algorithm,
-        string secretId,
-        DateTimeOffset activatesWhen,
-        DateTimeOffset retiresWhen
-    );
-
-    [LoggerMessage(
-        EventId = EventIds.TenantKeyActivated,
-        Level = LogLevel.Information,
-        Message = "Activated the published {Algorithm} key '{SecretId}' of the tenant '{TenantId}' at once, because no key of its algorithm signed"
-    )]
-    internal static partial void TenantKeyActivated(
-        this ILogger logger,
-        string tenantId,
-        string? algorithm,
-        string secretId
-    );
-
-    [LoggerMessage(
-        EventId = EventIds.TenantKeyRetired,
-        Level = LogLevel.Information,
-        Message = "Retired the {Algorithm} key '{SecretId}' of the tenant '{TenantId}', which its settings no longer use; it expires at {ExpiresWhen}"
-    )]
-    internal static partial void TenantKeyRetired(
-        this ILogger logger,
-        string tenantId,
-        string? algorithm,
-        string secretId,
-        DateTimeOffset expiresWhen
-    );
-
-    [LoggerMessage(
-        EventId = EventIds.TenantKeyExtended,
-        Level = LogLevel.Information,
-        Message = "Extended the {Algorithm} key '{SecretId}' of the tenant '{TenantId}' to expire at {ExpiresWhen}, the end of the retirement grace as it stands"
-    )]
-    internal static partial void TenantKeyExtended(
-        this ILogger logger,
-        string tenantId,
-        string? algorithm,
-        string secretId,
-        DateTimeOffset expiresWhen
-    );
-
-    [LoggerMessage(
-        EventId = EventIds.TenantKeyRemoved,
-        Level = LogLevel.Information,
-        Message = "Removed the expired {Algorithm} key '{SecretId}' of the tenant '{TenantId}'"
-    )]
-    internal static partial void TenantKeyRemoved(
-        this ILogger logger,
-        string tenantId,
-        string? algorithm,
-        string secretId
-    );
-
-    [LoggerMessage(
         EventId = EventIds.TenantKeyRolloverFailed,
         Level = LogLevel.Warning,
         Message = "Rolling over the keys of the tenant '{TenantId}' failed; they are rolled over again at the next pass or when the tenant is next materialized"
@@ -128,6 +64,28 @@ internal static partial class Log
     )]
     internal static partial void TenantKeyRolloverPassFailed(
         this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantSeedPostCommitStepFailed,
+        Level = LogLevel.Warning,
+        Message = "A step that follows the committed seed of the tenant '{TenantId}' failed; the seed stands, and the remaining steps run"
+    )]
+    internal static partial void TenantSeedPostCommitStepFailed(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyAuditPublishFailed,
+        Level = LogLevel.Warning,
+        Message = "Publishing the audit events of the committed key changes of the tenant '{TenantId}' failed; the changes stand"
+    )]
+    internal static partial void TenantKeyAuditPublishFailed(
+        this ILogger logger,
+        string tenantId,
         Exception exception
     );
 

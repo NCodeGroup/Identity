@@ -25,9 +25,12 @@ public static class KeyMetadataExtensions
         /// <returns><c>true</c> when the key signs or encrypts at <paramref name="now"/>; otherwise, <c>false</c>.</returns>
         [PublicAPI]
         public bool IsActive(DateTimeOffset now) =>
-            (metadata.ActivatesWhen is not { } activatesWhen || activatesWhen <= now)
-            && (metadata.RetiresWhen is not { } retiresWhen || retiresWhen > now)
-            && !metadata.IsExpired(now);
+            KeyLifecycle.IsActive(
+                metadata.ActivatesWhen,
+                metadata.RetiresWhen,
+                metadata.ExpiresWhen,
+                now
+            );
 
         /// <summary>
         /// Determines whether the key has expired at <paramref name="now"/>: its expiry, when it has one, has passed.
@@ -36,6 +39,6 @@ public static class KeyMetadataExtensions
         /// <returns><c>true</c> when the key neither verifies nor decrypts at <paramref name="now"/>; otherwise, <c>false</c>.</returns>
         [PublicAPI]
         public bool IsExpired(DateTimeOffset now) =>
-            metadata.ExpiresWhen is { } expiresWhen && expiresWhen <= now;
+            KeyLifecycle.IsExpired(metadata.ExpiresWhen, now);
     }
 }

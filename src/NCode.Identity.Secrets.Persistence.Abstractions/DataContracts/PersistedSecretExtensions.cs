@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
+using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Secrets.Persistence.DataContracts;
 
@@ -30,7 +31,8 @@ public static class PersistedSecretExtensions
 
         /// <summary>
         /// Determines whether the secret is in its active window at <paramref name="now"/>: its activation has passed
-        /// and neither its retirement nor its expiry has, so it signs or encrypts.
+        /// and neither its retirement nor its expiry has, so it signs or encrypts. The one rule that judges a key's
+        /// metadata judges the stored secret, so the two never disagree.
         /// </summary>
         /// <param name="now">The instant to judge the secret at.</param>
         /// <returns><c>true</c> when the secret signs or encrypts at <paramref name="now"/>; otherwise, <c>false</c>.</returns>
@@ -40,14 +42,17 @@ public static class PersistedSecretExtensions
         {
             ArgumentNullException.ThrowIfNull(secret);
 
-            return secret.ActivatesWhen <= now
-                && secret.RetiresWhen > now
-                && secret.ExpiresWhen > now;
+            return KeyLifecycle.IsActive(
+                secret.ActivatesWhen,
+                secret.RetiresWhen,
+                secret.ExpiresWhen,
+                now
+            );
         }
 
         /// <summary>
         /// Determines whether the secret has expired at <paramref name="now"/>: its validity window has closed, so it
-        /// neither verifies nor decrypts, is not published, and no longer authenticates.
+        /// neither verifies nor decrypts, is not published, and does not authenticate.
         /// </summary>
         /// <param name="now">The instant to judge the secret at.</param>
         /// <returns><c>true</c> when the secret has expired at <paramref name="now"/>; otherwise, <c>false</c>.</returns>
@@ -57,7 +62,7 @@ public static class PersistedSecretExtensions
         {
             ArgumentNullException.ThrowIfNull(secret);
 
-            return secret.ExpiresWhen <= now;
+            return KeyLifecycle.IsExpired(secret.ExpiresWhen, now);
         }
 
         /// <summary>

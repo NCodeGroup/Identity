@@ -25,7 +25,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -1471,32 +1470,7 @@ internal class ResourceServerApiEndpointHandler(
             return ToErrorResult(metadataError);
         }
 
-        // An instant the update omits keeps the stored one, so a retired or upcoming key stays so (ADR-1403).
-        var (activatesWhen, retiresWhen) = SecretLifecycle.ResolveUpdate(
-            secret,
-            request.ActivatesWhen,
-            request.RetiresWhen,
-            request.ExpiresWhen
-        );
-        var updated = new PersistedSecret
-        {
-            SecretId = secret.SecretId,
-            KeyId = secret.KeyId,
-            ConcurrencyToken = secret.ConcurrencyToken,
-            Use = request.Use,
-            Algorithm = request.Algorithm,
-            CreatedWhen = secret.CreatedWhen,
-            ActivatesWhen = activatesWhen,
-            RetiresWhen = retiresWhen,
-            ExpiresWhen = request.ExpiresWhen,
-            SecretType = secret.SecretType,
-            SecretEncoding = secret.SecretEncoding,
-            Origin = secret.Origin,
-            ManagedBy = secret.ManagedBy,
-            KeySizeBits = secret.KeySizeBits,
-            EncodedValue = secret.EncodedValue,
-            PublicKey = secret.PublicKey,
-        };
+        var updated = WithUpdate(secret, request);
 
         await store.UpdateSecretAsync(resourceServerId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);

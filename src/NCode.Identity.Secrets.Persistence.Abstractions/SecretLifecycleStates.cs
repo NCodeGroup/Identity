@@ -34,8 +34,8 @@ public static class SecretLifecycleStates
     public const string Retired = "retired";
 
     /// <summary>
-    /// The secret's validity window has closed: it neither verifies nor decrypts, is not published, and no longer
-    /// authenticates.
+    /// The secret's validity window has closed: it neither verifies nor decrypts, is not published, and does not
+    /// authenticate.
     /// </summary>
     public const string Expired = "expired";
 }

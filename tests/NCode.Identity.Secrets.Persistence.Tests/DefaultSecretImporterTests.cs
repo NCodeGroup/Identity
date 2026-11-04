@@ -132,6 +132,16 @@ public class DefaultSecretImporterTests
 
         Assert.Equal(request.CreatedWhen, persisted.ActivatesWhen);
         Assert.Equal(request.ExpiresWhen, persisted.RetiresWhen);
+    }
+
+    [Fact]
+    public void ImportSecret_WhenTheRequestNamesNoManager_LeavesTheSecretToItsCreator()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = CreateRequest(SecretKeyTypes.Rsa, rsa.ExportSubjectPublicKeyInfoPem(), null);
+
+        var persisted = _importer.ImportSecret(request);
+
         Assert.Null(persisted.ManagedBy);
     }
 

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Immutable;
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Settings;
 
@@ -17,8 +18,20 @@ namespace NCode.Identity.OpenId;
 public sealed class OpenIdTenantKeyRolloverOptions
 {
     /// <summary>
+    /// Gets the names of the settings <see cref="TokenLifetimeSettings"/> holds when configuration names none: the
+    /// lifetimes of the ID token, the access token, the JWT-secured authorization response and the request object.
+    /// </summary>
+    public static ImmutableArray<string> DefaultTokenLifetimeSettings { get; } =
+    [
+        OpenIdSettingNames.IdTokenLifetime,
+        OpenIdSettingNames.AccessTokenLifetime,
+        OpenIdSettingNames.AuthorizationResponseLifetime,
+        OpenIdSettingNames.RequestObjectMaxLifetime,
+    ];
+
+    /// <summary>
     /// Gets or sets how often one replica walks every tenant to generate the successor of a key that nears its
-    /// retirement, activate a published key when no key signs, retire a key the tenant's settings no longer use, and
+    /// retirement, activate a published key when no key signs, retire a key the tenant's settings do not use, and
     /// remove an expired key the server generated. A successor is generated when its predecessor retires within the
     /// tenant's activation delay plus this interval, so it is published for at least the delay. The default value is
     /// one hour.
@@ -31,14 +44,9 @@ public sealed class OpenIdTenantKeyRolloverOptions
     /// clock skew, whatever <c>tenant_key_retirement_grace</c> says, so no token outlives the key that verifies it.
     /// </summary>
     /// <remarks>
-    /// A package that signs or encrypts another kind of token with the tenant's keys adds its lifetime setting here.
-    /// Configuration binding adds to the default names rather than replacing them.
+    /// The list starts empty and holds <see cref="DefaultTokenLifetimeSettings"/> when configuration names none, so
+    /// configuration that names any setting replaces the defaults rather than adding to them. A package that signs or
+    /// encrypts another kind of token with the tenant's keys adds its lifetime setting here.
     /// </remarks>
-    public List<string> TokenLifetimeSettings { get; set; } =
-    [
-        OpenIdSettingNames.IdTokenLifetime,
-        OpenIdSettingNames.AccessTokenLifetime,
-        OpenIdSettingNames.AuthorizationResponseLifetime,
-        OpenIdSettingNames.RequestObjectMaxLifetime,
-    ];
+    public List<string> TokenLifetimeSettings { get; set; } = [];
 }

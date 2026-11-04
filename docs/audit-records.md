@@ -262,7 +262,7 @@ published once the change is committed, so a change a lost race discarded is nev
 | ---------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `tenant.key.generated` | `tenant.secret`, `tenant` | `no_active_key`: the tenant's first key for an algorithm, or a replacement that activates at once; `successor`: the successor of a key that nears its retirement, published ahead of the hand-over |
 | `tenant.key.activated` | `tenant.secret`, `tenant` | `no_active_key`: a published key was activated at once, because no key of its algorithm signed                                                        |
-| `tenant.key.retired`   | `tenant.secret`, `tenant` | `unused_algorithm`: the tenant's settings no longer use the key's algorithm, so it stops signing and expires at the end of the retirement grace       |
+| `tenant.key.retired`   | `tenant.secret`, `tenant` | `unused_algorithm`: the tenant's settings do not use the key's algorithm, so it stops signing and expires at the end of the retirement grace         |
 | `tenant.key.extended`  | `tenant.secret`, `tenant` | `retirement_grace_raised`: the retirement grace, raised by a setting or a longer token lifetime, reaches past the key's expiry, which moves to the end of the grace |
 | `tenant.key.removed`   | `tenant.secret`, `tenant` | `expired`: the key the server provisioned has expired and leaves the store                                                                             |
 

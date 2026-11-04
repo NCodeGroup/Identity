@@ -47,8 +47,9 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             KeySizeBits = 256,
         };
 
-    private OpenIdOptions OpenIdOptions { get; } = new();
     private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
+
+    private OpenIdOptions OpenIdOptions { get; } = new();
 
     private Mock<ITenantKeyPolicy> MockPolicy { get; }
     private Mock<ITenantKeyRolloverPlanner> MockPlanner { get; }

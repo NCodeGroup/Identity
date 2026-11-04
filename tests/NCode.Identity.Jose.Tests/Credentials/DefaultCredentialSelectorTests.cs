@@ -4,6 +4,8 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Jose.Algorithms.AuthenticatedEncryption;
+using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Jose.Credentials;
 using NCode.Identity.Jose.Tests.Algorithms.Signature;
 using NCode.Identity.Secrets.Keys;
@@ -32,7 +34,39 @@ public class DefaultCredentialSelectorTests : BaseTests
             ),
         ]);
 
+    private static RsaSecretKey CreateRsaKey(KeyMetadata metadata)
+    {
+        using var key = RSA.Create(2048);
+        return SecretKeyFactory.CreateRsa(metadata, key);
+    }
+
+    private static DefaultAlgorithmCollection CreateRsaOaepCollection() =>
+        new([
+            new RsaOaepKeyManagementAlgorithm(
+                AlgorithmCodes.KeyManagement.RsaOaep,
+                HashAlgorithmName.SHA1
+            ),
+            new AesGcmAuthenticatedEncryptionAlgorithm(
+                AlgorithmCodes.AuthenticatedEncryption.Aes128Gcm,
+                128
+            ),
+        ]);
+
     private static DefaultCredentialSelector CreateSelector() => new(new FakeTimeProvider(Now));
+
+    private static bool TryGetRsaOaepCredentials(
+        IReadOnlyCollection<SecretKey> candidateKeys,
+        out JoseEncryptionCredentials? credentials
+    ) =>
+        CreateSelector()
+            .TryGetEncryptionCredentials(
+                CreateRsaOaepCollection(),
+                [AlgorithmCodes.KeyManagement.RsaOaep],
+                [AlgorithmCodes.AuthenticatedEncryption.Aes128Gcm],
+                [],
+                candidateKeys,
+                out credentials
+            );
 
     #region TryGetSigningCredentials Tests
 
@@ -134,6 +168,60 @@ public class DefaultCredentialSelectorTests : BaseTests
                 [expiredKey],
                 out var credentials
             );
+
+        Assert.False(result);
+        Assert.Null(credentials);
+    }
+
+    #endregion
+
+    #region TryGetEncryptionCredentials Tests
+
+    [Fact]
+    public void TryGetEncryptionCredentials_WhenTheFirstKeyIsNotActiveYet_SelectsTheActiveKey()
+    {
+        // The active window gates encryption as it gates signing: a client encrypts to the key the server prefers,
+        // so a key published ahead of its activation is not preferred until it activates.
+        var upcomingKey = CreateRsaKey(
+            new KeyMetadata { KeyId = "upcoming", ActivatesWhen = Now.AddSeconds(1) }
+        );
+        var activeKey = CreateRsaKey(new KeyMetadata { KeyId = "active", ActivatesWhen = Now });
+
+        var result = TryGetRsaOaepCredentials([upcomingKey, activeKey], out var credentials);
+
+        Assert.True(result);
+        Assert.NotNull(credentials);
+        Assert.Same(activeKey, credentials.SecretKey);
+    }
+
+    [Fact]
+    public void TryGetEncryptionCredentials_WhenTheFirstKeyIsRetired_SelectsTheActiveKey()
+    {
+        var retiredKey = CreateRsaKey(
+            new KeyMetadata
+            {
+                KeyId = "retired",
+                RetiresWhen = Now,
+                ExpiresWhen = Now.AddDays(7),
+            }
+        );
+        var activeKey = CreateRsaKey(
+            new KeyMetadata { KeyId = "active", RetiresWhen = Now.AddSeconds(1) }
+        );
+
+        var result = TryGetRsaOaepCredentials([retiredKey, activeKey], out var credentials);
+
+        Assert.True(result);
+        Assert.NotNull(credentials);
+        Assert.Same(activeKey, credentials.SecretKey);
+    }
+
+    [Fact]
+    public void TryGetEncryptionCredentials_WhenEveryKeyIsExpired_SelectsNone()
+    {
+        var expiredKey = CreateRsaKey(new KeyMetadata { KeyId = "expired", ExpiresWhen = Now });
+
+        var result = TryGetRsaOaepCredentials([expiredKey], out var credentials);
 
         Assert.False(result);
         Assert.Null(credentials);

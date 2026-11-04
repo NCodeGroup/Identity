@@ -16,25 +16,31 @@ public sealed class TenantKeyLifetimesTests : BaseTests
 
     public TenantKeyLifetimesTests()
     {
+        // A value-provider stub, loose so a token lifetime name the test leaves unset reads as absent; every read
+        // reaches the four lifecycle settings, so each setup is verified.
         MockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyLifetime))
-            .Returns(TimeSpan.FromDays(90));
+            .Returns(TimeSpan.FromDays(90))
+            .Verifiable();
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyActivationDelay))
-            .Returns(TimeSpan.FromDays(2));
+            .Returns(TimeSpan.FromDays(2))
+            .Verifiable();
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyRetirementGrace))
-            .Returns(TimeSpan.FromDays(7));
+            .Returns(TimeSpan.FromDays(7))
+            .Verifiable();
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.ClockSkew))
-            .Returns(TimeSpan.FromMinutes(5));
+            .Returns(TimeSpan.FromMinutes(5))
+            .Verifiable();
     }
 
     private void SetupTokenLifetime(string settingName, TimeSpan lifetime)
     {
         object? value = lifetime;
-        MockSettings.Setup(x => x.TryGetValue(settingName, out value)).Returns(true);
+        MockSettings.Setup(x => x.TryGetValue(settingName, out value)).Returns(true).Verifiable();
     }
 
     #region Read Tests
@@ -77,7 +83,7 @@ public sealed class TenantKeyLifetimesTests : BaseTests
     public void Read_WhenATokenLifetimeSettingIsNotADuration_IgnoresIt()
     {
         object? value = "not a duration";
-        MockSettings.Setup(x => x.TryGetValue("odd_setting", out value)).Returns(true);
+        MockSettings.Setup(x => x.TryGetValue("odd_setting", out value)).Returns(true).Verifiable();
 
         var lifetimes = TenantKeyLifetimes.Read(MockSettings.Object, ["odd_setting"]);
 

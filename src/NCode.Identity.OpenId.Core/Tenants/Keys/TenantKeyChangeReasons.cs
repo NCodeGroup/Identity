@@ -25,7 +25,7 @@ public static class TenantKeyChangeReasons
     public const string Successor = "successor";
 
     /// <summary>
-    /// The tenant's settings no longer use the key's algorithm.
+    /// The tenant's settings do not use the key's algorithm.
     /// </summary>
     public const string UnusedAlgorithm = "unused_algorithm";
 

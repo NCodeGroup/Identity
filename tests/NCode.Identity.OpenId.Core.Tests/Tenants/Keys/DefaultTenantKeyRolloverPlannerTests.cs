@@ -25,16 +25,24 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     private Mock<IReadOnlySettingCollection> MockSettings { get; }
     private DefaultTenantKeyRolloverPlanner Planner { get; }
 
+    // The settings whose token lifetimes the grace covers, declared by the tests rather than taken from the defaults.
+    private static readonly string[] TokenLifetimeSettings =
+    [
+        "first_token_lifetime",
+        "second_token_lifetime",
+    ];
+
     public DefaultTenantKeyRolloverPlannerTests()
     {
         OpenIdOptions.Tenant.KeyRollover.Interval = Interval;
+        OpenIdOptions.Tenant.KeyRollover.TokenLifetimeSettings = [.. TokenLifetimeSettings];
         MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
+        // A value-provider stub, loose so a setting a test leaves unset reads as absent; every setup is verified.
         MockSettings = CreateLooseMock<IReadOnlySettingCollection>();
         Planner = new DefaultTenantKeyRolloverPlanner(
             Options.Create(OpenIdOptions),
             MockPolicy.Object
         );
-        SetupLifetimes(RetirementGrace);
     }
 
     private static TenantKeySpecification Rs256 => TenantKeyTestData.Rs256;
@@ -46,6 +54,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenNoKeyServesAUsedAlgorithm_GeneratesAKeyThatActivatesAtOnce()
     {
         SetupUsed("RS256");
+        SetupLifetimes();
 
         var plan = Planner.Plan([Rs256], [], MockSettings.Object, Now);
 
@@ -64,6 +73,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenTheActiveKeyRetiresFarAhead_ChangesNothing()
     {
         SetupUsed("RS256");
+        SetupLifetimes();
         var active = CreateKey(
             "active",
             activatesWhen: Now.AddDays(-30),
@@ -80,6 +90,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenTheActiveKeyRetiresWithinTheDelayAndTheInterval_GeneratesItsSuccessorForTheHandOver()
     {
         SetupUsed("RS256");
+        SetupLifetimes();
         var handOver = Now + ActivationDelay + Interval;
         var active = CreateKey("active", activatesWhen: Now.AddDays(-88), retiresWhen: handOver);
         SetupSatisfied(Rs256, active);
@@ -97,6 +108,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenTheActiveKeyRetiresJustPastTheHorizon_GeneratesNoSuccessorYet()
     {
         SetupUsed("RS256");
+        SetupLifetimes();
         var active = CreateKey(
             "active",
             activatesWhen: Now.AddDays(-88),
@@ -113,6 +125,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenTheSuccessorIsAlreadyPublished_GeneratesNoSecondSuccessor()
     {
         SetupUsed("RS256");
+        SetupLifetimes();
         var handOver = Now.AddHours(1);
         var active = CreateKey("active", activatesWhen: Now.AddDays(-90), retiresWhen: handOver);
         var successor = CreateKey(
@@ -134,6 +147,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         // The active key was deleted; the successor is published already, so activating it is the least disruptive
         // way to sign again, and no key is generated.
         SetupUsed("RS256");
+        SetupLifetimes();
         var later = CreateKey("later", activatesWhen: Now.AddDays(3), retiresWhen: Now.AddDays(93));
         var upcoming = CreateKey(
             "upcoming",
@@ -156,6 +170,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         // A retired key still verifies, so it is kept, and it signs nothing, so it does not serve the algorithm; the
         // policy is strict with no setup, because a key outside its active window is never judged by its material.
         SetupUsed("RS256");
+        SetupLifetimes();
         var retired = CreateKey(
             "retired",
             activatesWhen: Now.AddDays(-100),
@@ -174,6 +189,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenAManagedKeyHasExpired_RemovesIt()
     {
         SetupUsed("RS256");
+        SetupLifetimes();
         var active = CreateKey(
             "active",
             activatesWhen: Now.AddDays(-30),
@@ -200,6 +216,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         // A key an operator generated or imported through the management API has the same origin as a provisioned
         // one; only the manager of its lifecycle tells them apart.
         SetupUsed("RS256");
+        SetupLifetimes();
         var active = CreateKey(
             "active",
             activatesWhen: Now.AddDays(-30),
@@ -223,6 +240,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenTheSettingsNoLongerUseAnAlgorithm_RetiresItsManagedKeyForTheGrace()
     {
         SetupUsed("ES256");
+        SetupLifetimes();
         var unused = CreateKey(
             "unused",
             activatesWhen: Now.AddDays(-30),
@@ -252,6 +270,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     {
         // The grace covers the tokens the key signed until now, whatever expiry the key carried.
         SetupUsed("ES256");
+        SetupLifetimes();
         var unused = CreateKey(
             "unused",
             activatesWhen: Now.AddDays(-30),
@@ -279,6 +298,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         // The key never signed, but a client may have encrypted to it, so it stays published for the grace; its
         // active window collapses so its instants stay in order.
         SetupUsed("ES256");
+        SetupLifetimes();
         var upcoming = CreateKey(
             "upcoming",
             activatesWhen: Now.AddDays(2),
@@ -306,6 +326,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenAnUnusedKeyIsAlreadyRetiredOrNotTheRollovers_LeavesIt()
     {
         SetupUsed("ES256");
+        SetupLifetimes();
         var retired = CreateKey(
             "retired",
             activatesWhen: Now.AddDays(-100),
@@ -368,7 +389,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         // the algorithm without a key: a tenant whose keys sign for a day holds three upcoming keys at a time.
         SetupUsed("RS256");
         var lifetime = TimeSpan.FromDays(1);
-        MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyLifetime)).Returns(lifetime);
+        SetupLifetimes(lifetime: lifetime);
         var active = CreateKey(
             "active",
             activatesWhen: Now.AddHours(-23),
@@ -399,9 +420,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     public void Plan_WhenNoKeyServesAnAlgorithmAndTheLifetimeIsShort_GeneratesTheFirstKeyAndItsSuccessors()
     {
         SetupUsed("RS256");
-        MockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyLifetime))
-            .Returns(TimeSpan.FromDays(1));
+        SetupLifetimes(lifetime: TimeSpan.FromDays(1));
 
         var plan = Planner.Plan([Rs256], [], MockSettings.Object, Now);
 
@@ -419,7 +438,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         // its expiry follows the grace. The upcoming key and the retired key need the same, and a key the rollover
         // did not provision keeps the expiry its creator gave it.
         SetupUsed("RS256");
-        SetupLifetimes(RetirementGrace, tokenLifetimes: [TimeSpan.FromDays(30)]);
+        SetupLifetimes(tokenLifetimes: [TimeSpan.FromDays(30)]);
         var active = CreateKey(
             "active",
             activatesWhen: Now.AddDays(-30),
@@ -476,10 +495,36 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     }
 
     [Fact]
+    public void Plan_WhenNoKeyIsActiveAndTheGraceWasRaised_ActivatesAndExtendsThePublishedKey()
+    {
+        // Both changes name the same key; the rollover applies the extension to the key as the activation left it,
+        // so the activation is kept.
+        SetupUsed("RS256");
+        SetupLifetimes(tokenLifetimes: [TimeSpan.FromDays(30)]);
+        var upcoming = CreateKey(
+            "upcoming",
+            activatesWhen: Now.AddDays(1),
+            retiresWhen: Now.AddDays(91)
+        );
+        SetupSatisfied(Rs256, upcoming);
+
+        var plan = Planner.Plan([Rs256], [upcoming], MockSettings.Object, Now);
+
+        var activation = Assert.Single(plan.Activations);
+        Assert.Same(upcoming, activation.Secret);
+        Assert.Equal(Now, activation.ActivatesWhen);
+        var extension = Assert.Single(plan.Extensions);
+        Assert.Same(upcoming, extension.Secret);
+        Assert.Equal(upcoming.RetiresWhen + TimeSpan.FromDays(30), extension.ExpiresWhen);
+        Assert.Empty(plan.Generations);
+    }
+
+    [Fact]
     public void Plan_WhenTheOnlyServingKeyIsNotYetActive_ActivatesItAndPlansNoSuccessorFromItsRetirement()
     {
         // The activated key covers the algorithm until it retires, far past the horizon.
         SetupUsed("RS256");
+        SetupLifetimes();
         var upcoming = CreateKey(
             "upcoming",
             activatesWhen: Now.AddDays(1),
@@ -560,6 +605,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
             managedBy
         );
 
+    // Every plan reads the first algorithm setting for every specification, so the setup is verified.
     private void SetupUsed(params string[] algorithms)
     {
         object? value = algorithms.ToList();
@@ -567,31 +613,43 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
             .Setup(x =>
                 x.TryGetValue(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, out value)
             )
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
     }
 
+    // Every plan reads the four lifecycle settings and every token lifetime name once, so each setup is verified; a
+    // test calls this once, with the values it overrides.
     private void SetupLifetimes(
-        TimeSpan retirementGrace,
+        TimeSpan? retirementGrace = null,
         TimeSpan? clockSkew = null,
-        TimeSpan[]? tokenLifetimes = null
+        TimeSpan[]? tokenLifetimes = null,
+        TimeSpan? lifetime = null
     )
     {
-        MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyLifetime)).Returns(Lifetime);
+        MockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyLifetime))
+            .Returns(lifetime ?? Lifetime)
+            .Verifiable();
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyActivationDelay))
-            .Returns(ActivationDelay);
+            .Returns(ActivationDelay)
+            .Verifiable();
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyRetirementGrace))
-            .Returns(retirementGrace);
+            .Returns(retirementGrace ?? RetirementGrace)
+            .Verifiable();
         MockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.ClockSkew))
-            .Returns(clockSkew ?? TimeSpan.Zero);
+            .Returns(clockSkew ?? TimeSpan.Zero)
+            .Verifiable();
 
-        var names = OpenIdOptions.Tenant.KeyRollover.TokenLifetimeSettings;
         for (var i = 0; i < (tokenLifetimes?.Length ?? 0); i++)
         {
-            object? lifetime = tokenLifetimes![i];
-            MockSettings.Setup(x => x.TryGetValue(names[i], out lifetime)).Returns(true);
+            object? tokenLifetime = tokenLifetimes![i];
+            MockSettings
+                .Setup(x => x.TryGetValue(TokenLifetimeSettings[i], out tokenLifetime))
+                .Returns(true)
+                .Verifiable();
         }
     }
 

@@ -9,11 +9,12 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.Secrets.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted secret.
+/// Contains the data for a persisted secret. A record, so a change to a secret's metadata or lifecycle is a
+/// <c>with</c> copy that keeps every other member, its identity, concurrency token and key material included.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcurrencyToken
+public sealed record PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets the prefix for the resource type.
@@ -77,8 +78,8 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     public required DateTimeOffset ActivatesWhen { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when this secret's active window closes: from then on the secret no
-    /// longer signs or encrypts, while it still verifies and decrypts until <see cref="ExpiresWhen"/>. A secret with
+    /// Gets the <see cref="DateTimeOffset"/> when this secret's active window closes: from then on the secret signs
+    /// and encrypts nothing, while it still verifies and decrypts until <see cref="ExpiresWhen"/>. A secret with
     /// no lifecycle of its own retires when it expires. Never before <see cref="ActivatesWhen"/>, never after
     /// <see cref="ExpiresWhen"/>.
     /// </summary>
@@ -86,8 +87,8 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     public required DateTimeOffset RetiresWhen { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid: its validity window
-    /// closes, so it neither verifies nor decrypts, is not published, and no longer authenticates.
+    /// Gets the <see cref="DateTimeOffset"/> when this secret expires: its validity window closes, so it neither
+    /// verifies nor decrypts, is not published, and does not authenticate.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
 
@@ -149,4 +150,10 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     // See ADR-1268.
     [MaxLength(SecretMaxLengths.PublicKey)]
     public string? PublicKey { get; init; }
+
+    /// <summary>
+    /// Returns the secret's resource type and identifier, never its key material.
+    /// </summary>
+    /// <returns>The secret's resource type and identifier.</returns>
+    public override string ToString() => $"{ResourceType}:{SecretId}";
 }

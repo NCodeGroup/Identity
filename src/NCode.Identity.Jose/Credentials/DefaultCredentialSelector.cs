@@ -21,8 +21,6 @@ namespace NCode.Identity.Jose.Credentials;
 // See ADR-1403.
 internal class DefaultCredentialSelector(TimeProvider timeProvider) : ICredentialSelector
 {
-    private TimeProvider TimeProvider { get; } = timeProvider;
-
     private static bool IsSecretKeyUseCompatible(
         Secrets.Keys.SecretKey secretKey,
         string expectedUse
@@ -63,6 +61,8 @@ internal class DefaultCredentialSelector(TimeProvider timeProvider) : ICredentia
         algorithm = default;
         return false;
     }
+
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     private bool TryGetCredential<T>(
         string expectedUse,

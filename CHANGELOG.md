@@ -240,7 +240,7 @@ describes the family as it is rather than its changes
   [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)). It is the same host project
   under the Conformance environment (the `ConformanceAspire` launch profile) on its own port (`https://localhost:5003`,
   which its issuer is pinned to), serving its own `conformance` tenant from the one shared Postgres, and the conformance
-  dashboard reads its discovery. Its `appsettings.Conformance.json` sets the `OpenId:Server:Settings` root ceiling to
+  dashboard reads its discovery. Its `appsettings.Conformance.json` sets the `OpenId:Platform:Settings` root ceiling to
   enable `session_management_supported`, `frontchannel_logout_supported` and `frontchannel_logout_session_supported` and
   to add `client_credentials` and token exchange to `grant_types_supported` (which merges by intersect, so only the root
   widens it), plus an explicit `Cors:AllowedOrigins` for the dashboard; a seeded confidential client holds the
@@ -677,7 +677,7 @@ describes the family as it is rather than its changes
 
 - **Applications protect their own data under the secret key hierarchy.** `ISecretProtector` is buffer-first: it writes
   into caller-supplied `IBufferWriter<T>`s, sizes its output with `GetProtectedLength`, and offers a `ProtectToString`
-  helper for text columns, so an application protects any sensitive value under a tenant's or the server's master key
+  helper for text columns, so an application protects any sensitive value under a tenant's or the platform's master key
   with a namespaced purpose. `ISecretSerializer` and `ISecretGenerator` run under an `ISecretProtector`,
   `ISecretSerializer.DeserializePublicSecret` reads a public secret without one, and imported public keys (`spki`,
   `x509`) are stored as plain base64url
@@ -742,13 +742,13 @@ describes the family as it is rather than its changes
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
-  settings onto the server's and provisions a configured algorithm only when one of the tenant's effective algorithm
+  settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
   lists names it: by default the ID token, UserInfo, introspection, JWT-secured authorization response (JARM,
   `authorization_signing_alg_values_supported`) and access-token signing lists and the request-object and access-token
   encryption lists. `OpenIdTenantKeyProvisioningOptions.AlgorithmSettings`
   (`OpenId:Tenant:KeyProvisioning:AlgorithmSettings`) names those lists, and a package that signs or decrypts with the
   tenant's keys under another setting adds its name. A `fapi2` tenant holds and publishes no RS256 key it never signs
-  with, and a key the tenant already holds is kept. A server settings change that permits a configured algorithm
+  with, and a key the tenant already holds is kept. A platform or team settings change that permits a configured algorithm
   provisions its key in every running tenant without a restart: a background job re-seeds each tenant that names the
   algorithm ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [#241](https://github.com/NCodeGroup/Identity/issues/241)).
@@ -840,7 +840,7 @@ describes the family as it is rather than its changes
   `pem` and `certificate`, `SecretKeyImportParameters.Format` and `SecretKeyImportRequest.Format` are strings, and
   `ISecretKeyTypeDescriptor.PublicKeyImportFormats` lists the names a type imports, so a registered key type can bring a
   format such as PKCS #12; OKP and AKP keys accept `jwk` and `pem`. `ISecretImporter` with `SecretKeyImportRequest`
-  imports at the persistence layer; every secret owner (server, tenant, client, resource server) has a
+  imports at the persistence layer; every secret owner (tenant, client, resource server) has a
   `POST …/secrets/import` endpoint taking the `ImportSecretRequest` management contract and returning the material-free
   `SecretResource`, advertised by the capabilities response's `supportsPublicKeyImport`; and `ISecretKeyFactory` offers
   `CreateRsaSpki` / `CreateEccSpki`. The management endpoints, the secret importer and client-key import reject a format
@@ -1376,7 +1376,7 @@ describes the family as it is rather than its changes
 - **UserInfo responses can be signed and encrypted, and a client registers how its ID tokens and UserInfo responses are
   protected.** The OpenID Connect registration metadata `id_token_signed_response_alg` (default `RS256`),
   `id_token_encrypted_response_alg` / `_enc`, `userinfo_signed_response_alg`, and `userinfo_encrypted_response_alg` /
-  `_enc` (`enc` defaults to `A128CBC-HS256`) are client settings — a server or tenant may set the default for its
+  `_enc` (`enc` defaults to `A128CBC-HS256`) are client settings — the platform, a team or a tenant may set the default for its
   clients — and dynamic client registration accepts them, together with `request_object_signing_alg` and
   `request_object_encryption_alg` / `_enc`. A client that registers a UserInfo algorithm receives an `application/jwt`
   response carrying `iss` and `aud`; one that registers encryption receives an ID token, logout token, or UserInfo
@@ -1410,8 +1410,8 @@ describes the family as it is rather than its changes
   `require_dpop_bound_access_tokens` and `require_tls_client_certificate_bound_access_tokens` are a client's
   requirements that its access tokens be bound; they are named `require_` plus the RFC 9449 §5.2 client metadata member
   `dpop_bound_access_tokens` and the RFC 8705 §3.4 member `tls_client_certificate_bound_access_tokens`, apply to clients
-  (a server or tenant may set them as a default for every client, such as
-  `OpenId:Server:Settings:require_dpop_bound_access_tokens`), merge with `Or`, default to `false`, and are not
+  (the platform, a team or a tenant may set them as a default for every client, such as
+  `OpenId:Platform:Settings:require_dpop_bound_access_tokens`), merge with `Or`, default to `false`, and are not
   advertised; `OpenIdSettingNames` and `OpenIdSettingKeys` carry them as `RequireDPoPBoundAccessTokens` and its
   certificate counterpart, and a configuration key that is not a registered setting cannot be honored. The advertised
   support is separate from the requirements: `dpop_signing_alg_values_supported` (RFC 9449 §5.1) and
@@ -1613,7 +1613,7 @@ describes the family as it is rather than its changes
   `backchannel_logout_session_required`, and discovery advertises `backchannel_logout_supported` and
   `backchannel_logout_session_supported`.
 
-- **Front-Channel Logout 1.0 and Session Management 1.0 are available behind opt-in server settings, off by default**
+- **Front-Channel Logout 1.0 and Session Management 1.0 are available behind opt-in settings, off by default**
   (issue [#22](https://github.com/NCodeGroup/Identity/issues/22),
   [ADR-1088](docs/decisions/1088-opt-in-front-channel-logout-and-session-management.md)). With
   `frontchannel_logout_supported`, the `end_session_endpoint` renders a hidden iframe per participating client at its
@@ -1789,20 +1789,20 @@ describes the family as it is rather than its changes
 
 - **The management API is served under a top-level `/api` route group.** `ManagementEndpointGroupProvider` maps the
   management endpoints there, apart from the OpenID protocol endpoints at the root
-  ([ADR-1009](docs/decisions/1009-endpoint-families-own-their-route-group.md)). The control plane is `/api/servers` and
-  `/api/tenants`; every tenant-plane family (a tenant's own secrets, settings, address and usage, its clients, resource
-  servers, grants, sessions, principals, local accounts and audit records) is addressed under
-  `/api/tenants/{tenantId}/…`, the `ManagementEndpointGroups.Tenant` group, so a tenant administrator can never address
-  another tenant.
+  ([ADR-1009](docs/decisions/1009-endpoint-families-own-their-route-group.md)). The control plane is `/api/platform`
+  and `/api/teams`, and tenants are created and listed under `/api/teams/{teamId}/tenants`; every tenant-plane family
+  (a tenant's own secrets, settings, address and usage, its clients, resource servers, grants, sessions, principals,
+  local accounts and audit records) is addressed under `/api/tenants/{tenantId}/…`, the
+  `ManagementEndpointGroups.Tenant` group, so a tenant administrator can never address another tenant.
 
 - **One management resource server (`urn:ncode:management`) gates the whole management API through granular per-leaf
   scopes.** Scopes are composed as `{verb}:{family}` (for example `read:clients`, `update:tenant_settings`,
-  `create:server_secrets`, `create:resource_servers`, `delete:grants`). The control-plane families (`servers`,
-  `server_settings`, `server_secrets`, `tenants`) are seeded only into the root (control-plane) tenant, whose identifier
-  is `TenantResolutionOptions.Root.TenantId`, bound from `TenantResolution:Root:TenantId` (default `"root"`); the
-  tenant-plane families (a tenant's own settings and secrets, its clients, client secrets, resource servers,
-  resource-server secrets, client grants and grants) are seeded into every tenant. A `SystemResourceServerDescriptor` declares a `Plane` (`SystemResourceServerPlane.Tenant`, the
-  default, or `Control`), and the plane-aware system-resource-server seeder merges every provider that contributes to
+  `update:team_settings`, `create:resource_servers`, `delete:grants`). The control-plane families
+  (`platform_settings`, `teams`, `team_settings`, `tenants`) are seeded only into the root (control-plane) tenant, whose
+  identifier is `TenantResolutionOptions.Root.TenantId`, bound from `TenantResolution:Root:TenantId` (default `"root"`);
+  the tenant-plane families (a tenant's own settings and secrets, its clients, client secrets, resource servers,
+  resource-server secrets, client grants and grants) are seeded into every tenant. A `SystemResourceServerDescriptor`
+  declares a `Plane` (`SystemResourceServerPlane.Tenant`, the default, or `Control`), and the plane-aware system-resource-server seeder merges every provider that contributes to
   one audience into one resource server per tenant, seeding `Control`-plane families only into the root tenant. The
   static single-tenant strategy provisions the root tenant lazily alongside its workload tenant, so a single-tenant
   deployment has its control plane with no extra configuration. See
@@ -1820,7 +1820,7 @@ describes the family as it is rather than its changes
   types; the built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
-- **Collection endpoints page through management resources by keyset.** A collection `GET`, such as `GET api/servers`,
+- **Collection endpoints page through management resources by keyset.** A collection `GET`, such as `GET api/teams`,
   `GET api/tenants` or `GET api/tenants/{tenantId}/clients`, returns a page of resources (`CollectionResource<T>`, with
   `items` and `continuationToken`) using keyset (cursor) pagination (`?limit=` clamped to 100, `?cursor=` an opaque
   continuation token). Keyset pagination lives in `BaseStore`, so a store not keyed by a resource id, such as the grant
@@ -1845,23 +1845,25 @@ describes the family as it is rather than its changes
   ([#327](https://github.com/NCodeGroup/Identity/issues/327),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
 
-- **Authenticated effective-settings preview endpoints.** `GET api/servers/{serverId}/effective-settings`,
-  `GET api/tenants/{tenantId}/effective-settings`, `GET api/tenants/{tenantId}/clients/{clientId}/effective-settings`
+- **Authenticated effective-settings preview endpoints.** `GET api/platform/effective-settings`,
+  `GET api/teams/{teamId}/effective-settings`, `GET api/tenants/{tenantId}/effective-settings`,
+  `GET api/tenants/{tenantId}/clients/{clientId}/effective-settings`
   and `GET api/tenants/{tenantId}/resource-servers/{resourceServerId}/effective-settings` return the resolved, merged
-  settings view of each settings-bearing entity (server baseline, tenant overrides, client or resource-server overrides
-  and descriptor defaults) as a flat `name → value` JSON object, using the discovery document's value representation but
-  including settings that are not discoverable. Each is gated by the same `Read` authorization as reading that entity's
-  raw settings and carries no `ETag` (a merged view spans several persisted entities). The wire contracts include
-  `TenantEffectiveSettingsResource`, `ClientEffectiveSettingsResource` and `ServerEffectiveSettingsResource`. See
+  settings view of each settings-bearing entity (platform baseline, team and tenant overrides, client or
+  resource-server overrides and descriptor defaults) as a flat `name → value` JSON object, using the discovery
+  document's value representation but including settings that are not discoverable. Each is gated by the same `Read`
+  authorization as reading that entity's raw settings and carries no `ETag` (a merged view spans several persisted
+  entities). The wire contracts include `PlatformEffectiveSettingsResource`, `TeamEffectiveSettingsResource`,
+  `TenantEffectiveSettingsResource` and `ClientEffectiveSettingsResource`. See
   [ADR-1040](docs/decisions/1040-effective-settings-preview-endpoints.md) and
   [ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md).
 
 - **A management request answers `409` for a stored settings document it cannot honor.** The effective-settings reads, a
   client's create and settings update, the incoherent-client report, a local account's create and password reset, and a
-  tenant settings write whose server document cannot be honored answer `409 Conflict`, only after authorization, with a
+  tenant settings write whose team or platform document cannot be honored answer `409 Conflict`, only after authorization, with a
   problem whose `settingsScope`, `ownerId` and `documentError` name the document, and log `StoredSettingsUnreadable`
   (event ID 3009); a settings write that overwrites the document repairs it. `IEffectiveSettingsResolver` provides
-  `ResolveStored`, and it and `ResolveServerAsync(CancellationToken)` throw `UnreadableSettingsException`, a
+  `ResolveStored`, and it and `ResolvePlatformAsync(CancellationToken)` throw `UnreadableSettingsException`, a
   `JsonException` that names the document
   ([ADR-1245](docs/decisions/1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
   issue [#301](https://github.com/NCodeGroup/Identity/issues/301)).
@@ -1870,11 +1872,11 @@ describes the family as it is rather than its changes
   update merge the client's document onto its tenant's effective settings, as the runtime does, and answer `400` with a
   validation problem naming the setting when a registered ID token, UserInfo or introspection signing or encryption
   algorithm is outside its effective `*_values_supported` list; the default `A128CBC-HS256` of a registered encryption
-  without an `enc` is checked the same way. A tenant settings update checks every client of the tenant and a server
+  without an `enc` is checked the same way. A tenant settings update checks every client of the tenant, a team settings update every client of its tenants, and a platform
   settings update every client of every tenant, each answering `400` naming the list and the client when the change
   excludes an algorithm a client registers; a mismatch the change does not introduce is not reported. A mismatch is
-  reported when the settings are written rather than at issuance. `OpenIdServer.ConfiguredSettingsProvider` holds the
-  settings the server derives from its defaults and the host's configuration, onto which its persisted settings document
+  reported when the settings are written rather than at issuance. `OpenIdPlatform.ConfiguredSettingsProvider` holds the
+  settings the platform derives from its defaults and the host's configuration, onto which its persisted settings document
   is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
@@ -1885,12 +1887,6 @@ describes the family as it is rather than its changes
   and `IncoherentClient`, `IncoherentClientResource` and `ClientCoherenceViolationResource` describe them
   ([ADR-1233](docs/decisions/1233-the-management-api-lists-a-tenants-incoherent-clients.md), issue
   [#278](https://github.com/NCodeGroup/Identity/issues/278)).
-
-- **OpenID servers are created, edited and deleted through the management API** (issue
-  [#141](https://github.com/NCodeGroup/Identity/issues/141)). A server has an editable `DisplayName` (on
-  `ServerResource`, `CreateServerRequest`, `PersistedServer` and the EF `ServerEntity`, round-tripped through
-  `IServerStore`); `PATCH /api/servers/{serverId}` takes `UpdateServerRequest` as JSON Patch with `If-Match`, validated
-  by `IServerValidator.ValidateUpdateAsync`.
 
 - **A tenant is named by whoever creates it.** `POST /api/tenants` requires `CreateTenantRequest.TenantId`: 1 to 63
   lowercase letters, digits or hyphens that starts and ends with a letter or digit, and never changes. It reads the same
@@ -1913,7 +1909,7 @@ describes the family as it is rather than its changes
 
 - **The management API reports each tenant's environment.** `TenantResource` carries `environment`
   (`TenantEnvironmentResource`: `type`, `name`, `isProduction`), the tenant's effective environment, on the tenant list,
-  read and create responses; it is omitted when the tenant's or the server's stored settings cannot be honored, so such
+  read and create responses; it is omitted when the tenant's, its team's or the platform's stored settings cannot be honored, so such
   a tenant is still listed. `isProduction` comes from the registered type, so a contributed type is told apart without
   knowing its name
   ([ADR-1289](docs/decisions/1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) decision 13,
@@ -1947,7 +1943,7 @@ describes the family as it is rather than its changes
   `IClientGrantValidator`), and system resource servers and their scopes cannot be deleted. See
   [ADR-1023](docs/decisions/1023-scopes-and-resources-management-model.md).
 
-- **Resource servers are settings and secret owners like clients, tenants and servers** (issue
+- **Resource servers are settings and secret owners like clients and tenants** (issue
   [#134](https://github.com/NCodeGroup/Identity/issues/134),
   [ADR-1066](docs/decisions/1066-resource-server-settings-and-secret-owner.md)). A resource server (an API, in Auth0
   terms) owns a wrapped settings object and a secret collection, each with its own concurrency token:
@@ -1973,7 +1969,7 @@ describes the family as it is rather than its changes
   contract's `isVerifier` ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
 - **The management API reads an asymmetric secret's public key.** The read-only sub-resource
-  `GET /api/…/{servers|tenants|clients|resource-servers}/{ownerId}/secrets/{secretId}/public-key` returns a
+  `GET /api/…/{tenants|clients|resource-servers}/{ownerId}/secrets/{secretId}/public-key` returns a
   `PublicKeyResource` carrying both a JWK (RFC 7517, the representation the JWKS endpoint publishes, produced by the
   key's `ISecretKeyTypeDescriptor.ExportPublicKey` seam) and a SubjectPublicKeyInfo PEM (`-----BEGIN PUBLIC KEY-----`)
   for an admin UI or crypto tooling. Private key material is never exposed; a symmetric secret has no public-key
@@ -2066,9 +2062,10 @@ describes the family as it is rather than its changes
   token as `id_token_hint`; the auth store keeps the ID token across silent renewals for this, and `buildEndSessionUrl`
   builds the logout URL.
 
-- **The management console's address bar is its navigation state.** The console routes by scope and surface: `/tenants`
-  and `/servers` in the global scope, and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`, `…/secrets`,
-  `…/settings` and `…/usage` within a tenant, each tenant surface with its own tab. A view can be bookmarked, shared and
+- **The management console's address bar is its navigation state.** The console routes by scope and surface:
+  `/teams` and `/settings` in the platform scope, `/teams/{teamId}/tenants`, `…/settings` and `…/usage` within a team,
+  and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`, `…/secrets`, `…/settings` and `…/usage` within a
+  tenant, each tenant surface with its own tab. A view can be bookmarked, shared and
   reloaded, back and forward move between surfaces and scopes, and a deep link that lands on the sign-in screen returns
   to the same page once signed in. The management scope is derived from the route, and a host that serves the console
   answers every console path with `index.html`
@@ -2077,7 +2074,7 @@ describes the family as it is rather than its changes
   [#236](https://github.com/NCodeGroup/Identity/issues/236)).
 
 - **Management console cache tags are scoped.** Every tag id names the scope that owns the resource (`scopeTagId` in
-  `@ncode/api`), so a mutation in the global scope or one tenant refetches only that scope's caches, as
+  `@ncode/api`), so a mutation in the platform scope or one tenant refetches only that scope's caches, as
   [ADR-1064](docs/decisions/1064-frontend-presentation-platform.md) intends.
 
 - **The management console creates, edits and deletes tenants.** RTK Query mutations
@@ -2092,11 +2089,6 @@ describes the family as it is rather than its changes
   UI-free `replacePatch` helper (`@ncode/api`) and the RFC 7807-aware `apiErrorMessage` helper (`@ncode/store`) are
   unit-tested directly (issues [#134](https://github.com/NCodeGroup/Identity/issues/134),
   [#157](https://github.com/NCodeGroup/Identity/issues/157), [#412](https://github.com/NCodeGroup/Identity/issues/412)).
-
-- **The management console manages OpenID servers.** The global-scope Servers surface lists servers in a `ServerTable`
-  with a Create server action, row-level edit and delete (`createServer`, `updateServer` and `deleteServer` RTK Query
-  mutations, `ServerFormDialog`), and drill-in to a server's secrets and settings (issue
-  [#141](https://github.com/NCodeGroup/Identity/issues/141)).
 
 - **The management console manages clients.** Within a tenant scope the console creates, edits and deletes clients
   through scoped RTK Query mutations (`createClient`/`updateClient`/`deleteClient`), a stateless MUI `ClientTable` (id,
@@ -2121,7 +2113,7 @@ describes the family as it is rather than its changes
   `@ncode/store` exposes `useListSecretsQuery`, `useCreateSecretMutation`, `useDeleteSecretMutation`,
   `useRotateSecretMutation`, `useLazyGetSecretPublicKeyQuery`, `useGetSettingsQuery`, `useGetEffectiveSettingsQuery` and
   `useUpdateSettingsMutation`, each taking a `ManagementOwner` from `@ncode/api`, and `OwnerSecretsTab` and
-  `OwnerSettingsTab` serve every detail page: clients, resource servers, the tenant's own surfaces and servers
+  `OwnerSettingsTab` serve every detail page: clients, resource servers, the tenant's own surfaces, teams and the platform
   ([ADR-1257](docs/decisions/1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
   issue [#236](https://github.com/NCodeGroup/Identity/issues/236)).
 
@@ -2386,7 +2378,7 @@ describes the family as it is rather than its changes
 
 - **Store queries take extensible parameter records.** Every store's `GetPageAsync` pages with a shared `PageRequest {
   Cursor, Limit }` init-only record struct (in `NCode.Persistence.Stores`, beside `PagedResult<T>`) across
-  `IGrantStore`, `IClientStore`, `IClientGrantStore`, `IResourceServerStore`, `IServerStore`, `ITenantStore`,
+  `IGrantStore`, `IClientStore`, `IClientGrantStore`, `IResourceServerStore`, `IPlatformStore`, `ITeamStore`, `ITenantStore`,
   `ILocalAccountStore` and the generic `BaseStore`, and the grant store's `GetPageAsync` and `RevokeWhereAsync` select
   grants with a `GrantFilter` init-only record struct (`SubjectId`, `ClientId`, `SessionId`, `GrantType`), so pagination
   (for example a sort direction) and selection criteria grow without a signature change (issue
@@ -2620,14 +2612,14 @@ describes the family as it is rather than its changes
 
 - **A replica that may have missed a broadcast drops what the message would have invalidated.** The Valkey subscriber
   calls `IReplicaBroadcastHandler.HandleMissedMessagesAsync` once it subscribes a channel and whenever its connection is
-  restored. The tenant handler evicts every cached tenant through `IOpenIdTenantCache.ClearAsync`, and the server
-  handler reads the server's settings again
+  restored. The tenant handler evicts every cached tenant through `IOpenIdTenantCache.ClearAsync`, and the platform
+  handler reads the platform's settings again
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issue
   [#249](https://github.com/NCodeGroup/Identity/issues/249)).
 
-- **A committed tenant or server settings change is applied and announced on its own bounded token.**
-  `TenantChangedHandler` and `ServerSettingsChangedHandler` evict, read back and announce a committed change each on its
+- **A committed tenant, team or platform settings change is applied and announced on its own bounded token.**
+  `TenantChangedHandler`, `TeamChangedHandler` and `PlatformSettingsChangedHandler` evict, read back and announce a committed change each on its
   own 30-second token, so a client that disconnects does not skip the announcement and a store or Valkey timeout does
   not fail a write that has already committed; a failed refresh or announcement is logged, and a failed eviction is
   still announced ([#485](https://github.com/NCodeGroup/Identity/issues/485),
@@ -2690,13 +2682,13 @@ describes the family as it is rather than its changes
 - **The self-issued access-token authenticator logs why it rejects a token.** It writes a Debug log with the triggering
   exception, naming the issuer, audience, lifetime or signature failure, and returns `invalid_token`.
 
-- **Every setting has a registered descriptor, enforced wherever a setting enters.** Every setting a server, tenant,
+- **Every setting has a registered descriptor, enforced wherever a setting enters.** Every setting the platform, a team, a tenant,
   client or resource server carries must have a registered descriptor, and its value must convert to the descriptor's
-  type; nothing invents a descriptor for an unknown name. `OpenId:Server:Settings` is validated when the host starts: an
+  type; nothing invents a descriptor for an unknown name. `OpenId:Platform:Settings` is validated when the host starts: an
   unregistered name, a value that does not convert, a list setting written as a single value, or a single-value setting
   written as a list stops the host with an error naming the configuration path, and an empty array is an empty list. A
   configuration reload that cannot be honored is rejected with an error log and the settings in force stay. The
-  management API validates the settings of a created server, tenant, client or resource server and every settings
+  management API validates the settings of a created team, tenant, client or resource server and every settings
   `PATCH`, returning `400` with a validation problem keyed by setting name and storing nothing; a non-object `settings`
   payload is rejected. A stored settings document that names an unregistered setting fails when it is loaded, so a
   control an operator configured is never silently dropped. `ISettingSerializer.ValidateSettings` returns `SettingError`
@@ -2705,7 +2697,7 @@ describes the family as it is rather than its changes
   ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
 
 - **A setting is accepted only at a scope that reads it.** Every setting declares the scopes it applies to
-  (`SettingDescriptor.AppliesTo`): the server, tenant, client or resource-server scopes whose effective settings the
+  (`SettingDescriptor.AppliesTo`): the platform, team, tenant, client or resource-server scopes whose effective settings the
   runtime reads it from. A settings document may carry it only at one of those scopes or a scope above it in the
   cascade; anywhere else, such as `security_profiles` or `require_pkce` on a resource server, or `session_idle_timeout`,
   `subject_claim_types` or discovery metadata on a client, it is rejected wherever it enters, like an unregistered name:
@@ -2720,7 +2712,7 @@ describes the family as it is rather than its changes
 
 - **Setting scopes are an open vocabulary.** Each scope is a registered `SettingScopeDescriptor` (a name and the scope
   it inherits from), collected by `ISettingScopeCollection` through `ISettingScopeCollectionProvider`, and the cascade
-  is derived from them. The server registers `server`, `tenant`, `client` and `resource_server` (`OpenIdSettingScopes`);
+  is derived from them. The family registers `platform`, `team`, `tenant`, `client` and `resource_server` (`OpenIdSettingScopes`);
   a package that stores settings for an entity of its own, such as an organization or a connection, registers that
   entity's scope beneath the one it inherits from and declares its own settings for it, with no change to the library
   ([ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).
@@ -2743,8 +2735,8 @@ describes the family as it is rather than its changes
   `BootstrapAdmin`, `Frontend`, `ReverseProxy`, `ConformanceSeed` and `DeveloperInteractiveSeed` sections. Every bound
   options type is validated on start, and a tenant-resolution configuration that cannot work (an unknown strategy, a
   path route without its tenant parameter, an invalid host pattern, a static issuer that does not end with the tenant
-  path) stops the host before it reports ready. `AddConfiguration` owns the OpenID section's shape: `Server` (including
-  `Settings`, carried by `OpenIdServerOptions.Settings`), `Tenant` (tenant materialization and caching),
+  path) stops the host before it reports ready. `AddConfiguration` owns the OpenID section's shape: `Platform` (including
+  `Settings`, carried by `OpenIdPlatformOptions.Settings`), `Team` (team settings reconciliation), `Tenant` (tenant materialization and caching),
   `TenantResolution` (tenant selection), `MutualTls`, `GrantRetention` and `TenantUsage`; any other subsection is
   rejected. `AddConfiguration` binds the mutual-TLS forwarding options too, so a host's chosen section name applies to
   them ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
@@ -2753,7 +2745,7 @@ describes the family as it is rather than its changes
   cannot run.** `AddConfiguration` binds `GrantRetentionOptions` (`OpenId:GrantRetention`: `Retention`, `PruneInterval`)
   and `TenantUsageOptions` (`OpenId:TenantUsage`: `FlushInterval`, `Retention`, `PruneInterval`) strictly and validates
   them on start; `GrantRetentionOptions.SectionName` and `TenantUsageOptions.SectionName` name the subsections. The
-  server's and the tenants' settings and secrets refresh intervals, `OpenId:Server:ReconciliationLeaseDuration`,
+  platform's and the tenants' settings and secrets refresh intervals, `OpenId:Team:ReconciliationLeaseDuration`,
   `OpenId:Tenant:TenantCacheLifetime`, `GrantRetentionOptions.PruneInterval` and `TenantUsageOptions.FlushInterval` must
   be between one millisecond and 4,294,967,294 milliseconds (about 49.7 days), and a retention must not be negative; the
   error names the option and its configuration key. `NCode.Time.TimerPeriod` states the range
@@ -2761,12 +2753,12 @@ describes the family as it is rather than its changes
   [#274](https://github.com/NCodeGroup/Identity/issues/274) and
   [#277](https://github.com/NCodeGroup/Identity/issues/277)).
 
-- **`IEffectiveSettingsResolver` resolves a scope's effective settings in one place.** It merges the server's settings,
+- **`IEffectiveSettingsResolver` resolves a scope's effective settings in one place.** It merges the platform's settings, a team's document,
   a tenant's document, and a client's or resource server's document, with the security profiles' ceilings and defaults:
   `ReadScopeSettings`, which takes the parent settings, and `Resolve` read a scope's document and merge it onto its
-  parent's effective settings, and the two `ResolveServerAsync` overloads resolve a proposed or the committed server
-  document onto the configured settings. Every effective-settings merge, `DefaultOpenIdTenantFactory` and
-  `EphemeralOpenIdTenantFactory` included, goes through it. Seeds and management previews read the server's committed
+  parent's effective settings, and the two `ResolvePlatformAsync` overloads resolve a proposed or the committed platform
+  document onto the configured settings and `ResolveTeamAsync` resolves a team's. Every effective-settings merge, `DefaultOpenIdTenantFactory` and
+  `EphemeralOpenIdTenantFactory` included, goes through it. Seeds and management previews read the platform's committed
   settings rather than a replica's 5-minute poll of them, and `ITenantStore` and `IClientStore` expose
   `GetSettingsPageAsync`, which a custom store implements. Its default is registered with `TryAddSingleton`, so a host
   registers its own ([ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service.md),
@@ -2801,7 +2793,7 @@ describes the family as it is rather than its changes
   which accepts only a setting that does not merge with a lattice operation. The catalog places a profile's defaults
   beneath the settings of the scope that selects it, so that scope and every scope below it may set another value, and
   when several selected profiles default one setting, the first in ordinal order supplies it. A profile's default
-  applies only to a setting that applies within that scope: a server or a tenant that selects `fapi1-advanced` supplies
+  applies only to a setting that applies within that scope: the platform, a team or a tenant that selects `fapi1-advanced` supplies
   `tls_client_certificate_bound_access_tokens`, while a client that alone selects it takes its tenant's support, since
   that setting does not apply at a client, and `CertificateBoundAccessTokenCoherenceRule` reports the client while that
   support is off. Ceilings merge at every scope, because a bound only narrows. FAPI 2.0 defaults
@@ -2811,14 +2803,14 @@ describes the family as it is rather than its changes
   [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
   [#259](https://github.com/NCodeGroup/Identity/issues/259)).
 
-- **A security profile selected in the server's configuration supplies its defaults at the server root, and every
+- **A security profile selected in the platform's configuration supplies its defaults at the platform root, and every
   `ISecurityProfileCatalog.Expand` overload names its scope.** The root's descriptor defaults, computed supported values
   and default-settings providers are a baseline beneath the configuration, and `Expand(scopeSettings, scopeName,
   baselineSettings)` layers them: a configured value overrides the baseline, a profile's default overrides the baseline
   but never a configured value, and a ceiling bounds both. So `fapi1-advanced` advertises certificate-bound access token
-  support, and the FAPI profiles' `PS256` signed-response defaults apply, when the server's configuration selects the
+  support, and the FAPI profiles' `PS256` signed-response defaults apply, when the platform's configuration selects the
   profile. `Expand(scopeSettings, scopeName)` and `Expand(scopeSettings, scopeName, baselineSettings)` take the name of
-  the scope whose settings they expand, `OpenIdSettingScopes.Server` at the server's root, as the overload that takes a
+  the scope whose settings they expand, `OpenIdSettingScopes.Platform` at the platform's root, as the overload that takes a
   settings document does, and an unregistered scope name is refused with an `ArgumentException`
   ([ADR-1148](docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md), issues
   [#233](https://github.com/NCodeGroup/Identity/issues/233) and
@@ -2854,7 +2846,7 @@ describes the family as it is rather than its changes
 
 - **Every entry point checks a client through the coherence validator.** Dynamic registration, the management API and
   the configuration seeders apply the same registered coherence rules, with uniform error descriptions under the
-  registration error codes. A tenant or server settings change that narrows `redirect_uri_kinds_supported`, selects
+  registration error codes. A platform, team or tenant settings change that narrows `redirect_uri_kinds_supported`, selects
   `fapi2` or `fapi1-advanced`, narrows `token_endpoint_auth_methods_supported`, or drops any other value a client
   registers is refused while a client registers a value it would exclude. The bootstrap administrator, developer and
   conformance seeders run the validator on a client they create and throw an `InvalidOperationException` that names the
@@ -2867,10 +2859,10 @@ describes the family as it is rather than its changes
   [#254](https://github.com/NCodeGroup/Identity/issues/254)).
 
 - **A settings write passes a stored document that cannot be honored.** When a stored client's or tenant's settings
-  document names a setting, a value or a scope the settings vocabulary rejects, a server or tenant settings write logs
+  document names a setting, a value or a scope the settings vocabulary rejects, a platform, team or tenant settings write logs
   the document (`ClientSettingsUnreadable`, `TenantSettingsUnreadable`, event IDs 3006 and 3007) and does not count it
   as a violation the change introduces; a write that overwrites such a document of its own checks no client and logs it
-  (`ServerSettingsUnreadable`, 3008, or `TenantSettingsUnreadable`), so the management API can repair it. The
+  (`PlatformSettingsUnreadable`, 3008, `TeamSettingsUnreadable` or `TenantSettingsUnreadable`), so the management API can repair it. The
   incoherent-client report lists such a client
   ([ADR-1241](docs/decisions/1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
   [#295](https://github.com/NCodeGroup/Identity/issues/295)).
@@ -2899,8 +2891,8 @@ describes the family as it is rather than its changes
   secret, or its deletion) sends a `TenantChangedCommand` after it commits and announces the change, so every replica
   evicts the tenant from its tenant cache (`IOpenIdTenantCache.RemoveAsync`) and no replica serves a disabled, deleted
   or re-addressed tenant from its cache. After a settings change the default handler seeds the tenant again, so a key
-  for an algorithm the settings permit is provisioned before the write returns. The server provider evicts every cached
-  tenant whenever the server's settings change, so a server-wide setting such as `environment_type` reaches tenants at
+  for an algorithm the settings permit is provisioned before the write returns. The platform provider evicts every cached
+  tenant whenever the platform's settings change, so a platform-wide setting such as `environment_type` reaches tenants at
   once. `Ephemeral` developer mode keeps one key per tenant for the life of the process, so the eviction does not
   invalidate issued tokens ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md), issues
@@ -2988,47 +2980,27 @@ describes the family as it is rather than its changes
   ([ADR-1289](docs/decisions/1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md),
   [#411](https://github.com/NCodeGroup/Identity/issues/411)).
 
-- **A server settings write takes effect at once on every replica.** After the server settings PATCH commits, it sends
-  `ServerSettingsChangedCommand`, carrying the previous and the updated document; the default handler reads the
+- **A platform settings write takes effect at once on every replica.** After the platform settings PATCH commits, it
+  sends `PlatformSettingsChangedCommand`, carrying the previous and the updated document; the default handler reads the
   committed document again on the replica that handled the write before it answers, and announces the change on the
-  `server-settings-changed` replica broadcast channel, so every replica that receives the announcement reads it again.
-  `OpenIdServer.RefreshSettingsAsync` reads the document on demand, and the poll
-  (`OpenId:Server:SettingsPeriodicRefreshInterval`, 5 minutes) is the fallback for a replica that missed the
-  announcement. `OpenIdServer.RefreshSettingsAsync`, `IOpenIdTenantCache.ClearAsync` and
+  `platform-settings-changed` replica broadcast channel, so every replica that receives the announcement reads it
+  again. `OpenIdPlatform.RefreshSettingsAsync` reads the document on demand, and the poll
+  (`OpenId:Platform:SettingsPeriodicRefreshInterval`, 5 minutes) is the fallback for a replica that missed the
+  announcement. `OpenIdPlatform.RefreshSettingsAsync`, `IOpenIdTenantCache.ClearAsync` and
   `IReplicaBroadcastHandler.HandleMissedMessagesAsync` are members a custom implementation implements
   ([ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issues
   [#241](https://github.com/NCodeGroup/Identity/issues/241), [#248](https://github.com/NCodeGroup/Identity/issues/248),
   [#249](https://github.com/NCodeGroup/Identity/issues/249) and
   [#252](https://github.com/NCodeGroup/Identity/issues/252)).
 
-- **Every tenant and stored client is reconciled with the server's effective settings when they change.** Each replica
-  runs `ServerSettingsReconciliationService`, which reacts to a management write, a configuration reload, a deployment
-  that changes the server's effective settings, and the replica's start; a replica that cannot materialize its server at
-  start reconciles at its first request. One replica, holding a lease in the shared state for
-  `OpenId:Server:ReconciliationLeaseDuration` (10 minutes by default), sends `ReconcileServerSettingsCommand`:
-  `TenantKeyReconciliationHandler` seeds, and evicts from the tenant cache, every tenant that holds keys but lacks one
-  its settings use, and `ClientCoherenceReportHandler` logs every stored client that the settings make incoherent, the
-  bootstrap administrator included. The re-seed runs outside the request as part of the reconciliation, not as a job on
-  `IJobDispatcher`, so it holds no dispatcher worker, and `NCode.Identity.OpenId.Core` does not reference
-  `NCode.Identity.Dispatch.Abstractions`. `PersistedServer.ReconciledSettingsFingerprint` records what was reconciled,
-  so a pass that a restart interrupted runs again and a start that changes nothing runs none
-  ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issues
-  [#252](https://github.com/NCodeGroup/Identity/issues/252), [#263](https://github.com/NCodeGroup/Identity/issues/263)
-  and [#443](https://github.com/NCodeGroup/Identity/issues/443)).
-
-- **A reconciliation of the server's settings reaches only the tenants its change affects.**
-  `PersistedServer.ReconciledSettings` (the `Servers.ReconciledSettingsJson` column) records the effective settings
-  every tenant and client was reconciled against, and `ReconcileServerSettingsCommand.PreviousSettings` carries them to
-  the handlers: `TenantKeyReconciliationHandler` reads the keys only of a tenant that uses an algorithm it did not use
-  before, and `ClientCoherenceReportHandler` checks the clients only of a tenant whose effective settings changed in a
-  setting a coherence rule reads. `IServerStore.UpdateReconciledSettingsAsync` records the fingerprint and the settings,
-  and `IServerStore.UpdateSettingsAsync` clears the server's `ReconciledSettingsFingerprint` in the same unit of work
-  and keeps the recorded settings unless the settings of an earlier change were never reconciled
-  ([ADR-1234](docs/decisions/1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md),
-  [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issues
-  [#279](https://github.com/NCodeGroup/Identity/issues/279) and
-  [#248](https://github.com/NCodeGroup/Identity/issues/248)).
+- **Every tenant and stored client is reconciled with its team's effective settings when they change.**
+  `TenantKeyReconciliationHandler` seeds a tenant that lacks a key its settings use, and `ClientCoherenceReportHandler`
+  logs every stored client the settings make incoherent, each handling `ReconcileTeamSettingsCommand` for the team's
+  tenants only; `PersistedTeam.ReconciledSettings` and `ReconciledSettingsFingerprint` record what was reconciled, so a
+  pass a restart interrupted runs again and a start that changes nothing runs none
+  ([ADR-1404](docs/decisions/1404-settings-are-reconciled-per-team.md),
+  [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
+  [ADR-1234](docs/decisions/1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
 
 - **Rate limits and quotas are registered descriptors judged in one round trip per stage.** Each limit is a
   `RateLimitDescriptor` (name, stage, order, window, sliding or fixed, limit and overage settings, metered only, usage
@@ -3055,7 +3027,7 @@ describes the family as it is rather than its changes
   and `quota_tenant_token_requests_per_day` (token requests from confidential clients, judged at the token endpoint
   after client authentication, so a caller that knows only a public `client_id` cannot spend it). A request over a quota
   is refused with `429 Too Many Requests`, `temporarily_unavailable`, and `Retry-After` until midnight UTC. Both are
-  unlimited when unset and merged with `Min`, so the server's value caps every tenant. They are counted in the shared
+  unlimited when unset and merged with `Min`, so the platform's value caps every tenant. They are counted in the shared
   `IExpiringCounterSet` and reported under the rate-limiting partitions `daily_requests` and `daily_token_requests`
   ([ADR-1198](docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)).
 
@@ -3063,7 +3035,7 @@ describes the family as it is rather than its changes
   `quota_tenant_requests_overage_per_day` and `quota_tenant_token_requests_overage_per_day` set how many more requests
   (or confidential clients' token requests) are served past the matching quota in a UTC day. Unset or `0` refuses at the
   quota; a set allowance is also the hard ceiling, past which the tenant is refused until midnight UTC. Like the quotas,
-  a server-scope allowance is every tenant's default and caps a tenant-scope one. Each request admitted past a quota is
+  a platform-scope allowance is every tenant's default and caps a tenant-scope one. Each request admitted past a quota is
   recorded in the usage ledger under the meters `requests_overage` and `token_requests_overage`, which the usage report
   and the admin UI's Usage tab show with the others, and is counted in `ncode.identity.rate_limiting.requests` with the
   result `overage`
@@ -3354,6 +3326,62 @@ describes the family as it is rather than its changes
   key, with no ambient server-side current pending request). Details in
   [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md).
 
+- **The platform is the deployment root.** It is one per deployment, with no identifier: host configuration
+  (`OpenId:Platform:Settings`) and one persisted settings document, read and written through `GET`/`PATCH
+  /api/platform/settings` and previewed through `GET /api/platform/effective-settings`, are the root of every team's and
+  tenant's settings; its authority node is `(platform, platform)`, and its master key protects the Data Protection key
+  ring ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1405](docs/decisions/1405-the-platform-master-key-protects-only-the-data-protection-key-ring.md)).
+
+- **A team groups a customer's related tenants.** `POST /api/teams` creates a team named by its creator (the tenant-id
+  form) with a display name, an `isDisabled` flag and a settings document; `GET`/`PATCH`/`DELETE /api/teams/{teamId}`,
+  `GET`/`PATCH …/settings`, `GET …/effective-settings`, `GET …/usage`, and `…/owners` and `…/admins` manage it. Every
+  tenant belongs to exactly one team and never moves: `POST /api/teams/{teamId}/tenants` creates a tenant under its team
+  and `GET /api/teams/{teamId}/tenants` lists them, `TenantResource` carries `teamId`, and the platform's own team
+  (`TenantResolution:Root:TeamId`, default `platform`) holds the root tenant and every tenant a strategy creates
+  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+
+- **A team's settings cascade into its tenants.** The settings scopes are `platform`, `team`, `tenant`, `client` and
+  `resource_server`; a team document carries every setting that applies beneath it, so the security profiles, ceilings
+  and defaults a team selects bind its tenants, and a materialized tenant reads its document beneath its team's
+  effective settings. `max_tenants` applies to the team scope, merges with `Min` (the platform sets the ceiling and a
+  team can only lower it), and a creation that would exceed it answers `409`
+  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+
+- **A team is an authority node.** Authority runs platform → team → tenant → leaf: a role assigned at a team reaches
+  every tenant beneath it, the `TeamAdmin` role creates the team's tenants and manages everything beneath, `Owner` never
+  creates, and a principal's role assignments are read across every tenant
+  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+
+- **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
+  reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
+  one team when its own change, under the lease `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
+  (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants. A
+  team change evicts the team and its tenants on every replica over the `team-changed` channel
+  ([ADR-1404](docs/decisions/1404-settings-are-reconciled-per-team.md)).
+
+- **Disabling a team suspends its tenants, and a team with tenants cannot be deleted.** A tenant of a disabled team
+  answers `404` on the protocol surface and stays manageable; `DELETE /api/teams/{teamId}` answers `409` while the team
+  has tenants, a deleted team's id is never reissued, and the platform's own team can be neither disabled nor deleted
+  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+
+- **Usage is queryable per team.** Every usage row carries the team the tenant belonged to, so a deleted tenant's final
+  days still bill to its team, and `GET /api/teams/{teamId}/usage?from=&to=` lists each tenant's counts per day and
+  meter ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
+
+- **Team and platform changes are audited in the control-plane tenant.** `TeamChangedAuditEvent` (`team`) and
+  `PlatformChangedAuditEvent` (`platform`) are recorded under the control-plane tenant, and a tenant's audit event names
+  its team as a parent resource
+  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+
+- **The management console manages teams and the platform's settings.** The platform scope has a Teams surface
+  (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete) and a Settings surface; a team scope has its
+  tenants, settings and usage (`TeamUsageTable`); the console routes `/teams`, `/settings`,
+  `/teams/{teamId}/{tenants|settings|usage}` and `/tenants/{tenantId}/…`
+  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
+
 ### Security
 
 - **Every development-only convenience is inert unless configured, behind one call.**
@@ -3370,7 +3398,7 @@ describes the family as it is rather than its changes
   configuration, and a decision about recovering a lost root key), `AllowedHosts` (unset or `*`), and the
   `DeveloperKeys`, `Cors`, `DeveloperInteractiveSeed` and `ConformanceSeed` sections, and reports **every** finding in
   one message so a misconfigured deployment is fixed in a single pass. As the host starts it also refuses a Data
-  Protection key ring with no repository or no `IXmlEncryptor`, and configured server settings whose `environment_type`
+  Protection key ring with no repository or no `IXmlEncryptor`, and configured platform settings whose `environment_type`
   is a registered non-production type. It is inert in every non-Production environment, so local, test, and conformance
   hosts keep their conveniences. Each setting checked is correct in Development, dangerous on a public origin, and
   silent — a deployment that forgets to override it starts, serves traffic, and looks healthy — so each is a startup
@@ -3378,7 +3406,7 @@ describes the family as it is rather than its changes
   ([ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
 
 - **The Data Protection key ring is encrypted at rest under a root key outside the database.** The host persists the key
-  ring to the same database as the secrets it unprotects, and encrypts it under the server master key, whose root key
+  ring to the same database as the secrets it unprotects, and encrypts it under the platform master key, whose root key
   the `SecretProtection` section names and which lives outside the database, so a database dump or backup is useless
   without it. In Production, `AddProductionSafety` refuses to start the host when the key ring has no repository or no
   `IXmlEncryptor`
@@ -3604,7 +3632,7 @@ describes the family as it is rather than its changes
 
 - **Stored secrets are protected by a key hierarchy under an external root key.** Stored private and symmetric secrets
   are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an HKDF-derived purpose key of the owner's
-  master key (the server or the tenant), which is wrapped by a root key held by a root key provider (`ephemeral`,
+  master key (the platform's or the tenant's), which is wrapped by a root key held by a root key provider (`ephemeral`,
   `local`, or a registered one) and, optionally, by an offline recovery RSA key. The public contracts are
   `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`, `SecretOwner` and
   `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes its master
@@ -3634,7 +3662,7 @@ describes the family as it is rather than its changes
   failed client authentications are tracked in [#533](https://github.com/NCodeGroup/Identity/issues/533)
   ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
-- **The Data Protection key ring is encrypted under the server master key, and a key it cannot decrypt stops the host.**
+- **The Data Protection key ring is encrypted under the platform master key, and a key it cannot decrypt stops the host.**
   The host configures the key ring through the `SecretProtection` section, and the Helm chart through its
   `secretProtection` values, which the chart's schema, render-time refusals and CI releases check.
   `DataProtectionKeyRingGate` checks the live keys after the server's protector loads and before Data Protection loads
@@ -3710,7 +3738,7 @@ describes the family as it is rather than its changes
   only, never `HS256`; `request_object` and `token_endpoint_auth` signing list the full set for `client_secret_jwt`.
   Discovery and request-time enforcement share one settings source, so the implicit and hybrid authorization paths are
   fail-closed by default; a deployment enables and advertises any of them together by widening the setting in
-  configuration (host `OpenId:Server:Settings` overrides apply last and overwrite the baseline). Issue
+  configuration (host `OpenId:Platform:Settings` overrides apply last and overwrite the baseline). Issue
   [#128](https://github.com/NCodeGroup/Identity/issues/128).
 
 - **Token, pushed authorization, device authorization and backchannel authentication responses are never cached.** The
@@ -3796,7 +3824,7 @@ describes the family as it is rather than its changes
   request whose response type issues a code must carry an `S256` `code_challenge`, for every client; a missing one is
   refused with `invalid_request` (RFC 7636 §4.4.1) at both the authorization and the pushed authorization request
   endpoints. A response type that issues no code (an implicit flow an operator enabled) is not affected. The only
-  exception is the one OAuth 2.1 §7.5.1.1 allows, and every condition must hold: the server's configuration relaxes
+  exception is the one OAuth 2.1 §7.5.1.1 allows, and every condition must hold: the platform's configuration relaxes
   `require_pkce`; an administrator attests the client with the `pkce_nonce_exemption` setting (dynamic client
   registration never sets it); the client is registered as confidential; and the request requests `openid` and carries a
   `nonce`. A public client is always bound to PKCE, and at the token endpoint a code that is not bound can be redeemed
@@ -3886,12 +3914,12 @@ describes the family as it is rather than its changes
   decides the client's type: `none` registers a public client, any other method a confidential one. A confidential
   client that presents only its `client_id`, a credential of another method, and a secret presented by a public client
   are `invalid_client`, as is a request without a secret in HTTP Basic credentials (no colon). A client that registers
-  no method uses the RFC 7591 default, `client_secret_basic`, unless its server or tenant configures another, and
+  no method uses the RFC 7591 default, `client_secret_basic`, unless its platform, team or tenant configures another, and
   every stored client names its method: the management API's client create and settings update write the client's
   effective method into its settings document when it names none, so a client created without one is a confidential
-  client that authenticates with HTTP Basic once it holds a secret, and a change to the server's or tenant's
+  client that authenticates with HTTP Basic once it holds a secret, and a change to the platform's, a team's or a tenant's
   `token_endpoint_auth_method` moves no stored client's method; an empty `token_endpoint_auth_method` is not a valid value. `token_endpoint_auth_methods_supported`
-  is the ceiling the server, tenant and security profile impose over the registered method: a client registered outside
+  is the ceiling the platform, team, tenant and security profile impose over the registered method: a client registered outside
   it cannot authenticate, dynamic client registration refuses such a method with `invalid_client_metadata`, and an empty
   list permits no method, so disjoint ceilings, such as a tenant that allows only `client_secret_basic` and a client
   under the FAPI 2.0 profile, refuse every client-authentication method. The authorization endpoint identifies the
@@ -3930,7 +3958,7 @@ describes the family as it is rather than its changes
   `client_secret_jwt` assertion is rejected with `invalid_client` when its lifetime exceeds the non-discoverable
   `client_assertion_max_lifetime` setting (`OpenIdSettingKeys.ClientAssertionMaxLifetime`, default five minutes, Auth0's
   maximum). The setting is a `Min` ceiling, so a tenant or client may only shorten it, and the FAPI 2.0 security profile
-  pins it at five minutes so a raised server-wide value never reaches a FAPI client. The lifetime runs from the earlier
+  pins it at five minutes so a raised platform-wide value never reaches a FAPI client. The lifetime runs from the earlier
   of the assertion's `iat` and `nbf` to its `exp`, or, when it carries neither, from the validation time plus the clock
   skew, so it bounds both how long an assertion stays usable and how stale a pre-minted one may be (RFC 7523 §3). The
   client-assertion replay record is retained for `exp` plus the effective clock skew. The cap is a general
@@ -4305,7 +4333,7 @@ describes the family as it is rather than its changes
   `IPersistedGrantService.SetRevokedOnceAsync` returns `bool`, `IGrantStore.RemoveEndedBeforeAsync` takes the grant
   types that end by revocation, and `IGrantStore.GetUnrevokedExpiredPageAsync`,
   `IPersistedGrantService.RevokeSessionOnceAsync`, `ISessionService.TerminateIfEndedAsync`,
-  `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedServerAccessor` serve the pass, which the grants
+  `IOpenIdContextFactory.CreateForBackgroundAsync` and `IMaterializedPlatformAccessor` serve the pass, which the grants
   table's index on grant type, revocation and expiry supports
   ([ADR-1223](docs/decisions/1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md),
   [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md),
@@ -4488,7 +4516,7 @@ describes the family as it is rather than its changes
   `{tenantId}` only scopes the data: it sets the ambient tenant scope, so a central-admin caller administers a tenant by
   id while the persistence-layer query filter confines the read fail-closed
   ([ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)); a control-plane route without
-  `{tenantId}` uses the resolved tenant, which has no effect on the unscoped server and tenant rows those routes act on
+  `{tenantId}` uses the resolved tenant, which has no effect on the unscoped platform, team and tenant rows those routes act on
   ([ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
 
 - **The bootstrap administrator's `ClientSecret` is supplied Base64Url-encoded and kept off the GC heap.** The seed
@@ -4497,7 +4525,7 @@ describes the family as it is rather than its changes
   Scalar prefill that surface the presentable secret appear only in the development environment. See
   [ADR-1044](docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md) and [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
 
-- **Every owner's keys are imported and updated under the client-key policy.** The client, tenant, server and
+- **Every owner's keys are imported and updated under the client-key policy.** The client, tenant and
   resource-server import endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose
   `use`, `key_ops` or `alg` contradicts it is refused with a `400` that says why, and a `kid` already used by another of
   the owner's keys is a `409 Conflict`. Their update endpoints check `use` and `alg` against the key through
@@ -4520,10 +4548,10 @@ describes the family as it is rather than its changes
   `ManagementApiEndpointHandler.ProcessGetAsync` has an overload whose asynchronous mapper runs only after authorization
   succeeds, and the secret public-key endpoints use it.
 
-- **Every management change is audited.** The client, tenant, server, resource-server, principal and local-account
-  handlers record their changes through `IManagementAuditRecorder` with non-sensitive snapshots:
-  `ServerChangedAuditEvent` (`ManagementResourceTypes.Server`, carrying no tenant, since servers are the
-  `GlobalAdmin`-only control plane, issue [#141](https://github.com/NCodeGroup/Identity/issues/141)),
+- **Every management change is audited.** The client, tenant, team, platform, resource-server, principal and
+  local-account handlers record their changes through `IManagementAuditRecorder` with non-sensitive snapshots:
+  `TeamChangedAuditEvent` (`team`) and `PlatformChangedAuditEvent` (`platform`), recorded in the control-plane tenant
+  because neither belongs to a tenant, issue [#141](https://github.com/NCodeGroup/Identity/issues/141),
   `ResourceServerChangedAuditEvent`, `ResourceServerScopeChangedAuditEvent` and `ResourceServerSecretChangedAuditEvent`
   for every resource-server operation (create, update and delete, scopes, settings and secrets, issue
   [#139](https://github.com/NCodeGroup/Identity/issues/139)), `PrincipalChangedAuditEvent` for a block or unblock
@@ -4543,7 +4571,7 @@ describes the family as it is rather than its changes
   hold in other tenants ([ADR-1212](docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md), issues
   [#266](https://github.com/NCodeGroup/Identity/issues/266), [#273](https://github.com/NCodeGroup/Identity/issues/273)).
 
-- **A server settings PATCH reads only what it checks.** It walks the clients only when a setting that the client
+- **A platform or team settings PATCH reads only what it checks.** It walks the clients only when a setting that the client
   response-algorithm rule reads changed, and it reads tenants and clients as untracked projections without their secrets
   (issue [#212](https://github.com/NCodeGroup/Identity/issues/212)).
 
@@ -4609,7 +4637,7 @@ describes the family as it is rather than its changes
   starts ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
 
-- **All persisted OpenID data is tenant-scoped except the server root.** `FederatedPrincipal`, `FederatedIdentity` and
+- **All persisted OpenID data is tenant-scoped except the platform and teams.** `FederatedPrincipal`, `FederatedIdentity` and
   `LocalAccount` are tenant-owned: their persisted DTOs carry a required `TenantId`, and their server-generated ids and
   natural keys are unique per tenant, so the same human authenticating in two tenants is two principals. Grants are
   strictly tenant-scoped: `TenantId` is required on `PersistedGrantId`, `PersistedGrant`, `PersistedGrant<TPayload>`,
@@ -4624,7 +4652,7 @@ describes the family as it is rather than its changes
   (`NCode.Identity.OpenId.Persistence.Abstractions`) and an `OpenIdDbContext` global query filter on tenant-child
   entities scope every read when tenancy is request-derived (dynamic-by-host or dynamic-by-path), so a cross-tenant read
   returns `404` and no fetch-then-reject leak window exists. A reusable `TenantScopeEndpointFilter` establishes the
-  scope; tenant and server administration are central-admin (unscoped)
+  scope; tenant, team and platform administration are central-admin (unscoped)
   ([ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)).
 
 - **Deleting an owner removes what it owns.** `IClientStore.RemoveAsync` removes a client's secrets, grants to resource
@@ -4697,13 +4725,13 @@ describes the family as it is rather than its changes
   that contains `null` is a type error. A refresh token always expires (RFC 9700 §4.14.2)
   ([ADR-1140](docs/decisions/1140-setting-values-are-validated-against-their-domain.md)).
 
-- **A security profile that a server or tenant selects binds every scope below it, whichever profile it is.**
+- **A security profile that the platform, a team or a tenant selects binds every scope below it, whichever profile it is.**
   `security_profiles` (`OpenIdSettingKeys.SecurityProfiles`, a `SettingKey<IReadOnlyCollection<string>>`) is a list that
-  accumulates down the server → tenant → client cascade: a scope can add a profile but cannot clear or swap out one a
+  accumulates down the platform → team → tenant → client cascade: a scope can add a profile but cannot clear or swap out one a
   scope above it selects, and every selected profile applies, its ceilings and its request-time requirements. A layered
   profile selects the profile it builds on, and selecting it applies both. Profiles whose ceilings contradict leave
-  nothing permitted on that dimension, which fails closed. A profile selected at the server scope, in
-  `OpenId:Server:Settings` or the server's stored settings, injects its ceilings, so discovery advertises them and every
+  nothing permitted on that dimension, which fails closed. A profile selected at the platform scope, in
+  `OpenId:Platform:Settings` or the platform's stored settings, injects its ceilings, so discovery advertises them and every
   tenant and client enforces them. The management API's tenant, client and resource-server effective-settings previews
   apply the selected profiles' ceilings, as the runtime does. A profile's ceiling binds by construction:
   `ISecurityProfile.ApplyCeilingSettings` contributes it through `ISecurityProfileCeilingBuilder`, which accepts only a
@@ -4715,8 +4743,8 @@ describes the family as it is rather than its changes
 
 - **A client value that a ceiling lowers is incoherent.** `RegisteredValueCoherenceRule` checks every setting a client
   registers whose merge is a meet (`Min`, `And` or `Intersect`, which the abstract `SettingDescriptor.HasMeetMerge`
-  states), so a lifetime, timeout, size or rate above what the tenant, the server or a selected security profile permits
-  is refused at registration and at a management write, a tenant or server write that would lower it below a client's
+  states), so a lifetime, timeout, size or rate above what the tenant, its team, the platform or a selected security profile permits
+  is refused at registration and at a management write, a tenant, team or platform write that would lower it below a client's
   value is refused, and the reconciliation and the incoherent-client report list it: `The 'access_token_lifetime' value
   '01:00:00' exceeds the effective 'access_token_lifetime' value '00:05:00'.` A value that a ceiling already lowers
   blocks no write that moves that ceiling, because a write matches a violation that predates it without its description.
@@ -4728,7 +4756,7 @@ describes the family as it is rather than its changes
   ([#54](https://github.com/NCodeGroup/Identity/issues/54),
   [ADR-1108](docs/decisions/1108-fapi-security-profile-merge-lattice-ceiling-injection.md)). Listing `fapi2`
   (`OpenIdConstants.SecurityProfiles.Fapi2`) in `security_profiles` expands the profile into concrete ceiling settings
-  at the scope that selects it, and the floor/ceiling merge lattice carries them down the server → tenant → client
+  at the scope that selects it, and the floor/ceiling merge lattice carries them down the platform → team → tenant → client
   cascade un-loosenably, so discovery and request-time enforcement read one source of truth: signing restricted to
   `PS256`/`ES256`/`EdDSA`, strong client authentication only (`private_key_jwt`, `tls_client_auth`,
   `self_signed_tls_client_auth`), `response_type=code` with PKCE `S256` only, required PKCE and PAR, and short
@@ -4812,11 +4840,11 @@ describes the family as it is rather than its changes
   ([ADR-1212](docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md),
   [#250](https://github.com/NCodeGroup/Identity/issues/250)).
 
-- **A production tenant gets production guardrails, and a production host refuses a non-production server default.** The
+- **A production tenant gets production guardrails, and a production host refuses a non-production platform default.** The
   `production` security profile, which the `production` and `staging` environment types select, drops plain `http`
   redirect URIs, forbids anonymous client registration and turns `deletion_protection` on, which makes `DELETE
   /api/tenants/{tenantId}` answer `409`. In the Production host environment `AddProductionSafety` refuses to start when
-  `OpenId:Server:Settings:environment_type` names a registered type whose `IsProduction` is false
+  `OpenId:Platform:Settings:environment_type` names a registered type whose `IsProduction` is false
   ([ADR-1289](docs/decisions/1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md),
   [#410](https://github.com/NCodeGroup/Identity/issues/410)).
 

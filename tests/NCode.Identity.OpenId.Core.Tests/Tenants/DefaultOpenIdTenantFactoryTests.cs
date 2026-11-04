@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Collections.Providers;
+using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
 using NCode.Identity.Exceptions;
 using NCode.Identity.Models;
@@ -449,6 +450,140 @@ public sealed class DefaultOpenIdTenantFactoryTests
 
     #endregion
 
+    #region GetTenantSettingsAsync Tests
+
+    [Fact]
+    public async Task GetTenantSettingsAsync_LayersTheParentProviderUnderTheTenantDocument()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var persistedTenant = CreatePersistedTenant("https://op.example/acme");
+        var parentCollection = mocks.Create<IReadOnlySettingCollection>();
+        var openIdServer = CreateServerWithSettings(mocks, parentCollection.Object);
+        var resolver = mocks.Create<IEffectiveSettingsResolver>();
+        resolver
+            .Setup(x =>
+                x.ReadScopeSettings(
+                    parentCollection.Object,
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns([CreateEnvironmentNameSetting()])
+            .Verifiable();
+        var dataSources = new List<ICollectionDataSource<Setting>>();
+        var factory = CreateSettingsFactory(mocks, resolver.Object, dataSources);
+
+        var lease = await factory.InvokeGetTenantSettingsAsync(
+            Mock.Of<OpenIdEnvironment>(),
+            openIdServer.Object,
+            persistedTenant
+        );
+
+        Assert.Equal(2, dataSources.Count);
+        await lease.DisposeAsync();
+        Assert.Same(parentCollection.Object, dataSources[0].Collection);
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetTenantSettingsAsync_ReadsTheTenantDocumentAtTheTenantScope()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var persistedTenant = CreatePersistedTenant("https://op.example/acme");
+        var tenantDocument = persistedTenant.Settings.Value;
+        var parentCollection = mocks.Create<IReadOnlySettingCollection>();
+        var openIdServer = CreateServerWithSettings(mocks, parentCollection.Object);
+        var resolver = mocks.Create<IEffectiveSettingsResolver>();
+        resolver
+            .Setup(x =>
+                x.ReadScopeSettings(
+                    It.IsAny<IReadOnlySettingCollection>(),
+                    OpenIdSettingScopes.Tenant,
+                    It.Is<JsonElement>(document => JsonElement.DeepEquals(document, tenantDocument))
+                )
+            )
+            .Returns([CreateEnvironmentNameSetting()])
+            .Verifiable();
+        var dataSources = new List<ICollectionDataSource<Setting>>();
+        var factory = CreateSettingsFactory(mocks, resolver.Object, dataSources);
+
+        var lease = await factory.InvokeGetTenantSettingsAsync(
+            Mock.Of<OpenIdEnvironment>(),
+            openIdServer.Object,
+            persistedTenant
+        );
+
+        Assert.Equal(2, dataSources.Count);
+        await lease.DisposeAsync();
+        mocks.Verify();
+    }
+
+    #endregion
+
+    private static Setting CreateEnvironmentNameSetting() =>
+        new Setting<string>(
+            new SettingDescriptor<string>
+            {
+                Name = "environment_name",
+                AppliesTo = [OpenIdSettingScopes.Tenant],
+            },
+            "sandbox"
+        );
+
+    private static Mock<OpenIdServer> CreateServerWithSettings(
+        MockRepository mocks,
+        IReadOnlySettingCollection parentCollection
+    )
+    {
+        var parentProvider = mocks.Create<IReadOnlySettingCollectionProvider>();
+        parentProvider.Setup(x => x.Collection).Returns(parentCollection).Verifiable();
+
+        var openIdServer = mocks.Create<OpenIdServer>();
+        openIdServer.Setup(x => x.SettingsProvider).Returns(parentProvider.Object).Verifiable();
+        return openIdServer;
+    }
+
+    private static TestableTenantFactory CreateSettingsFactory(
+        MockRepository mocks,
+        IEffectiveSettingsResolver resolver,
+        List<ICollectionDataSource<Setting>> capturedDataSources
+    )
+    {
+        var pollingSource = mocks.Create<IAsyncDisposableCollectionDataSource<Setting>>();
+        var dataSourceFactory = mocks.Create<ICollectionDataSourceFactory>();
+        dataSourceFactory
+            .Setup(x =>
+                x.CreatePeriodicPolling<Setting, It.IsAnyType>(
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<IReadOnlyCollection<Setting>>(),
+                    It.IsAny<TimeSpan>(),
+                    It.IsAny<RefreshCollectionAsyncDelegate<Setting, It.IsAnyType>>(),
+                    It.IsAny<HandleExceptionAsyncDelegate?>()
+                )
+            )
+            .Returns(pollingSource.Object)
+            .Verifiable();
+
+        var provider = mocks.Create<IReadOnlySettingCollectionProvider>();
+        provider.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        var providerFactory = mocks.Create<IReadOnlySettingCollectionProviderFactory>();
+        providerFactory
+            .Setup(x => x.Create(It.IsAny<IEnumerable<ICollectionDataSource<Setting>>>(), true))
+            .Callback(
+                (IEnumerable<ICollectionDataSource<Setting>> dataSources, bool _) =>
+                    capturedDataSources.AddRange(dataSources)
+            )
+            .Returns(provider.Object)
+            .Verifiable();
+
+        return new TestableTenantFactory(
+            mocks,
+            effectiveSettingsResolver: resolver,
+            settingCollectionProviderFactory: providerFactory.Object,
+            collectionDataSourceFactory: dataSourceFactory.Object
+        );
+    }
+
     private static DefaultHttpContext CreateHttpContext()
     {
         var httpContext = new DefaultHttpContext();
@@ -488,22 +623,42 @@ public sealed class DefaultOpenIdTenantFactoryTests
     private sealed class TestableTenantFactory(
         MockRepository mocks,
         ISecretSerializer? secretSerializer = null,
-        ISecretProtectorProvider? secretProtectorProvider = null
+        ISecretProtectorProvider? secretProtectorProvider = null,
+        IEffectiveSettingsResolver? effectiveSettingsResolver = null,
+        IReadOnlySettingCollectionProviderFactory? settingCollectionProviderFactory = null,
+        ICollectionDataSourceFactory? collectionDataSourceFactory = null
     )
         : DefaultOpenIdTenantFactory(
             mocks.Create<ITenantResolver>().Object,
             Options.Create(new OpenIdOptions()),
             mocks.Create<IStoreManagerFactory>().Object,
             mocks.Create<IOpenIdTenantCache>().Object,
-            mocks.Create<IReadOnlySettingCollectionProviderFactory>().Object,
+            settingCollectionProviderFactory
+                ?? mocks.Create<IReadOnlySettingCollectionProviderFactory>().Object,
             mocks.Create<ISettingSerializer>().Object,
             secretSerializer ?? mocks.Create<ISecretSerializer>().Object,
             secretProtectorProvider ?? mocks.Create<ISecretProtectorProvider>().Object,
             mocks.Create<ISecretKeyCollectionProviderFactory>().Object,
-            mocks.Create<ICollectionDataSourceFactory>().Object,
-            mocks.Create<IEffectiveSettingsResolver>().Object
+            collectionDataSourceFactory ?? mocks.Create<ICollectionDataSourceFactory>().Object,
+            effectiveSettingsResolver ?? mocks.Create<IEffectiveSettingsResolver>().Object
         )
     {
+        public ValueTask<
+            AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider>
+        > InvokeGetTenantSettingsAsync(
+            OpenIdEnvironment openIdEnvironment,
+            OpenIdServer openIdServer,
+            PersistedTenant persistedTenant
+        ) =>
+            GetTenantSettingsAsync(
+                CreateHttpContext(),
+                openIdEnvironment,
+                openIdServer,
+                persistedTenant,
+                Mock.Of<IPropertyBag>(),
+                CancellationToken.None
+            );
+
         public ValueTask<
             AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
         > InvokeGetTenantSecretsAsync(PersistedTenant persistedTenant) =>

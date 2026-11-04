@@ -54,8 +54,8 @@ public interface ICoseSerializer
     );
 
     /// <summary>
-    /// Verifies a signed message and returns its content. The algorithm must be one the caller permits and must be
-    /// protected, and the signature must verify with one of the caller's keys.
+    /// Verifies a signed or authenticated message and returns its content. The algorithm must be one the caller permits
+    /// and must be protected, and the signature or authentication code must verify with one of the caller's keys.
     /// </summary>
     /// <param name="message">The encoded message.</param>
     /// <param name="parameters">What the verifier accepts.</param>
@@ -63,6 +63,36 @@ public interface ICoseSerializer
     /// <exception cref="ArgumentException">A parameter is invalid.</exception>
     /// <exception cref="CoseException">The message is malformed, exceeds a limit, or does not verify.</exception>
     CoseVerifiedMessage Verify(ReadOnlyMemory<byte> message, CoseVerificationParameters parameters);
+
+    /// <summary>
+    /// Authenticates content as a <c>COSE_Mac0</c> message with a key the recipient already knows.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="credentials">The symmetric key and its message authentication code algorithm.</param>
+    /// <param name="options">The header parameters and the encoding choices.</param>
+    /// <returns>The encoded message.</returns>
+    /// <exception cref="ArgumentException">The algorithm is not a registered message authentication code algorithm,
+    /// the key does not suit it, or a header parameter is owned by the library or invalid.</exception>
+    byte[] EncodeMac0(
+        ReadOnlySpan<byte> content,
+        CoseCredentials credentials,
+        CoseEncodingOptions options
+    );
+
+    /// <summary>
+    /// Authenticates content as a <c>COSE_Mac</c> message whose key reaches the recipients directly or wrapped.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="recipients">The message authentication code algorithm and the recipients.</param>
+    /// <param name="options">The header parameters and the encoding choices.</param>
+    /// <returns>The encoded message.</returns>
+    /// <exception cref="ArgumentException">An algorithm is not registered for its use, a key does not suit its
+    /// algorithm, a direct recipient is not alone, or a header parameter is owned by the library or invalid.</exception>
+    byte[] EncodeMac(
+        ReadOnlySpan<byte> content,
+        CoseRecipients recipients,
+        CoseEncodingOptions options
+    );
 
     /// <summary>
     /// Decodes a CBOR map with integer and text labels, such as a CBOR Web Token claims set, under the size, depth and

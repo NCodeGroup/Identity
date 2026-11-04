@@ -6,6 +6,8 @@ using NCode.Identity.Cose.Algorithms;
 using NCode.Identity.Cose.Cbor;
 using NCode.Identity.Cose.Messages;
 using NCode.Identity.Cose.Options;
+using NCode.Identity.Cose.Randomness;
+using NCode.Identity.Secrets.KeyMaterial;
 
 namespace NCode.Identity.Cose;
 
@@ -15,11 +17,17 @@ namespace NCode.Identity.Cose;
 // See ADR-1409.
 internal partial class DefaultCoseSerializer(
     ICoseAlgorithmCatalog algorithmCatalog,
+    ISecretKeyFactory secretKeyFactory,
+    ICoseRandomSource randomSource,
     IOptions<CoseOptions> options,
     TimeProvider timeProvider
 ) : ICoseSerializer
 {
     private ICoseAlgorithmCatalog AlgorithmCatalog { get; } = algorithmCatalog;
+
+    private ISecretKeyFactory SecretKeyFactory { get; } = secretKeyFactory;
+
+    private ICoseRandomSource RandomSource { get; } = randomSource;
 
     private CoseOptions Options { get; } = options.Value;
 

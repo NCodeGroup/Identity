@@ -181,6 +181,15 @@ NCode.Identity.Cose.CoseMessageType.Mac = 4 -> NCode.Identity.Cose.CoseMessageTy
 NCode.Identity.Cose.CoseMessageType.Mac0 = 5 -> NCode.Identity.Cose.CoseMessageType
 NCode.Identity.Cose.CoseMessageType.Sign = 0 -> NCode.Identity.Cose.CoseMessageType
 NCode.Identity.Cose.CoseMessageType.Sign1 = 1 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseRecipient
+NCode.Identity.Cose.CoseRecipient.CoseRecipient(NCode.Identity.Cose.CoseCredentials! credentials) -> void
+NCode.Identity.Cose.CoseRecipient.Credentials.get -> NCode.Identity.Cose.CoseCredentials!
+NCode.Identity.Cose.CoseRecipient.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseRecipient.UnprotectedHeaders.init -> void
+NCode.Identity.Cose.CoseRecipients
+NCode.Identity.Cose.CoseRecipients.ContentAlgorithm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+NCode.Identity.Cose.CoseRecipients.CoseRecipients(NCode.Identity.Cose.Algorithms.CoseAlgorithm! contentAlgorithm, System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseRecipient!>! recipients) -> void
+NCode.Identity.Cose.CoseRecipients.Recipients.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseRecipient!>!
 NCode.Identity.Cose.CoseSigner
 NCode.Identity.Cose.CoseSigner.CoseSigner(NCode.Identity.Cose.CoseCredentials! credentials) -> void
 NCode.Identity.Cose.CoseSigner.Credentials.get -> NCode.Identity.Cose.CoseCredentials!
@@ -235,6 +244,8 @@ NCode.Identity.Cose.CoseVerifiedMessage.UnprotectedHeaders.get -> System.Collect
 NCode.Identity.Cose.CoseVerifiedMessage.UnprotectedHeaders.init -> void
 NCode.Identity.Cose.ICoseSerializer
 NCode.Identity.Cose.ICoseSerializer.DecodeMap(System.ReadOnlyMemory<byte> encodedMap) -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.ICoseSerializer.EncodeMac(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseRecipients! recipients, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeMac0(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
 NCode.Identity.Cose.ICoseSerializer.EncodeMap(System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>! map) -> byte[]!
 NCode.Identity.Cose.ICoseSerializer.EncodeSign(System.ReadOnlySpan<byte> content, System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseSigner!>! signers, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
 NCode.Identity.Cose.ICoseSerializer.EncodeSign1(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!

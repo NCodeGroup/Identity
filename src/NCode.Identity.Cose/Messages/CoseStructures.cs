@@ -51,4 +51,24 @@ internal static class CoseStructures
         writer.WriteEndArray();
         return writer.Encode();
     }
+
+    /// <summary>
+    /// Builds the <c>MAC_structure</c> of a <c>COSE_Mac0</c> or <c>COSE_Mac</c> message.
+    /// </summary>
+    public static byte[] Mac(
+        string context,
+        ReadOnlySpan<byte> bodyProtected,
+        ReadOnlySpan<byte> externalAad,
+        ReadOnlySpan<byte> payload
+    )
+    {
+        var writer = new CborWriter(CborConformanceMode.Strict);
+        writer.WriteStartArray(4);
+        writer.WriteTextString(context);
+        writer.WriteByteString(bodyProtected);
+        writer.WriteByteString(externalAad);
+        writer.WriteByteString(payload);
+        writer.WriteEndArray();
+        return writer.Encode();
+    }
 }

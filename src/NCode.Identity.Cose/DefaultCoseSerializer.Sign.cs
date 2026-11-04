@@ -75,7 +75,7 @@ internal partial class DefaultCoseSerializer
         );
         var bodyProtected = CborMapWriter.EncodeProtected(bodyProtectedHeaders);
 
-        var entries = new List<CoseMessageWriter.SignatureEntry>(signers.Count);
+        var entries = new List<CoseMessageWriter.LayerEntry>(signers.Count);
         foreach (var signer in signers)
         {
             ArgumentNullException.ThrowIfNull(signer);
@@ -96,7 +96,7 @@ internal partial class DefaultCoseSerializer
                 content
             );
             entries.Add(
-                new CoseMessageWriter.SignatureEntry(
+                new CoseMessageWriter.LayerEntry(
                     signatureProtected,
                     unprotectedHeaders,
                     Sign(algorithm, credentials.SecretKey, structure)
@@ -137,6 +137,8 @@ internal partial class DefaultCoseSerializer
         {
             CoseMessageType.Sign1 => VerifySign1(parsed, parameters),
             CoseMessageType.Sign => VerifySign(parsed, parameters),
+            CoseMessageType.Mac0 => VerifyMac0(parsed, parameters),
+            CoseMessageType.Mac => VerifyMac(parsed, parameters),
             _ => throw new CoseException(
                 CoseFailureCodes.UnsupportedMessageType,
                 "The message is not a type that can be verified."

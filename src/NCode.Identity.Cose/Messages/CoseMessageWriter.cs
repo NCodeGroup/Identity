@@ -13,12 +13,13 @@ namespace NCode.Identity.Cose.Messages;
 internal static class CoseMessageWriter
 {
     /// <summary>
-    /// Holds one signature of a <c>COSE_Sign</c> message as it is written.
+    /// Holds one signature of a <c>COSE_Sign</c> message, or one recipient of a <c>COSE_Mac</c> or <c>COSE_Encrypt</c>
+    /// message, as it is written.
     /// </summary>
-    public sealed record SignatureEntry(
+    public sealed record LayerEntry(
         byte[] ProtectedBytes,
         IReadOnlyDictionary<CoseLabel, CoseValue> UnprotectedHeaders,
-        byte[] Signature
+        byte[] Third
     );
 
     /// <summary>
@@ -47,22 +48,43 @@ internal static class CoseMessageWriter
         byte[] protectedBytes,
         IReadOnlyDictionary<CoseLabel, CoseValue> unprotectedHeaders,
         ReadOnlyMemory<byte>? content,
-        IReadOnlyList<SignatureEntry> signatures
+        IReadOnlyList<LayerEntry> signatures
     )
     {
         var writer = Begin(tag, 4);
         WriteBody(writer, protectedBytes, unprotectedHeaders, content);
-        writer.WriteStartArray(signatures.Count);
-        foreach (var signature in signatures)
-        {
-            writer.WriteStartArray(3);
-            writer.WriteByteString(signature.ProtectedBytes);
-            CborMapWriter.WriteMap(writer, signature.UnprotectedHeaders);
-            writer.WriteByteString(signature.Signature);
-            writer.WriteEndArray();
-        }
-
+        WriteLayers(writer, signatures);
         writer.WriteEndArray();
+        return writer.Encode();
+    }
+
+    /// <summary>
+    /// Writes a <c>COSE_Mac0</c> message.
+    /// </summary>
+    public static byte[] Mac0(
+        ulong? tag,
+        byte[] protectedBytes,
+        IReadOnlyDictionary<CoseLabel, CoseValue> unprotectedHeaders,
+        ReadOnlyMemory<byte>? content,
+        byte[] authenticationTag
+    ) => Sign1(tag, protectedBytes, unprotectedHeaders, content, authenticationTag);
+
+    /// <summary>
+    /// Writes a <c>COSE_Mac</c> message.
+    /// </summary>
+    public static byte[] Mac(
+        ulong? tag,
+        byte[] protectedBytes,
+        IReadOnlyDictionary<CoseLabel, CoseValue> unprotectedHeaders,
+        ReadOnlyMemory<byte>? content,
+        byte[] authenticationTag,
+        IReadOnlyList<LayerEntry> recipients
+    )
+    {
+        var writer = Begin(tag, 5);
+        WriteBody(writer, protectedBytes, unprotectedHeaders, content);
+        writer.WriteByteString(authenticationTag);
+        WriteLayers(writer, recipients);
         writer.WriteEndArray();
         return writer.Encode();
     }
@@ -75,6 +97,21 @@ internal static class CoseMessageWriter
 
         writer.WriteStartArray(arrayLength);
         return writer;
+    }
+
+    private static void WriteLayers(CborWriter writer, IReadOnlyList<LayerEntry> layers)
+    {
+        writer.WriteStartArray(layers.Count);
+        foreach (var layer in layers)
+        {
+            writer.WriteStartArray(3);
+            writer.WriteByteString(layer.ProtectedBytes);
+            CborMapWriter.WriteMap(writer, layer.UnprotectedHeaders);
+            writer.WriteByteString(layer.Third);
+            writer.WriteEndArray();
+        }
+
+        writer.WriteEndArray();
     }
 
     private static void WriteBody(

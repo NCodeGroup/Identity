@@ -61,7 +61,8 @@ the platform and its tenants in the settings cascade and in authority.**
    `resource_server` ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)). A team document carries every
    setting that applies beneath it, so the security profiles and ceilings a team selects bind its tenants
    ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)). `max_tenants` applies to the team
-   scope, merges with `Min`, and a creation past it answers `409`.
+   scope, merges with `Min`, and a creation past it answers `409`; the ceiling is checked before the insert and never
+   serialized on the team row, so two creations that race may overshoot it by one.
 4. **Authority runs platform, team, tenant, leaf.** `TeamAdmin` at a team creates its tenants and manages everything
    beneath it; `Owner` never creates. Role-assignment lookups span tenants. Tenants are created and listed under
    `/api/teams/{teamId}/tenants`. The root tenant holds the `platform_settings`, `teams`, `team_settings` and `tenants`

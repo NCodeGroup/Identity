@@ -1128,8 +1128,9 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of the <c>max_tenants</c> setting: the most tenants a team may hold; a creation that would
-    /// exceed it is refused. Unset means unlimited (ADR-1010). It applies to the team scope: the platform sets the
+    /// exceed it is refused. Unset means unlimited. It applies to the team scope: the platform sets the
     /// ceiling and a team can only lower it.
     /// </summary>
+    // See ADR-1010 (unset means unlimited).
     public const string MaxTenants = "max_tenants";
 }

@@ -635,10 +635,6 @@ internal class TenantApiEndpointHandler(
 
         await store.AddAsync(tenant, cancellationToken);
 
-        // The team row is rewritten unchanged so its concurrency token changes: two concurrent creations under one team
-        // conflict, and neither can exceed the team's maximum.
-        await teamStore.UpdateAsync(team, cancellationToken);
-
         // The tenant row commits first: the creator's ownership is a row the tenant owns, and the stores resolve an
         // owning tenant from the database rather than the change tracker — the same reason the provisioner commits a
         // tenant before seeding it.

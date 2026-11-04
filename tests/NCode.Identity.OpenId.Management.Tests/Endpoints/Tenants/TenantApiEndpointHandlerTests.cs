@@ -968,11 +968,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         return MockTeamSettings.Object;
     }
 
-    // A creation reads the team, then resolves its settings for the 'max_tenants' ceiling and, once it passes,
-    // rewrites the team row in the unit of work that adds the tenant.
+    // A creation reads the team, then resolves its settings for the 'max_tenants' ceiling.
     private void SetupTeamForCreate(
         bool resolveSettings,
-        bool updateTeam,
         int? maxTenants = null,
         long? tenantCount = null
     )
@@ -1001,15 +999,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockTenantStore
                 .Setup(x => x.CountAsync(TeamId, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(tenantCount.Value)
-                .Verifiable();
-        }
-
-        if (updateTeam)
-        {
-            MockTeamStore
-                .Setup(x => x.UpdateAsync(It.IsAny<PersistedTeam>(), It.IsAny<CancellationToken>()))
-                .Callback(() => Events.Add("update-team"))
-                .Returns(ValueTask.CompletedTask)
                 .Verifiable();
         }
     }
@@ -2187,7 +2176,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenTheTeamIsFull_ReturnsConflict()
     {
-        SetupTeamForCreate(resolveSettings: true, updateTeam: false, maxTenants: 2, tenantCount: 2);
+        SetupTeamForCreate(resolveSettings: true, maxTenants: 2, tenantCount: 2);
         SetupDefaultAlias("acme", alias: null);
         SetupStore();
         SetupDefaultIssuer("acme", DerivedIssuer);
@@ -2207,37 +2196,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateTenantAsync_UpdatesTheTeamRowInTheSameUnitOfWork()
-    {
-        SetupTeamForCreate(resolveSettings: true, updateTeam: true, maxTenants: 5, tenantCount: 1);
-        SetupCreatorAssignment();
-        SetupTenantChangedAudit();
-        SetupDefaultAlias("acme", alias: null);
-        SetupValidSettings();
-        SetupStore();
-        SetupDefaultIssuer("acme", DerivedIssuer);
-        var assertValidated = SetupCreateValidation();
-        SetupCreatePersistence(CreateSeededTenant(DerivedIssuer));
-        SetupTenantEnvironment(tenantId: "acme");
-
-        var result = await Handler.CreateTenantAsync(
-            CreateHttpContext(authenticated: true),
-            TeamId,
-            CreateTenantRequest(),
-            CancellationToken.None
-        );
-
-        Assert.IsType<Created<TenantResource>>(result);
-        assertValidated(validated => Assert.Equal(TeamId, validated?.TeamId));
-
-        // The tenant and the team row are written before the first commit.
-        Assert.Equal(["add-tenant", "update-team", "save"], Events.Take(3));
-    }
-
-    [Fact]
     public async Task CreateTenantAsync_WhenIssuerIsOmitted_CreatesTheTenantAtItsDerivedIssuer()
     {
-        SetupTeamForCreate(resolveSettings: true, updateTeam: true);
+        SetupTeamForCreate(resolveSettings: true);
         SetupCreatorAssignment();
         SetupTenantChangedAudit();
         SetupDefaultAlias("acme", alias: null);
@@ -2272,7 +2233,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenAliasIsOmitted_CreatesTheTenantAtItsDerivedAlias()
     {
-        SetupTeamForCreate(resolveSettings: true, updateTeam: true);
+        SetupTeamForCreate(resolveSettings: true);
         SetupCreatorAssignment();
         SetupTenantChangedAudit();
         const string derivedAlias = "https://acme.mtls.example";
@@ -2305,7 +2266,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenIssuerIsGiven_KeepsItWithoutDerivingOne()
     {
-        SetupTeamForCreate(resolveSettings: true, updateTeam: true);
+        SetupTeamForCreate(resolveSettings: true);
         SetupCreatorAssignment();
         SetupTenantChangedAudit();
         SetupDefaultAlias("acme", alias: null);
@@ -2334,7 +2295,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenCreated_SeedsTheTenantAndReturnsItAsSeeded()
     {
-        SetupTeamForCreate(resolveSettings: true, updateTeam: true);
+        SetupTeamForCreate(resolveSettings: true);
         SetupCreatorAssignment();
         SetupTenantChangedAudit();
         SetupDefaultAlias("acme", alias: null);
@@ -2365,7 +2326,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
-        SetupTeamForCreate(resolveSettings: true, updateTeam: false);
+        SetupTeamForCreate(resolveSettings: true);
         SetupDefaultAlias("acme", alias: null);
         SetupInvalidSettings();
         SetupStore();
@@ -2399,7 +2360,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenValidatorReportsConflict_ReturnsProblem()
     {
-        SetupTeamForCreate(resolveSettings: false, updateTeam: false);
+        SetupTeamForCreate(resolveSettings: false);
         SetupDefaultAlias("acme", alias: null);
         SetupStore();
         SetupDefaultIssuer("acme", DerivedIssuer);

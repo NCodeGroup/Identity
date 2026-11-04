@@ -309,3 +309,50 @@ override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.EventCa
 override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.EventName.get -> string!
 override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 static NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames.For(string! change) -> string!
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver.DestroyedAsync(NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo! destroyed, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyChangeObserver.RotatedAsync(NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation! rotation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.DestroyRetiredAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!>!>
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.GetStatusAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus!>
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.RewrapAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.Persistence.Protection.IMasterKeyManager.RotateAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation!>
+NCode.Identity.Secrets.Persistence.Protection.IProtectedValueSource
+NCode.Identity.Secrets.Persistence.Protection.IProtectedValueSource.ReferencesAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Guid masterKeyId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Secrets.Persistence.Protection.IProtectedValueSource.RewrapAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Guid masterKeyId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.CreatedWhen.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.IsActive.get -> bool
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.KeyId.get -> System.Guid
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.KeyId.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.MasterKeyInfo(System.Guid KeyId, NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, int Version, System.DateTimeOffset CreatedWhen, System.DateTimeOffset? RetiredWhen, string! RootKeyProvider, string! RootKeyId, string? RecoveryKeyId) -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.Owner.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RecoveryKeyId.get -> string?
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RecoveryKeyId.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RetiredWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RetiredWhen.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RootKeyId.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RootKeyId.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RootKeyProvider.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RootKeyProvider.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.Version.get -> int
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.Version.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation.ActiveKey.get -> NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation.ActiveKey.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation.MasterKeyRotation(NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo! ActiveKey, NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo? RetiredKey) -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation.Owner.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation.RetiredKey.get -> NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo?
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation.RetiredKey.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.Keys.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!>!
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.Keys.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.MasterKeyStatus(NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!>! Keys, bool RecoveryConfigured) -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.Owner.init -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.RecoveryConfigured.get -> bool
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.RecoveryConfigured.init -> void
+static NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.From(NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey! masterKey) -> NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!

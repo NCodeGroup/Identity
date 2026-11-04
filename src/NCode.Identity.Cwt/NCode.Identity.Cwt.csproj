@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.Cwt</RootNamespace>
+        <Description>Opt-in CBOR Web Tokens (CWT, RFC 8392) for NCode.Identity over its COSE library: issuance as COSE_Sign1 or COSE_Mac0, optionally inside COSE_Encrypt0 or COSE_Encrypt, and fail-closed validation of algorithms, keys, issuer, audience, lifetime and token type.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Cwt.Abstractions\NCode.Identity.Cwt.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Cose.Abstractions\NCode.Identity.Cose.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
+        <ProjectReference Include="..\NCode.Time\NCode.Time.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="NCode.Buffers" />
+        <PackageReference Include="System.Formats.Cbor" />
+    </ItemGroup>
+</Project>

@@ -1,0 +1,82 @@
+#nullable enable
+const NCode.Identity.Cwt.CwtClaimKeys.Audience = 3 -> long
+const NCode.Identity.Cwt.CwtClaimKeys.Confirmation = 8 -> long
+const NCode.Identity.Cwt.CwtClaimKeys.CwtId = 7 -> long
+const NCode.Identity.Cwt.CwtClaimKeys.ExpirationTime = 4 -> long
+const NCode.Identity.Cwt.CwtClaimKeys.IssuedAt = 6 -> long
+const NCode.Identity.Cwt.CwtClaimKeys.Issuer = 1 -> long
+const NCode.Identity.Cwt.CwtClaimKeys.NotBefore = 5 -> long
+const NCode.Identity.Cwt.CwtClaimKeys.Scope = 9 -> long
+const NCode.Identity.Cwt.CwtClaimKeys.Subject = 2 -> long
+const NCode.Identity.Cwt.CwtConfirmationKeys.CoseKey = 1 -> long
+const NCode.Identity.Cwt.CwtConfirmationKeys.EncryptedCoseKey = 2 -> long
+const NCode.Identity.Cwt.CwtConfirmationKeys.KeyId = 3 -> long
+const NCode.Identity.Cwt.CwtConstants.MediaType = "application/cwt" -> string!
+const NCode.Identity.Cwt.CwtConstants.Tag = 61 -> ulong
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.Expired = "expired" -> string!
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.InvalidAudience = "invalid_audience" -> string!
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.InvalidClaim = "invalid_claim" -> string!
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.InvalidIssuer = "invalid_issuer" -> string!
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.InvalidLifetime = "invalid_lifetime" -> string!
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.InvalidToken = "invalid_token" -> string!
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.InvalidTokenType = "invalid_token_type" -> string!
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.MissingClaim = "missing_claim" -> string!
+const NCode.Identity.Cwt.Validation.CwtValidationFailureCodes.NotYetValid = "not_yet_valid" -> string!
+NCode.Identity.Cwt.CwtClaimKeys
+NCode.Identity.Cwt.CwtClaimsSet
+NCode.Identity.Cwt.CwtClaimsSet.Audiences.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Cwt.CwtClaimsSet.Audiences.init -> void
+NCode.Identity.Cwt.CwtClaimsSet.Claims.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cwt.CwtClaimsSet.Claims.init -> void
+NCode.Identity.Cwt.CwtClaimsSet.ConfirmationKey.get -> System.ReadOnlyMemory<byte>?
+NCode.Identity.Cwt.CwtClaimsSet.ConfirmationKey.init -> void
+NCode.Identity.Cwt.CwtClaimsSet.CwtClaimsSet() -> void
+NCode.Identity.Cwt.CwtClaimsSet.CwtId.get -> System.ReadOnlyMemory<byte>?
+NCode.Identity.Cwt.CwtClaimsSet.CwtId.init -> void
+NCode.Identity.Cwt.CwtClaimsSet.ExpiresAt.get -> System.DateTimeOffset?
+NCode.Identity.Cwt.CwtClaimsSet.ExpiresAt.init -> void
+NCode.Identity.Cwt.CwtClaimsSet.IssuedAt.get -> System.DateTimeOffset?
+NCode.Identity.Cwt.CwtClaimsSet.IssuedAt.init -> void
+NCode.Identity.Cwt.CwtClaimsSet.Issuer.get -> string?
+NCode.Identity.Cwt.CwtClaimsSet.Issuer.init -> void
+NCode.Identity.Cwt.CwtClaimsSet.NotBefore.get -> System.DateTimeOffset?
+NCode.Identity.Cwt.CwtClaimsSet.NotBefore.init -> void
+NCode.Identity.Cwt.CwtClaimsSet.Subject.get -> string?
+NCode.Identity.Cwt.CwtClaimsSet.Subject.init -> void
+NCode.Identity.Cwt.CwtConfirmationKeys
+NCode.Identity.Cwt.CwtConstants
+NCode.Identity.Cwt.CwtLibrary
+NCode.Identity.Cwt.CwtLibrary.CwtLibrary() -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.AdditionalClaims.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.AdditionalClaims.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.Audiences.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.Audiences.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.ConfirmationKey.get -> NCode.Identity.Secrets.Keys.SecretKey?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.ConfirmationKey.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.Credentials.get -> NCode.Identity.Cose.CoseCredentials!
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.Credentials.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.CwtId.get -> System.ReadOnlyMemory<byte>?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.CwtId.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.CwtIssuanceParameters() -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.EncryptionCredentials.get -> NCode.Identity.Cose.CoseCredentials?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.EncryptionCredentials.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.EncryptionRecipients.get -> NCode.Identity.Cose.CoseRecipients?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.EncryptionRecipients.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.ExpiresAt.get -> System.DateTimeOffset?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.ExpiresAt.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.IssuedAt.get -> System.DateTimeOffset?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.IssuedAt.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.Issuer.get -> string?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.Issuer.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.NotBefore.get -> System.DateTimeOffset?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.NotBefore.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.Subject.get -> string?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.Subject.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.TokenType.get -> string?
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.TokenType.init -> void
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.WriteCwtTag.get -> bool
+NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.WriteCwtTag.init -> void
+NCode.Identity.Cwt.Issuance.ICwtIssuer
+NCode.Identity.Cwt.Issuance.ICwtIssuer.Issue(NCode.Identity.Cwt.Issuance.CwtIssuanceParameters! parameters) -> byte[]!
+NCode.Identity.Cwt.Validation.CwtValidationFailureCodes

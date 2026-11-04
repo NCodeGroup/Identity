@@ -705,6 +705,43 @@ public class TeamManagementTests
         Assert.Equal<string>(["RS256"], after);
     }
 
+    [Fact]
+    public async Task PatchTeamSettings_LeavesAnotherTeamsTenantsAlone()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(client, "globex", new { });
+        await CreateTenantAsync(client, "globex", "globex-dev");
+        await CreateTeamAsync(client, "hooli", new { });
+        await CreateTenantAsync(client, "hooli", "hooli-dev");
+
+        Assert.Contains("PS256", await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev"));
+        Assert.Contains("PS256", await GetIdTokenSigningAlgorithmsAsync(client, "hooli-dev"));
+
+        await PatchAsync(
+            client,
+            "/api/teams/globex/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
+                    value = new[] { "RS256" },
+                },
+            }
+        );
+
+        Assert.Equal<string>(
+            ["RS256"],
+            await GetIdTokenSigningAlgorithmsAsync(client, "globex-dev")
+        );
+
+        var other = await GetIdTokenSigningAlgorithmsAsync(client, "hooli-dev");
+        Assert.Contains("PS256", other);
+        Assert.NotEqual<string>(["RS256"], other);
+    }
+
     #endregion
 
     #region UpdateTeam Tests

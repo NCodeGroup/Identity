@@ -7,6 +7,7 @@ using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Cose;
 using NCode.Identity.Cose.Algorithms;
 using NCode.Identity.Cwt.Issuance;
+using NCode.Identity.Cwt.Validation;
 using NCode.Identity.Jose;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -53,6 +54,8 @@ public sealed class CwtTestHost : IAsyncDisposable
     public ServiceProvider Services { get; }
 
     public ICwtIssuer Issuer => Services.GetRequiredService<ICwtIssuer>();
+
+    public ICwtValidator Validator => Services.GetRequiredService<ICwtValidator>();
 
     public ICoseSerializer Serializer => Services.GetRequiredService<ICoseSerializer>();
 

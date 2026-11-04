@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Cose;
 using NCode.Identity.Cwt.Issuance;
+using NCode.Identity.Cwt.Validation;
 using NCode.Registration;
 
 namespace NCode.Identity.Cwt;
@@ -22,7 +23,7 @@ public static class DefaultRegistration
     extension(IServiceBuilder<CoseLibrary> builder)
     {
         /// <summary>
-        /// Registers the CWT services: <see cref="ICwtIssuer"/>.
+        /// Registers the CWT services: <see cref="ICwtIssuer"/> and <see cref="ICwtValidator"/>.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> of the <see cref="CwtLibrary"/>.</returns>
         public IServiceBuilder<CwtLibrary> AddCwtLibrary()
@@ -31,6 +32,7 @@ public static class DefaultRegistration
             var newBuilder = builder.NewBuilder<CwtLibrary>();
 
             serviceCollection.TryAddSingleton<ICwtIssuer, DefaultCwtIssuer>();
+            serviceCollection.TryAddSingleton<ICwtValidator, DefaultCwtValidator>();
             serviceCollection.TryAddSingleton(TimeProvider.System);
 
             return newBuilder;

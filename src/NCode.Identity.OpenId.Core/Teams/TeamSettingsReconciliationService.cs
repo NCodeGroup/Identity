@@ -64,6 +64,10 @@ internal sealed class TeamSettingsReconciliationService(
     private HashSet<string> Unsettled { get; } = new(StringComparer.Ordinal);
     private bool EveryTeamUnsettled { get; set; }
 
+    // When the unsettled teams are attempted again: one lease duration after the pass that left them unsettled. A
+    // trigger never moves it, and it is null while nothing is unsettled.
+    private DateTimeOffset? RetryDeadline { get; set; }
+
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -83,8 +87,13 @@ internal sealed class TeamSettingsReconciliationService(
             {
                 var (triggered, teamId) = await WaitForTriggerAsync(stoppingToken);
                 if (triggered)
+                {
                     await ReconcileTriggeredAsync(teamId, stoppingToken);
-                else
+                    UpdateRetryDeadline();
+                }
+
+                // A trigger never moves the deadline, so a steady stream of triggers does not starve a retry.
+                if (!triggered || IsRetryDue())
                     await RetryAsync(stoppingToken);
             }
         }
@@ -116,11 +125,14 @@ internal sealed class TeamSettingsReconciliationService(
         if (Unsettled.Count == 0 && !EveryTeamUnsettled)
             return (true, await Triggers.Reader.ReadAsync(stoppingToken));
 
-        // An unsettled reconciliation is attempted again when the lease another replica may hold has expired.
-        using var leaseExpired = new CancellationTokenSource(
-            Options.Team.ReconciliationLeaseDuration,
-            TimeProvider
-        );
+        // An unsettled reconciliation is attempted again when the lease another replica may hold has expired, which is
+        // the retry deadline; the wait for a trigger ends there.
+        var now = TimeProvider.GetUtcNow();
+        var remaining = (RetryDeadline ?? now) - now;
+        if (remaining < TimeSpan.Zero)
+            remaining = TimeSpan.Zero;
+
+        using var leaseExpired = new CancellationTokenSource(remaining, TimeProvider);
         using var wait = CancellationTokenSource.CreateLinkedTokenSource(
             stoppingToken,
             leaseExpired.Token
@@ -146,14 +158,29 @@ internal sealed class TeamSettingsReconciliationService(
 
     private async Task RetryAsync(CancellationToken stoppingToken)
     {
+        // The deadline is cleared first, so a retry that leaves a team unsettled sets a fresh one.
+        RetryDeadline = null;
         if (EveryTeamUnsettled)
-        {
             await ReconcileEveryTeamAsync(stoppingToken);
-            return;
+        else
+        {
+            foreach (var teamId in Unsettled.ToList())
+                await ReconcileTeamAsync(teamId, stoppingToken);
         }
 
-        foreach (var teamId in Unsettled.ToList())
-            await ReconcileTeamAsync(teamId, stoppingToken);
+        UpdateRetryDeadline();
+    }
+
+    private bool IsRetryDue() =>
+        RetryDeadline is { } deadline && TimeProvider.GetUtcNow() >= deadline;
+
+    // Sets the deadline when a pass leaves something unsettled and none is set, and clears it when nothing is.
+    private void UpdateRetryDeadline()
+    {
+        if (Unsettled.Count == 0 && !EveryTeamUnsettled)
+            RetryDeadline = null;
+        else
+            RetryDeadline ??= TimeProvider.GetUtcNow() + Options.Team.ReconciliationLeaseDuration;
     }
 
     private async Task ReconcileEveryTeamAsync(CancellationToken stoppingToken)

@@ -6,6 +6,7 @@ using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -176,6 +177,59 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
         await Service.StartAsync(CancellationToken.None);
         await Calls[1].Task.WaitAsync(Deadline);
         await Service.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenTriggersKeepComing_RetriesAnUnsettledTeamAtItsDeadline()
+    {
+        var timeProvider = new FakeTimeProvider();
+        var lease = OpenIdOptions.Team.ReconciliationLeaseDuration;
+        var reconciled = Channel.CreateUnbounded<string>();
+        var acmeCalls = 0;
+        MockReconciler
+            .Setup(x => x.ReconcileAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(
+                (string teamId, CancellationToken _) =>
+                {
+                    var settled = teamId != TeamId || Interlocked.Increment(ref acmeCalls) > 1;
+                    reconciled.Writer.TryWrite(teamId);
+                    return ValueTask.FromResult(settled);
+                }
+            );
+        SetupPlatform();
+        SetupTeams(TeamId);
+        using var service = new TeamSettingsReconciliationService(
+            MockRegistry.Object,
+            MockPlatformProvider.Object,
+            MockEnvironmentProvider.Object,
+            MockStoreManagerFactory.Object,
+            MockReconciler.Object,
+            Trigger,
+            Triggers,
+            Options.Create(OpenIdOptions),
+            timeProvider,
+            CreateLooseMock<ILogger<TeamSettingsReconciliationService>>().Object
+        );
+
+        await service.StartAsync(CancellationToken.None);
+        Assert.Equal(TeamId, await reconciled.Reader.ReadAsync().AsTask().WaitAsync(Deadline));
+
+        // Each trigger arrives within the lease, and the clock reaches the deadline in quarters of it.
+        for (var i = 0; i < 4; i++)
+        {
+            Trigger.Trigger(OtherTeamId);
+            Assert.Equal(
+                OtherTeamId,
+                await reconciled.Reader.ReadAsync().AsTask().WaitAsync(Deadline)
+            );
+            timeProvider.Advance(lease / 4);
+        }
+
+        // The deadline has passed, so the unsettled team is attempted again whatever the triggers did.
+        var next = await reconciled.Reader.ReadAsync().AsTask().WaitAsync(Deadline);
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(TeamId, next);
     }
 
     [Fact]

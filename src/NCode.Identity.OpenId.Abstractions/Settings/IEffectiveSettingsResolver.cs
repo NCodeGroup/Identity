@@ -102,4 +102,37 @@ public interface IEffectiveSettingsResolver
     /// <c>security_profiles</c> value that names no registered profile; the exception names the platform.</exception>
     // See ADR-1245.
     ValueTask<IReadOnlySettingCollection> ResolvePlatformAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Resolves a team's committed settings: the platform's committed effective settings merged with the team's settings
+    /// document that the store holds now. A tenant's parent is its team's effective settings.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
+    /// <returns>The effective settings of the team as committed.</returns>
+    /// <exception cref="KeyNotFoundException">The team does not exist.</exception>
+    /// <exception cref="UnreadableSettingsException">A committed document cannot be honored; the exception names the
+    /// scope and the owner.</exception>
+    // See ADR-1403.
+    ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Resolves a proposed team settings document: the platform's committed effective settings merged with the supplied
+    /// document. A tenant's parent is its team's effective settings.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="settings">The proposed team settings as a JSON document.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
+    /// <returns>The effective settings of the team if <paramref name="settings"/> were committed.</returns>
+    /// <exception cref="JsonException">The document cannot be honored, including a <c>security_profiles</c> value that
+    /// names no registered profile.</exception>
+    // See ADR-1403.
+    ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
+        string teamId,
+        JsonElement settings,
+        CancellationToken cancellationToken
+    );
 }

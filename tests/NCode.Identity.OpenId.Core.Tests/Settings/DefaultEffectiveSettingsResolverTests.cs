@@ -273,7 +273,148 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
 
     #endregion
 
+    #region ResolveTeamAsync Tests
+
+    [Fact]
+    public async Task ResolveTeamAsync_MergesTheCommittedTeamDocumentOntoThePlatform()
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> expanded = new List<Setting>();
+        SetupExpand(OpenIdSettingScopes.Team, "committed", jsonOptions, expanded);
+        var effective = CreateLooseMock<ISettingCollection>().Object;
+        var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
+        mockPlatform.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
+        SetupServer(mockPlatform.Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTeamSettings("team-1", "committed"))
+            .Verifiable();
+
+        var result = await Resolver.ResolveTeamAsync("team-1", CancellationToken.None);
+
+        Assert.Same(effective, result);
+    }
+
+    [Fact]
+    public async Task ResolveTeamAsync_WhenTheTeamDocumentCannotBeHonored_ThrowsNamingTheTeam()
+    {
+        const string documentError = "boom";
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        SetupExpandThrows(
+            OpenIdSettingScopes.Team,
+            "committed",
+            jsonOptions,
+            new JsonException(documentError)
+        );
+        SetupServer(CreateStrictMock<IReadOnlySettingCollection>().Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTeamSettings("team-1", "committed"))
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
+            await Resolver.ResolveTeamAsync("team-1", CancellationToken.None)
+        );
+
+        Assert.Equal(OpenIdSettingScopes.Team, exception.ScopeName);
+        Assert.Equal("team-1", exception.OwnerId);
+        Assert.Equal(documentError, exception.DocumentError);
+    }
+
+    [Fact]
+    public async Task ResolveTeamAsync_WhenTheTeamIsMissing_Throws()
+    {
+        SetupEnvironment();
+        SetupServer(CreateStrictMock<IReadOnlySettingCollection>().Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTeamSettings?)null)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
+            await Resolver.ResolveTeamAsync("team-1", CancellationToken.None)
+        );
+
+        Assert.Equal("The team 'team-1' does not exist.", exception.Message);
+    }
+
+    [Fact]
+    public async Task ResolveTeamAsync_WithADocument_MergesItOntoTheCommittedPlatform()
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> expanded = new List<Setting>();
+        SetupExpand(OpenIdSettingScopes.Team, "proposed", jsonOptions, expanded);
+        var effective = CreateLooseMock<ISettingCollection>().Object;
+        var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
+        mockPlatform.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
+        SetupServer(mockPlatform.Object);
+        var mockPlatformStore = SetupServerStore();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+
+        var result = await Resolver.ResolveTeamAsync(
+            "team-1",
+            CreateDocument("proposed"),
+            CancellationToken.None
+        );
+
+        Assert.Same(effective, result);
+    }
+
+    #endregion
+
     #region Helpers
+
+    private static PersistedTeamSettings CreateTeamSettings(string teamId, string propertyName) =>
+        new()
+        {
+            TeamId = teamId,
+            ConcurrencyToken = "token",
+            Value = CreateDocument(propertyName),
+        };
+
+    private (Mock<IPlatformStore> Platform, Mock<ITeamStore> Team) SetupPlatformAndTeamStores()
+    {
+        var mockPlatformStore = CreateStrictMock<IPlatformStore>();
+        var mockTeamStore = CreateStrictMock<ITeamStore>();
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IPlatformStore>())
+            .Returns(mockPlatformStore.Object)
+            .Verifiable();
+        mockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(mockTeamStore.Object)
+            .Verifiable();
+        mockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockStoreManager.Object)
+            .Verifiable();
+
+        return (mockPlatformStore, mockTeamStore);
+    }
 
     private static JsonElement CreateDocument(string propertyName) =>
         JsonSerializer.SerializeToElement(

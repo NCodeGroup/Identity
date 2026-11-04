@@ -144,4 +144,45 @@ internal sealed class DefaultEffectiveSettingsResolver(
             serverSettings.Value
         );
     }
+
+    /// <inheritdoc />
+    // See ADR-1403.
+    public async ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(teamId);
+
+        var platformSettings = await ResolvePlatformAsync(cancellationToken);
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITeamStore>();
+
+        var teamSettings =
+            await store.GetSettingsOrDefaultAsync(teamId, cancellationToken)
+            ?? throw new KeyNotFoundException($"The team '{teamId}' does not exist.");
+
+        return ResolveStored(
+            platformSettings,
+            OpenIdSettingScopes.Team,
+            teamId,
+            teamSettings.Value
+        );
+    }
+
+    /// <inheritdoc />
+    // See ADR-1403.
+    public async ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
+        string teamId,
+        JsonElement settings,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(teamId);
+
+        var platformSettings = await ResolvePlatformAsync(cancellationToken);
+
+        return Resolve(platformSettings, OpenIdSettingScopes.Team, settings);
+    }
 }

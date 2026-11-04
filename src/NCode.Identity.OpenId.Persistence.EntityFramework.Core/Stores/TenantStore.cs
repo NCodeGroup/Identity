@@ -298,9 +298,16 @@ internal class TenantStore(
 
         var secrets = new List<TenantSecretEntity>(persistedTenant.Secrets.Value.Count);
 
+        var teamEntity = await DbContext.Teams.SingleAsync(
+            team => team.NormalizedTeamId == OpenIdResourceIds.Platform,
+            cancellationToken
+        );
+
         var tenantEntity = new TenantEntity
         {
             Id = NextId(),
+            TeamId = teamEntity.Id,
+            Team = teamEntity,
             TenantId = persistedTenant.TenantId,
             NormalizedTenantId = Normalize(persistedTenant.TenantId),
             Issuer = persistedTenant.Issuer,

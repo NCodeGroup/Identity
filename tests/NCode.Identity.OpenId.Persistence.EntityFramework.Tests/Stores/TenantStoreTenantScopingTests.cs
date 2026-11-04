@@ -45,8 +45,9 @@ public sealed class TenantStoreTenantScopingTests : IDisposable
         _dbContext = new OpenIdDbContext(
             options,
             _ambientTenantAccessor,
-            [new CoreModelContributor()]
+            [new CoreModelContributor(), new TestPlatformTeamContributor()]
         );
+        _dbContext.Database.EnsureCreated();
         _store = new TenantStore(
             Mock.Of<IStoreProvider>(),
             _provider.GetRequiredService<IIdGenerator<long>>(),

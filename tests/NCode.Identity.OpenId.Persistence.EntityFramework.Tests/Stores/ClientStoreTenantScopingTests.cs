@@ -45,8 +45,9 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
         _dbContext = new OpenIdDbContext(
             options,
             _ambientTenantAccessor,
-            [new CoreModelContributor()]
+            [new CoreModelContributor(), new TestPlatformTeamContributor()]
         );
+        _dbContext.Database.EnsureCreated();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
         _store = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);

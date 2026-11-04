@@ -34,6 +34,8 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
         modelBuilder.Entity<RoleAssignmentEntity>().ToTable("RoleAssignments");
         modelBuilder.Entity<FederatedPrincipalEntity>().ToTable("FederatedPrincipals");
         modelBuilder.Entity<FederatedIdentityEntity>().ToTable("FederatedIdentities");
+        modelBuilder.Entity<TeamEntity>().ToTable("Teams");
+        modelBuilder.Entity<RetiredTeamEntity>().ToTable("RetiredTeams");
         modelBuilder.Entity<RetiredTenantEntity>().ToTable("RetiredTenants");
         modelBuilder.Entity<RetiredIssuerEntity>().ToTable("RetiredIssuers");
         modelBuilder.Entity<TenantUsageEntity>().ToTable("TenantUsage");

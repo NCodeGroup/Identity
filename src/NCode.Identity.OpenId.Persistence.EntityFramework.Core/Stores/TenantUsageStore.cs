@@ -132,6 +132,7 @@ internal sealed class TenantUsageStore(
                 {
                     Id = IdGenerator.CreateId(),
                     TenantId = entry.TenantId,
+                    TeamId = OpenIdResourceIds.Platform,
                     Day = day,
                     Meter = entry.Meter,
                     Count = entry.Count,

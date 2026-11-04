@@ -9,7 +9,7 @@ export type {
   RotateSecretRequest,
   CreateInitialAccessTokenRequest,
   CreatedInitialAccessTokenResource,
-  CreateServerRequest,
+  CreateTeamRequest,
   CreateTenantRequest,
   AlgorithmCapability,
   AlgorithmCurveCapability,
@@ -26,8 +26,10 @@ export type {
   SecretResource,
   SecretsResource,
   SecretTypeCapability,
-  ServerResource,
   SettingsResource,
+  TeamResource,
+  TeamUsageEntry,
+  TeamUsageResource,
   TenantAddressFailure,
   TenantAddressResource,
   TenantEnvironmentResource,
@@ -37,7 +39,7 @@ export type {
   UpdateClientFields,
   UpdateResourceServerFields,
   UpdateScopeRequest,
-  UpdateServerFields,
+  UpdateTeamFields,
   UpdateTenantFields,
 } from './contracts.js';
 export {
@@ -55,6 +57,7 @@ export {
   ownerTagId,
   type ClientOwner,
   type ManagementOwner,
+  type SecretOwner,
 } from './owner.js';
 export {
   isPlatformScope,

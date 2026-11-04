@@ -1,14 +1,21 @@
 /**
- * The owner of a collection of secrets or of a settings document: a server, a tenant, or a client or
+ * The owner of a collection of secrets or of a settings document: the platform, a team, a tenant, or a client or
  * resource server inside a scope (see docs/decisions/1257). Secrets and settings are managed the same way for every owner,
  * so the UI and the store address them through one owner value instead of one endpoint per owner. This module is
  * UI-free so the addressing and cache-tag rules are unit-tested.
  */
 
-import { GLOBAL_SCOPE, scopeApiPrefix, scopeTagId, type ManagementScope } from './scope.js';
+import {
+  PLATFORM_SCOPE,
+  scopeApiPrefix,
+  scopeTagId,
+  teamScope,
+  type ManagementScope,
+} from './scope.js';
 
 export type ManagementOwner =
-  | { readonly kind: 'server'; readonly serverId: string }
+  | { readonly kind: 'platform' }
+  | { readonly kind: 'team'; readonly teamId: string }
   | { readonly kind: 'tenant'; readonly tenantId: string }
   | { readonly kind: 'client'; readonly scope: ManagementScope; readonly clientId: string }
   | {
@@ -20,11 +27,19 @@ export type ManagementOwner =
 /** The client variant of {@link ManagementOwner}; only a client's secrets rotate in one call. */
 export type ClientOwner = Extract<ManagementOwner, { readonly kind: 'client' }>;
 
-/** The scope an owner is administered in: servers are global, a tenant is its own scope. */
+/** The owners that hold secrets; the platform and a team hold settings only. */
+export type SecretOwner = Exclude<
+  ManagementOwner,
+  { readonly kind: 'platform' } | { readonly kind: 'team' }
+>;
+
+/** The scope an owner is administered in: the platform, a team and a tenant are each their own scope. */
 export function ownerScope(owner: ManagementOwner): ManagementScope {
   switch (owner.kind) {
-    case 'server':
-      return GLOBAL_SCOPE;
+    case 'platform':
+      return PLATFORM_SCOPE;
+    case 'team':
+      return teamScope(owner.teamId);
     case 'tenant':
       return { kind: 'tenant', tenantId: owner.tenantId };
     case 'client':
@@ -36,8 +51,10 @@ export function ownerScope(owner: ManagementOwner): ManagementScope {
 /** Builds the API path of an owner (every id is URI-encoded), under which `secrets` and `settings` live. */
 export function ownerApiPath(owner: ManagementOwner): string {
   switch (owner.kind) {
-    case 'server':
-      return `api/servers/${encodeURIComponent(owner.serverId)}`;
+    case 'platform':
+      return 'api/platform';
+    case 'team':
+      return `api/teams/${encodeURIComponent(owner.teamId)}`;
     case 'tenant':
       return `api/tenants/${encodeURIComponent(owner.tenantId)}`;
     case 'client':
@@ -50,8 +67,10 @@ export function ownerApiPath(owner: ManagementOwner): string {
 /** A key for an owner within its scope; the id is URI-encoded so it can never contain the `:` separator. */
 function ownerKey(owner: ManagementOwner): string {
   switch (owner.kind) {
-    case 'server':
-      return `server:${encodeURIComponent(owner.serverId)}`;
+    case 'platform':
+      return 'platform';
+    case 'team':
+      return `team:${encodeURIComponent(owner.teamId)}`;
     case 'tenant':
       return `tenant:${encodeURIComponent(owner.tenantId)}`;
     case 'client':

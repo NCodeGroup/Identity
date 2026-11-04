@@ -13,6 +13,8 @@ export type CollectionResource<T> = {
 /** Mirror of `TenantResource`. */
 export type TenantResource = {
   readonly tenantId: string;
+  /** The team the tenant belongs to; it never changes. */
+  readonly teamId: string;
   readonly concurrencyToken: string;
   readonly issuer: string | null;
   /** The https origin of the tenant's RFC 8705 mutual-TLS endpoint aliases, or `null` when it has none. */
@@ -90,28 +92,32 @@ export type TenantAddressResource = {
   readonly failures: readonly TenantAddressFailure[];
 };
 
-/** Mirror of `ServerResource` (global scope). */
-export type ServerResource = {
-  readonly serverId: string;
+/** Mirror of `TeamResource`: a team groups tenants under one administrative boundary. */
+export type TeamResource = {
+  readonly teamId: string;
   readonly concurrencyToken: string;
   readonly displayName: string;
+  readonly isDisabled: boolean;
 };
 
 /**
- * Mirror of `CreateServerRequest`. The server id is server-generated (not supplied), and `settings`
- * is the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
+ * Mirror of `CreateTeamRequest`. The team id is chosen by its creator and cannot change. `settings` is
+ * the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
  */
-export type CreateServerRequest = {
+export type CreateTeamRequest = {
+  readonly teamId: string;
   readonly displayName: string;
+  readonly isDisabled: boolean;
   readonly settings: Readonly<Record<string, unknown>>;
 };
 
 /**
- * The mutable server metadata a JSON Patch may modify (mirror of `UpdateServerRequest`). The store
+ * The mutable team metadata a JSON Patch may modify (mirror of `UpdateTeamRequest`). The store
  * turns this into a `replace`-only JSON Patch document; keys match the server's wire property names.
  */
-export type UpdateServerFields = {
+export type UpdateTeamFields = {
   readonly displayName: string;
+  readonly isDisabled: boolean;
 };
 
 /**
@@ -395,7 +401,7 @@ export type SettingsResource = {
 };
 
 /**
- * Mirror of a `*EffectiveSettingsResource` wrapper. `settings` is the read-only merged (server baseline +
+ * Mirror of a `*EffectiveSettingsResource` wrapper. `settings` is the read-only merged (platform and team baseline +
  * persisted overrides + descriptor defaults) flat JSON object the authorization server resolves at runtime.
  */
 export type EffectiveSettingsResource = {
@@ -421,6 +427,28 @@ export type TenantUsageResource = {
   readonly from: string;
   readonly to: string;
   readonly entries: readonly TenantUsageEntry[];
+};
+
+/**
+ * Mirror of `TeamUsageEntry` — one row of a team's usage ledger: a tenant's `count` of a `meter` (an open
+ * vocabulary, e.g. `requests` or `token_requests`) on a UTC calendar `day` (`YYYY-MM-DD` on the wire).
+ */
+export type TeamUsageEntry = {
+  readonly tenantId: string;
+  readonly day: string;
+  readonly meter: string;
+  readonly count: number;
+};
+
+/**
+ * Mirror of `TeamUsageResource` — the usage of a team's tenants for the inclusive range of UTC days `from`..`to`
+ * (`YYYY-MM-DD`), ordered by day then meter. The server defaults the range to the last 30 days and caps it at 366.
+ */
+export type TeamUsageResource = {
+  readonly teamId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly entries: readonly TeamUsageEntry[];
 };
 
 /**

@@ -7,6 +7,7 @@ using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -17,6 +18,8 @@ namespace NCode.Identity.OpenId.Core.Tenants;
 public sealed class DefaultTenantProvisionerTests : IDisposable
 {
     private const string RootTenantId = "root";
+    private const string TeamId = "platform";
+    private const string TeamDisplayName = "Platform Team";
     private const string RootDisplayName = "Control Plane";
     private const string WorkloadTenantId = "acme";
     private const string WorkloadIssuer = "https://op.example/acme";
@@ -28,6 +31,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ITenantResolver> MockTenantResolver { get; }
     private Mock<IMediator> MockMediator { get; }
+    private Mock<ITeamProvisioner> MockTeamProvisioner { get; }
     private DefaultTenantProvisioner Provisioner { get; }
 
     public DefaultTenantProvisionerTests()
@@ -38,6 +42,12 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         MockAmbientTenantAccessor = Mocks.Create<IAmbientTenantAccessor>();
         MockTenantResolver = Mocks.Create<ITenantResolver>();
         MockMediator = Mocks.Create<IMediator>();
+        MockTeamProvisioner = Mocks.Create<ITeamProvisioner>();
+        MockTeamProvisioner
+            .Setup(x =>
+                x.EnsureCreatedAsync(TeamId, TeamDisplayName, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateTeam());
 
         Provisioner = new DefaultTenantProvisioner(
             MockStoreManagerFactory.Object,
@@ -46,14 +56,31 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             Options.Create(
                 new TenantResolutionOptions
                 {
-                    Root = { TenantId = RootTenantId, DisplayName = RootDisplayName },
+                    Root =
+                    {
+                        TeamId = TeamId,
+                        TeamDisplayName = TeamDisplayName,
+                        TenantId = RootTenantId,
+                        DisplayName = RootDisplayName,
+                    },
                 }
             ),
-            MockMediator.Object
+            MockMediator.Object,
+            MockTeamProvisioner.Object
         );
     }
 
     public void Dispose() => Mocks.Verify();
+
+    private static PersistedTeam CreateTeam() =>
+        new()
+        {
+            TeamId = TeamId,
+            ConcurrencyToken = "token",
+            IsDisabled = false,
+            DisplayName = TeamDisplayName,
+            Settings = null!,
+        };
 
     private static PersistedTenant CreateTenant(string tenantId, string? issuer = null) =>
         new()
@@ -146,6 +173,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         SetupGetTenant(WorkloadTenantId, existing);
 
         var result = await Provisioner.EnsureCreatedAsync(
+            TeamId,
             WorkloadTenantId,
             "Acme",
             CancellationToken.None
@@ -198,6 +226,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             .Verifiable();
 
         var result = await Provisioner.EnsureCreatedAsync(
+            TeamId,
             WorkloadTenantId,
             "Acme",
             CancellationToken.None
@@ -206,6 +235,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         Assert.NotNull(added);
         Assert.Same(added, result);
         Assert.Equal(WorkloadTenantId, result.TenantId);
+        Assert.Equal(TeamId, result.TeamId);
         Assert.Equal(WorkloadIssuer, result.Issuer);
         Assert.Equal(workloadAlias, result.MtlsEndpointAliasAuthority);
         Assert.Equal("Acme", result.DisplayName);
@@ -246,7 +276,12 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             .Verifiable();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await Provisioner.EnsureCreatedAsync(WorkloadTenantId, "Acme", CancellationToken.None)
+            await Provisioner.EnsureCreatedAsync(
+                TeamId,
+                WorkloadTenantId,
+                "Acme",
+                CancellationToken.None
+            )
         );
 
         Assert.Contains(
@@ -297,6 +332,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             .Verifiable();
 
         var result = await Provisioner.EnsureCreatedAsync(
+            TeamId,
             WorkloadTenantId,
             "Acme",
             CancellationToken.None
@@ -346,7 +382,12 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             .Verifiable();
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await Provisioner.EnsureCreatedAsync(WorkloadTenantId, "Acme", CancellationToken.None)
+            await Provisioner.EnsureCreatedAsync(
+                TeamId,
+                WorkloadTenantId,
+                "Acme",
+                CancellationToken.None
+            )
         );
 
         Assert.Same(failure, exception);

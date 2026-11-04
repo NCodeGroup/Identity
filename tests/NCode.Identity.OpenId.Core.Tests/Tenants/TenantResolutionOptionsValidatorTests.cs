@@ -68,6 +68,25 @@ public sealed class TenantResolutionOptionsValidatorTests
     }
 
     [Fact]
+    public void Validate_WhenRootTeamIdIsEmpty_Fails()
+    {
+        var failures = Failures(new TenantResolutionOptions { Root = { TeamId = string.Empty } });
+
+        Assert.Contains("Root:TeamId is required", failures, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Platform")]
+    [InlineData("platform_team")]
+    [InlineData("-platform")]
+    public void Validate_WhenRootTeamIdIsNotAnIdentifier_Fails(string rootTeamId)
+    {
+        var failures = Failures(new TenantResolutionOptions { Root = { TeamId = rootTeamId } });
+
+        Assert.Contains($"Root:TeamId '{rootTeamId}'", failures, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Validate_WhenRootDisplayNameIsEmpty_Fails()
     {
         var failures = Failures(

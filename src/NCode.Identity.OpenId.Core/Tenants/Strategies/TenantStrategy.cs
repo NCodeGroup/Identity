@@ -276,6 +276,7 @@ internal abstract class TenantStrategy(
         // The provisioner is scoped (its mediator is request-scoped), so it is resolved from the request's services.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         return await provisioner.EnsureCreatedAsync(
+            RootOptions.TeamId,
             RootOptions.TenantId,
             RootOptions.DisplayName,
             cancellationToken

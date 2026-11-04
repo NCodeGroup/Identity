@@ -460,6 +460,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
         provisioner
             .Setup(x =>
                 x.EnsureCreatedAsync(
+                    RootTenantOptions.DefaultTeamId,
                     RootTenantOptions.DefaultTenantId,
                     RootTenantOptions.DefaultDisplayName,
                     It.IsAny<CancellationToken>()

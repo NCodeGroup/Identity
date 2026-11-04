@@ -11,6 +11,7 @@ using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Registration;
 
@@ -42,6 +43,7 @@ public static class DefaultRegistration
                 .AddPlatformServices()
                 .AddSettingServices()
                 .AddTenantResolutionServices()
+                .AddTeamServices()
                 .AddPrincipalResolutionServices();
 
             return newBuilder;

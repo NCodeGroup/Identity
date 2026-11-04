@@ -880,7 +880,7 @@ NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.MtlsEndpointAliasTempla
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.MtlsEndpointAliasTemplate.set -> void
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.IssuerTemplate.get -> string?
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.IssuerTemplate.set -> void
-NCode.Identity.OpenId.Tenants.ITenantProvisioner.EnsureCreatedAsync(string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
+NCode.Identity.OpenId.Tenants.ITenantProvisioner.EnsureCreatedAsync(string! teamId, string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantProvisioner.SeedAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetDefaultIssuerAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
@@ -967,3 +967,11 @@ NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.IsProduction.get -> bool
 NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.SecurityProfiles.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.TypeName.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.AuditRecords = "AuditRecords" -> string!
+const NCode.Identity.OpenId.Tenants.RootTenantOptions.DefaultTeamDisplayName = "Platform" -> string!
+const NCode.Identity.OpenId.Tenants.RootTenantOptions.DefaultTeamId = "platform" -> string!
+NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamDisplayName.get -> string!
+NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamDisplayName.set -> void
+NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.get -> string!
+NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.set -> void
+NCode.Identity.OpenId.Teams.ITeamProvisioner
+NCode.Identity.OpenId.Teams.ITeamProvisioner.EnsureCreatedAsync(string! teamId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>

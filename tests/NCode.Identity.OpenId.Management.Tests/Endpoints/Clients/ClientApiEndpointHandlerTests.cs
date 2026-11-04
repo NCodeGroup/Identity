@@ -798,7 +798,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         // No store scaffold is set up, so a strict-mock failure would mean authorization ran too late.
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -955,7 +956,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         // No store scaffold is set up, so a strict-mock failure would mean authorization ran too late.
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     // Returns the tenant's effective settings that the reporter receives, or null when the tenant has no settings.
@@ -1177,7 +1179,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
         // authorization.
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     private static ISettingCollection CreateSettingCollection(params Setting[] settings)
@@ -1749,7 +1752,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
         MockAuthorizationService.Verify(
             x =>
                 x.AuthorizeAsync(
@@ -2601,7 +2606,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -3351,7 +3358,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -3377,7 +3386,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -3402,7 +3413,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     // Rotation is authorized as the create and the update it performs, so each requirement is set up on its own, and

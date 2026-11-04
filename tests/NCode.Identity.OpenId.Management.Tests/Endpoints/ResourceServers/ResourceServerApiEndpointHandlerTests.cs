@@ -573,7 +573,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
         // authorization.
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     private void SetupSettingScopes(
@@ -1069,6 +1070,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 }

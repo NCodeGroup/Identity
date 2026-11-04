@@ -28,4 +28,19 @@ public sealed class UpdateSecretRequest
     /// Gets the <see cref="DateTimeOffset"/> when the secret expires and is no longer valid.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when the secret starts to sign or encrypt, or <c>null</c> to keep the
+    /// stored instant. Never before the creation.
+    /// </summary>
+    // See ADR-1403.
+    public DateTimeOffset? ActivatesWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when the secret stops signing or encrypting while it still verifies or
+    /// decrypts, or <c>null</c> to keep the stored instant, bounded by <see cref="ExpiresWhen"/>. Never before
+    /// <see cref="ActivatesWhen"/>, never after <see cref="ExpiresWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public DateTimeOffset? RetiresWhen { get; init; }
 }

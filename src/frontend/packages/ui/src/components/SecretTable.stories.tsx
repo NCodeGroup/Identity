@@ -16,6 +16,8 @@ const base = {
   algorithm: null,
   isVerifier: false,
   createdWhen: '2026-01-01T12:00:00Z',
+  activatesWhen: '2026-01-01T12:00:00Z',
+  managedBy: null,
 };
 
 export const Populated: Story = {
@@ -29,6 +31,7 @@ export const Populated: Story = {
         keySizeBits: 256,
         // A client secret its method only compares, held as a one-way verifier (ADR-1391).
         isVerifier: true,
+        retiresWhen: '2099-01-01T12:00:00Z',
         expiresWhen: '2099-01-01T12:00:00Z',
       },
       {
@@ -37,7 +40,20 @@ export const Populated: Story = {
         keyId: 's-expired',
         secretType: 'rsa',
         keySizeBits: 2048,
+        retiresWhen: '2020-01-01T12:00:00Z',
         expiresWhen: '2020-01-01T12:00:00Z',
+      },
+      {
+        ...base,
+        secretId: 's-upcoming',
+        keyId: 's-upcoming',
+        secretType: 'rsa',
+        keySizeBits: 2048,
+        // A successor the server provisioned, published ahead of the hand-over (ADR-1404).
+        activatesWhen: '2099-01-01T12:00:00Z',
+        retiresWhen: '2099-04-01T12:00:00Z',
+        expiresWhen: '2099-04-08T12:00:00Z',
+        managedBy: 'tenant_key_rollover',
       },
     ],
   },
@@ -54,6 +70,7 @@ export const WithActions: Story = {
         keyId: 's-active',
         secretType: 'symmetric',
         keySizeBits: 256,
+        retiresWhen: '2099-01-01T12:00:00Z',
         expiresWhen: '2099-01-01T12:00:00Z',
       },
       {
@@ -62,6 +79,7 @@ export const WithActions: Story = {
         keyId: 's-rsa',
         secretType: 'rsa',
         keySizeBits: 2048,
+        retiresWhen: '2099-01-01T12:00:00Z',
         expiresWhen: '2099-01-01T12:00:00Z',
       },
     ],

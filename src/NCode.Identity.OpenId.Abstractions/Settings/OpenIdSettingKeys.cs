@@ -550,6 +550,24 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.MaxConcurrentSessions);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_key_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> TenantKeyLifetime =>
+        new(OpenIdSettingNames.TenantKeyLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_key_activation_delay' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> TenantKeyActivationDelay =>
+        new(OpenIdSettingNames.TenantKeyActivationDelay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_key_retirement_grace' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> TenantKeyRetirementGrace =>
+        new(OpenIdSettingNames.TenantKeyRetirementGrace);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'environment_type' setting.
     /// </summary>
     public static SettingKey<string> EnvironmentType => new(OpenIdSettingNames.EnvironmentType);

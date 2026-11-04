@@ -976,6 +976,51 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
+            // tenant_key_lifetime: how long a key the server provisions for the tenant signs or encrypts before it
+            // retires and its successor takes over. Between one hour and ten years; default 90 days, the quarterly
+            // cadence of the major providers' automatic rollover. Not advertised. Ceiling (Min): a parent bounds how
+            // long a tenant's keys stay in use. (ADR-1404)
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.TenantKeyLifetime,
+                AppliesTo = Tenants,
+                Rule = SettingRules.Between(TimeSpan.FromHours(1), TimeSpan.FromDays(3650)),
+                Default = TimeSpan.FromDays(90),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // tenant_key_activation_delay: how long a provisioned key is published before it starts to sign or
+            // encrypt, so a verifier that caches the JSON Web Key Set holds the key before the first token it signs
+            // (OpenID Connect Core 1.0 §10.1.1). Up to a year; default two days. Not advertised. Floor (Max): a
+            // parent's delay is the least a tenant publishes ahead. (ADR-1404)
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.TenantKeyActivationDelay,
+                AppliesTo = Tenants,
+                Rule = SettingRules.Between(TimeSpan.Zero, TimeSpan.FromDays(365)),
+                Default = TimeSpan.FromDays(2),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Max,
+            };
+
+            // tenant_key_retirement_grace: how long a retired key stays published and verifies or decrypts. The
+            // rollover raises it to the longest lifetime of the tokens the tenant protects with its keys plus the
+            // clock skew, so no token outlives its key. Up to a year; default seven days. Not advertised. Floor
+            // (Max): a parent's grace is the least a tenant keeps a retired key. (ADR-1404)
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.TenantKeyRetirementGrace,
+                AppliesTo = Tenants,
+                Rule = SettingRules.Between(TimeSpan.Zero, TimeSpan.FromDays(365)),
+                Default = TimeSpan.FromDays(7),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Max,
+            };
+
             // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
             // anonymous (no initial access token) requests (default false). (ADR-1063)
             // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.

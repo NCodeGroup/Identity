@@ -67,10 +67,13 @@ const rsaSecret: SecretResource = {
   use: 'sig',
   algorithm: 'RS256',
   createdWhen: '2026-01-01T00:00:00Z',
+  activatesWhen: '2026-01-01T00:00:00Z',
+  retiresWhen: '2099-01-01T00:00:00Z',
   expiresWhen: '2099-01-01T00:00:00Z',
   secretType: 'rsa',
   keySizeBits: 2048,
   isVerifier: false,
+  managedBy: null,
 };
 
 const capabilities = {

@@ -63,6 +63,8 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.MaxValue,
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.MaxValue,
             SecretType = secretType,
             SecretEncoding = secretEncoding,
             Origin = SecretOrigins.Generated,

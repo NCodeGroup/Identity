@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
-using NCode.Identity.Cryptography;
+using NCode.Identity.Events;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -15,7 +16,6 @@ using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -26,6 +26,7 @@ namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 public sealed class TenantKeySeedHandlerTests : BaseTests
 {
     private const string TenantId = "acme";
+    private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
 
     private static TenantKeySpecification Rs256 { get; } =
         new()
@@ -36,47 +37,36 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             KeySizeBits = 3072,
         };
 
-    private static TenantKeySpecification Es256 { get; } =
-        new()
-        {
-            Algorithm = "ES256",
-            Use = SecretKeyUses.Signature,
-            SecretType = SecretKeyTypes.Ecc,
-            KeySizeBits = 256,
-            Curve = "P-256",
-        };
-
     private OpenIdOptions OpenIdOptions { get; } = new();
     private Mock<ITenantKeyPolicy> MockPolicy { get; }
+    private Mock<ITenantKeyRolloverPlanner> MockPlanner { get; }
+    private Mock<ITenantKeyRollover> MockRollover { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
-    private Mock<ISecretGenerator> MockSecretGenerator { get; }
-    private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
-    private Mock<ISecretProtector> MockSecretProtector { get; }
-    private Mock<ICryptoService> MockCryptoService { get; }
+    private Mock<IEventPublisher> MockEventPublisher { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
+    private IReadOnlySettingCollection EffectiveSettings { get; }
     private TenantKeySeedHandler Handler { get; }
 
     public TenantKeySeedHandlerTests()
     {
         MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
+        MockPlanner = CreateStrictMock<ITenantKeyRolloverPlanner>();
+        MockRollover = CreateStrictMock<ITenantKeyRollover>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
-        MockSecretGenerator = CreateStrictMock<ISecretGenerator>();
-        MockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
-        MockSecretProtector = CreateStrictMock<ISecretProtector>();
-        MockCryptoService = CreateStrictMock<ICryptoService>();
+        MockEventPublisher = CreateStrictMock<IEventPublisher>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
+        EffectiveSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
         Handler = new TenantKeySeedHandler(
             Options.Create(OpenIdOptions),
             MockPolicy.Object,
+            MockPlanner.Object,
+            MockRollover.Object,
             MockEffectiveSettingsResolver.Object,
-            MockSecretGenerator.Object,
-            MockSecretProtectorProvider.Object,
-            MockCryptoService.Object,
-            TimeProvider.System,
-            CreateLooseMock<ILogger<TenantKeySeedHandler>>().Object
+            MockEventPublisher.Object,
+            new FakeTimeProvider(Now)
         );
     }
 
@@ -98,151 +88,92 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenTenantHoldsNoKeys_GeneratesAndStoresOnePerSpecification()
+    public async Task HandleAsync_WhenThePlanIsEmpty_LeavesTheTenantUntouchedAndQueuesNothing()
     {
-        var tenant = CreateTenant([]);
-        SetupSpecifications(Rs256, Es256);
-        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256", "ES256");
-        var requests = SetupGeneration();
-        var added = SetupAddSecret();
+        // The rollover is strict with no setup: applying an empty plan fails the test.
+        var held = CreateSecret("held");
+        var tenant = CreateTenant([held]);
+        var original = tenant.Secrets;
+        SetupSpecifications(Rs256);
+        SetupSettings();
+        SetupPlan(tenant, new TenantKeyRolloverPlan { Now = Now });
+        var command = CreateCommand(tenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        Assert.Same(original, tenant.Secrets);
+        Assert.Empty(command.Context.PostCommitSteps);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenThePlanChangesKeys_AppliesItAndCarriesTheResultOnTheTenant()
+    {
+        var held = CreateSecret("held");
+        var generated = CreateSecret("generated");
+        var tenant = CreateTenant([held]);
+        SetupSpecifications(Rs256);
+        SetupSettings();
+        var plan = SetupGeneratingPlan(tenant);
+        SetupApply(tenant, plan, [held, generated], []);
 
         await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
 
-        Assert.Collection(
-            requests,
-            request => AssertRequest(Rs256, request),
-            request => AssertRequest(Es256, request)
-        );
-        Assert.Equal(added, tenant.Secrets.Value);
+        // The materialization that follows reads this instance, so it carries the keys as the plan left them.
+        Assert.Equal([held, generated], tenant.Secrets.Value);
         Assert.Equal(TenantId, tenant.Secrets.TenantId);
         Assert.Equal("token", tenant.Secrets.ConcurrencyToken);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenAHeldKeySatisfiesASpecification_GeneratesOnlyTheMissingKeys()
+    public async Task HandleAsync_WhenThePlanChangesKeys_PublishesTheAuditEventsOnlyAfterTheCommit()
     {
-        var held = CreateSecret("held");
-        var tenant = CreateTenant([held]);
-        SetupSpecifications(Rs256, Es256);
-        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256", "ES256");
-        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, held)).Returns(true).Verifiable();
-        MockPolicy.Setup(x => x.IsSatisfiedBy(Es256, held)).Returns(false).Verifiable();
-        var requests = SetupGeneration();
-        var added = SetupAddSecret();
-
-        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
-
-        var request = Assert.Single(requests);
-        AssertRequest(Es256, request);
-        var generated = Assert.Single(added);
-        Assert.Equal([held, generated], tenant.Secrets.Value);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenEveryKeyIsHeld_LeavesTheTenantUntouched()
-    {
-        // The store and the generator are strict with no setups: generating, adding, or removing a key fails the test.
-        var held = CreateSecret("held");
-        var tenant = CreateTenant([held]);
-        var original = tenant.Secrets;
-        SetupSpecifications(Rs256);
-        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256");
-        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, held)).Returns(true).Verifiable();
-
-        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
-
-        Assert.Same(original, tenant.Secrets);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenEveryKeyIsHeld_NeverLoadsTheTenantsProtector()
-    {
-        // The provider is strict with no setup: loading the protector fails the test.
+        // The publisher is strict with no setup until the step runs: an event published before the commit fails
+        // the test, and a seed that loses its commit never runs the step.
         var held = CreateSecret("held");
         var tenant = CreateTenant([held]);
         SetupSpecifications(Rs256);
-        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256");
-        MockPolicy.Setup(x => x.IsSatisfiedBy(Rs256, held)).Returns(true).Verifiable();
+        SetupSettings();
+        var plan = SetupGeneratingPlan(tenant);
+        var auditEvent = CreateAuditEvent("generated");
+        SetupApply(tenant, plan, [held], [auditEvent]);
+        var command = CreateCommand(tenant);
 
-        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
+        await Handler.HandleAsync(command, CancellationToken.None);
 
-        MockSecretProtectorProvider.VerifyNoOtherCalls();
+        var step = Assert.Single(command.Context.PostCommitSteps);
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(auditEvent, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        await step(CancellationToken.None);
     }
 
     [Fact]
-    public async Task HandleAsync_WhenSeveralKeysAreMissing_LoadsTheTenantsProtectorOnce()
+    public async Task HandleAsync_PlansFromTheTenantsEffectiveSettings()
     {
-        var tenant = CreateTenant([]);
-        SetupSpecifications(Rs256, Es256);
-        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "RS256", "ES256");
-        SetupGeneration();
-        SetupAddSecret();
-
-        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
-
-        MockSecretProtectorProvider.Verify(
-            x =>
-                x.GetProtectorAsync(
-                    SecretOwner.ForTenant(TenantId),
-                    It.IsAny<IReadOnlyCollection<string>>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenNoAlgorithmSettingNamesAnAlgorithm_DoesNotProvisionIt()
-    {
-        var tenant = CreateTenant([]);
-        SetupSpecifications(Rs256, Es256);
-        SetupSettings(OpenIdSettingNames.IdTokenSigningAlgValuesSupported, "PS256", "ES256");
-        var requests = SetupGeneration();
-        var added = SetupAddSecret();
-
-        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
-
-        var request = Assert.Single(requests);
-        AssertRequest(Es256, request);
-        Assert.Equal(added, tenant.Secrets.Value);
-    }
-
-    [Theory]
-    [InlineData(OpenIdSettingNames.IdTokenSigningAlgValuesSupported)]
-    [InlineData(OpenIdSettingNames.UserInfoSigningAlgValuesSupported)]
-    [InlineData(OpenIdSettingNames.IntrospectionSigningAlgValuesSupported)]
-    [InlineData(OpenIdSettingNames.AuthorizationSigningAlgValuesSupported)]
-    [InlineData(OpenIdSettingNames.AccessTokenSigningAlgValuesSupported)]
-    [InlineData(OpenIdSettingNames.RequestObjectEncryptionAlgValuesSupported)]
-    [InlineData(OpenIdSettingNames.AccessTokenEncryptionAlgValuesSupported)]
-    public async Task HandleAsync_WhenAnyDefaultAlgorithmSettingNamesTheAlgorithm_ProvisionsIt(
-        string settingName
-    )
-    {
+        // The tenant's settings materialize only after the seed, so the seed resolves the tenant's persisted document
+        // onto the server's committed settings through the resolver, as the materialized tenant will.
         var tenant = CreateTenant([]);
         SetupSpecifications(Rs256);
-        SetupSettings(settingName, "RS256");
-        var requests = SetupGeneration();
-        SetupAddSecret();
+        SetupSettings();
+        TenantKeyRolloverPlan? planned = null;
+        MockPlanner
+            .Setup(x =>
+                x.Plan(
+                    It.Is<IReadOnlyList<TenantKeySpecification>>(specifications =>
+                        specifications.SequenceEqual(new[] { Rs256 })
+                    ),
+                    tenant.Secrets.Value,
+                    EffectiveSettings,
+                    Now
+                )
+            )
+            .Returns(() => planned = new TenantKeyRolloverPlan { Now = Now })
+            .Verifiable();
 
         await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
 
-        var request = Assert.Single(requests);
-        AssertRequest(Rs256, request);
-    }
-
-    [Fact]
-    public async Task HandleAsync_WhenTheSettingIsNotAnAlgorithmSetting_DoesNotProvisionTheKey()
-    {
-        // The store and the generator are strict with no setups: generating or adding a key fails the test.
-        var tenant = CreateTenant([]);
-        var original = tenant.Secrets;
-        SetupSpecifications(Rs256);
-        SetupSettings(OpenIdSettingNames.DPoPSigningAlgValuesSupported, "RS256");
-
-        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
-
-        Assert.Same(original, tenant.Secrets);
+        Assert.NotNull(planned);
     }
 
     [Fact]
@@ -280,19 +211,6 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
 
     #region Helpers
 
-    private static void AssertRequest(
-        TenantKeySpecification specification,
-        GenerateSecretRequest request
-    )
-    {
-        Assert.Equal(specification.SecretType, request.SecretType);
-        Assert.Equal(specification.KeySizeBits, request.GenerationParameters.KeySizeBits);
-        Assert.Equal(specification.Use, request.Use);
-        Assert.Equal(specification.Algorithm, request.Algorithm);
-        Assert.Equal(specification.Curve, request.GenerationParameters.Curve);
-        Assert.Equal(request.CreatedWhen.AddYears(100), request.ExpiresWhen);
-    }
-
     private void SetupSpecifications(params TenantKeySpecification[] specifications) =>
         MockPolicy
             .Setup(x => x.ResolveSpecifications(KeyProvisioning))
@@ -305,13 +223,8 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             )
             .Verifiable();
 
-    private void SetupSettings(string settingName, params string[] algorithms)
+    private void SetupSettings()
     {
-        // The effective settings name the algorithms under one setting only; every other lookup finds nothing.
-        object? value = algorithms.ToList();
-        var mockEffectiveSettings = CreateLooseMock<ISettingCollection>();
-        mockEffectiveSettings.Setup(x => x.TryGetValue(settingName, out value)).Returns(true);
-
         var mockServerSettings = CreateStrictMock<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
             .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
@@ -325,70 +238,87 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
                     It.IsAny<JsonElement>()
                 )
             )
-            .Returns(mockEffectiveSettings.Object)
+            .Returns(EffectiveSettings)
             .Verifiable();
     }
 
-    private List<GenerateSecretRequest> SetupGeneration()
-    {
-        var count = 0;
-        MockCryptoService
-            .Setup(x => x.GenerateKey(It.IsAny<int>(), It.IsAny<string>()))
-            .Returns(() => $"generated-{++count}")
-            .Verifiable();
-
-        var requests = new List<GenerateSecretRequest>();
-        MockSecretProtectorProvider
+    private void SetupPlan(PersistedTenant tenant, TenantKeyRolloverPlan plan) =>
+        MockPlanner
             .Setup(x =>
-                x.GetProtectorAsync(
-                    SecretOwner.ForTenant(TenantId),
-                    It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
-                    It.IsAny<CancellationToken>()
+                x.Plan(
+                    It.IsAny<IReadOnlyList<TenantKeySpecification>>(),
+                    tenant.Secrets.Value,
+                    EffectiveSettings,
+                    Now
                 )
             )
-            .ReturnsAsync(MockSecretProtector.Object)
+            .Returns(plan)
             .Verifiable();
 
-        MockSecretGenerator
-            .Setup(x =>
-                x.GenerateSecret(MockSecretProtector.Object, It.IsAny<GenerateSecretRequest>())
-            )
-            .Returns(
-                (ISecretProtector _, GenerateSecretRequest request) =>
-                {
-                    requests.Add(request);
-                    return new GeneratedSecret
-                    {
-                        Secret = CreateSecret(request.SecretId),
-                        SecretMaterial = null,
-                    };
-                }
-            )
-            .Verifiable();
-        return requests;
+    private TenantKeyRolloverPlan SetupGeneratingPlan(PersistedTenant tenant)
+    {
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Generations.Add(
+            new TenantKeyGeneration
+            {
+                Specification = Rs256,
+                ActivatesWhen = Now,
+                RetiresWhen = Now.AddDays(90),
+                ExpiresWhen = Now.AddDays(97),
+                Reason = TenantKeyChangeReasons.NoActiveKey,
+            }
+        );
+        SetupPlan(tenant, plan);
+        return plan;
     }
 
-    private List<PersistedSecret> SetupAddSecret()
+    private void SetupApply(
+        PersistedTenant tenant,
+        TenantKeyRolloverPlan plan,
+        IReadOnlyCollection<PersistedSecret> secrets,
+        IReadOnlyList<TenantKeyAuditEvent> auditEvents
+    )
     {
         MockStoreManager
             .Setup(x => x.GetStore<ITenantStore>())
             .Returns(MockTenantStore.Object)
             .Verifiable();
-
-        var added = new List<PersistedSecret>();
-        MockTenantStore
+        MockRollover
             .Setup(x =>
-                x.AddSecretAsync(
+                x.ApplyAsync(
+                    MockTenantStore.Object,
                     TenantId,
-                    It.IsAny<PersistedSecret>(),
+                    tenant.Secrets.Value,
+                    plan,
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Callback((string _, PersistedSecret secret, CancellationToken _) => added.Add(secret))
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(
+                new TenantKeyRolloverResult { Secrets = secrets, AuditEvents = auditEvents }
+            )
             .Verifiable();
-        return added;
     }
+
+    private static TenantKeyAuditEvent CreateAuditEvent(string secretId) =>
+        new()
+        {
+            EventId = Guid.CreateVersion7(Now),
+            EventTime = Now,
+            EventSource = AuditEventSources.OpenId,
+            TenantId = TenantId,
+            Actor = AuditActor.System,
+            Outcome = AuditOutcome.Success,
+            Change = TenantKeyChanges.Generated,
+            Reason = TenantKeyChangeReasons.NoActiveKey,
+            SecretId = secretId,
+            KeyId = secretId,
+            SecretType = SecretKeyTypes.Rsa,
+            Algorithm = "RS256",
+            Use = SecretKeyUses.Signature,
+            ActivatesWhen = Now,
+            RetiresWhen = Now.AddDays(90),
+            ExpiresWhen = Now.AddDays(97),
+        };
 
     private SeedTenantCommand CreateCommand(PersistedTenant tenant) =>
         new(
@@ -424,6 +354,8 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             Use = null,
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretKeyTypes.Rsa,
             SecretEncoding = SecretEncodings.Pkcs8,

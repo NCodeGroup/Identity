@@ -55,7 +55,9 @@ public class DefaultSecretSerializerTests
         ReadOnlySpan<byte> rawBytes,
         string secretId = "secret-1",
         DateTimeOffset? expiresWhen = null,
-        string? keyId = null
+        string? keyId = null,
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null
     ) =>
         CreatePersistedSecretFromEncodedValue(
             secretType,
@@ -68,7 +70,9 @@ public class DefaultSecretSerializerTests
             CreateEnvelope(protector, secretId, rawBytes),
             secretId,
             expiresWhen,
-            keyId
+            keyId,
+            activatesWhen: activatesWhen,
+            retiresWhen: retiresWhen
         );
 
     private static PersistedSecret CreatePersistedSecretFromEncodedValue(
@@ -79,7 +83,9 @@ public class DefaultSecretSerializerTests
         string secretId = "secret-1",
         DateTimeOffset? expiresWhen = null,
         string? keyId = null,
-        string? publicKey = null
+        string? publicKey = null,
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null
     ) =>
         new()
         {
@@ -88,6 +94,8 @@ public class DefaultSecretSerializerTests
             Use = "sig",
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = activatesWhen ?? DateTimeOffset.UnixEpoch,
+            RetiresWhen = retiresWhen ?? expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             ExpiresWhen = expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = secretEncoding,
@@ -153,6 +161,28 @@ public class DefaultSecretSerializerTests
         var secretKey = _serializer.DeserializeSecret(protector, persisted);
 
         Assert.Equal("client-kid", secretKey.KeyId);
+    }
+
+    [Fact]
+    public void DeserializeSecret_CarriesTheInstantsOfTheLifecycleOnTheKeysMetadata()
+    {
+        byte[] keyMaterial = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        var protector = CreateProtector();
+        var persisted = CreatePersistedSecret(
+            protector,
+            SecretTypes.Symmetric,
+            keyMaterial.Length * 8,
+            keyMaterial,
+            activatesWhen: DateTimeOffset.UnixEpoch.AddDays(2),
+            retiresWhen: DateTimeOffset.UnixEpoch.AddDays(92),
+            expiresWhen: DateTimeOffset.UnixEpoch.AddDays(99)
+        );
+
+        var secretKey = _serializer.DeserializeSecret(protector, persisted);
+
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), secretKey.Metadata.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), secretKey.Metadata.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(99), secretKey.Metadata.ExpiresWhen);
     }
 
     #endregion

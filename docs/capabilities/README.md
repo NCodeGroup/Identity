@@ -8,10 +8,11 @@ and operators: how the capability works and where its limits are. Each page link
 [ADRs](../decisions/README.md) that record the decisions and to the code that implements them, and those stay the source of
 truth.
 
-| Capability                                       | In one line                                                                                                         |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| 🔐 [Encryption at Rest](./encryption-at-rest.md) | Every stored secret is encrypted under a root key held in a KMS. Tenants are isolated and can be crypto-shredded, and secrets are wiped from memory after use. |
-| 🪪 [Selective Disclosure (SD-JWT)](./selective-disclosure.md) | A credential is issued once over salted claim digests, its holder reveals only the claims a verifier needs, and a presentation is bound to the holder's key. |
+| Capability                                                    | In one line                                                                                                                                                                              |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🔐 [Encryption at Rest](./encryption-at-rest.md)              | Every stored secret is encrypted under a root key held in a KMS. Tenants are isolated and can be crypto-shredded, and secrets are wiped from memory after use.                           |
+| 🔁 [Key Rollover](./key-rollover.md)                          | Every tenant's signing and encryption keys roll over on a schedule, with each successor published ahead of its use and each retired key kept until every token it protected has expired. |
+| 🪪 [Selective Disclosure (SD-JWT)](./selective-disclosure.md) | A credential is issued once over salted claim digests, its holder reveals only the claims a verifier needs, and a presentation is bound to the holder's key.                             |
 
 ## Adding a capability
 

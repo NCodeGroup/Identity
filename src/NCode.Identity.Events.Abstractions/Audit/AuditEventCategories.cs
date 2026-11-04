@@ -51,4 +51,10 @@ public static class AuditEventCategories
     /// UserInfo endpoint returns.
     /// </summary>
     public const string DataAccess = "data_access";
+
+    /// <summary>
+    /// The event category code for the lifecycle of the server's keys: a key the server generates, activates, retires
+    /// or removes on its own.
+    /// </summary>
+    public const string Key = "key";
 }

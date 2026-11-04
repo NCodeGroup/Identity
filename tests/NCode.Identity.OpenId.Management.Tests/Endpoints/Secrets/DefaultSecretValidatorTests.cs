@@ -68,6 +68,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         await ServiceProvider.DisposeAsync();
     }
 
+    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.UnixEpoch;
+
     private static CreateSecretRequest CreateRequest(
         string secretType,
         int keySizeBits,
@@ -86,7 +88,153 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         };
 
     private ManagementError? CreateError(CreateSecretRequest request) =>
-        Validator.ValidateCreate(request).Error;
+        Validator.ValidateCreate(request, CreatedWhen).Error;
+
+    #region Lifecycle Tests
+
+    [Fact]
+    public void ValidateCreate_WhenTheLifecycleIsInOrder_ReturnsNull()
+    {
+        var request = new CreateSecretRequest
+        {
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            ActivatesWhen = CreatedWhen.AddDays(2),
+            RetiresWhen = CreatedWhen.AddDays(92),
+        };
+
+        Assert.Null(CreateError(request));
+    }
+
+    [Fact]
+    public void ValidateCreate_WhenTheActivationPrecedesTheCreation_Returns400()
+    {
+        var request = new CreateSecretRequest
+        {
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            ActivatesWhen = CreatedWhen.AddSeconds(-1),
+        };
+
+        var error = CreateError(request);
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains("cannot activate", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateCreate_WhenTheRetirementFollowsTheExpiry_Returns400()
+    {
+        var request = new CreateSecretRequest
+        {
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            RetiresWhen = CreatedWhen.AddDays(100),
+        };
+
+        var error = CreateError(request);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot expire", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateImport_WhenTheLifecycleIsOutOfOrder_Returns400()
+    {
+        var request = new ImportSecretRequest
+        {
+            SecretType = SecretTypes.Rsa,
+            Format = SecretKeyImportFormats.Jwk,
+            KeyMaterial = "{}",
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            ActivatesWhen = CreatedWhen.AddDays(3),
+            RetiresWhen = CreatedWhen.AddDays(2),
+        };
+
+        var error = Validator.ValidateImport(request, CreatedWhen);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot retire", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheActivationPrecedesTheKeysCreation_Returns400()
+    {
+        var key = CreateRsaKey();
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = key.ExpiresWhen,
+            ActivatesWhen = key.CreatedWhen.AddSeconds(-1),
+        };
+
+        var error = Validator.ValidateUpdate(key, request);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot activate", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheInstantsAreOmitted_JudgesTheStoredOnesAgainstTheNewExpiry()
+    {
+        // The stored activation lies past the new expiry, which the update keeps, so the update is refused as the
+        // handler would write it.
+        var key = CreateRsaKey(
+            activatesWhen: CreatedWhen.AddDays(20),
+            retiresWhen: CreatedWhen.AddDays(92)
+        );
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = CreatedWhen.AddDays(10),
+        };
+
+        var error = Validator.ValidateUpdate(key, request);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot retire", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheInstantsAreOmittedAndTheStoredOnesFitTheNewExpiry_ReturnsNull()
+    {
+        var key = CreateRsaKey(
+            activatesWhen: CreatedWhen.AddDays(2),
+            retiresWhen: CreatedWhen.AddDays(92)
+        );
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = CreatedWhen.AddDays(10),
+        };
+
+        Assert.Null(Validator.ValidateUpdate(key, request));
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheLifecycleIsInOrder_ReturnsNull()
+    {
+        var key = CreateRsaKey();
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = key.ExpiresWhen,
+            ActivatesWhen = key.CreatedWhen.AddDays(1),
+            RetiresWhen = key.ExpiresWhen.AddDays(-1),
+        };
+
+        Assert.Null(Validator.ValidateUpdate(key, request));
+    }
+
+    #endregion
 
     #region Curve Tests
 
@@ -216,7 +364,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
 
         var error = CreateValidator(serviceProvider)
-            .ValidateCreate(CreateRequest("ecc", 256, algorithm: "ECDH-ES"))
+            .ValidateCreate(CreateRequest("ecc", 256, algorithm: "ECDH-ES"), CreatedWhen)
             .Error;
 
         Assert.NotNull(error);
@@ -238,7 +386,10 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
 
         var validation = CreateValidator(serviceProvider)
-            .ValidateCreate(CreateRequest("ecc", 256, algorithm: "ECDH-ES", curve: curve));
+            .ValidateCreate(
+                CreateRequest("ecc", 256, algorithm: "ECDH-ES", curve: curve),
+                CreatedWhen
+            );
 
         Assert.True(validation.IsValid);
         Assert.Equal(curve, validation.GenerationParameters.Curve);
@@ -261,7 +412,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     )
     {
         var validation = Validator.ValidateCreate(
-            CreateRequest("ecc", keySizeBits, algorithm: algorithm)
+            CreateRequest("ecc", keySizeBits, algorithm: algorithm),
+            CreatedWhen
         );
 
         Assert.True(validation.IsValid);
@@ -273,7 +425,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     public void ValidateCreate_WhenRequestNamesACurveTheAlgorithmAccepts_GeneratesOnIt()
     {
         var validation = Validator.ValidateCreate(
-            CreateRequest("ecc", 384, algorithm: "ECDH-ES", curve: "P-384")
+            CreateRequest("ecc", 384, algorithm: "ECDH-ES", curve: "P-384"),
+            CreatedWhen
         );
 
         Assert.True(validation.IsValid);
@@ -293,7 +446,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     )
     {
         var validation = Validator.ValidateCreate(
-            CreateRequest(secretType, keySizeBits, algorithm: algorithm, curve: curve)
+            CreateRequest(secretType, keySizeBits, algorithm: algorithm, curve: curve),
+            CreatedWhen
         );
 
         Assert.True(validation.IsValid);
@@ -304,7 +458,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreate_WhenRequestIsNotCoherent_HasNoGenerationParameters()
     {
-        var validation = Validator.ValidateCreate(CreateRequest("unknown", 256));
+        var validation = Validator.ValidateCreate(CreateRequest("unknown", 256), CreatedWhen);
 
         Assert.False(validation.IsValid);
         Assert.Null(validation.GenerationParameters);
@@ -427,7 +581,10 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string curve
     )
     {
-        var validation = Validator.ValidateCreate(CreateRequest("ecc", 256, curve: curve));
+        var validation = Validator.ValidateCreate(
+            CreateRequest("ecc", 256, curve: curve),
+            CreatedWhen
+        );
 
         Assert.True(validation.IsValid);
         Assert.Equal(curve, validation.GenerationParameters.Curve);
@@ -544,10 +701,20 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
     #region ValidateUpdate Tests
 
-    private static PersistedSecret CreateRsaKey()
+    private static PersistedSecret CreateRsaKey(
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null
+    )
     {
         using var rsa = RSA.Create(2048);
-        return CreatePublicKey(SecretTypes.Rsa, 2048, rsa.ExportSubjectPublicKeyInfo(), "PS256");
+        return CreatePublicKey(
+            SecretTypes.Rsa,
+            2048,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "PS256",
+            activatesWhen,
+            retiresWhen
+        );
     }
 
     private static PersistedSecret CreateEccKey(ECCurve curve)
@@ -560,7 +727,9 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string secretType,
         int keySizeBits,
         byte[] subjectPublicKeyInfo,
-        string? algorithm
+        string? algorithm,
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null
     ) =>
         new()
         {
@@ -570,6 +739,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = activatesWhen ?? DateTimeOffset.UnixEpoch,
+            RetiresWhen = retiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = SecretEncodings.Spki,
             Origin = SecretOrigins.Generated,
@@ -660,6 +831,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = SecretEncodings.SymmetricRaw,
             Origin = SecretOrigins.Generated,
@@ -684,6 +857,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Algorithm = secret.Algorithm,
             CreatedWhen = secret.CreatedWhen,
             ExpiresWhen = secret.ExpiresWhen,
+            ActivatesWhen = secret.CreatedWhen,
+            RetiresWhen = secret.ExpiresWhen,
             SecretType = "unknown",
             SecretEncoding = secret.SecretEncoding,
             Origin = secret.Origin,
@@ -719,7 +894,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string format
     )
     {
-        var error = Validator.ValidateImport(CreateImportRequest(secretType, format));
+        var error = Validator.ValidateImport(CreateImportRequest(secretType, format), CreatedWhen);
 
         Assert.Null(error);
     }
@@ -732,7 +907,10 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string format
     )
     {
-        var error = Validator.ValidateImport(CreateImportRequest(SecretTypes.Rsa, format));
+        var error = Validator.ValidateImport(
+            CreateImportRequest(SecretTypes.Rsa, format),
+            CreatedWhen
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -748,7 +926,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     )
     {
         var error = Validator.ValidateImport(
-            CreateImportRequest(secretType, SecretKeyImportFormats.Jwk)
+            CreateImportRequest(secretType, SecretKeyImportFormats.Jwk),
+            CreatedWhen
         );
 
         Assert.NotNull(error);

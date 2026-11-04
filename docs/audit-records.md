@@ -98,7 +98,7 @@ the members in the order below.
 | `actor`                   | object            | Always                                                                | Who performed the operation. See [actor types](#actor-types).                                                                                                                    |
 | `actor.type`              | string            | Always                                                                | The kind of caller: one of the actor types.                                                                                                                                      |
 | `actor.id`                | string            | When the actor has an identifier                                      | The caller's identifier within its type: a subject id, a client id or an administrator's subject id.                                                                             |
-| `request`                 | object            | When the request context was captured                                 | The HTTP request that caused the operation. Every event the library publishes carries it.                                                                                        |
+| `request`                 | object            | When the request context was captured                                 | The HTTP request that caused the operation. Every event a request causes carries it; an event the server raises for an operation of its own, such as a `tenant.key.*` event, does not. |
 | `request.request_id`      | string            | When known                                                            | The HTTP request identifier (`HttpContext.TraceIdentifier`), which pivots to the host's request logs.                                                                            |
 | `request.trace_id`        | string            | When the current activity uses W3C identifiers                        | The 32-character W3C trace identifier, which pivots to traces.                                                                                                                   |
 | `request.span_id`         | string            | When the current activity uses W3C identifiers                        | The 16-character W3C identifier of the span that was current when the event was published.                                                                                       |
@@ -154,6 +154,7 @@ A severity the library does not define logs at Information.
 | `protocol`       | Protocol-level errors returned to a caller.                |
 | `management`     | Changes made through the management plane.                 |
 | `data_access`    | The disclosure of an end user's personal data to a caller. |
+| `key`            | The lifecycle of a tenant's keys: a key the server generates, activates, retires or removes on its own. |
 
 ### Event sources
 
@@ -172,13 +173,13 @@ The recorder states the actor explicitly for each event, so the actor does not d
 | `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                            |
 | `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`. |
 | `administrator` | The administrator's subject id, when known | Every management event. The subject id is read with the server-default claim types, not the request tenant's setting.                                                                 |
-| `system`        | None                                       | `session.terminated`; its `details.termination_reason` says why. No caller acted.                                                                                                     |
+| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*` events, whose `details.reason` says why. No caller acted.                                 |
 | `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                 |
 
 ### Resource types
 
-`session` is shared by the protocol and the management planes (`AuditResourceTypes.Session`). The management types are
-`ManagementResourceTypes`, and the local-account type is `AccountManagementResourceTypes`.
+`session`, `tenant` and `tenant.secret` are shared by the protocol and the management planes (`AuditResourceTypes`).
+The management types are `ManagementResourceTypes`, and the local-account type is `AccountManagementResourceTypes`.
 
 | `resources[].type`       | Entity                                                              |
 | ------------------------ | ------------------------------------------------------------------- |
@@ -247,6 +248,30 @@ Notes on the protocol events:
   no credential was verified, and `client_id` is the unverified one the request presented, or `unknown`.
 - `token.issued`'s `details.token_type` is the issued token's type, such as `access_token` or `id_token`; the token value
   is never written.
+
+### Key lifecycle
+
+Every key lifecycle event is a `TenantKeyAuditEvent` with `event_source` `openid`, `event_category` `key`, the `system`
+actor, the outcome `success` and the severity `info`: the server generated, activated, retired, extended or removed a
+key of the tenant on its own, in the seed that runs when the tenant is materialized or in the background rollover pass
+([ADR-1404](decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)). The
+event names the key's secret first and the tenant second, carries no `request`, never carries key material, and is
+published once the change is committed, so a change a lost race discarded is never recorded.
+
+| `event_name`           | Resources                | `details.reason`                                                                                                                                       |
+| ---------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tenant.key.generated` | `tenant.secret`, `tenant` | `no_active_key`: the tenant's first key for an algorithm, or a replacement that activates at once; `successor`: the successor of a key that nears its retirement, published ahead of the hand-over |
+| `tenant.key.activated` | `tenant.secret`, `tenant` | `no_active_key`: a published key was activated at once, because no key of its algorithm signed                                                        |
+| `tenant.key.retired`   | `tenant.secret`, `tenant` | `unused_algorithm`: the tenant's settings do not use the key's algorithm, so it stops signing and expires at the end of the retirement grace         |
+| `tenant.key.extended`  | `tenant.secret`, `tenant` | `retirement_grace_raised`: the retirement grace, raised by a setting or a longer token lifetime, reaches past the key's expiry, which moves to the end of the grace |
+| `tenant.key.removed`   | `tenant.secret`, `tenant` | `expired`: the key the server provisioned has expired and leaves the store                                                                             |
+
+Every key lifecycle event writes the same `details`: `reason` (one of `TenantKeyChangeReasons`, an open vocabulary),
+`key_id` (the `kid` the key is published under), `secret_type`, `algorithm` and `use` (when the key declares them), and
+the instants `activates_when`, `retires_when` and `expires_when` (RFC 3339), as the key stands after the change. Only a
+key the rollover provisioned (`managed_by` is `tenant_key_rollover` on the stored secret) is the subject of these events;
+a key an operator creates, imports, updates or deletes through the management API is recorded as a `tenant.secret.*`
+resource-change event with the `administrator` actor instead.
 
 ### BFF plane
 

@@ -52,4 +52,27 @@ public sealed class GenerateSecretRequest
     /// Gets the <see cref="DateTimeOffset"/> when the generated secret expires and is no longer valid.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when the generated secret starts to sign or encrypt, or <c>null</c> to activate it
+    /// when it is created. A key published ahead of its use names a later instant. Never before
+    /// <see cref="CreatedWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public DateTimeOffset? ActivatesWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when the generated secret stops signing or encrypting while it still verifies or
+    /// decrypts, or <c>null</c> to retire it when it expires. Never before <see cref="ActivatesWhen"/>, never after
+    /// <see cref="ExpiresWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public DateTimeOffset? RetiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the name of the component that manages the generated secret's lifecycle on its own, or <c>null</c> when
+    /// the secret keeps the lifecycle this request gives it. See <see cref="PersistedSecret.ManagedBy"/>.
+    /// </summary>
+    // See ADR-1404.
+    public string? ManagedBy { get; init; }
 }

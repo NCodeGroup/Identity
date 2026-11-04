@@ -25,8 +25,8 @@ internal class DefaultTenantKeyPolicy(
     ISecretSerializer secretSerializer
 ) : ITenantKeyPolicy
 {
-    // RSA keys are 3072 bits because NIST SP 800-57 accepts 2048-bit RSA only through 2030, and a provisioned key has
-    // no lifetime of its own until key rollover exists (issue #166).
+    // RSA keys are 3072 bits because NIST SP 800-57 accepts 2048-bit RSA only through 2030, and a tenant may set a key
+    // lifetime that reaches past it.
     private const int DefaultRsaKeySizeBits = 3072;
 
     // RS256 is the algorithm every OpenID provider must support (OpenID Connect Core 1.0 §15.1); PS256 and ES256 are the

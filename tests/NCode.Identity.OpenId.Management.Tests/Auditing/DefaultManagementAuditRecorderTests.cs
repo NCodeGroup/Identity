@@ -365,6 +365,63 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
     #endregion
 
+    #region RecordTeamChangedAsync Tests
+
+    [Fact]
+    public async Task RecordTeamChangedAsync_PublishesTeamChangedAuditEventInTheControlPlaneTenant()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        TeamChangedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<TeamChangedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (TeamChangedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false);
+
+        var httpContext = CreateHttpContext("admin-1");
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "tenant-1")
+                )
+            )
+        );
+        var resourceValues = JsonSerializer.SerializeToElement(new { name = "team" });
+
+        await recorder.RecordTeamChangedAsync(
+            httpContext,
+            "team-1",
+            ResourceChangeTypes.Updated,
+            resourceValues,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("team.updated", captured.EventName);
+        Assert.Equal(AuditEventSources.Management, captured.EventSource);
+        Assert.Equal(ManagementResourceTypes.Team, captured.ResourceType);
+        Assert.Equal(AuditOutcome.Success, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Null(captured.TenantEnvironmentType);
+        Assert.Equal("team-1", captured.ResourceId);
+        Assert.Equal("admin-1", captured.Actor.Id);
+        Assert.Equal(
+            [new AuditResource(ManagementResourceTypes.Team, "team-1")],
+            captured.Resources
+        );
+        Assert.NotNull(captured.ResourceValues);
+    }
+
+    #endregion
+
     #region RecordTenantChangedAsync Tests
 
     [Fact]
@@ -420,6 +477,41 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             captured.Resources
         );
         Assert.NotNull(captured.ResourceValues);
+    }
+
+    [Fact]
+    public async Task RecordTenantChangedAsync_NamesTheTenantsTeam()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        TenantChangedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<TenantChangedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (TenantChangedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = CreateRecorder(mockPublisher.Object);
+
+        await recorder.RecordTenantChangedAsync(
+            CreateHttpContext("admin-1"),
+            "team-7",
+            "tenant-1",
+            ResourceChangeTypes.Created,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal("team-7", captured.TeamId);
+        Assert.Equal(
+            new AuditResource(ManagementResourceTypes.Team, "team-7"),
+            captured.Resources[1]
+        );
     }
 
     #endregion
@@ -489,7 +581,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     #region RecordPlatformChangedAsync Tests
 
     [Fact]
-    public async Task RecordServerChangedAsync_PublishesServerChangedAuditEventWithSnapshot()
+    public async Task RecordPlatformChangedAsync_PublishesPlatformChangedAuditEventInTheControlPlaneTenant()
     {
         var mockPublisher = MockRepository.Create<IEventPublisher>();
 

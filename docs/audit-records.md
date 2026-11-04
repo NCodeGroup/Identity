@@ -186,8 +186,8 @@ The recorder states the actor explicitly for each event, so the actor does not d
 | `client.secret`          | A secret belonging to a client.                                     |
 | `tenant`                 | An OpenID tenant.                                                   |
 | `tenant.secret`          | A secret belonging to a tenant.                                     |
-| `server`                 | An OpenID server.                                                   |
-| `server.secret`          | A secret belonging to a server.                                     |
+| `platform`               | The platform, the deployment root.                                  |
+| `team`                   | A team: a grouping of related tenants.                              |
 | `resource_server`        | A resource server (an API, in Auth0 terms).                         |
 | `resource_server.scope`  | A scope belonging to a resource server.                             |
 | `resource_server.secret` | A secret belonging to a resource server.                            |
@@ -289,10 +289,10 @@ snapshot of the resource, never secret material.
 | ----------------------------------- | ----------------------------- |
 | `client`                            | none                          |
 | `client.secret`                     | `client`                      |
-| `tenant`                            | none                          |
+| `tenant`                            | `team`                        |
 | `tenant.secret`                     | `tenant`                      |
-| `server`                            | none                          |
-| `server.secret`                     | `server`                      |
+| `platform`                          | none                          |
+| `team`                              | none                          |
 | `resource_server`                   | none                          |
 | `resource_server.scope`             | `resource_server`             |
 | `resource_server.secret`            | `resource_server`             |

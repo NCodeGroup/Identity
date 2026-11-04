@@ -290,7 +290,7 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProductionAndServerEnvironmentTypeIsNotProduction_FailsOnStart()
+    public void AddProductionSafety_WhenProductionAndPlatformEnvironmentTypeIsNotProduction_FailsOnStart()
     {
         using var serviceProvider = BuildProtectedProvider("development");
 
@@ -307,7 +307,7 @@ public class ProductionSafetyRegistrationTests
     [InlineData("production")]
     [InlineData("unregistered")]
     [InlineData(null)]
-    public void AddProductionSafety_WhenProductionAndServerEnvironmentTypeIsNotANonProductionType_StartsCleanly(
+    public void AddProductionSafety_WhenProductionAndPlatformEnvironmentTypeIsNotANonProductionType_StartsCleanly(
         string? typeName
     )
     {
@@ -338,7 +338,7 @@ public class ProductionSafetyRegistrationTests
             options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
         });
         services.Configure<OpenIdOptions>(options =>
-            options.Platform.Settings = configuration.GetSection("OpenId:Server:Settings")
+            options.Platform.Settings = configuration.GetSection("OpenId:Platform:Settings")
         );
         services.AddSingleton<ITenantEnvironmentType>(new StubEnvironmentType("production", true));
         services.AddSingleton<ITenantEnvironmentType>(

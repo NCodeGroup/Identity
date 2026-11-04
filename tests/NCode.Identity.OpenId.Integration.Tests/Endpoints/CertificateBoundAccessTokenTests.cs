@@ -24,7 +24,7 @@ public class CertificateBoundAccessTokenTests
         new(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:tls_client_certificate_bound_access_tokens"] = "true",
+                ["OpenId:Platform:Settings:tls_client_certificate_bound_access_tokens"] = "true",
             }
         );
 

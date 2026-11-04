@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
 public class RootSettingsCollectionDataSourceTests : BaseTests
 {
-    private const string SectionPath = "OpenId:Server:Settings";
+    private const string SectionPath = "OpenId:Platform:Settings";
 
     private static IChangeToken NeverChanges { get; } =
         new CancellationChangeToken(CancellationToken.None);
@@ -113,7 +113,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
     #region Collection Property Tests
 
     [Fact]
-    public void Collection_IsTheServerSettingsExpandedWithTheProfilesTheySelect()
+    public void Collection_IsThePlatformSettingsExpandedWithTheProfilesTheySelect()
     {
         IReadOnlyCollection<Setting> expanded = [];
         IReadOnlyCollection<Setting>? capturedScope = null;

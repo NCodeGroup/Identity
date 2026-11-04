@@ -54,7 +54,7 @@ public class TenantUsageTests
             ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
         };
         foreach (var (name, value) in settings ?? new Dictionary<string, string?>())
-            configuration[$"OpenId:Server:Settings:{name}"] = value;
+            configuration[$"OpenId:Platform:Settings:{name}"] = value;
 
         return new ConfiguredHostApplicationFactory(configuration);
     }

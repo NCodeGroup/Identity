@@ -36,7 +36,10 @@ public class RateLimitTests
     private static ConfiguredHostApplicationFactory CreateFactory(
         string settingName,
         string value
-    ) => new(new Dictionary<string, string?> { [$"OpenId:Server:Settings:{settingName}"] = value });
+    ) =>
+        new(
+            new Dictionary<string, string?> { [$"OpenId:Platform:Settings:{settingName}"] = value }
+        );
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
@@ -100,7 +103,7 @@ public class RateLimitTests
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {
-                [$"OpenId:Server:Settings:{OpenIdSettingNames.RateLimitTenantPerMinute}"] = "2",
+                [$"OpenId:Platform:Settings:{OpenIdSettingNames.RateLimitTenantPerMinute}"] = "2",
             }
         );
         var client = factory.CreateClient(
@@ -243,7 +246,7 @@ public class RateLimitTests
                 configurationBuilder.AddInMemoryCollection(
                     new Dictionary<string, string?>
                     {
-                        [$"OpenId:Server:Settings:{TestPartitionSettingName}"] = "1",
+                        [$"OpenId:Platform:Settings:{TestPartitionSettingName}"] = "1",
                     }
                 )
             );

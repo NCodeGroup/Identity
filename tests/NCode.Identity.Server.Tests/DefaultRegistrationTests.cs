@@ -85,20 +85,20 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_WhenServerSettingsCanBeHonored_BindsThem()
+    public void AddIdentityServer_WhenPlatformSettingsCanBeHonored_BindsThem()
     {
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:grant_types_supported:0"] = "authorization_code",
-                ["OpenId:Server:Settings:session_management_supported"] = "true",
-                ["OpenId:Server:Settings:acr_values_supported"] = null,
+                ["OpenId:Platform:Settings:grant_types_supported:0"] = "authorization_code",
+                ["OpenId:Platform:Settings:session_management_supported"] = "true",
+                ["OpenId:Platform:Settings:acr_values_supported"] = null,
             }
         );
 
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("OpenId:Server:Settings", options.Platform.Settings?.Path);
+        Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings?.Path);
     }
 
     [Theory]
@@ -106,13 +106,13 @@ public sealed class DefaultRegistrationTests
     [InlineData("session_management_supported", "yes")]
     [InlineData("grant_types_supported", "authorization_code")]
     [InlineData("session_idle_timeout", "00:00:00")]
-    public async Task AddIdentityServer_WhenServerSettingCannotBeHonored_FailsToStart(
+    public async Task AddIdentityServer_WhenPlatformSettingCannotBeHonored_FailsToStart(
         string name,
         string value
     )
     {
         using var host = BuildHost(
-            new Dictionary<string, string?> { [$"OpenId:Server:Settings:{name}"] = value }
+            new Dictionary<string, string?> { [$"OpenId:Platform:Settings:{name}"] = value }
         );
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
@@ -120,7 +120,7 @@ public sealed class DefaultRegistrationTests
         );
 
         Assert.Contains(
-            $"OpenId:Server:Settings:{name}",
+            $"OpenId:Platform:Settings:{name}",
             exception.Message,
             StringComparison.Ordinal
         );
@@ -213,7 +213,7 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_RegistersTheServerSettingsChangeBroadcastHandler()
+    public void AddIdentityServer_RegistersThePlatformSettingsChangeBroadcastHandler()
     {
         // Without this handler a server settings change reaches only the replica that handled it.
         using var host = BuildHost([]);
@@ -225,7 +225,7 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_RegistersTheServerSettingsChangedHandler()
+    public void AddIdentityServer_RegistersThePlatformSettingsChangedHandler()
     {
         // Without this handler a server settings change reaches the replicas only at their next poll.
         using var host = BuildHost([]);
@@ -350,7 +350,7 @@ public sealed class DefaultRegistrationTests
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:session_management_supported"] = "true",
+                ["OpenId:Platform:Settings:session_management_supported"] = "true",
             },
             services =>
                 services.AddSingleton<IClientAuthenticationHandler>(_ =>
@@ -780,7 +780,7 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_WhenTheServerDeclaresADevelopmentEnvironment_ATenantInheritsIt()
+    public void AddIdentityServer_WhenThePlatformDeclaresADevelopmentEnvironment_ATenantInheritsIt()
     {
         using var host = BuildHost([]);
         var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
@@ -974,13 +974,13 @@ public sealed class DefaultRegistrationTests
     [InlineData("request_object_signing_alg_values_supported:0", "none")]
     [InlineData("id_token_encryption_alg_values_supported:0", "dir")]
     [InlineData("access_token_confirmation_methods_supported:0", "x5t")]
-    public async Task AddIdentityServer_WhenServerSettingIsOutsideItsDomain_FailsToStart(
+    public async Task AddIdentityServer_WhenPlatformSettingIsOutsideItsDomain_FailsToStart(
         string key,
         string value
     )
     {
         using var host = BuildHost(
-            new Dictionary<string, string?> { [$"OpenId:Server:Settings:{key}"] = value }
+            new Dictionary<string, string?> { [$"OpenId:Platform:Settings:{key}"] = value }
         );
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
@@ -989,36 +989,37 @@ public sealed class DefaultRegistrationTests
 
         var settingName = key.Split(':')[0];
         Assert.Contains(
-            $"OpenId:Server:Settings:{settingName}' must",
+            $"OpenId:Platform:Settings:{settingName}' must",
             exception.Message,
             StringComparison.Ordinal
         );
     }
 
     [Fact]
-    public void AddIdentityServer_WhenServerSettingsAreInTheirDomains_BindsThem()
+    public void AddIdentityServer_WhenPlatformSettingsAreInTheirDomains_BindsThem()
     {
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:security_profiles:0"] = "fapi2",
-                ["OpenId:Server:Settings:token_endpoint_auth_method"] = "private_key_jwt",
-                ["OpenId:Server:Settings:id_token_signing_alg_values_supported:0"] = "ES256",
-                ["OpenId:Server:Settings:request_object_signing_alg_values_supported:0"] = "HS256",
-                ["OpenId:Server:Settings:grant_types_supported:0"] =
+                ["OpenId:Platform:Settings:security_profiles:0"] = "fapi2",
+                ["OpenId:Platform:Settings:token_endpoint_auth_method"] = "private_key_jwt",
+                ["OpenId:Platform:Settings:id_token_signing_alg_values_supported:0"] = "ES256",
+                ["OpenId:Platform:Settings:request_object_signing_alg_values_supported:0"] =
+                    "HS256",
+                ["OpenId:Platform:Settings:grant_types_supported:0"] =
                     "urn:ietf:params:oauth:grant-type:device_code",
-                ["OpenId:Server:Settings:jwks_uri_allowed_hosts:0"] = "keys.example.com",
-                ["OpenId:Server:Settings:user_code_length"] = "12",
-                ["OpenId:Server:Settings:code_challenge_methods_supported:0"] = "S256",
-                ["OpenId:Server:Settings:require_pkce"] = "false",
-                ["OpenId:Server:Settings:pkce_nonce_exemption"] = "true",
+                ["OpenId:Platform:Settings:jwks_uri_allowed_hosts:0"] = "keys.example.com",
+                ["OpenId:Platform:Settings:user_code_length"] = "12",
+                ["OpenId:Platform:Settings:code_challenge_methods_supported:0"] = "S256",
+                ["OpenId:Platform:Settings:require_pkce"] = "false",
+                ["OpenId:Platform:Settings:pkce_nonce_exemption"] = "true",
             }
         );
 
         // Resolving the options runs their validators, which read the server settings through the descriptors.
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("OpenId:Server:Settings", options.Platform.Settings?.Path);
+        Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings?.Path);
     }
 
     [Fact]
@@ -1100,14 +1101,9 @@ public sealed class DefaultRegistrationTests
 
     [Theory]
     [InlineData(
-        "OpenId:Server:SettingsPeriodicRefreshInterval",
+        "OpenId:Platform:SettingsPeriodicRefreshInterval",
         "00:00:00",
-        "Server:SettingsPeriodicRefreshInterval"
-    )]
-    [InlineData(
-        "OpenId:Server:ReconciliationLeaseDuration",
-        "-00:01:00",
-        "Server:ReconciliationLeaseDuration"
+        "Platform:SettingsPeriodicRefreshInterval"
     )]
     [InlineData("OpenId:Tenant:TenantCacheLifetime", "50.00:00:00", "Tenant:TenantCacheLifetime")]
     [InlineData("OpenId:GrantRetention:PruneInterval", "00:00:00", "GrantRetention:PruneInterval")]

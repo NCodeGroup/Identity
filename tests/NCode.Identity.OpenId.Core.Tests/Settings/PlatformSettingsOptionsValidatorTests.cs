@@ -12,10 +12,10 @@ public class PlatformSettingsOptionsValidatorTests : BaseTests
     private static IConfigurationSection CreateSection() =>
         new ConfigurationBuilder()
             .AddInMemoryCollection(
-                new Dictionary<string, string?> { ["OpenId:Server:Settings:flag"] = "true" }
+                new Dictionary<string, string?> { ["OpenId:Platform:Settings:flag"] = "true" }
             )
             .Build()
-            .GetSection("OpenId:Server:Settings");
+            .GetSection("OpenId:Platform:Settings");
 
     #region Validate Tests
 

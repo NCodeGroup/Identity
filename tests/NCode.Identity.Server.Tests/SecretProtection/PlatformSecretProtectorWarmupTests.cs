@@ -162,7 +162,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
         var exception = Assert.Throws<InvalidOperationException>(() => holder.GetRequired());
 
         Assert.Equal(
-            "The server's secret protector is not loaded: the Data Protection key ring was used before the host started its hosted services.",
+            "The platform's secret protector is not loaded: the Data Protection key ring was used before the host started its hosted services.",
             exception.Message
         );
     }

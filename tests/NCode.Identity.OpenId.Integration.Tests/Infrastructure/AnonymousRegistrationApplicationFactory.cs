@@ -22,7 +22,7 @@ public sealed class AnonymousRegistrationApplicationFactory : HostApplicationFac
             configurationBuilder.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+                    ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
                 }
             )
         );

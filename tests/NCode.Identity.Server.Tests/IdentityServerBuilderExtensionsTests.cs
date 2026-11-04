@@ -126,12 +126,12 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     }
 
     [Fact]
-    public void AddConfiguration_WhenServerAndTenantConfigured_BindsThem()
+    public void AddConfiguration_WhenPlatformAndTenantConfigured_BindsThem()
     {
         using var serviceProvider = BuildConfiguredServiceProvider(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:grant_types_supported:0"] = "authorization_code",
+                ["OpenId:Platform:Settings:grant_types_supported:0"] = "authorization_code",
                 ["OpenId:Tenant:TenantCacheLifetime"] = "00:30:00",
             }
         );
@@ -140,19 +140,19 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
 
         Assert.Equal(TimeSpan.FromMinutes(30), options.Tenant.TenantCacheLifetime);
         Assert.NotNull(options.Platform.Settings);
-        Assert.Equal("OpenId:Server:Settings", options.Platform.Settings.Path);
+        Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings.Path);
         Assert.Equal("authorization_code", options.Platform.Settings["grant_types_supported:0"]);
     }
 
     [Fact]
-    public void AddConfiguration_WhenServerSectionAbsent_StillAssignsTheSettingsSection()
+    public void AddConfiguration_WhenPlatformSectionAbsent_StillAssignsTheSettingsSection()
     {
         using var serviceProvider = BuildConfiguredServiceProvider([]);
 
         var options = serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
         Assert.NotNull(options.Platform.Settings);
-        Assert.Equal("OpenId:Server:Settings", options.Platform.Settings.Path);
+        Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings.Path);
     }
 
     [Fact]
@@ -425,7 +425,7 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             .GetRequiredService<IOptions<MutualTlsForwardingOptions>>()
             .Value;
 
-        Assert.Equal("Identity:Server:Settings", openIdOptions.Platform.Settings?.Path);
+        Assert.Equal("Identity:Platform:Settings", openIdOptions.Platform.Settings?.Path);
         Assert.Equal("acme", tenantResolutionOptions.StaticSingle?.TenantId);
         Assert.Equal("X-Client-Cert", mutualTlsOptions.CertificateHeaderName);
     }

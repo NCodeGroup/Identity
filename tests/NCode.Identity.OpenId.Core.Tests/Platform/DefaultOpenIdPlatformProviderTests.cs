@@ -71,7 +71,7 @@ public class DefaultOpenIdServerProviderTests : BaseTests
     }
 
     [Fact]
-    public async Task GetAsync_WhenTheServerSettingsChange_EvictsEveryCachedTenant()
+    public async Task GetAsync_WhenThePlatformSettingsChange_EvictsEveryCachedTenant()
     {
         var (mockEnvironment, _, mockTenantCache, provider) = CreateProvider();
         await using var _ = provider;

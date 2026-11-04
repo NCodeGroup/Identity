@@ -300,7 +300,7 @@ public class TokenEndpointSecurityProfileTests
             var configuration = serverProfiles.Select(
                 (profileName, index) =>
                     KeyValuePair.Create<string, string?>(
-                        $"OpenId:Server:Settings:security_profiles:{index}",
+                        $"OpenId:Platform:Settings:security_profiles:{index}",
                         profileName
                     )
             );

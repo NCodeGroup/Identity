@@ -57,7 +57,7 @@ public static class IdentityServerBuilderExtensions
         /// The OpenID configuration section (<see cref="OpenIdOptions.DefaultSectionName"/> unless
         /// <paramref name="sectionName"/> names another) holds eleven subsections, each bound to one options type:
         /// <list type="bullet">
-        /// <item><description><c>Server</c> — <see cref="OpenIdPlatformOptions"/>, including the server's
+        /// <item><description><c>Platform</c> — <see cref="OpenIdPlatformOptions"/>, including the platform's
         /// <c>Settings</c>.</description></item>
         /// <item><description><c>Tenant</c> — <see cref="OpenIdTenantOptions"/>: how a resolved tenant is
         /// materialized and cached, and which keys every tenant is provisioned with.</description></item>
@@ -115,8 +115,8 @@ public static class IdentityServerBuilderExtensions
                 : sectionName;
 
             var openIdSection = configuration.GetSection(resolvedSectionName);
-            var serverSection = openIdSection.GetSection(nameof(OpenIdOptions.Platform));
-            var serverSettingsSection = serverSection.GetSection(
+            var platformSection = openIdSection.GetSection(nameof(OpenIdOptions.Platform));
+            var platformSettingsSection = platformSection.GetSection(
                 nameof(OpenIdPlatformOptions.Settings)
             );
             var tenantSection = openIdSection.GetSection(nameof(OpenIdOptions.Tenant));
@@ -150,12 +150,12 @@ public static class IdentityServerBuilderExtensions
                 .Configure(options =>
                 {
                     ThrowOnUnknownSubsection(openIdSection);
-                    serverSection.BindStrictly(options.Platform);
+                    platformSection.BindStrictly(options.Platform);
                     tenantSection.BindStrictly(options.Tenant);
 
-                    // The binder only assigns the settings section when the server section has keys; assign it
+                    // The binder only assigns the settings section when the platform section has keys; assign it
                     // regardless so settings added by a later configuration reload are still observed.
-                    options.Platform.Settings ??= serverSettingsSection;
+                    options.Platform.Settings ??= platformSettingsSection;
                 })
                 .ValidateOnStart();
 

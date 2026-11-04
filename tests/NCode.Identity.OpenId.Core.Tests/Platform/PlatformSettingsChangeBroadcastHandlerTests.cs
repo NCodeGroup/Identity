@@ -21,7 +21,7 @@ public class ServerSettingsChangeBroadcastHandlerTests : BaseTests
     #region Channel Tests
 
     [Fact]
-    public void Channel_IsTheServerSettingsChangedChannel()
+    public void Channel_IsThePlatformSettingsChangedChannel()
     {
         Assert.Equal("platform-settings-changed", Handler.Channel);
         Assert.Equal(PlatformSettingsChangeBroadcastHandler.ChannelName, Handler.Channel);

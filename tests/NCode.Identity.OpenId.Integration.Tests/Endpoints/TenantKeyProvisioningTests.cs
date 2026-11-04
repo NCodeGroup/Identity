@@ -60,7 +60,7 @@ public class TenantKeyProvisioningTests
     private static ProductionKeysApplicationFactory CreateDynamicFactory() =>
         CreateDynamicFactory(new Dictionary<string, string?>());
 
-    // The server settings are configuration keys beneath OpenId:Server:Settings, merged into the dynamic configuration.
+    // The server settings are configuration keys beneath OpenId:Platform:Settings, merged into the dynamic configuration.
     private static ProductionKeysApplicationFactory CreateDynamicFactory(
         IReadOnlyDictionary<string, string?> serverSettings
     )
@@ -275,8 +275,8 @@ public class TenantKeyProvisioningTests
         var serverSettings = new Dictionary<string, string?>();
         foreach (var name in SigningListNames)
         {
-            serverSettings[$"OpenId:Server:Settings:{name}:0"] = "RS256";
-            serverSettings[$"OpenId:Server:Settings:{name}:1"] = "PS256";
+            serverSettings[$"OpenId:Platform:Settings:{name}:0"] = "RS256";
+            serverSettings[$"OpenId:Platform:Settings:{name}:1"] = "PS256";
         }
 
         using var factory = CreateDynamicFactory(serverSettings);
@@ -308,7 +308,7 @@ public class TenantKeyProvisioningTests
             factory.Services.GetRequiredService<IConfiguration>();
         foreach (var name in SigningListNames)
         {
-            configuration[$"OpenId:Server:Settings:{name}:2"] = "ES256";
+            configuration[$"OpenId:Platform:Settings:{name}:2"] = "ES256";
         }
 
         configuration.Reload();

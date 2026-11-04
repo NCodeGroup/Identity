@@ -155,7 +155,7 @@ public class ClientRegistrationEndpointTests
                 configurationBuilder.AddInMemoryCollection(
                     new Dictionary<string, string?>
                     {
-                        ["OpenId:Server:Settings:environment_type"] = OpenIdConstants
+                        ["OpenId:Platform:Settings:environment_type"] = OpenIdConstants
                             .TenantEnvironmentTypes
                             .Production,
                     }
@@ -374,10 +374,9 @@ public class ClientRegistrationEndpointTests
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
-                ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] = OpenIdProtocol
-                    .ClientAuthenticationMethods
-                    .ClientSecretBasic,
+                ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
+                ["OpenId:Platform:Settings:token_endpoint_auth_methods_supported:0"] =
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             }
         );
         var client = factory.CreateClient(
@@ -434,13 +433,13 @@ public class ClientRegistrationEndpointTests
     {
         var configuration = new Dictionary<string, string?>
         {
-            ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+            ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
         };
         for (var index = 0; index < responseTypesSupported.Length; ++index)
-            configuration[$"OpenId:Server:Settings:response_types_supported:{index}"] =
+            configuration[$"OpenId:Platform:Settings:response_types_supported:{index}"] =
                 responseTypesSupported[index];
         for (var index = 0; index < grantTypesSupported.Length; ++index)
-            configuration[$"OpenId:Server:Settings:grant_types_supported:{index}"] =
+            configuration[$"OpenId:Platform:Settings:grant_types_supported:{index}"] =
                 grantTypesSupported[index];
         return configuration;
     }
@@ -1338,8 +1337,8 @@ public class ClientRegistrationEndpointTests
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
-                ["OpenId:Server:Settings:tls_client_certificate_bound_access_tokens"] = "true",
+                ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
+                ["OpenId:Platform:Settings:tls_client_certificate_bound_access_tokens"] = "true",
             }
         );
         var client = factory.CreateClient(

@@ -268,7 +268,7 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
     }
 
     [Fact]
-    public async Task StartAsync_WhenTheRingWasEncryptedUnderTheServerMasterKey_Completes()
+    public async Task StartAsync_WhenTheRingWasEncryptedUnderThePlatformMasterKey_Completes()
     {
         var holderA = await CreateLoadedHolderAsync();
         var repository = CreateRepository([]);

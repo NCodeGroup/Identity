@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
 public class DefaultSettingConfigurationReaderTests : BaseTests
 {
-    private const string SectionPath = "OpenId:Server:Settings";
+    private const string SectionPath = "OpenId:Platform:Settings";
 
     private DefaultSettingConfigurationReader CreateReader()
     {
@@ -286,14 +286,14 @@ public class DefaultSettingConfigurationReaderTests : BaseTests
     }
 
     [Fact]
-    public void Validate_WhenTheSettingAppliesToNoScope_ReportsItEvenForTheServer()
+    public void Validate_WhenTheSettingAppliesToNoScope_ReportsItEvenForThePlatform()
     {
         var reader = CreateReader();
         var section = CreateSection(("nowhere", "true"));
 
         var error = Assert.Single(reader.Validate(section, OpenIdSettingScopes.Platform));
 
-        Assert.Equal($"'{SectionPath}:nowhere' does not apply to the 'server' scope.", error);
+        Assert.Equal($"'{SectionPath}:nowhere' does not apply to the 'platform' scope.", error);
     }
 
     [Fact]

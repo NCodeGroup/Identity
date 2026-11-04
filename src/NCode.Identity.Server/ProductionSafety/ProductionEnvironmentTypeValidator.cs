@@ -26,7 +26,7 @@ internal class ProductionEnvironmentTypeValidator(IEnumerable<ITenantEnvironment
     /// The configuration key that the message names.
     /// </summary>
     internal const string ConfigurationKey =
-        $"OpenId:Server:Settings:{OpenIdSettingNames.EnvironmentType}";
+        $"OpenId:Platform:Settings:{OpenIdSettingNames.EnvironmentType}";
 
     private IEnumerable<ITenantEnvironmentType> Types { get; } = types;
 

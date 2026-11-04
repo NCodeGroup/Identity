@@ -184,9 +184,8 @@ public class TokenEndpointClientAuthenticationTests
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] = OpenIdProtocol
-                    .ClientAuthenticationMethods
-                    .ClientSecretPost,
+                ["OpenId:Platform:Settings:token_endpoint_auth_methods_supported:0"] =
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
             }
         );
         await factory.SeedClientSecretBasicClientAsync(ClientId, ClientSecret);

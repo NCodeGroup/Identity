@@ -7,11 +7,12 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Authentication.Interactive;
 
 /// <summary>
-/// The locales the interactive surface ships, which <c>AddInteractiveAuthentication</c> registers. English is the
-/// first registered locale, whatever the order of the registration calls, so it is the surface's default language
-/// for a tenant that sets no <c>default_ui_locale</c>. A host that changes the wording of a page registers a locale
-/// built from one of these with its own <see cref="InteractiveMessages"/> through <c>AddInteractiveLocale</c>, which
-/// takes the shipped locale's place.
+/// The locales the interactive surface ships, which <c>AddInteractiveAuthentication</c> registers in the order of
+/// <see cref="All"/>, English first, ahead of the locales a host registers under other tags, whatever the order of
+/// the registration calls, so English is the surface's default language for a tenant that sets no
+/// <c>default_ui_locale</c>. A host that changes the wording of a page registers a locale built from one of these
+/// with its own <see cref="InteractiveMessages"/> through <c>AddInteractiveLocale</c>, which takes the shipped
+/// locale's place.
 /// </summary>
 /// <remarks>
 /// The single-page bundle that mounts over the server-rendered pages carries the same wording for each of these

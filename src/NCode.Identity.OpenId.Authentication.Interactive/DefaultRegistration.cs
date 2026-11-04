@@ -52,7 +52,11 @@ public static class DefaultRegistration
         /// content-hashed files beneath the tenant route without resolving the tenant, so no middleware is added to
         /// the pipeline. The cookie scheme is registered as a named scheme and does not itself set the host's default
         /// authentication scheme. Credential verification is deferred to a registered
-        /// <see cref="IInteractiveCredentialVerifier"/>, which the host must supply separately.
+        /// <see cref="IInteractiveCredentialVerifier"/>, which the host must supply separately. The locales of
+        /// <see cref="InteractiveLocales"/> register as the surface's UI locales in one order whatever the order of
+        /// this call and <see cref="AddInteractiveLocale"/>: the shipped locales in their shipped order, English
+        /// first, each replaced by the host's locale of its tag, then the locales with other tags in the order the
+        /// host registered them.
         /// </summary>
         /// <remarks>
         /// <para>
@@ -109,28 +113,19 @@ public static class DefaultRegistration
             // The locales the surface ships are the UI locales the tenant settings and discovery name, English first.
             // A UI locale is registered data: each is registered as an instance, and the registration dedupes by tag,
             // which TryAddEnumerable cannot, since it dedupes by implementation type and every shipped locale is the
-            // one record type. A tag the host registered through AddInteractiveLocale keeps the host's locale,
-            // whichever call came first; a shipped locale the host did not register is inserted in the shipped order
-            // ahead of the first locale the host registered under a new tag, so English is the first registered
-            // locale, and the surface's default language, whatever the order of the calls. A locale registered
-            // without the surface's messages stops the host (ADR-1402).
-            var insertIndex = FindFirstUiLocale(serviceCollection);
+            // one record type. The registered order is canonical, a function of the set of registered locales alone
+            // and never of the order of the calls, so English is the first registered locale, and the surface's
+            // default language, whether the host's AddInteractiveLocale calls come before or after this one. A locale
+            // registered without the surface's messages stops the host (ADR-1402).
             foreach (var locale in InteractiveLocales.All)
             {
-                var index = FindUiLocale(serviceCollection, locale.LanguageTag);
-                if (index < 0)
+                if (FindUiLocale(serviceCollection, locale.LanguageTag) < 0)
                 {
-                    serviceCollection.Insert(
-                        insertIndex,
-                        ServiceDescriptor.Singleton<IUiLocale>(locale)
-                    );
-                    insertIndex++;
-                }
-                else
-                {
-                    insertIndex = index + 1;
+                    serviceCollection.AddSingleton<IUiLocale>(locale);
                 }
             }
+
+            OrderUiLocales(serviceCollection);
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
@@ -247,17 +242,18 @@ public static class DefaultRegistration
         /// Registers a locale the interactive surface renders, in place of any registered UI locale of the same
         /// language tag: a host adds a language with a new tag, and changes the wording of a shipped locale by
         /// registering one built from it with its own <see cref="InteractiveMessages"/>, before or after
-        /// <see cref="AddInteractiveAuthentication"/>. A replaced locale keeps its place in the registration order, so
-        /// replacing the first registered locale keeps it the surface's default language, and a locale with a new tag
-        /// follows the shipped locales whichever call came first, so English stays the surface's default language
-        /// unless a tenant's <c>default_ui_locale</c> names another.
+        /// <see cref="AddInteractiveAuthentication"/>. The registered order is the same whatever the order of the
+        /// calls: the shipped locales in their shipped order, English first, each replaced by the host's locale of
+        /// its tag, then the locales with other tags in the order the host registered them. So English stays the
+        /// surface's default language, unless a tenant's <c>default_ui_locale</c> names another, and a host that
+        /// rewords a shipped locale changes its wording and not its place.
         /// </summary>
         /// <remarks>
         /// A UI locale is registered data, so this method and <see cref="AddInteractiveAuthentication"/> register
-        /// each locale as an instance and find the registered locale of a tag among the instances. An
-        /// <see cref="IUiLocale"/> a host registers through a type or a factory is outside this rule: its tag is
-        /// registered twice when a locale of the same tag is registered this way, and the catalog refuses the
-        /// duplicate tag when the host starts.
+        /// each locale as an instance, find the registered locale of a tag among the instances, and order the
+        /// instances. An <see cref="IUiLocale"/> a host registers through a type or a factory is outside this rule:
+        /// it keeps its own place, its tag is registered twice when a locale of the same tag is registered this way,
+        /// and the catalog refuses the duplicate tag when the host starts.
         /// </remarks>
         /// <param name="locale">The locale to register.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
@@ -278,6 +274,8 @@ public static class DefaultRegistration
             {
                 serviceCollection[index] = descriptor;
             }
+
+            OrderUiLocales(serviceCollection);
 
             return builder;
         }
@@ -305,18 +303,72 @@ public static class DefaultRegistration
         return -1;
     }
 
-    // The index of the first registered IUiLocale instance, or the end of the collection when none is registered.
-    private static int FindFirstUiLocale(IServiceCollection serviceCollection)
+    // Registers the IUiLocale instances again in the canonical order, a function of the set of registered locales
+    // alone: the shipped tags in the shipped order, each the registered locale of its tag, then the other tags in
+    // the order they were registered. Both registrations end with it, so the order is the same whichever of them
+    // comes first and however they interleave. The instances take the place of the first of them, so a locale
+    // registered through a type or a factory keeps its place among them.
+    private static void OrderUiLocales(IServiceCollection serviceCollection)
     {
-        for (var index = 0; index < serviceCollection.Count; index++)
+        var registered = new List<(ServiceDescriptor Descriptor, IUiLocale Locale)>();
+        var insertIndex = serviceCollection.Count;
+        for (var index = serviceCollection.Count - 1; index >= 0; index--)
         {
-            if (TryGetUiLocale(serviceCollection[index], out _))
+            var descriptor = serviceCollection[index];
+            if (TryGetUiLocale(descriptor, out var locale))
+            {
+                registered.Add((descriptor, locale));
+                serviceCollection.RemoveAt(index);
+                insertIndex = index;
+            }
+        }
+
+        registered.Reverse();
+
+        var ordered = new List<ServiceDescriptor>(registered.Count);
+        foreach (var shipped in InteractiveLocales.All)
+        {
+            var index = FindUiLocale(registered, shipped.LanguageTag);
+            if (index >= 0)
+            {
+                ordered.Add(registered[index].Descriptor);
+                registered.RemoveAt(index);
+            }
+        }
+
+        foreach (var (descriptor, _) in registered)
+        {
+            ordered.Add(descriptor);
+        }
+
+        foreach (var descriptor in ordered)
+        {
+            serviceCollection.Insert(insertIndex, descriptor);
+            insertIndex++;
+        }
+    }
+
+    // The index of the registered locale whose tag is languageTag, or -1 when none is registered.
+    private static int FindUiLocale(
+        List<(ServiceDescriptor Descriptor, IUiLocale Locale)> registered,
+        string languageTag
+    )
+    {
+        for (var index = 0; index < registered.Count; index++)
+        {
+            if (
+                string.Equals(
+                    registered[index].Locale.LanguageTag,
+                    languageTag,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
             {
                 return index;
             }
         }
 
-        return serviceCollection.Count;
+        return -1;
     }
 
     private static bool TryGetUiLocale(

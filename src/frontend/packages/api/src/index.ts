@@ -57,12 +57,13 @@ export {
   type ManagementOwner,
 } from './owner.js';
 export {
-  GLOBAL_SCOPE,
-  isGlobalScope,
+  isPlatformScope,
   LIST_TAG,
+  PLATFORM_SCOPE,
   scopeApiPrefix,
   scopeKey,
   scopeTagId,
+  teamScope,
   tenantScope,
   type ManagementScope,
 } from './scope.js';

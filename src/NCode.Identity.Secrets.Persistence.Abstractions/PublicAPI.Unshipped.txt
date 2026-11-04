@@ -274,3 +274,38 @@ NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.GetActivePageAsync
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.GetPageAsync(NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey!>!>
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.ListRetiredAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey!>!>
 NCode.Identity.Secrets.Persistence.Protection.IMasterKeyStore.RemoveAsync(NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey! item, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames.Destroyed = "master_key.destroyed" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames.Prefix = "master_key" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames.Rotated = "master_key.rotated" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChangeReasons.RotationPeriodElapsed = "rotation_period_elapsed" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChangeReasons.Requested = "requested" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChangeReasons.Unreferenced = "unreferenced" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChanges.Destroyed = "destroyed" -> string!
+const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChanges.Rotated = "rotated" -> string!
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Change.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Change.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.KeyId.get -> System.Guid
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.KeyId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.OwnerId.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.OwnerId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.OwnerType.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.OwnerType.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Reason.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Reason.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredKeyId.get -> System.Guid?
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredKeyId.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredVersion.get -> int?
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredVersion.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyProvider.get -> string!
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyProvider.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Version.get -> int
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Version.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChangeReasons
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChanges
+override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.EventCategory.get -> string!
+override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.EventName.get -> string!
+override NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
+static NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames.For(string! change) -> string!

@@ -1,0 +1,39 @@
+#nullable enable
+const NCode.Identity.Cose.CoseHeaderLabels.Algorithm = 1 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.ContentType = 3 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.Critical = 2 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.CwtClaims = 15 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.InitializationVector = 5 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.KeyId = 4 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.PartialInitializationVector = 6 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.Type = 16 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.X509Bag = 32 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.X509Chain = 33 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.X509ThumbprintSha256 = 34 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.X509Url = 35 -> long
+NCode.Identity.Cose.CoseHeaderLabels
+NCode.Identity.Cose.CoseLabel
+NCode.Identity.Cose.CoseLabel.CoseLabel() -> void
+NCode.Identity.Cose.CoseLabel.CoseLabel(long value) -> void
+NCode.Identity.Cose.CoseLabel.CoseLabel(string! value) -> void
+NCode.Identity.Cose.CoseLabel.IntegerValue.get -> long
+NCode.Identity.Cose.CoseLabel.IsText.get -> bool
+NCode.Identity.Cose.CoseLabel.TextValue.get -> string?
+NCode.Identity.Cose.CoseLibrary
+NCode.Identity.Cose.CoseLibrary.CoseLibrary() -> void
+NCode.Identity.Cose.CoseValue
+NCode.Identity.Cose.CoseValue.EncodedValue.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Cose.CoseValue.IsMap.get -> bool
+NCode.Identity.Cose.CoseValue.TryGetArray(out System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseValue!>? value) -> bool
+NCode.Identity.Cose.CoseValue.TryGetByteString(out System.ReadOnlyMemory<byte> value) -> bool
+NCode.Identity.Cose.CoseValue.TryGetDouble(out double value) -> bool
+NCode.Identity.Cose.CoseValue.TryGetInt64(out long value) -> bool
+NCode.Identity.Cose.CoseValue.TryGetTextString(out string? value) -> bool
+override NCode.Identity.Cose.CoseLabel.ToString() -> string!
+static NCode.Identity.Cose.CoseLabel.implicit operator NCode.Identity.Cose.CoseLabel(long value) -> NCode.Identity.Cose.CoseLabel
+static NCode.Identity.Cose.CoseLabel.implicit operator NCode.Identity.Cose.CoseLabel(string! value) -> NCode.Identity.Cose.CoseLabel
+static NCode.Identity.Cose.CoseValue.FromByteString(System.ReadOnlySpan<byte> value) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromEncodedValue(System.ReadOnlyMemory<byte> encodedValue) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromInt64(long value) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromLabels(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.CoseLabel>! labels) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromTextString(string! value) -> NCode.Identity.Cose.CoseValue!

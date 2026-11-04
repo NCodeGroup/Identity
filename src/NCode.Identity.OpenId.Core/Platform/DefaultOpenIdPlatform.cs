@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
@@ -14,7 +13,6 @@ internal class DefaultOpenIdPlatform(
     string platformId,
     IReadOnlySettingCollectionProvider configuredSettingsProvider,
     IReadOnlySettingCollectionProvider settingsProvider,
-    ISecretKeyCollectionProvider secretsProvider,
     Func<CancellationToken, ValueTask> refreshSettingsAsync,
     IPropertyBag propertyBag
 ) : OpenIdPlatform, IAsyncDisposable
@@ -32,9 +30,6 @@ internal class DefaultOpenIdPlatform(
         configuredSettingsProvider;
 
     /// <inheritdoc />
-    public override ISecretKeyCollectionProvider SecretsProvider { get; } = secretsProvider;
-
-    /// <inheritdoc />
     public override IPropertyBag PropertyBag { get; } = propertyBag;
 
     /// <inheritdoc />
@@ -44,7 +39,6 @@ internal class DefaultOpenIdPlatform(
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
-        await SecretsProvider.DisposeAsync();
         await ConfiguredSettingsProvider.DisposeAsync();
         await SettingsProvider.DisposeAsync();
 

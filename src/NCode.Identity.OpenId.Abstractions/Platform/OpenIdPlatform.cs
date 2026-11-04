@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
-using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
 
@@ -30,11 +29,6 @@ public abstract class OpenIdPlatform
     /// document onto them, so they are what a replacement document would be merged onto.
     /// </summary>
     public abstract IReadOnlySettingCollectionProvider ConfiguredSettingsProvider { get; }
-
-    /// <summary>
-    /// Gets the <see cref="ISecretKeyCollectionProvider"/> which contains secrets only known to the server.
-    /// </summary>
-    public abstract ISecretKeyCollectionProvider SecretsProvider { get; }
 
     /// <summary>
     /// Gets the <see cref="IPropertyBag"/> that can provide additional user-defined information about the current instance or operation.

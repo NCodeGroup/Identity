@@ -48,11 +48,13 @@ public sealed class TenantUsageStoreTests : IDisposable
         string tenantId,
         DateOnly day,
         string meter,
-        long count
+        long count,
+        string teamId = "platform"
     ) =>
         new()
         {
             TenantId = tenantId,
+            TeamId = teamId,
             Day = day,
             Meter = meter,
             Count = count,
@@ -64,7 +66,8 @@ public sealed class TenantUsageStoreTests : IDisposable
         string tenantId,
         DateOnly day,
         string meter,
-        long count
+        long count,
+        string teamId = "platform"
     )
     {
         using var scope = _provider.CreateScope();
@@ -73,14 +76,31 @@ public sealed class TenantUsageStoreTests : IDisposable
             .AddAsync(
                 replicaId,
                 batchNumber,
-                [Usage(tenantId, day, meter, count)],
+                [Usage(tenantId, day, meter, count, teamId)],
                 CancellationToken.None
             );
         await context.SaveChangesAsync();
     }
 
-    private Task AddAsync(string tenantId, DateOnly day, string meter, long count) =>
-        AddBatchAsync(Guid.NewGuid(), 1, tenantId, day, meter, count);
+    private Task AddAsync(
+        string tenantId,
+        DateOnly day,
+        string meter,
+        long count,
+        string teamId = "platform"
+    ) => AddBatchAsync(Guid.NewGuid(), 1, tenantId, day, meter, count, teamId);
+
+    private async Task<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListByTeamAsync(
+        string teamId,
+        DateOnly firstDay,
+        DateOnly lastDay
+    )
+    {
+        using var scope = _provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        return await CreateStore(context)
+            .ListByTeamAsync(teamId, firstDay, lastDay, CancellationToken.None);
+    }
 
     private async Task<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListAsync(
         DateOnly firstDay,
@@ -305,6 +325,42 @@ public sealed class TenantUsageStoreTests : IDisposable
             ],
             usage.Select(entry => (entry.Day, entry.Meter, entry.Count))
         );
+    }
+
+    [Fact]
+    public async Task ListByTeamAsync_ReturnsEveryTenantOfTheTeamInTheRange()
+    {
+        await AddAsync("tenant-2", Day, Requests, 1, "team-a");
+        await AddAsync("tenant-1", Day.AddDays(1), Requests, 2, "team-a");
+        await AddAsync("tenant-1", Day, TokenRequests, 3, "team-a");
+        await AddAsync("tenant-1", Day, Requests, 4, "team-a");
+        await AddAsync("tenant-1", Day.AddDays(2), Requests, 5, "team-a");
+        await AddAsync("tenant-3", Day, Requests, 6, "team-b");
+
+        var usage = await ListByTeamAsync("team-a", Day, Day.AddDays(1));
+
+        Assert.Equal(
+            [
+                ("tenant-1", Day, Requests, 4L),
+                ("tenant-1", Day, TokenRequests, 3L),
+                ("tenant-2", Day, Requests, 1L),
+                ("tenant-1", Day.AddDays(1), Requests, 2L),
+            ],
+            usage.Select(entry => (entry.TenantId, entry.Day, entry.Meter, entry.Count))
+        );
+        Assert.All(usage, entry => Assert.Equal("team-a", entry.TeamId));
+    }
+
+    [Fact]
+    public async Task ListByTeamAsync_KeepsADeletedTenantsRows()
+    {
+        // No tenant row exists for the usage row.
+        await AddAsync("deleted-tenant", Day, Requests, 7, "team-a");
+
+        var entry = Assert.Single(await ListByTeamAsync("team-a", Day, Day));
+
+        Assert.Equal("deleted-tenant", entry.TenantId);
+        Assert.Equal(7, entry.Count);
     }
 
     #endregion

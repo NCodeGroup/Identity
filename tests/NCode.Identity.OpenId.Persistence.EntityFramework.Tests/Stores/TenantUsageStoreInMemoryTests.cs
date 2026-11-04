@@ -50,6 +50,7 @@ public sealed class TenantUsageStoreInMemoryTests : IDisposable
                     new DataContracts.PersistedTenantUsage
                     {
                         TenantId = TenantId,
+                        TeamId = "platform",
                         Day = day,
                         Meter = Requests,
                         Count = 1,

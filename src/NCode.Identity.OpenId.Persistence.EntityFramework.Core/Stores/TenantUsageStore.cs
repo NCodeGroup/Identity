@@ -132,7 +132,7 @@ internal sealed class TenantUsageStore(
                 {
                     Id = IdGenerator.CreateId(),
                     TenantId = entry.TenantId,
-                    TeamId = OpenIdResourceIds.Platform,
+                    TeamId = entry.TeamId,
                     Day = day,
                     Meter = entry.Meter,
                     Count = entry.Count,
@@ -161,16 +161,38 @@ internal sealed class TenantUsageStore(
             .ThenBy(usage => usage.Meter)
             .ToListAsync(cancellationToken);
 
-        return entities
-            .Select(entity => new PersistedTenantUsage
-            {
-                TenantId = entity.TenantId,
-                Day = entity.Day,
-                Meter = entity.Meter,
-                Count = entity.Count,
-            })
-            .ToList();
+        return entities.Select(ToPersisted).ToList();
     }
+
+    /// <inheritdoc />
+    // See ADR-1403.
+    public async ValueTask<IReadOnlyList<PersistedTenantUsage>> ListByTeamAsync(
+        string teamId,
+        DateOnly firstDay,
+        DateOnly lastDay,
+        CancellationToken cancellationToken
+    )
+    {
+        var entities = await DbContext
+            .TenantUsage.AsNoTracking()
+            .Where(usage => usage.TeamId == teamId && usage.Day >= firstDay && usage.Day <= lastDay)
+            .OrderBy(usage => usage.Day)
+            .ThenBy(usage => usage.TenantId)
+            .ThenBy(usage => usage.Meter)
+            .ToListAsync(cancellationToken);
+
+        return entities.Select(ToPersisted).ToList();
+    }
+
+    private static PersistedTenantUsage ToPersisted(TenantUsageEntity entity) =>
+        new()
+        {
+            TenantId = entity.TenantId,
+            TeamId = entity.TeamId,
+            Day = entity.Day,
+            Meter = entity.Meter,
+            Count = entity.Count,
+        };
 
     /// <inheritdoc />
     // See ADR-1213.

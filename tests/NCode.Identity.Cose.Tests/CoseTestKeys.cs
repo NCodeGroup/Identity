@@ -68,6 +68,29 @@ public static class CoseTestKeys
             : factory.CreateEcc(metadata, key);
     }
 
+    /// <summary>
+    /// Creates a P-256 key with the metadata given.
+    /// </summary>
+    public static EccSecretKey CreateEcP256(
+        ISecretKeyFactory factory,
+        string x,
+        string y,
+        KeyMetadata metadata,
+        string? d = null
+    )
+    {
+        var parameters = new ECParameters
+        {
+            Curve = ECCurve.NamedCurves.nistP256,
+            Q = new ECPoint { X = Hex(x), Y = Hex(y) },
+            D = d is null ? null : Hex(d),
+        };
+        var key = ECDsa.Create(parameters);
+        return d is null
+            ? factory.CreateEccPublicKey(metadata, key)
+            : factory.CreateEcc(metadata, key);
+    }
+
     public static RsaSecretKey CreateRsaPublic(
         ISecretKeyFactory factory,
         string n,

@@ -24,6 +24,47 @@ public interface ICoseSerializer
     CoseMessageInfo Inspect(ReadOnlyMemory<byte> message, CoseMessageType? untaggedMessageType);
 
     /// <summary>
+    /// Signs content as a <c>COSE_Sign1</c> message.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="credentials">The signing key and its signature algorithm.</param>
+    /// <param name="options">The header parameters and the encoding choices.</param>
+    /// <returns>The encoded message.</returns>
+    /// <exception cref="ArgumentException">The algorithm is not a registered signature algorithm, the key does not suit
+    /// it, or a header parameter is owned by the library or invalid.</exception>
+    byte[] EncodeSign1(
+        ReadOnlySpan<byte> content,
+        CoseCredentials credentials,
+        CoseEncodingOptions options
+    );
+
+    /// <summary>
+    /// Signs content as a <c>COSE_Sign</c> message with one signature per signer.
+    /// </summary>
+    /// <param name="content">The content.</param>
+    /// <param name="signers">The signers; at least one.</param>
+    /// <param name="options">The header parameters and the encoding choices.</param>
+    /// <returns>The encoded message.</returns>
+    /// <exception cref="ArgumentException">There is no signer or too many, an algorithm is not a registered signature
+    /// algorithm, a key does not suit its algorithm, or a header parameter is owned by the library or invalid.</exception>
+    byte[] EncodeSign(
+        ReadOnlySpan<byte> content,
+        IReadOnlyList<CoseSigner> signers,
+        CoseEncodingOptions options
+    );
+
+    /// <summary>
+    /// Verifies a signed message and returns its content. The algorithm must be one the caller permits and must be
+    /// protected, and the signature must verify with one of the caller's keys.
+    /// </summary>
+    /// <param name="message">The encoded message.</param>
+    /// <param name="parameters">What the verifier accepts.</param>
+    /// <returns>The verified message.</returns>
+    /// <exception cref="ArgumentException">A parameter is invalid.</exception>
+    /// <exception cref="CoseException">The message is malformed, exceeds a limit, or does not verify.</exception>
+    CoseVerifiedMessage Verify(ReadOnlyMemory<byte> message, CoseVerificationParameters parameters);
+
+    /// <summary>
     /// Decodes a CBOR map with integer and text labels, such as a CBOR Web Token claims set, under the size, depth and
     /// strictness rules of the library.
     /// </summary>

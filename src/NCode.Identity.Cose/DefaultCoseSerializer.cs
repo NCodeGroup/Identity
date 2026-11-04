@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
+using NCode.Identity.Cose.Algorithms;
 using NCode.Identity.Cose.Cbor;
 using NCode.Identity.Cose.Messages;
 using NCode.Identity.Cose.Options;
@@ -12,9 +13,17 @@ namespace NCode.Identity.Cose;
 /// Provides the default implementation of <see cref="ICoseSerializer"/>.
 /// </summary>
 // See ADR-1409.
-internal class DefaultCoseSerializer(IOptions<CoseOptions> options) : ICoseSerializer
+internal partial class DefaultCoseSerializer(
+    ICoseAlgorithmCatalog algorithmCatalog,
+    IOptions<CoseOptions> options,
+    TimeProvider timeProvider
+) : ICoseSerializer
 {
+    private ICoseAlgorithmCatalog AlgorithmCatalog { get; } = algorithmCatalog;
+
     private CoseOptions Options { get; } = options.Value;
+
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
     public CoseMessageInfo Inspect(

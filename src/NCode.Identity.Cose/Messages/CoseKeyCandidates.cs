@@ -1,0 +1,62 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using NCode.Buffers;
+using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.Secrets.Keys;
+
+namespace NCode.Identity.Cose.Messages;
+
+/// <summary>
+/// Selects the keys that may be tried for a layer of a message that is read, from the keys the caller trusts.
+/// </summary>
+// See ADR-1409.
+internal static class CoseKeyCandidates
+{
+    /// <summary>
+    /// Selects and orders the keys to try. A key is a candidate when it is not expired (allowing for clock skew), is
+    /// intended for the operation, is not restricted to another algorithm, and suits the algorithm. When the layer names
+    /// a key identifier, the keys with that identifier come first, then the keys with none; a key with another
+    /// identifier is never tried.
+    /// </summary>
+    public static List<SecretKey> Select(
+        IEnumerable<SecretKey> keys,
+        ReadOnlyMemory<byte>? keyId,
+        KeyedAlgorithm algorithm,
+        string use,
+        DateTimeOffset now,
+        TimeSpan clockSkew,
+        Func<SecretKey, bool>? extraFilter = null
+    )
+    {
+        var matching = new List<SecretKey>();
+        var unidentified = new List<SecretKey>();
+        foreach (var key in keys)
+        {
+            if (
+                key is null
+                || key.Metadata.IsExpired(now - clockSkew)
+                || (key.Metadata.Use is not null && key.Metadata.Use != use)
+                || (key.Metadata.Algorithm is not null && key.Metadata.Algorithm != algorithm.Code)
+                || !algorithm.IsKeyCompatible(key)
+                || (extraFilter is not null && !extraFilter(key))
+            )
+                continue;
+
+            if (string.IsNullOrEmpty(key.KeyId))
+            {
+                unidentified.Add(key);
+                continue;
+            }
+
+            if (
+                keyId is not { } wanted
+                || SecureEncoding.UTF8.GetBytes(key.KeyId).AsSpan().SequenceEqual(wanted.Span)
+            )
+                matching.Add(key);
+        }
+
+        matching.AddRange(unidentified);
+        return matching;
+    }
+}

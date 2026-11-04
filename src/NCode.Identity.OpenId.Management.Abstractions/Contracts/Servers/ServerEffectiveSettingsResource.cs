@@ -15,10 +15,10 @@ namespace NCode.Identity.OpenId.Management.Contracts.Servers;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class ServerEffectiveSettingsResource : ISupportServerId
+public sealed class ServerEffectiveSettingsResource : ISupportPlatformId
 {
-    /// <inheritdoc cref="ISupportServerId.ServerId"/>
-    public required string ServerId { get; init; }
+    /// <inheritdoc cref="ISupportPlatformId.PlatformId"/>
+    public required string PlatformId { get; init; }
 
     /// <summary>
     /// Gets the server's effective settings as a flat JSON object of setting name to formatted value, using the same

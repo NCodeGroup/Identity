@@ -19,9 +19,9 @@ internal static class CoreDbContextExtensions
 
         public DbSet<MasterKeyEntity> MasterKeys => context.Set<MasterKeyEntity>();
 
-        public DbSet<ServerEntity> Servers => context.Set<ServerEntity>();
+        public DbSet<PlatformEntity> Platforms => context.Set<PlatformEntity>();
 
-        public DbSet<ServerSecretEntity> ServerSecrets => context.Set<ServerSecretEntity>();
+        public DbSet<PlatformSecretEntity> PlatformSecrets => context.Set<PlatformSecretEntity>();
 
         public DbSet<TenantEntity> Tenants => context.Set<TenantEntity>();
 

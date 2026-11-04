@@ -18,7 +18,7 @@ public sealed class MasterKeyStoreTests : IDisposable
 {
     private const string TenantOneId = "Tenant-One";
     private const string TenantTwoId = "tenant-two";
-    private const string ServerId = "server-1";
+    private const string PlatformId = "server-1";
 
     private static readonly DateTimeOffset CreatedWhen = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
@@ -444,7 +444,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1),
-            CreateMasterKey(SecretOwnerTypes.Platform, ServerId, 1)
+            CreateMasterKey(SecretOwnerTypes.Platform, PlatformId, 1)
         );
 
         int removed;
@@ -462,7 +462,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         Assert.Equal(2, removed);
         Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
         Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantTwoId)));
-        Assert.Single(await ListAsync(SecretOwner.ForPlatform(ServerId)));
+        Assert.Single(await ListAsync(SecretOwner.ForPlatform(PlatformId)));
     }
 
     #endregion

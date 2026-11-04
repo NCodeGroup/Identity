@@ -12,10 +12,10 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 
 /// <summary>
 /// Represents an entity framework data contract for an <c>OAuth</c> or <c>OpenID Connect</c> server.
-/// The complimentary DTO for this entity is <see cref="PersistedServer"/>.
+/// The complimentary DTO for this entity is <see cref="PersistedPlatform"/>.
 /// </summary>
-[Index(nameof(NormalizedServerId), IsUnique = true)]
-public sealed class ServerEntity : ISupportConcurrencyToken
+[Index(nameof(NormalizedPlatformId), IsUnique = true)]
+public sealed class PlatformEntity : ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets the surrogate identifier for this entity.
@@ -29,15 +29,15 @@ public sealed class ServerEntity : ISupportConcurrencyToken
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
-    public required string ServerId { get; init; }
+    public required string PlatformId { get; init; }
 
     /// <summary>
-    /// Gets the value of <see cref="ServerId"/> in uppercase so that lookups can be sargable for DBMS
+    /// Gets the value of <see cref="PlatformId"/> in uppercase so that lookups can be sargable for DBMS
     /// engines that don't support case-insensitive indices.
     /// </summary>
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
-    public required string NormalizedServerId { get; init; }
+    public required string NormalizedPlatformId { get; init; }
 
     /// <inheritdoc />
     [Unicode(false)]
@@ -93,5 +93,5 @@ public sealed class ServerEntity : ISupportConcurrencyToken
     /// <summary>
     /// Gets the collection of secrets only known to this server.
     /// </summary>
-    public required IEnumerable<ServerSecretEntity> Secrets { get; init; }
+    public required IEnumerable<PlatformSecretEntity> Secrets { get; init; }
 }

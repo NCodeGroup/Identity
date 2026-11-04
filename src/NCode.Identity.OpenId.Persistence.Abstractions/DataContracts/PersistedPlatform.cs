@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedServer : BasePersistedServerResource
+public sealed class PersistedPlatform : BasePersistedPlatformResource
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]
@@ -28,12 +28,12 @@ public sealed class PersistedServer : BasePersistedServerResource
     /// <summary>
     /// Gets or sets the JSON settings for an OpenID Server instance.
     /// </summary>
-    public required PersistedServerSettings Settings { get; set; }
+    public required PersistedPlatformSettings Settings { get; set; }
 
     /// <summary>
     /// Gets or sets the collection of secrets only known to an OpenID Server instance.
     /// </summary>
-    public required PersistedServerSecrets Secrets { get; set; }
+    public required PersistedPlatformSecrets Secrets { get; set; }
 
     /// <summary>
     /// Gets or sets the fingerprint of the server's effective settings that every tenant and client of the server

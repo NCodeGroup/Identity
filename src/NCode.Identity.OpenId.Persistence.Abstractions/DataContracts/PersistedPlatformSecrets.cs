@@ -15,8 +15,8 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedServerSecrets
-    : PersistedServerResource<IReadOnlyCollection<PersistedSecret>>,
+public sealed class PersistedPlatformSecrets
+    : PersistedPlatformResource<IReadOnlyCollection<PersistedSecret>>,
         ISupportPersistedSecretCollection
 {
     /// <inheritdoc/>

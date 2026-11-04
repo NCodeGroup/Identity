@@ -208,7 +208,7 @@ public interface IManagementAuditRecorder
     /// Records that an administrator created, updated, or deleted an OpenID server, or updated its settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the affected server.</param>
+    /// <param name="platformId">The identifier of the affected server.</param>
     /// <param name="changeType">
     /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
     /// </param>
@@ -223,7 +223,7 @@ public interface IManagementAuditRecorder
     /// </returns>
     ValueTask RecordServerChangedAsync(
         HttpContext httpContext,
-        string serverId,
+        string platformId,
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
@@ -233,7 +233,7 @@ public interface IManagementAuditRecorder
     /// Records that an administrator created, updated, or deleted a secret belonging to an OpenID server.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the server the secret belongs to.</param>
+    /// <param name="platformId">The identifier of the server the secret belongs to.</param>
     /// <param name="secretId">The identifier of the affected secret.</param>
     /// <param name="changeType">
     /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
@@ -250,7 +250,7 @@ public interface IManagementAuditRecorder
     /// </returns>
     ValueTask RecordServerSecretChangedAsync(
         HttpContext httpContext,
-        string serverId,
+        string platformId,
         string secretId,
         string changeType,
         JsonElement? resourceValues,

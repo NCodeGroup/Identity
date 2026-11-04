@@ -578,7 +578,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
         Assert.Null(captured.TenantId);
         Assert.Null(captured.TenantEnvironmentType);
-        Assert.Equal("server-1", captured.ServerId);
+        Assert.Equal("server-1", captured.PlatformId);
         Assert.Equal("secret-1", captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
         Assert.Equal("admin-1", captured.Actor.Id);

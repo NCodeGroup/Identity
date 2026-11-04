@@ -21,7 +21,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public sealed class DefaultServerSettingsReconcilerTests : BaseTests
 {
-    private const string ServerId = "default";
+    private const string PlatformId = "default";
     private const string ConcurrencyToken = "token-1";
 
     private static JsonSerializerOptions JsonOptions { get; } = new(JsonSerializerDefaults.Web);
@@ -32,7 +32,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
     private OpenIdOptions OpenIdOptions { get; } = new();
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
-    private Mock<IServerStore> MockServerStore { get; }
+    private Mock<IPlatformStore> MockServerStore { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IOpenIdEnvironmentProvider> MockOpenIdEnvironmentProvider { get; }
     private Mock<OpenIdEnvironment> MockOpenIdEnvironment { get; }
@@ -50,7 +50,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
     {
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
-        MockServerStore = CreateStrictMock<IServerStore>();
+        MockServerStore = CreateStrictMock<IPlatformStore>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockOpenIdEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
         MockOpenIdEnvironment = CreateStrictMock<OpenIdEnvironment>();
@@ -104,7 +104,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         SetupSettings();
 
         // Strict mocks: no lease and no command, so taking either would fail the test.
-        var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
+        var result = await Reconciler.ReconcileAsync(PlatformId, CancellationToken.None);
 
         Assert.True(result);
     }
@@ -117,7 +117,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         SetupSettings();
         SetupLease(isAdded: false);
 
-        var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
+        var result = await Reconciler.ReconcileAsync(PlatformId, CancellationToken.None);
 
         Assert.False(result);
     }
@@ -137,7 +137,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockExpiringKeySet
             .Setup(x =>
                 x.TryAddAsync(
-                    $"server-settings-reconciliation:{ServerId}:{ConcurrencyToken}:{Fingerprint}",
+                    $"server-settings-reconciliation:{PlatformId}:{ConcurrencyToken}:{Fingerprint}",
                     It.IsAny<DateTimeOffset>(),
                     cancellationToken
                 )
@@ -152,7 +152,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Setup(x =>
                 x.SendAsync(
                     It.Is<ReconcilePlatformSettingsCommand>(command =>
-                        command.ServerId == ServerId
+                        command.PlatformId == PlatformId
                         && ReferenceEquals(command.Settings, Settings)
                         && command.PreviousSettings == null
                     ),
@@ -164,8 +164,8 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockServerStore
             .Setup(x =>
                 x.UpdateReconciledSettingsAsync(
-                    It.Is<PersistedServer>(server =>
-                        server.ServerId == ServerId
+                    It.Is<PersistedPlatform>(server =>
+                        server.PlatformId == PlatformId
                         && server.ConcurrencyToken == ConcurrencyToken
                         && server.ReconciledSettingsFingerprint == Fingerprint
                         && server.ReconciledSettings.HasValue
@@ -181,7 +181,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var result = await Reconciler.ReconcileAsync(ServerId, cancellationToken);
+        var result = await Reconciler.ReconcileAsync(PlatformId, cancellationToken);
 
         Assert.True(result);
         Assert.NotNull(leaseExpiresWhen);
@@ -218,7 +218,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Setup(x =>
                 x.SendAsync(
                     It.Is<ReconcilePlatformSettingsCommand>(command =>
-                        command.ServerId == ServerId
+                        command.PlatformId == PlatformId
                         && ReferenceEquals(command.Settings, Settings)
                         && ReferenceEquals(command.PreviousSettings, previousSettings)
                     ),
@@ -229,7 +229,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Verifiable();
         SetupRecord();
 
-        var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
+        var result = await Reconciler.ReconcileAsync(PlatformId, CancellationToken.None);
 
         Assert.True(result);
     }
@@ -258,7 +258,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Setup(x =>
                 x.SendAsync(
                     It.Is<ReconcilePlatformSettingsCommand>(command =>
-                        command.ServerId == ServerId
+                        command.PlatformId == PlatformId
                         && ReferenceEquals(command.Settings, Settings)
                         && command.PreviousSettings == null
                     ),
@@ -269,7 +269,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .Verifiable();
         SetupRecord();
 
-        var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
+        var result = await Reconciler.ReconcileAsync(PlatformId, CancellationToken.None);
 
         Assert.True(result);
     }
@@ -293,14 +293,14 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockServerStore
             .Setup(x =>
                 x.UpdateReconciledSettingsAsync(
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .ThrowsAsync(new StoreConcurrencyException("conflict"))
             .Verifiable();
 
-        var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
+        var result = await Reconciler.ReconcileAsync(PlatformId, CancellationToken.None);
 
         Assert.False(result);
     }
@@ -310,11 +310,11 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
     {
         SetupStoreManager();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServer?)null)
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatform?)null)
             .Verifiable();
 
-        var result = await Reconciler.ReconcileAsync(ServerId, CancellationToken.None);
+        var result = await Reconciler.ReconcileAsync(PlatformId, CancellationToken.None);
 
         Assert.True(result);
     }
@@ -328,21 +328,21 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         && element.TryGetProperty("v", out var value)
         && value.GetInt32() == version;
 
-    private static PersistedServer CreatePersistedServer(
+    private static PersistedPlatform CreatePersistedServer(
         string? reconciledFingerprint,
         JsonElement? reconciledSettings
     ) =>
         new()
         {
-            ServerId = ServerId,
+            PlatformId = PlatformId,
             DisplayName = "Default",
             ConcurrencyToken = ConcurrencyToken,
-            Settings = new PersistedServerSettings
+            Settings = new PersistedPlatformSettings
             {
-                ServerId = ServerId,
+                PlatformId = PlatformId,
                 Value = JsonElement.Parse("""{"v":1}"""),
             },
-            Secrets = new PersistedServerSecrets { ServerId = ServerId, Value = [] },
+            Secrets = new PersistedPlatformSecrets { PlatformId = PlatformId, Value = [] },
             ReconciledSettingsFingerprint = reconciledFingerprint,
             ReconciledSettings = reconciledSettings,
         };
@@ -354,7 +354,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
             .ReturnsAsync(MockStoreManager.Object)
             .Verifiable();
         MockStoreManager
-            .Setup(x => x.GetStore<IServerStore>())
+            .Setup(x => x.GetStore<IPlatformStore>())
             .Returns(MockServerStore.Object)
             .Verifiable();
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
@@ -366,9 +366,9 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         JsonElement? reconciledSettings = null
     ) =>
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .Returns(() =>
-                ValueTask.FromResult<PersistedServer?>(
+                ValueTask.FromResult<PersistedPlatform?>(
                     CreatePersistedServer(reconciledFingerprint, reconciledSettings)
                 )
             )
@@ -379,7 +379,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockServerStore
             .Setup(x =>
                 x.UpdateReconciledSettingsAsync(
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -413,7 +413,7 @@ public sealed class DefaultServerSettingsReconcilerTests : BaseTests
         MockExpiringKeySet
             .Setup(x =>
                 x.TryAddAsync(
-                    $"server-settings-reconciliation:{ServerId}:{ConcurrencyToken}:{Fingerprint}",
+                    $"server-settings-reconciliation:{PlatformId}:{ConcurrencyToken}:{Fingerprint}",
                     It.IsAny<DateTimeOffset>(),
                     It.IsAny<CancellationToken>()
                 )

@@ -14,13 +14,13 @@ namespace NCode.Identity.OpenId.Platform;
 /// reconciliation of the server's settings then seeds the tenants and checks the clients the change affects. Send it
 /// after the change commits; handlers must be idempotent, because one change may be announced more than once.
 /// </summary>
-/// <param name="ServerId">The identifier of the server whose settings changed.</param>
+/// <param name="PlatformId">The identifier of the server whose settings changed.</param>
 /// <param name="PreviousSettings">The server's persisted settings document before the change.</param>
 /// <param name="Settings">The server's persisted settings document after the change.</param>
 // See ADR-1169 and ADR-1219.
 [PublicAPI]
 public readonly record struct PlatformSettingsChangedCommand(
-    string ServerId,
+    string PlatformId,
     JsonElement PreviousSettings,
     JsonElement Settings
 ) : ICommand;

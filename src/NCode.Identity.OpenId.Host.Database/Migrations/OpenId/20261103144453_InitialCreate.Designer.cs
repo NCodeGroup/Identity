@@ -1216,7 +1216,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.ToTable("Secrets", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
@@ -1233,7 +1233,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(true)
                         .HasColumnType("text");
 
-                    b.Property<string>("NormalizedServerId")
+                    b.Property<string>("NormalizedPlatformId")
                         .IsRequired()
                         .HasMaxLength(300)
                         .IsUnicode(false)
@@ -1253,7 +1253,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("ServerId")
+                    b.Property<string>("PlatformId")
                         .IsRequired()
                         .HasMaxLength(300)
                         .IsUnicode(false)
@@ -1271,13 +1271,13 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedServerId")
+                    b.HasIndex("NormalizedPlatformId")
                         .IsUnique();
 
                     b.ToTable("Servers", (string)null);
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerSecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformSecretEntity", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
@@ -1285,17 +1285,17 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Property<long>("SecretId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("ServerId")
+                    b.Property<long>("PlatformId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("SecretId");
 
-                    b.HasIndex("ServerId", "SecretId")
+                    b.HasIndex("PlatformId", "SecretId")
                         .IsUnique();
 
-                    b.ToTable("ServerSecrets", (string)null);
+                    b.ToTable("PlatformSecrets", (string)null);
                 });
 
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", b =>
@@ -1713,7 +1713,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Navigation("Tenant");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerSecretEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformSecretEntity", b =>
                 {
                     b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity", "Secret")
                         .WithMany()
@@ -1721,9 +1721,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity", "Server")
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity", "Server")
                         .WithMany("Secrets")
-                        .HasForeignKey("ServerId")
+                        .HasForeignKey("PlatformId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1773,7 +1773,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Navigation("Secrets");
                 });
 
-            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ServerEntity", b =>
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity", b =>
                 {
                     b.Navigation("Secrets");
                 });

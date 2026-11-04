@@ -9,55 +9,55 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Persistence.Stores;
 
 /// <summary>
-/// Provides an abstraction for a store which persists <see cref="PersistedServer"/> instances.
+/// Provides an abstraction for a store which persists <see cref="PersistedPlatform"/> instances.
 /// </summary>
 [PublicAPI]
-public interface IServerStore : IStore<PersistedServer>
+public interface IPlatformStore : IStore<PersistedPlatform>
 {
     /// <summary>
-    /// Gets a single page of <see cref="PersistedServer"/> instances ordered by their identifier, using keyset
+    /// Gets a single page of <see cref="PersistedPlatform"/> instances ordered by their identifier, using keyset
     /// (cursor) pagination.
     /// </summary>
     /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
-    /// <see cref="PersistedServer"/> instances and the cursor for the next page.</returns>
-    ValueTask<PagedResult<PersistedServer>> GetPageAsync(
+    /// <see cref="PersistedPlatform"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedPlatform>> GetPageAsync(
         PageRequest page,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Attempts to get a <see cref="PersistedServer"/> instance from the store with the specified identifier.
+    /// Attempts to get a <see cref="PersistedPlatform"/> instance from the store with the specified identifier.
     /// </summary>
-    /// <param name="serverId">The identifier of the <see cref="PersistedServer"/> instance to retrieve.</param>
+    /// <param name="platformId">The identifier of the <see cref="PersistedPlatform"/> instance to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="PersistedServer"/> instance matching the specified entity if it exists.</returns>
-    ValueTask<PersistedServer?> GetOrDefaultAsync(
-        string serverId,
+    /// <see cref="PersistedPlatform"/> instance matching the specified entity if it exists.</returns>
+    ValueTask<PersistedPlatform?> GetOrDefaultAsync(
+        string platformId,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Attempts to get the <see cref="PersistedServerSettings"/> instance from the store with the specified identifier.
+    /// Attempts to get the <see cref="PersistedPlatformSettings"/> instance from the store with the specified identifier.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenId Server.</param>
+    /// <param name="platformId">The identifier of the OpenId Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation. </param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedServerSettings"/> for the specified identifier.</returns>
-    ValueTask<PersistedServerSettings?> GetSettingsOrDefaultAsync(
-        string serverId,
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedPlatformSettings"/> for the specified identifier.</returns>
+    ValueTask<PersistedPlatformSettings?> GetSettingsOrDefaultAsync(
+        string platformId,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Attempts to get the <see cref="PersistedServerSecrets"/> instance from the store with the specified identifier.
+    /// Attempts to get the <see cref="PersistedPlatformSecrets"/> instance from the store with the specified identifier.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenId Server.</param>
+    /// <param name="platformId">The identifier of the OpenId Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedServerSecrets"/> for the specified identifier.</returns>
-    ValueTask<PersistedServerSecrets?> GetSecretsOrDefaultAsync(
-        string serverId,
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedPlatformSecrets"/> for the specified identifier.</returns>
+    ValueTask<PersistedPlatformSecrets?> GetSecretsOrDefaultAsync(
+        string platformId,
         CancellationToken cancellationToken
     );
 
@@ -67,39 +67,39 @@ public interface IServerStore : IStore<PersistedServer>
     /// reconciliation to compare with, unless the fingerprint was already clear: the settings of an earlier change
     /// were never reconciled.
     /// </summary>
-    /// <param name="persistedServerSettings">The <see cref="PersistedServerSettings"/> instance to update.</param>
+    /// <param name="persistedServerSettings">The <see cref="PersistedPlatformSettings"/> instance to update.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask UpdateSettingsAsync(
-        PersistedServerSettings persistedServerSettings,
+        PersistedPlatformSettings persistedServerSettings,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Records the server's <see cref="PersistedServer.ReconciledSettingsFingerprint"/> and
-    /// <see cref="PersistedServer.ReconciledSettings"/> and nothing else, so the write never overwrites a concurrent
+    /// Records the server's <see cref="PersistedPlatform.ReconciledSettingsFingerprint"/> and
+    /// <see cref="PersistedPlatform.ReconciledSettings"/> and nothing else, so the write never overwrites a concurrent
     /// change to the server. The server's
-    /// <see cref="BasePersistedServerResource.ConcurrencyToken"/> must match the stored one.
+    /// <see cref="BasePersistedPlatformResource.ConcurrencyToken"/> must match the stored one.
     /// </summary>
-    /// <param name="persistedServer">The <see cref="PersistedServer"/> instance whose reconciled settings fingerprint and reconciled settings are recorded.</param>
+    /// <param name="persistedPlatform">The <see cref="PersistedPlatform"/> instance whose reconciled settings fingerprint and reconciled settings are recorded.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     /// <exception cref="StoreConcurrencyException">Thrown when the server's concurrency token does not match the stored one.</exception>
     ValueTask UpdateReconciledSettingsAsync(
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         CancellationToken cancellationToken
     );
 
     /// <summary>
     /// Attempts to get a single <see cref="PersistedSecret"/> for an OpenId Server by its identifier.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenId Server.</param>
+    /// <param name="platformId">The identifier of the OpenId Server.</param>
     /// <param name="secretId">The identifier of the secret to retrieve.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
     /// <see cref="PersistedSecret"/> if found; otherwise <c>null</c>.</returns>
     ValueTask<PersistedSecret?> GetSecretOrDefaultAsync(
-        string serverId,
+        string platformId,
         string secretId,
         CancellationToken cancellationToken
     );
@@ -108,12 +108,12 @@ public interface IServerStore : IStore<PersistedServer>
     /// Adds a new secret to an OpenId Server and bumps the server's secrets concurrency token so that any
     /// running server instance refreshes its secret collection.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenId Server.</param>
+    /// <param name="platformId">The identifier of the OpenId Server.</param>
     /// <param name="persistedSecret">The <see cref="PersistedSecret"/> to add.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask AddSecretAsync(
-        string serverId,
+        string platformId,
         PersistedSecret persistedSecret,
         CancellationToken cancellationToken
     );
@@ -122,13 +122,13 @@ public interface IServerStore : IStore<PersistedServer>
     /// Updates the metadata of an existing secret for an OpenId Server (key material is immutable) and bumps
     /// the server's secrets concurrency token so that any running server instance refreshes its secret collection.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenId Server.</param>
+    /// <param name="platformId">The identifier of the OpenId Server.</param>
     /// <param name="persistedSecret">The <see cref="PersistedSecret"/> whose metadata is updated. Its
     /// <see cref="PersistedSecret.ConcurrencyToken"/> is checked for optimistic concurrency.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask UpdateSecretAsync(
-        string serverId,
+        string platformId,
         PersistedSecret persistedSecret,
         CancellationToken cancellationToken
     );
@@ -137,13 +137,13 @@ public interface IServerStore : IStore<PersistedServer>
     /// Removes a secret from an OpenId Server and bumps the server's secrets concurrency token so that any
     /// running server instance refreshes its secret collection.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenId Server.</param>
+    /// <param name="platformId">The identifier of the OpenId Server.</param>
     /// <param name="secretId">The identifier of the secret to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if a secret was removed; otherwise <c>false</c> when no matching secret existed.</returns>
     ValueTask<bool> RemoveSecretAsync(
-        string serverId,
+        string platformId,
         string secretId,
         CancellationToken cancellationToken
     );
@@ -152,20 +152,20 @@ public interface IServerStore : IStore<PersistedServer>
     /// Removes an OpenId Server from the store. The removal is rejected while the server still has dependent
     /// child resources (any secrets); those dependents must be removed first.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenId Server to remove.</param>
+    /// <param name="platformId">The identifier of the OpenId Server to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the server was removed; otherwise <c>false</c> when no matching server existed.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the server still has dependent child resources.</exception>
-    ValueTask<bool> RemoveAsync(string serverId, CancellationToken cancellationToken);
+    ValueTask<bool> RemoveAsync(string platformId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Determines whether an OpenId Server still has dependent child resources (any secrets) that would block
     /// its removal.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenId Server.</param>
+    /// <param name="platformId">The identifier of the OpenId Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// when the server has dependent child resources; otherwise <c>false</c> (including when no such server exists).</returns>
-    ValueTask<bool> HasDependentsAsync(string serverId, CancellationToken cancellationToken);
+    ValueTask<bool> HasDependentsAsync(string platformId, CancellationToken cancellationToken);
 }

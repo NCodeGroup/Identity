@@ -9,17 +9,17 @@ namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class DefaultMaterializedServerRegistryTests : BaseTests
 {
-    private const string ServerId = "server-1";
+    private const string PlatformId = "server-1";
 
     private static readonly TimeSpan Deadline = TimeSpan.FromSeconds(5.0);
 
     private DefaultMaterializedPlatformRegistry Registry { get; } = new();
 
-    private Mock<OpenIdPlatform> CreateServer(string? serverId = null)
+    private Mock<OpenIdPlatform> CreateServer(string? platformId = null)
     {
         var mockServer = CreateStrictMock<OpenIdPlatform>();
-        if (serverId is not null)
-            mockServer.Setup(x => x.ServerId).Returns(serverId).Verifiable();
+        if (platformId is not null)
+            mockServer.Setup(x => x.PlatformId).Returns(platformId).Verifiable();
 
         return mockServer;
     }
@@ -65,20 +65,20 @@ public class DefaultMaterializedServerRegistryTests : BaseTests
     {
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
-        var mockServer = CreateServer(ServerId);
+        var mockServer = CreateServer(PlatformId);
         mockServer
             .Setup(x => x.RefreshSettingsAsync(cancellationToken))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         Registry.Register(mockServer.Object);
 
-        await Registry.RefreshSettingsAsync(ServerId, cancellationToken);
+        await Registry.RefreshSettingsAsync(PlatformId, cancellationToken);
     }
 
     [Fact]
     public async Task RefreshSettingsAsync_WhenTheServerIdDiffers_DoesNothing()
     {
-        var mockServer = CreateServer(ServerId);
+        var mockServer = CreateServer(PlatformId);
         Registry.Register(mockServer.Object);
 
         await Registry.RefreshSettingsAsync("another-server", CancellationToken.None);
@@ -87,7 +87,7 @@ public class DefaultMaterializedServerRegistryTests : BaseTests
     [Fact]
     public async Task RefreshSettingsAsync_WhenNoServerIsRegistered_DoesNothing()
     {
-        await Registry.RefreshSettingsAsync(ServerId, CancellationToken.None);
+        await Registry.RefreshSettingsAsync(PlatformId, CancellationToken.None);
         await Registry.RefreshSettingsAsync(CancellationToken.None);
     }
 

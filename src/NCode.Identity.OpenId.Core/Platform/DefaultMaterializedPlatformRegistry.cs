@@ -27,7 +27,7 @@ internal sealed class DefaultMaterializedPlatformRegistry : IMaterializedPlatfor
 
     /// <inheritdoc />
     public async ValueTask RefreshSettingsAsync(
-        string serverId,
+        string platformId,
         CancellationToken cancellationToken
     )
     {
@@ -35,7 +35,7 @@ internal sealed class DefaultMaterializedPlatformRegistry : IMaterializedPlatfor
             return;
 
         var server = await Registered.Task;
-        if (!string.Equals(server.ServerId, serverId, StringComparison.Ordinal))
+        if (!string.Equals(server.PlatformId, platformId, StringComparison.Ordinal))
             return;
 
         await server.RefreshSettingsAsync(cancellationToken);

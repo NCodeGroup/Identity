@@ -47,10 +47,10 @@ internal class PlatformSecretProtectorWarmup(
     /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var serverId = GetPlatformId();
+        var platformId = GetPlatformId();
 
         Holder.Protector = await Provider.GetProtectorAsync(
-            SecretOwner.ForPlatform(serverId),
+            SecretOwner.ForPlatform(platformId),
             [],
             cancellationToken
         );
@@ -72,17 +72,17 @@ internal class PlatformSecretProtectorWarmup(
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     /// <summary>
-    /// Gets the <c>ServerId</c> from the configurable options, or uses the default if not set.
+    /// Gets the <c>PlatformId</c> from the configurable options, or uses the default if not set.
     /// </summary>
     private string GetPlatformId()
     {
-        var serverId = OpenIdOptionsAccessor.Value.Platform.ServerId;
+        var platformId = OpenIdOptionsAccessor.Value.Platform.PlatformId;
 
-        if (string.IsNullOrEmpty(serverId))
+        if (string.IsNullOrEmpty(platformId))
         {
-            serverId = OpenIdPlatformOptions.DefaultPlatformId;
+            platformId = OpenIdPlatformOptions.DefaultPlatformId;
         }
 
-        return serverId;
+        return platformId;
     }
 }

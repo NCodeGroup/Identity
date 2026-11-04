@@ -64,24 +64,24 @@ internal sealed class DefaultPlatformSettingsReconciler(
 
     /// <inheritdoc />
     public async ValueTask<bool> ReconcileAsync(
-        string serverId,
+        string platformId,
         CancellationToken cancellationToken
     )
     {
-        var persistedServer = await GetPlatformOrDefaultAsync(serverId, cancellationToken);
-        if (persistedServer is null)
+        var persistedPlatform = await GetPlatformOrDefaultAsync(platformId, cancellationToken);
+        if (persistedPlatform is null)
             return true;
 
         // The committed document and this replica's configuration, read from one row so the token matches the document.
         var settings = await EffectiveSettingsResolver.ResolvePlatformAsync(
-            persistedServer.Settings.Value,
+            persistedPlatform.Settings.Value,
             cancellationToken
         );
         var jsonOptions = OpenIdEnvironmentProvider.Get().JsonSerializerOptions;
         var fingerprint = SettingsFingerprint.Compute(settings, jsonOptions);
         if (
             string.Equals(
-                persistedServer.ReconciledSettingsFingerprint,
+                persistedPlatform.ReconciledSettingsFingerprint,
                 fingerprint,
                 StringComparison.Ordinal
             )
@@ -90,36 +90,36 @@ internal sealed class DefaultPlatformSettingsReconciler(
 
         // Replicas that observe one change share the key; every write to the row changes the token (ADR-1219).
         var leaseKey =
-            $"{LeasePurpose}:{serverId}:{persistedServer.ConcurrencyToken}:{fingerprint}";
+            $"{LeasePurpose}:{platformId}:{persistedPlatform.ConcurrencyToken}:{fingerprint}";
         var leaseExpiresWhen =
             TimeProvider.GetUtcNow() + Options.Platform.ReconciliationLeaseDuration;
         if (!await ExpiringKeySet.TryAddAsync(leaseKey, leaseExpiresWhen, cancellationToken))
             return false;
 
-        var previousSettings = ReadReconciledSettings(persistedServer, jsonOptions);
-        Logger.PlatformSettingsReconciliationStarted(serverId, fingerprint);
-        var command = new ReconcilePlatformSettingsCommand(serverId, settings)
+        var previousSettings = ReadReconciledSettings(persistedPlatform, jsonOptions);
+        Logger.PlatformSettingsReconciliationStarted(platformId, fingerprint);
+        var command = new ReconcilePlatformSettingsCommand(platformId, settings)
         {
             PreviousSettings = previousSettings,
         };
         await SendAsync(command, cancellationToken);
 
-        persistedServer.ReconciledSettingsFingerprint = fingerprint;
-        persistedServer.ReconciledSettings = SettingsSnapshot.Write(settings, jsonOptions);
-        if (!await TryRecordAsync(persistedServer, cancellationToken))
+        persistedPlatform.ReconciledSettingsFingerprint = fingerprint;
+        persistedPlatform.ReconciledSettings = SettingsSnapshot.Write(settings, jsonOptions);
+        if (!await TryRecordAsync(persistedPlatform, cancellationToken))
             return false;
 
-        Logger.PlatformSettingsReconciled(serverId, fingerprint);
+        Logger.PlatformSettingsReconciled(platformId, fingerprint);
         return true;
     }
 
     // A record that cannot be read leaves nothing to compare a change with, so every tenant and client is reconciled.
     private IReadOnlySettingCollection? ReadReconciledSettings(
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         JsonSerializerOptions jsonOptions
     )
     {
-        if (persistedServer.ReconciledSettings is not { } json)
+        if (persistedPlatform.ReconciledSettings is not { } json)
             return null;
 
         try
@@ -133,19 +133,19 @@ internal sealed class DefaultPlatformSettingsReconciler(
         }
         catch (JsonException exception)
         {
-            Logger.ReconciledPlatformSettingsUnreadable(persistedServer.ServerId, exception);
+            Logger.ReconciledPlatformSettingsUnreadable(persistedPlatform.PlatformId, exception);
             return null;
         }
     }
 
-    private async ValueTask<PersistedServer?> GetPlatformOrDefaultAsync(
-        string serverId,
+    private async ValueTask<PersistedPlatform?> GetPlatformOrDefaultAsync(
+        string platformId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
-        return await store.GetOrDefaultAsync(serverId, cancellationToken);
+        var store = storeManager.GetStore<IPlatformStore>();
+        return await store.GetOrDefaultAsync(platformId, cancellationToken);
     }
 
     // The mediator is scoped (its handlers' unit of work is), and the pass runs outside any request, so the command
@@ -163,15 +163,15 @@ internal sealed class DefaultPlatformSettingsReconciler(
     // Records the fingerprint and the settings only while the row is unchanged since it was read; a change during the pass
     // reconciles again.
     private async ValueTask<bool> TryRecordAsync(
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
         try
         {
-            await store.UpdateReconciledSettingsAsync(persistedServer, cancellationToken);
+            await store.UpdateReconciledSettingsAsync(persistedPlatform, cancellationToken);
             await storeManager.SaveChangesAsync(cancellationToken);
             return true;
         }

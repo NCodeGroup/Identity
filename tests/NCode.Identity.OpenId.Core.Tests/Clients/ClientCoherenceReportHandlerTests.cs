@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients;
 
 public sealed class ClientCoherenceReportHandlerTests : BaseTests
 {
-    private const string ServerId = "default";
+    private const string PlatformId = "default";
     private const string FirstTenantId = "acme";
     private const string SecondTenantId = "globex";
     private const string ClientId = "web";
@@ -239,10 +239,10 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     private static JsonElement CreateDocument(string name) =>
         JsonElement.Parse($$"""{"name":"{{name}}"}""");
 
-    private ReconcilePlatformSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
+    private ReconcilePlatformSettingsCommand CreateCommand() => new(PlatformId, ServerSettings);
 
     private ReconcilePlatformSettingsCommand CreateCommandWithPreviousSettings() =>
-        new(ServerId, ServerSettings) { PreviousSettings = PreviousServerSettings };
+        new(PlatformId, ServerSettings) { PreviousSettings = PreviousServerSettings };
 
     private void SetupReadsChangedSetting(
         IReadOnlySettingCollection previousSettings,

@@ -12,20 +12,20 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Common interface for all persisted server resources.
 /// </summary>
 [PublicAPI]
-public interface ISupportPersistedServerResource
+public interface ISupportPersistedPlatformResource
     : ISupportResource,
-        ISupportServerId,
+        ISupportPlatformId,
         ISupportConcurrencyToken
 {
     // nothing
 }
 
 /// <summary>
-/// Provides the base implementation for a persisted server resource using the <see cref="ISupportPersistedServerResource"/> abstraction.
+/// Provides the base implementation for a persisted server resource using the <see cref="ISupportPersistedPlatformResource"/> abstraction.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public abstract class BasePersistedServerResource : ISupportPersistedServerResource
+public abstract class BasePersistedPlatformResource : ISupportPersistedPlatformResource
 {
     /// <summary>
     /// Gets the prefix for the resource type.
@@ -39,11 +39,11 @@ public abstract class BasePersistedServerResource : ISupportPersistedServerResou
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceId)]
-    public virtual string ResourceId => ServerId;
+    public virtual string ResourceId => PlatformId;
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceId)]
-    public required string ServerId { get; init; }
+    public required string PlatformId { get; init; }
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ConcurrencyToken)]
@@ -51,12 +51,12 @@ public abstract class BasePersistedServerResource : ISupportPersistedServerResou
 }
 
 /// <summary>
-/// Provides the base implementation for a persisted server resource using the <see cref="ISupportPersistedServerResource"/> abstraction.
+/// Provides the base implementation for a persisted server resource using the <see cref="ISupportPersistedPlatformResource"/> abstraction.
 /// </summary>
 /// <typeparam name="TValue">The type of the persisted server resource.</typeparam>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public abstract class PersistedServerResource<TValue> : BasePersistedServerResource
+public abstract class PersistedPlatformResource<TValue> : BasePersistedPlatformResource
 {
     /// <summary>
     /// Gets or sets the value of the resource.

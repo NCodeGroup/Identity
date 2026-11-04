@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public sealed class ServerSettingsReconciliationServiceTests : BaseTests
 {
-    private const string ServerId = "default";
+    private const string PlatformId = "default";
 
     private static TimeSpan Deadline { get; } = TimeSpan.FromSeconds(5);
 
@@ -215,14 +215,14 @@ public sealed class ServerSettingsReconciliationServiceTests : BaseTests
             .Setup(x => x.GetChangeToken())
             .Returns(() => new CancellationChangeToken(Changes.Token))
             .Verifiable();
-        MockServer.Setup(x => x.ServerId).Returns(ServerId).Verifiable();
+        MockServer.Setup(x => x.PlatformId).Returns(PlatformId).Verifiable();
         MockServer.Setup(x => x.SettingsProvider).Returns(MockSettingsProvider.Object).Verifiable();
     }
 
     // Counts the calls and completes the call's completion source after choosing its result.
     private void SetupReconciler(Func<int, ValueTask<bool>> result) =>
         MockReconciler
-            .Setup(x => x.ReconcileAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.ReconcileAsync(PlatformId, It.IsAny<CancellationToken>()))
             .Returns(() =>
             {
                 var call = Interlocked.Increment(ref _callCount);

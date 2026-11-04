@@ -28,40 +28,40 @@ internal sealed class PersistedPlatformSeedService(
     /// <inheritdoc />
     public async Task StartingAsync(CancellationToken cancellationToken)
     {
-        const string serverId = OpenIdPlatformOptions.DefaultPlatformId;
+        const string platformId = OpenIdPlatformOptions.DefaultPlatformId;
 
         await using var scope = ScopeFactory.CreateAsyncScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
         await using var storeManager = await storeManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        if (await store.GetOrDefaultAsync(serverId, cancellationToken) is not null)
+        if (await store.GetOrDefaultAsync(platformId, cancellationToken) is not null)
         {
             throw new InvalidOperationException(
                 "The server is already persisted, so it may already be materialized with its earlier settings."
             );
         }
 
-        var persistedServer = new PersistedServer
+        var persistedPlatform = new PersistedPlatform
         {
-            ServerId = serverId,
+            PlatformId = platformId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            DisplayName = serverId,
-            Settings = new PersistedServerSettings
+            DisplayName = platformId,
+            Settings = new PersistedPlatformSettings
             {
-                ServerId = serverId,
+                PlatformId = platformId,
                 ConcurrencyToken = Guid.NewGuid().ToString("N"),
                 Value = System.Text.Json.JsonSerializer.SerializeToElement(Settings),
             },
-            Secrets = new PersistedServerSecrets
+            Secrets = new PersistedPlatformSecrets
             {
-                ServerId = serverId,
+                PlatformId = platformId,
                 ConcurrencyToken = Guid.NewGuid().ToString("N"),
                 Value = [],
             },
         };
 
-        await store.AddAsync(persistedServer, cancellationToken);
+        await store.AddAsync(persistedPlatform, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
     }
 

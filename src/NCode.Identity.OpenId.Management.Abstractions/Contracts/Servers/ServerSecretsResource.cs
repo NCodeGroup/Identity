@@ -11,14 +11,14 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.OpenId.Management.Contracts.Servers;
 
 /// <summary>
-/// Represents the REST resource for a <see cref="PersistedServerSecrets"/> instance.
+/// Represents the REST resource for a <see cref="PersistedPlatformSecrets"/> instance.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class ServerSecretsResource : ISupportServerId, ISupportConcurrencyToken
+public sealed class ServerSecretsResource : ISupportPlatformId, ISupportConcurrencyToken
 {
-    /// <inheritdoc cref="ISupportServerId.ServerId"/>
-    public required string ServerId { get; init; }
+    /// <inheritdoc cref="ISupportPlatformId.PlatformId"/>
+    public required string PlatformId { get; init; }
 
     /// <inheritdoc cref="ISupportConcurrencyToken.ConcurrencyToken"/>
     public required string ConcurrencyToken { get; init; }

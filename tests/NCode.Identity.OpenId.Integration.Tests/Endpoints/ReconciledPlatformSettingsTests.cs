@@ -76,14 +76,14 @@ public class ReconciledPlatformSettingsTests
         return server?.ReconciledSettings;
     }
 
-    private static async Task<PersistedServer?> GetPlatformAsync(HostApplicationFactory factory)
+    private static async Task<PersistedPlatform?> GetPlatformAsync(HostApplicationFactory factory)
     {
         using var serviceScope = factory.Services.CreateScope();
         await using var storeManager = await serviceScope
             .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
             .CreateAsync(CancellationToken.None);
         return await storeManager
-            .GetStore<IServerStore>()
+            .GetStore<IPlatformStore>()
             .GetOrDefaultAsync(OpenIdPlatformOptions.DefaultPlatformId, CancellationToken.None);
     }
 

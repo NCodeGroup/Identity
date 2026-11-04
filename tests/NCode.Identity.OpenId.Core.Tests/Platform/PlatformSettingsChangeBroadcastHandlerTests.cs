@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Platform;
 
 public class ServerSettingsChangeBroadcastHandlerTests : BaseTests
 {
-    private const string ServerId = "server-1";
+    private const string PlatformId = "server-1";
 
     private Mock<IMaterializedPlatformRegistry> MockRegistry { get; }
     private PlatformSettingsChangeBroadcastHandler Handler { get; }
@@ -39,11 +39,11 @@ public class ServerSettingsChangeBroadcastHandlerTests : BaseTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
         MockRegistry
-            .Setup(x => x.RefreshSettingsAsync(ServerId, cancellationToken))
+            .Setup(x => x.RefreshSettingsAsync(PlatformId, cancellationToken))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Handler.HandleAsync(ServerId, cancellationToken);
+        await Handler.HandleAsync(PlatformId, cancellationToken);
     }
 
     #endregion

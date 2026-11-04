@@ -37,12 +37,12 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 
 public sealed class ServerApiEndpointHandlerTests : IDisposable
 {
-    private const string ServerId = "server-1";
+    private const string PlatformId = "server-1";
 
     private MockRepository MockRepository { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
-    private Mock<IServerStore> MockServerStore { get; }
+    private Mock<IPlatformStore> MockServerStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientKeyImporter> MockKeyImporter { get; }
@@ -66,7 +66,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
-        MockServerStore = MockRepository.Create<IServerStore>();
+        MockServerStore = MockRepository.Create<IPlatformStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockKeyImporter = MockRepository.Create<IClientKeyImporter>();
@@ -180,7 +180,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
         MockStoreManager
-            .Setup(x => x.GetStore<IServerStore>())
+            .Setup(x => x.GetStore<IPlatformStore>())
             .Returns(MockServerStore.Object)
             .Verifiable();
 
@@ -287,34 +287,34 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         return JsonSerializer.SerializeToElement(new JsonObject());
     }
 
-    private static PersistedServerSettings CreateSettings(
+    private static PersistedPlatformSettings CreateSettings(
         string concurrencyToken,
         JsonElement value
     )
     {
-        return new PersistedServerSettings
+        return new PersistedPlatformSettings
         {
-            ServerId = ServerId,
+            PlatformId = PlatformId,
             ConcurrencyToken = concurrencyToken,
             Value = value,
         };
     }
 
-    private static PersistedServerSecrets CreateSecrets(string concurrencyToken)
+    private static PersistedPlatformSecrets CreateSecrets(string concurrencyToken)
     {
-        return new PersistedServerSecrets
+        return new PersistedPlatformSecrets
         {
-            ServerId = ServerId,
+            PlatformId = PlatformId,
             ConcurrencyToken = concurrencyToken,
             Value = [],
         };
     }
 
-    private static PersistedServer CreateServer(string concurrencyToken)
+    private static PersistedPlatform CreateServer(string concurrencyToken)
     {
-        return new PersistedServer
+        return new PersistedPlatform
         {
-            ServerId = ServerId,
+            PlatformId = PlatformId,
             ConcurrencyToken = concurrencyToken,
             DisplayName = "Test Server",
             Settings = CreateSettings("settings-ct", EmptyObject()),
@@ -332,17 +332,21 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var server = CreateServer("server-ct");
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(server)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         var json = Assert.IsType<JsonHttpResult<ServerResource>>(result);
-        Assert.Equal(ServerId, json.Value?.ServerId);
+        Assert.Equal(PlatformId, json.Value?.PlatformId);
         Assert.Equal("server-ct", json.Value?.ConcurrencyToken);
         Assert.Equal("server-ct", httpContext.Response.Headers.ETag);
     }
@@ -352,13 +356,17 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServer?)null)
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatform?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NotFound>(result);
     }
@@ -368,14 +376,18 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         Assert.IsType<ForbidHttpResult>(result);
     }
@@ -385,14 +397,18 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: false);
 
-        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         Assert.IsType<UnauthorizedHttpResult>(result);
     }
@@ -402,14 +418,18 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true, ifNoneMatch: "server-ct");
 
-        var result = await Handler.GetPlatformAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetPlatformAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
         Assert.Equal(StatusCodes.Status304NotModified, statusCode.StatusCode);
@@ -425,17 +445,21 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSettingsAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetSettingsAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         var json = Assert.IsType<JsonHttpResult<ServerSettingsResource>>(result);
-        Assert.Equal(ServerId, json.Value?.ServerId);
+        Assert.Equal(PlatformId, json.Value?.PlatformId);
     }
 
     [Fact]
@@ -443,13 +467,17 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServerSettings?)null)
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSettingsAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetSettingsAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NotFound>(result);
     }
@@ -464,17 +492,17 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var secrets = CreateSecrets("secrets-ct");
         MockServerStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSecretsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(secrets)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSecretsAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetSecretsAsync(httpContext, PlatformId, CancellationToken.None);
 
         var json = Assert.IsType<JsonHttpResult<ServerSecretsResource>>(result);
-        Assert.Equal(ServerId, json.Value?.ServerId);
+        Assert.Equal(PlatformId, json.Value?.PlatformId);
         Assert.Empty(json.Value?.Secrets ?? []);
     }
 
@@ -483,13 +511,13 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSecretsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServerSecrets?)null)
+            .Setup(x => x.GetSecretsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSecrets?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSecretsAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.GetSecretsAsync(httpContext, PlatformId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
     }
@@ -503,7 +531,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
             .Verifiable();
 
@@ -528,12 +556,12 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetEffectiveSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CancellationToken.None
         );
 
         var json = Assert.IsType<JsonHttpResult<ServerEffectiveSettingsResource>>(result);
-        Assert.Equal(ServerId, json.Value?.ServerId);
+        Assert.Equal(PlatformId, json.Value?.PlatformId);
         Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
     }
 
@@ -542,15 +570,15 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServerSettings?)null)
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.GetEffectiveSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CancellationToken.None
         );
 
@@ -562,7 +590,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -576,11 +604,11 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var httpContext = CreateHttpContext(authenticated: true);
 
         var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
-            await Handler.GetEffectiveSettingsAsync(httpContext, ServerId, CancellationToken.None)
+            await Handler.GetEffectiveSettingsAsync(httpContext, PlatformId, CancellationToken.None)
         );
 
         Assert.Equal(OpenIdSettingScopes.Platform, exception.ScopeName);
-        Assert.Equal(ServerId, exception.OwnerId);
+        Assert.Equal(PlatformId, exception.OwnerId);
         Assert.Equal("boom", exception.DocumentError);
     }
 
@@ -733,7 +761,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.SendAsync(
                     It.Is<PlatformSettingsChangedCommand>(c =>
-                        c.ServerId == ServerId
+                        c.PlatformId == PlatformId
                         && HasProperty(c.Settings, "foo")
                         && !HasProperty(c.PreviousSettings, "foo")
                     ),
@@ -766,7 +794,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -813,7 +841,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // Strict mocks: no tenant-store or FindIntroducedViolationsAsync setup, so walking the tenants would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -829,7 +857,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -872,7 +900,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // client would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -888,7 +916,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -926,7 +954,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // The verifiable checker setup for TenantId proves the second tenant was checked.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -941,7 +969,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -961,7 +989,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -993,7 +1021,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1014,7 +1042,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             patch,
             ifMatch: null,
             CancellationToken.None
@@ -1032,7 +1060,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1052,7 +1080,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -1076,7 +1104,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1096,7 +1124,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: "settings-ct",
             CancellationToken.None
@@ -1112,7 +1140,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1122,7 +1150,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("unregistered_setting", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -1139,7 +1167,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1148,7 +1176,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: "stale-token",
             CancellationToken.None
@@ -1164,7 +1192,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1179,7 +1207,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             patch,
             ifMatch: null,
             CancellationToken.None
@@ -1194,15 +1222,15 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServerSettings?)null)
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -1217,7 +1245,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
@@ -1226,7 +1254,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -1241,7 +1269,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
@@ -1250,7 +1278,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -1302,7 +1330,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockSecretProtectorProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForPlatform(ServerId),
+                    SecretOwner.ForPlatform(PlatformId),
                     It.Is<IReadOnlyCollection<string>>(v => v.Count == 0),
                     It.IsAny<CancellationToken>()
                 )
@@ -1319,7 +1347,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupServerSecretChangedAudit();
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1332,7 +1360,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockServerStore
-            .Setup(x => x.AddSecretAsync(ServerId, generated, It.IsAny<CancellationToken>()))
+            .Setup(x => x.AddSecretAsync(PlatformId, generated, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockStoreManager
@@ -1344,7 +1372,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateSecretRequest(),
             CancellationToken.None
         );
@@ -1357,7 +1385,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             x =>
                 x.RecordServerSecretChangedAsync(
                     httpContext,
-                    ServerId,
+                    PlatformId,
                     "generated-id",
                     ResourceChangeTypes.Created,
                     It.IsAny<JsonElement?>(),
@@ -1372,15 +1400,15 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServer?)null)
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatform?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.CreateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateSecretRequest(),
             CancellationToken.None
         );
@@ -1393,7 +1421,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
@@ -1402,7 +1430,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateSecretRequest(),
             CancellationToken.None
         );
@@ -1416,7 +1444,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupSecretCreateValidation();
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1431,7 +1459,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateSecretRequest(),
             CancellationToken.None
         );
@@ -1446,7 +1474,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupSecretCreateValidation();
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1459,7 +1487,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
             .Verifiable();
         MockServerStore
-            .Setup(x => x.AddSecretAsync(ServerId, generated, It.IsAny<CancellationToken>()))
+            .Setup(x => x.AddSecretAsync(PlatformId, generated, It.IsAny<CancellationToken>()))
             .Throws(new InvalidOperationException("duplicate"))
             .Verifiable();
 
@@ -1467,7 +1495,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateSecretRequest(),
             CancellationToken.None
         );
@@ -1482,7 +1510,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupSecretCreateValidation();
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1503,7 +1531,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.CreateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateSecretRequest(),
             CancellationToken.None
         );
@@ -1522,7 +1550,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
@@ -1532,7 +1560,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -1547,7 +1575,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync((PersistedSecret?)null)
             .Verifiable();
@@ -1556,7 +1584,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -1583,7 +1611,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
@@ -1597,7 +1625,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetPublicKeyAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -1613,7 +1641,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
@@ -1627,7 +1655,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetPublicKeyAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -1641,7 +1669,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync((PersistedSecret?)null)
             .Verifiable();
@@ -1650,7 +1678,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetPublicKeyAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -1664,7 +1692,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
@@ -1674,7 +1702,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.GetPublicKeyAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -1702,7 +1730,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
@@ -1710,7 +1738,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockServerStore
             .Setup(x =>
                 x.UpdateSecretAsync(
-                    ServerId,
+                    PlatformId,
                     It.IsAny<PersistedSecret>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -1726,7 +1754,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             UpdateSecretRequest(),
             ifMatch: null,
@@ -1739,7 +1767,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             x =>
                 x.RecordServerSecretChangedAsync(
                     httpContext,
-                    ServerId,
+                    PlatformId,
                     "secret-1",
                     ResourceChangeTypes.Updated,
                     It.IsAny<JsonElement?>(),
@@ -1755,7 +1783,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync((PersistedSecret?)null)
             .Verifiable();
@@ -1764,7 +1792,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             UpdateSecretRequest(),
             ifMatch: null,
@@ -1780,7 +1808,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
@@ -1790,7 +1818,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             UpdateSecretRequest(),
             ifMatch: "stale-token",
@@ -1808,7 +1836,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
@@ -1831,7 +1859,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // Strict mocks: no UpdateSecretAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             UpdateSecretRequest(),
             ifMatch: null,
@@ -1849,7 +1877,9 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupServerSecretChangedAudit();
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSecretOrDefaultAsync(ServerId, "key-1", It.IsAny<CancellationToken>()))
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(PlatformId, "key-1", It.IsAny<CancellationToken>())
+            )
             .ReturnsAsync(CreatePublicKeySecret("key-1", "server-kid"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1857,7 +1887,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         MockServerStore
             .Setup(x =>
                 x.UpdateSecretAsync(
-                    ServerId,
+                    PlatformId,
                     It.IsAny<PersistedSecret>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -1874,7 +1904,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "key-1",
             UpdateSecretRequest(),
             ifMatch: null,
@@ -1921,14 +1951,14 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         var server = CreateServer("server-ct");
-        server.Secrets = new PersistedServerSecrets
+        server.Secrets = new PersistedPlatformSecrets
         {
-            ServerId = ServerId,
+            PlatformId = PlatformId,
             ConcurrencyToken = "secrets-ct",
             Value = existingKeys,
         };
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(server)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1961,7 +1991,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var imported = CreatePublicKeySecret("generated-id", "server-kid");
         SetupImportedKey(imported, error: null);
         MockServerStore
-            .Setup(x => x.AddSecretAsync(ServerId, imported, It.IsAny<CancellationToken>()))
+            .Setup(x => x.AddSecretAsync(PlatformId, imported, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockStoreManager
@@ -1973,7 +2003,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ImportSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateImportSecretRequest(),
             CancellationToken.None
         );
@@ -1994,7 +2024,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // Strict mocks: no AddSecretAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.ImportSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateImportSecretRequest(),
             CancellationToken.None
         );
@@ -2015,7 +2045,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         // Strict mocks: no AddSecretAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.ImportSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateImportSecretRequest(),
             CancellationToken.None
         );
@@ -2035,7 +2065,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.ImportSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateImportSecretRequest(),
             CancellationToken.None
         );
@@ -2055,13 +2085,13 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreatePersistedSecret())
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockServerStore
-            .Setup(x => x.RemoveSecretAsync(ServerId, "secret-1", It.IsAny<CancellationToken>()))
+            .Setup(x => x.RemoveSecretAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .Verifiable();
         MockStoreManager
@@ -2073,7 +2103,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.DeleteSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -2084,7 +2114,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             x =>
                 x.RecordServerSecretChangedAsync(
                     httpContext,
-                    ServerId,
+                    PlatformId,
                     "secret-1",
                     ResourceChangeTypes.Deleted,
                     It.IsAny<JsonElement?>(),
@@ -2100,7 +2130,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         MockServerStore
             .Setup(x =>
-                x.GetSecretOrDefaultAsync(ServerId, "secret-1", It.IsAny<CancellationToken>())
+                x.GetSecretOrDefaultAsync(PlatformId, "secret-1", It.IsAny<CancellationToken>())
             )
             .ReturnsAsync((PersistedSecret?)null)
             .Verifiable();
@@ -2109,7 +2139,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.DeleteSecretAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -2132,7 +2162,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.ValidateCreateAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -2140,7 +2170,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync((ManagementError?)null)
             .Verifiable();
         MockServerStore
-            .Setup(x => x.AddAsync(It.IsAny<PersistedServer>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.AddAsync(It.IsAny<PersistedPlatform>(), It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockStoreManager
@@ -2158,7 +2188,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         var result = await Handler.CreateServerAsync(httpContext, request, CancellationToken.None);
 
         var created = Assert.IsType<Created<ServerResource>>(result);
-        Assert.Equal("generated-id", created.Value?.ServerId);
+        Assert.Equal("generated-id", created.Value?.PlatformId);
         Assert.Equal("My Server", created.Value?.DisplayName);
         MockManagementAuditRecorder.Verify(
             x =>
@@ -2183,7 +2213,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.ValidateCreateAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -2213,7 +2243,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.ValidateCreateAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -2265,14 +2295,14 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupStore();
         var server = CreateServer("server-ct");
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(server)
             .Verifiable();
         MockServerValidator
             .Setup(x =>
                 x.ValidateUpdateAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<UpdateServerRequest>(),
                     It.IsAny<string?>(),
                     It.IsAny<IStoreManager>(),
@@ -2294,7 +2324,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateServerAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateDisplayNamePatch("Renamed Server"),
             ifMatch: null,
             CancellationToken.None
@@ -2306,7 +2336,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             x =>
                 x.RecordServerChangedAsync(
                     httpContext,
-                    ServerId,
+                    PlatformId,
                     ResourceChangeTypes.Updated,
                     It.IsAny<JsonElement?>(),
                     It.IsAny<CancellationToken>()
@@ -2320,15 +2350,15 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServer?)null)
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatform?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.UpdateServerAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateDisplayNamePatch("Renamed Server"),
             ifMatch: null,
             CancellationToken.None
@@ -2342,14 +2372,14 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         MockServerValidator
             .Setup(x =>
                 x.ValidateUpdateAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<UpdateServerRequest>(),
                     It.IsAny<string?>(),
                     It.IsAny<IStoreManager>(),
@@ -2369,7 +2399,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateServerAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             CreateDisplayNamePatch("Renamed Server"),
             ifMatch: "stale-token",
             CancellationToken.None
@@ -2384,7 +2414,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
 
@@ -2398,7 +2428,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateServerAsync(
             httpContext,
-            ServerId,
+            PlatformId,
             patch,
             ifMatch: null,
             CancellationToken.None
@@ -2418,14 +2448,14 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
         SetupServerChangedAudit();
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         MockServerValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -2433,7 +2463,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync((ManagementError?)null)
             .Verifiable();
         MockServerStore
-            .Setup(x => x.RemoveAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.RemoveAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .Verifiable();
         MockStoreManager
@@ -2443,7 +2473,11 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.DeleteServerAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NoContent>(result);
     }
@@ -2453,14 +2487,14 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer("server-ct"))
             .Verifiable();
         MockServerValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedServer>(),
+                    It.IsAny<PersistedPlatform>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -2476,7 +2510,11 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.DeleteServerAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
@@ -2487,13 +2525,17 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServer?)null)
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatform?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.DeleteServerAsync(httpContext, ServerId, CancellationToken.None);
+        var result = await Handler.DeleteServerAsync(
+            httpContext,
+            PlatformId,
+            CancellationToken.None
+        );
 
         Assert.IsType<NotFound>(result);
     }

@@ -39,18 +39,18 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 
 /*
 
-GET   api/servers/{serverId}
+GET   api/servers/{platformId}
 
-GET   api/servers/{serverId}/settings
-PATCH api/servers/{serverId}/settings
-GET   api/servers/{serverId}/effective-settings
+GET   api/servers/{platformId}/settings
+PATCH api/servers/{platformId}/settings
+GET   api/servers/{platformId}/effective-settings
 
-GET    api/servers/{serverId}/secrets
-POST   api/servers/{serverId}/secrets
-GET    api/servers/{serverId}/secrets/{secretId}
-GET    api/servers/{serverId}/secrets/{secretId}/public-key
-PUT    api/servers/{serverId}/secrets/{secretId}
-DELETE api/servers/{serverId}/secrets/{secretId}
+GET    api/servers/{platformId}/secrets
+POST   api/servers/{platformId}/secrets
+GET    api/servers/{platformId}/secrets/{secretId}
+GET    api/servers/{platformId}/secrets/{secretId}/public-key
+PUT    api/servers/{platformId}/secrets/{secretId}
+DELETE api/servers/{platformId}/secrets/{secretId}
 
 */
 
@@ -117,82 +117,88 @@ internal class ServerApiEndpointHandler(
             .Produces<ServerResource>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
         servers.MapGet("", ListServersAsync).Produces<CollectionResource<ServerResource>>();
-        servers.MapGet("/{serverId}", GetPlatformAsync).Produces<ServerResource>();
-        servers.MapPatch("/{serverId}", UpdateServerAsync).Produces(StatusCodes.Status204NoContent);
+        servers.MapGet("/{platformId}", GetPlatformAsync).Produces<ServerResource>();
         servers
-            .MapDelete("/{serverId}", DeleteServerAsync)
+            .MapPatch("/{platformId}", UpdateServerAsync)
+            .Produces(StatusCodes.Status204NoContent);
+        servers
+            .MapDelete("/{platformId}", DeleteServerAsync)
             .Produces(StatusCodes.Status204NoContent);
 
-        servers.MapGet("/{serverId}/settings", GetSettingsAsync).Produces<ServerSettingsResource>();
         servers
-            .MapPatch("/{serverId}/settings", UpdateSettingsAsync)
+            .MapGet("/{platformId}/settings", GetSettingsAsync)
+            .Produces<ServerSettingsResource>();
+        servers
+            .MapPatch("/{platformId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem();
         servers
-            .MapGet("/{serverId}/effective-settings", GetEffectiveSettingsAsync)
+            .MapGet("/{platformId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<ServerEffectiveSettingsResource>();
 
-        servers.MapGet("/{serverId}/secrets", GetSecretsAsync).Produces<ServerSecretsResource>();
+        servers.MapGet("/{platformId}/secrets", GetSecretsAsync).Produces<ServerSecretsResource>();
         servers
-            .MapPost("/{serverId}/secrets", CreateSecretAsync)
+            .MapPost("/{platformId}/secrets", CreateSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
         servers
-            .MapPost("/{serverId}/secrets/import", ImportSecretAsync)
+            .MapPost("/{platformId}/secrets/import", ImportSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
-        servers.MapGet("/{serverId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
         servers
-            .MapGet("/{serverId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
+            .MapGet("/{platformId}/secrets/{secretId}", GetSecretAsync)
+            .Produces<SecretResource>();
+        servers
+            .MapGet("/{platformId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
             .Produces<PublicKeyResource>();
         servers
-            .MapPut("/{serverId}/secrets/{secretId}", UpdateSecretAsync)
+            .MapPut("/{platformId}/secrets/{secretId}", UpdateSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
         servers
-            .MapDelete("/{serverId}/secrets/{secretId}", DeleteSecretAsync)
+            .MapDelete("/{platformId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
     }
 
     /// <summary>
-    /// Maps a <see cref="PersistedServer"/> to its <see cref="ServerResource"/> representation.
+    /// Maps a <see cref="PersistedPlatform"/> to its <see cref="ServerResource"/> representation.
     /// </summary>
-    /// <param name="server">The <see cref="PersistedServer"/> to map.</param>
+    /// <param name="server">The <see cref="PersistedPlatform"/> to map.</param>
     /// <returns>The mapped <see cref="ServerResource"/>.</returns>
-    internal virtual ServerResource ToServerResource(PersistedServer server)
+    internal virtual ServerResource ToServerResource(PersistedPlatform server)
     {
         return new ServerResource
         {
-            ServerId = server.ServerId,
+            PlatformId = server.PlatformId,
             ConcurrencyToken = server.ConcurrencyToken,
             DisplayName = server.DisplayName,
         };
     }
 
     /// <summary>
-    /// Maps a <see cref="PersistedServerSettings"/> to its <see cref="ServerSettingsResource"/> representation.
+    /// Maps a <see cref="PersistedPlatformSettings"/> to its <see cref="ServerSettingsResource"/> representation.
     /// </summary>
-    /// <param name="settings">The <see cref="PersistedServerSettings"/> to map.</param>
+    /// <param name="settings">The <see cref="PersistedPlatformSettings"/> to map.</param>
     /// <returns>The mapped <see cref="ServerSettingsResource"/>.</returns>
     internal virtual ServerSettingsResource ToServerSettingsResource(
-        PersistedServerSettings settings
+        PersistedPlatformSettings settings
     )
     {
         return new ServerSettingsResource
         {
-            ServerId = settings.ServerId,
+            PlatformId = settings.PlatformId,
             ConcurrencyToken = settings.ConcurrencyToken,
             Settings = settings.Value,
         };
     }
 
     /// <summary>
-    /// Maps a <see cref="PersistedServerSecrets"/> to its <see cref="ServerSecretsResource"/> representation.
+    /// Maps a <see cref="PersistedPlatformSecrets"/> to its <see cref="ServerSecretsResource"/> representation.
     /// </summary>
-    /// <param name="secrets">The <see cref="PersistedServerSecrets"/> to map.</param>
+    /// <param name="secrets">The <see cref="PersistedPlatformSecrets"/> to map.</param>
     /// <returns>The mapped <see cref="ServerSecretsResource"/>.</returns>
-    internal virtual ServerSecretsResource ToServerSecretsResource(PersistedServerSecrets secrets)
+    internal virtual ServerSecretsResource ToServerSecretsResource(PersistedPlatformSecrets secrets)
     {
         return new ServerSecretsResource
         {
-            ServerId = secrets.ServerId,
+            PlatformId = secrets.PlatformId,
             ConcurrencyToken = secrets.ConcurrencyToken,
             Secrets = ToSecretsResource(secrets.Value),
         };
@@ -225,7 +231,7 @@ internal class ServerApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(
                     cancellationToken
                 );
-                var store = storeManager.GetStore<IServerStore>();
+                var store = storeManager.GetStore<IPlatformStore>();
                 return await store.GetPageAsync(
                     new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
@@ -239,20 +245,20 @@ internal class ServerApiEndpointHandler(
     /// Gets an OpenID server.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested server.</response>
     [EndpointName("api/servers/get")]
     internal virtual async ValueTask<IResult> GetPlatformAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        var server = await store.GetOrDefaultAsync(platformId, cancellationToken);
 
         return await ProcessGetAsync(httpContext, server, Operations.Read, ToServerResource);
     }
@@ -272,24 +278,24 @@ internal class ServerApiEndpointHandler(
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverId = CryptoService.GenerateResourceId();
+        var platformId = CryptoService.GenerateResourceId();
 
-        var server = new PersistedServer
+        var server = new PersistedPlatform
         {
-            ServerId = serverId,
+            PlatformId = platformId,
             ConcurrencyToken = string.Empty,
             DisplayName = request.DisplayName,
-            Settings = new PersistedServerSettings
+            Settings = new PersistedPlatformSettings
             {
-                ServerId = serverId,
+                PlatformId = platformId,
                 ConcurrencyToken = string.Empty,
                 Value = SerializeToElement(ToJsonObject(request.Settings)),
             },
-            Secrets = new PersistedServerSecrets
+            Secrets = new PersistedPlatformSecrets
             {
-                ServerId = serverId,
+                PlatformId = platformId,
                 ConcurrencyToken = string.Empty,
                 Value = [],
             },
@@ -329,7 +335,7 @@ internal class ServerApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordServerChangedAsync(
             httpContext,
-            server.ServerId,
+            server.PlatformId,
             ResourceChangeTypes.Created,
             ToResourceValues(resource),
             cancellationToken
@@ -337,14 +343,14 @@ internal class ServerApiEndpointHandler(
 
         // The store assigns the row token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = server.ConcurrencyToken;
-        return TypedResults.Created($"/servers/{server.ServerId}", resource);
+        return TypedResults.Created($"/servers/{server.PlatformId}", resource);
     }
 
     /// <summary>
     /// Updates an OpenID server.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="request">The JSON Patch document to apply to the server metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -352,16 +358,16 @@ internal class ServerApiEndpointHandler(
     [EndpointName("api/servers/update")]
     internal virtual async ValueTask<IResult> UpdateServerAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         [FromBody] JsonPatchDocument<UpdateServerRequest> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        var server = await store.GetOrDefaultAsync(platformId, cancellationToken);
         if (server is null)
         {
             return TypedResults.NotFound();
@@ -404,7 +410,7 @@ internal class ServerApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordServerChangedAsync(
             httpContext,
-            server.ServerId,
+            server.PlatformId,
             ResourceChangeTypes.Updated,
             ToResourceValues(ToServerResource(server)),
             cancellationToken
@@ -417,21 +423,21 @@ internal class ServerApiEndpointHandler(
     /// Deletes an OpenID server.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The server was deleted.</response>
     /// <response code="409">The server still has secrets and cannot be deleted.</response>
     [EndpointName("api/servers/delete")]
     internal virtual async ValueTask<IResult> DeleteServerAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        var server = await store.GetOrDefaultAsync(platformId, cancellationToken);
         if (server is null)
         {
             return TypedResults.NotFound();
@@ -452,12 +458,12 @@ internal class ServerApiEndpointHandler(
 
         var resourceValues = ToResourceValues(ToServerResource(server));
 
-        await store.RemoveAsync(serverId, cancellationToken);
+        await store.RemoveAsync(platformId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordServerChangedAsync(
             httpContext,
-            server.ServerId,
+            server.PlatformId,
             ResourceChangeTypes.Deleted,
             resourceValues,
             cancellationToken
@@ -470,20 +476,20 @@ internal class ServerApiEndpointHandler(
     /// Gets a server's settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The server's settings.</response>
     [EndpointName("api/servers/settings/get")]
     internal virtual async ValueTask<IResult> GetSettingsAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
+        var serverSettings = await store.GetSettingsOrDefaultAsync(platformId, cancellationToken);
 
         return await ProcessGetAsync(
             httpContext,
@@ -497,20 +503,20 @@ internal class ServerApiEndpointHandler(
     /// Gets a server's effective (resolved) settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The server's effective settings.</response>
     [EndpointName("api/servers/effective-settings/get")]
     internal virtual async ValueTask<IResult> GetEffectiveSettingsAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
+        var serverSettings = await store.GetSettingsOrDefaultAsync(platformId, cancellationToken);
         if (serverSettings is null)
         {
             return TypedResults.NotFound();
@@ -527,11 +533,11 @@ internal class ServerApiEndpointHandler(
             async (settings, token) =>
             {
                 var effectiveSettings = await ResolveStoredServerSettingsAsync(
-                    serverId,
+                    platformId,
                     settings,
                     token
                 );
-                return ToServerEffectiveSettingsResource(serverId, effectiveSettings);
+                return ToServerEffectiveSettingsResource(platformId, effectiveSettings);
             },
             cancellationToken
         );
@@ -541,14 +547,14 @@ internal class ServerApiEndpointHandler(
     /// Resolves the effective settings of the server's committed settings document and names the server when the
     /// document cannot be honored by the settings vocabulary.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenID Server that owns the settings document.</param>
+    /// <param name="platformId">The identifier of the OpenID Server that owns the settings document.</param>
     /// <param name="settings">The server's committed settings document.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The server's effective settings.</returns>
     /// <exception cref="UnreadableSettingsException">The document cannot be honored.</exception>
     // See ADR-1245.
     private async ValueTask<IReadOnlySettingCollection> ResolveStoredServerSettingsAsync(
-        string serverId,
+        string platformId,
         JsonElement settings,
         CancellationToken cancellationToken
     )
@@ -564,7 +570,7 @@ internal class ServerApiEndpointHandler(
         {
             throw new UnreadableSettingsException(
                 OpenIdSettingScopes.Platform,
-                serverId,
+                platformId,
                 exception
             );
         }
@@ -574,17 +580,17 @@ internal class ServerApiEndpointHandler(
     /// Maps an OpenID Server's effective <see cref="IReadOnlySettingCollection"/> to its
     /// <see cref="ServerEffectiveSettingsResource"/> representation.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenID Server that owns the settings.</param>
+    /// <param name="platformId">The identifier of the OpenID Server that owns the settings.</param>
     /// <param name="settings">The server's effective <see cref="IReadOnlySettingCollection"/>.</param>
     /// <returns>The mapped <see cref="ServerEffectiveSettingsResource"/>.</returns>
     internal virtual ServerEffectiveSettingsResource ToServerEffectiveSettingsResource(
-        string serverId,
+        string platformId,
         IReadOnlySettingCollection settings
     )
     {
         return new ServerEffectiveSettingsResource
         {
-            ServerId = serverId,
+            PlatformId = platformId,
             Settings = ToEffectiveSettingsElement(
                 settings,
                 SettingScopeCollectionProvider.Collection,
@@ -597,7 +603,7 @@ internal class ServerApiEndpointHandler(
     /// Updates a server's settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -605,16 +611,16 @@ internal class ServerApiEndpointHandler(
     [EndpointName("api/servers/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         [FromBody] JsonPatchDocument<JsonObject> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
+        var serverSettings = await store.GetSettingsOrDefaultAsync(platformId, cancellationToken);
 
         if (serverSettings is null)
         {
@@ -671,7 +677,7 @@ internal class ServerApiEndpointHandler(
         }
 
         var currentServerSettings = await ResolveReplacedServerSettingsOrDefaultAsync(
-            serverId,
+            platformId,
             serverSettings.Value,
             cancellationToken
         );
@@ -709,7 +715,7 @@ internal class ServerApiEndpointHandler(
 
         await NotifyServerSettingsChangedAsync(
             httpContext,
-            serverId,
+            platformId,
             previousSettings,
             settingsValue,
             cancellationToken
@@ -725,13 +731,13 @@ internal class ServerApiEndpointHandler(
     /// When the document cannot be honored by the settings vocabulary, nothing was coherent under it, so no client is
     /// checked and the write may replace it with a document that can be honored.
     /// </summary>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="replacedSettings">The server's committed settings document.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The server's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
     // See ADR-1241.
     private async ValueTask<IReadOnlySettingCollection?> ResolveReplacedServerSettingsOrDefaultAsync(
-        string serverId,
+        string platformId,
         JsonElement replacedSettings,
         CancellationToken cancellationToken
     )
@@ -745,7 +751,7 @@ internal class ServerApiEndpointHandler(
         }
         catch (JsonException exception)
         {
-            Logger.PlatformSettingsUnreadable(serverId, exception.Message);
+            Logger.PlatformSettingsUnreadable(platformId, exception.Message);
             return null;
         }
     }
@@ -830,20 +836,20 @@ internal class ServerApiEndpointHandler(
     /// Lists a server's secrets.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The server's secrets.</response>
     [EndpointName("api/servers/secrets/get")]
     internal virtual async ValueTask<IResult> GetSecretsAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverSecrets = await store.GetSecretsOrDefaultAsync(serverId, cancellationToken);
+        var serverSecrets = await store.GetSecretsOrDefaultAsync(platformId, cancellationToken);
 
         return await ProcessGetAsync(
             httpContext,
@@ -857,22 +863,22 @@ internal class ServerApiEndpointHandler(
     /// Creates a server secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="request">The <see cref="CreateSecretRequest"/> describing the secret to generate.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created secret.</response>
     [EndpointName("api/servers/secrets/create")]
     internal virtual async ValueTask<IResult> CreateSecretAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         [FromBody] CreateSecretRequest request,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        var server = await store.GetOrDefaultAsync(platformId, cancellationToken);
         if (server is null)
         {
             return TypedResults.NotFound();
@@ -898,7 +904,7 @@ internal class ServerApiEndpointHandler(
         var secretId = CryptoService.GenerateResourceId();
 
         var protector = await SecretProtectorProvider.GetProtectorAsync(
-            SecretOwner.ForPlatform(serverId),
+            SecretOwner.ForPlatform(platformId),
             [],
             cancellationToken
         );
@@ -932,7 +938,7 @@ internal class ServerApiEndpointHandler(
 
         try
         {
-            await store.AddSecretAsync(serverId, generatedSecret.Secret, cancellationToken);
+            await store.AddSecretAsync(platformId, generatedSecret.Secret, cancellationToken);
         }
         catch (InvalidOperationException exception)
         {
@@ -949,7 +955,7 @@ internal class ServerApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordServerSecretChangedAsync(
             httpContext,
-            serverId,
+            platformId,
             secretId,
             ResourceChangeTypes.Created,
             ToResourceValues(secretResource),
@@ -958,7 +964,7 @@ internal class ServerApiEndpointHandler(
 
         // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
-        return TypedResults.Created($"/servers/{serverId}/secrets/{secretId}", secretResource);
+        return TypedResults.Created($"/servers/{platformId}/secrets/{secretId}", secretResource);
     }
 
     /// <summary>
@@ -967,15 +973,15 @@ internal class ServerApiEndpointHandler(
     // See ADR-1104.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         [FromBody] ImportSecretRequest request,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var server = await store.GetOrDefaultAsync(serverId, cancellationToken);
+        var server = await store.GetOrDefaultAsync(platformId, cancellationToken);
         if (server is null)
         {
             return TypedResults.NotFound();
@@ -1027,7 +1033,7 @@ internal class ServerApiEndpointHandler(
 
         try
         {
-            await store.AddSecretAsync(serverId, importedSecret, cancellationToken);
+            await store.AddSecretAsync(platformId, importedSecret, cancellationToken);
         }
         catch (InvalidOperationException exception)
         {
@@ -1044,7 +1050,7 @@ internal class ServerApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordServerSecretChangedAsync(
             httpContext,
-            serverId,
+            platformId,
             secretId,
             ResourceChangeTypes.Created,
             ToResourceValues(importedSecretResource),
@@ -1053,7 +1059,7 @@ internal class ServerApiEndpointHandler(
 
         httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
         return TypedResults.Created(
-            $"/servers/{serverId}/secrets/{secretId}",
+            $"/servers/{platformId}/secrets/{secretId}",
             importedSecretResource
         );
     }
@@ -1062,22 +1068,22 @@ internal class ServerApiEndpointHandler(
     /// Gets a server secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The requested secret.</response>
     [EndpointName("api/servers/secrets/get-one")]
     internal virtual async ValueTask<IResult> GetSecretAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         [FromRoute] string secretId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        var secret = await store.GetSecretOrDefaultAsync(platformId, secretId, cancellationToken);
 
         return await ProcessGetAsync(httpContext, secret, Operations.Read, ToSecretResource);
     }
@@ -1086,22 +1092,22 @@ internal class ServerApiEndpointHandler(
     /// Gets the public key material of an asymmetric server secret, as a JWK and a PEM.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The public key material of the requested secret.</response>
     [EndpointName("api/servers/secrets/get-public-key")]
     internal virtual async ValueTask<IResult> GetPublicKeyAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         [FromRoute] string secretId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        var secret = await store.GetSecretOrDefaultAsync(platformId, secretId, cancellationToken);
         if (secret is null)
         {
             return TypedResults.NotFound();
@@ -1121,7 +1127,7 @@ internal class ServerApiEndpointHandler(
     /// Updates a server secret's metadata.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current secret.</param>
@@ -1130,7 +1136,7 @@ internal class ServerApiEndpointHandler(
     [EndpointName("api/servers/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         [FromRoute] string secretId,
         [FromBody] UpdateSecretRequest request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
@@ -1138,9 +1144,9 @@ internal class ServerApiEndpointHandler(
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        var secret = await store.GetSecretOrDefaultAsync(platformId, secretId, cancellationToken);
         if (secret is null)
         {
             return TypedResults.NotFound();
@@ -1188,12 +1194,12 @@ internal class ServerApiEndpointHandler(
             PublicKey = secret.PublicKey,
         };
 
-        await store.UpdateSecretAsync(serverId, updated, cancellationToken);
+        await store.UpdateSecretAsync(platformId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordServerSecretChangedAsync(
             httpContext,
-            serverId,
+            platformId,
             secretId,
             ResourceChangeTypes.Updated,
             ToResourceValues(ToSecretResource(updated)),
@@ -1207,22 +1213,22 @@ internal class ServerApiEndpointHandler(
     /// Deletes a server secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the OpenID Server.</param>
+    /// <param name="platformId">The identifier of the OpenID Server.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The secret was deleted.</response>
     [EndpointName("api/servers/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,
-        [FromRoute] string serverId,
+        [FromRoute] string platformId,
         [FromRoute] string secretId,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var secret = await store.GetSecretOrDefaultAsync(serverId, secretId, cancellationToken);
+        var secret = await store.GetSecretOrDefaultAsync(platformId, secretId, cancellationToken);
         if (secret is null)
         {
             return TypedResults.NotFound();
@@ -1241,12 +1247,12 @@ internal class ServerApiEndpointHandler(
 
         var secretValues = ToResourceValues(ToSecretResource(secret));
 
-        await store.RemoveSecretAsync(serverId, secretId, cancellationToken);
+        await store.RemoveSecretAsync(platformId, secretId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
         await ManagementAuditRecorder.RecordServerSecretChangedAsync(
             httpContext,
-            serverId,
+            platformId,
             secretId,
             ResourceChangeTypes.Deleted,
             secretValues,
@@ -1261,7 +1267,7 @@ internal class ServerApiEndpointHandler(
     // ADR-1219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
     private static ValueTask NotifyServerSettingsChangedAsync(
         HttpContext httpContext,
-        string serverId,
+        string platformId,
         JsonElement previousSettings,
         JsonElement settings,
         CancellationToken cancellationToken
@@ -1270,7 +1276,7 @@ internal class ServerApiEndpointHandler(
         var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
         return mediator.SendAsync(
             new PlatformSettingsChangedCommand(
-                serverId,
+                platformId,
                 previousSettings.Clone(),
                 settings.Clone()
             ),

@@ -93,55 +93,55 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsChangeRefreshFailed,
         Level = LogLevel.Warning,
-        Message = "Reading the settings of the server '{ServerId}' again after a change failed; this replica applies the change at its next poll"
+        Message = "Reading the settings of the server '{PlatformId}' again after a change failed; this replica applies the change at its next poll"
     )]
     internal static partial void PlatformSettingsChangeRefreshFailed(
         this ILogger logger,
-        string serverId,
+        string platformId,
         Exception exception
     );
 
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsChangeBroadcastFailed,
         Level = LogLevel.Warning,
-        Message = "Announcing the change to the settings of the server '{ServerId}' to the other replicas failed; they apply it at their next poll"
+        Message = "Announcing the change to the settings of the server '{PlatformId}' to the other replicas failed; they apply it at their next poll"
     )]
     internal static partial void PlatformSettingsChangeBroadcastFailed(
         this ILogger logger,
-        string serverId,
+        string platformId,
         Exception exception
     );
 
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsReconciliationStarted,
         Level = LogLevel.Information,
-        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the server '{ServerId}' affect"
+        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the server '{PlatformId}' affect"
     )]
     internal static partial void PlatformSettingsReconciliationStarted(
         this ILogger logger,
-        string serverId,
+        string platformId,
         string fingerprint
     );
 
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsReconciled,
         Level = LogLevel.Information,
-        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the server '{ServerId}' affect"
+        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the server '{PlatformId}' affect"
     )]
     internal static partial void PlatformSettingsReconciled(
         this ILogger logger,
-        string serverId,
+        string platformId,
         string fingerprint
     );
 
     [LoggerMessage(
         EventId = EventIds.PlatformSettingsReconciliationFailed,
         Level = LogLevel.Warning,
-        Message = "Reconciling the settings of the server '{ServerId}' failed; it is attempted again when the reconciliation lease expires"
+        Message = "Reconciling the settings of the server '{PlatformId}' failed; it is attempted again when the reconciliation lease expires"
     )]
     internal static partial void PlatformSettingsReconciliationFailed(
         this ILogger logger,
-        string serverId,
+        string platformId,
         Exception exception
     );
 
@@ -158,11 +158,11 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ReconciledPlatformSettingsUnreadable,
         Level = LogLevel.Warning,
-        Message = "The settings that the server '{ServerId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
+        Message = "The settings that the server '{PlatformId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
     )]
     internal static partial void ReconciledPlatformSettingsUnreadable(
         this ILogger logger,
-        string serverId,
+        string platformId,
         Exception exception
     );
 

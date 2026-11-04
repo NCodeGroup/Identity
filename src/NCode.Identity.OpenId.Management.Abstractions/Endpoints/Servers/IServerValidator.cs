@@ -20,13 +20,13 @@ public interface IServerValidator
     /// Validates that the specified OpenID Server may be created by the caller.
     /// </summary>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
-    /// <param name="server">The <see cref="PersistedServer"/> to be created.</param>
+    /// <param name="server">The <see cref="PersistedPlatform"/> to be created.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateCreateAsync(
         ClaimsPrincipal user,
-        PersistedServer server,
+        PersistedPlatform server,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     );
@@ -35,7 +35,7 @@ public interface IServerValidator
     /// Validates that the specified OpenID Server may be updated by the caller to the supplied proposed state.
     /// </summary>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
-    /// <param name="server">The current <see cref="PersistedServer"/> being updated.</param>
+    /// <param name="server">The current <see cref="PersistedPlatform"/> being updated.</param>
     /// <param name="model">The proposed (patched) server metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
@@ -43,7 +43,7 @@ public interface IServerValidator
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateUpdateAsync(
         ClaimsPrincipal user,
-        PersistedServer server,
+        PersistedPlatform server,
         UpdateServerRequest model,
         string? ifMatch,
         IStoreManager storeManager,
@@ -54,13 +54,13 @@ public interface IServerValidator
     /// Validates that the specified OpenID Server may be deleted by the caller.
     /// </summary>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
-    /// <param name="server">The <see cref="PersistedServer"/> to be deleted.</param>
+    /// <param name="server">The <see cref="PersistedPlatform"/> to be deleted.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateDeleteAsync(
         ClaimsPrincipal user,
-        PersistedServer server,
+        PersistedPlatform server,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     );

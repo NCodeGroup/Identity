@@ -82,7 +82,7 @@ internal sealed class ClientCoherenceReportHandler(
             page = page with { Cursor = result.NextCursor };
         } while (page.Cursor is not null);
 
-        Logger.ClientCoherenceChecked(command.ServerId, incoherentClientCount);
+        Logger.ClientCoherenceChecked(command.PlatformId, incoherentClientCount);
     }
 
     // Returns the number of incoherent clients of the tenant.

@@ -17,7 +17,7 @@ public abstract class OpenIdPlatform
     /// <summary>
     /// Gets the unique identifier for the server.
     /// </summary>
-    public abstract string ServerId { get; }
+    public abstract string PlatformId { get; }
 
     /// <summary>
     /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> which contains settings scoped to the server.

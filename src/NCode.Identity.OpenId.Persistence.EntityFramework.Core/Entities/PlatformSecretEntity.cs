@@ -9,10 +9,10 @@ using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 
 /// <summary>
-/// Represents an entity framework data contract for a relationship between a <see cref="ServerEntity"/> and a <see cref="SecretEntity"/>.
+/// Represents an entity framework data contract for a relationship between a <see cref="PlatformEntity"/> and a <see cref="SecretEntity"/>.
 /// </summary>
-[Index(nameof(ServerId), nameof(SecretId), IsUnique = true)]
-public sealed class ServerSecretEntity : ISupportSecretEntity
+[Index(nameof(PlatformId), nameof(SecretId), IsUnique = true)]
+public sealed class PlatformSecretEntity : ISupportSecretEntity
 {
     /// <summary>
     /// Gets the surrogate identifier for this entity.
@@ -25,7 +25,7 @@ public sealed class ServerSecretEntity : ISupportSecretEntity
     /// Gets the foreign key for the associated server.
     /// </summary>
     [ForeignKey(nameof(Server))]
-    public required long ServerId { get; init; }
+    public required long PlatformId { get; init; }
 
     /// <inheritdoc />
     [ForeignKey(nameof(Secret))]
@@ -36,7 +36,7 @@ public sealed class ServerSecretEntity : ISupportSecretEntity
     /// <summary>
     /// Gets the navigation property for the associated server.
     /// </summary>
-    public required ServerEntity Server { get; init; }
+    public required PlatformEntity Server { get; init; }
 
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.

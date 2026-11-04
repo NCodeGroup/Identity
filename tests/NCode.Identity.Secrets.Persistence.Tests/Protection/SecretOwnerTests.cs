@@ -49,12 +49,12 @@ public class SecretOwnerTests
     [Fact]
     public void ForServer_SetsServerType()
     {
-        const string serverId = "server-1";
+        const string platformId = "server-1";
 
-        var owner = SecretOwner.ForPlatform(serverId);
+        var owner = SecretOwner.ForPlatform(platformId);
 
         Assert.Equal(SecretOwnerTypes.Platform, owner.OwnerType);
-        Assert.Equal(serverId, owner.OwnerId);
+        Assert.Equal(platformId, owner.OwnerId);
     }
 
     #endregion

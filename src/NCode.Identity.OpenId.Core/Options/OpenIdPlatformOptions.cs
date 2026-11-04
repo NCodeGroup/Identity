@@ -20,7 +20,7 @@ public sealed class OpenIdPlatformOptions
     /// <summary>
     /// Gets or sets the identifier for the server.
     /// </summary>
-    public string ServerId { get; set; } = DefaultPlatformId;
+    public string PlatformId { get; set; } = DefaultPlatformId;
 
     /// <summary>
     /// Gets or sets the period of time after which the server's persisted settings are read again.

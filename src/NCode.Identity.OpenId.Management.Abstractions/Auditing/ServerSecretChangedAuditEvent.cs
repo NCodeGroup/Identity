@@ -8,7 +8,7 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 
 /// <summary>
 /// An audit event raised when an administrator creates, updates, or deletes a secret belonging to an
-/// OpenID server. The owning server is carried by <see cref="ServerId"/> and the secret's identifier by
+/// OpenID server. The owning server is carried by <see cref="PlatformId"/> and the secret's identifier by
 /// <see cref="IResourceChangeAuditEvent.ResourceId"/>; the event never carries secret material.
 /// </summary>
 /// <remarks>
@@ -21,7 +21,7 @@ public sealed record ServerSecretChangedAuditEvent : ResourceChangeAuditEvent
     /// <summary>
     /// Gets the identifier of the server the secret belongs to.
     /// </summary>
-    public required string ServerId { get; init; }
+    public required string PlatformId { get; init; }
 
     /// <inheritdoc />
     public override string ResourceType => ManagementResourceTypes.ServerSecret;
@@ -31,5 +31,5 @@ public sealed record ServerSecretChangedAuditEvent : ResourceChangeAuditEvent
     /// Lists the owning server.
     /// </remarks>
     protected override IEnumerable<AuditResource> ParentResources =>
-        [new AuditResource(ManagementResourceTypes.Platform, ServerId)];
+        [new AuditResource(ManagementResourceTypes.Platform, PlatformId)];
 }

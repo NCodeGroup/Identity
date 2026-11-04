@@ -40,26 +40,26 @@ internal sealed class PlatformSettingsChangedHandler(
     {
         // The change is committed, so neither step takes the request's token: each runs on its own bounded token, and a
         // client that disconnects cannot skip them. See ADR-1351.
-        await PostCommitWork.RunAsync(TimeProvider, RefreshAsync, command.ServerId);
-        await PostCommitWork.RunAsync(TimeProvider, BroadcastAsync, command.ServerId);
+        await PostCommitWork.RunAsync(TimeProvider, RefreshAsync, command.PlatformId);
+        await PostCommitWork.RunAsync(TimeProvider, BroadcastAsync, command.PlatformId);
     }
 
     /// <summary>
     /// Reads the server's committed settings again on this replica. A failure is logged and swallowed, because the
     /// change is already committed.
     /// </summary>
-    private async ValueTask RefreshAsync(string serverId, CancellationToken cancellationToken)
+    private async ValueTask RefreshAsync(string platformId, CancellationToken cancellationToken)
     {
         try
         {
-            await MaterializedPlatformRegistry.RefreshSettingsAsync(serverId, cancellationToken);
+            await MaterializedPlatformRegistry.RefreshSettingsAsync(platformId, cancellationToken);
         }
         catch (Exception exception)
         {
             // The change is committed, so a failed refresh only delays this replica until its next poll. The
             // announcement still goes out. No caller token reaches the refresh, so every failure, its timeout
             // included, is logged.
-            Logger.PlatformSettingsChangeRefreshFailed(serverId, exception);
+            Logger.PlatformSettingsChangeRefreshFailed(platformId, exception);
         }
     }
 
@@ -67,13 +67,13 @@ internal sealed class PlatformSettingsChangedHandler(
     /// Announces the changed server settings to every replica, this one included. A failure is logged and swallowed,
     /// because the change is already committed.
     /// </summary>
-    private async ValueTask BroadcastAsync(string serverId, CancellationToken cancellationToken)
+    private async ValueTask BroadcastAsync(string platformId, CancellationToken cancellationToken)
     {
         try
         {
             await ReplicaBroadcaster.PublishAsync(
                 PlatformSettingsChangeBroadcastHandler.ChannelName,
-                serverId,
+                platformId,
                 cancellationToken
             );
         }
@@ -82,7 +82,7 @@ internal sealed class PlatformSettingsChangedHandler(
             // The change is already committed and this replica already applied it, so a failed announcement only
             // delays the other replicas until their polls. No caller token reaches the announcement, so every failure,
             // its timeout included, is logged.
-            Logger.PlatformSettingsChangeBroadcastFailed(serverId, exception);
+            Logger.PlatformSettingsChangeBroadcastFailed(platformId, exception);
         }
     }
 }

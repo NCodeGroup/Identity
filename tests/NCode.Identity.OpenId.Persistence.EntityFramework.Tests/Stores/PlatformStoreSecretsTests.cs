@@ -12,15 +12,15 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-public sealed class ServerStoreSecretsTests : IDisposable
+public sealed class PlatformStoreSecretsTests : IDisposable
 {
-    private const string ServerId = "server-1";
+    private const string PlatformId = "server-1";
 
     private readonly ServiceProvider _provider;
     private readonly OpenIdDbContext _dbContext;
-    private readonly ServerStore _store;
+    private readonly PlatformStore _store;
 
-    public ServerStoreSecretsTests()
+    public PlatformStoreSecretsTests()
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddTestOpenIdDbContext(options =>
@@ -29,7 +29,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
 
         _provider = serviceCollection.BuildServiceProvider();
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
-        _store = new ServerStore(
+        _store = new PlatformStore(
             Mock.Of<IStoreProvider>(),
             _provider.GetRequiredService<IIdGenerator<long>>(),
             _dbContext
@@ -60,20 +60,20 @@ public sealed class ServerStoreSecretsTests : IDisposable
 
     private async Task SeedServerAsync(params PersistedSecret[] secrets)
     {
-        var server = new PersistedServer
+        var server = new PersistedPlatform
         {
-            ServerId = ServerId,
+            PlatformId = PlatformId,
             ConcurrencyToken = string.Empty,
             DisplayName = "Test Server",
-            Settings = new PersistedServerSettings
+            Settings = new PersistedPlatformSettings
             {
-                ServerId = ServerId,
+                PlatformId = PlatformId,
                 ConcurrencyToken = string.Empty,
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
-            Secrets = new PersistedServerSecrets
+            Secrets = new PersistedPlatformSecrets
             {
-                ServerId = ServerId,
+                PlatformId = PlatformId,
                 ConcurrencyToken = string.Empty,
                 Value = secrets,
             },
@@ -87,8 +87,8 @@ public sealed class ServerStoreSecretsTests : IDisposable
     private async Task<string> GetServerSecretsTokenAsync()
     {
         var server = await _dbContext
-            .Servers.AsNoTracking()
-            .SingleAsync(x => x.ServerId == ServerId);
+            .Platforms.AsNoTracking()
+            .SingleAsync(x => x.PlatformId == PlatformId);
         return server.SecretsConcurrencyToken;
     }
 
@@ -100,7 +100,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
         await SeedServerAsync(CreateSecret("secret-1"));
 
         var result = await _store.GetSecretOrDefaultAsync(
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -116,7 +116,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
         await SeedServerAsync(CreateSecret("secret-1"));
 
         var result = await _store.GetSecretOrDefaultAsync(
-            ServerId,
+            PlatformId,
             "missing",
             CancellationToken.None
         );
@@ -134,11 +134,11 @@ public sealed class ServerStoreSecretsTests : IDisposable
         await SeedServerAsync(CreateSecret("secret-1"));
         var tokenBefore = await GetServerSecretsTokenAsync();
 
-        await _store.AddSecretAsync(ServerId, CreateSecret("secret-2"), CancellationToken.None);
+        await _store.AddSecretAsync(PlatformId, CreateSecret("secret-2"), CancellationToken.None);
         await _dbContext.SaveChangesAsync();
 
         var added = await _store.GetSecretOrDefaultAsync(
-            ServerId,
+            PlatformId,
             "secret-2",
             CancellationToken.None
         );
@@ -170,12 +170,12 @@ public sealed class ServerStoreSecretsTests : IDisposable
             PublicKey = "public-key",
         };
 
-        await _store.AddSecretAsync(ServerId, withPublicKey, CancellationToken.None);
+        await _store.AddSecretAsync(PlatformId, withPublicKey, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
 
         var reloaded = await _store.GetSecretOrDefaultAsync(
-            ServerId,
+            PlatformId,
             "secret-2",
             CancellationToken.None
         );
@@ -190,7 +190,11 @@ public sealed class ServerStoreSecretsTests : IDisposable
         await SeedServerAsync(CreateSecret("secret-1"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
-            await _store.AddSecretAsync(ServerId, CreateSecret("secret-1"), CancellationToken.None)
+            await _store.AddSecretAsync(
+                PlatformId,
+                CreateSecret("secret-1"),
+                CancellationToken.None
+            )
         );
     }
 
@@ -205,7 +209,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
         var tokenBefore = await GetServerSecretsTokenAsync();
 
         var current = await _store.GetSecretOrDefaultAsync(
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -226,11 +230,11 @@ public sealed class ServerStoreSecretsTests : IDisposable
             EncodedValue = current.EncodedValue,
         };
 
-        await _store.UpdateSecretAsync(ServerId, updated, CancellationToken.None);
+        await _store.UpdateSecretAsync(PlatformId, updated, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
 
         var reloaded = await _store.GetSecretOrDefaultAsync(
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -253,7 +257,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
         stale.ConcurrencyToken = "stale-token";
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
-            await _store.UpdateSecretAsync(ServerId, stale, CancellationToken.None)
+            await _store.UpdateSecretAsync(PlatformId, stale, CancellationToken.None)
         );
     }
 
@@ -264,7 +268,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await _store.UpdateSecretAsync(
-                ServerId,
+                PlatformId,
                 CreateSecret("missing"),
                 CancellationToken.None
             )
@@ -281,13 +285,17 @@ public sealed class ServerStoreSecretsTests : IDisposable
         await SeedServerAsync(CreateSecret("secret-1"), CreateSecret("secret-2"));
         var tokenBefore = await GetServerSecretsTokenAsync();
 
-        var removed = await _store.RemoveSecretAsync(ServerId, "secret-1", CancellationToken.None);
+        var removed = await _store.RemoveSecretAsync(
+            PlatformId,
+            "secret-1",
+            CancellationToken.None
+        );
         await _dbContext.SaveChangesAsync();
 
         Assert.True(removed);
 
         var gone = await _store.GetSecretOrDefaultAsync(
-            ServerId,
+            PlatformId,
             "secret-1",
             CancellationToken.None
         );
@@ -302,7 +310,7 @@ public sealed class ServerStoreSecretsTests : IDisposable
     {
         await SeedServerAsync(CreateSecret("secret-1"));
 
-        var removed = await _store.RemoveSecretAsync(ServerId, "missing", CancellationToken.None);
+        var removed = await _store.RemoveSecretAsync(PlatformId, "missing", CancellationToken.None);
 
         Assert.False(removed);
     }

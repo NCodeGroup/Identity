@@ -15,12 +15,12 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Servers;
 
 public sealed class DefaultServerValidatorTests : IDisposable
 {
-    private const string ServerId = "server-1";
+    private const string PlatformId = "server-1";
 
     private MockRepository MockRepository { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
-    private Mock<IServerStore> MockServerStore { get; }
+    private Mock<IPlatformStore> MockServerStore { get; }
     private DefaultServerValidator Validator { get; }
 
     public DefaultServerValidatorTests()
@@ -28,7 +28,7 @@ public sealed class DefaultServerValidatorTests : IDisposable
         MockRepository = new MockRepository(MockBehavior.Strict);
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
-        MockServerStore = MockRepository.Create<IServerStore>();
+        MockServerStore = MockRepository.Create<IPlatformStore>();
 
         Validator = new DefaultServerValidator(MockAuthorizationService.Object);
     }
@@ -50,21 +50,21 @@ public sealed class DefaultServerValidatorTests : IDisposable
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
 
-    private static PersistedServer CreateServer(string concurrencyToken = "server-ct") =>
+    private static PersistedPlatform CreateServer(string concurrencyToken = "server-ct") =>
         new()
         {
-            ServerId = ServerId,
+            PlatformId = PlatformId,
             ConcurrencyToken = concurrencyToken,
             DisplayName = "Test Server",
-            Settings = new PersistedServerSettings
+            Settings = new PersistedPlatformSettings
             {
-                ServerId = ServerId,
+                PlatformId = PlatformId,
                 ConcurrencyToken = "settings-ct",
                 Value = EmptyObject(),
             },
-            Secrets = new PersistedServerSecrets
+            Secrets = new PersistedPlatformSecrets
             {
-                ServerId = ServerId,
+                PlatformId = PlatformId,
                 ConcurrencyToken = "secrets-ct",
                 Value = [],
             },
@@ -87,7 +87,7 @@ public sealed class DefaultServerValidatorTests : IDisposable
     private void SetupServerStore()
     {
         MockStoreManager
-            .Setup(x => x.GetStore<IServerStore>())
+            .Setup(x => x.GetStore<IPlatformStore>())
             .Returns(MockServerStore.Object)
             .Verifiable();
     }
@@ -134,7 +134,7 @@ public sealed class DefaultServerValidatorTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupServerStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateServer())
             .Verifiable();
 
@@ -155,8 +155,8 @@ public sealed class DefaultServerValidatorTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupServerStore();
         MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServer?)null)
+            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatform?)null)
             .Verifiable();
 
         var error = await Validator.ValidateCreateAsync(
@@ -273,7 +273,7 @@ public sealed class DefaultServerValidatorTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupServerStore();
         MockServerStore
-            .Setup(x => x.HasDependentsAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.HasDependentsAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .Verifiable();
 
@@ -294,7 +294,7 @@ public sealed class DefaultServerValidatorTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupServerStore();
         MockServerStore
-            .Setup(x => x.HasDependentsAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.HasDependentsAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false)
             .Verifiable();
 

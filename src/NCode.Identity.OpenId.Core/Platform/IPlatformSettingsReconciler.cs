@@ -14,7 +14,7 @@ internal interface IPlatformSettingsReconciler
     /// Reconciles the server's effective settings when they differ from the ones recorded as reconciled, with one
     /// replica per change.
     /// </summary>
-    /// <param name="serverId">The identifier of the server whose effective settings are reconciled.</param>
+    /// <param name="platformId">The identifier of the server whose effective settings are reconciled.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to cancel the operation.</param>
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> that represents the asynchronous operation. The result is
@@ -22,5 +22,5 @@ internal interface IPlatformSettingsReconciler
     /// <see langword="false"/> when the caller should try again later because another replica holds the lease or the
     /// record lost a race with a change to the server.
     /// </returns>
-    ValueTask<bool> ReconcileAsync(string serverId, CancellationToken cancellationToken);
+    ValueTask<bool> ReconcileAsync(string platformId, CancellationToken cancellationToken);
 }

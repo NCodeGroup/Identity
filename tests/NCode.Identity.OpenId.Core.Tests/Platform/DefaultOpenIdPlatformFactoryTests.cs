@@ -70,24 +70,24 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
             EncodedValue = encodedValue,
         };
 
-    private static PersistedServer CreatePersistedServer(
-        string serverId,
+    private static PersistedPlatform CreatePersistedServer(
+        string platformId,
         IReadOnlyCollection<PersistedSecret> secrets
     ) =>
         new()
         {
-            ServerId = serverId,
+            PlatformId = platformId,
             ConcurrencyToken = "token",
-            DisplayName = serverId,
-            Settings = new PersistedServerSettings
+            DisplayName = platformId,
+            Settings = new PersistedPlatformSettings
             {
-                ServerId = serverId,
+                PlatformId = platformId,
                 ConcurrencyToken = "token",
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
-            Secrets = new PersistedServerSecrets
+            Secrets = new PersistedPlatformSecrets
             {
-                ServerId = serverId,
+                PlatformId = platformId,
                 ConcurrencyToken = "token",
                 Value = secrets,
             },
@@ -129,7 +129,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
         serviceCollection.AddSecretsLibrary();
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var persistedServer = CreatePersistedServer(
+        var persistedPlatform = CreatePersistedServer(
             "server-a",
             [
                 CreateSecret(
@@ -165,7 +165,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
 
         var mockSecretSerializer = CreateStrictMock<ISecretSerializer>();
         mockSecretSerializer
-            .Setup(x => x.DeserializeSecrets(protector, persistedServer.Secrets.Value))
+            .Setup(x => x.DeserializeSecrets(protector, persistedPlatform.Secrets.Value))
             .Returns(Array.Empty<SecretKey>())
             .Verifiable();
 
@@ -177,7 +177,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
         );
 
         await using var provider = await factory.CreateSecretsProviderAsync(
-            persistedServer,
+            persistedPlatform,
             CreateStrictMock<IPropertyBag>().Object,
             CancellationToken.None
         );
@@ -188,7 +188,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
     [Fact]
     public async Task CreateSecretsProviderAsync_WhenTheMasterKeyCannotBeLoaded_Propagates()
     {
-        var persistedServer = CreatePersistedServer(
+        var persistedPlatform = CreatePersistedServer(
             "server-a",
             [
                 CreateSecret(
@@ -221,7 +221,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(async () =>
             await factory.CreateSecretsProviderAsync(
-                persistedServer,
+                persistedPlatform,
                 CreateStrictMock<IPropertyBag>().Object,
                 CancellationToken.None
             )
@@ -303,11 +303,11 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
             tests.CreateStrictMock<IIdGenerator<long>>().Object
         )
     {
-        protected internal override ValueTask<PersistedServer> GetPersistedPlatformAsync(
-            string serverId,
+        protected internal override ValueTask<PersistedPlatform> GetPersistedPlatformAsync(
+            string platformId,
             IPropertyBag propertyBag,
             CancellationToken cancellationToken
-        ) => ValueTask.FromResult(CreateEmptyPersistedPlatform(serverId));
+        ) => ValueTask.FromResult(CreateEmptyPersistedPlatform(platformId));
 
         protected internal override ValueTask<
             IDisposableCollectionDataSource<Setting>
@@ -318,7 +318,7 @@ public class DefaultOpenIdServerFactoryTests : BaseTests
 
         protected internal override ValueTask<RefreshableSettingsCollectionDataSource> CreatePlatformSettingsDataSourceAsync(
             OpenIdEnvironment openIdEnvironment,
-            PersistedServer persistedServer,
+            PersistedPlatform persistedPlatform,
             IPropertyBag propertyBag,
             CancellationToken cancellationToken
         ) => ValueTask.FromResult(serverSettingsDataSource);

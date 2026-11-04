@@ -264,7 +264,7 @@ public class TokenEndpointSecurityProfileTests
     {
         using var factory = new HostApplicationFactory
         {
-            PersistedServerSettings = new Dictionary<string, object>
+            PersistedPlatformSettings = new Dictionary<string, object>
             {
                 ["security_profiles"] = (string[])[OpenIdConstants.SecurityProfiles.Fapi2],
             },

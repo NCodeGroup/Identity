@@ -17,7 +17,7 @@ namespace NCode.Identity.Server.Tests;
 
 public class PlatformSecretProtectorWarmupTests : BaseTests
 {
-    private const string ServerId = "server-a";
+    private const string PlatformId = "server-a";
 
     private ISecretProtector CreateProtector() => CreateStrictMock<ISecretProtector>().Object;
 
@@ -48,8 +48,8 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
         return mockProvider.Object;
     }
 
-    private static OpenIdOptions CreateOpenIdOptions(string serverId) =>
-        new() { Platform = new OpenIdPlatformOptions { ServerId = serverId } };
+    private static OpenIdOptions CreateOpenIdOptions(string platformId) =>
+        new() { Platform = new OpenIdPlatformOptions { PlatformId = platformId } };
 
     private static PlatformSecretProtectorWarmup CreateWarmup(
         ISecretProtectorProvider provider,
@@ -78,8 +78,8 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
         var protector = CreateProtector();
         var holder = new PlatformSecretProtectorHolder();
         var warmup = CreateWarmup(
-            CreateProvider(ServerId, protector, cancellationToken),
-            CreateOpenIdOptions(ServerId),
+            CreateProvider(PlatformId, protector, cancellationToken),
+            CreateOpenIdOptions(PlatformId),
             new SecretProtectionOptions(),
             CreateEnvironment(Environments.Development),
             holder,
@@ -132,8 +132,8 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
             )
             .Verifiable();
         var warmup = CreateWarmup(
-            CreateProvider(ServerId, CreateProtector(), CancellationToken.None),
-            CreateOpenIdOptions(ServerId),
+            CreateProvider(PlatformId, CreateProtector(), CancellationToken.None),
+            CreateOpenIdOptions(PlatformId),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Local },
             CreateEnvironment(Environments.Production),
             new PlatformSecretProtectorHolder(),
@@ -148,8 +148,8 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
     {
         // Strict logger with no setups: any log call fails the test.
         var warmup = CreateWarmup(
-            CreateProvider(ServerId, CreateProtector(), CancellationToken.None),
-            CreateOpenIdOptions(ServerId),
+            CreateProvider(PlatformId, CreateProtector(), CancellationToken.None),
+            CreateOpenIdOptions(PlatformId),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.AwsKms },
             CreateEnvironment(Environments.Production),
             new PlatformSecretProtectorHolder(),
@@ -164,8 +164,8 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
     {
         // Strict logger with no setups: any log call fails the test.
         var warmup = CreateWarmup(
-            CreateProvider(ServerId, CreateProtector(), CancellationToken.None),
-            CreateOpenIdOptions(ServerId),
+            CreateProvider(PlatformId, CreateProtector(), CancellationToken.None),
+            CreateOpenIdOptions(PlatformId),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Local },
             CreateEnvironment(Environments.Development),
             new PlatformSecretProtectorHolder(),
@@ -184,7 +184,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
     {
         var warmup = CreateWarmup(
             CreateStrictMock<ISecretProtectorProvider>().Object,
-            CreateOpenIdOptions(ServerId),
+            CreateOpenIdOptions(PlatformId),
             new SecretProtectionOptions(),
             CreateStrictMock<IHostEnvironment>().Object,
             new PlatformSecretProtectorHolder(),

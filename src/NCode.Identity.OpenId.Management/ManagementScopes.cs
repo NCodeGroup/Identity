@@ -28,7 +28,7 @@ internal static class ManagementScopes
     {
         internal const string Servers = "servers";
         internal const string ServerSettings = "server_settings";
-        internal const string ServerSecrets = "server_secrets";
+        internal const string PlatformSecrets = "server_secrets";
         internal const string Tenants = "tenants";
         internal const string TenantSettings = "tenant_settings";
         internal const string TenantSecrets = "tenant_secrets";

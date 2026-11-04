@@ -16,12 +16,12 @@ namespace NCode.Identity.OpenId.Platform;
 /// clients of a tenant whose settings a client's rules read and the change altered. A handler is idempotent and
 /// continues past an item it cannot handle, because one state may be reconciled more than once.
 /// </summary>
-/// <param name="ServerId">The identifier of the server whose effective settings are reconciled.</param>
+/// <param name="PlatformId">The identifier of the server whose effective settings are reconciled.</param>
 /// <param name="Settings">The server's effective settings that everything derived from them is brought in line with.</param>
 // See ADR-1219 and ADR-1234.
 [PublicAPI]
 public readonly record struct ReconcilePlatformSettingsCommand(
-    string ServerId,
+    string PlatformId,
     IReadOnlySettingCollection Settings
 ) : ICommand
 {

@@ -60,18 +60,18 @@ internal class DefaultOpenIdPlatformFactory(
     private IIdGenerator<long> IdGenerator { get; } = idGenerator;
 
     /// <summary>
-    /// Gets the <c>ServerId</c> from the configurable options, or uses the default if not set.
+    /// Gets the <c>PlatformId</c> from the configurable options, or uses the default if not set.
     /// </summary>
     protected virtual string GetPlatformId()
     {
-        var serverId = Options.Platform.ServerId;
+        var platformId = Options.Platform.PlatformId;
 
-        if (string.IsNullOrEmpty(serverId))
+        if (string.IsNullOrEmpty(platformId))
         {
-            serverId = OpenIdPlatformOptions.DefaultPlatformId;
+            platformId = OpenIdPlatformOptions.DefaultPlatformId;
         }
 
-        return serverId;
+        return platformId;
     }
 
     /// <inheritdoc />
@@ -80,12 +80,12 @@ internal class DefaultOpenIdPlatformFactory(
         CancellationToken cancellationToken
     )
     {
-        var serverId = GetPlatformId();
+        var platformId = GetPlatformId();
 
         var disposables = new List<object>(3);
         var propertyBag = openIdEnvironment.PropertyBag.Clone();
-        var persistedServer = await GetPersistedPlatformAsync(
-            serverId,
+        var persistedPlatform = await GetPersistedPlatformAsync(
+            platformId,
             propertyBag,
             cancellationToken
         );
@@ -104,7 +104,7 @@ internal class DefaultOpenIdPlatformFactory(
             {
                 serverSettingsDataSource = await CreatePlatformSettingsDataSourceAsync(
                     openIdEnvironment,
-                    persistedServer,
+                    persistedPlatform,
                     propertyBag,
                     cancellationToken
                 );
@@ -131,14 +131,14 @@ internal class DefaultOpenIdPlatformFactory(
             disposables.Add(configuredSettingsProvider);
 
             var secretsProvider = await CreateSecretsProviderAsync(
-                persistedServer,
+                persistedPlatform,
                 propertyBag,
                 cancellationToken
             );
             disposables.Add(secretsProvider);
 
             return Create(
-                serverId,
+                platformId,
                 configuredSettingsProvider,
                 settingsProvider,
                 secretsProvider,
@@ -157,7 +157,7 @@ internal class DefaultOpenIdPlatformFactory(
     /// Factory method to create an instance of <see cref="OpenIdPlatform"/>.
     /// </summary>
     protected internal virtual OpenIdPlatform Create(
-        string serverId,
+        string platformId,
         IReadOnlySettingCollectionProvider configuredSettingsProvider,
         IReadOnlySettingCollectionProvider settingsProvider,
         ISecretKeyCollectionProvider secretsProvider,
@@ -165,7 +165,7 @@ internal class DefaultOpenIdPlatformFactory(
         IPropertyBag propertyBag
     ) =>
         new DefaultOpenIdPlatform(
-            serverId,
+            platformId,
             configuredSettingsProvider,
             settingsProvider,
             secretsProvider,
@@ -174,54 +174,54 @@ internal class DefaultOpenIdPlatformFactory(
         );
 
     /// <summary>
-    /// Attempts to retrieve the <see cref="PersistedServer"/> with the specified server ID from the store.
+    /// Attempts to retrieve the <see cref="PersistedPlatform"/> with the specified server ID from the store.
     /// If not found, creates a new instance and persists it.
     /// </summary>
-    protected internal virtual async ValueTask<PersistedServer> GetPersistedPlatformAsync(
-        string serverId,
+    protected internal virtual async ValueTask<PersistedPlatform> GetPersistedPlatformAsync(
+        string platformId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var persistedServer = await store.GetOrDefaultAsync(serverId, cancellationToken);
-        if (persistedServer is not null)
-            return persistedServer;
+        var persistedPlatform = await store.GetOrDefaultAsync(platformId, cancellationToken);
+        if (persistedPlatform is not null)
+            return persistedPlatform;
 
-        persistedServer = CreateEmptyPersistedPlatform(serverId);
+        persistedPlatform = CreateEmptyPersistedPlatform(platformId);
 
-        await store.AddAsync(persistedServer, cancellationToken);
+        await store.AddAsync(persistedPlatform, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        return persistedServer;
+        return persistedPlatform;
     }
 
     /// <summary>
-    /// Creates an empty <see cref="PersistedServer"/> instance with the specified server ID.
+    /// Creates an empty <see cref="PersistedPlatform"/> instance with the specified server ID.
     /// </summary>
-    protected internal virtual PersistedServer CreateEmptyPersistedPlatform(string serverId)
+    protected internal virtual PersistedPlatform CreateEmptyPersistedPlatform(string platformId)
     {
-        var settings = new PersistedServerSettings
+        var settings = new PersistedPlatformSettings
         {
-            ServerId = serverId,
+            PlatformId = platformId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             Value = JsonSerializer.SerializeToElement(null, typeof(object)),
         };
 
-        var secrets = new PersistedServerSecrets
+        var secrets = new PersistedPlatformSecrets
         {
-            ServerId = serverId,
+            PlatformId = platformId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             Value = [],
         };
 
-        return new PersistedServer
+        return new PersistedPlatform
         {
-            ServerId = serverId,
+            PlatformId = platformId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            DisplayName = serverId,
+            DisplayName = platformId,
             Settings = settings,
             Secrets = secrets,
         };
@@ -251,7 +251,7 @@ internal class DefaultOpenIdPlatformFactory(
     /// </summary>
     protected internal virtual ValueTask<RefreshableSettingsCollectionDataSource> CreatePlatformSettingsDataSourceAsync(
         OpenIdEnvironment openIdEnvironment,
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
@@ -260,13 +260,13 @@ internal class DefaultOpenIdPlatformFactory(
 
         var jsonOptions = openIdEnvironment.JsonSerializerOptions;
         var initialSettings = SecurityProfileCatalog.Expand(
-            persistedServer.Settings.Value,
+            persistedPlatform.Settings.Value,
             OpenIdSettingScopes.Platform,
             jsonOptions
         );
 
         Func<CancellationToken, ValueTask<IReadOnlyCollection<Setting>?>> loadChangedSettingsAsync =
-            ct => LoadChangedSettingsAsync(openIdEnvironment, persistedServer, ct);
+            ct => LoadChangedSettingsAsync(openIdEnvironment, persistedPlatform, ct);
 
         // A committed change is read at once through OpenIdPlatform.RefreshSettingsAsync; the interval is the fallback (ADR-1219).
         var dataSource = ActivatorUtilities.CreateInstance<RefreshableSettingsCollectionDataSource>(
@@ -281,20 +281,20 @@ internal class DefaultOpenIdPlatformFactory(
 
     private async ValueTask<IReadOnlyCollection<Setting>?> LoadChangedSettingsAsync(
         OpenIdEnvironment openIdEnvironment,
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         CancellationToken cancellationToken
     )
     {
-        var serverId = persistedServer.ServerId;
+        var platformId = persistedPlatform.PlatformId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var newSettings = await store.GetSettingsOrDefaultAsync(serverId, cancellationToken);
+        var newSettings = await store.GetSettingsOrDefaultAsync(platformId, cancellationToken);
         if (newSettings is null)
             return null;
 
-        var prevSettings = persistedServer.Settings;
+        var prevSettings = persistedPlatform.Settings;
         var prevConcurrencyToken = prevSettings.ConcurrencyToken;
         var newConcurrencyToken = newSettings.ConcurrencyToken;
 
@@ -309,7 +309,7 @@ internal class DefaultOpenIdPlatformFactory(
         );
 
         // update the state after successfully deserializing the settings
-        persistedServer.Settings = newSettings;
+        persistedPlatform.Settings = newSettings;
 
         return settings;
     }
@@ -318,7 +318,7 @@ internal class DefaultOpenIdPlatformFactory(
     /// Used to create the <see cref="ISecretKeyCollectionProvider"/> containing secrets only known to the OpenID server.
     /// </summary>
     protected internal virtual async ValueTask<ISecretKeyCollectionProvider> CreateSecretsProviderAsync(
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
@@ -326,18 +326,18 @@ internal class DefaultOpenIdPlatformFactory(
         cancellationToken.ThrowIfCancellationRequested();
 
         var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
-            SecretOwner.ForPlatform(persistedServer.ServerId),
-            persistedServer.Secrets.Value,
+            SecretOwner.ForPlatform(persistedPlatform.PlatformId),
+            persistedPlatform.Secrets.Value,
             cancellationToken
         );
 
         var initialSecrets = SecretSerializer.DeserializeSecrets(
             protector,
-            persistedServer.Secrets.Value
+            persistedPlatform.Secrets.Value
         );
 
         var dataSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            persistedServer,
+            persistedPlatform,
             initialSecrets,
             Options.Platform.SecretsPeriodicRefreshInterval,
             RefreshSecretsAsync
@@ -349,21 +349,21 @@ internal class DefaultOpenIdPlatformFactory(
     }
 
     private async ValueTask<RefreshCollectionResult<SecretKey>> RefreshSecretsAsync(
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         IReadOnlyCollection<SecretKey> current,
         CancellationToken cancellationToken
     )
     {
-        var serverId = persistedServer.ServerId;
+        var platformId = persistedPlatform.PlatformId;
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IServerStore>();
+        var store = storeManager.GetStore<IPlatformStore>();
 
-        var newSecrets = await store.GetSecretsOrDefaultAsync(serverId, cancellationToken);
+        var newSecrets = await store.GetSecretsOrDefaultAsync(platformId, cancellationToken);
         if (newSecrets is null)
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
-        var prevSecrets = persistedServer.Secrets;
+        var prevSecrets = persistedPlatform.Secrets;
         var prevConcurrencyToken = prevSecrets.ConcurrencyToken;
         var newConcurrencyToken = newSecrets.ConcurrencyToken;
 
@@ -371,7 +371,7 @@ internal class DefaultOpenIdPlatformFactory(
             return RefreshCollectionResultFactory.Unchanged<SecretKey>();
 
         var protector = await SecretProtectorProvider.GetProtectorForSecretsAsync(
-            SecretOwner.ForPlatform(serverId),
+            SecretOwner.ForPlatform(platformId),
             newSecrets.Value,
             cancellationToken
         );
@@ -379,7 +379,7 @@ internal class DefaultOpenIdPlatformFactory(
         var secrets = SecretSerializer.DeserializeSecrets(protector, newSecrets.Value);
 
         // update the state after successfully deserializing the secrets
-        persistedServer.Secrets = newSecrets;
+        persistedPlatform.Secrets = newSecrets;
 
         return RefreshCollectionResultFactory.Changed(secrets);
     }

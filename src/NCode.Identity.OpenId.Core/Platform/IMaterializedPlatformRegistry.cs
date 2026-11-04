@@ -22,13 +22,13 @@ internal interface IMaterializedPlatformRegistry : IMaterializedPlatformAccessor
     void Register(OpenIdPlatform server);
 
     /// <summary>
-    /// Reads the settings of the registered server again when its <see cref="OpenIdPlatform.ServerId"/> equals
-    /// <paramref name="serverId"/> ordinally. Does nothing when no server is registered or when the identifiers differ.
+    /// Reads the settings of the registered server again when its <see cref="OpenIdPlatform.PlatformId"/> equals
+    /// <paramref name="platformId"/> ordinally. Does nothing when no server is registered or when the identifiers differ.
     /// </summary>
-    /// <param name="serverId">The identifier of the server whose settings changed.</param>
+    /// <param name="platformId">The identifier of the server whose settings changed.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to cancel the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask RefreshSettingsAsync(string serverId, CancellationToken cancellationToken);
+    ValueTask RefreshSettingsAsync(string platformId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Reads the settings of the registered server again, whichever server it is. Does nothing when no server is

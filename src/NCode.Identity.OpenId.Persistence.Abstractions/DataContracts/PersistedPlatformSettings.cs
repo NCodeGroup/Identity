@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedServerSettings : PersistedServerResource<JsonElement>
+public sealed class PersistedPlatformSettings : PersistedPlatformResource<JsonElement>
 {
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceType)]

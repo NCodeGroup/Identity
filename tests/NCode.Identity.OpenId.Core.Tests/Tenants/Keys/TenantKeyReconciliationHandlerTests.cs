@@ -24,7 +24,7 @@ namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 
 public sealed class TenantKeyReconciliationHandlerTests : BaseTests
 {
-    private const string ServerId = "default";
+    private const string PlatformId = "default";
     private const string FirstTenantId = "acme";
     private const string SecondTenantId = "globex";
 
@@ -235,10 +235,10 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         && element.TryGetProperty("tenant", out var value)
         && value.GetString() == tenantId;
 
-    private ReconcilePlatformSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
+    private ReconcilePlatformSettingsCommand CreateCommand() => new(PlatformId, ServerSettings);
 
     private ReconcilePlatformSettingsCommand CreateCommandWithPreviousSettings() =>
-        new(ServerId, ServerSettings) { PreviousSettings = PreviousServerSettings };
+        new(PlatformId, ServerSettings) { PreviousSettings = PreviousServerSettings };
 
     private void SetupSpecifications() =>
         MockPolicy

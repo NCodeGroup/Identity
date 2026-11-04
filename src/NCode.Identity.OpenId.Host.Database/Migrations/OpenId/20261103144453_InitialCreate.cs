@@ -142,8 +142,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    ServerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    NormalizedServerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    PlatformId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedPlatformId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
@@ -255,11 +255,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
-                name: "ServerSecrets",
+                name: "PlatformSecrets",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
-                    ServerId = table.Column<long>(type: "bigint", nullable: false),
+                    PlatformId = table.Column<long>(type: "bigint", nullable: false),
                     SecretId = table.Column<long>(type: "bigint", nullable: false)
                 },
                 constraints: table =>
@@ -273,7 +273,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_ServerSecrets_Servers_ServerId",
-                        column: x => x.ServerId,
+                        column: x => x.PlatformId,
                         principalTable: "Servers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
@@ -976,18 +976,18 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
             migrationBuilder.CreateIndex(
                 name: "IX_Servers_NormalizedServerId",
                 table: "Servers",
-                column: "NormalizedServerId",
+                column: "NormalizedPlatformId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ServerSecrets_SecretId",
-                table: "ServerSecrets",
+                table: "PlatformSecrets",
                 column: "SecretId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ServerSecrets_ServerId_SecretId",
-                table: "ServerSecrets",
-                columns: new[] { "ServerId", "SecretId" },
+                table: "PlatformSecrets",
+                columns: new[] { "PlatformId", "SecretId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -1092,7 +1092,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "Scopes");
 
             migrationBuilder.DropTable(
-                name: "ServerSecrets");
+                name: "PlatformSecrets");
 
             migrationBuilder.DropTable(
                 name: "TenantSecrets");

@@ -13,13 +13,13 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 
 /// <summary>
-/// Provides a default implementation of <see cref="IServerStore"/> that uses Entity Framework Core for persistence.
+/// Provides a default implementation of <see cref="IPlatformStore"/> that uses Entity Framework Core for persistence.
 /// </summary>
-internal class ServerStore(
+internal class PlatformStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
     OpenIdDbContext openIdDbContext
-) : CoreBaseStoreWithResourceId<PersistedServer, ServerEntity>, IServerStore
+) : CoreBaseStoreWithResourceId<PersistedPlatform, PlatformEntity>, IPlatformStore
 {
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
@@ -31,56 +31,56 @@ internal class ServerStore(
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
 
     /// <summary>
-    /// Maps a <see cref="ServerEntity"/> to a <see cref="PersistedServerSettings"/> instance.
+    /// Maps a <see cref="PlatformEntity"/> to a <see cref="PersistedPlatformSettings"/> instance.
     /// </summary>
-    /// <param name="serverEntity">The <see cref="ServerEntity"/> instance to map.</param>
+    /// <param name="platformEntity">The <see cref="PlatformEntity"/> instance to map.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedServerSettings"/> instance.</returns>
-    protected internal virtual ValueTask<PersistedServerSettings> MapSettingsAsync(
-        ServerEntity serverEntity,
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedPlatformSettings"/> instance.</returns>
+    protected internal virtual ValueTask<PersistedPlatformSettings> MapSettingsAsync(
+        PlatformEntity platformEntity,
         CancellationToken cancellationToken
     )
     {
         return ValueTask.FromResult(
-            new PersistedServerSettings
+            new PersistedPlatformSettings
             {
-                ServerId = serverEntity.ServerId,
-                ConcurrencyToken = serverEntity.SettingsConcurrencyToken,
-                Value = serverEntity.SettingsJson,
+                PlatformId = platformEntity.PlatformId,
+                ConcurrencyToken = platformEntity.SettingsConcurrencyToken,
+                Value = platformEntity.SettingsJson,
             }
         );
     }
 
     /// <summary>
-    /// Maps a <see cref="ServerEntity"/> to a <see cref="PersistedServerSecrets"/> instance.
+    /// Maps a <see cref="PlatformEntity"/> to a <see cref="PersistedPlatformSecrets"/> instance.
     /// </summary>
-    /// <param name="serverEntity">The <see cref="ServerEntity"/> instance to map.</param>
+    /// <param name="platformEntity">The <see cref="PlatformEntity"/> instance to map.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedServerSecrets"/> instance.</returns>
-    protected internal virtual ValueTask<PersistedServerSecrets> MapSecretsAsync(
-        ServerEntity serverEntity,
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the newly mapped <see cref="PersistedPlatformSecrets"/> instance.</returns>
+    protected internal virtual ValueTask<PersistedPlatformSecrets> MapSecretsAsync(
+        PlatformEntity platformEntity,
         CancellationToken cancellationToken
     )
     {
         return ValueTask.FromResult(
-            new PersistedServerSecrets
+            new PersistedPlatformSecrets
             {
-                ServerId = serverEntity.ServerId,
-                ConcurrencyToken = serverEntity.SecretsConcurrencyToken,
-                Value = MapToPersistedSecrets(serverEntity.Secrets),
+                PlatformId = platformEntity.PlatformId,
+                ConcurrencyToken = platformEntity.SecretsConcurrencyToken,
+                Value = MapToPersistedSecrets(platformEntity.Secrets),
             }
         );
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<PersistedServer> MapFromEntityAsync(
-        ServerEntity entity,
+    protected override async ValueTask<PersistedPlatform> MapFromEntityAsync(
+        PlatformEntity entity,
         CancellationToken cancellationToken
     )
     {
-        return new PersistedServer
+        return new PersistedPlatform
         {
-            ServerId = entity.ServerId,
+            PlatformId = entity.PlatformId,
             ConcurrencyToken = entity.ConcurrencyToken,
             DisplayName = entity.DisplayName,
             Settings = await MapSettingsAsync(entity, cancellationToken),
@@ -91,40 +91,40 @@ internal class ServerStore(
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<ServerEntity?> GetEntityOrDefaultAsync(
-        Expression<Func<ServerEntity, bool>> predicate,
+    protected override async ValueTask<PlatformEntity?> GetEntityOrDefaultAsync(
+        Expression<Func<PlatformEntity, bool>> predicate,
         CancellationToken cancellationToken
     )
     {
         return GetLocalOrDefault(predicate)
             ?? await DbContext
-                .Servers.Include(server => server.Secrets)
+                .Platforms.Include(server => server.Secrets)
                     .ThenInclude(serverSecret => serverSecret.Secret)
                 .SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<ServerEntity?> GetEntityOrDefaultAsync(
+    protected override async ValueTask<PlatformEntity?> GetEntityOrDefaultAsync(
         string resourceId,
         CancellationToken cancellationToken
     )
     {
         var normalizedServerId = Normalize(resourceId);
         return await GetEntityOrDefaultAsync(
-            entity => entity.NormalizedServerId == normalizedServerId,
+            entity => entity.NormalizedPlatformId == normalizedServerId,
             cancellationToken
         );
     }
 
     /// <inheritdoc />
-    protected override async ValueTask<IReadOnlyList<ServerEntity>> GetEntityPageAsync(
+    protected override async ValueTask<IReadOnlyList<PlatformEntity>> GetEntityPageAsync(
         long? afterId,
         int take,
         CancellationToken cancellationToken
     )
     {
         var query = DbContext
-            .Servers.Include(server => server.Secrets)
+            .Platforms.Include(server => server.Secrets)
                 .ThenInclude(serverSecret => serverSecret.Secret)
             .AsQueryable();
 
@@ -137,79 +137,79 @@ internal class ServerStore(
     }
 
     /// <inheritdoc />
-    protected override long GetSortKey(ServerEntity entity) => entity.Id;
+    protected override long GetSortKey(PlatformEntity entity) => entity.Id;
 
     /// <inheritdoc />
-    public async ValueTask<PersistedServerSettings?> GetSettingsOrDefaultAsync(
-        string serverId,
+    public async ValueTask<PersistedPlatformSettings?> GetSettingsOrDefaultAsync(
+        string platformId,
         CancellationToken cancellationToken
     )
     {
-        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
-        if (serverEntity is null)
+        var platformEntity = await GetEntityOrDefaultAsync(platformId, cancellationToken);
+        if (platformEntity is null)
         {
             return null;
         }
 
-        return await MapSettingsAsync(serverEntity, cancellationToken);
+        return await MapSettingsAsync(platformEntity, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async ValueTask<PersistedServerSecrets?> GetSecretsOrDefaultAsync(
-        string serverId,
+    public async ValueTask<PersistedPlatformSecrets?> GetSecretsOrDefaultAsync(
+        string platformId,
         CancellationToken cancellationToken
     )
     {
-        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
-        if (serverEntity is null)
+        var platformEntity = await GetEntityOrDefaultAsync(platformId, cancellationToken);
+        if (platformEntity is null)
         {
             return null;
         }
 
-        return await MapSecretsAsync(serverEntity, cancellationToken);
+        return await MapSecretsAsync(platformEntity, cancellationToken);
     }
 
     /// <inheritdoc />
     public override async ValueTask AddAsync(
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         CancellationToken cancellationToken
     )
     {
         // Assign the row token up front so create can return it without a re-read; the interceptor leaves a
         // pre-seeded insert token intact (ADR-1012). The sub-resource version columns stay manual.
-        persistedServer.ConcurrencyToken = NextConcurrencyToken();
-        persistedServer.Settings.ConcurrencyToken = NextConcurrencyToken();
-        persistedServer.Secrets.ConcurrencyToken = NextConcurrencyToken();
+        persistedPlatform.ConcurrencyToken = NextConcurrencyToken();
+        persistedPlatform.Settings.ConcurrencyToken = NextConcurrencyToken();
+        persistedPlatform.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
-        var secrets = new List<ServerSecretEntity>(persistedServer.Secrets.Value.Count);
+        var secrets = new List<PlatformSecretEntity>(persistedPlatform.Secrets.Value.Count);
 
-        var serverEntity = new ServerEntity
+        var platformEntity = new PlatformEntity
         {
             Id = NextId(),
-            ServerId = persistedServer.ServerId,
-            NormalizedServerId = Normalize(persistedServer.ServerId),
-            ConcurrencyToken = persistedServer.ConcurrencyToken,
-            SettingsConcurrencyToken = persistedServer.Settings.ConcurrencyToken,
-            SecretsConcurrencyToken = persistedServer.Secrets.ConcurrencyToken,
-            DisplayName = persistedServer.DisplayName,
-            SettingsJson = persistedServer.Settings.Value,
-            ReconciledSettingsFingerprint = persistedServer.ReconciledSettingsFingerprint,
-            ReconciledSettingsJson = persistedServer.ReconciledSettings,
+            PlatformId = persistedPlatform.PlatformId,
+            NormalizedPlatformId = Normalize(persistedPlatform.PlatformId),
+            ConcurrencyToken = persistedPlatform.ConcurrencyToken,
+            SettingsConcurrencyToken = persistedPlatform.Settings.ConcurrencyToken,
+            SecretsConcurrencyToken = persistedPlatform.Secrets.ConcurrencyToken,
+            DisplayName = persistedPlatform.DisplayName,
+            SettingsJson = persistedPlatform.Settings.Value,
+            ReconciledSettingsFingerprint = persistedPlatform.ReconciledSettingsFingerprint,
+            ReconciledSettingsJson = persistedPlatform.ReconciledSettings,
             Secrets = secrets,
         };
 
-        foreach (var persistedSecret in persistedServer.Secrets.Value)
+        foreach (var persistedSecret in persistedPlatform.Secrets.Value)
         {
             var secretEntity = MapToSecretEntity(persistedSecret);
 
             await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 
-            var serverSecretEntity = new ServerSecretEntity
+            var serverSecretEntity = new PlatformSecretEntity
             {
                 Id = NextId(),
 
-                Server = serverEntity,
-                ServerId = serverEntity.Id,
+                Server = platformEntity,
+                PlatformId = platformEntity.Id,
 
                 Secret = secretEntity,
                 SecretId = secretEntity.Id,
@@ -217,120 +217,121 @@ internal class ServerStore(
 
             secrets.Add(serverSecretEntity);
 
-            await DbContext.ServerSecrets.AddAsync(serverSecretEntity, cancellationToken);
+            await DbContext.PlatformSecrets.AddAsync(serverSecretEntity, cancellationToken);
         }
 
-        await DbContext.Servers.AddAsync(serverEntity, cancellationToken);
+        await DbContext.Platforms.AddAsync(platformEntity, cancellationToken);
     }
 
     /// <inheritdoc />
     public override async ValueTask UpdateAsync(
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         CancellationToken cancellationToken
     )
     {
-        var serverId = persistedServer.ServerId;
-        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+        var platformId = persistedPlatform.PlatformId;
+        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
 
         if (
             !string.Equals(
-                persistedServer.ConcurrencyToken,
-                serverEntity.ConcurrencyToken,
+                persistedPlatform.ConcurrencyToken,
+                platformEntity.ConcurrencyToken,
                 StringComparison.Ordinal
             )
         )
         {
             throw new StoreConcurrencyException(
-                $"The OpenId Server with ServerId='{serverId}' has been modified by another process. Please reload and try again."
+                $"The platform with PlatformId='{platformId}' has been modified by another process. Please reload and try again."
             );
         }
 
         // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-1012).
-        serverEntity.DisplayName = persistedServer.DisplayName;
+        platformEntity.DisplayName = persistedPlatform.DisplayName;
 
-        DbContext.Servers.Update(serverEntity);
+        DbContext.Platforms.Update(platformEntity);
     }
 
     /// <inheritdoc />
     public async ValueTask UpdateSettingsAsync(
-        PersistedServerSettings persistedServerSettings,
+        PersistedPlatformSettings persistedServerSettings,
         CancellationToken cancellationToken
     )
     {
-        var serverId = persistedServerSettings.ServerId;
-        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+        var platformId = persistedServerSettings.PlatformId;
+        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
 
         if (
             !string.Equals(
                 persistedServerSettings.ConcurrencyToken,
-                serverEntity.SettingsConcurrencyToken,
+                platformEntity.SettingsConcurrencyToken,
                 StringComparison.Ordinal
             )
         )
         {
             throw new StoreConcurrencyException(
-                $"The settings for OpenId Server with ServerId='{serverId}' have been modified by another process. Please reload and try again."
+                $"The settings for platform with PlatformId='{platformId}' have been modified by another process. Please reload and try again."
             );
         }
 
         var nextConcurrencyToken = NextConcurrencyToken();
 
-        serverEntity.SettingsConcurrencyToken = nextConcurrencyToken;
-        serverEntity.SettingsJson = persistedServerSettings.Value;
+        platformEntity.SettingsConcurrencyToken = nextConcurrencyToken;
+        platformEntity.SettingsJson = persistedServerSettings.Value;
 
         // A second change before the first is reconciled leaves settings that no pass reconciled, so the next pass has
         // nothing to compare with and reaches every tenant. See ADR-1234.
-        if (serverEntity.ReconciledSettingsFingerprint is null)
-            serverEntity.ReconciledSettingsJson = null;
+        if (platformEntity.ReconciledSettingsFingerprint is null)
+            platformEntity.ReconciledSettingsJson = null;
 
-        serverEntity.ReconciledSettingsFingerprint = null;
+        platformEntity.ReconciledSettingsFingerprint = null;
 
-        DbContext.Servers.Update(serverEntity);
+        DbContext.Platforms.Update(platformEntity);
 
         persistedServerSettings.ConcurrencyToken = nextConcurrencyToken;
     }
 
     /// <inheritdoc />
     public async ValueTask UpdateReconciledSettingsAsync(
-        PersistedServer persistedServer,
+        PersistedPlatform persistedPlatform,
         CancellationToken cancellationToken
     )
     {
-        var serverId = persistedServer.ServerId;
-        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+        var platformId = persistedPlatform.PlatformId;
+        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
 
         if (
             !string.Equals(
-                persistedServer.ConcurrencyToken,
-                serverEntity.ConcurrencyToken,
+                persistedPlatform.ConcurrencyToken,
+                platformEntity.ConcurrencyToken,
                 StringComparison.Ordinal
             )
         )
         {
             throw new StoreConcurrencyException(
-                $"The OpenId Server with ServerId='{serverId}' has been modified by another process. Please reload and try again."
+                $"The platform with PlatformId='{platformId}' has been modified by another process. Please reload and try again."
             );
         }
 
         // Set only these two columns and do not call Update, so that only they are written. The interceptor regenerates
         // the row ConcurrencyToken on save (ADR-1012).
-        serverEntity.ReconciledSettingsFingerprint = persistedServer.ReconciledSettingsFingerprint;
-        serverEntity.ReconciledSettingsJson = persistedServer.ReconciledSettings;
+        platformEntity.ReconciledSettingsFingerprint =
+            persistedPlatform.ReconciledSettingsFingerprint;
+        platformEntity.ReconciledSettingsJson = persistedPlatform.ReconciledSettings;
     }
 
     /// <inheritdoc />
     public async ValueTask<PersistedSecret?> GetSecretOrDefaultAsync(
-        string serverId,
+        string platformId,
         string secretId,
         CancellationToken cancellationToken
     )
     {
-        var normalizedServerId = Normalize(serverId);
+        var normalizedServerId = Normalize(platformId);
         var normalizedSecretId = Normalize(secretId);
 
         var secretEntity = await DbContext
-            .ServerSecrets.Where(serverSecret =>
-                serverSecret.Server.NormalizedServerId == normalizedServerId
+            .PlatformSecrets.Where(serverSecret =>
+                serverSecret.Server.NormalizedPlatformId == normalizedServerId
                 && serverSecret.Secret.NormalizedSecretId == normalizedSecretId
             )
             .Select(serverSecret => serverSecret.Secret)
@@ -341,21 +342,21 @@ internal class ServerStore(
 
     /// <inheritdoc />
     public async ValueTask AddSecretAsync(
-        string serverId,
+        string platformId,
         PersistedSecret persistedSecret,
         CancellationToken cancellationToken
     )
     {
-        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
 
         var normalizedSecretId = Normalize(persistedSecret.SecretId);
-        var alreadyExists = serverEntity.Secrets.Any(serverSecret =>
+        var alreadyExists = platformEntity.Secrets.Any(serverSecret =>
             serverSecret.Secret.NormalizedSecretId == normalizedSecretId
         );
         if (alreadyExists)
         {
             throw new InvalidOperationException(
-                $"A secret with SecretId='{persistedSecret.SecretId}' already exists for OpenId Server with ServerId='{serverId}'."
+                $"A secret with SecretId='{persistedSecret.SecretId}' already exists for platform with PlatformId='{platformId}'."
             );
         }
 
@@ -365,37 +366,37 @@ internal class ServerStore(
         var secretEntity = MapToSecretEntity(persistedSecret);
         await DbContext.Secrets.AddAsync(secretEntity, cancellationToken);
 
-        var serverSecretEntity = new ServerSecretEntity
+        var serverSecretEntity = new PlatformSecretEntity
         {
             Id = NextId(),
-            Server = serverEntity,
-            ServerId = serverEntity.Id,
+            Server = platformEntity,
+            PlatformId = platformEntity.Id,
             Secret = secretEntity,
             SecretId = secretEntity.Id,
         };
-        await DbContext.ServerSecrets.AddAsync(serverSecretEntity, cancellationToken);
+        await DbContext.PlatformSecrets.AddAsync(serverSecretEntity, cancellationToken);
 
         // The server is tracked; mutating the token marks it Modified via change detection.
-        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+        platformEntity.SecretsConcurrencyToken = NextConcurrencyToken();
     }
 
     /// <inheritdoc />
     public async ValueTask UpdateSecretAsync(
-        string serverId,
+        string platformId,
         PersistedSecret persistedSecret,
         CancellationToken cancellationToken
     )
     {
-        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
 
         var normalizedSecretId = Normalize(persistedSecret.SecretId);
-        var serverSecretEntity = serverEntity.Secrets.SingleOrDefault(serverSecret =>
+        var serverSecretEntity = platformEntity.Secrets.SingleOrDefault(serverSecret =>
             serverSecret.Secret.NormalizedSecretId == normalizedSecretId
         );
         if (serverSecretEntity is null)
         {
             throw new InvalidOperationException(
-                $"A secret with SecretId='{persistedSecret.SecretId}' was not found for OpenId Server with ServerId='{serverId}'."
+                $"A secret with SecretId='{persistedSecret.SecretId}' was not found for platform with PlatformId='{platformId}'."
             );
         }
 
@@ -419,20 +420,20 @@ internal class ServerStore(
         secretEntity.Algorithm = persistedSecret.Algorithm;
         secretEntity.ExpiresWhen = persistedSecret.ExpiresWhen.ToUniversalTime();
 
-        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+        platformEntity.SecretsConcurrencyToken = NextConcurrencyToken();
     }
 
     /// <inheritdoc />
     public async ValueTask<bool> RemoveSecretAsync(
-        string serverId,
+        string platformId,
         string secretId,
         CancellationToken cancellationToken
     )
     {
-        var serverEntity = await GetEntityAsync(serverId, cancellationToken);
+        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
 
         var normalizedSecretId = Normalize(secretId);
-        var serverSecretEntity = serverEntity.Secrets.SingleOrDefault(serverSecret =>
+        var serverSecretEntity = platformEntity.Secrets.SingleOrDefault(serverSecret =>
             serverSecret.Secret.NormalizedSecretId == normalizedSecretId
         );
         if (serverSecretEntity is null)
@@ -440,54 +441,54 @@ internal class ServerStore(
             return false;
         }
 
-        DbContext.ServerSecrets.Remove(serverSecretEntity);
+        DbContext.PlatformSecrets.Remove(serverSecretEntity);
         DbContext.Secrets.Remove(serverSecretEntity.Secret);
 
         // The server is tracked; mutating the token marks it Modified via change detection.
-        serverEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+        platformEntity.SecretsConcurrencyToken = NextConcurrencyToken();
 
         return true;
     }
 
     /// <inheritdoc />
-    public async ValueTask<bool> RemoveAsync(string serverId, CancellationToken cancellationToken)
+    public async ValueTask<bool> RemoveAsync(string platformId, CancellationToken cancellationToken)
     {
-        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
-        if (serverEntity is null)
+        var platformEntity = await GetEntityOrDefaultAsync(platformId, cancellationToken);
+        if (platformEntity is null)
         {
             return false;
         }
 
-        var hasSecrets = await DbContext.ServerSecrets.AnyAsync(
-            serverSecret => serverSecret.ServerId == serverEntity.Id,
+        var hasSecrets = await DbContext.PlatformSecrets.AnyAsync(
+            serverSecret => serverSecret.PlatformId == platformEntity.Id,
             cancellationToken
         );
         if (hasSecrets)
         {
             throw new InvalidOperationException(
-                $"The OpenId Server with ServerId='{serverId}' cannot be removed because it still has one or more secrets."
+                $"The platform with PlatformId='{platformId}' cannot be removed because it still has one or more secrets."
             );
         }
 
-        DbContext.Servers.Remove(serverEntity);
+        DbContext.Platforms.Remove(platformEntity);
 
         return true;
     }
 
     /// <inheritdoc />
     public async ValueTask<bool> HasDependentsAsync(
-        string serverId,
+        string platformId,
         CancellationToken cancellationToken
     )
     {
-        var serverEntity = await GetEntityOrDefaultAsync(serverId, cancellationToken);
-        if (serverEntity is null)
+        var platformEntity = await GetEntityOrDefaultAsync(platformId, cancellationToken);
+        if (platformEntity is null)
         {
             return false;
         }
 
-        return await DbContext.ServerSecrets.AnyAsync(
-            serverSecret => serverSecret.ServerId == serverEntity.Id,
+        return await DbContext.PlatformSecrets.AnyAsync(
+            serverSecret => serverSecret.PlatformId == platformEntity.Id,
             cancellationToken
         );
     }

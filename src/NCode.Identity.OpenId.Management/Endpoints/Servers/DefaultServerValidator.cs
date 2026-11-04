@@ -21,7 +21,7 @@ internal class DefaultServerValidator(IAuthorizationService authorizationService
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateCreateAsync(
         ClaimsPrincipal user,
-        PersistedServer server,
+        PersistedPlatform server,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
@@ -38,8 +38,8 @@ internal class DefaultServerValidator(IAuthorizationService authorizationService
             return error;
         }
 
-        var store = storeManager.GetStore<IServerStore>();
-        var existing = await store.GetOrDefaultAsync(server.ServerId, cancellationToken);
+        var store = storeManager.GetStore<IPlatformStore>();
+        var existing = await store.GetOrDefaultAsync(server.PlatformId, cancellationToken);
         if (existing is not null)
         {
             return new ManagementError
@@ -55,7 +55,7 @@ internal class DefaultServerValidator(IAuthorizationService authorizationService
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateUpdateAsync(
         ClaimsPrincipal user,
-        PersistedServer server,
+        PersistedPlatform server,
         UpdateServerRequest model,
         string? ifMatch,
         IStoreManager storeManager,
@@ -101,7 +101,7 @@ internal class DefaultServerValidator(IAuthorizationService authorizationService
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateDeleteAsync(
         ClaimsPrincipal user,
-        PersistedServer server,
+        PersistedPlatform server,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
@@ -118,8 +118,8 @@ internal class DefaultServerValidator(IAuthorizationService authorizationService
             return error;
         }
 
-        var store = storeManager.GetStore<IServerStore>();
-        var hasDependents = await store.HasDependentsAsync(server.ServerId, cancellationToken);
+        var store = storeManager.GetStore<IPlatformStore>();
+        var hasDependents = await store.HasDependentsAsync(server.PlatformId, cancellationToken);
         if (hasDependents)
         {
             return new ManagementError

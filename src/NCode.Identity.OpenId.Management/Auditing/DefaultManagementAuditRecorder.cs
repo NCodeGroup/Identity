@@ -266,7 +266,7 @@ internal class DefaultManagementAuditRecorder(
     /// <inheritdoc />
     public ValueTask RecordServerChangedAsync(
         HttpContext httpContext,
-        string serverId,
+        string platformId,
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
@@ -281,7 +281,7 @@ internal class DefaultManagementAuditRecorder(
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
-            ResourceId = serverId,
+            ResourceId = platformId,
             ChangeType = changeType,
             ResourceValues = resourceValues,
         };
@@ -292,7 +292,7 @@ internal class DefaultManagementAuditRecorder(
     /// <inheritdoc />
     public ValueTask RecordServerSecretChangedAsync(
         HttpContext httpContext,
-        string serverId,
+        string platformId,
         string secretId,
         string changeType,
         JsonElement? resourceValues,
@@ -308,7 +308,7 @@ internal class DefaultManagementAuditRecorder(
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
-            ServerId = serverId,
+            PlatformId = platformId,
             ResourceId = secretId,
             ChangeType = changeType,
             ResourceValues = resourceValues,

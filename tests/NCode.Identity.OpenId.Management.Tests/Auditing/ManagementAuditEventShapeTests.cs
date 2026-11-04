@@ -306,7 +306,7 @@ public sealed class ManagementAuditEventShapeTests
             EventTime = DateTimeOffset.UnixEpoch,
             EventSource = AuditEventSources.Management,
             Outcome = AuditOutcome.Success,
-            ServerId = "server-1",
+            PlatformId = "server-1",
             ResourceId = "secret-1",
             ChangeType = ResourceChangeTypes.Created,
         };

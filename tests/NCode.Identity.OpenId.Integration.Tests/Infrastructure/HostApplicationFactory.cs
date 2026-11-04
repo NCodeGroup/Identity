@@ -111,7 +111,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// Gets or sets the server's own settings document, persisted before the host starts so the server materializes
     /// with it. Set it before the factory serves any request or reads <see cref="WebApplicationFactory{TEntryPoint}.Services"/>.
     /// </summary>
-    public IReadOnlyDictionary<string, object>? PersistedServerSettings { get; set; }
+    public IReadOnlyDictionary<string, object>? PersistedPlatformSettings { get; set; }
 
     /// <summary>
     /// Ensures the tenant exists (persisted lazily on first request) and seeds a public client
@@ -1370,7 +1370,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
             // The reconciliation service materializes and persists the server when the host starts, so a persisted
             // server document is seeded from the host's own lifecycle, before any hosted service starts.
-            if (PersistedServerSettings is { } persistedServerSettings)
+            if (PersistedPlatformSettings is { } persistedServerSettings)
             {
                 serviceCollection.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(
                     provider => new PersistedPlatformSeedService(

@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
 public class DefaultEffectiveSettingsResolverTests : BaseTests
 {
-    private const string ServerId = "default";
+    private const string PlatformId = "default";
 
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
@@ -202,14 +202,14 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var mockConfigured = CreateStrictMock<IReadOnlySettingCollection>();
         mockConfigured.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
         var mockServer = SetupServer(mockConfigured.Object);
-        mockServer.SetupGet(x => x.ServerId).Returns(ServerId).Verifiable();
+        mockServer.SetupGet(x => x.PlatformId).Returns(PlatformId).Verifiable();
         var mockServerStore = SetupServerStore();
         mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
-                new PersistedServerSettings
+                new PersistedPlatformSettings
                 {
-                    ServerId = ServerId,
+                    PlatformId = PlatformId,
                     ConcurrencyToken = "token",
                     Value = CreateDocument("committed"),
                 }
@@ -236,14 +236,14 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         );
         var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var mockServer = SetupServer(configured);
-        mockServer.SetupGet(x => x.ServerId).Returns(ServerId).Verifiable();
+        mockServer.SetupGet(x => x.PlatformId).Returns(PlatformId).Verifiable();
         var mockServerStore = SetupServerStore();
         mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
-                new PersistedServerSettings
+                new PersistedPlatformSettings
                 {
-                    ServerId = ServerId,
+                    PlatformId = PlatformId,
                     ConcurrencyToken = "token",
                     Value = CreateDocument("committed"),
                 }
@@ -255,7 +255,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         );
 
         Assert.Equal(OpenIdSettingScopes.Platform, exception.ScopeName);
-        Assert.Equal(ServerId, exception.OwnerId);
+        Assert.Equal(PlatformId, exception.OwnerId);
         Assert.Equal(documentError, exception.DocumentError);
     }
 
@@ -266,11 +266,11 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         SetupEnvironment();
         var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var mockServer = SetupServer(configured);
-        mockServer.SetupGet(x => x.ServerId).Returns(ServerId).Verifiable();
+        mockServer.SetupGet(x => x.PlatformId).Returns(PlatformId).Verifiable();
         var mockServerStore = SetupServerStore();
         mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServerSettings?)null)
+            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 
         var result = await Resolver.ResolvePlatformAsync(CancellationToken.None);
@@ -380,12 +380,12 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         return mockServer;
     }
 
-    private Mock<IServerStore> SetupServerStore()
+    private Mock<IPlatformStore> SetupServerStore()
     {
-        var mockServerStore = CreateStrictMock<IServerStore>();
+        var mockServerStore = CreateStrictMock<IPlatformStore>();
         var mockStoreManager = CreateStrictMock<IStoreManager>();
         mockStoreManager
-            .Setup(x => x.GetStore<IServerStore>())
+            .Setup(x => x.GetStore<IPlatformStore>())
             .Returns(mockServerStore.Object)
             .Verifiable();
         mockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();

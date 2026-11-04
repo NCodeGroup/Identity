@@ -69,7 +69,7 @@ internal sealed class PlatformSettingsReconciliationService(
             while (!stoppingToken.IsCancellationRequested)
             {
                 await WaitForTriggerAsync(settled, stoppingToken);
-                settled = await ReconcileAsync(server.ServerId, stoppingToken);
+                settled = await ReconcileAsync(server.PlatformId, stoppingToken);
             }
         }
         catch (Exception) when (stoppingToken.IsCancellationRequested)
@@ -122,15 +122,15 @@ internal sealed class PlatformSettingsReconciliationService(
         }
     }
 
-    private async Task<bool> ReconcileAsync(string serverId, CancellationToken stoppingToken)
+    private async Task<bool> ReconcileAsync(string platformId, CancellationToken stoppingToken)
     {
         try
         {
-            return await PlatformSettingsReconciler.ReconcileAsync(serverId, stoppingToken);
+            return await PlatformSettingsReconciler.ReconcileAsync(platformId, stoppingToken);
         }
         catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
         {
-            Logger.PlatformSettingsReconciliationFailed(serverId, exception);
+            Logger.PlatformSettingsReconciliationFailed(platformId, exception);
             return false;
         }
     }

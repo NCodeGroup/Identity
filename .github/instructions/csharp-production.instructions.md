@@ -358,8 +358,8 @@ than inlining the rationale.
 - 👁 **A client authenticates only with its registered method, and its type is that one fact.** The registered
   `token_endpoint_auth_method` (RFC 7591 §2; `client_secret_basic` when none is registered) is the only method that
   authenticates a client at every endpoint that authenticates clients, and `token_endpoint_auth_methods_supported` is
-  only the server/tenant/profile **ceiling** over it — never a list of alternatives. Authenticate a client only through
-  `IClientAuthenticationService`, which enforces this; a new `IClientAuthenticationHandler` authenticates only a client
+  only the platform/team/tenant/profile **ceiling** over it — never a list of alternatives. Authenticate a client only
+  through `IClientAuthenticationService`, which enforces this; a new `IClientAuthenticationHandler` authenticates only a client
   registered for its method (the `CommonClientAuthenticationHandler` base does). Anything that provisions a client
   registers its method explicitly — a public client registers `none`. The authorization endpoint **identifies** the
   client by `client_id` and never authenticates it, so a rule there reads the type the client is registered as —
@@ -583,8 +583,8 @@ than inlining the rationale.
   [ADR-1214](../../docs/decisions/1214-a-management-write-that-loses-a-race-is-answered-412.md).
 - 👁 **A stored settings document that cannot be honored is answered `409` once, by the management route group.** A
   management request resolves a document a store holds with
-  `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the server's committed one with
-  `ResolvePlatformAsync`; both throw `UnreadableSettingsException` naming the scope and the owner, and
+  `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the platform's committed one
+  with `ResolvePlatformAsync`; both throw `UnreadableSettingsException` naming the scope and the owner, and
   `UnreadableSettingsEndpointFilter` answers it with a `409` problem (`settingsScope`, `ownerId`, `documentError`), so
   no handler catches it. Resolve only after authorization (a read resolves in the `mapperAsync` of `ProcessGetAsync`),
   and keep `Resolve` for a proposed document and for a write that replaces the document it cannot read

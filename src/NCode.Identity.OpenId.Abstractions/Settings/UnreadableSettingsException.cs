@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// settings cannot honor. The exception names the document, so it can be found and replaced.
 /// </summary>
 /// <param name="scopeName">The registered scope name of the document.</param>
-/// <param name="ownerId">The identifier of the server, tenant, client or resource server that owns the
+/// <param name="ownerId">The identifier of the platform, team, tenant, client or resource server that owns the
 /// document.</param>
 /// <param name="innerException">The error that the settings vocabulary reported for the document.</param>
 // See ADR-1245.
@@ -40,7 +40,7 @@ public sealed class UnreadableSettingsException(
         scopeName ?? throw new ArgumentNullException(nameof(scopeName));
 
     /// <summary>
-    /// Gets the identifier of the server, tenant, client or resource server that owns the document.
+    /// Gets the identifier of the platform, team, tenant, client or resource server that owns the document.
     /// </summary>
     public string OwnerId { get; } = ownerId ?? throw new ArgumentNullException(nameof(ownerId));
 

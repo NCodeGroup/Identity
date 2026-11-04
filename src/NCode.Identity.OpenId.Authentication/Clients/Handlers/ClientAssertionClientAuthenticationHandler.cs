@@ -176,8 +176,8 @@ internal abstract class ClientAssertionClientAuthenticationHandler(
         if (rejection is { } rejected)
             return rejected;
 
-        // The client's effective settings carry the server's and tenant's lists and the ceiling of every security profile
-        // the client is under (ADR-1148). At this trust boundary an unset list permits nothing, and a set list, even an
+        // The client's effective settings carry the platform's, team's and tenant's lists and the ceiling of every
+        // security profile the client is under (ADR-1148). At this trust boundary an unset list permits nothing, and a set list, even an
         // empty one, permits only what it names (ADR-1155). The algorithm is checked here to report it precisely, and
         // the validator checks it again before verifying the signature (ADR-1154).
         var permittedAlgorithms = publicClient.Settings.GetPermittedAlgorithms(

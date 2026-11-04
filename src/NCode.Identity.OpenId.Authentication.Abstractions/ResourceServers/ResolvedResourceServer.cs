@@ -39,8 +39,8 @@ public sealed class ResolvedResourceServer
     public required bool IsSystem { get; init; }
 
     /// <summary>
-    /// Gets the resource server's effective settings — the server baseline merged with the tenant's and then the
-    /// resource server's persisted overrides. The settings among them that apply to resource servers bound every access
+    /// Gets the resource server's effective settings — the platform's baseline merged with the team's, the tenant's and
+    /// then the resource server's persisted overrides. The settings among them that apply to resource servers bound every access
     /// token issued for it: they are combined with the requesting client's effective settings, and with those of every
     /// other resource server the token targets, by their lattice merges.
     /// </summary>

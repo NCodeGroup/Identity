@@ -65,7 +65,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
             };
 
             // quota_tenant_requests_per_day: the most requests the tenant's protocol endpoints serve in one UTC calendar
-            // day; a plan tier writes it on the tenant, beneath the server's ceiling (ADR-1198).
+            // day; a plan tier writes it on the tenant, beneath the platform's ceiling (ADR-1198).
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.QuotaTenantRequestsPerDay,
@@ -85,7 +85,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
             };
 
             // quota_tenant_requests_overage_per_day: the most requests admitted past the daily request quota in one UTC
-            // calendar day, each billed as overage; unset refuses at the quota. Merged with Min, so a server value is
+            // calendar day, each billed as overage; unset refuses at the quota. Merged with Min, so a platform value is
             // every tenant's default allowance and caps a tenant's own, as for the quotas (ADR-1200).
             yield return new SettingDescriptor<int>
             {

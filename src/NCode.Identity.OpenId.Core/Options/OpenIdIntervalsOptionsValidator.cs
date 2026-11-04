@@ -7,7 +7,7 @@ using NCode.Time;
 namespace NCode.Identity.OpenId;
 
 /// <summary>
-/// Validates the refresh intervals and lifetimes that the server and the tenants run timers on when the host starts,
+/// Validates the refresh intervals and lifetimes that the platform and the tenants run timers on when the host starts,
 /// so a value that a timer refuses stops the host instead of failing the first time a timer is created.
 /// </summary>
 // See ADR-1221.

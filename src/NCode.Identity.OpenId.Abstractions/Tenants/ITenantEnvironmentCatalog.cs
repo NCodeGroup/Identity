@@ -42,7 +42,8 @@ public interface ITenantEnvironmentCatalog
     /// <paramref name="parentSettings"/>, the parent scope's effective settings, whose descriptor default is
     /// <c>production</c>. At a scope that <c>environment_type</c> does not apply to, the scope settings are returned
     /// unchanged. Otherwise the <c>security_profiles</c> of the resolved type are unioned (ordinal) into the scope's
-    /// <c>security_profiles</c> setting. The guardrails therefore follow the tenant's effective type, not the server's.
+    /// <c>security_profiles</c> setting. The guardrails therefore follow the tenant's effective type, not the
+    /// platform's.
     /// </remarks>
     /// <param name="parentSettings">The effective settings of the parent scope.</param>
     /// <param name="scopeName">The name of the registered scope whose settings <paramref name="scopeSettings"/> are.</param>

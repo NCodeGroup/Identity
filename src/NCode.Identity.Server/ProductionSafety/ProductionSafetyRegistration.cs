@@ -60,8 +60,8 @@ public static class ProductionSafetyRegistration
         /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses a secret
         /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
         /// Data Protection key ring that has no repository or is not encrypted at rest, a work factor for supplied
-        /// client secrets below the recommended one, and configured server settings whose <c>environment_type</c> is a
-        /// registered non-production type.
+        /// client secrets below the recommended one, and configured platform settings whose <c>environment_type</c> is
+        /// a registered non-production type.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
@@ -102,7 +102,7 @@ public static class ProductionSafetyRegistration
             );
             serviceCollection.AddOptions<Pbkdf2SecretVerifierOptions>().ValidateOnStart();
 
-            // The server-wide environment type needs the registered types, so it is checked as the host starts too.
+            // The platform-wide environment type needs the registered types, so it is checked as the host starts too.
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<OpenIdOptions>,

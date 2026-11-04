@@ -31,8 +31,8 @@ Accept: application/json
 GET {{host}}/api/tenants/{{tenantId}}/clients?limit=50&cursor=REPLACE_WITH_continuationToken
 Accept: application/json
 
-### List servers (central-admin)
-GET {{host}}/api/platform
+### Get the platform settings (central-admin)
+GET {{host}}/api/platform/settings
 Accept: application/json
 
 ### List tenants (central-admin)

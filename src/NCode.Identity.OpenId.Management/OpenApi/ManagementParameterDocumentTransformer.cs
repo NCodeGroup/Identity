@@ -26,7 +26,6 @@ internal sealed partial class ManagementParameterDocumentTransformer : IOpenApiD
     {
         ["tenantId"] = "The identifier of the tenant that scopes the request.",
         ["clientId"] = "The identifier of the client.",
-        ["platformId"] = "The identifier of the server.",
         ["resourceServerId"] = "The identifier of the API (resource server).",
         ["secretId"] = "The identifier of the secret.",
         ["scopeValue"] = "The scope value.",

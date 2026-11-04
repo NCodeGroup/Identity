@@ -17,8 +17,6 @@ namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
 public class DefaultEffectiveSettingsResolverTests : BaseTests
 {
-    private const string PlatformId = "default";
-
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
     private Mock<IOpenIdPlatformProvider> MockServerProvider { get; }
@@ -201,15 +199,13 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockConfigured = CreateStrictMock<IReadOnlySettingCollection>();
         mockConfigured.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
-        var mockServer = SetupServer(mockConfigured.Object);
-        mockServer.SetupGet(x => x.PlatformId).Returns(PlatformId).Verifiable();
+        SetupServer(mockConfigured.Object);
         var mockServerStore = SetupServerStore();
         mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new PersistedPlatformSettings
                 {
-                    PlatformId = PlatformId,
                     ConcurrencyToken = "token",
                     Value = CreateDocument("committed"),
                 }
@@ -235,15 +231,13 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             new JsonException(documentError)
         );
         var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        var mockServer = SetupServer(configured);
-        mockServer.SetupGet(x => x.PlatformId).Returns(PlatformId).Verifiable();
+        SetupServer(configured);
         var mockServerStore = SetupServerStore();
         mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(
                 new PersistedPlatformSettings
                 {
-                    PlatformId = PlatformId,
                     ConcurrencyToken = "token",
                     Value = CreateDocument("committed"),
                 }
@@ -255,7 +249,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         );
 
         Assert.Equal(OpenIdSettingScopes.Platform, exception.ScopeName);
-        Assert.Equal(PlatformId, exception.OwnerId);
+        Assert.Equal(OpenIdConstants.PlatformResourceId, exception.OwnerId);
         Assert.Equal(documentError, exception.DocumentError);
     }
 
@@ -265,11 +259,10 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         // The catalog is strict with no setup: expanding a document fails the test.
         SetupEnvironment();
         var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        var mockServer = SetupServer(configured);
-        mockServer.SetupGet(x => x.PlatformId).Returns(PlatformId).Verifiable();
+        SetupServer(configured);
         var mockServerStore = SetupServerStore();
         mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 

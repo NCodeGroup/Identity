@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Tenants;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 
@@ -501,25 +503,32 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         var recorder = CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false);
 
         var httpContext = CreateHttpContext("admin-1");
-        var resourceValues = JsonSerializer.SerializeToElement(new { displayName = "My Server" });
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "tenant-1")
+                )
+            )
+        );
+        var resourceValues = JsonSerializer.SerializeToElement(new { flag = true });
 
         await recorder.RecordPlatformChangedAsync(
             httpContext,
-            "server-1",
-            ResourceChangeTypes.Updated,
+            ResourceChangeTypes.SettingsUpdated,
             resourceValues,
             CancellationToken.None
         );
 
         Assert.NotNull(captured);
-        Assert.Equal("server.updated", captured.EventName);
+        Assert.Equal("platform.settings.updated", captured.EventName);
         Assert.Equal(AuditEventSources.Management, captured.EventSource);
         Assert.Equal(ManagementResourceTypes.Platform, captured.ResourceType);
-        Assert.Equal(ResourceChangeTypes.Updated, captured.ChangeType);
+        Assert.Equal(ResourceChangeTypes.SettingsUpdated, captured.ChangeType);
         Assert.Equal(AuditOutcome.Success, captured.Outcome);
-        Assert.Null(captured.TenantId);
+        Assert.Equal("tenant-1", captured.TenantId);
         Assert.Null(captured.TenantEnvironmentType);
-        Assert.Equal("server-1", captured.ResourceId);
+        Assert.Equal(OpenIdConstants.PlatformResourceId, captured.ResourceId);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
         Assert.Equal("admin-1", captured.Actor.Id);
         Assert.NotNull(captured.Request);
@@ -527,7 +536,12 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal("test-endpoint", captured.Request.Endpoint);
         Assert.Equal(7, captured.EventId.Version);
         Assert.Equal(
-            [new AuditResource(ManagementResourceTypes.Platform, "server-1")],
+            [
+                new AuditResource(
+                    ManagementResourceTypes.Platform,
+                    OpenIdConstants.PlatformResourceId
+                ),
+            ],
             captured.Resources
         );
         Assert.NotNull(captured.ResourceValues);

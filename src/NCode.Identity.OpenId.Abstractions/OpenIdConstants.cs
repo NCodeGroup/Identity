@@ -3,6 +3,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
+using NCode.Identity.OpenId.Persistence;
 
 namespace NCode.Identity.OpenId;
 
@@ -12,6 +13,11 @@ namespace NCode.Identity.OpenId;
 [PublicAPI]
 public static partial class OpenIdConstants
 {
+    /// <summary>
+    /// Contains the identifier of the platform's authority node and settings document, the one deployment root.
+    /// </summary>
+    public const string PlatformResourceId = OpenIdResourceIds.Platform;
+
     /// <summary>
     /// Contains the names for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
     /// </summary>

@@ -205,10 +205,10 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
-    /// Records that an administrator created, updated, or deleted an OpenID server, or updated its settings.
+    /// Records that an administrator updated the platform's settings. The event carries the tenant the request runs
+    /// under and the platform's identifier, <c>platform</c>.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="platformId">The identifier of the affected server.</param>
     /// <param name="changeType">
     /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
     /// </param>
@@ -223,7 +223,6 @@ public interface IManagementAuditRecorder
     /// </returns>
     ValueTask RecordPlatformChangedAsync(
         HttpContext httpContext,
-        string platformId,
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken

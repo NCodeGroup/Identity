@@ -430,10 +430,7 @@ public class TenantKeyProvisioningTests
                 }
         );
 
-        using var request = new HttpRequestMessage(
-            HttpMethod.Patch,
-            $"/api/platform/{OpenIdPlatformOptions.DefaultPlatformId}/settings"
-        )
+        using var request = new HttpRequestMessage(HttpMethod.Patch, "/api/platform/settings")
         {
             Content = new StringContent(
                 JsonSerializer.Serialize(operations),

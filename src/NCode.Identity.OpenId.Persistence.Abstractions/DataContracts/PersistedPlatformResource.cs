@@ -12,10 +12,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Common interface for all persisted server resources.
 /// </summary>
 [PublicAPI]
-public interface ISupportPersistedPlatformResource
-    : ISupportResource,
-        ISupportPlatformId,
-        ISupportConcurrencyToken
+public interface ISupportPersistedPlatformResource : ISupportResource, ISupportConcurrencyToken
 {
     // nothing
 }
@@ -39,11 +36,7 @@ public abstract class BasePersistedPlatformResource : ISupportPersistedPlatformR
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ResourceId)]
-    public virtual string ResourceId => PlatformId;
-
-    /// <inheritdoc/>
-    [MaxLength(MaxLengths.ResourceId)]
-    public required string PlatformId { get; init; }
+    public virtual string ResourceId => OpenIdResourceIds.Platform;
 
     /// <inheritdoc/>
     [MaxLength(MaxLengths.ConcurrencyToken)]

@@ -239,19 +239,6 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_RegistersTheServerSettingsReconciliationService()
-    {
-        // Without this service a configuration reload or a deployment that changes the server's settings reaches the
-        // tenants only when each is next materialized.
-        using var host = BuildHost([]);
-
-        Assert.Contains(
-            host.Services.GetServices<IHostedService>(),
-            service => service.GetType().Name == "PlatformSettingsReconciliationService"
-        );
-    }
-
-    [Fact]
     public void AddIdentityServer_StartsTheKeyRingGateAfterTheWarmupAndBeforeDataProtection()
     {
         // Hosted services start in registration order. The gate needs the protector that the warmup loads, and it must

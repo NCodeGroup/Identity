@@ -392,19 +392,9 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Use
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.ConcurrencyToken.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.DisplayName.get -> string!
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.DisplayName.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.Id.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.Id.init -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.NormalizedPlatformId.get -> string!
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.NormalizedPlatformId.init -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.ReconciledSettingsFingerprint.get -> string?
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.ReconciledSettingsFingerprint.set -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.ReconciledSettingsJson.get -> System.Text.Json.JsonElement?
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.ReconciledSettingsJson.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.PlatformEntity() -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.PlatformId.get -> string!
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.PlatformId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.SettingsConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.SettingsConcurrencyToken.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.SettingsJson.get -> System.Text.Json.JsonElement
@@ -531,3 +521,5 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResou
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResourceEntity.Type.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Origin.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Origin.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.Key.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity.Key.init -> void

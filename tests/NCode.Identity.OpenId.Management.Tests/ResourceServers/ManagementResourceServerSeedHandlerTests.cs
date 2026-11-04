@@ -78,7 +78,7 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
         Assert.NotNull(captured);
         var values = captured.Scopes.Select(scope => scope.Value).ToList();
         Assert.Contains("read:clients", values);
-        Assert.DoesNotContain("read:servers", values);
+        Assert.DoesNotContain("read:platform_settings", values);
         Assert.DoesNotContain("read:tenants", values);
     }
 
@@ -90,7 +90,8 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
         Assert.NotNull(captured);
         var values = captured.Scopes.Select(scope => scope.Value).ToList();
         Assert.Contains("read:clients", values);
-        Assert.Contains("read:servers", values);
+        Assert.Contains("read:platform_settings", values);
+        Assert.DoesNotContain("read:platforms", values);
         Assert.Contains("read:tenants", values);
     }
 

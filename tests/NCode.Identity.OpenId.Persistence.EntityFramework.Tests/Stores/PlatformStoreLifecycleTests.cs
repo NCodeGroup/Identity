@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using IdGen;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -10,23 +11,25 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
+// Uses SQLite because the EF InMemory provider does not enforce the unique index that keeps the platform to one row.
 public sealed class PlatformStoreLifecycleTests : IDisposable
 {
-    private const string PlatformId = "server-1";
-
+    private readonly SqliteConnection _connection;
     private readonly ServiceProvider _provider;
     private readonly OpenIdDbContext _dbContext;
     private readonly PlatformStore _store;
 
     public PlatformStoreLifecycleTests()
     {
+        _connection = new SqliteConnection("DataSource=:memory:");
+        _connection.Open();
+
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options =>
-            options.UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
-        );
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(_connection));
 
         _provider = serviceCollection.BuildServiceProvider();
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
+        _dbContext.Database.EnsureCreated();
         _store = new PlatformStore(
             Mock.Of<IStoreProvider>(),
             _provider.GetRequiredService<IIdGenerator<long>>(),
@@ -38,25 +41,23 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
     {
         _dbContext.Dispose();
         _provider.Dispose();
+        _connection.Dispose();
     }
 
-    private static PersistedPlatform CreateServer() =>
+    private static PersistedPlatform CreatePlatform() =>
         new()
         {
-            PlatformId = PlatformId,
             ConcurrencyToken = string.Empty,
-            DisplayName = "Test Server",
             Settings = new PersistedPlatformSettings
             {
-                PlatformId = PlatformId,
                 ConcurrencyToken = string.Empty,
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
         };
 
-    private async Task SeedServerAsync()
+    private async Task SeedPlatformAsync()
     {
-        await _store.AddAsync(CreateServer(), CancellationToken.None);
+        await _store.AddAsync(CreatePlatform(), CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }
@@ -64,111 +65,77 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
     [Fact]
     public async Task AddAsync_AssignsRowConcurrencyToken()
     {
-        var server = CreateServer();
+        var platform = CreatePlatform();
 
-        await _store.AddAsync(server, CancellationToken.None);
+        await _store.AddAsync(platform, CancellationToken.None);
 
-        Assert.False(string.IsNullOrEmpty(server.ConcurrencyToken));
+        Assert.False(string.IsNullOrEmpty(platform.ConcurrencyToken));
+        Assert.False(string.IsNullOrEmpty(platform.Settings.ConcurrencyToken));
     }
 
     [Fact]
-    public async Task AddAsync_RoundTripsTheReconciledSettings()
+    public async Task AddAsync_WhenARowExists_ThrowsOnSave()
     {
-        var server = CreateServer();
-        server.ReconciledSettings = JsonElement.Parse("""{"flag":true}""");
+        await SeedPlatformAsync();
 
-        await _store.AddAsync(server, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await _store.AddAsync(CreatePlatform(), CancellationToken.None);
 
-        var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(reloaded);
-        Assert.Equal("""{"flag":true}""", reloaded.ReconciledSettings?.GetRawText());
+        await Assert.ThrowsAsync<DbUpdateException>(async () =>
+            await _dbContext.SaveChangesAsync()
+        );
     }
 
     [Fact]
-    public async Task GetOrDefaultAsync_RoundTripsDisplayName()
+    public async Task GetOrDefaultAsync_WhenNoRowExists_ReturnsNull()
     {
-        await SeedServerAsync();
+        var platform = await _store.GetOrDefaultAsync(CancellationToken.None);
 
-        var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-
-        Assert.NotNull(reloaded);
-        Assert.Equal("Test Server", reloaded.DisplayName);
+        Assert.Null(platform);
     }
 
     [Fact]
-    public async Task UpdateAsync_UpdatesDisplayName()
+    public async Task GetOrDefaultAsync_WhenARowExists_RoundTripsTheSettings()
     {
-        await SeedServerAsync();
+        await SeedPlatformAsync();
 
-        var server = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(server);
-        server.DisplayName = "Renamed Server";
+        var platform = await _store.GetOrDefaultAsync(CancellationToken.None);
 
-        await _store.UpdateAsync(server, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
-
-        var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(reloaded);
-        Assert.Equal("Renamed Server", reloaded.DisplayName);
+        Assert.NotNull(platform);
+        Assert.Equal(OpenIdResourceIds.Platform, platform.ResourceId);
+        Assert.Equal(OpenIdResourceIds.Platform, platform.Settings.ResourceId);
+        Assert.Equal("{}", platform.Settings.Value.GetRawText());
     }
 
     [Fact]
-    public async Task UpdateReconciledSettingsAsync_RecordsTheFingerprintAndTheSettings()
+    public async Task GetSettingsOrDefaultAsync_WhenNoRowExists_ReturnsNull()
     {
-        await SeedServerAsync();
+        var settings = await _store.GetSettingsOrDefaultAsync(CancellationToken.None);
 
-        var server = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(server);
-        Assert.Null(server.ReconciledSettingsFingerprint);
-        Assert.Null(server.ReconciledSettings);
-        server.ReconciledSettingsFingerprint = "fingerprint-1";
-        server.ReconciledSettings = JsonElement.Parse("""{"flag":true}""");
-
-        await _store.UpdateReconciledSettingsAsync(server, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
-
-        var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(reloaded);
-        Assert.Equal("fingerprint-1", reloaded.ReconciledSettingsFingerprint);
-        Assert.Equal("""{"flag":true}""", reloaded.ReconciledSettings?.GetRawText());
-        Assert.Equal("Test Server", reloaded.DisplayName);
+        Assert.Null(settings);
     }
 
     [Fact]
-    public async Task UpdateReconciledSettingsAsync_WhenTheServerChanged_Throws()
+    public async Task UpdateAsync_WhenTheRowChanged_Throws()
     {
-        await SeedServerAsync();
+        await SeedPlatformAsync();
 
-        var server = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(server);
-        server.ConcurrencyToken = "stale";
-        server.ReconciledSettingsFingerprint = "fingerprint-1";
+        var platform = await _store.GetOrDefaultAsync(CancellationToken.None);
+        Assert.NotNull(platform);
+        platform.ConcurrencyToken = "stale";
 
         await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
-            await _store.UpdateReconciledSettingsAsync(server, CancellationToken.None)
+            await _store.UpdateAsync(platform, CancellationToken.None)
         );
     }
 
     [Fact]
-    public async Task UpdateSettingsAsync_ClearsTheReconciledSettingsFingerprint()
+    public async Task UpdateSettingsAsync_UpdatesTheSettingsAndTheirToken()
     {
-        var seed = CreateServer();
-        seed.ReconciledSettingsFingerprint = "fingerprint-1";
-        await _store.AddAsync(seed, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await SeedPlatformAsync();
 
-        var seeded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(seeded);
-        Assert.Equal("fingerprint-1", seeded.ReconciledSettingsFingerprint);
-        _dbContext.ChangeTracker.Clear();
-
-        var settings = await _store.GetSettingsOrDefaultAsync(PlatformId, CancellationToken.None);
+        var settings = await _store.GetSettingsOrDefaultAsync(CancellationToken.None);
         Assert.NotNull(settings);
+        var previousToken = settings.ConcurrencyToken;
         settings.Value = JsonSerializer.SerializeToElement(
             new Dictionary<string, object> { ["key"] = "value" }
         );
@@ -177,59 +144,28 @@ public sealed class PlatformStoreLifecycleTests : IDisposable
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
 
-        var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
+        var reloaded = await _store.GetSettingsOrDefaultAsync(CancellationToken.None);
         Assert.NotNull(reloaded);
-        Assert.Null(reloaded.ReconciledSettingsFingerprint);
+        Assert.Equal("""{"key":"value"}""", reloaded.Value.GetRawText());
+        Assert.NotEqual(previousToken, reloaded.ConcurrencyToken);
+        Assert.Equal(settings.ConcurrencyToken, reloaded.ConcurrencyToken);
     }
 
     [Fact]
-    public async Task UpdateSettingsAsync_WhenTheSettingsWereReconciled_KeepsTheReconciledSettings()
+    public async Task UpdateSettingsAsync_WhenTheSettingsChanged_Throws()
     {
-        var seed = CreateServer();
-        seed.ReconciledSettingsFingerprint = "fingerprint-1";
-        seed.ReconciledSettings = JsonElement.Parse("""{"flag":true}""");
-        await _store.AddAsync(seed, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
+        await SeedPlatformAsync();
 
-        var settings = await _store.GetSettingsOrDefaultAsync(PlatformId, CancellationToken.None);
+        var settings = await _store.GetSettingsOrDefaultAsync(CancellationToken.None);
         Assert.NotNull(settings);
-        settings.Value = JsonSerializer.SerializeToElement(
-            new Dictionary<string, object> { ["key"] = "value" }
+        settings.ConcurrencyToken = "stale";
+
+        var exception = await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await _store.UpdateSettingsAsync(settings, CancellationToken.None)
         );
-
-        await _store.UpdateSettingsAsync(settings, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
-
-        var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(reloaded);
-        Assert.Null(reloaded.ReconciledSettingsFingerprint);
-        Assert.Equal("""{"flag":true}""", reloaded.ReconciledSettings?.GetRawText());
-    }
-
-    [Fact]
-    public async Task UpdateSettingsAsync_WhenAnEarlierChangeWasNotReconciled_ClearsTheReconciledSettings()
-    {
-        var seed = CreateServer();
-        seed.ReconciledSettings = JsonElement.Parse("""{"flag":true}""");
-        await _store.AddAsync(seed, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
-
-        var settings = await _store.GetSettingsOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(settings);
-        settings.Value = JsonSerializer.SerializeToElement(
-            new Dictionary<string, object> { ["key"] = "value" }
+        Assert.Equal(
+            "The platform's settings have been modified by another process. Please reload and try again.",
+            exception.Message
         );
-
-        await _store.UpdateSettingsAsync(settings, CancellationToken.None);
-        await _dbContext.SaveChangesAsync();
-        _dbContext.ChangeTracker.Clear();
-
-        var reloaded = await _store.GetOrDefaultAsync(PlatformId, CancellationToken.None);
-        Assert.NotNull(reloaded);
-        Assert.Null(reloaded.ReconciledSettingsFingerprint);
-        Assert.Null(reloaded.ReconciledSettings);
     }
 }

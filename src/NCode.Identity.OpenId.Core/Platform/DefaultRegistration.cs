@@ -71,14 +71,6 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // Each replica reconciles every tenant and client with the server's effective settings whenever they change,
-            // one replica per change (ADR-1219).
-            serviceCollection.TryAddSingleton<
-                IPlatformSettingsReconciler,
-                DefaultPlatformSettingsReconciler
-            >();
-            serviceCollection.AddHostedService<PlatformSettingsReconciliationService>();
-
             // A server or tenant interval that a timer refuses stops the host when it starts instead of failing the
             // first time a timer is created (ADR-1221).
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();

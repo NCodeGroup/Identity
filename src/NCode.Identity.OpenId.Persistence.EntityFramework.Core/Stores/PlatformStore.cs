@@ -13,12 +13,14 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 
 /// <summary>
 /// Provides a default implementation of <see cref="IPlatformStore"/> that uses Entity Framework Core for persistence.
+/// The platform is a singleton: its row carries the key <see cref="OpenIdResourceIds.Platform"/>, which a unique index
+/// holds to one row.
 /// </summary>
 internal class PlatformStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
     OpenIdDbContext openIdDbContext
-) : CoreBaseStoreWithResourceId<PersistedPlatform, PlatformEntity>, IPlatformStore
+) : CoreBaseStore<PersistedPlatform, PlatformEntity>, IPlatformStore
 {
     /// <inheritdoc />
     protected override IStoreProvider StoreProvider { get; } = storeProvider;
@@ -43,7 +45,6 @@ internal class PlatformStore(
         return ValueTask.FromResult(
             new PersistedPlatformSettings
             {
-                PlatformId = platformEntity.PlatformId,
                 ConcurrencyToken = platformEntity.SettingsConcurrencyToken,
                 Value = platformEntity.SettingsJson,
             }
@@ -58,12 +59,8 @@ internal class PlatformStore(
     {
         return new PersistedPlatform
         {
-            PlatformId = entity.PlatformId,
             ConcurrencyToken = entity.ConcurrencyToken,
-            DisplayName = entity.DisplayName,
             Settings = await MapSettingsAsync(entity, cancellationToken),
-            ReconciledSettingsFingerprint = entity.ReconciledSettingsFingerprint,
-            ReconciledSettings = entity.ReconciledSettingsJson,
         };
     }
 
@@ -77,17 +74,33 @@ internal class PlatformStore(
             ?? await DbContext.Platforms.SingleOrDefaultAsync(predicate, cancellationToken);
     }
 
-    /// <inheritdoc />
-    protected override async ValueTask<PlatformEntity?> GetEntityOrDefaultAsync(
-        string resourceId,
+    /// <summary>
+    /// Attempts to get the platform's entity from the store.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the entity if it exists.</returns>
+    private async ValueTask<PlatformEntity?> GetPlatformEntityOrDefaultAsync(
         CancellationToken cancellationToken
     )
     {
-        var normalizedServerId = Normalize(resourceId);
         return await GetEntityOrDefaultAsync(
-            entity => entity.NormalizedPlatformId == normalizedServerId,
+            entity => entity.Key == OpenIdResourceIds.Platform,
             cancellationToken
         );
+    }
+
+    /// <summary>
+    /// Gets the platform's entity from the store.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the entity.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the platform is not in the store.</exception>
+    private async ValueTask<PlatformEntity> GetPlatformEntityAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        return await GetPlatformEntityOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("The platform was not found.");
     }
 
     /// <inheritdoc />
@@ -101,22 +114,35 @@ internal class PlatformStore(
 
         if (afterId is { } id)
         {
-            query = query.Where(server => server.Id > id);
+            query = query.Where(platform => platform.Id > id);
         }
 
-        return await query.OrderBy(server => server.Id).Take(take).ToListAsync(cancellationToken);
+        return await query
+            .OrderBy(platform => platform.Id)
+            .Take(take)
+            .ToListAsync(cancellationToken);
     }
 
     /// <inheritdoc />
     protected override long GetSortKey(PlatformEntity entity) => entity.Id;
 
     /// <inheritdoc />
-    public async ValueTask<PersistedPlatformSettings?> GetSettingsOrDefaultAsync(
-        string platformId,
+    public async ValueTask<PersistedPlatform?> GetOrDefaultAsync(
         CancellationToken cancellationToken
     )
     {
-        var platformEntity = await GetEntityOrDefaultAsync(platformId, cancellationToken);
+        var platformEntity = await GetPlatformEntityOrDefaultAsync(cancellationToken);
+        return platformEntity is null
+            ? null
+            : await MapFromEntityAsync(platformEntity, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedPlatformSettings?> GetSettingsOrDefaultAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        var platformEntity = await GetPlatformEntityOrDefaultAsync(cancellationToken);
         if (platformEntity is null)
         {
             return null;
@@ -126,7 +152,7 @@ internal class PlatformStore(
     }
 
     /// <inheritdoc />
-    public override async ValueTask AddAsync(
+    public async ValueTask AddAsync(
         PersistedPlatform persistedPlatform,
         CancellationToken cancellationToken
     )
@@ -139,27 +165,22 @@ internal class PlatformStore(
         var platformEntity = new PlatformEntity
         {
             Id = NextId(),
-            PlatformId = persistedPlatform.PlatformId,
-            NormalizedPlatformId = Normalize(persistedPlatform.PlatformId),
+            Key = OpenIdResourceIds.Platform,
             ConcurrencyToken = persistedPlatform.ConcurrencyToken,
             SettingsConcurrencyToken = persistedPlatform.Settings.ConcurrencyToken,
-            DisplayName = persistedPlatform.DisplayName,
             SettingsJson = persistedPlatform.Settings.Value,
-            ReconciledSettingsFingerprint = persistedPlatform.ReconciledSettingsFingerprint,
-            ReconciledSettingsJson = persistedPlatform.ReconciledSettings,
         };
 
         await DbContext.Platforms.AddAsync(platformEntity, cancellationToken);
     }
 
     /// <inheritdoc />
-    public override async ValueTask UpdateAsync(
+    public async ValueTask UpdateAsync(
         PersistedPlatform persistedPlatform,
         CancellationToken cancellationToken
     )
     {
-        var platformId = persistedPlatform.PlatformId;
-        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
+        var platformEntity = await GetPlatformEntityAsync(cancellationToken);
 
         if (
             !string.Equals(
@@ -170,81 +191,42 @@ internal class PlatformStore(
         )
         {
             throw new StoreConcurrencyException(
-                $"The platform with PlatformId='{platformId}' has been modified by another process. Please reload and try again."
+                "The platform has been modified by another process. Please reload and try again."
             );
         }
 
         // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-1012).
-        platformEntity.DisplayName = persistedPlatform.DisplayName;
-
         DbContext.Platforms.Update(platformEntity);
     }
 
     /// <inheritdoc />
     public async ValueTask UpdateSettingsAsync(
-        PersistedPlatformSettings persistedServerSettings,
+        PersistedPlatformSettings persistedPlatformSettings,
         CancellationToken cancellationToken
     )
     {
-        var platformId = persistedServerSettings.PlatformId;
-        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
+        var platformEntity = await GetPlatformEntityAsync(cancellationToken);
 
         if (
             !string.Equals(
-                persistedServerSettings.ConcurrencyToken,
+                persistedPlatformSettings.ConcurrencyToken,
                 platformEntity.SettingsConcurrencyToken,
                 StringComparison.Ordinal
             )
         )
         {
             throw new StoreConcurrencyException(
-                $"The settings for platform with PlatformId='{platformId}' have been modified by another process. Please reload and try again."
+                "The platform's settings have been modified by another process. Please reload and try again."
             );
         }
 
         var nextConcurrencyToken = NextConcurrencyToken();
 
         platformEntity.SettingsConcurrencyToken = nextConcurrencyToken;
-        platformEntity.SettingsJson = persistedServerSettings.Value;
-
-        // A second change before the first is reconciled leaves settings that no pass reconciled, so the next pass has
-        // nothing to compare with and reaches every tenant. See ADR-1234.
-        if (platformEntity.ReconciledSettingsFingerprint is null)
-            platformEntity.ReconciledSettingsJson = null;
-
-        platformEntity.ReconciledSettingsFingerprint = null;
+        platformEntity.SettingsJson = persistedPlatformSettings.Value;
 
         DbContext.Platforms.Update(platformEntity);
 
-        persistedServerSettings.ConcurrencyToken = nextConcurrencyToken;
-    }
-
-    /// <inheritdoc />
-    public async ValueTask UpdateReconciledSettingsAsync(
-        PersistedPlatform persistedPlatform,
-        CancellationToken cancellationToken
-    )
-    {
-        var platformId = persistedPlatform.PlatformId;
-        var platformEntity = await GetEntityAsync(platformId, cancellationToken);
-
-        if (
-            !string.Equals(
-                persistedPlatform.ConcurrencyToken,
-                platformEntity.ConcurrencyToken,
-                StringComparison.Ordinal
-            )
-        )
-        {
-            throw new StoreConcurrencyException(
-                $"The platform with PlatformId='{platformId}' has been modified by another process. Please reload and try again."
-            );
-        }
-
-        // Set only these two columns and do not call Update, so that only they are written. The interceptor regenerates
-        // the row ConcurrencyToken on save (ADR-1012).
-        platformEntity.ReconciledSettingsFingerprint =
-            persistedPlatform.ReconciledSettingsFingerprint;
-        platformEntity.ReconciledSettingsJson = persistedPlatform.ReconciledSettings;
+        persistedPlatformSettings.ConcurrencyToken = nextConcurrencyToken;
     }
 }

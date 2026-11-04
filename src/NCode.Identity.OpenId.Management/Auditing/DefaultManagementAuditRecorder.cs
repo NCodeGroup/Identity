@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
@@ -266,7 +267,6 @@ internal class DefaultManagementAuditRecorder(
     /// <inheritdoc />
     public ValueTask RecordPlatformChangedAsync(
         HttpContext httpContext,
-        string platformId,
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
@@ -278,10 +278,11 @@ internal class DefaultManagementAuditRecorder(
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.Management,
+            TenantId = httpContext.GetOpenIdContext().Tenant.TenantId,
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
-            ResourceId = platformId,
+            ResourceId = OpenIdConstants.PlatformResourceId,
             ChangeType = changeType,
             ResourceValues = resourceValues,
         };

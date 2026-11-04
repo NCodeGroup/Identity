@@ -21,6 +21,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -31,14 +32,11 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
 
 public sealed class PlatformApiEndpointHandlerTests : IDisposable
 {
-    private const string PlatformId = "server-1";
-
     private MockRepository MockRepository { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IPlatformStore> MockServerStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
-    private Mock<IPlatformValidator> MockServerValidator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ISettingScopeCollectionProvider> MockSettingScopeCollectionProvider { get; }
@@ -57,7 +55,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockServerStore = MockRepository.Create<IPlatformStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
-        MockServerValidator = MockRepository.Create<IPlatformValidator>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockSettingScopeCollectionProvider =
@@ -73,7 +70,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         Handler = new PlatformApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
-            MockServerValidator.Object,
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
@@ -92,8 +88,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RecordPlatformChangedAsync(
                     It.IsAny<HttpContext>(),
-                    It.IsAny<string>(),
-                    It.IsAny<string>(),
+                    ResourceChangeTypes.SettingsUpdated,
                     It.IsAny<JsonElement?>(),
                     It.IsAny<CancellationToken>()
                 )
@@ -137,20 +132,12 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private void SetupResourceId(string id = "generated-id")
-    {
-        MockCryptoService
-            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
-            .Returns(id)
-            .Verifiable();
-    }
-
     private void SetupValidSettings() =>
         MockSettingSerializer
             .Setup(x =>
                 x.ValidateSettings(
                     It.IsAny<JsonElement>(),
-                    "server",
+                    OpenIdSettingScopes.Platform,
                     It.IsAny<JsonSerializerOptions>()
                 )
             )
@@ -162,7 +149,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.ValidateSettings(
                     It.IsAny<JsonElement>(),
-                    "server",
+                    OpenIdSettingScopes.Platform,
                     It.IsAny<JsonSerializerOptions>()
                 )
             )
@@ -203,9 +190,11 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
                 feature.OpenIdContext
                 == Mock.Of<OpenIdContext>(context =>
                     context.Environment
-                    == Mock.Of<OpenIdEnvironment>(environment =>
-                        environment.JsonSerializerOptions == JsonSerializerOptions.Default
-                    )
+                        == Mock.Of<OpenIdEnvironment>(environment =>
+                            environment.JsonSerializerOptions == JsonSerializerOptions.Default
+                        )
+                    && context.Tenant
+                        == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId)
                 )
             )
         );
@@ -228,136 +217,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         JsonElement value
     )
     {
-        return new PersistedPlatformSettings
-        {
-            PlatformId = PlatformId,
-            ConcurrencyToken = concurrencyToken,
-            Value = value,
-        };
-    }
-
-    private static PersistedPlatform CreateServer(string concurrencyToken)
-    {
-        return new PersistedPlatform
-        {
-            PlatformId = PlatformId,
-            ConcurrencyToken = concurrencyToken,
-            DisplayName = "Test Server",
-            Settings = CreateSettings("settings-ct", EmptyObject()),
-        };
-    }
-
-    #endregion
-
-    #region GetPlatformAsync Tests
-
-    [Fact]
-    public async Task GetServerAsync_WhenFoundAndAuthorized_ReturnsJsonWithETag()
-    {
-        SetupStore();
-        var server = CreateServer("server-ct");
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(server)
-            .Verifiable();
-        SetupAuthorization(AuthorizationResult.Success());
-
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.GetPlatformAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
-
-        var json = Assert.IsType<JsonHttpResult<PlatformResource>>(result);
-        Assert.Equal(PlatformId, json.Value?.PlatformId);
-        Assert.Equal("server-ct", json.Value?.ConcurrencyToken);
-        Assert.Equal("server-ct", httpContext.Response.Headers.ETag);
-    }
-
-    [Fact]
-    public async Task GetServerAsync_WhenNotFound_ReturnsNotFound()
-    {
-        SetupStore();
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedPlatform?)null)
-            .Verifiable();
-
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.GetPlatformAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
-
-        Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task GetServerAsync_WhenForbidden_ReturnsForbid()
-    {
-        SetupStore();
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateServer("server-ct"))
-            .Verifiable();
-        SetupAuthorization(AuthorizationResult.Failed());
-
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.GetPlatformAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
-
-        Assert.IsType<ForbidHttpResult>(result);
-    }
-
-    [Fact]
-    public async Task GetServerAsync_WhenUnauthenticated_ReturnsUnauthorized()
-    {
-        SetupStore();
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateServer("server-ct"))
-            .Verifiable();
-        SetupAuthorization(AuthorizationResult.Failed());
-
-        var httpContext = CreateHttpContext(authenticated: false);
-
-        var result = await Handler.GetPlatformAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
-
-        Assert.IsType<UnauthorizedHttpResult>(result);
-    }
-
-    [Fact]
-    public async Task GetServerAsync_WhenIfNoneMatchMatches_ReturnsNotModified()
-    {
-        SetupStore();
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateServer("server-ct"))
-            .Verifiable();
-        SetupAuthorization(AuthorizationResult.Success());
-
-        var httpContext = CreateHttpContext(authenticated: true, ifNoneMatch: "server-ct");
-
-        var result = await Handler.GetPlatformAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
-
-        var statusCode = Assert.IsType<StatusCodeHttpResult>(result);
-        Assert.Equal(StatusCodes.Status304NotModified, statusCode.StatusCode);
+        return new PersistedPlatformSettings { ConcurrencyToken = concurrencyToken, Value = value };
     }
 
     #endregion
@@ -370,21 +230,16 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSettingsAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
+        var result = await Handler.GetSettingsAsync(httpContext, CancellationToken.None);
 
         var json = Assert.IsType<JsonHttpResult<PlatformSettingsResource>>(result);
-        Assert.Equal(PlatformId, json.Value?.PlatformId);
     }
 
     [Fact]
@@ -392,17 +247,13 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetSettingsAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
+        var result = await Handler.GetSettingsAsync(httpContext, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
     }
@@ -416,7 +267,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
             .Verifiable();
 
@@ -426,7 +277,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             AppliesTo = ["client"],
         };
         var effective = CreateSettingCollection(descriptor.Create(true));
-        SetupSettingScopes("server", (descriptor, true));
+        SetupSettingScopes(OpenIdSettingScopes.Platform, (descriptor, true));
 
         MockEffectiveSettingsResolver
             .Setup(x =>
@@ -439,14 +290,9 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var httpContext = CreateHttpContextWithEnvironment(authenticated: true);
 
-        var result = await Handler.GetEffectiveSettingsAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
+        var result = await Handler.GetEffectiveSettingsAsync(httpContext, CancellationToken.None);
 
         var json = Assert.IsType<JsonHttpResult<PlatformEffectiveSettingsResource>>(result);
-        Assert.Equal(PlatformId, json.Value?.PlatformId);
         Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
     }
 
@@ -455,17 +301,13 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
-        var result = await Handler.GetEffectiveSettingsAsync(
-            httpContext,
-            PlatformId,
-            CancellationToken.None
-        );
+        var result = await Handler.GetEffectiveSettingsAsync(httpContext, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
     }
@@ -475,7 +317,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -489,11 +331,11 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         var httpContext = CreateHttpContext(authenticated: true);
 
         var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
-            await Handler.GetEffectiveSettingsAsync(httpContext, PlatformId, CancellationToken.None)
+            await Handler.GetEffectiveSettingsAsync(httpContext, CancellationToken.None)
         );
 
         Assert.Equal(OpenIdSettingScopes.Platform, exception.ScopeName);
-        Assert.Equal(PlatformId, exception.OwnerId);
+        Assert.Equal(OpenIdConstants.PlatformResourceId, exception.OwnerId);
         Assert.Equal("boom", exception.DocumentError);
     }
 
@@ -534,6 +376,9 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var mockContext = new Mock<OpenIdContext>(MockBehavior.Loose);
         mockContext.Setup(x => x.Environment).Returns(Mock.Of<OpenIdEnvironment>());
+        mockContext
+            .Setup(x => x.Tenant)
+            .Returns(Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == TenantId));
 
         httpContext.Features.Set<IOpenIdContextFeature>(
             Mock.Of<IOpenIdContextFeature>(feature => feature.OpenIdContext == mockContext.Object)
@@ -646,7 +491,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.SendAsync(
                     It.Is<PlatformSettingsChangedCommand>(c =>
-                        c.PlatformId == PlatformId
+                        c.PlatformId == OpenIdConstants.PlatformResourceId
                         && HasProperty(c.Settings, "foo")
                         && !HasProperty(c.PreviousSettings, "foo")
                     ),
@@ -679,7 +524,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -719,6 +564,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupServerChangedAudit();
         SetupServerSettingsChanged();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -726,7 +572,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         // Strict mocks: no tenant-store or FindIntroducedViolationsAsync setup, so walking the tenants would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -742,7 +587,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -777,6 +622,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupServerChangedAudit();
         SetupServerSettingsChanged();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -785,7 +631,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         // client would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -801,7 +646,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -832,6 +677,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupServerChangedAudit();
         SetupServerSettingsChanged();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -839,7 +685,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         // The verifiable checker setup for TenantId proves the second tenant was checked.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -854,7 +699,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateSettings("settings-ct", EmptyObject()))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -874,7 +719,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -906,7 +750,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -920,6 +764,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupServerChangedAudit();
         SetupServerSettingsChanged();
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -927,7 +772,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             patch,
             ifMatch: null,
             CancellationToken.None
@@ -945,7 +789,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -959,13 +803,13 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupServerChangedAudit();
         SetupServerSettingsChanged();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -989,7 +833,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1003,13 +847,13 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        SetupServerChangedAudit();
         SetupServerSettingsChanged();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: "settings-ct",
             CancellationToken.None
@@ -1025,7 +869,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1035,7 +879,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("unregistered_setting", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -1052,7 +895,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1061,7 +904,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: "stale-token",
             CancellationToken.None
@@ -1077,7 +919,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
@@ -1092,7 +934,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             patch,
             ifMatch: null,
             CancellationToken.None
@@ -1107,7 +948,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 
@@ -1115,7 +956,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -1130,7 +970,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
@@ -1139,7 +979,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
@@ -1154,7 +993,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         SetupStore();
         var settings = CreateSettings("settings-ct", EmptyObject());
         MockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(settings)
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
@@ -1163,318 +1002,12 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
-            PlatformId,
             CreateAddPatch("foo", "bar"),
             ifMatch: null,
             CancellationToken.None
         );
 
         Assert.IsType<UnauthorizedHttpResult>(result);
-    }
-
-    #endregion
-
-    #region CreatePlatformAsync Tests
-
-    [Fact]
-    public async Task CreateServerAsync_WhenValid_ReturnsCreatedWithDisplayName()
-    {
-        SetupServerChangedAudit();
-        SetupValidSettings();
-        SetupStore();
-        SetupResourceId("generated-id");
-        MockServerValidator
-            .Setup(x =>
-                x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedPlatform>(),
-                    It.IsAny<IStoreManager>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync((ManagementError?)null)
-            .Verifiable();
-        MockServerStore
-            .Setup(x => x.AddAsync(It.IsAny<PersistedPlatform>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        var httpContext = CreateHttpContext(authenticated: true);
-        var request = new CreatePlatformRequest
-        {
-            DisplayName = "My Server",
-            Settings = EmptyObject(),
-        };
-
-        var result = await Handler.CreatePlatformAsync(
-            httpContext,
-            request,
-            CancellationToken.None
-        );
-
-        var created = Assert.IsType<Created<PlatformResource>>(result);
-        Assert.Equal("generated-id", created.Value?.PlatformId);
-        Assert.Equal("My Server", created.Value?.DisplayName);
-        MockManagementAuditRecorder.Verify(
-            x =>
-                x.RecordPlatformChangedAsync(
-                    httpContext,
-                    "generated-id",
-                    ResourceChangeTypes.Created,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
-    }
-
-    [Fact]
-    public async Task CreateServerAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
-    {
-        SetupInvalidSettings();
-        SetupStore();
-        SetupResourceId("generated-id");
-        MockServerValidator
-            .Setup(x =>
-                x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedPlatform>(),
-                    It.IsAny<IStoreManager>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync((ManagementError?)null)
-            .Verifiable();
-
-        var httpContext = CreateHttpContext(authenticated: true);
-        var request = new CreatePlatformRequest
-        {
-            DisplayName = "My Server",
-            Settings = EmptyObject(),
-        };
-
-        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the server would fail the test.
-        var result = await Handler.CreatePlatformAsync(
-            httpContext,
-            request,
-            CancellationToken.None
-        );
-
-        AssertSettingsValidationProblem(result);
-    }
-
-    [Fact]
-    public async Task CreateServerAsync_WhenValidationFails_ReturnsProblem()
-    {
-        SetupStore();
-        SetupResourceId("generated-id");
-        MockServerValidator
-            .Setup(x =>
-                x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedPlatform>(),
-                    It.IsAny<IStoreManager>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status409Conflict,
-                    Detail = "conflict",
-                }
-            )
-            .Verifiable();
-
-        var httpContext = CreateHttpContext(authenticated: true);
-        var request = new CreatePlatformRequest
-        {
-            DisplayName = "My Server",
-            Settings = EmptyObject(),
-        };
-
-        var result = await Handler.CreatePlatformAsync(
-            httpContext,
-            request,
-            CancellationToken.None
-        );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
-    }
-
-    #endregion
-
-    #region UpdatePlatformAsync Tests
-
-    private static JsonPatchDocument<UpdatePlatformRequest> CreateDisplayNamePatch(
-        string displayName
-    )
-    {
-        var patch = new JsonPatchDocument<UpdatePlatformRequest>();
-        patch.Operations.Add(
-            new Operation<UpdatePlatformRequest>(
-                "replace",
-                "/displayName",
-                from: null,
-                value: displayName
-            )
-        );
-        return patch;
-    }
-
-    [Fact]
-    public async Task UpdateServerAsync_WhenValid_AppliesPatchAndReturnsNoContent()
-    {
-        SetupServerChangedAudit();
-        SetupStore();
-        var server = CreateServer("server-ct");
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(server)
-            .Verifiable();
-        MockServerValidator
-            .Setup(x =>
-                x.ValidateUpdateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedPlatform>(),
-                    It.IsAny<UpdatePlatformRequest>(),
-                    It.IsAny<string?>(),
-                    It.IsAny<IStoreManager>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync((ManagementError?)null)
-            .Verifiable();
-        MockServerStore
-            .Setup(x => x.UpdateAsync(server, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        MockStoreManager
-            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.UpdatePlatformAsync(
-            httpContext,
-            PlatformId,
-            CreateDisplayNamePatch("Renamed Server"),
-            ifMatch: null,
-            CancellationToken.None
-        );
-
-        Assert.IsType<NoContent>(result);
-        Assert.Equal("Renamed Server", server.DisplayName);
-        MockManagementAuditRecorder.Verify(
-            x =>
-                x.RecordPlatformChangedAsync(
-                    httpContext,
-                    PlatformId,
-                    ResourceChangeTypes.Updated,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
-    }
-
-    [Fact]
-    public async Task UpdateServerAsync_WhenNotFound_ReturnsNotFound()
-    {
-        SetupStore();
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedPlatform?)null)
-            .Verifiable();
-
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.UpdatePlatformAsync(
-            httpContext,
-            PlatformId,
-            CreateDisplayNamePatch("Renamed Server"),
-            ifMatch: null,
-            CancellationToken.None
-        );
-
-        Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task UpdateServerAsync_WhenValidatorReportsPreconditionFailed_ReturnsProblem()
-    {
-        SetupStore();
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateServer("server-ct"))
-            .Verifiable();
-        MockServerValidator
-            .Setup(x =>
-                x.ValidateUpdateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<PersistedPlatform>(),
-                    It.IsAny<UpdatePlatformRequest>(),
-                    It.IsAny<string?>(),
-                    It.IsAny<IStoreManager>(),
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status412PreconditionFailed,
-                    Detail = "stale",
-                }
-            )
-            .Verifiable();
-
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.UpdatePlatformAsync(
-            httpContext,
-            PlatformId,
-            CreateDisplayNamePatch("Renamed Server"),
-            ifMatch: "stale-token",
-            CancellationToken.None
-        );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, problem.StatusCode);
-    }
-
-    [Fact]
-    public async Task UpdateServerAsync_WhenPatchInvalid_ReturnsBadRequest()
-    {
-        SetupStore();
-        MockServerStore
-            .Setup(x => x.GetOrDefaultAsync(PlatformId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateServer("server-ct"))
-            .Verifiable();
-
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        // Replace on a path that does not exist throws a JsonPatchException.
-        var patch = new JsonPatchDocument<UpdatePlatformRequest>();
-        patch.Operations.Add(
-            new Operation<UpdatePlatformRequest>("replace", "/missing", from: null, value: "value")
-        );
-
-        var result = await Handler.UpdatePlatformAsync(
-            httpContext,
-            PlatformId,
-            patch,
-            ifMatch: null,
-            CancellationToken.None
-        );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
     #endregion

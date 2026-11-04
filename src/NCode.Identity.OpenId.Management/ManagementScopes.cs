@@ -26,7 +26,6 @@ internal static class ManagementScopes
     /// </summary>
     internal static class Families
     {
-        internal const string Platforms = "platforms";
         internal const string PlatformSettings = "platform_settings";
         internal const string Tenants = "tenants";
         internal const string TenantSettings = "tenant_settings";

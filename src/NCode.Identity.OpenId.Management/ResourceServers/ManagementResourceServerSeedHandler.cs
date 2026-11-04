@@ -106,7 +106,6 @@ internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoS
         {
             // Control-plane families, seeded only into the root tenant.
             scopes = scopes.Concat([
-                .. CrudScopes(ManagementScopes.Families.Platforms, "platforms"),
                 .. SettingsScopes(ManagementScopes.Families.PlatformSettings, "platform settings"),
                 .. CrudScopes(ManagementScopes.Families.Tenants, "tenants"),
             ]);

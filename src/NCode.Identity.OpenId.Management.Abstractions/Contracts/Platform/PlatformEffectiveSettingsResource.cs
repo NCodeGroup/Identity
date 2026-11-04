@@ -4,7 +4,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Persistence;
 
 namespace NCode.Identity.OpenId.Management.Contracts.Platform;
 
@@ -15,13 +14,10 @@ namespace NCode.Identity.OpenId.Management.Contracts.Platform;
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PlatformEffectiveSettingsResource : ISupportPlatformId
+public sealed class PlatformEffectiveSettingsResource
 {
-    /// <inheritdoc cref="ISupportPlatformId.PlatformId"/>
-    public required string PlatformId { get; init; }
-
     /// <summary>
-    /// Gets the server's effective settings as a flat JSON object of setting name to formatted value, using the same
+    /// Gets the platform's effective settings as a flat JSON object of setting name to formatted value, using the same
     /// value representation as the discovery document.
     /// </summary>
     public required JsonElement Settings { get; init; }

@@ -109,10 +109,9 @@ public class DefaultOpenIdPlatformFactoryTests : BaseTests
         )
     {
         protected internal override ValueTask<PersistedPlatform> GetPersistedPlatformAsync(
-            string platformId,
             IPropertyBag propertyBag,
             CancellationToken cancellationToken
-        ) => ValueTask.FromResult(CreateEmptyPersistedPlatform(platformId));
+        ) => ValueTask.FromResult(CreateEmptyPersistedPlatform());
 
         protected internal override ValueTask<
             IDisposableCollectionDataSource<Setting>

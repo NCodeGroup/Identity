@@ -131,10 +131,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IPlatformStore>();
 
-        var serverSettings = await store.GetSettingsOrDefaultAsync(
-            server.PlatformId,
-            cancellationToken
-        );
+        var serverSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
         if (serverSettings is null)
         {
             return configuredSettings;
@@ -143,7 +140,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
         return ResolveStored(
             configuredSettings,
             OpenIdSettingScopes.Platform,
-            server.PlatformId,
+            OpenIdConstants.PlatformResourceId,
             serverSettings.Value
         );
     }

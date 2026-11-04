@@ -69,11 +69,7 @@ internal class DefaultOpenIdPlatformFactory(
 
         var disposables = new List<object>(2);
         var propertyBag = openIdEnvironment.PropertyBag.Clone();
-        var persistedPlatform = await GetPersistedPlatformAsync(
-            platformId,
-            propertyBag,
-            cancellationToken
-        );
+        var persistedPlatform = await GetPersistedPlatformAsync(propertyBag, cancellationToken);
         try
         {
             var rootSettingsDataSource = await CreateRootSettingsDataSourceAsync(
@@ -149,11 +145,10 @@ internal class DefaultOpenIdPlatformFactory(
         );
 
     /// <summary>
-    /// Attempts to retrieve the <see cref="PersistedPlatform"/> with the specified server ID from the store.
+    /// Attempts to retrieve the <see cref="PersistedPlatform"/> from the store.
     /// If not found, creates a new instance and persists it.
     /// </summary>
     protected internal virtual async ValueTask<PersistedPlatform> GetPersistedPlatformAsync(
-        string platformId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
@@ -161,35 +156,55 @@ internal class DefaultOpenIdPlatformFactory(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IPlatformStore>();
 
-        var persistedPlatform = await store.GetOrDefaultAsync(platformId, cancellationToken);
+        var persistedPlatform = await store.GetOrDefaultAsync(cancellationToken);
         if (persistedPlatform is not null)
             return persistedPlatform;
 
-        persistedPlatform = CreateEmptyPersistedPlatform(platformId);
+        persistedPlatform = CreateEmptyPersistedPlatform();
 
         await store.AddAsync(persistedPlatform, cancellationToken);
-        await storeManager.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // Another replica may have created the platform between the read above and this write — two replicas
+            // reaching a fresh deployment, say. The row it wrote is the platform; anything else is a genuine failure.
+            var concurrent = await FindPersistedPlatformAsync(cancellationToken);
+            if (concurrent is null)
+                throw;
+
+            return concurrent;
+        }
 
         return persistedPlatform;
     }
 
+    private async ValueTask<PersistedPlatform?> FindPersistedPlatformAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IPlatformStore>();
+        return await store.GetOrDefaultAsync(cancellationToken);
+    }
+
     /// <summary>
-    /// Creates an empty <see cref="PersistedPlatform"/> instance with the specified server ID.
+    /// Creates an empty <see cref="PersistedPlatform"/> instance.
     /// </summary>
-    protected internal virtual PersistedPlatform CreateEmptyPersistedPlatform(string platformId)
+    protected internal virtual PersistedPlatform CreateEmptyPersistedPlatform()
     {
         var settings = new PersistedPlatformSettings
         {
-            PlatformId = platformId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             Value = JsonSerializer.SerializeToElement(null, typeof(object)),
         };
 
         return new PersistedPlatform
         {
-            PlatformId = platformId,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            DisplayName = platformId,
             Settings = settings,
         };
     }
@@ -252,12 +267,10 @@ internal class DefaultOpenIdPlatformFactory(
         CancellationToken cancellationToken
     )
     {
-        var platformId = persistedPlatform.PlatformId;
-
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IPlatformStore>();
 
-        var newSettings = await store.GetSettingsOrDefaultAsync(platformId, cancellationToken);
+        var newSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
         if (newSettings is null)
             return null;
 

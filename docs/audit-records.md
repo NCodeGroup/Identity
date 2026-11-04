@@ -252,22 +252,25 @@ Notes on the protocol events:
 ### Key lifecycle
 
 Every key lifecycle event is a `TenantKeyAuditEvent` with `event_source` `openid`, `event_category` `key`, the `system`
-actor, the outcome `success` and the severity `info`: the server generated, activated, retired or removed a key of the
-tenant on its own, in the seed that runs when the tenant is materialized or in the background rollover pass
+actor, the outcome `success` and the severity `info`: the server generated, activated, retired, extended or removed a
+key of the tenant on its own, in the seed that runs when the tenant is materialized or in the background rollover pass
 ([ADR-1404](decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)). The
-event names the key's secret first and the tenant second, carries no `request`, and never carries key material.
+event names the key's secret first and the tenant second, carries no `request`, never carries key material, and is
+published once the change is committed, so a change a lost race discarded is never recorded.
 
 | `event_name`           | Resources                | `details.reason`                                                                                                                                       |
 | ---------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `tenant.key.generated` | `tenant.secret`, `tenant` | `no_active_key`: the tenant's first key for an algorithm, or a replacement that activates at once; `successor`: the successor of a key that nears its retirement, published ahead of the hand-over |
 | `tenant.key.activated` | `tenant.secret`, `tenant` | `no_active_key`: a published key was activated at once, because no key of its algorithm signed                                                        |
 | `tenant.key.retired`   | `tenant.secret`, `tenant` | `unused_algorithm`: the tenant's settings no longer use the key's algorithm, so it stops signing and expires at the end of the retirement grace       |
-| `tenant.key.removed`   | `tenant.secret`, `tenant` | `expired`: the key the server generated has expired and leaves the store                                                                               |
+| `tenant.key.extended`  | `tenant.secret`, `tenant` | `retirement_grace_raised`: the retirement grace, raised by a setting or a longer token lifetime, reaches past the key's expiry, which moves to the end of the grace |
+| `tenant.key.removed`   | `tenant.secret`, `tenant` | `expired`: the key the server provisioned has expired and leaves the store                                                                             |
 
 Every key lifecycle event writes the same `details`: `reason` (one of `TenantKeyChangeReasons`, an open vocabulary),
 `key_id` (the `kid` the key is published under), `secret_type`, `algorithm` and `use` (when the key declares them), and
-the instants `activates_when`, `retires_when` and `expires_when` (RFC 3339), as the key stands after the change. A key
-an operator creates, imports, updates or deletes through the management API is recorded as a `tenant.secret.*`
+the instants `activates_when`, `retires_when` and `expires_when` (RFC 3339), as the key stands after the change. Only a
+key the rollover provisioned (`managed_by` is `tenant_key_rollover` on the stored secret) is the subject of these events;
+a key an operator creates, imports, updates or deletes through the management API is recorded as a `tenant.secret.*`
 resource-change event with the `administrator` actor instead.
 
 ### BFF plane

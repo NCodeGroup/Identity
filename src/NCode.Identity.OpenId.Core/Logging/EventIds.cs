@@ -55,4 +55,6 @@ internal static class EventIds
     public const int TenantKeyRolloverPassFailed = Base + 20;
 
     public const int TenantKeyRolloverLostRace = Base + 21;
+
+    public const int TenantKeyExtended = Base + 22;
 }

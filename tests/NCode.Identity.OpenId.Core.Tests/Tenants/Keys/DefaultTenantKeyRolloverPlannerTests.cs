@@ -6,7 +6,6 @@ using Moq;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants.Keys;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using Xunit;
@@ -172,7 +171,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     }
 
     [Fact]
-    public void Plan_WhenAGeneratedKeyHasExpired_RemovesIt()
+    public void Plan_WhenAManagedKeyHasExpired_RemovesIt()
     {
         SetupUsed("RS256");
         var active = CreateKey(
@@ -196,8 +195,10 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     }
 
     [Fact]
-    public void Plan_WhenASuppliedKeyHasExpired_KeepsItForTheOperator()
+    public void Plan_WhenAnExpiredKeyIsNotTheRollovers_KeepsItForItsCreator()
     {
+        // A key an operator generated or imported through the management API has the same origin as a provisioned
+        // one; only the manager of its lifecycle tells them apart.
         SetupUsed("RS256");
         var active = CreateKey(
             "active",
@@ -209,7 +210,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
             activatesWhen: Now.AddDays(-200),
             retiresWhen: Now.AddDays(-110),
             expiresWhen: Now,
-            origin: SecretOrigins.Supplied
+            managedBy: null
         );
         SetupSatisfied(Rs256, active, expired);
 
@@ -219,7 +220,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
     }
 
     [Fact]
-    public void Plan_WhenTheSettingsNoLongerUseAnAlgorithm_RetiresItsGeneratedKeyForTheGrace()
+    public void Plan_WhenTheSettingsNoLongerUseAnAlgorithm_RetiresItsManagedKeyForTheGrace()
     {
         SetupUsed("ES256");
         var unused = CreateKey(
@@ -239,14 +240,17 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
 
         var retirement = Assert.Single(plan.Retirements);
         Assert.Same(unused, retirement.Secret);
+        Assert.Equal(unused.ActivatesWhen, retirement.ActivatesWhen);
         Assert.Equal(Now, retirement.RetiresWhen);
         Assert.Equal(Now + RetirementGrace, retirement.ExpiresWhen);
         Assert.Empty(plan.Generations);
+        Assert.Empty(plan.Extensions);
     }
 
     [Fact]
-    public void Plan_WhenAnUnusedKeyExpiresBeforeTheGraceEnds_KeepsItsOwnExpiry()
+    public void Plan_WhenAnUnusedKeyExpiresBeforeTheGraceEnds_ExpiresItAtTheEndOfTheGrace()
     {
+        // The grace covers the tokens the key signed until now, whatever expiry the key carried.
         SetupUsed("ES256");
         var unused = CreateKey(
             "unused",
@@ -265,11 +269,41 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         var plan = Planner.Plan([Rs256, Es256], [unused, active], MockSettings.Object, Now);
 
         var retirement = Assert.Single(plan.Retirements);
-        Assert.Equal(Now.AddDays(2), retirement.ExpiresWhen);
+        Assert.Equal(Now + RetirementGrace, retirement.ExpiresWhen);
+        Assert.Empty(plan.Extensions);
     }
 
     [Fact]
-    public void Plan_WhenAnUnusedKeyIsAlreadyRetiredOrSupplied_LeavesIt()
+    public void Plan_WhenAnUnusedKeyIsPublishedAhead_RetiresItWithItsActivationAtTheSameInstant()
+    {
+        // The key never signed, but a client may have encrypted to it, so it stays published for the grace; its
+        // active window collapses so its instants stay in order.
+        SetupUsed("ES256");
+        var upcoming = CreateKey(
+            "upcoming",
+            activatesWhen: Now.AddDays(2),
+            retiresWhen: Now.AddDays(92),
+            createdWhen: Now.AddHours(-1)
+        );
+        var active = CreateKey(
+            "active",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60),
+            algorithm: "ES256"
+        );
+        SetupSatisfied(Es256, active);
+
+        var plan = Planner.Plan([Rs256, Es256], [upcoming, active], MockSettings.Object, Now);
+
+        var retirement = Assert.Single(plan.Retirements);
+        Assert.Same(upcoming, retirement.Secret);
+        Assert.Equal(Now, retirement.ActivatesWhen);
+        Assert.Equal(Now, retirement.RetiresWhen);
+        Assert.Equal(Now + RetirementGrace, retirement.ExpiresWhen);
+    }
+
+    [Fact]
+    public void Plan_WhenAnUnusedKeyIsAlreadyRetiredOrNotTheRollovers_LeavesIt()
     {
         SetupUsed("ES256");
         var retired = CreateKey(
@@ -281,7 +315,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
             "supplied",
             activatesWhen: Now.AddDays(-30),
             retiresWhen: Now.AddDays(60),
-            origin: SecretOrigins.Supplied
+            managedBy: null
         );
         var unbound = CreateKey(
             "unbound",
@@ -325,6 +359,120 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
             Now + Lifetime + TimeSpan.FromDays(10) + TimeSpan.FromMinutes(5),
             generation.ExpiresWhen
         );
+    }
+
+    [Fact]
+    public void Plan_WhenTheLifetimeIsShorterThanTheDelayAndTheInterval_ChainsSuccessorsPastTheHorizon()
+    {
+        // Each successor signs for one lifetime, so the chain reaches past the horizon in one plan and no pass finds
+        // the algorithm without a key: a tenant whose keys sign for a day holds three upcoming keys at a time.
+        SetupUsed("RS256");
+        var lifetime = TimeSpan.FromDays(1);
+        MockSettings.Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyLifetime)).Returns(lifetime);
+        var active = CreateKey(
+            "active",
+            activatesWhen: Now.AddHours(-23),
+            retiresWhen: Now.AddHours(1)
+        );
+        SetupSatisfied(Rs256, active);
+
+        var plan = Planner.Plan([Rs256], [active], MockSettings.Object, Now);
+
+        Assert.Collection(
+            plan.Generations,
+            first => Assert.Equal(Now.AddHours(1), first.ActivatesWhen),
+            second => Assert.Equal(Now.AddHours(1) + lifetime, second.ActivatesWhen),
+            third => Assert.Equal(Now.AddHours(1) + lifetime + lifetime, third.ActivatesWhen)
+        );
+        Assert.All(
+            plan.Generations,
+            generation =>
+            {
+                Assert.Equal(generation.ActivatesWhen + lifetime, generation.RetiresWhen);
+                Assert.Equal(TenantKeyChangeReasons.Successor, generation.Reason);
+            }
+        );
+        Assert.True(plan.Generations[^1].RetiresWhen > Now + ActivationDelay + Interval);
+    }
+
+    [Fact]
+    public void Plan_WhenNoKeyServesAnAlgorithmAndTheLifetimeIsShort_GeneratesTheFirstKeyAndItsSuccessors()
+    {
+        SetupUsed("RS256");
+        MockSettings
+            .Setup(x => x.GetValue(OpenIdSettingKeys.TenantKeyLifetime))
+            .Returns(TimeSpan.FromDays(1));
+
+        var plan = Planner.Plan([Rs256], [], MockSettings.Object, Now);
+
+        Assert.Equal(3, plan.Generations.Count);
+        Assert.Equal(TenantKeyChangeReasons.NoActiveKey, plan.Generations[0].Reason);
+        Assert.Equal(Now, plan.Generations[0].ActivatesWhen);
+        Assert.Equal(TenantKeyChangeReasons.Successor, plan.Generations[1].Reason);
+        Assert.Equal(Now.AddDays(1), plan.Generations[1].ActivatesWhen);
+    }
+
+    [Fact]
+    public void Plan_WhenTheRetirementGraceWasRaisedSinceAKeyWasGenerated_ExtendsItsExpiry()
+    {
+        // The key was generated under a seven-day grace; an access token that lives thirty days outlives it unless
+        // its expiry follows the grace. The upcoming key and the retired key need the same, and a key the rollover
+        // did not provision keeps the expiry its creator gave it.
+        SetupUsed("RS256");
+        SetupLifetimes(RetirementGrace, tokenLifetimes: [TimeSpan.FromDays(30)]);
+        var active = CreateKey(
+            "active",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60)
+        );
+        var retired = CreateKey(
+            "retired",
+            activatesWhen: Now.AddDays(-120),
+            retiresWhen: Now.AddDays(-5)
+        );
+        var supplied = CreateKey(
+            "supplied",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60),
+            managedBy: null
+        );
+        SetupSatisfied(Rs256, active, supplied);
+
+        var plan = Planner.Plan([Rs256], [active, retired, supplied], MockSettings.Object, Now);
+
+        Assert.Collection(
+            plan.Extensions,
+            extension =>
+            {
+                Assert.Same(active, extension.Secret);
+                Assert.Equal(active.RetiresWhen + TimeSpan.FromDays(30), extension.ExpiresWhen);
+            },
+            extension =>
+            {
+                Assert.Same(retired, extension.Secret);
+                Assert.Equal(retired.RetiresWhen + TimeSpan.FromDays(30), extension.ExpiresWhen);
+            }
+        );
+        Assert.Empty(plan.Generations);
+    }
+
+    [Fact]
+    public void Plan_WhenTheRetirementGraceWasLoweredSinceAKeyWasGenerated_KeepsItsExpiry()
+    {
+        // A token issued under the longer grace may still be valid, so an expiry never moves earlier.
+        SetupUsed("RS256");
+        SetupLifetimes(TimeSpan.FromDays(1));
+        var active = CreateKey(
+            "active",
+            activatesWhen: Now.AddDays(-30),
+            retiresWhen: Now.AddDays(60),
+            expiresWhen: Now.AddDays(67)
+        );
+        SetupSatisfied(Rs256, active);
+
+        var plan = Planner.Plan([Rs256], [active], MockSettings.Object, Now);
+
+        Assert.True(plan.IsEmpty);
     }
 
     [Fact]
@@ -400,7 +548,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
         DateTimeOffset? expiresWhen = null,
         DateTimeOffset? createdWhen = null,
         string? algorithm = "RS256",
-        string origin = SecretOrigins.Generated
+        string? managedBy = SecretManagers.TenantKeyRollover
     ) =>
         TenantKeyTestData.CreateSecret(
             secretId,
@@ -409,7 +557,7 @@ public sealed class DefaultTenantKeyRolloverPlannerTests : BaseTests
             retiresWhen,
             expiresWhen ?? retiresWhen + RetirementGrace,
             algorithm,
-            origin
+            managedBy
         );
 
     private void SetupUsed(params string[] algorithms)

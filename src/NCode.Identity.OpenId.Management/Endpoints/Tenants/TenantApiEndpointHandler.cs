@@ -1555,6 +1555,13 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(metadataError);
         }
 
+        // An instant the update omits keeps the stored one, so a retired or upcoming key stays so (ADR-1403).
+        var (activatesWhen, retiresWhen) = SecretLifecycle.ResolveUpdate(
+            secret,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
         var updated = new PersistedSecret
         {
             SecretId = secret.SecretId,
@@ -1563,12 +1570,13 @@ internal class TenantApiEndpointHandler(
             Use = request.Use,
             Algorithm = request.Algorithm,
             CreatedWhen = secret.CreatedWhen,
-            ActivatesWhen = request.ActivatesWhen ?? secret.CreatedWhen,
-            RetiresWhen = request.RetiresWhen ?? request.ExpiresWhen,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
             ExpiresWhen = request.ExpiresWhen,
             SecretType = secret.SecretType,
             SecretEncoding = secret.SecretEncoding,
             Origin = secret.Origin,
+            ManagedBy = secret.ManagedBy,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
             PublicKey = secret.PublicKey,

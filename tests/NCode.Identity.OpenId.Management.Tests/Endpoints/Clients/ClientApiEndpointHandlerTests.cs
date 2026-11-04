@@ -3184,6 +3184,32 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task RotateSecretAsync_WhenRotatedExpiresWhenPrecedesTheSecretsCreation_StopsItAtItsCreation()
+    {
+        // A value in the past stops the rotated secret at once; its creation is the earliest instant its lifecycle
+        // can hold, and its active window collapses with its expiry so the instants stay in order.
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
+        await RotateWithGraceAsync(DateTimeOffset.UnixEpoch.AddDays(-1));
+
+        MockClientStore.Verify(
+            x =>
+                x.UpdateSecretAsync(
+                    ClientId,
+                    It.Is<PersistedSecret>(s =>
+                        s.SecretId == "secret-1"
+                        && s.CreatedWhen == DateTimeOffset.UnixEpoch
+                        && s.ActivatesWhen == DateTimeOffset.UnixEpoch
+                        && s.RetiresWhen == DateTimeOffset.UnixEpoch
+                        && s.ExpiresWhen == DateTimeOffset.UnixEpoch
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
     public async Task RotateSecretAsync_WhenRotatedExpiresWhenIsLater_KeepsTheRotatedSecretsExpiry()
     {
         SetupSecretCreateValidation();

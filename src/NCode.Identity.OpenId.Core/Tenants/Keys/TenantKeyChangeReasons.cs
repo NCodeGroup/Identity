@@ -30,6 +30,12 @@ public static class TenantKeyChangeReasons
     public const string UnusedAlgorithm = "unused_algorithm";
 
     /// <summary>
+    /// The retirement grace, raised by the tenant's settings or by a longer token lifetime, reaches past the key's
+    /// expiry, so the expiry moves to the end of the grace and no token the key protected outlives it.
+    /// </summary>
+    public const string RetirementGraceRaised = "retirement_grace_raised";
+
+    /// <summary>
     /// The key has expired, so it neither verifies nor decrypts and is not published.
     /// </summary>
     public const string Expired = "expired";

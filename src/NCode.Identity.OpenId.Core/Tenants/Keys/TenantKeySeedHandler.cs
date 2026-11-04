@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
+using NCode.Identity.Events;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -15,7 +16,8 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// applies the rollover plan the tenant's keys and settings call for, so a tenant that is served gets its first key,
 /// the successor of a key that nears its retirement, and the retirement and removal of the keys it no longer needs,
 /// without waiting for the background pass. Keys are generated through the normal secret-persistence path, so the
-/// runtime, the JSON Web Key Set, and the management API all read the same keys.
+/// runtime, the JSON Web Key Set, and the management API all read the same keys. The audit event of each change is
+/// published once the seed's unit of work has committed, so a seed that loses its commit records nothing.
 /// </summary>
 /// <remarks>
 /// A key the handler cannot read still counts as held: an undecryptable key signals a lost master key or root key,
@@ -30,6 +32,7 @@ internal class TenantKeySeedHandler(
     ITenantKeyRolloverPlanner planner,
     ITenantKeyRollover rollover,
     IEffectiveSettingsResolver effectiveSettingsResolver,
+    IEventPublisher eventPublisher,
     TimeProvider timeProvider
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
@@ -41,6 +44,7 @@ internal class TenantKeySeedHandler(
     private ITenantKeyRollover Rollover { get; } = rollover;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
+    private IEventPublisher EventPublisher { get; } = eventPublisher;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -82,7 +86,7 @@ internal class TenantKeySeedHandler(
             return;
         }
 
-        var secrets = await Rollover.ApplyAsync(
+        var result = await Rollover.ApplyAsync(
             context.StoreManager.GetStore<ITenantStore>(),
             tenant.TenantId,
             held,
@@ -96,8 +100,23 @@ internal class TenantKeySeedHandler(
         {
             TenantId = tenant.Secrets.TenantId,
             ConcurrencyToken = tenant.Secrets.ConcurrencyToken,
-            Value = secrets,
+            Value = result.Secrets,
         };
+
+        // A change is audited once it is committed, never before: a seed that loses its commit runs again from what
+        // the winner wrote and records only what it then changes.
+        context.RunAfterCommit(token => PublishAsync(result.AuditEvents, token));
+    }
+
+    private async ValueTask PublishAsync(
+        IReadOnlyList<TenantKeyAuditEvent> auditEvents,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var auditEvent in auditEvents)
+        {
+            await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        }
     }
 
     // The tenant's settings materialize only after the seed, so the seed resolves the tenant's persisted document onto

@@ -114,12 +114,16 @@ NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.WriteAuditDetails(System.
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEventNames
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges
+NCode.Identity.OpenId.Tenants.Keys.SecretManagers
+const NCode.Identity.OpenId.Tenants.Keys.SecretManagers.TenantKeyRollover = "tenant_key_rollover" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEventNames.Prefix = "tenant.key" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.Expired = "expired" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.NoActiveKey = "no_active_key" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.RetirementGraceRaised = "retirement_grace_raised" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.Successor = "successor" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.UnusedAlgorithm = "unused_algorithm" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Activated = "activated" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Extended = "extended" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Generated = "generated" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Removed = "removed" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Retired = "retired" -> string!

@@ -18,12 +18,18 @@ internal readonly record struct TenantKeyRetirement
     public required PersistedSecret Secret { get; init; }
 
     /// <summary>
+    /// Gets the instant the key activates at: its own, or the retirement for a key published ahead of an activation
+    /// that never comes, so its active window collapses to nothing and the instants stay in order.
+    /// </summary>
+    public required DateTimeOffset ActivatesWhen { get; init; }
+
+    /// <summary>
     /// Gets the instant the key stops signing or encrypting.
     /// </summary>
     public required DateTimeOffset RetiresWhen { get; init; }
 
     /// <summary>
-    /// Gets the instant the key expires: the earlier of its own expiry and the end of the retirement grace.
+    /// Gets the instant the key expires: the end of the retirement grace, which covers every token it protected.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
 }

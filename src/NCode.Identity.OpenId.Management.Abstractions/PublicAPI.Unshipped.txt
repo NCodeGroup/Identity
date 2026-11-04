@@ -782,7 +782,11 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ActivatesWhen.
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ActivatesWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.RetiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ManagedBy.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ManagedBy.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ActivatesWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ActivatesWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.RetiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ManagedBy.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ManagedBy.init -> void

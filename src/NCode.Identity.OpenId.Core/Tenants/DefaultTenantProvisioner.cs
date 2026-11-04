@@ -16,15 +16,18 @@ namespace NCode.Identity.OpenId.Tenants;
 /// <summary>
 /// Provides the default implementation of <see cref="ITenantProvisioner"/>. It creates a tenant at the address its
 /// strategy derives for it, judged by the same rules as every other tenant written, and it seeds a tenant — after the root
-/// tenant — by fanning out <see cref="SeedTenantCommand"/> to every registered handler within a single unit of work.
+/// tenant — by fanning out <see cref="SeedTenantCommand"/> to every registered handler within a single unit of work,
+/// then runs the steps the handlers queued for after the commit.
 /// </summary>
-// See ADR-1045 (one seeding pipeline) and ADR-1166 (a tenant is provisioned through one pipeline under every strategy).
+// See ADR-1045 (one seeding pipeline), ADR-1166 (a tenant is provisioned through one pipeline under every strategy)
+// and ADR-1351 (an effect that follows a committed change runs on its own bounded token).
 internal sealed class DefaultTenantProvisioner(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor,
     ITenantResolver tenantResolver,
     IOptions<TenantResolutionOptions> optionsAccessor,
-    IMediator mediator
+    IMediator mediator,
+    TimeProvider timeProvider
 ) : ITenantProvisioner
 {
     // One retry is enough to converge after losing a race to a concurrent seed of the same tenant (see SeedAsync).
@@ -34,6 +37,7 @@ internal sealed class DefaultTenantProvisioner(
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private ITenantResolver TenantResolver { get; } = tenantResolver;
     private IMediator Mediator { get; } = mediator;
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     private RootTenantOptions RootOptions => optionsAccessor.Value.Root;
 
@@ -147,7 +151,6 @@ internal sealed class DefaultTenantProvisioner(
             try
             {
                 await storeManager.SaveChangesAsync(cancellationToken);
-                return persistedTenant;
             }
             catch (Exception exception)
                 when (exception is not OperationCanceledException && attempt < MaxSeedAttempts)
@@ -155,8 +158,23 @@ internal sealed class DefaultTenantProvisioner(
                 // Another seed of the same tenant — a second replica, or a second request that missed the tenant cache —
                 // may have committed between this seed's reads and its write. Seed contributors are idempotent, so
                 // seeding again in a fresh unit of work observes what that seed wrote and adds only what is still
-                // missing. A failure that persists is genuine and surfaces from the last attempt.
+                // missing, and the steps queued for after this attempt's commit never run. A failure that persists is
+                // genuine and surfaces from the last attempt.
+                continue;
             }
+
+            // The seed is committed, so each effect that follows it runs on its own bounded token: the request's token
+            // reaches none of them, and a disconnect cannot leave the seed committed without its effects.
+            foreach (var step in context.PostCommitSteps)
+            {
+                await PostCommitWork.RunAsync(
+                    TimeProvider,
+                    static (step, token) => step(token),
+                    step
+                );
+            }
+
+            return persistedTenant;
         }
     }
 

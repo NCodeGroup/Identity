@@ -46,6 +46,7 @@ public class TenantKeyRolloverTests
         Assert.Equal(rs256.CreatedWhen, rs256.ActivatesWhen);
         Assert.Equal(rs256.CreatedWhen.AddDays(90), rs256.RetiresWhen);
         Assert.Equal(rs256.RetiresWhen.AddDays(7), rs256.ExpiresWhen);
+        Assert.Equal(SecretManagers.TenantKeyRollover, rs256.ManagedBy);
 
         // The key retires in an hour, within the activation delay and the pass interval, so the seed that follows the
         // change generates its successor, published now and activating at the hand-over.
@@ -169,7 +170,8 @@ public class TenantKeyRolloverTests
         DateTimeOffset ActivatesWhen,
         DateTimeOffset RetiresWhen,
         DateTimeOffset ExpiresWhen,
-        string ConcurrencyToken
+        string ConcurrencyToken,
+        string? ManagedBy
     );
 
     private static async Task<List<SecretView>> GetSecretsAsync(HttpClient administrator)
@@ -192,7 +194,8 @@ public class TenantKeyRolloverTests
                     secret.GetProperty("activatesWhen").GetDateTimeOffset(),
                     secret.GetProperty("retiresWhen").GetDateTimeOffset(),
                     secret.GetProperty("expiresWhen").GetDateTimeOffset(),
-                    secret.GetProperty("concurrencyToken").GetString() ?? string.Empty
+                    secret.GetProperty("concurrencyToken").GetString() ?? string.Empty,
+                    secret.GetProperty("managedBy").GetString()
                 )),
         ];
     }

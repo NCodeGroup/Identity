@@ -41,17 +41,23 @@ use of a key applies the windows.**
    `ISecretImporter` apply it before any material is generated or imported, and the management secret validator
    applies it to every create, import and update, answering `400` with the pair out of order. A request names the
    instants through `GenerateSecretRequest`, `SecretKeyImportRequest`, `CreateSecretRequest`, `ImportSecretRequest`
-   and `UpdateSecretRequest`, each optional, and a management update that omits one resolves it as a create does.
+   and `UpdateSecretRequest`, each optional. A management update that omits an instant keeps the stored one, the
+   retirement bounded by the new expiry (`ResolveUpdate`), so a retired or upcoming key stays so unless the update
+   names the instant, and an update whose new expiry precedes the stored activation is answered `400`: a key that
+   resumes signing is a deliberate act, never the side effect of extending an expiry.
 3. **A secret with no lifecycle of its own is active for its whole validity.** A shared secret is a credential its
    holder presents, so it activates when it is created and retires when it expires; `SharedSecretRequest` names no
-   other instants, and a rotation that shortens a rotated secret's expiry bounds its retirement with it. A key an
-   operator imports or generates through the management API without naming its instants is the same.
+   other instants. A rotation that shortens a rotated secret's expiry bounds its activation and retirement with it,
+   and a requested expiry before the secret's creation stops it at its creation, the earliest instant its lifecycle
+   can hold, so a secret stopped at once stays in order. A key an operator imports or generates through the
+   management API without naming its instants is the same as a shared secret.
 4. **The active window is judged where a key is selected.** `KeyMetadata.IsActive(now)` holds when the activation,
    if any, has passed and neither the retirement nor the expiry, if any, has. `ICredentialSelector` signs and encrypts
    only with a key that is active: a key published ahead of its activation, a retired key and an expired key are
    never selected, whatever algorithm they fit, so the selection of the successor is the clock passing the hand-over
-   instant on every replica, with no coordination. The selector orders the keys it is given, so of two active keys
-   the one that expires last is preferred.
+   instant on every replica, with no coordination. The tenant's `ISecretKeyCollection` orders its keys by expiry,
+   latest first, and the selector takes the first active key that fits, so of two active keys the one that expires
+   last is preferred; a caller that hands the selector keys of its own orders them itself.
 5. **The validity window is judged where a key is used to verify, to decrypt and to publish.**
    `KeyMetadata.IsExpired(now)` holds when the expiry, if any, has passed. The JSON Web Token validator never tries an
    expired key, with the clock skew of the validation parameters as tolerance, the same tolerance the token's own
@@ -62,9 +68,10 @@ use of a key applies the windows.**
    included, and never an expired one. A client credential past its expiry stops authenticating through the same
    expiry.
 6. **The windows are shown wherever a secret is.** `SecretResource` and `CreatedSecretResource` carry
-   `activatesWhen` and `retiresWhen` beside `createdWhen` and `expiresWhen`, so a console shows where a key stands;
-   `PersistedSecret.GetLifecycleState(now)` names it with the open vocabulary `SecretLifecycleStates`: `upcoming`,
-   `active`, `retired` and `expired`.
+   `activatesWhen` and `retiresWhen` beside `createdWhen` and `expiresWhen`; `PersistedSecret.GetLifecycleState(now)`
+   names where a key stands with the open vocabulary `SecretLifecycleStates`: `upcoming`, `active`, `retired` and
+   `expired`. The management console's secrets table shows the three instants and derives the same state from them
+   (`getSecretLifecycleState`), flagging a key that is upcoming, retired or expired.
 
 The rule applies to every owner's secrets: a tenant's keys, a client's keys and shared secrets, a server's keys and a
 resource server's keys. Only the keys the server provisions for a tenant move through the windows on their own

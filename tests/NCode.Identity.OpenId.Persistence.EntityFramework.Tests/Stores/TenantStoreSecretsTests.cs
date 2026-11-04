@@ -216,7 +216,7 @@ public sealed class TenantStoreSecretsTests : IDisposable
     }
 
     [Fact]
-    public async Task AddSecretAsync_StoresTheInstantsOfTheSecretsLifecycle()
+    public async Task AddSecretAsync_StoresTheInstantsOfTheSecretsLifecycleAndItsManager()
     {
         await SeedTenantAsync();
         var secret = CreateSecret("secret-1");
@@ -233,6 +233,7 @@ public sealed class TenantStoreSecretsTests : IDisposable
             SecretType = secret.SecretType,
             SecretEncoding = secret.SecretEncoding,
             Origin = secret.Origin,
+            ManagedBy = "rotation",
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
         };
@@ -250,6 +251,7 @@ public sealed class TenantStoreSecretsTests : IDisposable
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), reloaded.ActivatesWhen);
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), reloaded.RetiresWhen);
         Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(99), reloaded.ExpiresWhen);
+        Assert.Equal("rotation", reloaded.ManagedBy);
     }
 
     [Fact]

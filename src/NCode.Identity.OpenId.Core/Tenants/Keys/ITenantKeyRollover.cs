@@ -8,8 +8,9 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 
 /// <summary>
 /// Applies a <see cref="TenantKeyRolloverPlan"/> to a tenant's keys in the caller's unit of work: generates, activates,
-/// retires and removes keys through the tenant store, and records each change as an audit event. The caller commits
-/// the unit of work.
+/// retires, extends and removes keys through the tenant store, and describes each change as an audit event. The
+/// caller commits the unit of work and publishes the events once it has, so the audit trail never records a change a
+/// lost race discarded.
 /// </summary>
 // See ADR-1404.
 internal interface ITenantKeyRollover
@@ -23,8 +24,8 @@ internal interface ITenantKeyRollover
     /// <param name="plan">The plan to apply.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the secrets the
-    /// tenant holds once the plan is applied.</returns>
-    ValueTask<IReadOnlyCollection<PersistedSecret>> ApplyAsync(
+    /// tenant holds once the plan is applied and the audit event of each change.</returns>
+    ValueTask<TenantKeyRolloverResult> ApplyAsync(
         ITenantStore tenantStore,
         string tenantId,
         IReadOnlyCollection<PersistedSecret> held,

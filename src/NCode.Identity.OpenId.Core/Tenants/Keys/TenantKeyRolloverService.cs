@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Events;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -22,9 +23,10 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// every <see cref="OpenIdTenantKeyRolloverOptions.Interval"/>: it generates the successor of a key that nears its
 /// retirement, activates a published key when no key signs, retires a key the tenant's settings no longer use, and
 /// removes an expired key the server generated. One replica runs each pass, under a lease on the shared-state port
-/// that lasts the interval, and each tenant is changed in its own unit of work under the tenant's optimistic
+/// that lasts half the interval, and each tenant is changed in its own unit of work under the tenant's optimistic
 /// concurrency, so a pass that overlaps a seed or another pass loses the race for that tenant and leaves it to the
-/// winner. A tenant that holds no key is left to its first materialization, which seeds it in full. A tenant the
+/// winner; the audit event of each change is published once the unit of work has committed, so a lost race records
+/// nothing. A tenant that holds no key is left to its first materialization, which seeds it in full. A tenant the
 /// pass changed is announced, so every replica evicts it and serves its keys as they are.
 /// </summary>
 // See ADR-1404.
@@ -37,6 +39,7 @@ internal sealed class TenantKeyRolloverService(
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IStoreManagerFactory storeManagerFactory,
     IExpiringKeySet expiringKeySet,
+    IEventPublisher eventPublisher,
     IServiceScopeFactory serviceScopeFactory,
     TimeProvider timeProvider,
     ILogger<TenantKeyRolloverService> logger
@@ -60,6 +63,7 @@ internal sealed class TenantKeyRolloverService(
         effectiveSettingsResolver;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IExpiringKeySet ExpiringKeySet { get; } = expiringKeySet;
+    private IEventPublisher EventPublisher { get; } = eventPublisher;
     private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<TenantKeyRolloverService> Logger { get; } = logger;
@@ -121,10 +125,12 @@ internal sealed class TenantKeyRolloverService(
         if (resolution.Errors.Count > 0)
             return;
 
-        // One replica walks the tenants in each interval; the others find the lease taken. The per-tenant unit of
+        // One replica walks the tenants in each interval; the others find the lease taken. The lease lasts half the
+        // interval: one that lasted the whole interval would still be held, by the moments the pass took to start,
+        // when the same replica's timer ticks next, and every other pass would be skipped. The per-tenant unit of
         // work, not the lease, is what keeps two writers from both changing a tenant's keys.
         var leaseKey = $"{LeasePurpose}:{serverId}";
-        var leaseExpiresWhen = TimeProvider.GetUtcNow() + options.KeyRollover.Interval;
+        var leaseExpiresWhen = TimeProvider.GetUtcNow() + options.KeyRollover.Interval / 2;
         if (!await ExpiringKeySet.TryAddAsync(leaseKey, leaseExpiresWhen, cancellationToken))
             return;
 
@@ -208,7 +214,13 @@ internal sealed class TenantKeyRolloverService(
         if (plan.IsEmpty)
             return false;
 
-        await Rollover.ApplyAsync(tenantStore, tenantId, secrets.Value, plan, cancellationToken);
+        var result = await Rollover.ApplyAsync(
+            tenantStore,
+            tenantId,
+            secrets.Value,
+            plan,
+            cancellationToken
+        );
 
         try
         {
@@ -220,6 +232,12 @@ internal sealed class TenantKeyRolloverService(
             // next pass plans again from what it wrote.
             Logger.TenantKeyRolloverLostRace(tenantId);
             return false;
+        }
+
+        // The change is committed, so it is audited; a change a lost race discarded never is.
+        foreach (var auditEvent in result.AuditEvents)
+        {
+            await EventPublisher.PublishAsync(auditEvent, cancellationToken);
         }
 
         return true;

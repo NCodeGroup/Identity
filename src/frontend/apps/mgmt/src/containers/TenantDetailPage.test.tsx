@@ -72,10 +72,13 @@ const createdSecret: CreatedSecretResource = {
   use: null,
   algorithm: null,
   createdWhen: '2026-01-01T00:00:00Z',
+  activatesWhen: '2026-01-01T00:00:00Z',
+  retiresWhen: '2027-01-01T00:00:00Z',
   expiresWhen: '2027-01-01T00:00:00Z',
   secretType: 'symmetric',
   keySizeBits: 256,
   isVerifier: false,
+  managedBy: null,
   secretMaterial: 'one-time-material',
 };
 

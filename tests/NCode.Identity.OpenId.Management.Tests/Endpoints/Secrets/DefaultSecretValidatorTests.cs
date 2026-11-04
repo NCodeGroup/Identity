@@ -180,6 +180,45 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Fact]
+    public void ValidateUpdate_WhenTheInstantsAreOmitted_JudgesTheStoredOnesAgainstTheNewExpiry()
+    {
+        // The stored activation lies past the new expiry, which the update keeps, so the update is refused as the
+        // handler would write it.
+        var key = CreateRsaKey(
+            activatesWhen: CreatedWhen.AddDays(20),
+            retiresWhen: CreatedWhen.AddDays(92)
+        );
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = CreatedWhen.AddDays(10),
+        };
+
+        var error = Validator.ValidateUpdate(key, request);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot retire", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheInstantsAreOmittedAndTheStoredOnesFitTheNewExpiry_ReturnsNull()
+    {
+        var key = CreateRsaKey(
+            activatesWhen: CreatedWhen.AddDays(2),
+            retiresWhen: CreatedWhen.AddDays(92)
+        );
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = CreatedWhen.AddDays(10),
+        };
+
+        Assert.Null(Validator.ValidateUpdate(key, request));
+    }
+
+    [Fact]
     public void ValidateUpdate_WhenTheLifecycleIsInOrder_ReturnsNull()
     {
         var key = CreateRsaKey();
@@ -662,10 +701,20 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
     #region ValidateUpdate Tests
 
-    private static PersistedSecret CreateRsaKey()
+    private static PersistedSecret CreateRsaKey(
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null
+    )
     {
         using var rsa = RSA.Create(2048);
-        return CreatePublicKey(SecretTypes.Rsa, 2048, rsa.ExportSubjectPublicKeyInfo(), "PS256");
+        return CreatePublicKey(
+            SecretTypes.Rsa,
+            2048,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "PS256",
+            activatesWhen,
+            retiresWhen
+        );
     }
 
     private static PersistedSecret CreateEccKey(ECCurve curve)
@@ -678,7 +727,9 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string secretType,
         int keySizeBits,
         byte[] subjectPublicKeyInfo,
-        string? algorithm
+        string? algorithm,
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null
     ) =>
         new()
         {
@@ -688,8 +739,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = activatesWhen ?? DateTimeOffset.UnixEpoch,
+            RetiresWhen = retiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = SecretEncodings.Spki,
             Origin = SecretOrigins.Generated,

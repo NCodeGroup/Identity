@@ -68,4 +68,11 @@ public sealed class GenerateSecretRequest
     /// </summary>
     // See ADR-1403.
     public DateTimeOffset? RetiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the name of the component that manages the generated secret's lifecycle on its own, or <c>null</c> when
+    /// the secret keeps the lifecycle this request gives it. See <see cref="PersistedSecret.ManagedBy"/>.
+    /// </summary>
+    // See ADR-1404.
+    public string? ManagedBy { get; init; }
 }

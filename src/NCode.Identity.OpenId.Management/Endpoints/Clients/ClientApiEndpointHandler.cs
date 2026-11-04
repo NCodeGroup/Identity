@@ -98,18 +98,33 @@ internal class ClientApiEndpointHandler(
     internal static int GetReplacementEntropyBits(int storedKeySizeBits) =>
         Math.Max(SharedSecretPolicy.MinimumEntropyBits, storedKeySizeBits / 8 * 3 / 4 * 8);
 
+    private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right) =>
+        left < right ? left : right;
+
+    private static DateTimeOffset Max(DateTimeOffset left, DateTimeOffset right) =>
+        left > right ? left : right;
+
     /// <summary>
-    /// Copies a persisted secret with the use, algorithm, and expiry of the specified metadata, keeping its identity,
-    /// concurrency token, and key material.
+    /// Copies a persisted secret with the use, algorithm and lifecycle of the specified metadata, keeping its identity,
+    /// concurrency token and key material. An instant the metadata omits keeps the stored one, so a retired or
+    /// upcoming key stays so.
     /// </summary>
     /// <param name="secret">The <see cref="PersistedSecret"/> to copy.</param>
     /// <param name="metadata">The <see cref="UpdateSecretRequest"/> whose metadata the copy takes.</param>
     /// <returns>The copy of <paramref name="secret"/> with the metadata of <paramref name="metadata"/>.</returns>
+    // See ADR-1403.
     private static PersistedSecret WithMetadata(
         PersistedSecret secret,
         UpdateSecretRequest metadata
-    ) =>
-        new()
+    )
+    {
+        var (activatesWhen, retiresWhen) = SecretLifecycle.ResolveUpdate(
+            secret,
+            metadata.ActivatesWhen,
+            metadata.RetiresWhen,
+            metadata.ExpiresWhen
+        );
+        return new PersistedSecret
         {
             SecretId = secret.SecretId,
             KeyId = secret.KeyId,
@@ -117,16 +132,18 @@ internal class ClientApiEndpointHandler(
             Use = metadata.Use,
             Algorithm = metadata.Algorithm,
             CreatedWhen = secret.CreatedWhen,
-            ActivatesWhen = metadata.ActivatesWhen ?? secret.CreatedWhen,
-            RetiresWhen = metadata.RetiresWhen ?? metadata.ExpiresWhen,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
             ExpiresWhen = metadata.ExpiresWhen,
             SecretType = secret.SecretType,
             SecretEncoding = secret.SecretEncoding,
             Origin = secret.Origin,
+            ManagedBy = secret.ManagedBy,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
             PublicKey = secret.PublicKey,
         };
+    }
 
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -1872,10 +1889,12 @@ internal class ClientApiEndpointHandler(
         }
 
         // The replacement is added beside the rotated secret in one unit of work; the rotated secret keeps
-        // authenticating until its (possibly shortened) expiry passes or it is deleted (ADR-1320).
+        // authenticating until its (possibly shortened) expiry passes or it is deleted (ADR-1320). A requested expiry
+        // in the past stops it at once; one before its creation stops it at its creation, the earliest instant its
+        // lifecycle can hold (ADR-1403).
         var rotatedExpiresWhen =
             request.RotatedExpiresWhen is { } requested && requested < secret.ExpiresWhen
-                ? requested
+                ? Max(requested, secret.CreatedWhen)
                 : secret.ExpiresWhen;
 
         try
@@ -1894,17 +1913,15 @@ internal class ClientApiEndpointHandler(
         PersistedSecret? shortened = null;
         if (rotatedExpiresWhen != secret.ExpiresWhen)
         {
-            // A shared secret retires when it expires, so the shortened expiry bounds its retirement too.
+            // The shortened expiry bounds the secret's active window with it: a secret stopped at once neither signs
+            // nor authenticates from that instant, whatever its activation and retirement were.
             var shortenedMetadata = new UpdateSecretRequest
             {
                 Use = secret.Use,
                 Algorithm = secret.Algorithm,
                 ExpiresWhen = rotatedExpiresWhen,
-                ActivatesWhen = secret.ActivatesWhen,
-                RetiresWhen =
-                    secret.RetiresWhen < rotatedExpiresWhen
-                        ? secret.RetiresWhen
-                        : rotatedExpiresWhen,
+                ActivatesWhen = Min(secret.ActivatesWhen, rotatedExpiresWhen),
+                RetiresWhen = Min(secret.RetiresWhen, rotatedExpiresWhen),
             };
             shortened = WithMetadata(secret, shortenedMetadata);
             await store.UpdateSecretAsync(clientId, shortened, cancellationToken);

@@ -230,6 +230,38 @@ public class DefaultSecretGeneratorTests
     }
 
     [Fact]
+    public void GenerateSecret_WhenTheRequestNamesNoManager_LeavesTheSecretToItsCreator()
+    {
+        var protector = CreateProtector();
+        var request = CreateRequest(SecretTypes.Symmetric, 256);
+
+        var persisted = _generator.GenerateSecret(protector, request).Secret;
+
+        Assert.Null(persisted.ManagedBy);
+    }
+
+    [Fact]
+    public void GenerateSecret_WhenTheRequestNamesAManager_StoresIt()
+    {
+        var protector = CreateProtector();
+        var request = new GenerateSecretRequest
+        {
+            SecretId = "gen-1",
+            SecretType = SecretTypes.Symmetric,
+            GenerationParameters = new SecretKeyGenerationParameters { KeySizeBits = 256 },
+            Use = "sig",
+            Algorithm = "HS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            ManagedBy = "rotation",
+        };
+
+        var persisted = _generator.GenerateSecret(protector, request).Secret;
+
+        Assert.Equal("rotation", persisted.ManagedBy);
+    }
+
+    [Fact]
     public void GenerateSecret_WhenTheLifecycleIsOutOfOrder_ThrowsArgumentException()
     {
         var protector = CreateProtector();

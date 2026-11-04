@@ -1168,6 +1168,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Property<int>("KeySizeBits")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ManagedBy")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("NormalizedSecretId")
                         .IsRequired()
                         .HasMaxLength(300)

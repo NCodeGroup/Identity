@@ -4,7 +4,6 @@
 using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.Cryptography;
-using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -25,9 +24,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
     private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<ISecretProtector> MockSecretProtector { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
-    private Mock<IEventPublisher> MockEventPublisher { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
-    private List<TenantKeyAuditEvent> Published { get; } = [];
     private DefaultTenantKeyRollover Rollover { get; }
 
     public DefaultTenantKeyRolloverTests()
@@ -36,14 +33,12 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         MockSecretProtectorProvider = CreateStrictMock<ISecretProtectorProvider>();
         MockSecretProtector = CreateStrictMock<ISecretProtector>();
         MockCryptoService = CreateStrictMock<ICryptoService>();
-        MockEventPublisher = CreateStrictMock<IEventPublisher>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
 
         Rollover = new DefaultTenantKeyRollover(
             MockSecretGenerator.Object,
             MockSecretProtectorProvider.Object,
             MockCryptoService.Object,
-            MockEventPublisher.Object,
             CreateLooseMock<ILogger<DefaultTenantKeyRollover>>().Object
         );
     }
@@ -53,7 +48,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
     #region ApplyAsync Tests
 
     [Fact]
-    public async Task ApplyAsync_WhenThePlanGeneratesAKey_GeneratesItWithItsLifecycleAndRecordsIt()
+    public async Task ApplyAsync_WhenThePlanGeneratesAKey_GeneratesItAsManagedWithItsLifecycleAndDescribesIt()
     {
         var plan = new TenantKeyRolloverPlan { Now = Now };
         plan.Generations.Add(
@@ -68,9 +63,8 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         );
         var requests = SetupGeneration();
         var added = SetupAddSecret();
-        SetupPublish();
 
-        var secrets = await Rollover.ApplyAsync(
+        var result = await Rollover.ApplyAsync(
             MockTenantStore.Object,
             TenantId,
             [],
@@ -87,10 +81,11 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Assert.Equal(Now.AddDays(2), request.ActivatesWhen);
         Assert.Equal(Now.AddDays(92), request.RetiresWhen);
         Assert.Equal(Now.AddDays(99), request.ExpiresWhen);
+        Assert.Equal(SecretManagers.TenantKeyRollover, request.ManagedBy);
         var generated = Assert.Single(added);
-        Assert.Equal([generated], secrets);
+        Assert.Equal([generated], result.Secrets);
 
-        var auditEvent = Assert.Single(Published);
+        var auditEvent = Assert.Single(result.AuditEvents);
         Assert.Equal(TenantKeyChanges.Generated, auditEvent.Change);
         Assert.Equal(TenantKeyChangeReasons.Successor, auditEvent.Reason);
         Assert.Equal(generated.SecretId, auditEvent.SecretId);
@@ -112,7 +107,6 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         plan.Generations.Add(CreateGeneration());
         SetupGeneration();
         SetupAddSecret();
-        SetupPublish();
 
         await Rollover.ApplyAsync(
             MockTenantStore.Object,
@@ -134,7 +128,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
     }
 
     [Fact]
-    public async Task ApplyAsync_WhenThePlanRetiresAKey_UpdatesItsLifecycleAndRecordsIt()
+    public async Task ApplyAsync_WhenThePlanRetiresAKey_UpdatesItsLifecycleAndDescribesIt()
     {
         // The protector provider is strict with no setup: retiring a key never loads the master key.
         var held = CreateSecret("held", Now.AddDays(-30), Now.AddDays(60));
@@ -143,14 +137,14 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
             new TenantKeyRetirement
             {
                 Secret = held,
+                ActivatesWhen = held.ActivatesWhen,
                 RetiresWhen = Now,
                 ExpiresWhen = Now.AddDays(7),
             }
         );
         var updated = SetupUpdateSecret();
-        SetupPublish();
 
-        var secrets = await Rollover.ApplyAsync(
+        var result = await Rollover.ApplyAsync(
             MockTenantStore.Object,
             TenantId,
             [held],
@@ -162,27 +156,91 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Assert.Equal(held.SecretId, retired.SecretId);
         Assert.Equal(held.ConcurrencyToken, retired.ConcurrencyToken);
         Assert.Equal(held.EncodedValue, retired.EncodedValue);
+        Assert.Equal(held.ManagedBy, retired.ManagedBy);
         Assert.Equal(held.ActivatesWhen, retired.ActivatesWhen);
         Assert.Equal(Now, retired.RetiresWhen);
         Assert.Equal(Now.AddDays(7), retired.ExpiresWhen);
-        Assert.Equal([retired], secrets);
+        Assert.Equal([retired], result.Secrets);
 
-        var auditEvent = Assert.Single(Published);
+        var auditEvent = Assert.Single(result.AuditEvents);
         Assert.Equal(TenantKeyChanges.Retired, auditEvent.Change);
         Assert.Equal(TenantKeyChangeReasons.UnusedAlgorithm, auditEvent.Reason);
         Assert.Equal(Now, auditEvent.RetiresWhen);
     }
 
     [Fact]
-    public async Task ApplyAsync_WhenThePlanActivatesAKey_MovesItsActivationAndRecordsIt()
+    public async Task ApplyAsync_WhenThePlanExtendsAKey_MovesItsExpiryAndDescribesIt()
     {
-        var held = CreateSecret("held", Now.AddDays(1), Now.AddDays(91));
+        var held = CreateSecret("held", Now.AddDays(-30), Now.AddDays(60));
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Extensions.Add(
+            new TenantKeyExtension { Secret = held, ExpiresWhen = Now.AddDays(90) }
+        );
+        var updated = SetupUpdateSecret();
+
+        var result = await Rollover.ApplyAsync(
+            MockTenantStore.Object,
+            TenantId,
+            [held],
+            plan,
+            CancellationToken.None
+        );
+
+        var extended = Assert.Single(updated);
+        Assert.Equal(held.ActivatesWhen, extended.ActivatesWhen);
+        Assert.Equal(held.RetiresWhen, extended.RetiresWhen);
+        Assert.Equal(Now.AddDays(90), extended.ExpiresWhen);
+        Assert.Equal([extended], result.Secrets);
+
+        var auditEvent = Assert.Single(result.AuditEvents);
+        Assert.Equal(TenantKeyChanges.Extended, auditEvent.Change);
+        Assert.Equal(TenantKeyChangeReasons.RetirementGraceRaised, auditEvent.Reason);
+        Assert.Equal(Now.AddDays(90), auditEvent.ExpiresWhen);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenAChangeLeavesTheLifecycleOutOfOrder_ThrowsBeforeWriting()
+    {
+        // The store is strict with no setup: a record out of order is never written.
+        var held = CreateSecret("held", Now.AddDays(2), Now.AddDays(92));
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Retirements.Add(
+            new TenantKeyRetirement
+            {
+                Secret = held,
+                ActivatesWhen = held.ActivatesWhen,
+                RetiresWhen = Now,
+                ExpiresWhen = Now.AddDays(7),
+            }
+        );
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Rollover.ApplyAsync(
+                MockTenantStore.Object,
+                TenantId,
+                [held],
+                plan,
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains("cannot retire", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenThePlanActivatesAKey_MovesItsActivationAndDescribesIt()
+    {
+        var held = CreateSecret(
+            "held",
+            Now.AddDays(1),
+            Now.AddDays(91),
+            createdWhen: Now.AddDays(-1)
+        );
         var plan = new TenantKeyRolloverPlan { Now = Now };
         plan.Activations.Add(new TenantKeyActivation { Secret = held, ActivatesWhen = Now });
         var updated = SetupUpdateSecret();
-        SetupPublish();
 
-        var secrets = await Rollover.ApplyAsync(
+        var result = await Rollover.ApplyAsync(
             MockTenantStore.Object,
             TenantId,
             [held],
@@ -194,15 +252,15 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Assert.Equal(Now, activated.ActivatesWhen);
         Assert.Equal(held.RetiresWhen, activated.RetiresWhen);
         Assert.Equal(held.ExpiresWhen, activated.ExpiresWhen);
-        Assert.Equal([activated], secrets);
+        Assert.Equal([activated], result.Secrets);
 
-        var auditEvent = Assert.Single(Published);
+        var auditEvent = Assert.Single(result.AuditEvents);
         Assert.Equal(TenantKeyChanges.Activated, auditEvent.Change);
         Assert.Equal(TenantKeyChangeReasons.NoActiveKey, auditEvent.Reason);
     }
 
     [Fact]
-    public async Task ApplyAsync_WhenThePlanRemovesAKey_RemovesItFromTheStoreAndRecordsIt()
+    public async Task ApplyAsync_WhenThePlanRemovesAKey_RemovesItFromTheStoreAndDescribesIt()
     {
         var kept = CreateSecret("kept", Now.AddDays(-30), Now.AddDays(60));
         var expired = CreateSecret("expired", Now.AddDays(-200), Now.AddDays(-110));
@@ -212,9 +270,8 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
             .Setup(x => x.RemoveSecretAsync(TenantId, "expired", It.IsAny<CancellationToken>()))
             .ReturnsAsync(true)
             .Verifiable();
-        SetupPublish();
 
-        var secrets = await Rollover.ApplyAsync(
+        var result = await Rollover.ApplyAsync(
             MockTenantStore.Object,
             TenantId,
             [kept, expired],
@@ -222,20 +279,20 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Equal([kept], secrets);
-        var auditEvent = Assert.Single(Published);
+        Assert.Equal([kept], result.Secrets);
+        var auditEvent = Assert.Single(result.AuditEvents);
         Assert.Equal(TenantKeyChanges.Removed, auditEvent.Change);
         Assert.Equal(TenantKeyChangeReasons.Expired, auditEvent.Reason);
         Assert.Equal("expired", auditEvent.SecretId);
     }
 
     [Fact]
-    public async Task ApplyAsync_WhenThePlanIsEmpty_ChangesNothingAndRecordsNothing()
+    public async Task ApplyAsync_WhenThePlanIsEmpty_ChangesNothingAndDescribesNothing()
     {
-        // Every mock is strict with no setup: any store call, generation or event fails the test.
+        // Every mock is strict with no setup: any store call or generation fails the test.
         var held = CreateSecret("held", Now.AddDays(-30), Now.AddDays(60));
 
-        var secrets = await Rollover.ApplyAsync(
+        var result = await Rollover.ApplyAsync(
             MockTenantStore.Object,
             TenantId,
             [held],
@@ -243,7 +300,8 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
             CancellationToken.None
         );
 
-        Assert.Equal([held], secrets);
+        Assert.Equal([held], result.Secrets);
+        Assert.Empty(result.AuditEvents);
     }
 
     #endregion
@@ -263,26 +321,16 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
     private static PersistedSecret CreateSecret(
         string secretId,
         DateTimeOffset activatesWhen,
-        DateTimeOffset retiresWhen
+        DateTimeOffset retiresWhen,
+        DateTimeOffset? createdWhen = null
     ) =>
         TenantKeyTestData.CreateSecret(
             secretId,
-            activatesWhen,
+            createdWhen ?? activatesWhen,
             activatesWhen,
             retiresWhen,
             retiresWhen.AddDays(7)
         );
-
-    private void SetupPublish() =>
-        MockEventPublisher
-            .Setup(x =>
-                x.PublishAsync(It.IsAny<TenantKeyAuditEvent>(), It.IsAny<CancellationToken>())
-            )
-            .Callback(
-                (TenantKeyAuditEvent auditEvent, CancellationToken _) => Published.Add(auditEvent)
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
 
     private List<GenerateSecretRequest> SetupGeneration()
     {

@@ -551,3 +551,5 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Act
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ActivatesWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.RetiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.RetiresWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ManagedBy.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ManagedBy.init -> void

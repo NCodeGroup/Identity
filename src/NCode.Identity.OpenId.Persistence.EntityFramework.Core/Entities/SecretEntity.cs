@@ -123,6 +123,15 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required string Origin { get; init; }
 
     /// <summary>
+    /// Gets the name of the component that manages the secret's lifecycle on its own, or <c>null</c> when the secret
+    /// keeps the lifecycle its creator gave it. See <see cref="PersistedSecret.ManagedBy"/>.
+    /// </summary>
+    // See ADR-1404.
+    [Unicode(false)]
+    [MaxLength(SecretMaxLengths.ManagedBy)]
+    public required string? ManagedBy { get; init; }
+
+    /// <summary>
     /// Gets the size, in bits, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
     /// For symmetric keys, this is the size of the actual key material.

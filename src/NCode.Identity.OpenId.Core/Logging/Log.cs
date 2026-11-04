@@ -86,6 +86,19 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.TenantKeyExtended,
+        Level = LogLevel.Information,
+        Message = "Extended the {Algorithm} key '{SecretId}' of the tenant '{TenantId}' to expire at {ExpiresWhen}, the end of the retirement grace as it stands"
+    )]
+    internal static partial void TenantKeyExtended(
+        this ILogger logger,
+        string tenantId,
+        string? algorithm,
+        string secretId,
+        DateTimeOffset expiresWhen
+    );
+
+    [LoggerMessage(
         EventId = EventIds.TenantKeyRemoved,
         Level = LogLevel.Information,
         Message = "Removed the expired {Algorithm} key '{SecretId}' of the tenant '{TenantId}'"

@@ -318,6 +318,8 @@ NCode.Identity.OpenId.Tenants.TenantPlane.Root = 1 -> NCode.Identity.OpenId.Tena
 NCode.Identity.OpenId.Tenants.TenantPlane.Workload = 0 -> NCode.Identity.OpenId.Tenants.TenantPlane
 NCode.Identity.OpenId.Tenants.TenantSeedContext
 NCode.Identity.OpenId.Tenants.TenantSeedContext.Plane.get -> NCode.Identity.OpenId.Tenants.TenantPlane
+NCode.Identity.OpenId.Tenants.TenantSeedContext.PostCommitSteps.get -> System.Collections.Generic.IReadOnlyList<System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>!>!
+NCode.Identity.OpenId.Tenants.TenantSeedContext.RunAfterCommit(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! step) -> void
 NCode.Identity.OpenId.Tenants.TenantSeedContext.Plane.init -> void
 NCode.Identity.OpenId.Tenants.TenantSeedContext.StoreManager.get -> NCode.Persistence.Stores.IStoreManager!
 NCode.Identity.OpenId.Tenants.TenantSeedContext.StoreManager.init -> void

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     [DbContext(typeof(OpenIdDbContext))]
-    [Migration("20261104021157_InitialCreate")]
+    [Migration("20261104040441_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -1170,6 +1170,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.Property<int>("KeySizeBits")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ManagedBy")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("NormalizedSecretId")
                         .IsRequired()

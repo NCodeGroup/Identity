@@ -7,6 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Events;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -14,6 +16,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
+using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
@@ -30,6 +33,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     private const string SecondTenantId = "globex";
     private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
+    private static readonly TimeSpan Lease = Interval / 2;
     private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
 
     private OpenIdOptions OpenIdOptions { get; } = new();
@@ -43,6 +47,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IExpiringKeySet> MockExpiringKeySet { get; }
+    private Mock<IEventPublisher> MockEventPublisher { get; }
     private Mock<IMediator> MockMediator { get; }
     private IReadOnlySettingCollection ServerSettings { get; }
     private ServiceProvider ServiceProvider { get; }
@@ -62,6 +67,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
+        MockEventPublisher = CreateStrictMock<IEventPublisher>();
         MockMediator = CreateStrictMock<IMediator>();
         ServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
@@ -69,10 +75,13 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .AddScoped(_ => MockMediator.Object)
             .BuildServiceProvider();
 
-        Service = CreateService(TimeProvider);
+        Service = CreateService(TimeProvider, MockExpiringKeySet.Object);
     }
 
-    private TenantKeyRolloverService CreateService(TimeProvider timeProvider) =>
+    private TenantKeyRolloverService CreateService(
+        TimeProvider timeProvider,
+        IExpiringKeySet expiringKeySet
+    ) =>
         new(
             MockServerAccessor.Object,
             Options.Create(OpenIdOptions),
@@ -81,7 +90,8 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             MockRollover.Object,
             MockEffectiveSettingsResolver.Object,
             MockStoreManagerFactory.Object,
-            MockExpiringKeySet.Object,
+            expiringKeySet,
+            MockEventPublisher.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
             timeProvider,
             CreateLooseMock<ILogger<TenantKeyRolloverService>>().Object
@@ -134,6 +144,72 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task RollOverAsync_WhenATenantsChangeIsCommitted_PublishesItsAuditEventsAfterTheSave()
+    {
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupServerSettings();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
+
+        var first = CreateSecret("first");
+        SetupTenantSettings(FirstTenantId);
+        SetupSecrets(FirstTenantId, [first]);
+        var plan = SetupPlan([first], empty: false);
+        var auditEvent = CreateAuditEvent("first");
+        SetupApply(FirstTenantId, [first], plan, auditEvent);
+        var saved = false;
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                saved = true;
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable();
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(auditEvent, It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                Assert.True(
+                    saved,
+                    "The audit event was published before the change was committed."
+                );
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable(Times.Once);
+        SetupAnnouncement(FirstTenantId);
+
+        await Service.RollOverAsync(ServerId, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WhenCalledAgainOneIntervalLater_TakesTheLeaseAgain()
+    {
+        // The lease lasts half the interval, so the same replica's next tick, one interval after the pass started,
+        // finds it expired; one that lasted the whole interval would still be held by the moments the pass took to
+        // start, and every other pass would be skipped. The store is strict: a pass that reads no tenant fails.
+        var keySet = new FakeExpiringKeySet(TimeProvider);
+        using var service = CreateService(TimeProvider, keySet);
+        SetupSpecifications();
+        SetupServerSettings();
+        SetupStoreManager();
+        SetupTenantPage(cursor: null, nextCursor: null);
+
+        await service.RollOverAsync(ServerId, CancellationToken.None);
+        TimeProvider.Advance(TimeSpan.FromMilliseconds(5));
+        await service.RollOverAsync(ServerId, CancellationToken.None);
+        TimeProvider.Advance(Interval - TimeSpan.FromMilliseconds(5));
+        await service.RollOverAsync(ServerId, CancellationToken.None);
+
+        Assert.Equal(2, keySet.Taken);
+        MockTenantStore.Verify(
+            x => x.GetSettingsPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2)
+        );
+    }
+
+    [Fact]
     public async Task RollOverAsync_WhenAnotherReplicaHoldsTheLease_ReadsNoTenant()
     {
         // The store is strict with no setup: reading a tenant fails the test.
@@ -169,8 +245,9 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task RollOverAsync_WhenTheSaveLosesARace_LeavesTheTenantToTheWinnerAndContinues()
+    public async Task RollOverAsync_WhenTheSaveLosesARace_LeavesTheTenantToTheWinnerAndPublishesNothingForIt()
     {
+        // The publisher is strict: an event for the discarded change fails the test.
         SetupSpecifications();
         SetupLease(acquired: true);
         SetupServerSettings();
@@ -182,11 +259,16 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         SetupTenantSettings(FirstTenantId);
         SetupSecrets(FirstTenantId, [first]);
         var firstPlan = SetupPlan([first], empty: false);
-        SetupApply(FirstTenantId, [first], firstPlan);
+        SetupApply(FirstTenantId, [first], firstPlan, CreateAuditEvent("first"));
         SetupTenantSettings(SecondTenantId);
         SetupSecrets(SecondTenantId, [second]);
         var secondPlan = SetupPlan([second], empty: false);
-        SetupApply(SecondTenantId, [second], secondPlan);
+        var secondEvent = CreateAuditEvent("second");
+        SetupApply(SecondTenantId, [second], secondPlan, secondEvent);
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(secondEvent, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
         var saves = 0;
         MockStoreManager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
@@ -269,7 +351,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Setup(x =>
                 x.TryAddAsync(
                     $"{TenantKeyRolloverService.LeasePurpose}:{ServerId}",
-                    Now + Interval,
+                    Now + Lease,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -285,7 +367,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
                 };
             })
             .Verifiable(Times.Exactly(3));
-        using var service = CreateService(mockTimeProvider.Object);
+        using var service = CreateService(mockTimeProvider.Object, MockExpiringKeySet.Object);
 
         await service.StartAsync(CancellationToken.None);
         await passed[0].Task.WaitAsync(WaitTimeout);
@@ -335,7 +417,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Setup(x =>
                 x.TryAddAsync(
                     $"{TenantKeyRolloverService.LeasePurpose}:{ServerId}",
-                    Now + Interval,
+                    Now + Lease,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -446,7 +528,8 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     private void SetupApply(
         string tenantId,
         IReadOnlyCollection<PersistedSecret> held,
-        TenantKeyRolloverPlan plan
+        TenantKeyRolloverPlan plan,
+        params TenantKeyAuditEvent[] auditEvents
     ) =>
         MockRollover
             .Setup(x =>
@@ -458,8 +541,61 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync([])
+            .ReturnsAsync(
+                new TenantKeyRolloverResult { Secrets = [], AuditEvents = [.. auditEvents] }
+            )
             .Verifiable();
+
+    private static TenantKeyAuditEvent CreateAuditEvent(string secretId) =>
+        new()
+        {
+            EventId = Guid.CreateVersion7(Now),
+            EventTime = Now,
+            EventSource = AuditEventSources.OpenId,
+            TenantId = FirstTenantId,
+            Actor = AuditActor.System,
+            Outcome = AuditOutcome.Success,
+            Change = TenantKeyChanges.Removed,
+            Reason = TenantKeyChangeReasons.Expired,
+            SecretId = secretId,
+            KeyId = secretId,
+            SecretType = SecretKeyTypes.Rsa,
+            Algorithm = "RS256",
+            Use = SecretKeyUses.Signature,
+            ActivatesWhen = Now.AddDays(-30),
+            RetiresWhen = Now.AddDays(60),
+            ExpiresWhen = Now.AddDays(67),
+        };
+
+    // The contract of the shared-state port's add-if-absent: an entry refuses a second add until it has expired on
+    // the clock it is judged by.
+    private sealed class FakeExpiringKeySet(TimeProvider timeProvider) : IExpiringKeySet
+    {
+        private TimeProvider TimeProvider { get; } = timeProvider;
+        private Dictionary<string, DateTimeOffset> Entries { get; } = [];
+
+        public int Taken { get; private set; }
+
+        public ValueTask<bool> TryAddAsync(
+            string key,
+            DateTimeOffset expiresWhen,
+            CancellationToken cancellationToken
+        )
+        {
+            var now = TimeProvider.GetUtcNow();
+            if (Entries.TryGetValue(key, out var existing) && existing > now)
+                return ValueTask.FromResult(false);
+
+            Entries[key] = expiresWhen;
+            Taken++;
+            return ValueTask.FromResult(true);
+        }
+
+        public ValueTask<bool> ContainsAsync(string key, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(
+                Entries.TryGetValue(key, out var existing) && existing > TimeProvider.GetUtcNow()
+            );
+    }
 
     private void SetupAnnouncement(string tenantId) =>
         MockMediator

@@ -5,6 +5,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Events;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -40,6 +42,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     private Mock<ITenantKeyRolloverPlanner> MockPlanner { get; }
     private Mock<ITenantKeyRollover> MockRollover { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
+    private Mock<IEventPublisher> MockEventPublisher { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private IReadOnlySettingCollection EffectiveSettings { get; }
@@ -51,6 +54,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         MockPlanner = CreateStrictMock<ITenantKeyRolloverPlanner>();
         MockRollover = CreateStrictMock<ITenantKeyRollover>();
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
+        MockEventPublisher = CreateStrictMock<IEventPublisher>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
         EffectiveSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
@@ -61,6 +65,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             MockPlanner.Object,
             MockRollover.Object,
             MockEffectiveSettingsResolver.Object,
+            MockEventPublisher.Object,
             new FakeTimeProvider(Now)
         );
     }
@@ -83,7 +88,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenThePlanIsEmpty_LeavesTheTenantUntouched()
+    public async Task HandleAsync_WhenThePlanIsEmpty_LeavesTheTenantUntouchedAndQueuesNothing()
     {
         // The rollover is strict with no setup: applying an empty plan fails the test.
         var held = CreateSecret("held");
@@ -92,10 +97,12 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         SetupSpecifications(Rs256);
         SetupSettings();
         SetupPlan(tenant, new TenantKeyRolloverPlan { Now = Now });
+        var command = CreateCommand(tenant);
 
-        await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
+        await Handler.HandleAsync(command, CancellationToken.None);
 
         Assert.Same(original, tenant.Secrets);
+        Assert.Empty(command.Context.PostCommitSteps);
     }
 
     [Fact]
@@ -106,34 +113,8 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         var tenant = CreateTenant([held]);
         SetupSpecifications(Rs256);
         SetupSettings();
-        var plan = new TenantKeyRolloverPlan { Now = Now };
-        plan.Generations.Add(
-            new TenantKeyGeneration
-            {
-                Specification = Rs256,
-                ActivatesWhen = Now,
-                RetiresWhen = Now.AddDays(90),
-                ExpiresWhen = Now.AddDays(97),
-                Reason = TenantKeyChangeReasons.NoActiveKey,
-            }
-        );
-        SetupPlan(tenant, plan);
-        MockStoreManager
-            .Setup(x => x.GetStore<ITenantStore>())
-            .Returns(MockTenantStore.Object)
-            .Verifiable();
-        MockRollover
-            .Setup(x =>
-                x.ApplyAsync(
-                    MockTenantStore.Object,
-                    TenantId,
-                    tenant.Secrets.Value,
-                    plan,
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync([held, generated])
-            .Verifiable();
+        var plan = SetupGeneratingPlan(tenant);
+        SetupApply(tenant, plan, [held, generated], []);
 
         await Handler.HandleAsync(CreateCommand(tenant), CancellationToken.None);
 
@@ -141,6 +122,30 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         Assert.Equal([held, generated], tenant.Secrets.Value);
         Assert.Equal(TenantId, tenant.Secrets.TenantId);
         Assert.Equal("token", tenant.Secrets.ConcurrencyToken);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenThePlanChangesKeys_PublishesTheAuditEventsOnlyAfterTheCommit()
+    {
+        // The publisher is strict with no setup until the step runs: an event published before the commit fails
+        // the test, and a seed that loses its commit never runs the step.
+        var held = CreateSecret("held");
+        var tenant = CreateTenant([held]);
+        SetupSpecifications(Rs256);
+        SetupSettings();
+        var plan = SetupGeneratingPlan(tenant);
+        var auditEvent = CreateAuditEvent("generated");
+        SetupApply(tenant, plan, [held], [auditEvent]);
+        var command = CreateCommand(tenant);
+
+        await Handler.HandleAsync(command, CancellationToken.None);
+
+        var step = Assert.Single(command.Context.PostCommitSteps);
+        MockEventPublisher
+            .Setup(x => x.PublishAsync(auditEvent, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        await step(CancellationToken.None);
     }
 
     [Fact]
@@ -249,6 +254,71 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
             )
             .Returns(plan)
             .Verifiable();
+
+    private TenantKeyRolloverPlan SetupGeneratingPlan(PersistedTenant tenant)
+    {
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Generations.Add(
+            new TenantKeyGeneration
+            {
+                Specification = Rs256,
+                ActivatesWhen = Now,
+                RetiresWhen = Now.AddDays(90),
+                ExpiresWhen = Now.AddDays(97),
+                Reason = TenantKeyChangeReasons.NoActiveKey,
+            }
+        );
+        SetupPlan(tenant, plan);
+        return plan;
+    }
+
+    private void SetupApply(
+        PersistedTenant tenant,
+        TenantKeyRolloverPlan plan,
+        IReadOnlyCollection<PersistedSecret> secrets,
+        IReadOnlyList<TenantKeyAuditEvent> auditEvents
+    )
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(MockTenantStore.Object)
+            .Verifiable();
+        MockRollover
+            .Setup(x =>
+                x.ApplyAsync(
+                    MockTenantStore.Object,
+                    TenantId,
+                    tenant.Secrets.Value,
+                    plan,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new TenantKeyRolloverResult { Secrets = secrets, AuditEvents = auditEvents }
+            )
+            .Verifiable();
+    }
+
+    private static TenantKeyAuditEvent CreateAuditEvent(string secretId) =>
+        new()
+        {
+            EventId = Guid.CreateVersion7(Now),
+            EventTime = Now,
+            EventSource = AuditEventSources.OpenId,
+            TenantId = TenantId,
+            Actor = AuditActor.System,
+            Outcome = AuditOutcome.Success,
+            Change = TenantKeyChanges.Generated,
+            Reason = TenantKeyChangeReasons.NoActiveKey,
+            SecretId = secretId,
+            KeyId = secretId,
+            SecretType = SecretKeyTypes.Rsa,
+            Algorithm = "RS256",
+            Use = SecretKeyUses.Signature,
+            ActivatesWhen = Now,
+            RetiresWhen = Now.AddDays(90),
+            ExpiresWhen = Now.AddDays(97),
+        };
 
     private SeedTenantCommand CreateCommand(PersistedTenant tenant) =>
         new(

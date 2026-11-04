@@ -45,25 +45,26 @@ internal sealed class DefaultSecretValidator(
 
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
-    /// <inheritdoc />
-    // The instants of a secret's lifecycle are checked by the one rule the generator and the importer apply, so a
-    // request they would refuse is answered 400 with the reason (ADR-1403).
+    // The instants of a secret's lifecycle are resolved and checked by the one rule the generator and the importer
+    // apply, so a request they would refuse is answered 400 with the reason (ADR-1403).
     private static ManagementError? ValidateLifecycle(
         DateTimeOffset createdWhen,
         DateTimeOffset? activatesWhen,
         DateTimeOffset? retiresWhen,
         DateTimeOffset expiresWhen
     ) =>
-        SecretLifecycle.TryValidate(
+        SecretLifecycle.TryResolve(
             createdWhen,
-            activatesWhen ?? createdWhen,
-            retiresWhen ?? expiresWhen,
+            activatesWhen,
+            retiresWhen,
             expiresWhen,
+            out _,
             out var error
         )
             ? null
             : Error(error);
 
+    /// <inheritdoc />
     // See ADR-1389 and ADR-1392.
     public SecretCreateValidation ValidateCreate(
         CreateSecretRequest request,
@@ -213,14 +214,20 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        var lifecycleError = ValidateLifecycle(
-            secret.CreatedWhen,
-            request.ActivatesWhen,
-            request.RetiresWhen,
-            request.ExpiresWhen
-        );
-        if (lifecycleError is not null)
-            return lifecycleError;
+        // An instant the update omits keeps the stored one, so the update is judged as the handler will write it.
+        if (
+            !SecretLifecycle.TryResolveUpdate(
+                secret,
+                request.ActivatesWhen,
+                request.RetiresWhen,
+                request.ExpiresWhen,
+                out _,
+                out var lifecycleError
+            )
+        )
+        {
+            return Error(lifecycleError);
+        }
 
         if (request.Algorithm is not { } algorithm)
             return null;

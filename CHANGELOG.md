@@ -767,27 +767,36 @@ describes the family as it is rather than its changes
   the upcoming and the retired ones included, and never an expired one. `GenerateSecretRequest`,
   `SecretKeyImportRequest` and the management `CreateSecretRequest`, `ImportSecretRequest` and `UpdateSecretRequest`
   name `activatesWhen` and `retiresWhen`, each optional, and a request out of order is refused (`400`); a shared secret
-  activates when it is created and retires when it expires. `SecretResource` and `CreatedSecretResource` show both
-  instants, and `PersistedSecret.GetLifecycleState` names the state (`SecretLifecycleStates`: `upcoming`, `active`,
-  `retired`, `expired`)
+  activates when it is created and retires when it expires. A management update that omits an instant keeps the
+  stored one, the retirement bounded by the new expiry, so a retired or upcoming key stays so unless the update names
+  the instant; a rotation that stops the rotated secret at once collapses its active window with its expiry.
+  `SecretResource` and `CreatedSecretResource` show both instants, `PersistedSecret.GetLifecycleState` names the
+  state (`SecretLifecycleStates`: `upcoming`, `active`, `retired`, `expired`), and the management console's secrets
+  table shows the instants and the state
   ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
   [#166](https://github.com/NCodeGroup/Identity/issues/166)).
 
 - **A tenant's provisioned keys roll over on their own, ahead of retirement and with a grace after it.** The tenant
   settings `tenant_key_lifetime` (90 days), `tenant_key_activation_delay` (two days) and `tenant_key_retirement_grace`
   (seven days, raised to the longest lifetime of the tokens the tenant protects with its keys plus its clock skew, the
-  settings `OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names) shape a provisioned key's lifecycle. One planner
-  decides what a tenant's keys need: the successor of a key that retires within the delay plus the pass interval,
-  generated and published ahead and activating at the hand-over; a key that activates at once when no key signs, or
-  the activation of a key already published; the retirement, for the grace, of a key the server generated for an
-  algorithm the tenant's settings no longer use; and the removal of an expired key the server generated. A key an
-  operator supplied is never retired or removed. The seed applies the plan whenever the tenant is materialized, and
-  `TenantKeyRolloverService` applies it in the background every `OpenId:Tenant:KeyRollover:Interval` (one hour), one
-  replica per interval under a lease on the shared-state port, each tenant in its own unit of work under its
-  optimistic concurrency, and announces every tenant it changed so every replica serves its keys as they are. The
-  server's settings reconciliation seeds a tenant whose only key for an algorithm has retired like one that never held
-  it. Every change is an audit event, `tenant.key.generated`, `tenant.key.activated`, `tenant.key.retired` or
-  `tenant.key.removed`, in the `key` category with the `system` actor
+  settings `OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names, each checked at startup against the registered
+  settings) shape a provisioned key's lifecycle. One planner decides what a tenant's keys need: the successors of a
+  key that retires within the delay plus the pass interval, generated and published ahead and chained until the keys
+  sign past that horizon; a key that activates at once when no key signs, or the activation of a key already
+  published; the retirement, for the grace, of a key the rollover provisioned for an algorithm the tenant's settings
+  no longer use; a later expiry for a key whose grace was raised since it was generated; and the removal of an expired
+  key the rollover provisioned. A provisioned key names the rollover in `PersistedSecret.ManagedBy`
+  (`SecretManagers.TenantKeyRollover`, shown as `managedBy`), and a key an operator generated or imported through the
+  management API is never retired, extended or removed. The seed applies the plan whenever the tenant is
+  materialized, and `TenantKeyRolloverService` applies it in the background every
+  `OpenId:Tenant:KeyRollover:Interval` (one hour), one replica per interval under a lease on the shared-state port
+  that lasts half the interval, each tenant in its own unit of work under its optimistic concurrency, and announces
+  every tenant it changed so every replica serves its keys as they are. The server's settings reconciliation seeds a
+  tenant whose only key for an algorithm has retired like one that never held it. Every change is an audit event,
+  `tenant.key.generated`, `tenant.key.activated`, `tenant.key.retired`, `tenant.key.extended` or
+  `tenant.key.removed`, in the `key` category with the `system` actor, published once the change is committed: the
+  pass publishes after its save, and a seed queues its events on `TenantSeedContext.RunAfterCommit`, whose steps the
+  provisioner runs once the seed has committed
   ([ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
   [#166](https://github.com/NCodeGroup/Identity/issues/166)).

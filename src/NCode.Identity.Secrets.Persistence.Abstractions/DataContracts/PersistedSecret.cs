@@ -116,6 +116,16 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     public required string Origin { get; init; }
 
     /// <summary>
+    /// Gets the name of the component that manages the secret's lifecycle on its own, such as the tenant key rollover,
+    /// which retires and removes the keys it provisioned; or <c>null</c> when the secret keeps the lifecycle its
+    /// creator gave it, such as a key an operator generated or imported through the management API. An open
+    /// vocabulary: each component names itself.
+    /// </summary>
+    // See ADR-1404.
+    [MaxLength(SecretMaxLengths.ManagedBy)]
+    public string? ManagedBy { get; init; }
+
+    /// <summary>
     /// Gets the size, in bits, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
     /// For symmetric keys, this is the size of the actual key material.

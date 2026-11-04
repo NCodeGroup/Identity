@@ -32,7 +32,13 @@ public static class TenantKeyChanges
     public const string Retired = "retired";
 
     /// <summary>
-    /// The server removed an expired key it generated.
+    /// The server moved a key's expiry later, because the retirement grace that covers the tokens it protected was
+    /// raised after the key was generated.
+    /// </summary>
+    public const string Extended = "extended";
+
+    /// <summary>
+    /// The server removed an expired key it provisioned.
     /// </summary>
     public const string Removed = "removed";
 }

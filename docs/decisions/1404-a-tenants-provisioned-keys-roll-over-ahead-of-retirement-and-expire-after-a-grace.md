@@ -43,40 +43,60 @@ change the server makes to a tenant's key on its own is an audit event.**
    longest lifetime of the tokens the tenant protects with its keys plus its `clock_skew`, so no token outlives the
    key that verifies it; `OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names those lifetime settings, by default
    `id_token_lifetime`, `access_token_lifetime`, `authorization_response_lifetime` and `request_object_max_lifetime`,
-   and a package that signs or encrypts another token with the tenant's keys adds its own. None is advertised.
+   and a package that signs or encrypts another token with the tenant's keys adds its own. The host refuses to start
+   when an entry names no registered setting that a tenant's effective settings read as a duration, so a misspelled
+   name cannot silently drop a token's lifetime from the floor. The grace is read at every plan, so a key whose
+   retirement plus the grace, as it stands, reaches past its expiry expires at the end of the grace instead: a token
+   lifetime raised after the key was generated never outlives the key. An expiry only ever moves later. None of the
+   three settings is advertised.
 2. **The plan, for each provisioned key the tenant's settings use.** The held keys that satisfy the specification and
    have neither retired nor expired serve it. When none of them is active, a published key activates at once (the
    earliest to activate), or, when there is none, a key is generated that activates at once and retires after the
-   lifetime: nothing can be handed over from, and the delay would only prolong the outage. When the last serving key
+   lifetime: nothing can be handed over from, and the delay would only prolong the outage. While the last serving key
    retires within the activation delay plus the pass interval, its successor is generated, published from now and
    activating at that retirement, so exactly one key of the algorithm signs at every instant and a verifier has held
    the successor for the whole delay by the hand-over; the interval is added because the pass that generates the
-   successor runs up to one interval after the predecessor enters the window. A successor already published yields no
-   second one. A generated key expires at its retirement plus the grace.
-3. **Retirement and removal.** A key the server generated for a provisioned algorithm the tenant's settings no longer
-   use retires now and expires at the earlier of its own expiry and the end of the grace: the keys it signed stay
-   verifiable, and nothing signs with it. An expired key the server generated is removed. A key an operator supplied
-   is never retired or removed: it is the operator's to keep, and the operator's `DELETE` is the way to retire a key at
-   once on suspicion of compromise, after which the next seed or pass replaces it. A key bound to no algorithm is
-   never retired for an unused algorithm, because it serves any.
+   successor runs up to one interval after the predecessor enters the window. One plan chains successors until the
+   held keys sign past that horizon, so a lifetime shorter than the delay plus the interval leaves no gap: the tenant
+   then holds, for each algorithm, as many upcoming keys as fit in the delay plus the interval, and a lifetime longer
+   than both keeps it to one. A successor already published past the horizon yields no second one. A generated key
+   expires at its retirement plus the grace.
+3. **Retirement and removal, of the rollover's own keys.** A key the rollover generates names the rollover as the
+   manager of its lifecycle: `PersistedSecret.ManagedBy` is `tenant_key_rollover` (`SecretManagers`), an open
+   vocabulary beside `Origin`, because the origin of a key's material says nothing about who manages it: a key an
+   operator generates through the management API has the `generated` origin too. A managed key for a provisioned
+   algorithm the tenant's settings no longer use retires now and expires at the end of the grace: the keys it signed
+   stay verifiable, and nothing signs with it; one published ahead of an activation that never comes activates and
+   retires at that same instant, so its instants stay in order, and stays published for the grace because a client
+   may have encrypted to it. An expired managed key is removed. A key the rollover did not provision, whether an
+   operator generated it through the management API or imported it, keeps the lifecycle its creator gave it and is
+   never retired, extended or removed: it is its creator's to keep, and the operator's `DELETE` is the way to retire
+   a key at once on suspicion of compromise, after which the next seed or pass replaces it. A key bound to no
+   algorithm is never retired for an unused algorithm, because it serves any.
 4. **Two paths, one planner.** The seed contributor applies the plan whenever the tenant is materialized, so a tenant
    that is served gets its first key, its successors, and the retirement and removal of what it no longer needs, in
    the seed's unit of work. `TenantKeyRolloverService` applies it in the background: once the replica's server is
    materialized and then every `OpenId:Tenant:KeyRollover:Interval` (default one hour), one replica takes a lease on
-   the shared-state port for the interval and walks every seeded tenant, changing each in its own unit of work under
-   the tenant's optimistic concurrency, so a pass that overlaps a seed or another pass loses the race for that tenant
-   and leaves it to the winner. A tenant that holds no key is left to its first materialization, which seeds it in
-   full. A tenant the pass changed is announced through `TenantChangedCommand` without a settings change, so every
+   the shared-state port for half the interval and walks every seeded tenant, changing each in its own unit of work
+   under the tenant's optimistic concurrency, so a pass that overlaps a seed or another pass loses the race for that
+   tenant and leaves it to the winner. The lease lasts half the interval because the timer ticks one interval after
+   the pass started, by which time a lease that lasted the whole interval would still be held for the moments the
+   pass took to start, and every other pass would be skipped; the per-tenant unit of work, not the lease, keeps two
+   writers apart. A tenant that holds no key is left to its first materialization, which seeds it in full. A tenant the pass changed is announced through `TenantChangedCommand` without a settings change, so every
    replica evicts it and serves its keys as they are rather than at its next secrets poll. The server's settings
    reconciliation counts a tenant as lacking a key when no serving key satisfies the specification, so a tenant whose
    only key for an algorithm retired is seeded like one that never held it. The pass runs only while key provisioning
    is enabled; a deployment that brings its own keys manages their lifecycle. It never runs on the in-process job
    dispatcher, whose bounded workers a pass over every tenant would hold.
-5. **Audited as the server's own changes.** Every change is a `TenantKeyAuditEvent`: `tenant.key.generated`,
-   `tenant.key.activated`, `tenant.key.retired` and `tenant.key.removed`, in the `key` category with the `system`
-   actor, the key's secret and its tenant as resources, and the reason, key identifier, type, algorithm, use and the
-   three instants as details. The events carry no request, because the operation is the server's own whether a seed
-   in a request or the pass performed it, and never key material.
+5. **Audited as the server's own changes, once they are committed.** Every change is a `TenantKeyAuditEvent`:
+   `tenant.key.generated`, `tenant.key.activated`, `tenant.key.retired`, `tenant.key.extended` and
+   `tenant.key.removed`, in the `key` category with the `system` actor, the key's secret and its tenant as resources,
+   and the reason, key identifier, type, algorithm, use and the three instants as details. The events carry no
+   request, because the operation is the server's own whether a seed in a request or the pass performed it, and never
+   key material. The rollover describes the events and the caller publishes them once its unit of work has committed,
+   as the management plane records its own changes after its save: the pass publishes them after its save, and the
+   seed queues them on `TenantSeedContext.RunAfterCommit`, whose steps the provisioner runs on their own bounded
+   token once the seed has committed, so a change a lost race discarded is never in the audit trail.
 
 ## Options considered
 
@@ -99,6 +119,19 @@ change the server makes to a tenant's key on its own is an audit event.**
 - **Record `activated` when the clock passes the activation.** Rejected: no act happens, and no replica owns the
   instant; the `generated` event states when the key activates. The `activated` event records the one case where
   the server moves the activation forward.
+- **Tell the rollover's keys from an operator's by the origin of their material.** Rejected: the management API
+  generates a key through the same generator, so an operator's key has the `generated` origin and would be retired
+  and removed as if the server owned it; the manager of a key's lifecycle is a fact of its own, recorded on the key.
+- **One successor per pass.** Rejected: a lifetime shorter than the delay plus the interval then leaves the algorithm
+  without a key between passes, and a skipped pass leaves a successor published for less than the delay; the chain
+  reaches past the horizon in one plan.
+- **Freeze the grace when a key is generated.** Rejected: a token lifetime raised later lets a token outlive the key
+  that verifies it; the grace is read at every plan and an expiry moves later to follow it.
+- **Publish the audit events as the changes are made.** Rejected: a lost race discards the change but not the event,
+  so the trail names keys that never existed; the events are published once the unit of work has committed.
+- **A lease that lasts the whole interval.** Rejected: the timer ticks one interval after the pass started, when a
+  lease taken moments later is still held, so every other pass is skipped and the successor horizon no longer covers
+  the time to the next effective pass.
 
 ## Consequences
 
@@ -106,9 +139,16 @@ change the server makes to a tenant's key on its own is an audit event.**
   days ahead and takes over the instant it retires, and the retired key verifies for seven days more.
 - A tenant whose settings stop using an algorithm keeps verifying with the key it signed with for the grace and then
   holds no key for it; a tenant that starts using one again is seeded with a new key.
-- `OpenIdTenantOptions` gains `KeyRollover`, the tenant key seed handler takes the planner and the rollover, the
-  reconciliation handler takes the planner and a `TimeProvider`, and `NCode.Identity.OpenId.Core` references the
-  events abstractions to publish the audit events.
+- `OpenIdTenantOptions` gains `KeyRollover`, the tenant key seed handler takes the planner, the rollover and the
+  event publisher, the reconciliation handler takes the planner and a `TimeProvider`, the tenant provisioner takes a
+  `TimeProvider` to run a seed's post-commit steps, the rollover options validator takes the setting descriptor and
+  scope collections, and `NCode.Identity.OpenId.Core` references the events abstractions to publish the audit
+  events.
+- `PersistedSecret`, `SecretEntity`, `GenerateSecretRequest`, `SecretResource` and `CreatedSecretResource` carry
+  `ManagedBy`, the host database's `Secrets` table holds it, and the management console marks a managed key.
+- A tenant whose key lifetime is shorter than its activation delay plus the pass interval holds several upcoming
+  keys per algorithm at once, each generated under its master key; the settings permit it, and the relation is
+  stated on the capability page.
 - The host walks every tenant once an hour on one replica; the walk reads each tenant's settings projection and keys
   and loads a tenant's master key only when it generates a key.
 

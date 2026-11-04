@@ -53,6 +53,9 @@ public sealed class CreatedSecretResource
     /// <inheritdoc cref="PersistedSecret.KeySizeBits"/>
     public required int KeySizeBits { get; init; }
 
+    /// <inheritdoc cref="PersistedSecret.ManagedBy"/>
+    public required string? ManagedBy { get; init; }
+
     /// <summary>
     /// Gets whether the server holds only a one-way verifier of the shared secret: it authenticates a
     /// client-authentication method that compares the secret, such as <c>client_secret_basic</c>, and never one that uses

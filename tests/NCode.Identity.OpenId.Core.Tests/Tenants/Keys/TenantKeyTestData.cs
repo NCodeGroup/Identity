@@ -33,7 +33,8 @@ internal static class TenantKeyTestData
         };
 
     /// <summary>
-    /// Creates a generated RSA key with the specified lifecycle, bound to the specified algorithm.
+    /// Creates a generated RSA key with the specified lifecycle, bound to the specified algorithm and, unless told
+    /// otherwise, managed by the rollover.
     /// </summary>
     public static PersistedSecret CreateSecret(
         string secretId,
@@ -42,7 +43,7 @@ internal static class TenantKeyTestData
         DateTimeOffset retiresWhen,
         DateTimeOffset expiresWhen,
         string? algorithm = "RS256",
-        string origin = SecretOrigins.Generated
+        string? managedBy = SecretManagers.TenantKeyRollover
     ) =>
         new()
         {
@@ -56,7 +57,8 @@ internal static class TenantKeyTestData
             ExpiresWhen = expiresWhen,
             SecretType = SecretKeyTypes.Rsa,
             SecretEncoding = SecretEncodings.Pkcs8,
-            Origin = origin,
+            Origin = SecretOrigins.Generated,
+            ManagedBy = managedBy,
             KeySizeBits = 3072,
             EncodedValue = "AA",
             PublicKey = "AQ",

@@ -99,6 +99,7 @@ internal class DefaultSecretGenerator(
             EncodedValue = material.ProtectedKeyMaterial,
             PublicKey = material.PublicKey,
             Origin = SecretOrigins.Generated,
+            ManagedBy = request.ManagedBy,
         };
 
         return new GeneratedSecret { Secret = secret, SecretMaterial = material.SecretMaterial };

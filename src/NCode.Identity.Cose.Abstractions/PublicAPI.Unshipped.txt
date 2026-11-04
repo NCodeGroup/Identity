@@ -59,6 +59,36 @@ const NCode.Identity.Cose.CoseHeaderLabels.X509Bag = 32 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509Chain = 33 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509ThumbprintSha256 = 34 -> long
 const NCode.Identity.Cose.CoseHeaderLabels.X509Url = 35 -> long
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.Ed25519 = 6 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.Ed448 = 7 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.P256 = 1 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.P384 = 2 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.P521 = 3 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.Secp256k1 = 8 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.X25519 = 4 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.X448 = 5 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.Decrypt = 4 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.DeriveBits = 8 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.DeriveKey = 7 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.Encrypt = 3 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.MacCreate = 9 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.MacVerify = 10 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.Sign = 1 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.UnwrapKey = 6 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.Verify = 2 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.WrapKey = 5 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.Algorithm = 3 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.BaseIv = 5 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.KeyId = 2 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.KeyOperations = 4 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.KeyType = 1 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Akp = 7 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Ec2 = 2 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.HssLms = 5 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Okp = 1 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Rsa = 3 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Symmetric = 4 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.WalnutDsa = 6 -> int
 NCode.Identity.Cose.Algorithms.CoseAlgorithm
 NCode.Identity.Cose.Algorithms.CoseAlgorithm.CoseAlgorithm() -> void
 NCode.Identity.Cose.Algorithms.CoseAlgorithm.Identifier.get -> int
@@ -108,6 +138,50 @@ NCode.Identity.Cose.CoseValue.TryGetByteString(out System.ReadOnlyMemory<byte> v
 NCode.Identity.Cose.CoseValue.TryGetDouble(out double value) -> bool
 NCode.Identity.Cose.CoseValue.TryGetInt64(out long value) -> bool
 NCode.Identity.Cose.CoseValue.TryGetTextString(out string? value) -> bool
+NCode.Identity.Cose.Keys.CoseEllipticCurve
+NCode.Identity.Cose.Keys.CoseEllipticCurve.CoseEllipticCurve() -> void
+NCode.Identity.Cose.Keys.CoseEllipticCurve.Identifier.get -> int
+NCode.Identity.Cose.Keys.CoseEllipticCurve.Identifier.init -> void
+NCode.Identity.Cose.Keys.CoseEllipticCurve.JwkCurveName.get -> string!
+NCode.Identity.Cose.Keys.CoseEllipticCurve.JwkCurveName.init -> void
+NCode.Identity.Cose.Keys.CoseEllipticCurve.KeyType.get -> int
+NCode.Identity.Cose.Keys.CoseEllipticCurve.KeyType.init -> void
+NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers
+NCode.Identity.Cose.Keys.CoseEllipticCurves
+NCode.Identity.Cose.Keys.CoseKeyOperations
+NCode.Identity.Cose.Keys.CoseKeyParameter
+NCode.Identity.Cose.Keys.CoseKeyParameter.CoseKeyParameter() -> void
+NCode.Identity.Cose.Keys.CoseKeyParameter.Encoding.get -> NCode.Identity.Cose.Keys.CoseKeyParameterEncoding
+NCode.Identity.Cose.Keys.CoseKeyParameter.Encoding.init -> void
+NCode.Identity.Cose.Keys.CoseKeyParameter.IsPrivate.get -> bool
+NCode.Identity.Cose.Keys.CoseKeyParameter.IsPrivate.init -> void
+NCode.Identity.Cose.Keys.CoseKeyParameter.JwkMember.get -> string!
+NCode.Identity.Cose.Keys.CoseKeyParameter.JwkMember.init -> void
+NCode.Identity.Cose.Keys.CoseKeyParameter.Label.get -> int
+NCode.Identity.Cose.Keys.CoseKeyParameter.Label.init -> void
+NCode.Identity.Cose.Keys.CoseKeyParameterEncoding
+NCode.Identity.Cose.Keys.CoseKeyParameterEncoding.ByteString = 0 -> NCode.Identity.Cose.Keys.CoseKeyParameterEncoding
+NCode.Identity.Cose.Keys.CoseKeyParameterEncoding.Curve = 1 -> NCode.Identity.Cose.Keys.CoseKeyParameterEncoding
+NCode.Identity.Cose.Keys.CoseKeyParameterLabels
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.CoseKeyTypeDescriptor() -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.JwkKeyType.get -> string!
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.JwkKeyType.init -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.KeyType.get -> int
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.KeyType.init -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.Parameters.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.Keys.CoseKeyParameter!>!
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.Parameters.init -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.RequiresAlgorithm.get -> bool
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.RequiresAlgorithm.init -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors
+NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.Curves.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.Keys.CoseEllipticCurve!>!
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.KeyTypes.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!>!
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.TryGetCurve(int keyType, int identifier, out NCode.Identity.Cose.Keys.CoseEllipticCurve? curve) -> bool
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.TryGetCurveByJwkName(int keyType, string! jwkCurveName, out NCode.Identity.Cose.Keys.CoseEllipticCurve? curve) -> bool
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.TryGetKeyType(int keyType, out NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor? descriptor) -> bool
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.TryGetKeyTypeByJwkKeyType(string! jwkKeyType, out NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor? descriptor) -> bool
 override NCode.Identity.Cose.CoseLabel.ToString() -> string!
 static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A128Gcm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
 static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A128Kw.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
@@ -149,3 +223,16 @@ static NCode.Identity.Cose.CoseValue.FromEncodedValue(System.ReadOnlyMemory<byte
 static NCode.Identity.Cose.CoseValue.FromInt64(long value) -> NCode.Identity.Cose.CoseValue!
 static NCode.Identity.Cose.CoseValue.FromLabels(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.CoseLabel>! labels) -> NCode.Identity.Cose.CoseValue!
 static NCode.Identity.Cose.CoseValue.FromTextString(string! value) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.Ed25519.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.Ed448.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.P256.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.P384.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.P521.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.Secp256k1.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.X25519.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.X448.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Akp.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Ec2.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Okp.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Rsa.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Symmetric.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!

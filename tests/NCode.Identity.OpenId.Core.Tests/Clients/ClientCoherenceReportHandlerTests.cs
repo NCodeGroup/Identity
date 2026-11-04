@@ -7,8 +7,8 @@ using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -17,7 +17,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients;
 
 public sealed class ClientCoherenceReportHandlerTests : BaseTests
 {
-    private const string PlatformId = "default";
+    private const string TeamId = "platform";
+    private const string OtherTeamId = "other-team";
     private const string FirstTenantId = "acme";
     private const string SecondTenantId = "globex";
     private const string ClientId = "web";
@@ -101,6 +102,25 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         );
 
         await handler.HandleAsync(CreateCommand(), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleAsync_ReadsOnlyTheTeamsTenants()
+    {
+        // Strict mocks: only the other team's page is set up, so reading the first team's tenants fails the test.
+        var settings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupStores();
+        SetupTeamTenantPage(OtherTeamId, SecondTenantId);
+        SetupTenantSettings(SecondTenantId, settings);
+        SetupReport(SecondTenantId, settings, null, null);
+        var handler = CreateHandler(
+            CreateLooseMock<ILogger<ClientCoherenceReportHandler>>().Object
+        );
+
+        await handler.HandleAsync(
+            new ReconcileTeamSettingsCommand(OtherTeamId, ServerSettings),
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -239,10 +259,10 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     private static JsonElement CreateDocument(string name) =>
         JsonElement.Parse($$"""{"name":"{{name}}"}""");
 
-    private ReconcilePlatformSettingsCommand CreateCommand() => new(PlatformId, ServerSettings);
+    private ReconcileTeamSettingsCommand CreateCommand() => new(TeamId, ServerSettings);
 
-    private ReconcilePlatformSettingsCommand CreateCommandWithPreviousSettings() =>
-        new(PlatformId, ServerSettings) { PreviousSettings = PreviousServerSettings };
+    private ReconcileTeamSettingsCommand CreateCommandWithPreviousSettings() =>
+        new(TeamId, ServerSettings) { PreviousSettings = PreviousServerSettings };
 
     private void SetupReadsChangedSetting(
         IReadOnlySettingCollection previousSettings,
@@ -307,9 +327,13 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     }
 
     private void SetupTenantPage(params string[] tenantIds) =>
+        SetupTeamTenantPage(TeamId, tenantIds);
+
+    private void SetupTeamTenantPage(string teamId, params string[] tenantIds) =>
         MockTenantStore
             .Setup(x =>
                 x.GetSettingsPageAsync(
+                    teamId,
                     It.Is<PageRequest>(page => page.Cursor == null && page.Limit == 100),
                     It.IsAny<CancellationToken>()
                 )

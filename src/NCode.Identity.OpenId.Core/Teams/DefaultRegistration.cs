@@ -59,6 +59,20 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<IReplicaBroadcastHandler, TeamChangeBroadcastHandler>()
             );
 
+            // One replica reconciles each change to a team's effective settings in the background (ADR-1219).
+            builder.ServiceCollection.TryAddSingleton(_ =>
+                DefaultTeamSettingsReconciliationTrigger.CreateChannel()
+            );
+            builder.ServiceCollection.TryAddSingleton<
+                ITeamSettingsReconciliationTrigger,
+                DefaultTeamSettingsReconciliationTrigger
+            >();
+            builder.ServiceCollection.TryAddSingleton<
+                ITeamSettingsReconciler,
+                DefaultTeamSettingsReconciler
+            >();
+            builder.ServiceCollection.AddHostedService<TeamSettingsReconciliationService>();
+
             return builder;
         }
     }

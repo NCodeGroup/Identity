@@ -158,7 +158,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ValkeyReplicaBroadcastSubscriberTests`).
 - 👁 **A change-token producer in a test returns a fresh token after each change** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques): swap in a new `CancellationTokenSource` before
-  cancelling the old one (`ServerSettingsReconciliationServiceTests`).
+  cancelling the old one (`TeamSettingsReconciliationServiceTests`).
 - 👁 **Test the rate limiter with descriptors of the test's own.** `DefaultRequestRateLimiterTests` mocks
   `IRateLimitDescriptorCatalog` and declares sliding and fixed descriptors, so the built-in table is tested only in
   `DefaultRateLimitDescriptorDataSourceTests`; match the batch with

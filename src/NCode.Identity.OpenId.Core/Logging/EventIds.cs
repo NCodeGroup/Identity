@@ -32,13 +32,13 @@ internal static class EventIds
 
     public const int PlatformSettingsChangeBroadcastFailed = Base + 9;
 
-    public const int PlatformSettingsReconciliationStarted = Base + 10;
+    public const int TeamSettingsReconciliationStarted = Base + 10;
 
-    public const int PlatformSettingsReconciled = Base + 11;
+    public const int TeamSettingsReconciled = Base + 11;
 
-    public const int PlatformSettingsReconciliationFailed = Base + 12;
+    public const int TeamSettingsReconciliationFailed = Base + 12;
 
-    public const int ReconciledPlatformSettingsUnreadable = Base + 13;
+    public const int ReconciledTeamSettingsUnreadable = Base + 13;
 
     public const int TenantCacheClearFailed = Base + 14;
 

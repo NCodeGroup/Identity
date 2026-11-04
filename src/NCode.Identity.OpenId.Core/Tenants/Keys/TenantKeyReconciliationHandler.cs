@@ -7,8 +7,8 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -16,10 +16,10 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Tenants.Keys;
 
 /// <summary>
-/// Handles <see cref="ReconcilePlatformSettingsCommand"/> by seeding, through a <see cref="TenantChangedCommand"/> with
+/// Handles <see cref="ReconcileTeamSettingsCommand"/> by seeding, through a <see cref="TenantChangedCommand"/> with
 /// <see cref="TenantChangedCommand.SettingsChanged"/>, every tenant whose effective settings use a configured algorithm
 /// that the tenant holds no satisfying key for. The announcement evicts the tenant, seeds it, and tells the other
-/// replicas, so the key the server's settings permit is provisioned without waiting for the tenant to be materialized
+/// replicas, so the key the team's settings permit is provisioned without waiting for the tenant to be materialized
 /// again. A tenant that already holds every key its settings use is not evicted.
 /// A tenant that holds no key is left to its first materialization, which seeds it in full.
 /// When the command carries the settings it was last reconciled against, a tenant's keys are read only if the tenant
@@ -28,7 +28,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// </summary>
 /// <remarks>
 /// The handler checks the invariant from the current state rather than from a change, so it provisions the keys that a
-/// change to the server's settings permits, one that a configuration reload applied, and one that a deployment brought,
+/// change to the team's settings permits, one that a configuration reload applied, and one that a deployment brought,
 /// alike; the settings the command carries only narrow the tenants it reads. A tenant that cannot be handled is logged
 /// and skipped, and the pass continues: the tenant is seeded again the next time it is materialized. The handler is
 /// idempotent, because announcing a tenant that is already seeded provisions nothing.
@@ -41,7 +41,7 @@ internal sealed class TenantKeyReconciliationHandler(
     IStoreManagerFactory storeManagerFactory,
     IServiceScopeFactory serviceScopeFactory,
     ILogger<TenantKeyReconciliationHandler> logger
-) : ICommandHandler<ReconcilePlatformSettingsCommand>
+) : ICommandHandler<ReconcileTeamSettingsCommand>
 {
     // The tenants are read in pages, so the pass never holds every tenant's settings at once.
     private const int TenantPageSize = 100;
@@ -58,7 +58,7 @@ internal sealed class TenantKeyReconciliationHandler(
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
-        ReconcilePlatformSettingsCommand command,
+        ReconcileTeamSettingsCommand command,
         CancellationToken cancellationToken
     )
     {
@@ -81,7 +81,11 @@ internal sealed class TenantKeyReconciliationHandler(
             // Each page reads its tenants' keys in its own unit of work, so the pass never tracks every tenant's keys.
             await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
             var tenantStore = storeManager.GetStore<ITenantStore>();
-            var result = await tenantStore.GetSettingsPageAsync(page, cancellationToken);
+            var result = await tenantStore.GetSettingsPageAsync(
+                command.TeamId,
+                page,
+                cancellationToken
+            );
             foreach (var tenantSettings in result.Items)
             {
                 try
@@ -104,7 +108,7 @@ internal sealed class TenantKeyReconciliationHandler(
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    // One tenant that cannot be handled, say one with a settings document the server's settings reject,
+                    // One tenant that cannot be handled, say one with a settings document the team's settings reject,
                     // must not stop the pass: the others still need their keys.
                     Logger.TenantKeyReseedFailed(tenantSettings.TenantId, exception);
                 }
@@ -116,7 +120,7 @@ internal sealed class TenantKeyReconciliationHandler(
 
     private async ValueTask<bool> LacksKeyAsync(
         ITenantStore tenantStore,
-        ReconcilePlatformSettingsCommand command,
+        ReconcileTeamSettingsCommand command,
         PersistedTenantSettings tenantSettings,
         IReadOnlyList<TenantKeySpecification> specifications,
         CancellationToken cancellationToken
@@ -137,10 +141,10 @@ internal sealed class TenantKeyReconciliationHandler(
 
         // A tenant that used every one of these algorithms before the change was reconciled with them already.
         // See ADR-1234.
-        if (command.PreviousSettings is { } previousServerSettings)
+        if (command.PreviousSettings is { } previousTeamSettings)
         {
             var previousSettings = EffectiveSettingsResolver.Resolve(
-                previousServerSettings,
+                previousTeamSettings,
                 OpenIdSettingScopes.Tenant,
                 tenantSettings.Value
             );

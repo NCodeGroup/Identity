@@ -8,7 +8,7 @@ using System.Text.Json;
 using NCode.Buffers;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Platform;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Computes the fingerprint of a platform's effective settings: the Base64Url encoding of a SHA-256 hash over each

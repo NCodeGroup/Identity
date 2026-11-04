@@ -17,6 +17,7 @@ using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
@@ -273,6 +274,19 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_RegistersTheTeamSettingsReconciliationService()
+    {
+        // Without this service a change to a team's effective settings, or to the platform's, reaches the team's tenants
+        // and clients only when each is next used (ADR-1219).
+        using var host = BuildHost([]);
+
+        Assert.Contains(
+            host.Services.GetServices<IHostedService>(),
+            service => service.GetType().Name == "TeamSettingsReconciliationService"
+        );
+    }
+
+    [Fact]
     public void AddIdentityServer_ResolvesTheMaterializedServerAccessorToTheRegistry()
     {
         // Background work in another package waits for the replica's server through the public accessor, which is
@@ -292,9 +306,7 @@ public sealed class DefaultRegistrationTests
         // materialized.
         using var host = BuildHost([]);
 
-        var handlers = host.Services.GetServices<
-            ICommandHandler<ReconcilePlatformSettingsCommand>
-        >();
+        var handlers = host.Services.GetServices<ICommandHandler<ReconcileTeamSettingsCommand>>();
 
         Assert.Contains(
             handlers,
@@ -438,9 +450,7 @@ public sealed class DefaultRegistrationTests
         // makes incoherent unreported until they fail at their next request (ADR-1219).
         using var host = BuildHost([]);
 
-        var handlers = host.Services.GetServices<
-            ICommandHandler<ReconcilePlatformSettingsCommand>
-        >();
+        var handlers = host.Services.GetServices<ICommandHandler<ReconcileTeamSettingsCommand>>();
 
         Assert.Contains(
             handlers,

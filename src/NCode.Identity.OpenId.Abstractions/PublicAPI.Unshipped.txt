@@ -575,15 +575,6 @@ NCode.Identity.OpenId.Platform.IOpenIdPlatformProvider
 NCode.Identity.OpenId.Platform.IOpenIdPlatformProvider.GetAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Platform.OpenIdPlatform!>
 NCode.Identity.OpenId.Platform.OpenIdPlatform
 NCode.Identity.OpenId.Platform.OpenIdPlatform.OpenIdPlatform() -> void
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.PreviousSettings.get -> NCode.Identity.Settings.IReadOnlySettingCollection?
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.PreviousSettings.init -> void
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.ReconcilePlatformSettingsCommand() -> void
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.ReconcilePlatformSettingsCommand(string! PlatformId, NCode.Identity.Settings.IReadOnlySettingCollection! Settings) -> void
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.PlatformId.get -> string!
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.PlatformId.init -> void
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.Settings.get -> NCode.Identity.Settings.IReadOnlySettingCollection!
-NCode.Identity.OpenId.Platform.ReconcilePlatformSettingsCommand.Settings.init -> void
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PreviousSettings.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PreviousSettings.init -> void
@@ -998,6 +989,15 @@ NCode.Identity.OpenId.Teams.IOpenIdTeamProvider.GetTeamAsync(NCode.Identity.Open
 NCode.Identity.OpenId.Teams.OpenIdTeam
 NCode.Identity.OpenId.Teams.OpenIdTeam.DisposeAsync() -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Teams.OpenIdTeam.OpenIdTeam() -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.PreviousSettings.get -> NCode.Identity.Settings.IReadOnlySettingCollection?
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.PreviousSettings.init -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.ReconcileTeamSettingsCommand() -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.ReconcileTeamSettingsCommand(string! TeamId, NCode.Identity.Settings.IReadOnlySettingCollection! Settings) -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.Settings.get -> NCode.Identity.Settings.IReadOnlySettingCollection!
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.Settings.init -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.TeamId.get -> string!
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.TeamId.init -> void
 NCode.Identity.OpenId.Teams.TeamChangedCommand
 NCode.Identity.OpenId.Teams.TeamChangedCommand.SettingsChanged.get -> bool
 NCode.Identity.OpenId.Teams.TeamChangedCommand.SettingsChanged.init -> void

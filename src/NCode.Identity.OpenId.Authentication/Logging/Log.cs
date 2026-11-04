@@ -558,7 +558,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.IncoherentClientReported,
         Level = LogLevel.Warning,
-        Message = "The client '{ClientId}' of the tenant '{TenantId}' is incoherent with the server's settings and fails at its next request: {Violations}"
+        Message = "The client '{ClientId}' of the tenant '{TenantId}' is incoherent with the team's settings and fails at its next request: {Violations}"
     )]
     internal static partial void IncoherentClientReported(
         this ILogger logger,
@@ -570,7 +570,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ClientCoherenceCheckFailed,
         Level = LogLevel.Warning,
-        Message = "The clients of the tenant '{TenantId}' could not be checked against the server's settings"
+        Message = "The clients of the tenant '{TenantId}' could not be checked against the team's settings"
     )]
     internal static partial void ClientCoherenceCheckFailed(
         this ILogger logger,
@@ -581,11 +581,11 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ClientCoherenceChecked,
         Level = LogLevel.Information,
-        Message = "Checked the stored clients of the tenants that a change to the settings of the server '{PlatformId}' affects: {IncoherentClientCount} incoherent"
+        Message = "Checked the stored clients of the tenants that a change to the settings of the team '{TeamId}' affects: {IncoherentClientCount} incoherent"
     )]
     internal static partial void ClientCoherenceChecked(
         this ILogger logger,
-        string platformId,
+        string teamId,
         int incoherentClientCount
     );
 

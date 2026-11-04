@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using NCode.Identity.OpenId.Platform;
+using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.Platform;
+namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
-public class PlatformSettingsFingerprintTests
+public class SettingsFingerprintTests
 {
     private static JsonSerializerOptions JsonOptions { get; } = new(JsonSerializerDefaults.Web);
 

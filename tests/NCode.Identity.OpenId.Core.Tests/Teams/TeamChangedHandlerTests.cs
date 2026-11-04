@@ -20,6 +20,7 @@ public sealed class TeamChangedHandlerTests : IDisposable
     private Mock<IOpenIdTeamCache> MockTeamCache { get; }
     private Mock<IOpenIdTenantCache> MockTenantCache { get; }
     private Mock<IReplicaBroadcaster> MockReplicaBroadcaster { get; }
+    private Mock<ITeamSettingsReconciliationTrigger> MockTrigger { get; }
     private Mock<TimeProvider> MockTimeProvider { get; }
     private TeamChangedHandler Handler { get; }
 
@@ -28,6 +29,7 @@ public sealed class TeamChangedHandlerTests : IDisposable
         MockTeamCache = Mocks.Create<IOpenIdTeamCache>();
         MockTenantCache = Mocks.Create<IOpenIdTenantCache>();
         MockReplicaBroadcaster = Mocks.Create<IReplicaBroadcaster>();
+        MockTrigger = Mocks.Create<ITeamSettingsReconciliationTrigger>();
         MockTimeProvider = Mocks.Create<TimeProvider>();
         MockTimeProvider
             .Setup(CreateTimerExpression)
@@ -41,6 +43,7 @@ public sealed class TeamChangedHandlerTests : IDisposable
             MockTeamCache.Object,
             MockTenantCache.Object,
             MockReplicaBroadcaster.Object,
+            MockTrigger.Object,
             MockTimeProvider.Object,
             NullLogger<TeamChangedHandler>.Instance
         );
@@ -87,6 +90,8 @@ public sealed class TeamChangedHandlerTests : IDisposable
     {
         var calls = new List<string>();
         SetupEviction(calls);
+        if (settingsChanged)
+            MockTrigger.Setup(x => x.Trigger(TeamId)).Verifiable();
         MockReplicaBroadcaster
             .Setup(x =>
                 x.PublishAsync(
@@ -105,6 +110,30 @@ public sealed class TeamChangedHandlerTests : IDisposable
         );
 
         Assert.Equal(["team", "tenants", "broadcast"], calls);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenSettingsChanged_TriggersTheTeamsReconciliation()
+    {
+        SetupEviction();
+        MockReplicaBroadcaster
+            .Setup(x =>
+                x.PublishAsync(
+                    TeamChangeBroadcastHandler.ChannelName,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockTrigger.Setup(x => x.Trigger(TeamId)).Verifiable();
+
+        await Handler.HandleAsync(
+            new TeamChangedCommand(TeamId, SettingsChanged: true),
+            CancellationToken.None
+        );
+
+        MockTrigger.Verify(x => x.Trigger(TeamId), Times.Once);
     }
 
     [Fact]

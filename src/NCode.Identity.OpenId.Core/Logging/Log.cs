@@ -111,35 +111,35 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.PlatformSettingsReconciliationStarted,
+        EventId = EventIds.TeamSettingsReconciliationStarted,
         Level = LogLevel.Information,
-        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the platform '{PlatformId}' affect"
+        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the team '{TeamId}' affect"
     )]
-    internal static partial void PlatformSettingsReconciliationStarted(
+    internal static partial void TeamSettingsReconciliationStarted(
         this ILogger logger,
-        string platformId,
+        string teamId,
         string fingerprint
     );
 
     [LoggerMessage(
-        EventId = EventIds.PlatformSettingsReconciled,
+        EventId = EventIds.TeamSettingsReconciled,
         Level = LogLevel.Information,
-        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the platform '{PlatformId}' affect"
+        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the team '{TeamId}' affect"
     )]
-    internal static partial void PlatformSettingsReconciled(
+    internal static partial void TeamSettingsReconciled(
         this ILogger logger,
-        string platformId,
+        string teamId,
         string fingerprint
     );
 
     [LoggerMessage(
-        EventId = EventIds.PlatformSettingsReconciliationFailed,
+        EventId = EventIds.TeamSettingsReconciliationFailed,
         Level = LogLevel.Warning,
-        Message = "Reconciling the settings of the platform '{PlatformId}' failed; it is attempted again when the reconciliation lease expires"
+        Message = "Reconciling the settings of the team '{TeamId}' failed; it is attempted again when the reconciliation lease expires"
     )]
-    internal static partial void PlatformSettingsReconciliationFailed(
+    internal static partial void TeamSettingsReconciliationFailed(
         this ILogger logger,
-        string platformId,
+        string teamId,
         Exception exception
     );
 
@@ -154,13 +154,13 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.ReconciledPlatformSettingsUnreadable,
+        EventId = EventIds.ReconciledTeamSettingsUnreadable,
         Level = LogLevel.Warning,
-        Message = "The settings that the platform '{PlatformId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
+        Message = "The settings that the team '{TeamId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
     )]
-    internal static partial void ReconciledPlatformSettingsUnreadable(
+    internal static partial void ReconciledTeamSettingsUnreadable(
         this ILogger logger,
-        string platformId,
+        string teamId,
         Exception exception
     );
 

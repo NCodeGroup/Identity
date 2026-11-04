@@ -14,7 +14,8 @@ namespace NCode.Identity.OpenId.Teams;
 /// Handles <see cref="TeamChangedCommand"/> by evicting the team and its tenants from this replica's
 /// <see cref="IOpenIdTeamCache"/> and <see cref="IOpenIdTenantCache"/>, then announcing the change on the
 /// <see cref="TeamChangeBroadcastHandler.ChannelName"/> channel of the <see cref="IReplicaBroadcaster"/> so every other
-/// replica evicts them too. The eviction and the announcement run on their own bounded token, not the request's, and a
+/// replica evicts them too. When the team's settings changed it then asks the <see cref="ITeamSettingsReconciliationTrigger"/>
+/// to reconcile the team. The eviction and the announcement run on their own bounded token, not the request's, and a
 /// failed or timed-out announcement is logged and never fails the committed change: a replica that missed it picks the
 /// change up through its polls.
 /// </summary>
@@ -23,6 +24,7 @@ internal sealed class TeamChangedHandler(
     IOpenIdTeamCache teamCache,
     IOpenIdTenantCache tenantCache,
     IReplicaBroadcaster replicaBroadcaster,
+    ITeamSettingsReconciliationTrigger reconciliationTrigger,
     TimeProvider timeProvider,
     ILogger<TeamChangedHandler> logger
 ) : ICommandHandler<TeamChangedCommand>
@@ -30,6 +32,8 @@ internal sealed class TeamChangedHandler(
     private IOpenIdTeamCache TeamCache { get; } = teamCache;
     private IOpenIdTenantCache TenantCache { get; } = tenantCache;
     private IReplicaBroadcaster ReplicaBroadcaster { get; } = replicaBroadcaster;
+    private ITeamSettingsReconciliationTrigger ReconciliationTrigger { get; } =
+        reconciliationTrigger;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<TeamChangedHandler> Logger { get; } = logger;
 
@@ -47,6 +51,10 @@ internal sealed class TeamChangedHandler(
         {
             await PostCommitWork.RunAsync(TimeProvider, BroadcastAsync, command.TeamId);
         }
+
+        // The background service reconciles what the team's settings affect; the trigger never blocks or throws.
+        if (command.SettingsChanged)
+            ReconciliationTrigger.Trigger(command.TeamId);
     }
 
     private async ValueTask EvictAsync(string teamId, CancellationToken cancellationToken)

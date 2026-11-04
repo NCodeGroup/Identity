@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.Platform;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.OpenId.Tenants.Strategies;
 using NCode.Identity.SharedState;
@@ -103,7 +103,7 @@ internal static class DefaultRegistration
             // A change to the server's effective settings seeds every tenant that lacks a key its settings use (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    ICommandHandler<ReconcilePlatformSettingsCommand>,
+                    ICommandHandler<ReconcileTeamSettingsCommand>,
                     TenantKeyReconciliationHandler
                 >()
             );

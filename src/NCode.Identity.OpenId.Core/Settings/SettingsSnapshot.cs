@@ -4,7 +4,7 @@
 using System.Text.Json;
 using NCode.Identity.Settings;
 
-namespace NCode.Identity.OpenId.Platform;
+namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Writes a platform's effective settings as the JSON object that records what every tenant and client was reconciled

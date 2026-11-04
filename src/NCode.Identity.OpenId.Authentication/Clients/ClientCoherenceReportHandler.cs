@@ -5,19 +5,19 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
-/// Handles <see cref="ReconcilePlatformSettingsCommand"/> by checking the stored clients of the tenants a change to the
-/// server's settings affects against the server's effective settings and logging a warning for each client that the
+/// Handles <see cref="ReconcileTeamSettingsCommand"/> by checking the stored clients of the tenants a change to the
+/// team's settings affects against the team's effective settings and logging a warning for each client that the
 /// settings make incoherent. When the command carries the settings it was last reconciled against, a tenant's clients
 /// are checked only if a setting that a coherence rule reads has a different effective value for the tenant; without
-/// them every tenant's clients are checked. A change to the server's settings that is not a write, such as a
+/// them every tenant's clients are checked. A change to the team's settings that is not a write, such as a
 /// configuration reload or a deployment, cannot be refused the way a write is, so each incoherent stored client is
 /// reported, the bootstrap administrator included.
 /// </summary>
@@ -34,7 +34,7 @@ internal sealed class ClientCoherenceReportHandler(
     IClientCoherenceValidator clientCoherenceValidator,
     IClientCoherenceReporter clientCoherenceReporter,
     ILogger<ClientCoherenceReportHandler> logger
-) : ICommandHandler<ReconcilePlatformSettingsCommand>
+) : ICommandHandler<ReconcileTeamSettingsCommand>
 {
     // The tenants and the clients of a tenant are read in pages, so the pass never holds every one at once.
     private const int PageSize = 100;
@@ -48,7 +48,7 @@ internal sealed class ClientCoherenceReportHandler(
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
-        ReconcilePlatformSettingsCommand command,
+        ReconcileTeamSettingsCommand command,
         CancellationToken cancellationToken
     )
     {
@@ -59,7 +59,11 @@ internal sealed class ClientCoherenceReportHandler(
         var page = new PageRequest { Limit = PageSize };
         do
         {
-            var result = await tenantStore.GetSettingsPageAsync(page, cancellationToken);
+            var result = await tenantStore.GetSettingsPageAsync(
+                command.TeamId,
+                page,
+                cancellationToken
+            );
             foreach (var tenantSettings in result.Items)
             {
                 try
@@ -73,7 +77,7 @@ internal sealed class ClientCoherenceReportHandler(
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    // One tenant that cannot be checked, say one with a settings document the server's settings
+                    // One tenant that cannot be checked, say one with a settings document the team's settings
                     // reject, must not stop the pass: the other tenants' clients still need a report.
                     Logger.ClientCoherenceCheckFailed(tenantSettings.TenantId, exception);
                 }
@@ -82,13 +86,13 @@ internal sealed class ClientCoherenceReportHandler(
             page = page with { Cursor = result.NextCursor };
         } while (page.Cursor is not null);
 
-        Logger.ClientCoherenceChecked(command.PlatformId, incoherentClientCount);
+        Logger.ClientCoherenceChecked(command.TeamId, incoherentClientCount);
     }
 
     // Returns the number of incoherent clients of the tenant.
     private async ValueTask<int> ReportTenantAsync(
         IStoreManager storeManager,
-        ReconcilePlatformSettingsCommand command,
+        ReconcileTeamSettingsCommand command,
         PersistedTenantSettings tenantSettings,
         CancellationToken cancellationToken
     )
@@ -102,10 +106,10 @@ internal sealed class ClientCoherenceReportHandler(
 
         // A tenant whose settings no coherence rule reads differently cannot hold a client that the change made
         // incoherent. See ADR-1234.
-        if (command.PreviousSettings is { } previousServerSettings)
+        if (command.PreviousSettings is { } previousTeamSettings)
         {
             var previousTenantSettings = EffectiveSettingsResolver.Resolve(
-                previousServerSettings,
+                previousTeamSettings,
                 OpenIdSettingScopes.Tenant,
                 tenantSettings.Value
             );

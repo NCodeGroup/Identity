@@ -9,8 +9,8 @@ using Moq;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
@@ -24,7 +24,8 @@ namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 
 public sealed class TenantKeyReconciliationHandlerTests : BaseTests
 {
-    private const string PlatformId = "default";
+    private const string TeamId = "platform";
+    private const string OtherTeamId = "other-team";
     private const string FirstTenantId = "acme";
     private const string SecondTenantId = "globex";
 
@@ -218,6 +219,22 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_ReadsOnlyTheTeamsTenants()
+    {
+        SetupSpecifications();
+        SetupStoreManager();
+
+        // Strict mocks: only the other team's page is set up, so reading the first team's tenants fails the test.
+        SetupTeamTenantPage(OtherTeamId, cursor: null, nextCursor: null, SecondTenantId);
+        SetupTenantSettings(SecondTenantId, ["PS256"]);
+
+        await Handler.HandleAsync(
+            new ReconcileTeamSettingsCommand(OtherTeamId, ServerSettings),
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenProvisioningIsDisabled_ReadsNoTenant()
     {
         // Every mock is strict with no setup: resolving the specifications or reading a tenant fails the test.
@@ -235,10 +252,10 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         && element.TryGetProperty("tenant", out var value)
         && value.GetString() == tenantId;
 
-    private ReconcilePlatformSettingsCommand CreateCommand() => new(PlatformId, ServerSettings);
+    private ReconcileTeamSettingsCommand CreateCommand() => new(TeamId, ServerSettings);
 
-    private ReconcilePlatformSettingsCommand CreateCommandWithPreviousSettings() =>
-        new(PlatformId, ServerSettings) { PreviousSettings = PreviousServerSettings };
+    private ReconcileTeamSettingsCommand CreateCommandWithPreviousSettings() =>
+        new(TeamId, ServerSettings) { PreviousSettings = PreviousServerSettings };
 
     private void SetupSpecifications() =>
         MockPolicy
@@ -266,9 +283,18 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     }
 
     private void SetupTenantPage(string? cursor, string? nextCursor, params string[] tenantIds) =>
+        SetupTeamTenantPage(TeamId, cursor, nextCursor, tenantIds);
+
+    private void SetupTeamTenantPage(
+        string teamId,
+        string? cursor,
+        string? nextCursor,
+        params string[] tenantIds
+    ) =>
         MockTenantStore
             .Setup(x =>
                 x.GetSettingsPageAsync(
+                    teamId,
                     It.Is<PageRequest>(page => page.Cursor == cursor && page.Limit == 100),
                     It.IsAny<CancellationToken>()
                 )

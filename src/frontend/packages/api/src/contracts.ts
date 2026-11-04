@@ -462,3 +462,37 @@ export type CreatedInitialAccessTokenResource = {
   readonly createdWhen: string;
   readonly expiresWhen: string | null;
 };
+
+// See ADR-1407.
+/**
+ * Mirror of `EncryptionKeyResource` — one master key of a tenant or of the server. It carries no key material, wrapped
+ * key or key check.
+ */
+export type EncryptionKeyResource = {
+  readonly keyId: string;
+  /** The version of the key within its owner, starting at one. */
+  readonly version: number;
+  /** `active` for the key that protects new values, `retired` for an older one; an unknown state counts as retired. */
+  readonly state: string;
+  readonly createdWhen: string;
+  readonly retiredWhen: string | null;
+  /** The name of the root key provider that wraps the key. */
+  readonly rootKeyProvider: string;
+  readonly rootKeyId: string;
+  /** The identifier of the recovery key that also wraps the key, or `null` when no recovery copy exists. */
+  readonly recoveryKeyId: string | null;
+};
+
+/** Mirror of `EncryptionKeysResource` — the master keys of an owner, newest version first. */
+export type EncryptionKeysResource = {
+  readonly keys: readonly EncryptionKeyResource[];
+  /** Whether new keys are also wrapped under a recovery key. */
+  readonly recoveryConfigured: boolean;
+};
+
+/** Mirror of `EncryptionKeyRotationResource` — the result of a rekey. */
+export type EncryptionKeyRotationResource = {
+  readonly activeKey: EncryptionKeyResource;
+  /** The key the rekey retired, or `null` when the owner had no active key. */
+  readonly retiredKey: EncryptionKeyResource | null;
+};

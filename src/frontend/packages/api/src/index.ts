@@ -6,6 +6,9 @@ export type {
   CreateScopeRequest,
   CreateSecretRequest,
   CreatedSecretResource,
+  EncryptionKeyResource,
+  EncryptionKeyRotationResource,
+  EncryptionKeysResource,
   RotateSecretRequest,
   CreateInitialAccessTokenRequest,
   CreatedInitialAccessTokenResource,
@@ -49,6 +52,7 @@ export {
   type SettingsPatchOperation,
 } from './jsonPatch.js';
 export {
+  type EncryptionKeyOwner,
   ownerApiPath,
   ownerEffectiveTagId,
   ownerScope,

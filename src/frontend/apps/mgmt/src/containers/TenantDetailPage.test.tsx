@@ -313,4 +313,32 @@ describe('TenantDetailPage', () => {
 
     expect(await screen.findByTestId('data-error')).toBeInTheDocument();
   });
+
+  it('shows the tenant encryption keys on the encryption-keys surface', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/tenants/acme/encryption-keys')) {
+        return jsonResponse({
+          recoveryConfigured: true,
+          keys: [
+            {
+              keyId: 'k-1',
+              version: 1,
+              state: 'active',
+              createdWhen: '2026-10-01T09:00:00Z',
+              retiredWhen: null,
+              rootKeyProvider: 'local',
+              rootKeyId: 'root-1',
+              recoveryKeyId: 'recovery-1',
+            },
+          ],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage('encryption-keys');
+
+    expect(await screen.findByTestId('encryption-key-row-k-1')).toBeInTheDocument();
+    expect(screen.getByTestId('encryption-keys-rekey')).toBeInTheDocument();
+  });
 });

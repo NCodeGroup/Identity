@@ -1309,6 +1309,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = encoding,
             Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,

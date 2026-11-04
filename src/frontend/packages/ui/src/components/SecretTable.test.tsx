@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { SecretTable, type SecretRow } from './SecretTable.js';
+import { getSecretLifecycleState, SecretTable, type SecretRow } from './SecretTable.js';
 
-// A fixed reference instant, so the expired/active split does not depend on the real clock.
+// A fixed reference instant, so the state of each secret does not depend on the real clock.
 const now = Date.parse('2026-06-01T00:00:00Z');
 
 const base = {
@@ -10,33 +10,93 @@ const base = {
   algorithm: null,
   isVerifier: false,
   createdWhen: '2026-01-01T12:00:00Z',
+  activatesWhen: '2026-01-01T12:00:00Z',
+  managedBy: null,
 };
 
-const secrets: SecretRow[] = [
-  {
-    ...base,
-    secretId: 's-active',
-    keyId: 's-active',
-    secretType: 'symmetric',
-    keySizeBits: 256,
-    isVerifier: true,
-    expiresWhen: '2099-01-01T12:00:00Z',
-  },
-  {
-    ...base,
-    secretId: 's-expired',
-    keyId: 'imported-kid',
-    secretType: 'rsa',
-    keySizeBits: 2048,
-    expiresWhen: '2020-01-01T12:00:00Z',
-  },
-];
+const activeSecret: SecretRow = {
+  ...base,
+  secretId: 's-active',
+  keyId: 's-active',
+  secretType: 'symmetric',
+  keySizeBits: 256,
+  isVerifier: true,
+  retiresWhen: '2099-01-01T12:00:00Z',
+  expiresWhen: '2099-01-01T12:00:00Z',
+};
+
+const expiredSecret: SecretRow = {
+  ...base,
+  secretId: 's-expired',
+  keyId: 'imported-kid',
+  secretType: 'rsa',
+  keySizeBits: 2048,
+  retiresWhen: '2020-01-01T12:00:00Z',
+  expiresWhen: '2020-01-01T12:00:00Z',
+};
+
+const retiredSecret: SecretRow = {
+  ...base,
+  secretId: 's-retired',
+  keyId: 's-retired',
+  secretType: 'rsa',
+  keySizeBits: 2048,
+  retiresWhen: '2026-05-01T12:00:00Z',
+  expiresWhen: '2026-07-01T12:00:00Z',
+  managedBy: 'tenant_key_rollover',
+};
+
+const upcomingSecret: SecretRow = {
+  ...base,
+  secretId: 's-upcoming',
+  keyId: 's-upcoming',
+  secretType: 'rsa',
+  keySizeBits: 2048,
+  activatesWhen: '2026-06-03T12:00:00Z',
+  retiresWhen: '2026-09-01T12:00:00Z',
+  expiresWhen: '2026-09-08T12:00:00Z',
+  managedBy: 'tenant_key_rollover',
+};
+
+const secrets: SecretRow[] = [activeSecret, expiredSecret, retiredSecret, upcomingSecret];
+
+describe('getSecretLifecycleState', () => {
+  it('names the state from the instants', () => {
+    expect(getSecretLifecycleState(activeSecret, now)).toBe('active');
+    expect(getSecretLifecycleState(expiredSecret, now)).toBe('expired');
+    expect(getSecretLifecycleState(retiredSecret, now)).toBe('retired');
+    expect(getSecretLifecycleState(upcomingSecret, now)).toBe('upcoming');
+  });
+});
 
 describe('SecretTable', () => {
   it('renders a row per secret with its type and key size', () => {
     render(<SecretTable secrets={secrets} now={now} />);
     expect(screen.getByTestId('secret-row-s-active')).toHaveTextContent('symmetric');
     expect(screen.getByTestId('secret-row-s-active')).toHaveTextContent('256');
+  });
+
+  it('shows when each secret activates, retires and expires', () => {
+    render(<SecretTable secrets={secrets} now={now} />);
+    expect(screen.getByRole('columnheader', { name: 'Activates' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Retires' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Expires' })).toBeInTheDocument();
+    expect(screen.getByTestId('secret-row-s-upcoming')).toHaveTextContent(
+      new Date('2026-06-03T12:00:00Z').toLocaleString(),
+    );
+  });
+
+  it('flags a secret that is not yet active and one that has retired', () => {
+    render(<SecretTable secrets={secrets} now={now} />);
+    expect(screen.getByTestId('secret-state-s-upcoming')).toHaveTextContent('Upcoming');
+    expect(screen.getByTestId('secret-state-s-retired')).toHaveTextContent('Retired');
+    expect(screen.queryByTestId('secret-state-s-active')).not.toBeInTheDocument();
+  });
+
+  it('flags a key whose lifecycle the server manages', () => {
+    render(<SecretTable secrets={secrets} now={now} />);
+    expect(screen.getByTestId('secret-managed-s-retired')).toHaveTextContent('Managed');
+    expect(screen.queryByTestId('secret-managed-s-active')).not.toBeInTheDocument();
   });
 
   it('shows the key id each key is selected by', () => {
@@ -142,6 +202,7 @@ describe('SecretTable', () => {
             keyId: 's-odd',
             secretType: 'ecc',
             keySizeBits: 256,
+            retiresWhen: 'not-a-date',
             expiresWhen: 'not-a-date',
           },
         ]}
@@ -166,6 +227,7 @@ describe('SecretTable', () => {
             keyId: 's-boundary',
             secretType: 'rsa',
             keySizeBits: 2048,
+            retiresWhen: '2026-06-01T00:00:00Z',
             expiresWhen: '2026-06-01T00:00:00Z',
           },
         ]}

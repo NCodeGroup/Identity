@@ -47,16 +47,54 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.TenantKeyProvisioned,
-        Level = LogLevel.Information,
-        Message = "Provisioned the tenant '{TenantId}' with a new {Algorithm} key '{SecretId}'"
+        EventId = EventIds.TenantKeyRolloverFailed,
+        Level = LogLevel.Warning,
+        Message = "Rolling over the keys of the tenant '{TenantId}' failed; they are rolled over again at the next pass or when the tenant is next materialized"
     )]
-    internal static partial void TenantKeyProvisioned(
+    internal static partial void TenantKeyRolloverFailed(
         this ILogger logger,
         string tenantId,
-        string algorithm,
-        string secretId
+        Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyRolloverPassFailed,
+        Level = LogLevel.Warning,
+        Message = "The tenant key rollover pass failed; it runs again at the next interval"
+    )]
+    internal static partial void TenantKeyRolloverPassFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantSeedPostCommitStepFailed,
+        Level = LogLevel.Warning,
+        Message = "A step that follows the committed seed of the tenant '{TenantId}' failed; the seed stands, and the remaining steps run"
+    )]
+    internal static partial void TenantSeedPostCommitStepFailed(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyAuditPublishFailed,
+        Level = LogLevel.Warning,
+        Message = "Publishing the audit events of the committed key changes of the tenant '{TenantId}' failed; the changes stand"
+    )]
+    internal static partial void TenantKeyAuditPublishFailed(
+        this ILogger logger,
+        string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyRolloverLostRace,
+        Level = LogLevel.Debug,
+        Message = "Another writer changed the keys of the tenant '{TenantId}' first; the rollover pass leaves them to it"
+    )]
+    internal static partial void TenantKeyRolloverLostRace(this ILogger logger, string tenantId);
 
     [LoggerMessage(
         EventId = EventIds.TenantKeyReseedFailed,

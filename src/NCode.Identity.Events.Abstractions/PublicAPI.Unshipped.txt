@@ -198,3 +198,6 @@ NCode.Identity.Events.ISupportMetricAttributes
 NCode.Identity.Events.ISupportMetricAttributes.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
 virtual NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ParentResources.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Events.Audit.AuditResource!>!
 virtual NCode.Identity.Events.Audit.ResourceChangeAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+const NCode.Identity.Events.Audit.AuditEventCategories.Key = "key" -> string!
+const NCode.Identity.Events.Audit.AuditResourceTypes.Tenant = "tenant" -> string!
+const NCode.Identity.Events.Audit.AuditResourceTypes.TenantSecret = "tenant.secret" -> string!

@@ -9,11 +9,12 @@ using NCode.Identity.Persistence;
 namespace NCode.Identity.Secrets.Persistence.DataContracts;
 
 /// <summary>
-/// Contains the data for a persisted secret.
+/// Contains the data for a persisted secret. A record, so a change to a secret's metadata or lifecycle is a
+/// <c>with</c> copy that keeps every other member, its identity, concurrency token and key material included.
 /// </summary>
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcurrencyToken
+public sealed record PersistedSecret : ISupportResource, ISupportSecretId, ISupportConcurrencyToken
 {
     /// <summary>
     /// Gets the prefix for the resource type.
@@ -64,12 +65,30 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     public required string? Algorithm { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when this secret was created.
+    /// Gets the <see cref="DateTimeOffset"/> when this secret was created, which opens its validity window.
     /// </summary>
     public required DateTimeOffset CreatedWhen { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid.
+    /// Gets the <see cref="DateTimeOffset"/> when this secret's active window opens: from then on the secret signs or
+    /// encrypts. A key published ahead of its use carries a future value; a secret with no lifecycle of its own, such
+    /// as a client's shared secret, is active from <see cref="CreatedWhen"/>. Never before <see cref="CreatedWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public required DateTimeOffset ActivatesWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when this secret's active window closes: from then on the secret signs
+    /// and encrypts nothing, while it still verifies and decrypts until <see cref="ExpiresWhen"/>. A secret with
+    /// no lifecycle of its own retires when it expires. Never before <see cref="ActivatesWhen"/>, never after
+    /// <see cref="ExpiresWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public required DateTimeOffset RetiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when this secret expires: its validity window closes, so it neither
+    /// verifies nor decrypts, is not published, and does not authenticate.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
 
@@ -98,6 +117,16 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     public required string Origin { get; init; }
 
     /// <summary>
+    /// Gets the name of the component that manages the secret's lifecycle on its own, such as the tenant key rollover,
+    /// which retires and removes the keys it provisioned; or <c>null</c> when the secret keeps the lifecycle its
+    /// creator gave it, such as a key an operator generated or imported through the management API. An open
+    /// vocabulary: each component names itself.
+    /// </summary>
+    // See ADR-1404.
+    [MaxLength(SecretMaxLengths.ManagedBy)]
+    public string? ManagedBy { get; init; }
+
+    /// <summary>
     /// Gets the size, in bits, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
     /// For symmetric keys, this is the size of the actual key material.
@@ -121,4 +150,10 @@ public sealed class PersistedSecret : ISupportResource, ISupportSecretId, ISuppo
     // See ADR-1268.
     [MaxLength(SecretMaxLengths.PublicKey)]
     public string? PublicKey { get; init; }
+
+    /// <summary>
+    /// Returns the secret's resource type and identifier, never its key material.
+    /// </summary>
+    /// <returns>The secret's resource type and identifier.</returns>
+    public override string ToString() => $"{ResourceType}:{SecretId}";
 }

@@ -37,6 +37,8 @@ public class SecretProtectorProviderExtensionsTests : IDisposable
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch,
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = secretEncoding,
             Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,

@@ -212,6 +212,8 @@ internal class DefaultClientKeyImporter(
             Use = use,
             Algorithm = algorithm,
             CreatedWhen = request.CreatedWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
             ExpiresWhen = request.ExpiresWhen,
         };
 

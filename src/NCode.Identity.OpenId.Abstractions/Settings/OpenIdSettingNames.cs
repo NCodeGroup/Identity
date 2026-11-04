@@ -565,6 +565,29 @@ public static class OpenIdSettingNames
     public const string MaxConcurrentSessions = "max_concurrent_sessions";
 
     /// <summary>
+    /// Contains the name of the tenant <c>tenant_key_lifetime</c> setting: how long a key the server provisions for
+    /// the tenant signs or encrypts before it retires and its successor takes over. Defaults to 90 days. Not
+    /// advertised in discovery.
+    /// </summary>
+    public const string TenantKeyLifetime = "tenant_key_lifetime";
+
+    /// <summary>
+    /// Contains the name of the tenant <c>tenant_key_activation_delay</c> setting: how long a key the server
+    /// provisions for the tenant is published in the tenant's JSON Web Key Set before it starts to sign or encrypt,
+    /// so every verifier that caches the set has fetched the key before the first token it signs. Defaults to 2 days.
+    /// Not advertised in discovery.
+    /// </summary>
+    public const string TenantKeyActivationDelay = "tenant_key_activation_delay";
+
+    /// <summary>
+    /// Contains the name of the tenant <c>tenant_key_retirement_grace</c> setting: how long a key the server
+    /// provisions for the tenant stays published, and verifies or decrypts, after it stops signing or encrypting.
+    /// The server raises it to the longest lifetime of the tokens the tenant protects with its keys plus the tenant's
+    /// clock skew, so no token outlives the key that verifies it. Defaults to 7 days. Not advertised in discovery.
+    /// </summary>
+    public const string TenantKeyRetirementGrace = "tenant_key_retirement_grace";
+
+    /// <summary>
     /// Contains the name of the tenant <c>environment_type</c> setting: the name of the tenant's registered
     /// environment type, which selects that type's security profiles. Defaults to <c>production</c>. Not advertised in
     /// discovery.

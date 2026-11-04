@@ -71,14 +71,22 @@ internal static class DefaultRegistration
             );
 
             // Every tenant is provisioned with a persisted key for each configured algorithm it holds no usable key for,
-            // on the same seed path, and the configured keys are validated when the host starts (ADR-1169).
+            // on the same seed path, and the configured keys are validated when the host starts (ADR-1169). The keys
+            // roll over: one planner decides what the seed and the background pass change, and one rollover applies
+            // it (ADR-1404).
             serviceCollection.TryAddSingleton<ITenantKeyPolicy, DefaultTenantKeyPolicy>();
+            serviceCollection.TryAddSingleton<
+                ITenantKeyRolloverPlanner,
+                DefaultTenantKeyRolloverPlanner
+            >();
+            serviceCollection.TryAddSingleton<ITenantKeyRollover, DefaultTenantKeyRollover>();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<SeedTenantCommand>,
                     TenantKeySeedHandler
                 >()
             );
+            serviceCollection.AddHostedService<TenantKeyRolloverService>();
 
             serviceCollection.TryAddSingleton(TimeProvider.System);
 
@@ -109,10 +117,25 @@ internal static class DefaultRegistration
             );
 
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
+
+            // The token lifetime settings are a bound collection, so they start empty and take their defaults only
+            // when configuration names none; the validators run after this, so they check the names in force.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IPostConfigureOptions<OpenIdOptions>,
+                    TenantKeyRolloverOptionsDefaults
+                >()
+            );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<OpenIdOptions>,
                     TenantKeyProvisioningOptionsValidator
+                >()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<OpenIdOptions>,
+                    TenantKeyRolloverOptionsValidator
                 >()
             );
 

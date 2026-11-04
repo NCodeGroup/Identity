@@ -123,6 +123,78 @@ public class DefaultSecretImporterTests
     }
 
     [Fact]
+    public void ImportSecret_WhenTheRequestNamesNoLifecycle_ActivatesAtCreationAndRetiresAtExpiry()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = CreateRequest(SecretKeyTypes.Rsa, rsa.ExportSubjectPublicKeyInfoPem(), null);
+
+        var persisted = _importer.ImportSecret(request);
+
+        Assert.Equal(request.CreatedWhen, persisted.ActivatesWhen);
+        Assert.Equal(request.ExpiresWhen, persisted.RetiresWhen);
+    }
+
+    [Fact]
+    public void ImportSecret_WhenTheRequestNamesNoManager_LeavesTheSecretToItsCreator()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = CreateRequest(SecretKeyTypes.Rsa, rsa.ExportSubjectPublicKeyInfoPem(), null);
+
+        var persisted = _importer.ImportSecret(request);
+
+        Assert.Null(persisted.ManagedBy);
+    }
+
+    [Fact]
+    public void ImportSecret_WhenTheRequestNamesALifecycle_StoresIt()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new SecretKeyImportRequest
+        {
+            SecretId = "secret-1",
+            KeyId = null,
+            SecretType = SecretKeyTypes.Rsa,
+            Format = SecretKeyImportFormats.Pem,
+            KeyMaterial = rsa.ExportSubjectPublicKeyInfoPem(),
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+        };
+
+        var persisted = _importer.ImportSecret(request);
+
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), persisted.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), persisted.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(99), persisted.ExpiresWhen);
+    }
+
+    [Fact]
+    public void ImportSecret_WhenTheLifecycleIsOutOfOrder_ThrowsArgumentException()
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new SecretKeyImportRequest
+        {
+            SecretId = "secret-1",
+            KeyId = null,
+            SecretType = SecretKeyTypes.Rsa,
+            Format = SecretKeyImportFormats.Pem,
+            KeyMaterial = rsa.ExportSubjectPublicKeyInfoPem(),
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(100),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => _importer.ImportSecret(request));
+
+        Assert.Contains("cannot expire", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImportSecret_WhenTypeHasNoPublicKey_Throws()
     {
         var request = CreateRequest(SecretTypes.Symmetric, "material", null);

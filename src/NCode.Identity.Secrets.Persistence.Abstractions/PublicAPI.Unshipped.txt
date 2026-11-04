@@ -27,7 +27,6 @@ NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeyId.get -> st
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeyId.init -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeySizeBits.get -> int
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.KeySizeBits.init -> void
-NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.PersistedSecret() -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.PublicKey.get -> string?
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.PublicKey.init -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ResourceId.get -> string!
@@ -218,5 +217,38 @@ NCode.Identity.Secrets.Persistence.SecretOrigins
 const NCode.Identity.Secrets.Persistence.SecretOrigins.Generated = "generated" -> string!
 const NCode.Identity.Secrets.Persistence.SecretOrigins.Supplied = "supplied" -> string!
 const NCode.Identity.Secrets.Persistence.SecretMaxLengths.Origin = 100 -> int
+const NCode.Identity.Secrets.Persistence.SecretMaxLengths.ManagedBy = 100 -> int
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Origin.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.Origin.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ActivatesWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ActivatesWhen.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ManagedBy.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ManagedBy.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.RetiresWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.RetiresWhen.init -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecretExtensions.extension(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!).GetLifecycleState(System.DateTimeOffset now) -> string!
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecretExtensions.extension(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!).IsActive(System.DateTimeOffset now) -> bool
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecretExtensions.extension(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!).IsExpired(System.DateTimeOffset now) -> bool
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ActivatesWhen.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.RetiresWhen.init -> void
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ManagedBy.get -> string?
+NCode.Identity.Secrets.Persistence.GenerateSecretRequest.ManagedBy.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.ActivatesWhen.init -> void
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.RetiresWhen.init -> void
+NCode.Identity.Secrets.Persistence.SecretLifecycle
+NCode.Identity.Secrets.Persistence.SecretLifecycleStates
+const NCode.Identity.Secrets.Persistence.SecretLifecycleStates.Active = "active" -> string!
+const NCode.Identity.Secrets.Persistence.SecretLifecycleStates.Expired = "expired" -> string!
+const NCode.Identity.Secrets.Persistence.SecretLifecycleStates.Retired = "retired" -> string!
+const NCode.Identity.Secrets.Persistence.SecretLifecycleStates.Upcoming = "upcoming" -> string!
+static NCode.Identity.Secrets.Persistence.SecretLifecycle.Resolve(System.DateTimeOffset createdWhen, System.DateTimeOffset? activatesWhen, System.DateTimeOffset? retiresWhen, System.DateTimeOffset expiresWhen) -> (System.DateTimeOffset ActivatesWhen, System.DateTimeOffset RetiresWhen)
+static NCode.Identity.Secrets.Persistence.SecretLifecycle.TryResolve(System.DateTimeOffset createdWhen, System.DateTimeOffset? activatesWhen, System.DateTimeOffset? retiresWhen, System.DateTimeOffset expiresWhen, out (System.DateTimeOffset ActivatesWhen, System.DateTimeOffset RetiresWhen) resolved, out string? error) -> bool
+static NCode.Identity.Secrets.Persistence.SecretLifecycle.ResolveUpdate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, System.DateTimeOffset? activatesWhen, System.DateTimeOffset? retiresWhen, System.DateTimeOffset expiresWhen) -> (System.DateTimeOffset ActivatesWhen, System.DateTimeOffset RetiresWhen)
+static NCode.Identity.Secrets.Persistence.SecretLifecycle.TryResolveUpdate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, System.DateTimeOffset? activatesWhen, System.DateTimeOffset? retiresWhen, System.DateTimeOffset expiresWhen, out (System.DateTimeOffset ActivatesWhen, System.DateTimeOffset RetiresWhen) resolved, out string? error) -> bool
+static NCode.Identity.Secrets.Persistence.SecretLifecycle.TryValidate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, out string? error) -> bool
+static NCode.Identity.Secrets.Persistence.SecretLifecycle.TryValidate(System.DateTimeOffset createdWhen, System.DateTimeOffset activatesWhen, System.DateTimeOffset retiresWhen, System.DateTimeOffset expiresWhen, out string? error) -> bool
+override NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.ToString() -> string!

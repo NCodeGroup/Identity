@@ -246,9 +246,20 @@ export type SecretResource = {
   readonly use: string | null;
   readonly algorithm: string | null;
   readonly createdWhen: string;
+  // See ADR-1403.
+  /** When the secret starts to sign or encrypt; a key published ahead of its use carries a future instant. */
+  readonly activatesWhen: string;
+  /** When the secret stops signing or encrypting while it still verifies or decrypts until `expiresWhen`. */
+  readonly retiresWhen: string;
   readonly expiresWhen: string;
   readonly secretType: string;
   readonly keySizeBits: number;
+  // See ADR-1404.
+  /**
+   * The component that manages the secret's lifecycle on its own, such as `tenant_key_rollover` for a key the server
+   * provisioned, or `null` when the secret keeps the lifecycle its creator gave it.
+   */
+  readonly managedBy: string | null;
   // See ADR-1391.
   /**
    * Whether the server holds only a one-way verifier of the shared secret: it authenticates a method that compares the

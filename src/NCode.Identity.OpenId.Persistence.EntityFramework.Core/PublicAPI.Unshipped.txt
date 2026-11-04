@@ -547,3 +547,9 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResou
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.AuditRecordResourceEntity.Type.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Origin.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Origin.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ActivatesWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ActivatesWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.RetiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.RetiresWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ManagedBy.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ManagedBy.init -> void

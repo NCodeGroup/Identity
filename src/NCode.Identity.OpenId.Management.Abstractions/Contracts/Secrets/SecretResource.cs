@@ -35,6 +35,12 @@ public sealed class SecretResource
     /// <inheritdoc cref="PersistedSecret.CreatedWhen"/>
     public required DateTimeOffset CreatedWhen { get; init; }
 
+    /// <inheritdoc cref="PersistedSecret.ActivatesWhen"/>
+    public required DateTimeOffset ActivatesWhen { get; init; }
+
+    /// <inheritdoc cref="PersistedSecret.RetiresWhen"/>
+    public required DateTimeOffset RetiresWhen { get; init; }
+
     /// <inheritdoc cref="PersistedSecret.ExpiresWhen"/>
     public required DateTimeOffset ExpiresWhen { get; init; }
 
@@ -43,6 +49,9 @@ public sealed class SecretResource
 
     /// <inheritdoc cref="PersistedSecret.KeySizeBits"/>
     public required int KeySizeBits { get; init; }
+
+    /// <inheritdoc cref="PersistedSecret.ManagedBy"/>
+    public required string? ManagedBy { get; init; }
 
     /// <summary>
     /// Gets whether the server holds only a one-way verifier of the shared secret: it authenticates a

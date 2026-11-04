@@ -20,8 +20,6 @@ internal static class EventIds
 
     public const int ServerSettingsReloadRejected = Base + 3;
 
-    public const int TenantKeyProvisioned = Base + 4;
-
     public const int TenantKeyReseedFailed = Base + 5;
 
     public const int TenantChangeBroadcastFailed = Base + 6;
@@ -43,4 +41,16 @@ internal static class EventIds
     public const int TenantCacheClearFailed = Base + 14;
 
     public const int ServerMaterializationAtStartFailed = Base + 15;
+
+    public const int TenantKeyRolloverFailed = Base + 19;
+
+    public const int TenantKeyRolloverPassFailed = Base + 20;
+
+    public const int TenantKeyRolloverLostRace = Base + 21;
+
+    public const int TenantSeedPostCommitStepFailed = Base + 23;
+
+    public const int TenantKeyAuditPublishFailed = Base + 24;
+
+    public const int TenantKeyExtended = Base + 22;
 }

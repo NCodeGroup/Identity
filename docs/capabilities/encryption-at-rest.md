@@ -333,8 +333,8 @@ rotation, for example) without breaking you.
 We'd rather say what this doesn't do yet:
 
 - **A compromised running replica** can use the keys it has loaded. Remote signing inside the KMS
-  ([#165](https://github.com/NCodeGroup/Identity/issues/165)) and key rollover
-  ([#166](https://github.com/NCodeGroup/Identity/issues/166)) narrow that.
+  ([#165](https://github.com/NCodeGroup/Identity/issues/165)) narrows that; the rollover of a tenant's keys
+  ([Key Rollover](./key-rollover.md)) bounds how long a key it took stays in use.
 - **Backups outlive crypto-shredding.** A backup that still holds a deleted tenant's wrapped master key stays readable
   with the root key until the backup expires.
 - **Azure Key Vault doesn't bind or log the owner context.** Only the key-check value catches a master key presented

@@ -27,7 +27,6 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -1242,7 +1241,8 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validation = SecretValidator.ValidateCreate(request);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validation = SecretValidator.ValidateCreate(request, createdWhen);
         if (!validation.IsValid)
         {
             return ToErrorResult(validation.Error);
@@ -1268,7 +1268,9 @@ internal class TenantApiEndpointHandler(
                     GenerationParameters = validation.GenerationParameters,
                     Use = request.Use,
                     Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    CreatedWhen = createdWhen,
+                    ActivatesWhen = request.ActivatesWhen,
+                    RetiresWhen = request.RetiresWhen,
                     ExpiresWhen = request.ExpiresWhen,
                 }
             );
@@ -1352,7 +1354,8 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validationError = SecretValidator.ValidateImport(request);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validationError = SecretValidator.ValidateImport(request, createdWhen);
         if (validationError is not null)
         {
             return ToErrorResult(validationError);
@@ -1368,7 +1371,9 @@ internal class TenantApiEndpointHandler(
             KeyMaterial = request.KeyMaterial,
             Use = request.Use,
             Algorithm = request.Algorithm,
-            CreatedWhen = TimeProvider.GetUtcNow(),
+            CreatedWhen = createdWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
             ExpiresWhen = request.ExpiresWhen,
         };
         if (!KeyImporter.TryImportKey(importRequest, out var importedSecret, out var importError))
@@ -1549,22 +1554,7 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(metadataError);
         }
 
-        var updated = new PersistedSecret
-        {
-            SecretId = secret.SecretId,
-            KeyId = secret.KeyId,
-            ConcurrencyToken = secret.ConcurrencyToken,
-            Use = request.Use,
-            Algorithm = request.Algorithm,
-            CreatedWhen = secret.CreatedWhen,
-            ExpiresWhen = request.ExpiresWhen,
-            SecretType = secret.SecretType,
-            SecretEncoding = secret.SecretEncoding,
-            Origin = secret.Origin,
-            KeySizeBits = secret.KeySizeBits,
-            EncodedValue = secret.EncodedValue,
-            PublicKey = secret.PublicKey,
-        };
+        var updated = WithUpdate(secret, request);
 
         await store.UpdateSecretAsync(tenantId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);

@@ -350,7 +350,7 @@ const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.RequestsOvera
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters.TokenRequestsOverage = "token_requests_overage" -> string!
 const NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.SectionName = "TenantUsage" -> string!
 NCode.Identity.OpenId.Authentication.Usage.ITenantUsageRecorder
-NCode.Identity.OpenId.Authentication.Usage.ITenantUsageRecorder.Record(string! tenantId, string! meter) -> void
+NCode.Identity.OpenId.Authentication.Usage.ITenantUsageRecorder.Record(string! teamId, string! tenantId, string! meter) -> void
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageMeters
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions
 NCode.Identity.OpenId.Authentication.Usage.TenantUsageOptions.FlushInterval.get -> System.TimeSpan

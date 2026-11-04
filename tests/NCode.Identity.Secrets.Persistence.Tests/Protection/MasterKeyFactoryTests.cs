@@ -402,4 +402,54 @@ public class MasterKeyFactoryTests : IDisposable
     }
 
     #endregion
+
+    #region UnwrapWithRecovery and Wrap Tests
+
+    [Fact]
+    public async Task UnwrapWithRecovery_ARowWithoutARecoveryCopy_Throws()
+    {
+        using var pair = RSA.Create(3072);
+        using var unwrapper = RecoveryKeyUnwrapper.FromPem(pair.ExportPkcs8PrivateKeyPem());
+        ExpectCreate();
+        var created = await CreateFactory(_disabledRecovery)
+            .CreateAsync(Owner.Normalize(), 1, CancellationToken.None);
+        created.Key.Dispose();
+
+        Assert.Throws<CryptographicException>(() =>
+            MasterKeyFactory.UnwrapWithRecovery(created.Row, unwrapper)
+        );
+    }
+
+    [Fact]
+    public async Task UnwrapWithRecovery_ARowWithARecoveryCopy_ReturnsTheKey()
+    {
+        using var pair = RSA.Create(3072);
+        using var recovery = RecoveryKeyWrapper.FromPem(pair.ExportSubjectPublicKeyInfoPem());
+        using var unwrapper = RecoveryKeyUnwrapper.FromPem(pair.ExportPkcs8PrivateKeyPem());
+        ExpectCreate();
+        var created = await CreateFactory(recovery)
+            .CreateAsync(Owner.Normalize(), 1, CancellationToken.None);
+        created.Key.Dispose();
+
+        using var key = MasterKeyFactory.UnwrapWithRecovery(created.Row, unwrapper);
+
+        Assert.Equal(created.Row.KeyId, key.KeyId);
+        Assert.Equal(created.Row.Version, key.Version);
+    }
+
+    [Fact]
+    public async Task WrapUnderRecovery_WithoutARecoveryKey_ReturnsNull()
+    {
+        ExpectCreate();
+        var created = await CreateFactory(_disabledRecovery)
+            .CreateAsync(Owner.Normalize(), 1, CancellationToken.None);
+        using var key = created.Key;
+
+        var wrapped = await CreateFactory(_disabledRecovery)
+            .WrapUnderRecoveryAsync(key, CancellationToken.None);
+
+        Assert.Null(wrapped);
+    }
+
+    #endregion
 }

@@ -95,30 +95,30 @@ internal class DefaultOpenIdTenantCache(
         var teamId = tenant.Value.TeamId;
         var token = new object();
 
-        CancellationToken generation;
+        // The generation token, the index write and the cache write share one lock, so two concurrent calls for the
+        // same tenant leave the index holding the token of the entry the cache holds, and a replaced entry's callback
+        // never removes the survivor's index entry. The eviction callback does not take the lock.
         lock (Gate)
         {
-            generation = Generation.Token;
-        }
-
-        var entryOptions = new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = Lifetime,
-            ExpirationTokens = { new CancellationChangeToken(generation) },
-            PostEvictionCallbacks =
+            var entryOptions = new MemoryCacheEntryOptions
             {
-                new PostEvictionCallbackRegistration
+                AbsoluteExpirationRelativeToNow = Lifetime,
+                ExpirationTokens = { new CancellationChangeToken(Generation.Token) },
+                PostEvictionCallbacks =
                 {
-                    EvictionCallback = EvictionCallback,
-                    State = (teamId, tenantId, token),
+                    new PostEvictionCallbackRegistration
+                    {
+                        EvictionCallback = EvictionCallback,
+                        State = (teamId, tenantId, token),
+                    },
                 },
-            },
-        };
+            };
 
-        TenantIdsByTeam.GetOrAdd(teamId, _ => new ConcurrentDictionary<string, object>())[
-            tenantId
-        ] = token;
-        MemoryCache.Set(key, newLease, entryOptions);
+            TenantIdsByTeam.GetOrAdd(teamId, _ => new ConcurrentDictionary<string, object>())[
+                tenantId
+            ] = token;
+            MemoryCache.Set(key, newLease, entryOptions);
+        }
 
         return ValueTask.CompletedTask;
     }

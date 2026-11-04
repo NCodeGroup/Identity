@@ -75,7 +75,10 @@ the platform and its tenants in the settings cascade and in authority.**
    serialized on the team row, so two creations that race may overshoot it by one.
 4. **Authority runs platform, team, tenant, leaf.** `TeamAdmin` at a team creates its tenants and manages everything
    beneath it; `Owner` never creates. Granting or revoking `TeamAdmin` is creation authority at the team node
-   (`Operations.Create`), so an `Owner` can neither mint nor revoke it. Role-assignment lookups span tenants. Tenants are created and listed under
+   (`Operations.Create`), so an `Owner` can neither mint nor revoke it. Role-assignment lookups span tenants: the
+   platform, team and tenant nodes have globally unique, retired identifiers, so an assignment matches them on type and
+   identifier, and any other node counts an assignment only when it belongs to the node's tenant, because client and
+   resource-server identifiers are unique only within a tenant. Tenants are created and listed under
    `/api/teams/{teamId}/tenants`. The root tenant holds the `platform_settings`, `teams`, `team_settings` and `tenants`
    scope families.
 5. **Lifecycle.** A disabled team's tenants answer `404` on the protocol surface and stay manageable. A team with

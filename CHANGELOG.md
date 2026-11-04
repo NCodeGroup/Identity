@@ -3356,7 +3356,10 @@ describes the family as it is rather than its changes
 
 - **A team is an authority node.** Authority runs platform → team → tenant → leaf: a role assigned at a team reaches
   every tenant beneath it, the `TeamAdmin` role creates the team's tenants and manages everything beneath, `Owner` never
-  creates, and a principal's role assignments are read across every tenant
+  creates, and a principal's role assignments are read across every tenant: the platform, team and tenant nodes have
+  globally unique, retired identifiers and match an assignment on type and identifier, and any other node counts an
+  assignment only when it belongs to the node's tenant, because client and resource-server identifiers
+  are unique only within a tenant
   ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last

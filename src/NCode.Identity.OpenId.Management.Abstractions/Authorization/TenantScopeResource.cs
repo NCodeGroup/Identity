@@ -9,8 +9,10 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// <summary>
 /// A minimal <see cref="ISupportTenantId"/> authorization resource used to authorize a tenant-scoped operation (for
 /// example, creating or listing a tenant-bound family) against the ambient tenant. Unlike a resource node it
-/// deliberately carries no resource type or identifier, so only the tenant- and global-admin handlers evaluate it and
-/// the ownership handler does not — there is no single resource instance (and no ownership) to consider.
+/// deliberately carries no resource type or identifier, so it is judged at its tenant's node: the tenant-admin and
+/// global-admin handlers evaluate it, and so does the ownership handler through the tenant node and its ancestors (the
+/// tenant's team and the platform). <c>Owner</c>, <c>TeamAdmin</c>, <c>TenantAdmin</c> and <c>GlobalAdmin</c>
+/// authority at those nodes reaches it, and creation is held by <c>TeamAdmin</c> and <c>GlobalAdmin</c>.
 /// </summary>
 [PublicAPI]
 public sealed class TenantScopeResource : ISupportTenantId

@@ -49,6 +49,11 @@ A **Production** host refuses to start without a real root key, and a root key m
 | `SecretProtection:RootKeyProviders:Local:Key`     | The same key inline: Development and tests only                                                    |
 | `SecretProtection:Recovery:PublicKeyPath`         | Offline recovery RSA public key (PEM) that also wraps the keys                                     |
 | `SecretProtection:Recovery:Disabled`              | `true` only to acknowledge running without a recovery key                                          |
+| `SecretProtection:MasterKeys:RotationPeriod`      | How long an active master key lives before the background pass rotates it (default `365.00:00:00`) |
+| `SecretProtection:MasterKeys:RefreshInterval`     | How long a replica keeps an owner's master keys in memory before it reads them again (`00:05:00`)  |
+| `SecretProtection:MasterKeys:RetirementGrace`     | How long a retired master key is kept before it can be destroyed (default `30.00:00:00`)           |
+| `SecretProtection:MasterKeys:MaintenanceInterval` | How often the background pass rotates, rewraps and destroys (default `1.00:00:00`)                 |
+| `SecretProtection:MasterKeys:DestroyRetired`      | `false` keeps retired master keys for good (default `true`)                                        |
 
 The setting is required: a host that leaves it unset stops when it starts, naming it. `ephemeral` keeps the root key in
 memory, so it suits only development and tests, and Production refuses it
@@ -75,6 +80,35 @@ unprotect: a tenant whose keys were protected under another root key is not serv
 that protected them is missing or has changed
 ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md)). Restore the root key, or
 reset the database with it.
+
+### Master keys
+
+Each tenant and the server have one active master key. It rotates to a new version after
+`SecretProtection:MasterKeys:RotationPeriod` or when an administrator rekeys through the management API
+(`POST /api/tenants/{tenantId}/encryption-keys/rekey`, `POST /api/servers/{serverId}/encryption-keys/rekey`), the old
+version retires, and the values it protected are rewrapped under the new one in the background. A retired key is
+destroyed once its grace has passed and no stored secret, grant payload or live Data Protection key names it
+([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+
+The host also runs one offline command from its own image, for a one-off Job (the Helm chart's
+`secretProtection.rewrapJob` runs it): it rewraps every master key under the configured root key provider and recovery
+public key, which moves the keys to a new root key provider or root key, and it replaces the recovery copies when the
+recovery key pair changes
+([ADR-1408](../../docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)):
+
+```sh
+dotnet NCode.Identity.OpenId.Host.dll secret-protection rewrap [--recovery-private-key <file>] [--owner <type:id>] [--dry-run]
+dotnet NCode.Identity.OpenId.Host.dll secret-protection rewrap-recovery [--recovery-private-key <file>] [--owner <type:id>] [--dry-run]
+```
+
+`rewrap` wraps each master key under the configured root key provider and, when a recovery public key is configured,
+under it too. `rewrap-recovery` replaces only the recovery copies and needs a configured recovery public key. Each key
+is unwrapped by the root key provider it names, which must stay registered and configured for the run, or from its
+recovery copy when `--recovery-private-key` names the file of the recovery private key. The key is read from that file
+and never from configuration, is held in memory that is zeroed when the command ends, and never reaches a serving
+process. `--owner` limits the run to one owner such as `tenant:acme`, and `--dry-run` unwraps and verifies every key
+without writing. The exit code is `0` when no key failed, `1` otherwise or when the configuration is invalid, and `2`
+for a usage error. A run is repeatable.
 
 ### Development credentials
 

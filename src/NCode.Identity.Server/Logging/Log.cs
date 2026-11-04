@@ -101,4 +101,35 @@ internal static partial class Log
         this ILogger logger,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionCommandConfigurationInvalid,
+        Level = LogLevel.Error,
+        Message = "The secret-protection command cannot run: the configuration is invalid."
+    )]
+    internal static partial void SecretProtectionCommandConfigurationInvalid(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionCommandFailed,
+        Level = LogLevel.Error,
+        Message = "The secret-protection command failed."
+    )]
+    internal static partial void SecretProtectionCommandFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionRecoveryKeyUnreadable,
+        Level = LogLevel.Error,
+        Message = "The recovery private key file '{Path}' cannot be read, or it is empty or too large."
+    )]
+    internal static partial void SecretProtectionRecoveryKeyUnreadable(
+        this ILogger logger,
+        string path,
+        Exception? exception
+    );
 }

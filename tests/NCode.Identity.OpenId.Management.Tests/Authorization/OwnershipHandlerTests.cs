@@ -45,11 +45,12 @@ public class OwnershipHandlerTests : IDisposable
         string roleName,
         string resourceType,
         string resourceId,
-        string principalId = Subject
+        string principalId = Subject,
+        string tenantId = TenantId
     ) =>
         new()
         {
-            TenantId = TenantId,
+            TenantId = tenantId,
             AssignmentId = "assign-1",
             PrincipalId = principalId,
             RoleName = roleName,
@@ -185,7 +186,9 @@ public class OwnershipHandlerTests : IDisposable
                     .Returns(tenantStore.Object)
                     .Verifiable();
                 tenantStore
-                    .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+                    .Setup(x =>
+                        x.GetOrDefaultAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())
+                    )
                     .ReturnsAsync(tenantTeamId is null ? null : CreateTenant(tenantTeamId))
                     .Verifiable();
             }
@@ -519,6 +522,76 @@ public class OwnershipHandlerTests : IDisposable
             ResourceNode.For(TenantId, "webhook", "w1"),
             CreateSubject(),
             Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, TeamId)
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenAClientAssignmentBelongsToAnotherTenant_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ResourceNode.For("tenant-b", ResourceNodeTypes.Client, "spa"),
+            CreateSubject(),
+            Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "spa", tenantId: "tenant-a")
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenAClientAssignmentBelongsToTheNodesTenant_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ResourceNode.For("tenant-b", ResourceNodeTypes.Client, "spa"),
+            CreateSubject(),
+            Assignment(BuiltInRoles.Owner, ResourceNodeTypes.Client, "spa", tenantId: "tenant-b")
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenACustomNodeAssignmentBelongsToAnotherTenant_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ResourceNode.For("tenant-b", "webhook", "w1"),
+            CreateSubject(),
+            Assignment(BuiltInRoles.Owner, "webhook", "w1", tenantId: "tenant-a")
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenACustomNodeAssignmentBelongsToTheNodesTenant_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ResourceNode.For("tenant-b", "webhook", "w1"),
+            CreateSubject(),
+            Assignment(BuiltInRoles.Owner, "webhook", "w1", tenantId: "tenant-b")
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenOwnerAtTheTenantNodeStoredUnderAnotherTenant_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ClientNode(),
+            CreateSubject(),
+            Assignment(
+                BuiltInRoles.Owner,
+                ResourceNodeTypes.Tenant,
+                TenantId,
+                tenantId: "control-plane"
+            )
         );
 
         Assert.True(succeeded);

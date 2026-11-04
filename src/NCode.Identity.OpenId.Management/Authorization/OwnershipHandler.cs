@@ -18,7 +18,9 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// resource. Any <see cref="ISupportTenantId"/> resource is judged at its <see cref="IResourceNode"/>; a persisted
 /// entity or a <see cref="TenantScopeResource"/> is judged at its tenant's node, and any other node type inherits the
 /// tenant's and the team's assignments. A principal holds authority when it has a role assignment at that node or an ancestor (its tenant, its
-/// team, or the platform root). This realizes ownership: an <c>Owner</c> assignment at an instance lets the principal
+/// team, or the platform root). The platform, team and tenant nodes have globally unique identifiers and match on
+/// type and identifier; any other node's identifier is unique only within its tenant, so an assignment at it counts
+/// only when it belongs to the node's tenant. This realizes ownership: an <c>Owner</c> assignment at an instance lets the principal
 /// manage that instance (and everything beneath it) without any tenant-wide role. Ownership grants every operation
 /// except <see cref="Operations.Create"/>; creating a new resource is authority at the parent node, held by a
 /// <c>TeamAdmin</c> or <c>GlobalAdmin</c> assignment at the node or an ancestor.
@@ -94,12 +96,23 @@ internal class OwnershipHandler(
             var isAuthorizingRole = isCreate
                 ? IsCreationRole(assignment.RoleName)
                 : IsManagementRole(assignment.RoleName);
-            if (
-                isAuthorizingRole
-                && ancestorNodes.Contains(
-                    (assignment.ResourceType, Normalize(assignment.ResourceId))
-                )
-            )
+            if (!isAuthorizingRole)
+            {
+                continue;
+            }
+
+            // An ancestor (platform, team or tenant) matches on type and identifier. Any other node's identifier is
+            // unique only within its tenant, so an assignment at it counts only when it belongs to the node's tenant.
+            // See ADR-1403
+            var normalizedResourceId = Normalize(assignment.ResourceId);
+            var isAncestor = ancestorNodes.Contains(
+                (assignment.ResourceType, normalizedResourceId)
+            );
+            var isTheNode =
+                string.Equals(assignment.ResourceType, node.ResourceType, StringComparison.Ordinal)
+                && normalizedResourceId == Normalize(node.ResourceId)
+                && Normalize(assignment.TenantId) == Normalize(node.TenantId);
+            if (isAncestor || isTheNode)
             {
                 context.Succeed(requirement);
                 return;
@@ -116,12 +129,18 @@ internal class OwnershipHandler(
         CancellationToken cancellationToken
     )
     {
-        // A resource's authority chain is fixed: the node itself, its tenant, its team, then the platform root.
+        // A resource's authority chain is fixed: the node itself, its tenant, its team, then the platform root. The
+        // platform, team and tenant nodes have globally unique identifiers, so the node itself joins this set only
+        // when it is one of them; any other node is matched within its tenant by the caller.
         HashSet<(string ResourceType, string NormalizedResourceId)> nodes =
         [
-            (resource.ResourceType, Normalize(resource.ResourceId)),
             (ResourceNodeTypes.Platform, Normalize(OpenIdConstants.PlatformResourceId)),
         ];
+
+        if (IsGloballyUniqueNodeType(resource.ResourceType))
+        {
+            nodes.Add((resource.ResourceType, Normalize(resource.ResourceId)));
+        }
 
         if (string.Equals(resource.ResourceType, ResourceNodeTypes.Team, StringComparison.Ordinal))
         {
@@ -148,6 +167,11 @@ internal class OwnershipHandler(
 
         return nodes;
     }
+
+    private static bool IsGloballyUniqueNodeType(string resourceType) =>
+        string.Equals(resourceType, ResourceNodeTypes.Platform, StringComparison.Ordinal)
+        || string.Equals(resourceType, ResourceNodeTypes.Team, StringComparison.Ordinal)
+        || string.Equals(resourceType, ResourceNodeTypes.Tenant, StringComparison.Ordinal);
 
     private static bool IsCreationRole(string roleName) =>
         string.Equals(roleName, BuiltInRoles.TeamAdmin, StringComparison.OrdinalIgnoreCase)

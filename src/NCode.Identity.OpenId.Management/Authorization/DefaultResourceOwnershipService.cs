@@ -58,10 +58,88 @@ internal class DefaultResourceOwnershipService(
     }
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlyList<PersistedRoleAssignment>> GetOwnersAsync(
+    public ValueTask<IReadOnlyList<PersistedRoleAssignment>> GetOwnersAsync(
         IStoreManager storeManager,
         string resourceType,
         string resourceId,
+        CancellationToken cancellationToken
+    ) =>
+        GetAssignmentsAsync(
+            storeManager,
+            resourceType,
+            resourceId,
+            BuiltInRoles.Owner,
+            cancellationToken
+        );
+
+    /// <inheritdoc />
+    public ValueTask<PersistedRoleAssignment> AddOwnerAsync(
+        IStoreManager storeManager,
+        string tenantId,
+        string resourceType,
+        string resourceId,
+        string principalId,
+        CancellationToken cancellationToken
+    ) =>
+        AddAssignmentAsync(
+            storeManager,
+            tenantId,
+            resourceType,
+            resourceId,
+            principalId,
+            BuiltInRoles.Owner,
+            cancellationToken
+        );
+
+    /// <inheritdoc />
+    public async ValueTask<OwnerRemovalResult> RemoveOwnerAsync(
+        IStoreManager storeManager,
+        string resourceType,
+        string resourceId,
+        string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var owners = await GetOwnersAsync(
+            storeManager,
+            resourceType,
+            resourceId,
+            cancellationToken
+        );
+
+        var toRemoveCount = owners.Count(assignment =>
+            string.Equals(assignment.PrincipalId, principalId, StringComparison.Ordinal)
+        );
+        if (toRemoveCount == 0)
+        {
+            return OwnerRemovalResult.NotFound;
+        }
+
+        // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-1034).
+        if (owners.Count - toRemoveCount < 1)
+        {
+            return OwnerRemovalResult.LastOwnerForbidden;
+        }
+
+        await RemoveAssignmentAsync(
+            storeManager,
+            resourceType,
+            resourceId,
+            principalId,
+            BuiltInRoles.Owner,
+            cancellationToken
+        );
+
+        return OwnerRemovalResult.Removed;
+    }
+
+    // See ADR-1403
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<PersistedRoleAssignment>> GetAssignmentsAsync(
+        IStoreManager storeManager,
+        string resourceType,
+        string resourceId,
+        string roleName,
         CancellationToken cancellationToken
     )
     {
@@ -71,16 +149,18 @@ internal class DefaultResourceOwnershipService(
             resourceId,
             cancellationToken
         );
-        return assignments.Where(IsOwner).ToList();
+        return assignments.Where(assignment => HasRole(assignment, roleName)).ToList();
     }
 
+    // See ADR-1403
     /// <inheritdoc />
-    public async ValueTask<PersistedRoleAssignment> AddOwnerAsync(
+    public async ValueTask<PersistedRoleAssignment> AddAssignmentAsync(
         IStoreManager storeManager,
         string tenantId,
         string resourceType,
         string resourceId,
         string principalId,
+        string roleName,
         CancellationToken cancellationToken
     )
     {
@@ -92,7 +172,7 @@ internal class DefaultResourceOwnershipService(
         );
 
         var existing = assignments.FirstOrDefault(assignment =>
-            IsOwner(assignment)
+            HasRole(assignment, roleName)
             && string.Equals(assignment.PrincipalId, principalId, StringComparison.Ordinal)
         );
         if (existing is not null)
@@ -100,58 +180,47 @@ internal class DefaultResourceOwnershipService(
             return existing;
         }
 
-        var owner = new PersistedRoleAssignment
+        var created = new PersistedRoleAssignment
         {
             TenantId = tenantId,
             AssignmentId = CryptoService.GenerateResourceId(),
             PrincipalId = principalId,
-            RoleName = BuiltInRoles.Owner,
+            RoleName = roleName,
             ResourceType = resourceType,
             ResourceId = resourceId,
             ConcurrencyToken = string.Empty,
         };
-        await store.AddAsync(owner, cancellationToken);
-        return owner;
+        await store.AddAsync(created, cancellationToken);
+        return created;
     }
 
+    // See ADR-1403
     /// <inheritdoc />
-    public async ValueTask<OwnerRemovalResult> RemoveOwnerAsync(
+    public async ValueTask<bool> RemoveAssignmentAsync(
         IStoreManager storeManager,
         string resourceType,
         string resourceId,
         string principalId,
+        string roleName,
         CancellationToken cancellationToken
     )
     {
         var store = storeManager.GetStore<IRoleAssignmentStore>();
-        var owners = (await store.GetByResourceAsync(resourceType, resourceId, cancellationToken))
-            .Where(IsOwner)
-            .ToList();
-
-        var toRemove = owners
+        var toRemove = (await store.GetByResourceAsync(resourceType, resourceId, cancellationToken))
             .Where(assignment =>
-                string.Equals(assignment.PrincipalId, principalId, StringComparison.Ordinal)
+                HasRole(assignment, roleName)
+                && string.Equals(assignment.PrincipalId, principalId, StringComparison.Ordinal)
             )
             .ToList();
-        if (toRemove.Count == 0)
-        {
-            return OwnerRemovalResult.NotFound;
-        }
-
-        // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-1034).
-        if (owners.Count - toRemove.Count < 1)
-        {
-            return OwnerRemovalResult.LastOwnerForbidden;
-        }
 
         foreach (var assignment in toRemove)
         {
             await store.RemoveAsync(assignment.AssignmentId, cancellationToken);
         }
 
-        return OwnerRemovalResult.Removed;
+        return toRemove.Count > 0;
     }
 
-    private static bool IsOwner(PersistedRoleAssignment assignment) =>
-        string.Equals(assignment.RoleName, BuiltInRoles.Owner, StringComparison.OrdinalIgnoreCase);
+    private static bool HasRole(PersistedRoleAssignment assignment, string roleName) =>
+        string.Equals(assignment.RoleName, roleName, StringComparison.OrdinalIgnoreCase);
 }

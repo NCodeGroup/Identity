@@ -476,6 +476,34 @@ public static class JoseClaimNames
         public const string SHash = "s_hash";
 
         /// <summary>
+        /// Contains a constant with the value: <c>_sd</c>, the array of selectively disclosable claim digests of an
+        /// object in a Selective Disclosure JWT.
+        /// https://datatracker.ietf.org/doc/html/rfc9901#section-4.2.4.1
+        /// </summary>
+        public const string Sd = "_sd";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>_sd_alg</c>, the hash algorithm of the digests of a Selective
+        /// Disclosure JWT.
+        /// https://datatracker.ietf.org/doc/html/rfc9901#section-4.1.1
+        /// </summary>
+        public const string SdAlg = "_sd_alg";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>...</c>, the one member of the object that stands in for a
+        /// selectively disclosable array element in a Selective Disclosure JWT.
+        /// https://datatracker.ietf.org/doc/html/rfc9901#section-4.2.4.2
+        /// </summary>
+        public const string SdArrayElement = "...";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>sd_hash</c>, the digest of the presentation that a Key Binding JWT
+        /// is bound to.
+        /// https://datatracker.ietf.org/doc/html/rfc9901#section-4.3
+        /// </summary>
+        public const string SdHash = "sd_hash";
+
+        /// <summary>
         /// Contains a constant with the value: <c>scope</c>
         /// https://datatracker.ietf.org/doc/html/rfc9068#section-2.2.3
         /// </summary>
@@ -486,6 +514,13 @@ public static class JoseClaimNames
         /// https://openid.net/specs/openid-connect-frontchannel-1_0.html#ClaimsContents
         /// </summary>
         public const string Sid = "sid";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>status</c>, the status mechanisms of an SD-JWT-based Verifiable
+        /// Credential, such as a Token Status List reference.
+        /// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc
+        /// </summary>
+        public const string Status = "status";
 
         /// <summary>
         /// Contains a constant with the value: <c>sub</c>
@@ -503,6 +538,19 @@ public static class JoseClaimNames
         /// https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
         /// </summary>
         public const string UpdatedAt = "updated_at";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>vct</c>, the type of an SD-JWT-based Verifiable Credential.
+        /// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc
+        /// </summary>
+        public const string Vct = "vct";
+
+        /// <summary>
+        /// Contains a constant with the value: <c>vct#integrity</c>, the integrity metadata of the type of an
+        /// SD-JWT-based Verifiable Credential.
+        /// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc
+        /// </summary>
+        public const string VctIntegrity = "vct#integrity";
 
         /// <summary>
         /// Contains a constant with the value: <c>website</c>

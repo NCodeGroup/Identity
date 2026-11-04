@@ -1,0 +1,330 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using System.Text.Json;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Jose.SdJwt.Digests;
+using NCode.Identity.Jose.SdJwt.Options;
+using NCode.Identity.Jose.SdJwt.Processing;
+using NCode.Identity.Jwt.Validation;
+using NCode.Identity.Secrets.Keys;
+using NCode.Json;
+
+namespace NCode.Identity.Jose.SdJwt.Verification;
+
+/// <summary>
+/// Provides the default implementation of <see cref="ISdJwtVerifier"/>. The issuer-signed JWT and the Key Binding JWT
+/// are validated by the JWT validator, so their signature, algorithm and key policy is the family's one policy; the
+/// disclosures are resolved under the rules of RFC 9901 §7.1; and the Key Binding JWT's <c>nonce</c>, <c>sd_hash</c>
+/// and <c>iat</c> are checked here, against the presentation as received.
+/// </summary>
+/// <param name="jwtValidator">The JWT validator that verifies the issuer-signed JWT and the Key Binding JWT.</param>
+/// <param name="digestAlgorithmCatalog">The registered hash algorithms.</param>
+/// <param name="confirmationKeyResolvers">The registered resolvers of the holder key from the <c>cnf</c> claim.</param>
+/// <param name="timeProvider">The clock the Key Binding JWT's freshness is judged by.</param>
+/// <param name="optionsAccessor">The accessor of the limits.</param>
+// See ADR-1405.
+internal class DefaultSdJwtVerifier(
+    IJwtValidator jwtValidator,
+    ISdJwtDigestAlgorithmCatalog digestAlgorithmCatalog,
+    IEnumerable<IConfirmationKeyResolver> confirmationKeyResolvers,
+    TimeProvider timeProvider,
+    IOptions<SdJwtOptions> optionsAccessor
+) : ISdJwtVerifier
+{
+    private IJwtValidator JwtValidator { get; } = jwtValidator;
+    private ISdJwtDigestAlgorithmCatalog DigestAlgorithmCatalog { get; } = digestAlgorithmCatalog;
+    private IReadOnlyList<IConfirmationKeyResolver> ConfirmationKeyResolvers { get; } =
+    [.. confirmationKeyResolvers];
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private SdJwtOptions Options { get; } = optionsAccessor.Value;
+
+    /// <inheritdoc />
+    public async ValueTask<SdJwtVerificationResult> VerifyAsync(
+        string presentation,
+        SdJwtVerificationParameters parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        // The signature algorithms of the issuer-signed JWT are a trust boundary: an unset list permits nothing.
+        if (parameters.IssuerJwtParameters.ValidSignatureAlgorithms is null)
+            throw new ArgumentException(
+                "The issuer JWT parameters must name the signature algorithms the issuer-signed JWT may use.",
+                nameof(parameters)
+            );
+
+        try
+        {
+            return await VerifyCoreAsync(presentation, parameters, cancellationToken);
+        }
+        catch (SdJwtException exception)
+        {
+            return SdJwtVerificationResult.Fail(exception.FailureCode, exception.Message);
+        }
+    }
+
+    private async ValueTask<SdJwtVerificationResult> VerifyCoreAsync(
+        string presentation,
+        SdJwtVerificationParameters parameters,
+        CancellationToken cancellationToken
+    )
+    {
+        var sdJwt = SdJwtSerialization.Parse(presentation, Options.MaxDisclosureCount);
+
+        var issuerResult = await JwtValidator.ValidateAsync(
+            sdJwt.IssuerSignedJwt,
+            parameters.IssuerJwtParameters,
+            cancellationToken
+        );
+        if (!issuerResult.IsValid)
+            return SdJwtVerificationResult.Fail(
+                issuerResult.FailureCode,
+                $"The issuer-signed JWT is invalid: {issuerResult.Exception.Message}"
+            );
+
+        var issuerJwt = issuerResult.DecodedJwt;
+        if (issuerJwt.SigningKey is not AsymmetricSecretKey)
+            return SdJwtVerificationResult.Fail(
+                JwtValidationFailureCodes.AlgorithmNotPermitted,
+                "The issuer-signed JWT must be signed with an asymmetric key."
+            );
+
+        var payload = issuerJwt.Payload;
+        if (payload.ValueKind != JsonValueKind.Object)
+            return SdJwtVerificationResult.Fail(
+                SdJwtVerificationFailureCodes.InvalidSdJwt,
+                "The issuer-signed JWT payload must be a JSON object."
+            );
+
+        var profile = parameters.Profile;
+        if (profile is not null)
+        {
+            if (
+                !issuerJwt.Header.TryGetPropertyValue<string>(
+                    JoseClaimNames.Header.Typ,
+                    out var typ
+                ) || !JoseTokenTypes.AreSame(typ, profile.TokenType)
+            )
+                return SdJwtVerificationResult.Fail(
+                    JwtValidationFailureCodes.InvalidTokenType,
+                    $"The issuer-signed JWT 'typ' header must be '{profile.TokenType}' under the '{profile.Name}' profile."
+                );
+
+            foreach (var requiredClaim in profile.RequiredClaims)
+            {
+                if (
+                    !payload.TryGetPropertyValue<string>(requiredClaim, out var value)
+                    || string.IsNullOrEmpty(value)
+                )
+                    return SdJwtVerificationResult.Fail(
+                        SdJwtVerificationFailureCodes.MissingRequiredClaim,
+                        $"The '{profile.Name}' profile requires the '{requiredClaim}' claim as a non-empty string."
+                    );
+            }
+        }
+
+        var algorithm = ResolveDigestAlgorithm(payload);
+        var processor = new SdJwtPayloadProcessor(algorithm, Options.MaxNestingDepth, profile);
+        var processed = processor.Process(payload, sdJwt.Disclosures);
+
+        SdJwtKeyBinding? keyBinding = null;
+        if (parameters.KeyBinding is { } requirement)
+        {
+            var keyBindingResult = await VerifyKeyBindingAsync(
+                presentation,
+                sdJwt,
+                payload,
+                algorithm,
+                requirement,
+                cancellationToken
+            );
+            if (!keyBindingResult.IsValid)
+                return keyBindingResult.Failure;
+
+            keyBinding = keyBindingResult.KeyBinding;
+        }
+
+        var claims = JsonSerializer.SerializeToElement(processed.Claims);
+        return SdJwtVerificationResult.Success(
+            sdJwt,
+            issuerJwt,
+            claims,
+            processed.Disclosed,
+            keyBinding
+        );
+    }
+
+    private SdJwtDigestAlgorithm ResolveDigestAlgorithm(JsonElement payload)
+    {
+        var name = SdJwtDigestAlgorithms.DefaultName;
+        if (
+            payload.TryGetProperty(JoseClaimNames.Payload.SdAlg, out var sdAlg)
+            && (!sdAlg.TryGetValue(out name) || string.IsNullOrEmpty(name))
+        )
+            throw new SdJwtException(
+                SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm,
+                "The '_sd_alg' claim must be a non-empty string."
+            );
+
+        return DigestAlgorithmCatalog.TryGet(name, out var algorithm)
+            ? algorithm
+            : throw new SdJwtException(
+                SdJwtVerificationFailureCodes.UnsupportedDigestAlgorithm,
+                $"The digest algorithm '{name}' is not registered."
+            );
+    }
+
+    private async ValueTask<KeyBindingOutcome> VerifyKeyBindingAsync(
+        string presentation,
+        SelectiveDisclosureJwt sdJwt,
+        JsonElement payload,
+        SdJwtDigestAlgorithm algorithm,
+        SdJwtKeyBindingRequirement requirement,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!sdJwt.HasKeyBinding)
+            return KeyBindingOutcome.Fail(
+                SdJwtVerificationFailureCodes.KeyBindingRequired,
+                "The presentation carries no Key Binding JWT."
+            );
+
+        // The holder key is read from the issuer-signed payload before any disclosure is resolved into it, so a
+        // disclosure can never supply it (RFC 9901 §4.3).
+        var holderKey = await ResolveHolderKeyAsync(payload, cancellationToken);
+        if (holderKey is null)
+            return KeyBindingOutcome.Fail(
+                SdJwtVerificationFailureCodes.HolderKeyNotFound,
+                "The issuer-signed JWT carries no 'cnf' claim that names a usable holder key."
+            );
+
+        var keyBindingParameters = new JwtValidationParameters
+        {
+            ValidationKeys = [holderKey],
+            ValidSignatureAlgorithms = requirement.ValidSignatureAlgorithms,
+            ClockSkew = requirement.ClockSkew,
+        }
+            .ValidateTokenType(JoseTokenTypes.KeyBindingJwt)
+            .ValidateAudience(requirement.Audience);
+
+        var result = await JwtValidator.ValidateAsync(
+            sdJwt.KeyBindingJwt,
+            keyBindingParameters,
+            cancellationToken
+        );
+        if (!result.IsValid)
+            return KeyBindingOutcome.Fail(
+                SdJwtVerificationFailureCodes.InvalidKeyBinding,
+                $"The Key Binding JWT is invalid ({result.FailureCode}): {result.Exception.Message}"
+            );
+
+        var keyBindingJwt = result.DecodedJwt;
+        var claims = keyBindingJwt.Payload;
+        if (claims.ValueKind != JsonValueKind.Object)
+            return KeyBindingOutcome.Fail(
+                SdJwtVerificationFailureCodes.InvalidKeyBinding,
+                "The Key Binding JWT payload must be a JSON object."
+            );
+
+        if (
+            !claims.TryGetPropertyValue<string>(JoseClaimNames.Payload.Nonce, out var nonce)
+            || !string.Equals(nonce, requirement.Nonce, StringComparison.Ordinal)
+        )
+            return KeyBindingOutcome.Fail(
+                SdJwtVerificationFailureCodes.InvalidNonce,
+                "The Key Binding JWT 'nonce' claim is not the expected nonce."
+            );
+
+        // sd_hash covers the presentation exactly as received, up to and including the last '~' (RFC 9901 §4.3.1).
+        var expectedSdHash = algorithm.ComputeDigest(
+            SdJwtSerialization.GetKeyBindingInput(presentation)
+        );
+        if (
+            !claims.TryGetPropertyValue<string>(JoseClaimNames.Payload.SdHash, out var sdHash)
+            || !string.Equals(sdHash, expectedSdHash, StringComparison.Ordinal)
+        )
+            return KeyBindingOutcome.Fail(
+                SdJwtVerificationFailureCodes.InvalidSdHash,
+                "The Key Binding JWT 'sd_hash' claim is not the digest of the presentation."
+            );
+
+        if (!claims.TryGetPropertyNumericDate(JoseClaimNames.Payload.Iat, out var issuedAt))
+            return KeyBindingOutcome.Fail(
+                SdJwtVerificationFailureCodes.KeyBindingNotFresh,
+                "The Key Binding JWT is missing a valid 'iat' claim."
+            );
+
+        // Elapsed time is compared rather than instants added to, so a bound near the end of time cannot overflow.
+        var now = TimeProvider.GetUtcNow();
+        if (
+            issuedAt - now > requirement.ClockSkew
+            || now - issuedAt > requirement.MaxAge + requirement.ClockSkew
+        )
+            return KeyBindingOutcome.Fail(
+                SdJwtVerificationFailureCodes.KeyBindingNotFresh,
+                "The Key Binding JWT 'iat' claim is in the future or older than the maximum age."
+            );
+
+        return KeyBindingOutcome.Succeed(
+            new SdJwtKeyBinding
+            {
+                Jwt = keyBindingJwt,
+                HolderKey = holderKey,
+                Nonce = nonce,
+                IssuedAt = issuedAt,
+            }
+        );
+    }
+
+    private async ValueTask<SecretKey?> ResolveHolderKeyAsync(
+        JsonElement payload,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            !payload.TryGetProperty(JoseClaimNames.Payload.Cnf, out var confirmation)
+            || confirmation.ValueKind != JsonValueKind.Object
+        )
+            return null;
+
+        var count = ConfirmationKeyResolvers.Count;
+        for (var i = 0; i < count; i++)
+        {
+            var resolver = ConfirmationKeyResolvers[i];
+            if (!confirmation.TryGetProperty(resolver.Member, out _))
+                continue;
+
+            var holderKey = await resolver.ResolveAsync(confirmation, cancellationToken);
+            if (holderKey is not null)
+                return holderKey;
+        }
+
+        return null;
+    }
+
+    private readonly struct KeyBindingOutcome
+    {
+        private KeyBindingOutcome(SdJwtKeyBinding? keyBinding, SdJwtVerificationResult? failure)
+        {
+            KeyBinding = keyBinding;
+            Failure = failure;
+        }
+
+        public static KeyBindingOutcome Succeed(SdJwtKeyBinding keyBinding) =>
+            new(keyBinding, failure: null);
+
+        public static KeyBindingOutcome Fail(string failureCode, string failureReason) =>
+            new(keyBinding: null, SdJwtVerificationResult.Fail(failureCode, failureReason));
+
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(true, nameof(KeyBinding))]
+        [System.Diagnostics.CodeAnalysis.MemberNotNullWhen(false, nameof(Failure))]
+        public bool IsValid => Failure is null;
+
+        public SdJwtKeyBinding? KeyBinding { get; }
+
+        public SdJwtVerificationResult? Failure { get; }
+    }
+}

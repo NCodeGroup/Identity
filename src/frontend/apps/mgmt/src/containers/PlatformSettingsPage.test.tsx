@@ -1,0 +1,76 @@
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { createAppStore } from '@ncode/store';
+import type { RuntimeConfig } from '@ncode/config';
+import { PlatformSettingsPage } from './PlatformSettingsPage.js';
+
+const runtime: RuntimeConfig = {
+  apiBaseUrl: 'https://api.test',
+  issuer: 'https://op.test',
+  authorizationEndpoint: 'https://op.test/authorize',
+  tokenEndpoint: 'https://op.test/token',
+  scopes: ['openid'],
+  features: {},
+};
+
+function renderPage() {
+  const store = createAppStore({
+    config: { runtime },
+    auth: {
+      accessToken: 'token',
+      subject: 'admin',
+      expiresAt: null,
+      refreshToken: null,
+      idToken: null,
+    },
+  });
+  render(
+    <Provider store={store}>
+      <PlatformSettingsPage />
+    </Provider>,
+  );
+}
+
+function installFetch(handler: (url: string, method: string) => Response) {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const request = input as Request;
+    return handler(request.url, request.method);
+  });
+  vi.stubGlobal('fetch', fetchMock);
+}
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+}
+
+describe('PlatformSettingsPage', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows the platform settings against the effective settings', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/platform/settings')) {
+        return jsonResponse({ concurrencyToken: 'st1', settings: { a: 1 } });
+      }
+      if (url.endsWith('/api/platform/effective-settings')) {
+        return jsonResponse({ settings: { a: 1, b: true } });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+
+    expect(screen.getByRole('heading', { name: 'Platform settings' })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-json')).toHaveValue(JSON.stringify({ a: 1 }, null, 2));
+      expect(screen.getByTestId('effective-settings-json')).toHaveValue(
+        JSON.stringify({ a: 1, b: true }, null, 2),
+      );
+    });
+  });
+});

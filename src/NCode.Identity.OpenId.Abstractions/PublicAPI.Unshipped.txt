@@ -313,6 +313,7 @@ NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.get -> NCode.Identity.Op
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.init -> void
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.SeedTenantCommand() -> void
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.SeedTenantCommand(NCode.Identity.OpenId.Tenants.TenantSeedContext! Context) -> void
+NCode.Identity.OpenId.Tenants.TenantIdentifierRules
 NCode.Identity.OpenId.Tenants.TenantPlane
 NCode.Identity.OpenId.Tenants.TenantPlane.Root = 1 -> NCode.Identity.OpenId.Tenants.TenantPlane
 NCode.Identity.OpenId.Tenants.TenantPlane.Workload = 0 -> NCode.Identity.OpenId.Tenants.TenantPlane
@@ -1007,3 +1008,4 @@ NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.get -> string!
 NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.init -> void
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveTeamAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Teams = "Teams" -> string!
+static NCode.Identity.OpenId.Tenants.TenantIdentifierRules.IsValidTenantId(string? tenantId) -> bool

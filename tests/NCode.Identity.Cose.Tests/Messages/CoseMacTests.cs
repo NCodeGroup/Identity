@@ -44,7 +44,25 @@ public class CoseMacTests
             ]
         );
 
-    #region Direct recipients
+    private static (byte[] Encoded, SecretKey Second) EncodeTwoKeyWrapRecipients(CoseTestHost host)
+    {
+        var first = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "k1");
+        var second = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacCwtKey, "k2");
+        var encoded = host.Serializer.EncodeMac(
+            Content,
+            new CoseRecipients(
+                CoseAlgorithms.HmacSha256,
+                [
+                    new CoseRecipient(new CoseCredentials(first, CoseAlgorithms.A256Kw)),
+                    new CoseRecipient(new CoseCredentials(second, CoseAlgorithms.A256Kw)),
+                ]
+            ),
+            new CoseEncodingOptions()
+        );
+        return (encoded, second);
+    }
+
+    #region EncodeMac Tests
 
     [Fact]
     public async Task EncodeMac_DirectRecipient_ProducesTheVectorBytes()
@@ -97,6 +115,79 @@ public class CoseMacTests
         );
         Assert.Equal(Content, verified.Content.ToArray());
     }
+
+    [Fact]
+    public async Task EncodeMac_DirectRecipientBesideAnother_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var direct = new CoseRecipient(
+            new CoseCredentials(
+                CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "a"),
+                CoseAlgorithms.Direct
+            )
+        );
+        var wrap = new CoseRecipient(
+            new CoseCredentials(
+                CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "b"),
+                CoseAlgorithms.A256Kw
+            )
+        );
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeMac(
+                Content,
+                new CoseRecipients(CoseAlgorithms.HmacSha256, [direct, wrap]),
+                new CoseEncodingOptions()
+            )
+        );
+    }
+
+    [Fact]
+    public async Task EncodeMac_TwoKeyWrapRecipients_VerifiesWithTheSecondKey()
+    {
+        var random = new QueueRandomSource();
+        random.Enqueue("00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF");
+        await using var host = new CoseTestHost(randomSource: random);
+        var first = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "k1");
+        var second = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacCwtKey, "k2");
+
+        var encoded = host.Serializer.EncodeMac(
+            Content,
+            new CoseRecipients(
+                CoseAlgorithms.HmacSha256,
+                [
+                    new CoseRecipient(new CoseCredentials(first, CoseAlgorithms.A256Kw)),
+                    new CoseRecipient(new CoseCredentials(second, CoseAlgorithms.A256Kw)),
+                ]
+            ),
+            new CoseEncodingOptions()
+        );
+
+        Assert.Equal(0, random.Remaining);
+        Assert.Equal(2, host.Serializer.Inspect(encoded, null).Recipients.Count);
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters(
+                [CoseAlgorithmIdentifiers.HmacSha256],
+                [CoseAlgorithmIdentifiers.A256Kw],
+                second
+            )
+        );
+        Assert.Equal(Content, verified.Content.ToArray());
+        Assert.Same(second, verified.Key);
+    }
+
+    [Fact]
+    public async Task EncodeMac_MoreRecipientsThanTheLimit_Throws()
+    {
+        await using var host = new CoseTestHost(options => options.MaxRecipients = 1);
+
+        Assert.Throws<ArgumentException>(() => EncodeTwoKeyWrapRecipients(host));
+    }
+
+    #endregion
+
+    #region Verify Tests
 
     [Fact]
     public async Task Verify_TruncatedHmacWithoutRegistration_ThrowsUnsupportedAlgorithm()
@@ -214,79 +305,6 @@ public class CoseMacTests
     }
 
     [Fact]
-    public async Task EncodeMac_DirectRecipientBesideAnother_Throws()
-    {
-        await using var host = new CoseTestHost();
-        var direct = new CoseRecipient(
-            new CoseCredentials(
-                CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "a"),
-                CoseAlgorithms.Direct
-            )
-        );
-        var wrap = new CoseRecipient(
-            new CoseCredentials(
-                CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "b"),
-                CoseAlgorithms.A256Kw
-            )
-        );
-
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeMac(
-                Content,
-                new CoseRecipients(CoseAlgorithms.HmacSha256, [direct, wrap]),
-                new CoseEncodingOptions()
-            )
-        );
-    }
-
-    #endregion
-
-    #region Key wrap recipients
-
-    [Fact]
-    public async Task EncodeMac_TwoKeyWrapRecipients_VerifiesWithTheSecondKey()
-    {
-        var random = new QueueRandomSource();
-        random.Enqueue("00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF");
-        await using var host = new CoseTestHost(randomSource: random);
-        var first = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "k1");
-        var second = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacCwtKey, "k2");
-
-        var encoded = host.Serializer.EncodeMac(
-            Content,
-            new CoseRecipients(
-                CoseAlgorithms.HmacSha256,
-                [
-                    new CoseRecipient(new CoseCredentials(first, CoseAlgorithms.A256Kw)),
-                    new CoseRecipient(new CoseCredentials(second, CoseAlgorithms.A256Kw)),
-                ]
-            ),
-            new CoseEncodingOptions()
-        );
-
-        Assert.Equal(0, random.Remaining);
-        Assert.Equal(2, host.Serializer.Inspect(encoded, null).Recipients.Count);
-        var verified = host.Serializer.Verify(
-            encoded,
-            Parameters(
-                [CoseAlgorithmIdentifiers.HmacSha256],
-                [CoseAlgorithmIdentifiers.A256Kw],
-                second
-            )
-        );
-        Assert.Equal(Content, verified.Content.ToArray());
-        Assert.Same(second, verified.Key);
-    }
-
-    [Fact]
-    public async Task EncodeMac_MoreRecipientsThanTheLimit_Throws()
-    {
-        await using var host = new CoseTestHost(options => options.MaxRecipients = 1);
-
-        Assert.Throws<ArgumentException>(() => EncodeTwoKeyWrapRecipients(host));
-    }
-
-    [Fact]
     public async Task Verify_MoreRecipientsThanTheLimit_ThrowsLimitExceeded()
     {
         await using var encoder = new CoseTestHost();
@@ -325,24 +343,6 @@ public class CoseMacTests
         );
 
         Assert.Equal(Content, verified.Content.ToArray());
-    }
-
-    private static (byte[] Encoded, SecretKey Second) EncodeTwoKeyWrapRecipients(CoseTestHost host)
-    {
-        var first = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "k1");
-        var second = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacCwtKey, "k2");
-        var encoded = host.Serializer.EncodeMac(
-            Content,
-            new CoseRecipients(
-                CoseAlgorithms.HmacSha256,
-                [
-                    new CoseRecipient(new CoseCredentials(first, CoseAlgorithms.A256Kw)),
-                    new CoseRecipient(new CoseCredentials(second, CoseAlgorithms.A256Kw)),
-                ]
-            ),
-            new CoseEncodingOptions()
-        );
-        return (encoded, second);
     }
 
     [Fact]

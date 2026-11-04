@@ -8,7 +8,7 @@ public class CoseValueTests
     private static CoseValue FromHex(string hex) =>
         CoseValue.FromEncodedValue(Convert.FromHexString(hex));
 
-    #region Factories
+    #region FromInt64 Tests
 
     [Fact]
     public void FromInt64_RoundTripsThroughTryGetInt64()
@@ -20,6 +20,10 @@ public class CoseValueTests
         Assert.Equal("26", Convert.ToHexString(value.EncodedValue.Span));
     }
 
+    #endregion
+
+    #region FromTextString Tests
+
     [Fact]
     public void FromTextString_RoundTripsThroughTryGetTextString()
     {
@@ -28,6 +32,10 @@ public class CoseValueTests
         Assert.True(value.TryGetTextString(out var result));
         Assert.Equal("abc", result);
     }
+
+    #endregion
+
+    #region FromByteString Tests
 
     [Fact]
     public void FromByteString_RoundTripsThroughTryGetByteString()
@@ -38,6 +46,10 @@ public class CoseValueTests
         Assert.Equal(new byte[] { 1, 2, 3 }, result.ToArray());
     }
 
+    #endregion
+
+    #region FromLabels Tests
+
     [Fact]
     public void FromLabels_IntegerAndText_EncodesAnArray()
     {
@@ -45,6 +57,22 @@ public class CoseValueTests
 
         Assert.Equal("82016161", Convert.ToHexString(value.EncodedValue.Span));
     }
+
+    #endregion
+
+    #region FromTextStrings Tests
+
+    [Fact]
+    public void FromTextStrings_TwoValues_EncodesADefiniteArray()
+    {
+        var value = CoseValue.FromTextStrings(["a", "b"]);
+
+        Assert.Equal("8261616162", Convert.ToHexString(value.EncodedValue.Span));
+    }
+
+    #endregion
+
+    #region FromEncodedValue Tests
 
     [Fact]
     public void FromEncodedValue_TwoItems_Throws()
@@ -66,7 +94,7 @@ public class CoseValueTests
 
     #endregion
 
-    #region Getters
+    #region Getters Tests
 
     [Fact]
     public void Getters_AnotherType_ReturnFalse()
@@ -89,11 +117,19 @@ public class CoseValueTests
         Assert.False(tagged.TryGetInt64(out _));
     }
 
+    #endregion
+
+    #region TryGetInt64 Tests
+
     [Fact]
     public void TryGetInt64_BeyondTheLongRange_ReturnsFalse()
     {
         Assert.False(FromHex("1BFFFFFFFFFFFFFFFF").TryGetInt64(out _));
     }
+
+    #endregion
+
+    #region TryGetDouble Tests
 
     [Fact]
     public void TryGetDouble_HalfAndDoublePrecision_ReadTheNumber()
@@ -105,6 +141,10 @@ public class CoseValueTests
         Assert.Equal(1443944944.5, wide);
     }
 
+    #endregion
+
+    #region TryGetArray Tests
+
     [Fact]
     public void TryGetArray_DefiniteArray_ReadsEachElement()
     {
@@ -114,6 +154,10 @@ public class CoseValueTests
         Assert.True(elements[1].TryGetInt64(out var second));
         Assert.Equal(2, second);
     }
+
+    #endregion
+
+    #region IsMap Tests
 
     [Fact]
     public void IsMap_Map_ReturnsTrue()

@@ -21,7 +21,7 @@ public class CborGuardTests
     private static ReadOnlyMemory<byte> ReadValue(byte[] bytes, int maxDepth) =>
         CborGuard.ReadValue(CborGuard.NewReader(bytes), maxDepth);
 
-    #region ReadValue
+    #region ReadValue Tests
 
     [Theory]
     [InlineData("9F01FF")]
@@ -75,7 +75,7 @@ public class CborGuardTests
 
     #endregion
 
-    #region ReadRootMap
+    #region ReadRootMap Tests
 
     [Fact]
     public void ReadRootMap_IntegerAndTextLabels_ReadsTheEntries()
@@ -103,6 +103,16 @@ public class CborGuardTests
         );
 
         Assert.Equal(code, exception.FailureCode);
+    }
+
+    [Fact]
+    public void ReadRootMap_DeclaredLengthBeyondTheInput_ThrowsInvalidMessage()
+    {
+        var exception = Assert.Throws<CoseException>(() =>
+            CborGuard.ReadRootMap(Convert.FromHexString("BA7FFFFFFF"), Options)
+        );
+
+        Assert.Equal(CoseFailureCodes.InvalidMessage, exception.FailureCode);
     }
 
     [Fact]

@@ -80,11 +80,11 @@ public sealed class CwtValidationResult
     /// <param name="failureCode">The machine-readable code.</param>
     /// <param name="failureReason">The human-readable reason.</param>
     /// <returns>The result.</returns>
-    /// <exception cref="ArgumentException"><paramref name="failureCode"/> is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="failureCode"/> or <paramref name="failureReason"/> is empty.</exception>
     public static CwtValidationResult Fail(string failureCode, string failureReason)
     {
         ArgumentException.ThrowIfNullOrEmpty(failureCode);
-        ArgumentNullException.ThrowIfNull(failureReason);
+        ArgumentException.ThrowIfNullOrEmpty(failureReason);
 
         return new CwtValidationResult
         {

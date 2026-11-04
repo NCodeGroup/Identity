@@ -55,17 +55,7 @@ public static class CoseTestKeys
         string? keyId = null
     )
     {
-        var parameters = new ECParameters
-        {
-            Curve = ECCurve.NamedCurves.nistP256,
-            Q = new ECPoint { X = Hex(x), Y = Hex(y) },
-            D = d is null ? null : Hex(d),
-        };
-        var metadata = new KeyMetadata { KeyId = keyId };
-        var key = ECDsa.Create(parameters);
-        return d is null
-            ? factory.CreateEccPublicKey(metadata, key)
-            : factory.CreateEcc(metadata, key);
+        return CreateEcP256(factory, x, y, new KeyMetadata { KeyId = keyId }, d);
     }
 
     /// <summary>

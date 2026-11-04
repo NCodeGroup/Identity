@@ -124,6 +124,31 @@ public sealed class CoseValue
     }
 
     /// <summary>
+    /// Creates a definite-length array of text strings, such as the <c>aud</c> claim of a CBOR Web Token with several
+    /// audiences.
+    /// </summary>
+    /// <param name="values">The text strings.</param>
+    /// <returns>The value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="values"/> is <c>null</c>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="values"/> contains a <c>null</c> element.</exception>
+    public static CoseValue FromTextStrings(IReadOnlyCollection<string> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        var writer = new CborWriter(CborConformanceMode.Strict);
+        writer.WriteStartArray(values.Count);
+        foreach (var value in values)
+        {
+            if (value is null)
+                throw new ArgumentException("A text string is null.", nameof(values));
+
+            writer.WriteTextString(value);
+        }
+        writer.WriteEndArray();
+        return new CoseValue(writer.Encode());
+    }
+
+    /// <summary>
     /// Reads the item as an integer that fits in a 64-bit signed integer.
     /// </summary>
     /// <param name="value">When this method returns <c>true</c>, the integer.</param>
@@ -255,7 +280,7 @@ public sealed class CoseValue
             if (length is null)
                 return false;
 
-            var elements = new List<CoseValue>();
+            var elements = new List<CoseValue>(Math.Min(length.Value, reader.BytesRemaining));
             for (var index = 0; index < length; index++)
                 elements.Add(new CoseValue(reader.ReadEncodedValue().ToArray()));
 

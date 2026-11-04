@@ -21,7 +21,7 @@ public class CoseEncrypt0Tests
     private static string FailureCode(Action action) =>
         Assert.Throws<CoseException>(action).FailureCode;
 
-    #region EncodeEncrypt0
+    #region EncodeEncrypt0 Tests
 
     [Fact]
     public async Task EncodeEncrypt0_AesGcmExample_ProducesTheVectorBytesAndDecrypts()
@@ -99,7 +99,7 @@ public class CoseEncrypt0Tests
 
     #endregion
 
-    #region Decrypt
+    #region Decrypt Tests
 
     [Fact]
     public async Task Decrypt_UnknownTag_ThrowsUnsupportedMessageType()

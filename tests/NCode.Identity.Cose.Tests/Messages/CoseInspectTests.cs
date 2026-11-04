@@ -14,7 +14,7 @@ public class CoseInspectTests
     ) =>
         Assert.Throws<CoseException>(() => host.Serializer.Inspect(Hex(hex), untagged)).FailureCode;
 
-    #region Inspect
+    #region Inspect Tests
 
     [Fact]
     public async Task Inspect_Sign1_ReportsTypeTaggingAndHeaders()

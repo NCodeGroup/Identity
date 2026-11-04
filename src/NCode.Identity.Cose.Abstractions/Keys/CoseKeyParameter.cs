@@ -27,8 +27,8 @@ public sealed class CoseKeyParameter
     public required CoseKeyParameterEncoding Encoding { get; init; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the parameter holds private key material, which this library neither
-    /// reads nor writes.
+    /// Gets a value indicating whether the parameter holds private key material, which this library neither reads nor
+    /// writes.
     /// </summary>
-    public bool IsPrivate { get; init; }
+    public required bool IsPrivate { get; init; }
 }

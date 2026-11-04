@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
 namespace NCode.Identity.Cose.Randomness;
@@ -9,6 +10,8 @@ namespace NCode.Identity.Cose.Randomness;
 /// Provides the default <see cref="ICoseRandomSource"/> over the platform's cryptographically secure random number
 /// generator.
 /// </summary>
+// A passthrough to RandomNumberGenerator; tests substitute ICoseRandomSource.
+[ExcludeFromCodeCoverage]
 internal class DefaultCoseRandomSource : ICoseRandomSource
 {
     /// <inheritdoc />

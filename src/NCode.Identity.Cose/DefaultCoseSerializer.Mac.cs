@@ -83,7 +83,7 @@ internal partial class DefaultCoseSerializer
         var protectedBytes = CborMapWriter.EncodeProtected(protectedHeaders);
 
         SecretKey macKey;
-        List<CoseMessageWriter.LayerEntry> entries;
+        List<CoseLayerEntry> entries;
         if (!algorithms[0].SupportsKeyWrapping)
         {
             macKey = recipients.Recipients[0].Credentials.SecretKey;
@@ -209,7 +209,7 @@ internal partial class DefaultCoseSerializer
         );
         if (eligible.Count == 0)
             throw new CoseException(
-                skipped == CoseContentKeys.RecipientSkip.NotPermitted
+                skipped == CoseRecipientSkip.NotPermitted
                     ? CoseFailureCodes.AlgorithmNotPermitted
                     : CoseFailureCodes.UnsupportedAlgorithm,
                 "No recipient of the message uses a permitted algorithm."
@@ -317,11 +317,11 @@ internal partial class DefaultCoseSerializer
     )> ResolveEligibleRecipients(
         IReadOnlyList<ParsedCoseLayer> recipients,
         IReadOnlyCollection<int> permitted,
-        out CoseContentKeys.RecipientSkip skipped
+        out CoseRecipientSkip skipped
     )
     {
-        skipped = CoseContentKeys.RecipientSkip.Unsupported;
-        var eligible = new List<(ParsedCoseLayer, CoseAlgorithmBinding)>();
+        skipped = CoseRecipientSkip.Unsupported;
+        var eligible = new List<(ParsedCoseLayer, CoseAlgorithmBinding)>(recipients.Count);
         foreach (var recipient in recipients)
         {
             var binding = CoseContentKeys.ResolveRecipient(
@@ -332,7 +332,7 @@ internal partial class DefaultCoseSerializer
             );
             if (binding is null)
             {
-                if (skip == CoseContentKeys.RecipientSkip.NotPermitted)
+                if (skip == CoseRecipientSkip.NotPermitted)
                     skipped = skip;
 
                 continue;
@@ -370,13 +370,13 @@ internal partial class DefaultCoseSerializer
 
     private List<KeyManagementAlgorithm> GetRecipientAlgorithms(CoseRecipients recipients)
     {
-        if (recipients.Recipients.Count > Options.MaxRecipients)
+        if (recipients.Recipients.Length > Options.MaxRecipients)
             throw new ArgumentException(
                 "A message may carry no more recipients than the configured maximum.",
                 nameof(recipients)
             );
 
-        var algorithms = new List<KeyManagementAlgorithm>(recipients.Recipients.Count);
+        var algorithms = new List<KeyManagementAlgorithm>(recipients.Recipients.Length);
         foreach (var recipient in recipients.Recipients)
         {
             if (
@@ -394,22 +394,28 @@ internal partial class DefaultCoseSerializer
             algorithms.Add(algorithm);
         }
 
-        if (algorithms.Any(algorithm => !algorithm.SupportsKeyWrapping) && algorithms.Count > 1)
-            throw new ArgumentException(
-                "A direct recipient must be the only recipient of a message.",
-                nameof(recipients)
-            );
+        if (algorithms.Count > 1)
+        {
+            foreach (var algorithm in algorithms)
+            {
+                if (!algorithm.SupportsKeyWrapping)
+                    throw new ArgumentException(
+                        "A direct recipient must be the only recipient of a message.",
+                        nameof(recipients)
+                    );
+            }
+        }
 
         return algorithms;
     }
 
-    private List<CoseMessageWriter.LayerEntry> WrapForRecipients(
+    private List<CoseLayerEntry> WrapForRecipients(
         CoseRecipients recipients,
         List<KeyManagementAlgorithm> algorithms,
         ReadOnlySpan<byte> contentKey
     )
     {
-        var entries = new List<CoseMessageWriter.LayerEntry>(algorithms.Count);
+        var entries = new List<CoseLayerEntry>(algorithms.Count);
         for (var index = 0; index < algorithms.Count; index++)
         {
             var recipient = recipients.Recipients[index];
@@ -427,10 +433,7 @@ internal partial class DefaultCoseSerializer
         return entries;
     }
 
-    private CoseMessageWriter.LayerEntry NewRecipientEntry(
-        CoseRecipient recipient,
-        byte[] ciphertext
-    )
+    private CoseLayerEntry NewRecipientEntry(CoseRecipient recipient, byte[] ciphertext)
     {
         CoseHeaderPolicy.ValidateWrite(
             FrozenDictionary<CoseLabel, CoseValue>.Empty,
@@ -452,7 +455,7 @@ internal partial class DefaultCoseSerializer
                 CoseKeyIdentifiers.GetBytes(keyId)
             );
 
-        return new CoseMessageWriter.LayerEntry([], unprotectedHeaders, ciphertext);
+        return new CoseLayerEntry([], unprotectedHeaders, ciphertext);
     }
 
     private static byte[] ComputeTag(CoseAlgorithmBinding binding, SecretKey key, byte[] structure)

@@ -7,7 +7,7 @@ namespace NCode.Identity.Cose.Tests.Cbor;
 
 public class CborMapWriterTests
 {
-    #region EncodeMap
+    #region EncodeMap Tests
 
     [Fact]
     public void EncodeMap_MixedLabels_OrdersByTheBytesOfTheEncodedLabel()
@@ -27,7 +27,7 @@ public class CborMapWriterTests
 
     #endregion
 
-    #region EncodeProtected
+    #region EncodeProtected Tests
 
     [Fact]
     public void EncodeProtected_EmptyBucket_ReturnsNoBytes()
@@ -45,7 +45,7 @@ public class CborMapWriterTests
 
     #endregion
 
-    #region ValidateValue
+    #region ValidateValue Tests
 
     [Fact]
     public void ValidateValue_IndefiniteLength_Throws()

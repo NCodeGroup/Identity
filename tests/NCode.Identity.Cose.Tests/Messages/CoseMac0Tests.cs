@@ -18,7 +18,7 @@ public class CoseMac0Tests
     private static string FailureCode(Action action) =>
         Assert.Throws<CoseException>(action).FailureCode;
 
-    #region EncodeMac0
+    #region EncodeMac0 Tests
 
     [Fact]
     public async Task EncodeMac0_HmacExample_ProducesTheVectorBytes()
@@ -95,7 +95,7 @@ public class CoseMac0Tests
 
     #endregion
 
-    #region Verify
+    #region Verify Tests
 
     [Fact]
     public async Task Verify_FloatClaimsVector_ReturnsTheClaims()

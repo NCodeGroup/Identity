@@ -20,16 +20,6 @@ namespace NCode.Identity.Cose.Messages;
 internal static class CoseContentKeys
 {
     /// <summary>
-    /// Why a recipient is not eligible for the caller.
-    /// </summary>
-    public enum RecipientSkip
-    {
-        None,
-        NotPermitted,
-        Unsupported,
-    }
-
-    /// <summary>
     /// Gets the empty JOSE header handed to the key distribution algorithms.
     /// </summary>
     public static JsonElement EmptyJoseHeader { get; } = JsonElement.Parse("{}");
@@ -43,10 +33,10 @@ internal static class CoseContentKeys
         ParsedCoseLayer recipient,
         IReadOnlyCollection<int> permitted,
         ICoseAlgorithmCatalog catalog,
-        out RecipientSkip skip
+        out CoseRecipientSkip skip
     )
     {
-        skip = RecipientSkip.None;
+        skip = CoseRecipientSkip.None;
         if (!recipient.Unprotected.TryGetValue(CoseHeaderLabels.Algorithm, out var value))
             throw new CoseException(
                 CoseFailureCodes.InvalidHeader,
@@ -55,7 +45,7 @@ internal static class CoseContentKeys
 
         if (value.TryGetTextString(out _))
         {
-            skip = RecipientSkip.Unsupported;
+            skip = CoseRecipientSkip.Unsupported;
             return null;
         }
 
@@ -65,7 +55,7 @@ internal static class CoseContentKeys
             || !permitted.Contains((int)identifier)
         )
         {
-            skip = RecipientSkip.NotPermitted;
+            skip = CoseRecipientSkip.NotPermitted;
             return null;
         }
 
@@ -74,7 +64,7 @@ internal static class CoseContentKeys
             || binding.Algorithm.Kind != CoseAlgorithmKind.KeyDistribution
         )
         {
-            skip = RecipientSkip.Unsupported;
+            skip = CoseRecipientSkip.Unsupported;
             return null;
         }
 

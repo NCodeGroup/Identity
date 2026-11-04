@@ -28,13 +28,16 @@ internal static class CoseKeyCandidates
         TimeSpan clockSkew
     )
     {
+        // Saturated, so a clock skew near TimeSpan.MaxValue cannot overflow.
+        var expiryCutoff =
+            now - DateTimeOffset.MinValue <= clockSkew ? DateTimeOffset.MinValue : now - clockSkew;
         var matching = new List<SecretKey>();
         var unidentified = new List<SecretKey>();
         foreach (var key in keys)
         {
             if (
                 key is null
-                || key.Metadata.IsExpired(now - clockSkew)
+                || key.Metadata.IsExpired(expiryCutoff)
                 || (key.Metadata.Use is not null && key.Metadata.Use != use)
                 || (key.Metadata.Algorithm is not null && key.Metadata.Algorithm != algorithmCode)
                 || !isCompatible(key)

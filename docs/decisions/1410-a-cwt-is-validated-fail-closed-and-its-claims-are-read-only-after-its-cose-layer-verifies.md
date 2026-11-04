@@ -66,7 +66,9 @@ carries the same claims in CBOR, and its `NumericDate` may be an integer or a fl
    authenticated message is `COSE_Sign1` for a signature algorithm and `COSE_Mac0` for a message authentication code
    algorithm; a token type becomes the protected `typ`; encryption credentials or recipients enclose the tagged
    authenticated message, and the CWT tag is written on request. An expiration time that is not after the not-before or
-   issued-at time is refused.
+   issued-at time is refused. `Issue` returns the token as a new byte array, as the COSE encoders return a message
+   ([ADR-1409](1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md)
+   decision 6).
 
 ## Options considered
 

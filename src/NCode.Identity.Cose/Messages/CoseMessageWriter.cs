@@ -13,16 +13,6 @@ namespace NCode.Identity.Cose.Messages;
 internal static class CoseMessageWriter
 {
     /// <summary>
-    /// Holds one signature of a <c>COSE_Sign</c> message, or one recipient of a <c>COSE_Mac</c> or <c>COSE_Encrypt</c>
-    /// message, as it is written.
-    /// </summary>
-    public sealed record LayerEntry(
-        byte[] ProtectedBytes,
-        IReadOnlyDictionary<CoseLabel, CoseValue> UnprotectedHeaders,
-        byte[] Third
-    );
-
-    /// <summary>
     /// Writes a <c>COSE_Sign1</c> message.
     /// </summary>
     public static byte[] Sign1(
@@ -48,7 +38,7 @@ internal static class CoseMessageWriter
         byte[] protectedBytes,
         IReadOnlyDictionary<CoseLabel, CoseValue> unprotectedHeaders,
         ReadOnlyMemory<byte>? content,
-        IReadOnlyList<LayerEntry> signatures
+        IReadOnlyList<CoseLayerEntry> signatures
     )
     {
         var writer = Begin(tag, 4);
@@ -78,7 +68,7 @@ internal static class CoseMessageWriter
         IReadOnlyDictionary<CoseLabel, CoseValue> unprotectedHeaders,
         ReadOnlyMemory<byte>? content,
         byte[] authenticationTag,
-        IReadOnlyList<LayerEntry> recipients
+        IReadOnlyList<CoseLayerEntry> recipients
     )
     {
         var writer = Begin(tag, 5);
@@ -113,7 +103,7 @@ internal static class CoseMessageWriter
         byte[] protectedBytes,
         IReadOnlyDictionary<CoseLabel, CoseValue> unprotectedHeaders,
         ReadOnlyMemory<byte>? ciphertext,
-        IReadOnlyList<LayerEntry> recipients
+        IReadOnlyList<CoseLayerEntry> recipients
     )
     {
         var writer = Begin(tag, 4);
@@ -133,7 +123,7 @@ internal static class CoseMessageWriter
         return writer;
     }
 
-    private static void WriteLayers(CborWriter writer, IReadOnlyList<LayerEntry> layers)
+    private static void WriteLayers(CborWriter writer, IReadOnlyList<CoseLayerEntry> layers)
     {
         writer.WriteStartArray(layers.Count);
         foreach (var layer in layers)

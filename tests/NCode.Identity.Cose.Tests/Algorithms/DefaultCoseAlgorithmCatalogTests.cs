@@ -54,7 +54,7 @@ public class DefaultCoseAlgorithmCatalogTests
         bool withEdDsa = false
     ) => new(algorithms, CreateProvider(withEdDsa));
 
-    #region Constructor
+    #region Constructor Tests
 
     [Fact]
     public void Constructor_DefaultSetWithoutExtensions_BindsEveryAvailableAlgorithm()
@@ -179,6 +179,38 @@ public class DefaultCoseAlgorithmCatalogTests
         };
 
         Assert.Throws<InvalidOperationException>(() => CreateCatalog([algorithm]));
+    }
+
+    [Fact]
+    public void Constructor_ContentEncryptionBoundToEcdsa_IsNotBound()
+    {
+        var algorithm = new CoseAlgorithm
+        {
+            Identifier = 1000,
+            Name = "bad",
+            Kind = CoseAlgorithmKind.ContentEncryption,
+            JoseAlgorithmCode = AlgorithmCodes.DigitalSignature.EcdsaSha256,
+        };
+
+        var catalog = CreateCatalog([algorithm]);
+
+        Assert.False(catalog.TryGet(1000, out _));
+    }
+
+    [Fact]
+    public void Constructor_KeyDistributionBoundToEcdsa_IsNotBound()
+    {
+        var algorithm = new CoseAlgorithm
+        {
+            Identifier = 1000,
+            Name = "bad",
+            Kind = CoseAlgorithmKind.KeyDistribution,
+            JoseAlgorithmCode = AlgorithmCodes.DigitalSignature.EcdsaSha256,
+        };
+
+        var catalog = CreateCatalog([algorithm]);
+
+        Assert.False(catalog.TryGet(1000, out _));
     }
 
     [Theory]

@@ -9,7 +9,7 @@ public class CoseOptionsValidatorTests
 {
     private static readonly CoseOptionsValidator Validator = new();
 
-    #region Validate
+    #region Validate Tests
 
     [Fact]
     public void Validate_Defaults_Succeeds()
@@ -25,12 +25,15 @@ public class CoseOptionsValidatorTests
     public void Validate_LimitBelowOne_FailsNamingTheProperty(string property)
     {
         var options = new CoseOptions();
-        typeof(CoseOptions).GetProperty(property)!.SetValue(options, 0);
+        var propertyInfo = typeof(CoseOptions).GetProperty(property);
+        Assert.NotNull(propertyInfo);
+        propertyInfo.SetValue(options, 0);
 
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(property, string.Join(' ', result.Failures!));
+        Assert.NotNull(result.Failures);
+        Assert.Contains(property, string.Join(' ', result.Failures));
     }
 
     #endregion

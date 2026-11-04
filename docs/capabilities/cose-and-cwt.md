@@ -95,7 +95,7 @@ HMAC 256/64, RSAES-OAEP with SHA-1 and RSASSA-PKCS1-v1_5 are offered as `CoseAlg
 key. Key types (`OKP`, `EC2`, `RSA`, `AKP`) and curves are registered descriptors that name the JSON Web Key member each
 COSE label maps onto, so a key is imported through the registered secret key types: Ed25519, Ed448, P-256, P-384,
 P-521, secp256k1 and ML-DSA keys are read where the platform serves them. A key with private parameters, a symmetric
-key or a Base IV is refused, and a key set skips a key of a type it cannot use. A `kid` is an opaque byte string: a
+key, a Base IV, or `key_ops` that are empty or mix signature and encryption operations is refused, and a key set skips a key of a type it cannot use. A `kid` is an opaque byte string: a
 key's `KeyId` names it as UTF-8 text, or in CBOR diagnostic notation (`h'a1b2'`) when the bytes are not text, and keys
 are matched by the bytes (`CoseKeyIdentifiers`).
 

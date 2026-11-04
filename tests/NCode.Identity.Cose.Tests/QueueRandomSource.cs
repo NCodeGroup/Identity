@@ -10,15 +10,15 @@ namespace NCode.Identity.Cose.Tests;
 /// </summary>
 internal sealed class QueueRandomSource : ICoseRandomSource
 {
-    private readonly Queue<byte[]> _queue = new();
+    private Queue<byte[]> Pending { get; } = new();
 
-    public void Enqueue(string hex) => _queue.Enqueue(Convert.FromHexString(hex));
+    public void Enqueue(string hex) => Pending.Enqueue(Convert.FromHexString(hex));
 
-    public int Remaining => _queue.Count;
+    public int Remaining => Pending.Count;
 
     public void Fill(Span<byte> destination)
     {
-        var bytes = _queue.Dequeue();
+        var bytes = Pending.Dequeue();
         Assert.Equal(bytes.Length, destination.Length);
         bytes.CopyTo(destination);
     }

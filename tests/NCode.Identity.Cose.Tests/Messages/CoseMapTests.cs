@@ -5,7 +5,7 @@ namespace NCode.Identity.Cose.Tests.Messages;
 
 public class CoseMapTests
 {
-    #region EncodeMap and DecodeMap
+    #region EncodeMap Tests
 
     [Fact]
     public async Task EncodeMap_MixedLabels_OrdersByEncodedLabelAndRoundTrips()
@@ -39,6 +39,10 @@ public class CoseMapTests
 
         Assert.Throws<ArgumentException>(() => host.Serializer.EncodeMap(map));
     }
+
+    #endregion
+
+    #region DecodeMap Tests
 
     [Fact]
     public async Task DecodeMap_TrailingBytes_ThrowsInvalidMessage()

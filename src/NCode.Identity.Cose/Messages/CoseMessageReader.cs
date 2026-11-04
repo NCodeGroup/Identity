@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Frozen;
 using System.Formats.Cbor;
 using NCode.Identity.Cose.Cbor;
 using NCode.Identity.Cose.Options;
@@ -14,14 +15,6 @@ namespace NCode.Identity.Cose.Messages;
 // See ADR-1409.
 internal static class CoseMessageReader
 {
-    private enum LayerKind
-    {
-        Body,
-        SignBody,
-        Signature,
-        Recipient,
-    }
-
     /// <summary>
     /// Parses a message.
     /// </summary>
@@ -115,7 +108,7 @@ internal static class CoseMessageReader
 
         var body = ReadLayer(
             reader,
-            messageType == CoseMessageType.Sign ? LayerKind.SignBody : LayerKind.Body,
+            messageType == CoseMessageType.Sign ? CoseLayerKind.SignBody : CoseLayerKind.Body,
             options
         );
         var content = ReadContent(reader);
@@ -132,7 +125,7 @@ internal static class CoseMessageReader
             case CoseMessageType.Sign:
                 signatures = ReadLayers(
                     reader,
-                    LayerKind.Signature,
+                    CoseLayerKind.Signature,
                     options.MaxSignatures,
                     options
                 );
@@ -141,7 +134,7 @@ internal static class CoseMessageReader
                 authenticator = ReadByteString(reader);
                 recipients = ReadLayers(
                     reader,
-                    LayerKind.Recipient,
+                    CoseLayerKind.Recipient,
                     options.MaxRecipients,
                     options
                 );
@@ -149,7 +142,7 @@ internal static class CoseMessageReader
             case CoseMessageType.Encrypt:
                 recipients = ReadLayers(
                     reader,
-                    LayerKind.Recipient,
+                    CoseLayerKind.Recipient,
                     options.MaxRecipients,
                     options
                 );
@@ -190,7 +183,7 @@ internal static class CoseMessageReader
 
     private static List<ParsedCoseLayer> ReadLayers(
         CborReader reader,
-        LayerKind kind,
+        CoseLayerKind kind,
         int maximum,
         CoseOptions options
     )
@@ -207,7 +200,7 @@ internal static class CoseMessageReader
         if (length > maximum)
             throw new CoseException(
                 CoseFailureCodes.LimitExceeded,
-                kind == LayerKind.Signature
+                kind == CoseLayerKind.Signature
                     ? "The message carries more signatures than the configured maximum."
                     : "The message carries more recipients than the configured maximum."
             );
@@ -219,7 +212,7 @@ internal static class CoseMessageReader
                 throw CborGuard.Invalid("A signature or recipient is not an array.");
 
             var elementLength = reader.ReadStartArray();
-            if (kind == LayerKind.Recipient && elementLength == 4)
+            if (kind == CoseLayerKind.Recipient && elementLength == 4)
                 throw new CoseException(
                     CoseFailureCodes.InvalidHeader,
                     "A recipient carries recipients of its own, which this library does not support."
@@ -247,12 +240,16 @@ internal static class CoseMessageReader
         return layers;
     }
 
-    private static ParsedCoseLayer ReadLayer(CborReader reader, LayerKind kind, CoseOptions options)
+    private static ParsedCoseLayer ReadLayer(
+        CborReader reader,
+        CoseLayerKind kind,
+        CoseOptions options
+    )
     {
         var protectedBytes = ReadByteString(reader);
         var protectedHeaders =
             protectedBytes.Length == 0
-                ? new Dictionary<CoseLabel, CoseValue>()
+                ? FrozenDictionary<CoseLabel, CoseValue>.Empty
                 : CborGuard.ReadRootMap(protectedBytes, options);
 
         if (reader.PeekState() != CborReaderState.StartMap)
@@ -263,7 +260,7 @@ internal static class CoseMessageReader
         CoseHeaderPolicy.ValidateRead(protectedHeaders, unprotectedHeaders);
 
         if (
-            kind == LayerKind.SignBody
+            kind == CoseLayerKind.SignBody
             && (
                 protectedHeaders.ContainsKey(CoseHeaderLabels.Algorithm)
                 || unprotectedHeaders.ContainsKey(CoseHeaderLabels.Algorithm)
@@ -274,7 +271,7 @@ internal static class CoseMessageReader
                 "The body of a COSE_Sign message carries an algorithm; the algorithm belongs to each signature."
             );
 
-        if (kind == LayerKind.Recipient && protectedHeaders.Count != 0)
+        if (kind == CoseLayerKind.Recipient && protectedHeaders.Count != 0)
             throw new CoseException(
                 CoseFailureCodes.InvalidHeader,
                 "The protected header bucket of a recipient is not empty."

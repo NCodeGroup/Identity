@@ -17,6 +17,8 @@ namespace NCode.Identity.Cose.Algorithms;
 // See ADR-1409.
 internal class DefaultCoseAlgorithmCatalog : ICoseAlgorithmCatalog
 {
+    private const int MinimumTagSizeBytes = 8;
+
     private FrozenDictionary<int, CoseAlgorithmBinding> BindingsByIdentifier { get; }
 
     /// <summary>
@@ -117,10 +119,10 @@ internal class DefaultCoseAlgorithmCatalog : ICoseAlgorithmCatalog
         if (
             algorithm.TagSizeBytes is { } tagSize
             && joseAlgorithm is SignatureAlgorithm macAlgorithm
-            && (tagSize < 8 || tagSize > macAlgorithm.GetSignatureSizeBytes(0))
+            && (tagSize < MinimumTagSizeBytes || tagSize > macAlgorithm.GetSignatureSizeBytes(0))
         )
             throw new InvalidOperationException(
-                $"The COSE algorithm {algorithm.Identifier} has a tag size of {tagSize} bytes, which is outside 8 to {macAlgorithm.GetSignatureSizeBytes(0)}."
+                $"The COSE algorithm {algorithm.Identifier} has a tag size of {tagSize} bytes, which is outside {MinimumTagSizeBytes} to {macAlgorithm.GetSignatureSizeBytes(0)}."
             );
     }
 }

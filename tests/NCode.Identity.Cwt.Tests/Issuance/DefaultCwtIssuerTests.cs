@@ -36,7 +36,7 @@ public class DefaultCwtIssuerTests
             }
         );
 
-    #region Issue
+    #region Issue Tests
 
     [Fact]
     public async Task Issue_SignatureCredentials_ProducesASign1WithTheExampleClaims()

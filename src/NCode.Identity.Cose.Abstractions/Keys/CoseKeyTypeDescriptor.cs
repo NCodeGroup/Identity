@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Immutable;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.Cose.Keys;
@@ -26,11 +27,11 @@ public sealed class CoseKeyTypeDescriptor
     /// <summary>
     /// Gets the parameters of the key type, apart from the ones every key type shares.
     /// </summary>
-    public required IReadOnlyList<CoseKeyParameter> Parameters { get; init; }
+    public required ImmutableArray<CoseKeyParameter> Parameters { get; init; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether a key of this type must carry its <c>alg</c> parameter, because the
+    /// Gets a value indicating whether a key of this type must carry its <c>alg</c> parameter, because the
     /// key bytes alone do not say which algorithm the key serves.
     /// </summary>
-    public bool RequiresAlgorithm { get; init; }
+    public required bool RequiresAlgorithm { get; init; }
 }

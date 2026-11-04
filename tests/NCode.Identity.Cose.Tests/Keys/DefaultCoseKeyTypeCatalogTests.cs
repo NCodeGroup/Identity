@@ -8,27 +8,6 @@ namespace NCode.Identity.Cose.Tests.Keys;
 
 public class DefaultCoseKeyTypeCatalogTests
 {
-    private static readonly CoseKeyTypeDescriptor[] KeyTypes =
-    [
-        CoseKeyTypeDescriptors.Okp,
-        CoseKeyTypeDescriptors.Ec2,
-        CoseKeyTypeDescriptors.Rsa,
-        CoseKeyTypeDescriptors.Symmetric,
-        CoseKeyTypeDescriptors.Akp,
-    ];
-
-    private static readonly CoseEllipticCurve[] Curves =
-    [
-        CoseEllipticCurves.P256,
-        CoseEllipticCurves.P384,
-        CoseEllipticCurves.P521,
-        CoseEllipticCurves.X25519,
-        CoseEllipticCurves.X448,
-        CoseEllipticCurves.Ed25519,
-        CoseEllipticCurves.Ed448,
-        CoseEllipticCurves.Secp256k1,
-    ];
-
     private static CoseKeyTypeDescriptor Descriptor(
         int keyType,
         string jwkKeyType,
@@ -38,7 +17,8 @@ public class DefaultCoseKeyTypeCatalogTests
         {
             KeyType = keyType,
             JwkKeyType = jwkKeyType,
-            Parameters = parameters,
+            Parameters = [.. parameters],
+            RequiresAlgorithm = false,
         };
 
     private static CoseKeyParameter Parameter(int label, string member = "x") =>
@@ -47,14 +27,18 @@ public class DefaultCoseKeyTypeCatalogTests
             Label = label,
             JwkMember = member,
             Encoding = CoseKeyParameterEncoding.ByteString,
+            IsPrivate = false,
         };
 
-    #region Constructor
+    #region Constructor Tests
 
     [Fact]
     public void Constructor_Defaults_Compose()
     {
-        var catalog = new DefaultCoseKeyTypeCatalog(KeyTypes, Curves);
+        var catalog = new DefaultCoseKeyTypeCatalog(
+            CoseTestCatalogs.KeyTypes,
+            CoseTestCatalogs.Curves
+        );
 
         Assert.Equal(5, catalog.KeyTypes.Count);
         Assert.Equal(8, catalog.Curves.Count);
@@ -70,7 +54,7 @@ public class DefaultCoseKeyTypeCatalogTests
     public void Constructor_NullCurve_Throws()
     {
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultCoseKeyTypeCatalog(KeyTypes, [null!])
+            new DefaultCoseKeyTypeCatalog(CoseTestCatalogs.KeyTypes, [null!])
         );
     }
 
@@ -138,7 +122,10 @@ public class DefaultCoseKeyTypeCatalogTests
         };
 
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultCoseKeyTypeCatalog(KeyTypes, [CoseEllipticCurves.P256, other])
+            new DefaultCoseKeyTypeCatalog(
+                CoseTestCatalogs.KeyTypes,
+                [CoseEllipticCurves.P256, other]
+            )
         );
     }
 
@@ -153,7 +140,10 @@ public class DefaultCoseKeyTypeCatalogTests
         };
 
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultCoseKeyTypeCatalog(KeyTypes, [CoseEllipticCurves.P256, other])
+            new DefaultCoseKeyTypeCatalog(
+                CoseTestCatalogs.KeyTypes,
+                [CoseEllipticCurves.P256, other]
+            )
         );
     }
 
@@ -168,18 +158,21 @@ public class DefaultCoseKeyTypeCatalogTests
         };
 
         Assert.Throws<InvalidOperationException>(() =>
-            new DefaultCoseKeyTypeCatalog(KeyTypes, [other])
+            new DefaultCoseKeyTypeCatalog(CoseTestCatalogs.KeyTypes, [other])
         );
     }
 
     #endregion
 
-    #region Lookups
+    #region TryGetKeyType Tests
 
     [Fact]
     public void TryGetKeyType_ByValueAndByJwkKeyType_FindTheDescriptor()
     {
-        var catalog = new DefaultCoseKeyTypeCatalog(KeyTypes, Curves);
+        var catalog = new DefaultCoseKeyTypeCatalog(
+            CoseTestCatalogs.KeyTypes,
+            CoseTestCatalogs.Curves
+        );
 
         Assert.True(catalog.TryGetKeyType(CoseKeyTypeIdentifiers.Ec2, out var byValue));
         Assert.Equal(JsonWebKeyTypes.Ec, byValue.JwkKeyType);
@@ -189,10 +182,17 @@ public class DefaultCoseKeyTypeCatalogTests
         Assert.False(catalog.TryGetKeyTypeByJwkKeyType("none", out _));
     }
 
+    #endregion
+
+    #region TryGetCurve Tests
+
     [Fact]
     public void TryGetCurve_ByIdentifierAndByName_FindTheCurve()
     {
-        var catalog = new DefaultCoseKeyTypeCatalog(KeyTypes, Curves);
+        var catalog = new DefaultCoseKeyTypeCatalog(
+            CoseTestCatalogs.KeyTypes,
+            CoseTestCatalogs.Curves
+        );
 
         Assert.True(catalog.TryGetCurve(CoseKeyTypeIdentifiers.Ec2, 1, out var byId));
         Assert.Equal("P-256", byId.JwkCurveName);

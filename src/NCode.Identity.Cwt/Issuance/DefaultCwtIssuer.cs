@@ -20,6 +20,9 @@ internal class DefaultCwtIssuer(
     TimeProvider timeProvider
 ) : ICwtIssuer
 {
+    // Major type 6 with a one-byte argument (RFC 8949 §3.1), which carries tag 61.
+    private const byte CborTagWithOneByteArgument = 0xD8;
+
     private ICoseSerializer Serializer { get; } = serializer;
     private ICoseKeyConverter KeyConverter { get; } = keyConverter;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -66,7 +69,9 @@ internal class DefaultCwtIssuer(
         else if (parameters.EncryptionRecipients is { } recipients)
             token = Serializer.EncodeEncrypt(authenticated, recipients, new CoseEncodingOptions());
 
-        return parameters.WriteCwtTag ? [0xD8, (byte)CwtConstants.Tag, .. token] : token;
+        return parameters.WriteCwtTag
+            ? [CborTagWithOneByteArgument, (byte)CwtConstants.Tag, .. token]
+            : token;
     }
 
     private static void Validate(CwtIssuanceParameters parameters)
@@ -91,7 +96,10 @@ internal class DefaultCwtIssuer(
 
         foreach (var label in parameters.AdditionalClaims.Keys)
         {
-            if (!label.IsText && label.IntegerValue is >= 1 and <= 8)
+            if (
+                !label.IsText
+                && label.IntegerValue is >= CwtClaimKeys.Issuer and <= CwtClaimKeys.Confirmation
+            )
                 throw new ArgumentException(
                     "The claims with the keys one through eight are set from the typed members.",
                     nameof(parameters)

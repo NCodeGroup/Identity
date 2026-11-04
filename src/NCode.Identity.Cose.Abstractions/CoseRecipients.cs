@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Immutable;
 using JetBrains.Annotations;
 using NCode.Identity.Cose.Algorithms;
 
@@ -40,5 +41,5 @@ public sealed class CoseRecipients
     /// <summary>
     /// Gets the recipients.
     /// </summary>
-    public IReadOnlyList<CoseRecipient> Recipients { get; }
+    public ImmutableArray<CoseRecipient> Recipients { get; }
 }

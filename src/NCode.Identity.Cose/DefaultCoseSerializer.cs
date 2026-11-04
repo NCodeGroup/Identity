@@ -47,8 +47,8 @@ internal partial class DefaultCoseSerializer(
             IsContentDetached = parsed.Content is null,
             ProtectedHeaders = parsed.Body.Protected,
             UnprotectedHeaders = parsed.Body.Unprotected,
-            Signatures = [.. parsed.Signatures.Select(ToHeaders)],
-            Recipients = [.. parsed.Recipients.Select(ToHeaders)],
+            Signatures = ToHeaders(parsed.Signatures),
+            Recipients = ToHeaders(parsed.Recipients),
         };
     }
 
@@ -67,6 +67,22 @@ internal partial class DefaultCoseSerializer(
         return CborMapWriter.EncodeMap(map);
     }
 
-    private static CoseLayerHeaders ToHeaders(ParsedCoseLayer layer) =>
-        new() { ProtectedHeaders = layer.Protected, UnprotectedHeaders = layer.Unprotected };
+    private static CoseLayerHeaders[] ToHeaders(IReadOnlyList<ParsedCoseLayer> layers)
+    {
+        if (layers.Count == 0)
+            return [];
+
+        var headers = new CoseLayerHeaders[layers.Count];
+        for (var index = 0; index < headers.Length; index++)
+        {
+            var layer = layers[index];
+            headers[index] = new CoseLayerHeaders
+            {
+                ProtectedHeaders = layer.Protected,
+                UnprotectedHeaders = layer.Unprotected,
+            };
+        }
+
+        return headers;
+    }
 }

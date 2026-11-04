@@ -207,7 +207,7 @@ NCode.Identity.Cose.CoseRecipient.UnprotectedHeaders.init -> void
 NCode.Identity.Cose.CoseRecipients
 NCode.Identity.Cose.CoseRecipients.ContentAlgorithm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
 NCode.Identity.Cose.CoseRecipients.CoseRecipients(NCode.Identity.Cose.Algorithms.CoseAlgorithm! contentAlgorithm, System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseRecipient!>! recipients) -> void
-NCode.Identity.Cose.CoseRecipients.Recipients.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseRecipient!>!
+NCode.Identity.Cose.CoseRecipients.Recipients.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Cose.CoseRecipient!>
 NCode.Identity.Cose.CoseSigner
 NCode.Identity.Cose.CoseSigner.CoseSigner(NCode.Identity.Cose.CoseCredentials! credentials) -> void
 NCode.Identity.Cose.CoseSigner.Credentials.get -> NCode.Identity.Cose.CoseCredentials!
@@ -306,7 +306,7 @@ NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.JwkKeyType.get -> string!
 NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.JwkKeyType.init -> void
 NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.KeyType.get -> int
 NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.KeyType.init -> void
-NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.Parameters.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.Keys.CoseKeyParameter!>!
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.Parameters.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Cose.Keys.CoseKeyParameter!>
 NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.Parameters.init -> void
 NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.RequiresAlgorithm.get -> bool
 NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.RequiresAlgorithm.init -> void
@@ -363,6 +363,7 @@ static NCode.Identity.Cose.CoseLabel.implicit operator NCode.Identity.Cose.CoseL
 static NCode.Identity.Cose.CoseValue.FromByteString(System.ReadOnlySpan<byte> value) -> NCode.Identity.Cose.CoseValue!
 static NCode.Identity.Cose.CoseValue.FromEncodedValue(System.ReadOnlyMemory<byte> encodedValue) -> NCode.Identity.Cose.CoseValue!
 static NCode.Identity.Cose.CoseValue.FromInt64(long value) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromTextStrings(System.Collections.Generic.IReadOnlyCollection<string!>! values) -> NCode.Identity.Cose.CoseValue!
 static NCode.Identity.Cose.CoseValue.FromLabels(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.CoseLabel>! labels) -> NCode.Identity.Cose.CoseValue!
 static NCode.Identity.Cose.CoseValue.FromTextString(string! value) -> NCode.Identity.Cose.CoseValue!
 static NCode.Identity.Cose.Keys.CoseEllipticCurves.Ed25519.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!

@@ -22,6 +22,7 @@ public static class CoseKeyTypeDescriptors
         {
             KeyType = CoseKeyTypeIdentifiers.Okp,
             JwkKeyType = JsonWebKeyTypes.Okp,
+            RequiresAlgorithm = false,
             Parameters =
             [
                 new CoseKeyParameter
@@ -29,12 +30,14 @@ public static class CoseKeyTypeDescriptors
                     Label = -1,
                     JwkMember = JsonWebKeyParameterNames.Curve,
                     Encoding = CoseKeyParameterEncoding.Curve,
+                    IsPrivate = false,
                 },
                 new CoseKeyParameter
                 {
                     Label = -2,
                     JwkMember = JsonWebKeyParameterNames.X,
                     Encoding = CoseKeyParameterEncoding.ByteString,
+                    IsPrivate = false,
                 },
                 new CoseKeyParameter
                 {
@@ -54,6 +57,7 @@ public static class CoseKeyTypeDescriptors
         {
             KeyType = CoseKeyTypeIdentifiers.Ec2,
             JwkKeyType = JsonWebKeyTypes.Ec,
+            RequiresAlgorithm = false,
             Parameters =
             [
                 new CoseKeyParameter
@@ -61,18 +65,21 @@ public static class CoseKeyTypeDescriptors
                     Label = -1,
                     JwkMember = JsonWebKeyParameterNames.Curve,
                     Encoding = CoseKeyParameterEncoding.Curve,
+                    IsPrivate = false,
                 },
                 new CoseKeyParameter
                 {
                     Label = -2,
                     JwkMember = JsonWebKeyParameterNames.X,
                     Encoding = CoseKeyParameterEncoding.ByteString,
+                    IsPrivate = false,
                 },
                 new CoseKeyParameter
                 {
                     Label = -3,
                     JwkMember = JsonWebKeyParameterNames.Y,
                     Encoding = CoseKeyParameterEncoding.ByteString,
+                    IsPrivate = false,
                 },
                 new CoseKeyParameter
                 {
@@ -92,6 +99,7 @@ public static class CoseKeyTypeDescriptors
         {
             KeyType = CoseKeyTypeIdentifiers.Rsa,
             JwkKeyType = JsonWebKeyTypes.Rsa,
+            RequiresAlgorithm = false,
             Parameters =
             [
                 new CoseKeyParameter
@@ -99,12 +107,14 @@ public static class CoseKeyTypeDescriptors
                     Label = -1,
                     JwkMember = JsonWebKeyParameterNames.Modulus,
                     Encoding = CoseKeyParameterEncoding.ByteString,
+                    IsPrivate = false,
                 },
                 new CoseKeyParameter
                 {
                     Label = -2,
                     JwkMember = JsonWebKeyParameterNames.Exponent,
                     Encoding = CoseKeyParameterEncoding.ByteString,
+                    IsPrivate = false,
                 },
                 new CoseKeyParameter
                 {
@@ -166,6 +176,7 @@ public static class CoseKeyTypeDescriptors
         {
             KeyType = CoseKeyTypeIdentifiers.Symmetric,
             JwkKeyType = JsonWebKeyTypes.Oct,
+            RequiresAlgorithm = false,
             Parameters =
             [
                 new CoseKeyParameter
@@ -194,6 +205,7 @@ public static class CoseKeyTypeDescriptors
                     Label = -1,
                     JwkMember = JsonWebKeyParameterNames.PublicKey,
                     Encoding = CoseKeyParameterEncoding.ByteString,
+                    IsPrivate = false,
                 },
                 new CoseKeyParameter
                 {

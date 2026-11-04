@@ -30,7 +30,25 @@ public class CoseEncryptTests
     private static string FailureCode(Action action) =>
         Assert.Throws<CoseException>(action).FailureCode;
 
-    #region Working group examples
+    private static (byte[] Encoded, SecretKey Rsa) EncodeTwoRecipients(CoseTestHost host)
+    {
+        var aes = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey, "aes");
+        var rsa = host.KeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, RSA.Create(2048));
+        var encoded = host.Serializer.EncodeEncrypt(
+            Content,
+            new CoseRecipients(
+                CoseAlgorithms.A128Gcm,
+                [
+                    new CoseRecipient(new CoseCredentials(aes, CoseAlgorithms.A128Kw)),
+                    new CoseRecipient(new CoseCredentials(rsa, CoseAlgorithms.RsaesOaepSha256)),
+                ]
+            ),
+            new CoseEncodingOptions()
+        );
+        return (encoded, rsa);
+    }
+
+    #region EncodeEncrypt Tests
 
     [Fact]
     public async Task EncodeEncrypt_DirectRecipient_ProducesTheVectorBytesAndDecrypts()
@@ -85,10 +103,6 @@ public class CoseEncryptTests
         Assert.Equal(Content, decrypted.Content.ToArray());
     }
 
-    #endregion
-
-    #region Other recipients
-
     [Fact]
     public async Task EncodeEncrypt_RsaOaepRecipient_RoundTrips()
     {
@@ -112,139 +126,11 @@ public class CoseEncryptTests
     }
 
     [Fact]
-    public async Task Decrypt_TwoRecipients_DecryptsThroughTheSecond()
-    {
-        await using var host = new CoseTestHost();
-        var aes = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey, "aes");
-        var rsa = host.KeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, RSA.Create(2048));
-        var encoded = host.Serializer.EncodeEncrypt(
-            Content,
-            new CoseRecipients(
-                CoseAlgorithms.A128Gcm,
-                [
-                    new CoseRecipient(new CoseCredentials(aes, CoseAlgorithms.A128Kw)),
-                    new CoseRecipient(new CoseCredentials(rsa, CoseAlgorithms.RsaesOaepSha256)),
-                ]
-            ),
-            new CoseEncodingOptions()
-        );
-
-        var decrypted = host.Serializer.Decrypt(
-            encoded,
-            Parameters(
-                [CoseAlgorithmIdentifiers.A128Kw, CoseAlgorithmIdentifiers.RsaesOaepSha256],
-                rsa
-            )
-        );
-
-        Assert.Equal(Content, decrypted.Content.ToArray());
-        Assert.Same(rsa, decrypted.Key);
-    }
-
-    [Fact]
     public async Task EncodeEncrypt_MoreRecipientsThanTheLimit_Throws()
     {
         await using var host = new CoseTestHost(options => options.MaxRecipients = 1);
 
         Assert.Throws<ArgumentException>(() => EncodeTwoRecipients(host));
-    }
-
-    [Fact]
-    public async Task Decrypt_MoreRecipientsThanTheLimit_ThrowsLimitExceeded()
-    {
-        await using var encoder = new CoseTestHost();
-        var (encoded, rsa) = EncodeTwoRecipients(encoder);
-        await using var host = new CoseTestHost(options => options.MaxRecipients = 1);
-
-        Assert.Equal(
-            CoseFailureCodes.LimitExceeded,
-            FailureCode(() =>
-                host.Serializer.Decrypt(
-                    encoded,
-                    Parameters(
-                        [CoseAlgorithmIdentifiers.A128Kw, CoseAlgorithmIdentifiers.RsaesOaepSha256],
-                        rsa
-                    )
-                )
-            )
-        );
-    }
-
-    [Fact]
-    public async Task Decrypt_RecipientsAtTheLimit_Decrypts()
-    {
-        await using var encoder = new CoseTestHost();
-        var (encoded, rsa) = EncodeTwoRecipients(encoder);
-        await using var host = new CoseTestHost(options => options.MaxRecipients = 2);
-
-        var decrypted = host.Serializer.Decrypt(
-            encoded,
-            Parameters(
-                [CoseAlgorithmIdentifiers.A128Kw, CoseAlgorithmIdentifiers.RsaesOaepSha256],
-                rsa
-            )
-        );
-
-        Assert.Equal(Content, decrypted.Content.ToArray());
-    }
-
-    private static (byte[] Encoded, SecretKey Rsa) EncodeTwoRecipients(CoseTestHost host)
-    {
-        var aes = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey, "aes");
-        var rsa = host.KeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, RSA.Create(2048));
-        var encoded = host.Serializer.EncodeEncrypt(
-            Content,
-            new CoseRecipients(
-                CoseAlgorithms.A128Gcm,
-                [
-                    new CoseRecipient(new CoseCredentials(aes, CoseAlgorithms.A128Kw)),
-                    new CoseRecipient(new CoseCredentials(rsa, CoseAlgorithms.RsaesOaepSha256)),
-                ]
-            ),
-            new CoseEncodingOptions()
-        );
-        return (encoded, rsa);
-    }
-
-    [Fact]
-    public async Task Decrypt_RecipientKeyForSignatures_ThrowsKeyNotFound()
-    {
-        await using var host = new CoseTestHost();
-        var key = host.KeyFactory.CreateSymmetric(
-            new KeyMetadata { KeyId = "our-secret", Use = SecretKeyUses.Signature },
-            Hex(CoseTestKeys.AesKey)
-        );
-
-        Assert.Equal(
-            CoseFailureCodes.KeyNotFound,
-            FailureCode(() =>
-                host.Serializer.Decrypt(
-                    Hex(CoseVectors.V12Encrypt),
-                    Parameters([CoseAlgorithmIdentifiers.Direct], key)
-                )
-            )
-        );
-    }
-
-    [Fact]
-    public async Task Decrypt_WrongRecipientKey_ThrowsDecryptionFailed()
-    {
-        await using var host = new CoseTestHost();
-        var key = CoseTestKeys.CreateSymmetric(
-            host.KeyFactory,
-            "00112233445566778899AABBCCDDEEFF",
-            "our-secret"
-        );
-
-        Assert.Equal(
-            CoseFailureCodes.DecryptionFailed,
-            FailureCode(() =>
-                host.Serializer.Decrypt(
-                    Hex(CoseVectors.V12Encrypt),
-                    Parameters([CoseAlgorithmIdentifiers.Direct], key)
-                )
-            )
-        );
     }
 
     [Fact]
@@ -287,6 +173,120 @@ public class CoseEncryptTests
             }
         );
         Assert.Equal(Content, decrypted.Content.ToArray());
+    }
+
+    #endregion
+
+    #region Decrypt Tests
+
+    [Fact]
+    public async Task Decrypt_TwoRecipients_DecryptsThroughTheSecond()
+    {
+        await using var host = new CoseTestHost();
+        var aes = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey, "aes");
+        var rsa = host.KeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, RSA.Create(2048));
+        var encoded = host.Serializer.EncodeEncrypt(
+            Content,
+            new CoseRecipients(
+                CoseAlgorithms.A128Gcm,
+                [
+                    new CoseRecipient(new CoseCredentials(aes, CoseAlgorithms.A128Kw)),
+                    new CoseRecipient(new CoseCredentials(rsa, CoseAlgorithms.RsaesOaepSha256)),
+                ]
+            ),
+            new CoseEncodingOptions()
+        );
+
+        var decrypted = host.Serializer.Decrypt(
+            encoded,
+            Parameters(
+                [CoseAlgorithmIdentifiers.A128Kw, CoseAlgorithmIdentifiers.RsaesOaepSha256],
+                rsa
+            )
+        );
+
+        Assert.Equal(Content, decrypted.Content.ToArray());
+        Assert.Same(rsa, decrypted.Key);
+    }
+
+    [Fact]
+    public async Task Decrypt_MoreRecipientsThanTheLimit_ThrowsLimitExceeded()
+    {
+        await using var encoder = new CoseTestHost();
+        var (encoded, rsa) = EncodeTwoRecipients(encoder);
+        await using var host = new CoseTestHost(options => options.MaxRecipients = 1);
+
+        Assert.Equal(
+            CoseFailureCodes.LimitExceeded,
+            FailureCode(() =>
+                host.Serializer.Decrypt(
+                    encoded,
+                    Parameters(
+                        [CoseAlgorithmIdentifiers.A128Kw, CoseAlgorithmIdentifiers.RsaesOaepSha256],
+                        rsa
+                    )
+                )
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Decrypt_RecipientsAtTheLimit_Decrypts()
+    {
+        await using var encoder = new CoseTestHost();
+        var (encoded, rsa) = EncodeTwoRecipients(encoder);
+        await using var host = new CoseTestHost(options => options.MaxRecipients = 2);
+
+        var decrypted = host.Serializer.Decrypt(
+            encoded,
+            Parameters(
+                [CoseAlgorithmIdentifiers.A128Kw, CoseAlgorithmIdentifiers.RsaesOaepSha256],
+                rsa
+            )
+        );
+
+        Assert.Equal(Content, decrypted.Content.ToArray());
+    }
+
+    [Fact]
+    public async Task Decrypt_RecipientKeyForSignatures_ThrowsKeyNotFound()
+    {
+        await using var host = new CoseTestHost();
+        var key = host.KeyFactory.CreateSymmetric(
+            new KeyMetadata { KeyId = "our-secret", Use = SecretKeyUses.Signature },
+            Hex(CoseTestKeys.AesKey)
+        );
+
+        Assert.Equal(
+            CoseFailureCodes.KeyNotFound,
+            FailureCode(() =>
+                host.Serializer.Decrypt(
+                    Hex(CoseVectors.V12Encrypt),
+                    Parameters([CoseAlgorithmIdentifiers.Direct], key)
+                )
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Decrypt_WrongRecipientKey_ThrowsDecryptionFailed()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(
+            host.KeyFactory,
+            "00112233445566778899AABBCCDDEEFF",
+            "our-secret"
+        );
+
+        Assert.Equal(
+            CoseFailureCodes.DecryptionFailed,
+            FailureCode(() =>
+                host.Serializer.Decrypt(
+                    Hex(CoseVectors.V12Encrypt),
+                    Parameters([CoseAlgorithmIdentifiers.Direct], key)
+                )
+            )
+        );
     }
 
     #endregion

@@ -144,10 +144,7 @@ internal class DefaultCwtValidator(ICoseSerializer serializer, TimeProvider time
 
         var claims = CwtClaimsReader.Read(claimMap, Serializer);
 
-        if (
-            claims.Issuer is not { } issuer
-            || !parameters.ValidIssuers.Contains(issuer, StringComparer.Ordinal)
-        )
+        if (claims.Issuer is not { } issuer || !ContainsOrdinal(parameters.ValidIssuers, issuer))
             return CwtValidationResult.Fail(
                 CwtValidationFailureCodes.InvalidIssuer,
                 "The issuer of the token is not accepted."
@@ -183,11 +180,20 @@ internal class DefaultCwtValidator(ICoseSerializer serializer, TimeProvider time
                 nameof(parameters)
             );
 
-        if (parameters.ValidIssuers.Count == 0 || parameters.ValidIssuers.Any(string.IsNullOrEmpty))
+        if (parameters.ValidIssuers.Count == 0)
             throw new ArgumentException(
                 "At least one valid issuer must be named, and none may be empty.",
                 nameof(parameters)
             );
+
+        foreach (var validIssuer in parameters.ValidIssuers)
+        {
+            if (string.IsNullOrEmpty(validIssuer))
+                throw new ArgumentException(
+                    "At least one valid issuer must be named, and none may be empty.",
+                    nameof(parameters)
+                );
+        }
 
         if (parameters.ValidationKeys is null && parameters.ResolveValidationKeysAsync is null)
             throw new ArgumentException(
@@ -212,7 +218,7 @@ internal class DefaultCwtValidator(ICoseSerializer serializer, TimeProvider time
 
         if (
             parameters.DecryptionKeys is not null
-            && (parameters.ValidContentEncryptionAlgorithms?.Count ?? 0) == 0
+            && parameters.ValidContentEncryptionAlgorithms.Count == 0
         )
             throw new ArgumentException(
                 "When decryption keys are given, at least one valid content encryption algorithm must be named.",
@@ -276,14 +282,27 @@ internal class DefaultCwtValidator(ICoseSerializer serializer, TimeProvider time
                 : null;
         }
 
-        return claims.Audiences.Any(audience =>
-            validAudiences.Contains(audience, StringComparer.Ordinal)
-        )
-            ? null
-            : CwtValidationResult.Fail(
-                CwtValidationFailureCodes.InvalidAudience,
-                "The audience of the token is not accepted."
-            );
+        foreach (var audience in claims.Audiences)
+        {
+            if (ContainsOrdinal(validAudiences, audience))
+                return null;
+        }
+
+        return CwtValidationResult.Fail(
+            CwtValidationFailureCodes.InvalidAudience,
+            "The audience of the token is not accepted."
+        );
+    }
+
+    private static bool ContainsOrdinal(IReadOnlyCollection<string> values, string value)
+    {
+        foreach (var candidate in values)
+        {
+            if (string.Equals(candidate, value, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
     }
 
     private CwtValidationResult? CheckLifetime(
@@ -296,13 +315,13 @@ internal class DefaultCwtValidator(ICoseSerializer serializer, TimeProvider time
         var expires = claims.ExpiresAt;
 
         if (notBefore is null && parameters.RequireNotBefore)
-            return Lifetime(
+            return CwtValidationResult.Fail(
                 CwtValidationFailureCodes.InvalidLifetime,
                 "The token is missing a not-before time."
             );
 
         if (issuedAt is null && parameters.RequireIssuedAt)
-            return Lifetime(
+            return CwtValidationResult.Fail(
                 CwtValidationFailureCodes.InvalidLifetime,
                 "The token is missing an issued-at time."
             );
@@ -312,32 +331,42 @@ internal class DefaultCwtValidator(ICoseSerializer serializer, TimeProvider time
             expires is null
             && (parameters.RequireExpirationTime || parameters.MaxLifetime.HasValue)
         )
-            return Lifetime(
+            return CwtValidationResult.Fail(
                 CwtValidationFailureCodes.InvalidLifetime,
                 "The token is missing an expiration time."
             );
 
         if (notBefore > expires)
-            return Lifetime(
+            return CwtValidationResult.Fail(
                 CwtValidationFailureCodes.InvalidLifetime,
                 "The not-before time of the token is after its expiration time."
             );
 
         var nowTicks = TimeProvider.GetTimestampWithPrecisionInSeconds();
         var clockSkewTicks = parameters.ClockSkew.Ticks;
-        var latestStartTicks = nowTicks + clockSkewTicks;
+        // Saturated, so a clock skew near TimeSpan.MaxValue cannot overflow.
+        var latestStartTicks =
+            clockSkewTicks > DateTimeOffset.MaxValue.UtcTicks - nowTicks
+                ? DateTimeOffset.MaxValue.UtcTicks
+                : nowTicks + clockSkewTicks;
 
         if (notBefore?.UtcTicks > latestStartTicks)
-            return Lifetime(CwtValidationFailureCodes.NotYetValid, "The token is not valid yet.");
+            return CwtValidationResult.Fail(
+                CwtValidationFailureCodes.NotYetValid,
+                "The token is not valid yet."
+            );
 
         if (issuedAt?.UtcTicks > latestStartTicks)
-            return Lifetime(
+            return CwtValidationResult.Fail(
                 CwtValidationFailureCodes.NotYetValid,
                 "The token was issued in the future."
             );
 
         if (expires?.UtcTicks < nowTicks - clockSkewTicks)
-            return Lifetime(CwtValidationFailureCodes.Expired, "The token has expired.");
+            return CwtValidationResult.Fail(
+                CwtValidationFailureCodes.Expired,
+                "The token has expired."
+            );
 
         if (parameters.MaxLifetime is { } maxLifetime && expires is { } expiresAt)
         {
@@ -347,7 +376,7 @@ internal class DefaultCwtValidator(ICoseSerializer serializer, TimeProvider time
                 notBefore?.UtcTicks ?? latestStartTicks
             );
             if (expiresAt.UtcTicks - startTicks > maxLifetime.Ticks)
-                return Lifetime(
+                return CwtValidationResult.Fail(
                     CwtValidationFailureCodes.InvalidLifetime,
                     "The lifetime of the token exceeds the maximum."
                 );
@@ -355,7 +384,4 @@ internal class DefaultCwtValidator(ICoseSerializer serializer, TimeProvider time
 
         return null;
     }
-
-    private static CwtValidationResult Lifetime(string code, string reason) =>
-        CwtValidationResult.Fail(code, reason);
 }

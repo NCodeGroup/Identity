@@ -18,27 +18,6 @@ namespace NCode.Identity.Cose.Tests.Keys;
 
 public class DefaultCoseKeyConverterTests
 {
-    private static readonly CoseKeyTypeDescriptor[] KeyTypes =
-    [
-        CoseKeyTypeDescriptors.Okp,
-        CoseKeyTypeDescriptors.Ec2,
-        CoseKeyTypeDescriptors.Rsa,
-        CoseKeyTypeDescriptors.Symmetric,
-        CoseKeyTypeDescriptors.Akp,
-    ];
-
-    private static readonly CoseEllipticCurve[] Curves =
-    [
-        CoseEllipticCurves.P256,
-        CoseEllipticCurves.P384,
-        CoseEllipticCurves.P521,
-        CoseEllipticCurves.X25519,
-        CoseEllipticCurves.X448,
-        CoseEllipticCurves.Ed25519,
-        CoseEllipticCurves.Ed448,
-        CoseEllipticCurves.Secp256k1,
-    ];
-
     private static readonly ServiceProvider Provider = CreateProvider();
 
     private static ServiceProvider CreateProvider()
@@ -66,7 +45,7 @@ public class DefaultCoseKeyConverterTests
             Provider.GetRequiredService<IAlgorithmCollectionProvider>()
         );
         return new DefaultCoseKeyConverter(
-            new DefaultCoseKeyTypeCatalog(KeyTypes, Curves),
+            new DefaultCoseKeyTypeCatalog(CoseTestCatalogs.KeyTypes, CoseTestCatalogs.Curves),
             algorithms,
             KeyTypeCatalog,
             Microsoft.Extensions.Options.Options.Create(new CoseOptions())
@@ -99,14 +78,17 @@ public class DefaultCoseKeyConverterTests
     private static string ExportedMember(SecretKey key, string member)
     {
         Assert.True(KeyTypeCatalog.TryGet(key.KeyType, out var descriptor));
-        var jwk = descriptor.ExportPublicKey(key)!.Jwk;
-        return jwk.GetMember(member)!;
+        var exported = descriptor.ExportPublicKey(key);
+        Assert.NotNull(exported);
+        var value = exported.Jwk.GetMember(member);
+        Assert.NotNull(value);
+        return value;
     }
 
     private static string FailureCodeOf(Action action) =>
         Assert.Throws<CoseException>(action).FailureCode;
 
-    #region WritePublicKey and ReadPublicKey
+    #region WritePublicKey Tests
 
     [Fact]
     public void WritePublicKey_P256Key_UsesTheDeterministicLabelOrder()
@@ -130,6 +112,56 @@ public class DefaultCoseKeyConverterTests
             Convert.ToHexString(encoded)
         );
     }
+
+    [Fact]
+    public void WritePublicKey_SymmetricKey_Throws()
+    {
+        var converter = CreateConverter();
+        var key = CoseTestKeys.CreateSymmetric(Factory, CoseTestKeys.HmacKey);
+
+        Assert.Throws<ArgumentException>(() => converter.WritePublicKey(key));
+    }
+
+    [Fact]
+    public void WritePublicKey_BinaryKeyId_WritesTheOriginalBytes()
+    {
+        var converter = CreateConverter();
+        var read = converter.ReadPublicKey(EcMap(map => map[2] = Bstr("FFFF")));
+
+        var written = converter.WritePublicKey(read);
+
+        var map = CborGuard.ReadRootMap(written, new CoseOptions());
+        Assert.True(map[2].TryGetByteString(out var kid));
+        Assert.Equal(Bytes("FFFF"), kid.ToArray());
+    }
+
+    [MlDsaFact]
+    public void WritePublicKey_MlDsaKey_CarriesTheAlgorithm()
+    {
+        var converter = CreateConverter();
+        Assert.True(KeyTypeCatalog.TryGet(SecretKeyTypes.Akp, out var descriptor));
+        var generated = descriptor.GenerateKeyMaterial(
+            new SecretKeyGenerationParameters { KeySizeBits = 1312 * 8, Curve = "ML-DSA-44" },
+            bytes => Convert.ToBase64String(bytes)
+        );
+        var key = descriptor.DeserializeKeyMaterial(
+            new KeyMetadata { KeyId = "k" },
+            SecretEncodings.Pkcs8,
+            Convert.FromBase64String(generated.ProtectedKeyMaterial)
+        );
+
+        var encoded = converter.WritePublicKey(key);
+        var read = converter.ReadPublicKey(encoded);
+
+        var map = CborGuard.ReadRootMap(encoded, new CoseOptions());
+        Assert.True(map[3].TryGetInt64(out var algorithm));
+        Assert.Equal(-48, algorithm);
+        Assert.Equal("akp", read.KeyType);
+    }
+
+    #endregion
+
+    #region ReadPublicKey Tests
 
     [Fact]
     public void ReadPublicKey_WrittenP256Key_RoundTrips()
@@ -180,15 +212,6 @@ public class DefaultCoseKeyConverterTests
         Assert.Equal("rsa", read.KeyType);
         Assert.Equal(ExportedMember(key, "n"), ExportedMember(read, "n"));
         Assert.Equal(ExportedMember(key, "e"), ExportedMember(read, "e"));
-    }
-
-    [Fact]
-    public void WritePublicKey_SymmetricKey_Throws()
-    {
-        var converter = CreateConverter();
-        var key = CoseTestKeys.CreateSymmetric(Factory, CoseTestKeys.HmacKey);
-
-        Assert.Throws<ArgumentException>(() => converter.WritePublicKey(key));
     }
 
     [Fact]
@@ -273,19 +296,6 @@ public class DefaultCoseKeyConverterTests
     }
 
     [Fact]
-    public void WritePublicKey_BinaryKeyId_WritesTheOriginalBytes()
-    {
-        var converter = CreateConverter();
-        var read = converter.ReadPublicKey(EcMap(map => map[2] = Bstr("FFFF")));
-
-        var written = converter.WritePublicKey(read);
-
-        var map = CborGuard.ReadRootMap(written, new CoseOptions());
-        Assert.True(map[2].TryGetByteString(out var kid));
-        Assert.Equal(Bytes("FFFF"), kid.ToArray());
-    }
-
-    [Fact]
     public void ReadPublicKey_VerifyKeyOperation_SetsTheSignatureUse()
     {
         var converter = CreateConverter();
@@ -294,6 +304,41 @@ public class DefaultCoseKeyConverterTests
         var key = converter.ReadPublicKey(encoded);
 
         Assert.Equal(SecretKeyUses.Signature, key.Metadata.Use);
+    }
+
+    [Fact]
+    public void ReadPublicKey_DeriveKeyOperation_SetsTheEncryptionUse()
+    {
+        var converter = CreateConverter();
+        var encoded = EcMap(map => map[4] = CoseValue.FromEncodedValue(Bytes("8107")));
+
+        var key = converter.ReadPublicKey(encoded);
+
+        Assert.Equal(SecretKeyUses.Encryption, key.Metadata.Use);
+    }
+
+    [Fact]
+    public void ReadPublicKey_MixedKeyOperations_ThrowsInvalidKey()
+    {
+        var converter = CreateConverter();
+        var encoded = EcMap(map => map[4] = CoseValue.FromEncodedValue(Bytes("820207")));
+
+        Assert.Equal(
+            CoseFailureCodes.InvalidKey,
+            FailureCodeOf(() => converter.ReadPublicKey(encoded))
+        );
+    }
+
+    [Fact]
+    public void ReadPublicKey_EmptyKeyOperations_ThrowsInvalidKey()
+    {
+        var converter = CreateConverter();
+        var encoded = EcMap(map => map[4] = CoseValue.FromEncodedValue(Bytes("80")));
+
+        Assert.Equal(
+            CoseFailureCodes.InvalidKey,
+            FailureCodeOf(() => converter.ReadPublicKey(encoded))
+        );
     }
 
     [Fact]
@@ -343,7 +388,7 @@ public class DefaultCoseKeyConverterTests
 
     #endregion
 
-    #region ReadPublicKeySet
+    #region ReadPublicKeySet Tests
 
     [Fact]
     public void ReadPublicKeySet_UnregisteredKeyType_SkipsThatKey()
@@ -373,18 +418,6 @@ public class DefaultCoseKeyConverterTests
     }
 
     [Fact]
-    public void WritePublicKeySet_Keys_ReadsBack()
-    {
-        var converter = CreateConverter();
-        var ec = CoseTestKeys.CreateEcP256(Factory, CoseTestKeys.EcP256X, CoseTestKeys.EcP256Y);
-        var ed = CoseTestKeys.CreateEd25519(KeyTypeCatalog, CoseTestKeys.Ed25519Seed);
-
-        var keys = converter.ReadPublicKeySet(converter.WritePublicKeySet([ec, ed]));
-
-        Assert.Equal(["ecc", "okp"], keys.Select(key => key.KeyType).ToArray());
-    }
-
-    [Fact]
     public void ReadPublicKeySet_NotAnArray_ThrowsInvalidMessage()
     {
         var converter = CreateConverter();
@@ -397,30 +430,18 @@ public class DefaultCoseKeyConverterTests
 
     #endregion
 
-    #region AKP
+    #region WritePublicKeySet Tests
 
-    [MlDsaFact]
-    public void WritePublicKey_MlDsaKey_CarriesTheAlgorithm()
+    [Fact]
+    public void WritePublicKeySet_Keys_ReadsBack()
     {
         var converter = CreateConverter();
-        Assert.True(KeyTypeCatalog.TryGet(SecretKeyTypes.Akp, out var descriptor));
-        var generated = descriptor.GenerateKeyMaterial(
-            new SecretKeyGenerationParameters { KeySizeBits = 1312 * 8, Curve = "ML-DSA-44" },
-            bytes => Convert.ToBase64String(bytes)
-        );
-        var key = descriptor.DeserializeKeyMaterial(
-            new KeyMetadata { KeyId = "k" },
-            SecretEncodings.Pkcs8,
-            Convert.FromBase64String(generated.ProtectedKeyMaterial)
-        );
+        var ec = CoseTestKeys.CreateEcP256(Factory, CoseTestKeys.EcP256X, CoseTestKeys.EcP256Y);
+        var ed = CoseTestKeys.CreateEd25519(KeyTypeCatalog, CoseTestKeys.Ed25519Seed);
 
-        var encoded = converter.WritePublicKey(key);
-        var read = converter.ReadPublicKey(encoded);
+        var keys = converter.ReadPublicKeySet(converter.WritePublicKeySet([ec, ed]));
 
-        var map = CborGuard.ReadRootMap(encoded, new CoseOptions());
-        Assert.True(map[3].TryGetInt64(out var algorithm));
-        Assert.Equal(-48, algorithm);
-        Assert.Equal("akp", read.KeyType);
+        Assert.Equal(["ecc", "okp"], keys.Select(key => key.KeyType).ToArray());
     }
 
     #endregion

@@ -41,7 +41,7 @@ public class CoseSign1Tests
     private static string FailureCode(Action action) =>
         Assert.Throws<CoseException>(action).FailureCode;
 
-    #region Verify with the working group examples
+    #region Verify Tests
 
     [Fact]
     public async Task Verify_WithExternalAad_ReturnsTheContent()
@@ -59,6 +59,23 @@ public class CoseSign1Tests
         Assert.Equal(Content, verified.Content.ToArray());
         Assert.Equal(CoseMessageType.Sign1, verified.MessageType);
         Assert.Equal(CoseAlgorithmIdentifiers.Es256, verified.Algorithm.Identifier);
+    }
+
+    [Fact]
+    public async Task Verify_ClockSkewAtTheMaximum_SelectsTheKey()
+    {
+        await using var host = new CoseTestHost();
+        var parameters = new CoseVerificationParameters
+        {
+            ValidAlgorithms = [CoseAlgorithmIdentifiers.Es256],
+            Keys = [EcPublic(host)],
+            ExternalAad = Hex(CoseVectors.V2ExternalAad),
+            ClockSkew = TimeSpan.MaxValue,
+        };
+
+        var verified = host.Serializer.Verify(Hex(CoseVectors.V2Sign1ExternalAad), parameters);
+
+        Assert.Equal(Content, verified.Content.ToArray());
     }
 
     [Fact]
@@ -195,77 +212,6 @@ public class CoseSign1Tests
         );
     }
 
-    #endregion
-
-    #region EncodeSign1
-
-    [Fact]
-    public async Task EncodeSign1_EdDsaVector_ProducesTheVectorBytes()
-    {
-        await using var host = new CoseTestHost();
-        var key = CoseTestKeys.CreateEd25519(host.SecretKeyTypes, CoseTestKeys.Ed25519Seed, "11");
-        var options = new CoseEncodingOptions
-        {
-            ProtectedHeaders = new Dictionary<CoseLabel, CoseValue>
-            {
-                [CoseHeaderLabels.ContentType] = CoseValue.FromInt64(0),
-            },
-        };
-
-        var encoded = host.Serializer.EncodeSign1(
-            Content,
-            new CoseCredentials(key, CoseAlgorithms.EdDsa),
-            options
-        );
-
-        Assert.Equal(CoseVectors.V5EdDsa, Convert.ToHexString(encoded));
-        var verified = host.Serializer.Verify(
-            encoded,
-            Parameters([CoseAlgorithmIdentifiers.EdDsa], key)
-        );
-        Assert.Equal(Content, verified.Content.ToArray());
-    }
-
-    [Fact]
-    public async Task EncodeSign1_Ed25519Algorithm_RoundTrips()
-    {
-        await using var host = new CoseTestHost();
-        var key = CoseTestKeys.CreateEd25519(host.SecretKeyTypes, CoseTestKeys.Ed25519Seed);
-
-        var encoded = host.Serializer.EncodeSign1(
-            Content,
-            new CoseCredentials(key, CoseAlgorithms.Ed25519),
-            new CoseEncodingOptions()
-        );
-
-        var verified = host.Serializer.Verify(
-            encoded,
-            Parameters([CoseAlgorithmIdentifiers.Ed25519], key)
-        );
-        Assert.Equal(Content, verified.Content.ToArray());
-    }
-
-    [Fact]
-    public async Task EncodeSign1_Es256_RoundTripsAndWritesTheKeyId()
-    {
-        await using var host = new CoseTestHost();
-
-        var encoded = host.Serializer.EncodeSign1(
-            Content,
-            new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
-        );
-
-        var info = host.Serializer.Inspect(encoded, null);
-        Assert.True(info.UnprotectedHeaders[CoseHeaderLabels.KeyId].TryGetByteString(out var kid));
-        Assert.Equal("11"u8.ToArray(), kid.ToArray());
-        var verified = host.Serializer.Verify(
-            encoded,
-            Parameters([CoseAlgorithmIdentifiers.Es256], EcPublic(host))
-        );
-        Assert.Equal(Content, verified.Content.ToArray());
-    }
-
     [Fact]
     public async Task Verify_BinaryKeyId_SelectsTheKeyReadFromACoseKey()
     {
@@ -301,85 +247,6 @@ public class CoseSign1Tests
     }
 
     [Fact]
-    public async Task EncodeSign1_Ps256_RoundTrips()
-    {
-        await using var host = new CoseTestHost();
-        var rsa = RSA.Create(2048);
-        var key = host.KeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, rsa);
-
-        var encoded = host.Serializer.EncodeSign1(
-            Content,
-            new CoseCredentials(key, CoseAlgorithms.Ps256),
-            new CoseEncodingOptions()
-        );
-
-        var verified = host.Serializer.Verify(
-            encoded,
-            Parameters([CoseAlgorithmIdentifiers.Ps256], key)
-        );
-        Assert.Equal(Content, verified.Content.ToArray());
-    }
-
-    [MlDsaFact]
-    public async Task EncodeSign1_MlDsa44_RoundTrips()
-    {
-        await using var host = new CoseTestHost();
-        Assert.True(host.SecretKeyTypes.TryGet(SecretKeyTypes.Akp, out var descriptor));
-        var generated = descriptor.GenerateKeyMaterial(
-            new SecretKeyGenerationParameters { KeySizeBits = 1312 * 8, Curve = "ML-DSA-44" },
-            bytes => Convert.ToBase64String(bytes)
-        );
-        var key = descriptor.DeserializeKeyMaterial(
-            new KeyMetadata(),
-            SecretEncodings.Pkcs8,
-            Convert.FromBase64String(generated.ProtectedKeyMaterial)
-        );
-
-        var encoded = host.Serializer.EncodeSign1(
-            Content,
-            new CoseCredentials(key, CoseAlgorithms.MlDsa44),
-            new CoseEncodingOptions()
-        );
-
-        var verified = host.Serializer.Verify(
-            encoded,
-            Parameters([CoseAlgorithmIdentifiers.MlDsa44], key)
-        );
-        Assert.Equal(Content, verified.Content.ToArray());
-    }
-
-    [Fact]
-    public async Task EncodeSign1_DetachedContent_RequiresTheContentToVerify()
-    {
-        await using var host = new CoseTestHost();
-        var encoded = host.Serializer.EncodeSign1(
-            Content,
-            new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions { DetachContent = true }
-        );
-        var key = EcPublic(host);
-
-        Assert.True(host.Serializer.Inspect(encoded, null).IsContentDetached);
-        Assert.Equal(
-            CoseFailureCodes.DetachedContent,
-            FailureCode(() =>
-                host.Serializer.Verify(encoded, Parameters([CoseAlgorithmIdentifiers.Es256], key))
-            )
-        );
-
-        var verified = host.Serializer.Verify(
-            encoded,
-            new CoseVerificationParameters
-            {
-                ValidAlgorithms = [CoseAlgorithmIdentifiers.Es256],
-                Keys = [key],
-                DetachedContent = Content,
-            }
-        );
-        Assert.Equal(Content, verified.Content.ToArray());
-    }
-
-    [Fact]
     public async Task Verify_ContentAndDetachedContent_ThrowsDetachedContent()
     {
         await using var host = new CoseTestHost();
@@ -404,76 +271,6 @@ public class CoseSign1Tests
             )
         );
     }
-
-    [Fact]
-    public async Task EncodeSign1_OmitTag_WritesAnUntaggedMessage()
-    {
-        await using var host = new CoseTestHost();
-
-        var encoded = host.Serializer.EncodeSign1(
-            Content,
-            new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-            new CoseEncodingOptions { OmitTag = true }
-        );
-
-        Assert.False(host.Serializer.Inspect(encoded, CoseMessageType.Sign1).IsTagged);
-        Assert.Equal(0x84, encoded[0]);
-    }
-
-    [Fact]
-    public async Task EncodeSign1_MacAlgorithm_Throws()
-    {
-        await using var host = new CoseTestHost();
-        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey);
-
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeSign1(
-                Content,
-                new CoseCredentials(key, CoseAlgorithms.HmacSha256),
-                new CoseEncodingOptions()
-            )
-        );
-    }
-
-    [Fact]
-    public async Task EncodeSign1_KeyOfTheWrongType_Throws()
-    {
-        await using var host = new CoseTestHost();
-        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey);
-
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeSign1(
-                Content,
-                new CoseCredentials(key, CoseAlgorithms.Es256),
-                new CoseEncodingOptions()
-            )
-        );
-    }
-
-    [Fact]
-    public async Task EncodeSign1_CallerAlgorithmHeader_Throws()
-    {
-        await using var host = new CoseTestHost();
-        var options = new CoseEncodingOptions
-        {
-            ProtectedHeaders = new Dictionary<CoseLabel, CoseValue>
-            {
-                [CoseHeaderLabels.Algorithm] = CoseValue.FromInt64(-7),
-            },
-        };
-
-        Assert.Throws<ArgumentException>(() =>
-            host.Serializer.EncodeSign1(
-                Content,
-                new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
-                options
-            )
-        );
-    }
-
-    #endregion
-
-    #region Critical headers
 
     [Fact]
     public async Task Verify_CriticalHeaderNotUnderstood_Throws()
@@ -512,10 +309,6 @@ public class CoseSign1Tests
         );
         Assert.Equal(Content, verified.Content.ToArray());
     }
-
-    #endregion
-
-    #region Key selection
 
     [Fact]
     public async Task Verify_KeysThatMustNotBeTried_ThrowKeyNotFound()
@@ -631,6 +424,222 @@ public class CoseSign1Tests
 
         Assert.Throws<ArgumentException>(() =>
             host.Serializer.Verify(Hex(CoseVectors.V2Sign1ExternalAad), parameters)
+        );
+    }
+
+    #endregion
+
+    #region EncodeSign1 Tests
+
+    [Fact]
+    public async Task EncodeSign1_EdDsaVector_ProducesTheVectorBytes()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateEd25519(host.SecretKeyTypes, CoseTestKeys.Ed25519Seed, "11");
+        var options = new CoseEncodingOptions
+        {
+            ProtectedHeaders = new Dictionary<CoseLabel, CoseValue>
+            {
+                [CoseHeaderLabels.ContentType] = CoseValue.FromInt64(0),
+            },
+        };
+
+        var encoded = host.Serializer.EncodeSign1(
+            Content,
+            new CoseCredentials(key, CoseAlgorithms.EdDsa),
+            options
+        );
+
+        Assert.Equal(CoseVectors.V5EdDsa, Convert.ToHexString(encoded));
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters([CoseAlgorithmIdentifiers.EdDsa], key)
+        );
+        Assert.Equal(Content, verified.Content.ToArray());
+    }
+
+    [Fact]
+    public async Task EncodeSign1_Ed25519Algorithm_RoundTrips()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateEd25519(host.SecretKeyTypes, CoseTestKeys.Ed25519Seed);
+
+        var encoded = host.Serializer.EncodeSign1(
+            Content,
+            new CoseCredentials(key, CoseAlgorithms.Ed25519),
+            new CoseEncodingOptions()
+        );
+
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters([CoseAlgorithmIdentifiers.Ed25519], key)
+        );
+        Assert.Equal(Content, verified.Content.ToArray());
+    }
+
+    [Fact]
+    public async Task EncodeSign1_Es256_RoundTripsAndWritesTheKeyId()
+    {
+        await using var host = new CoseTestHost();
+
+        var encoded = host.Serializer.EncodeSign1(
+            Content,
+            new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
+            new CoseEncodingOptions()
+        );
+
+        var info = host.Serializer.Inspect(encoded, null);
+        Assert.True(info.UnprotectedHeaders[CoseHeaderLabels.KeyId].TryGetByteString(out var kid));
+        Assert.Equal("11"u8.ToArray(), kid.ToArray());
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters([CoseAlgorithmIdentifiers.Es256], EcPublic(host))
+        );
+        Assert.Equal(Content, verified.Content.ToArray());
+    }
+
+    [Fact]
+    public async Task EncodeSign1_Ps256_RoundTrips()
+    {
+        await using var host = new CoseTestHost();
+        var rsa = RSA.Create(2048);
+        var key = host.KeyFactory.CreateRsa(new KeyMetadata { KeyId = "rsa" }, rsa);
+
+        var encoded = host.Serializer.EncodeSign1(
+            Content,
+            new CoseCredentials(key, CoseAlgorithms.Ps256),
+            new CoseEncodingOptions()
+        );
+
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters([CoseAlgorithmIdentifiers.Ps256], key)
+        );
+        Assert.Equal(Content, verified.Content.ToArray());
+    }
+
+    [MlDsaFact]
+    public async Task EncodeSign1_MlDsa44_RoundTrips()
+    {
+        await using var host = new CoseTestHost();
+        Assert.True(host.SecretKeyTypes.TryGet(SecretKeyTypes.Akp, out var descriptor));
+        var generated = descriptor.GenerateKeyMaterial(
+            new SecretKeyGenerationParameters { KeySizeBits = 1312 * 8, Curve = "ML-DSA-44" },
+            bytes => Convert.ToBase64String(bytes)
+        );
+        var key = descriptor.DeserializeKeyMaterial(
+            new KeyMetadata(),
+            SecretEncodings.Pkcs8,
+            Convert.FromBase64String(generated.ProtectedKeyMaterial)
+        );
+
+        var encoded = host.Serializer.EncodeSign1(
+            Content,
+            new CoseCredentials(key, CoseAlgorithms.MlDsa44),
+            new CoseEncodingOptions()
+        );
+
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters([CoseAlgorithmIdentifiers.MlDsa44], key)
+        );
+        Assert.Equal(Content, verified.Content.ToArray());
+    }
+
+    [Fact]
+    public async Task EncodeSign1_DetachedContent_RequiresTheContentToVerify()
+    {
+        await using var host = new CoseTestHost();
+        var encoded = host.Serializer.EncodeSign1(
+            Content,
+            new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
+            new CoseEncodingOptions { DetachContent = true }
+        );
+        var key = EcPublic(host);
+
+        Assert.True(host.Serializer.Inspect(encoded, null).IsContentDetached);
+        Assert.Equal(
+            CoseFailureCodes.DetachedContent,
+            FailureCode(() =>
+                host.Serializer.Verify(encoded, Parameters([CoseAlgorithmIdentifiers.Es256], key))
+            )
+        );
+
+        var verified = host.Serializer.Verify(
+            encoded,
+            new CoseVerificationParameters
+            {
+                ValidAlgorithms = [CoseAlgorithmIdentifiers.Es256],
+                Keys = [key],
+                DetachedContent = Content,
+            }
+        );
+        Assert.Equal(Content, verified.Content.ToArray());
+    }
+
+    [Fact]
+    public async Task EncodeSign1_OmitTag_WritesAnUntaggedMessage()
+    {
+        await using var host = new CoseTestHost();
+
+        var encoded = host.Serializer.EncodeSign1(
+            Content,
+            new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
+            new CoseEncodingOptions { OmitTag = true }
+        );
+
+        Assert.False(host.Serializer.Inspect(encoded, CoseMessageType.Sign1).IsTagged);
+        Assert.Equal(0x84, encoded[0]);
+    }
+
+    [Fact]
+    public async Task EncodeSign1_MacAlgorithm_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey);
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeSign1(
+                Content,
+                new CoseCredentials(key, CoseAlgorithms.HmacSha256),
+                new CoseEncodingOptions()
+            )
+        );
+    }
+
+    [Fact]
+    public async Task EncodeSign1_KeyOfTheWrongType_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey);
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeSign1(
+                Content,
+                new CoseCredentials(key, CoseAlgorithms.Es256),
+                new CoseEncodingOptions()
+            )
+        );
+    }
+
+    [Fact]
+    public async Task EncodeSign1_CallerAlgorithmHeader_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var options = new CoseEncodingOptions
+        {
+            ProtectedHeaders = new Dictionary<CoseLabel, CoseValue>
+            {
+                [CoseHeaderLabels.Algorithm] = CoseValue.FromInt64(-7),
+            },
+        };
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeSign1(
+                Content,
+                new CoseCredentials(EcPrivate(host), CoseAlgorithms.Es256),
+                options
+            )
         );
     }
 

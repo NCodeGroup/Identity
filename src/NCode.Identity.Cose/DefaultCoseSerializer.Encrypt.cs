@@ -98,7 +98,7 @@ internal partial class DefaultCoseSerializer
             isSensitive: true,
             out Span<byte> contentKey
         );
-        List<CoseMessageWriter.LayerEntry> entries;
+        List<CoseLayerEntry> entries;
         if (!algorithms[0].SupportsKeyWrapping)
         {
             var recipient = recipients.Recipients[0];
@@ -277,7 +277,7 @@ internal partial class DefaultCoseSerializer
         );
         if (eligible.Count == 0)
             throw new CoseException(
-                skipped == CoseContentKeys.RecipientSkip.NotPermitted
+                skipped == CoseRecipientSkip.NotPermitted
                     ? CoseFailureCodes.AlgorithmNotPermitted
                     : CoseFailureCodes.UnsupportedAlgorithm,
                 "No recipient of the message uses a permitted algorithm."
@@ -437,21 +437,34 @@ internal partial class DefaultCoseSerializer
         var plaintext = new byte[algorithm.GetMaxPlainTextSizeBytes(cipherTextSize)];
         try
         {
-            return algorithm.TryDecrypt(
-                contentKey,
-                nonce,
-                ciphertextAndTag[..cipherTextSize],
-                structure,
-                ciphertextAndTag[cipherTextSize..],
-                plaintext,
-                out var written
+            if (
+                !algorithm.TryDecrypt(
+                    contentKey,
+                    nonce,
+                    ciphertextAndTag[..cipherTextSize],
+                    structure,
+                    ciphertextAndTag[cipherTextSize..],
+                    plaintext,
+                    out var written
+                )
             )
-                ? plaintext.AsSpan(0, written).ToArray()
-                : null;
+            {
+                CryptographicOperations.ZeroMemory(plaintext);
+                return null;
+            }
+
+            // The buffer is the content when the plaintext fills it, as it does for AES-GCM.
+            if (written == plaintext.Length)
+                return plaintext;
+
+            var content = plaintext.AsSpan(0, written).ToArray();
+            CryptographicOperations.ZeroMemory(plaintext);
+            return content;
         }
         catch (Exception exception)
             when (exception is JoseException or CryptographicException or ArgumentException)
         {
+            CryptographicOperations.ZeroMemory(plaintext);
             return null;
         }
     }

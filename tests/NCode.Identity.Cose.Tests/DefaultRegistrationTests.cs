@@ -13,7 +13,7 @@ namespace NCode.Identity.Cose.Tests;
 
 public class DefaultRegistrationTests
 {
-    #region AddCoseLibrary
+    #region AddCoseLibrary Tests
 
     [Fact]
     public async Task AddCoseLibrary_Registered_ResolvesEveryService()
@@ -26,6 +26,31 @@ public class DefaultRegistrationTests
         Assert.NotNull(host.Services.GetRequiredService<ICoseKeyTypeCatalog>());
         Assert.NotNull(host.Services.GetRequiredService<IOptions<CoseOptions>>().Value);
     }
+
+    [Fact]
+    public async Task AddCoseLibrary_DefaultAlgorithms_ExcludeTheOptInDescriptors()
+    {
+        await using var host = new CoseTestHost();
+
+        Assert.False(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.HmacSha256Truncated64, out _));
+        Assert.False(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.RsaesOaepSha1, out _));
+        Assert.False(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.Rs256, out _));
+        Assert.True(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.Ed25519, out _));
+    }
+
+    [Fact]
+    public async Task AddCoseLibrary_InvalidOptions_FailsValidation()
+    {
+        await using var host = new CoseTestHost(options => options.MaxRecipients = 0);
+
+        Assert.Throws<OptionsValidationException>(() =>
+            host.Services.GetRequiredService<IOptions<CoseOptions>>().Value
+        );
+    }
+
+    #endregion
+
+    #region AddCoseAlgorithm Tests
 
     [Fact]
     public async Task AddCoseAlgorithm_DefaultDescriptor_IsRegisteredOnce()
@@ -41,17 +66,6 @@ public class DefaultRegistrationTests
         Assert.Equal(descriptors.Count, descriptors.Distinct().Count());
         Assert.Single(descriptors, CoseAlgorithms.Es256);
         Assert.Single(provider.GetServices<ICoseSerializer>());
-    }
-
-    [Fact]
-    public async Task AddCoseLibrary_DefaultAlgorithms_ExcludeTheOptInDescriptors()
-    {
-        await using var host = new CoseTestHost();
-
-        Assert.False(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.HmacSha256Truncated64, out _));
-        Assert.False(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.RsaesOaepSha1, out _));
-        Assert.False(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.Rs256, out _));
-        Assert.True(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.Ed25519, out _));
     }
 
     [Fact]
@@ -71,16 +85,6 @@ public class DefaultRegistrationTests
         var cose = services.AddSecretsLibrary().AddJoseLibrary().AddCoseLibrary();
 
         Assert.Throws<ArgumentNullException>(() => cose.AddCoseAlgorithm(null!));
-    }
-
-    [Fact]
-    public async Task AddCoseLibrary_InvalidOptions_FailsValidation()
-    {
-        await using var host = new CoseTestHost(options => options.MaxRecipients = 0);
-
-        Assert.Throws<OptionsValidationException>(() =>
-            host.Services.GetRequiredService<IOptions<CoseOptions>>().Value
-        );
     }
 
     #endregion

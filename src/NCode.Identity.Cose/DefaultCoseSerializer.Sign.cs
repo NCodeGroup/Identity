@@ -75,7 +75,7 @@ internal partial class DefaultCoseSerializer
         );
         var bodyProtected = CborMapWriter.EncodeProtected(bodyProtectedHeaders);
 
-        var entries = new List<CoseMessageWriter.LayerEntry>(signers.Count);
+        var entries = new List<CoseLayerEntry>(signers.Count);
         foreach (var signer in signers)
         {
             ArgumentNullException.ThrowIfNull(signer);
@@ -96,7 +96,7 @@ internal partial class DefaultCoseSerializer
                 content
             );
             entries.Add(
-                new CoseMessageWriter.LayerEntry(
+                new CoseLayerEntry(
                     signatureProtected,
                     unprotectedHeaders,
                     Sign(algorithm, credentials.SecretKey, structure)

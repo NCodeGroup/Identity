@@ -52,7 +52,7 @@ internal class DefaultCoseKeyConverter(
     {
         CborGuard.CheckSize(encodedKeySet, Options);
 
-        var maps = new List<IReadOnlyDictionary<CoseLabel, CoseValue>>();
+        List<IReadOnlyDictionary<CoseLabel, CoseValue>> maps;
         try
         {
             var reader = CborGuard.NewReader(encodedKeySet);
@@ -68,6 +68,10 @@ internal class DefaultCoseKeyConverter(
                     "The CBOR data item is nested deeper than the limit."
                 );
 
+            // The declared length is peer data.
+            maps = new List<IReadOnlyDictionary<CoseLabel, CoseValue>>(
+                Math.Min(length, reader.BytesRemaining)
+            );
             for (var index = 0; index < length; index++)
                 maps.Add(CborGuard.ReadMap(reader, Options.MaxNestingDepth - 1));
 
@@ -266,8 +270,12 @@ internal class DefaultCoseKeyConverter(
         }
 
         string[]? keyOperations = null;
+        string? use = null;
         if (map.TryGetValue(CoseKeyParameterLabels.KeyOperations, out var opsValue))
+        {
             keyOperations = ReadKeyOperations(opsValue);
+            use = ResolveUse(keyOperations);
+        }
 
         if (map.ContainsKey(CoseKeyParameterLabels.BaseIv))
             throw InvalidKey("The COSE_Key carries a Base IV, which a public key does not use.");
@@ -328,7 +336,7 @@ internal class DefaultCoseKeyConverter(
             members[JsonWebKeyParameterNames.KeyOperations] = operations;
         }
 
-        return Import(descriptor, members, keyId, joseAlgorithm, keyOperations);
+        return Import(descriptor, members, keyId, joseAlgorithm, use);
     }
 
     private static string[] ReadKeyOperations(CoseValue value)
@@ -368,7 +376,7 @@ internal class DefaultCoseKeyConverter(
         JsonObject members,
         string? keyId,
         string? joseAlgorithm,
-        string[]? keyOperations
+        string? use
     )
     {
         if (
@@ -415,7 +423,7 @@ internal class DefaultCoseKeyConverter(
                 {
                     KeyId = keyId,
                     Algorithm = joseAlgorithm,
-                    Use = ResolveUse(keyOperations),
+                    Use = use,
                 },
                 imported.SecretEncoding,
                 keyMaterial.Span
@@ -438,28 +446,31 @@ internal class DefaultCoseKeyConverter(
         }
     }
 
+    // ReadKeyOperations admits only the eight registered operations: sign and verify are signature operations, and the
+    // other six are encryption operations (RFC 9052 §7.1, RFC 7517 §4.3).
     private static string? ResolveUse(string[]? keyOperations)
     {
-        if (keyOperations is not { Length: > 0 })
+        if (keyOperations is null)
             return null;
 
-        if (
-            keyOperations.All(operation =>
-                operation is JsonWebKeyOperations.Sign or JsonWebKeyOperations.Verify
-            )
-        )
-            return SecretKeyUses.Signature;
+        if (keyOperations.Length == 0)
+            throw InvalidKey("The key operations of the COSE_Key name no operation.");
 
-        return keyOperations.All(operation =>
-            operation
-                is JsonWebKeyOperations.Encrypt
-                    or JsonWebKeyOperations.Decrypt
-                    or JsonWebKeyOperations.WrapKey
-                    or JsonWebKeyOperations.UnwrapKey
-                    or JsonWebKeyOperations.DeriveKey
-                    or JsonWebKeyOperations.DeriveBits
-        )
-            ? SecretKeyUses.Encryption
-            : null;
+        var usesSignature = false;
+        var usesEncryption = false;
+        foreach (var operation in keyOperations)
+        {
+            if (operation is JsonWebKeyOperations.Sign or JsonWebKeyOperations.Verify)
+                usesSignature = true;
+            else
+                usesEncryption = true;
+        }
+
+        if (usesSignature && usesEncryption)
+            throw InvalidKey(
+                "The key operations of the COSE_Key combine signature and encryption operations."
+            );
+
+        return usesSignature ? SecretKeyUses.Signature : SecretKeyUses.Encryption;
     }
 }

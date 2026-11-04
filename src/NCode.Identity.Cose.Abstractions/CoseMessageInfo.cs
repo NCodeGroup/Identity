@@ -7,8 +7,9 @@ namespace NCode.Identity.Cose;
 
 /// <summary>
 /// Describes a COSE message by its type and headers only. It carries no content, signature, authentication code or
-/// ciphertext, so nothing that is not yet authenticated is readable from it: the content is available only from
-/// verification or decryption. A caller uses the headers, such as <c>kid</c>, to choose keys.
+/// ciphertext, so the content is readable only from verification or decryption. The headers are returned as received
+/// and nothing has authenticated them yet, the unprotected bucket in particular, so a caller uses them, such as
+/// <c>kid</c>, only to choose the keys that verification then tries.
 /// </summary>
 // See ADR-1409.
 [PublicAPI]

@@ -5,7 +5,7 @@ namespace NCode.Identity.Cose.Tests;
 
 public class CoseLabelTests
 {
-    #region Constructors
+    #region Constructor Tests
 
     [Fact]
     public void Constructor_Integer_IsNotText()
@@ -35,7 +35,7 @@ public class CoseLabelTests
 
     #endregion
 
-    #region Conversions
+    #region ImplicitConversion Tests
 
     [Fact]
     public void ImplicitConversion_FromLongAndString_BuildsLabels()
@@ -49,7 +49,7 @@ public class CoseLabelTests
 
     #endregion
 
-    #region Equality
+    #region Equals Tests
 
     [Fact]
     public void Equals_IntegerAndTextWithSameDigits_AreDifferent()
@@ -67,7 +67,7 @@ public class CoseLabelTests
 
     #endregion
 
-    #region ToString
+    #region ToString Tests
 
     [Fact]
     public void ToString_IntegerAndText_ReturnsTheLabel()

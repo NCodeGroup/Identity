@@ -101,7 +101,10 @@ internal static class CborGuard
             var length =
                 reader.ReadStartMap() ?? throw Invalid("The map uses an indefinite length.");
 
-            var map = new Dictionary<CoseLabel, CoseValue>();
+            // The declared length is peer data; each entry takes at least two bytes.
+            var map = new Dictionary<CoseLabel, CoseValue>(
+                Math.Min(length, reader.BytesRemaining / 2)
+            );
             for (var index = 0; index < length; index++)
             {
                 var label = ReadLabel(reader);

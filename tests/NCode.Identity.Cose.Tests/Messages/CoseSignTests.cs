@@ -18,7 +18,31 @@ public class CoseSignTests
         params SecretKey[] keys
     ) => new() { ValidAlgorithms = algorithms, Keys = keys };
 
-    #region Verify with the working group examples
+    private static (byte[] Encoded, SecretKey[] Keys) EncodeTwoSignatures(CoseTestHost host)
+    {
+        var first = host.KeyFactory.CreateEcc(
+            new KeyMetadata(),
+            ECDsa.Create(ECCurve.NamedCurves.nistP256)
+        );
+        var second = host.KeyFactory.CreateEcc(
+            new KeyMetadata(),
+            ECDsa.Create(ECCurve.NamedCurves.nistP256)
+        );
+        var encoded = host.Serializer.EncodeSign(
+            Content,
+            [
+                new CoseSigner(new CoseCredentials(first, CoseAlgorithms.Es256)),
+                new CoseSigner(new CoseCredentials(second, CoseAlgorithms.Es256)),
+            ],
+            new CoseEncodingOptions()
+        );
+        return (encoded, [first, second]);
+    }
+
+    private static string FailureCode(Action action) =>
+        Assert.Throws<CoseException>(action).FailureCode;
+
+    #region Verify Tests
 
     [Fact]
     public async Task Verify_EcdsaExample_ReportsTheSignerHeaders()
@@ -86,9 +110,64 @@ public class CoseSignTests
         Assert.Equal(CoseFailureCodes.InvalidSignature, exception.FailureCode);
     }
 
+    [Fact]
+    public async Task Verify_NoPermittedSigner_ThrowsAlgorithmNotPermitted()
+    {
+        await using var host = new CoseTestHost();
+        var ecKey = host.KeyFactory.CreateEcc(
+            new KeyMetadata { KeyId = "ec" },
+            ECDsa.Create(ECCurve.NamedCurves.nistP256)
+        );
+        var encoded = host.Serializer.EncodeSign(
+            Content,
+            [new CoseSigner(new CoseCredentials(ecKey, CoseAlgorithms.Es256))],
+            new CoseEncodingOptions()
+        );
+
+        var exception = Assert.Throws<CoseException>(() =>
+            host.Serializer.Verify(encoded, Parameters([CoseAlgorithmIdentifiers.Ps256], ecKey))
+        );
+
+        Assert.Equal(CoseFailureCodes.AlgorithmNotPermitted, exception.FailureCode);
+    }
+
+    [Fact]
+    public async Task Verify_MoreSignaturesThanTheLimit_ThrowsLimitExceeded()
+    {
+        await using var encoder = new CoseTestHost();
+        var (encoded, keys) = EncodeTwoSignatures(encoder);
+        await using var host = new CoseTestHost(options => options.MaxSignatures = 1);
+
+        Assert.Equal(
+            CoseFailureCodes.LimitExceeded,
+            FailureCode(() =>
+                host.Serializer.Verify(encoded, Parameters([CoseAlgorithmIdentifiers.Es256], keys))
+            )
+        );
+        Assert.Equal(
+            CoseFailureCodes.LimitExceeded,
+            FailureCode(() => host.Serializer.Inspect(encoded, null))
+        );
+    }
+
+    [Fact]
+    public async Task Verify_SignaturesAtTheLimit_Verifies()
+    {
+        await using var encoder = new CoseTestHost();
+        var (encoded, keys) = EncodeTwoSignatures(encoder);
+        await using var host = new CoseTestHost(options => options.MaxSignatures = 2);
+
+        var verified = host.Serializer.Verify(
+            encoded,
+            Parameters([CoseAlgorithmIdentifiers.Es256], keys)
+        );
+
+        Assert.Equal(Content, verified.Content.ToArray());
+    }
+
     #endregion
 
-    #region EncodeSign
+    #region EncodeSign Tests
 
     [Fact]
     public async Task EncodeSign_UnpermittedSignerAndEs256Signer_VerifiesThroughTheEs256Signer()
@@ -116,27 +195,6 @@ public class CoseSignTests
         Assert.Equal(CoseAlgorithmIdentifiers.Es256, verified.Algorithm.Identifier);
         Assert.Same(ecKey, verified.Key);
         Assert.Equal(Content, verified.Content.ToArray());
-    }
-
-    [Fact]
-    public async Task Verify_NoPermittedSigner_ThrowsAlgorithmNotPermitted()
-    {
-        await using var host = new CoseTestHost();
-        var ecKey = host.KeyFactory.CreateEcc(
-            new KeyMetadata { KeyId = "ec" },
-            ECDsa.Create(ECCurve.NamedCurves.nistP256)
-        );
-        var encoded = host.Serializer.EncodeSign(
-            Content,
-            [new CoseSigner(new CoseCredentials(ecKey, CoseAlgorithms.Es256))],
-            new CoseEncodingOptions()
-        );
-
-        var exception = Assert.Throws<CoseException>(() =>
-            host.Serializer.Verify(encoded, Parameters([CoseAlgorithmIdentifiers.Ps256], ecKey))
-        );
-
-        Assert.Equal(CoseFailureCodes.AlgorithmNotPermitted, exception.FailureCode);
     }
 
     [Fact]
@@ -191,64 +249,6 @@ public class CoseSignTests
             host.Serializer.EncodeSign(Content, [signer, signer], new CoseEncodingOptions())
         );
     }
-
-    [Fact]
-    public async Task Verify_MoreSignaturesThanTheLimit_ThrowsLimitExceeded()
-    {
-        await using var encoder = new CoseTestHost();
-        var (encoded, keys) = EncodeTwoSignatures(encoder);
-        await using var host = new CoseTestHost(options => options.MaxSignatures = 1);
-
-        Assert.Equal(
-            CoseFailureCodes.LimitExceeded,
-            FailureCode(() =>
-                host.Serializer.Verify(encoded, Parameters([CoseAlgorithmIdentifiers.Es256], keys))
-            )
-        );
-        Assert.Equal(
-            CoseFailureCodes.LimitExceeded,
-            FailureCode(() => host.Serializer.Inspect(encoded, null))
-        );
-    }
-
-    [Fact]
-    public async Task Verify_SignaturesAtTheLimit_Verifies()
-    {
-        await using var encoder = new CoseTestHost();
-        var (encoded, keys) = EncodeTwoSignatures(encoder);
-        await using var host = new CoseTestHost(options => options.MaxSignatures = 2);
-
-        var verified = host.Serializer.Verify(
-            encoded,
-            Parameters([CoseAlgorithmIdentifiers.Es256], keys)
-        );
-
-        Assert.Equal(Content, verified.Content.ToArray());
-    }
-
-    private static (byte[] Encoded, SecretKey[] Keys) EncodeTwoSignatures(CoseTestHost host)
-    {
-        var first = host.KeyFactory.CreateEcc(
-            new KeyMetadata(),
-            ECDsa.Create(ECCurve.NamedCurves.nistP256)
-        );
-        var second = host.KeyFactory.CreateEcc(
-            new KeyMetadata(),
-            ECDsa.Create(ECCurve.NamedCurves.nistP256)
-        );
-        var encoded = host.Serializer.EncodeSign(
-            Content,
-            [
-                new CoseSigner(new CoseCredentials(first, CoseAlgorithms.Es256)),
-                new CoseSigner(new CoseCredentials(second, CoseAlgorithms.Es256)),
-            ],
-            new CoseEncodingOptions()
-        );
-        return (encoded, [first, second]);
-    }
-
-    private static string FailureCode(Action action) =>
-        Assert.Throws<CoseException>(action).FailureCode;
 
     #endregion
 }

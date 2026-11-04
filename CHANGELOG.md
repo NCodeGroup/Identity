@@ -525,7 +525,8 @@ describes the family as it is rather than its changes
   key wrap and RSAES-OAEP with SHA-256 and SHA-512 recipients, with HMAC 256/64, RSAES-OAEP with SHA-1 and
   RSASSA-PKCS1-v1_5 offered as descriptors that `AddCoseAlgorithm` registers. `ICoseKeyConverter` reads and writes
   public `COSE_Key` and `COSE_KeySet` structures through registered key type and curve descriptors mapped onto JSON Web
-  Keys and the registered secret key types, for `OKP`, `EC2`, `RSA` and `AKP` keys. A `kid` is an opaque byte string
+  Keys and the registered secret key types, for `OKP`, `EC2`, `RSA` and `AKP` keys. A `COSE_Key` whose `key_ops` is empty or combines signature and
+  encryption operations is refused, and its operations otherwise set the key's use. A `kid` is an opaque byte string
   that `CoseKeyIdentifiers` names as a key's `KeyId`: its UTF-8 text, or its CBOR diagnostic notation (`h'a1b2'`) when
   it is not text, and keys are matched by the bytes. Everything it writes is in the core
   deterministic encoding of RFC 8949 §4.2.1, and `CoseOptions` bounds the size, nesting, signatures and recipients of

@@ -34,9 +34,7 @@ internal static class CwtClaimsWriter
         if (parameters.Audiences.Count == 1)
             claims[CwtClaimKeys.Audience] = CoseValue.FromTextString(parameters.Audiences[0]);
         else if (parameters.Audiences.Count > 1)
-            claims[CwtClaimKeys.Audience] = CoseValue.FromEncodedValue(
-                EncodeTextArray(parameters.Audiences)
-            );
+            claims[CwtClaimKeys.Audience] = CoseValue.FromTextStrings(parameters.Audiences);
 
         if (parameters.ExpiresAt is { } expiresAt)
             claims[CwtClaimKeys.ExpirationTime] = CoseValue.FromInt64(
@@ -70,18 +68,5 @@ internal static class CwtClaimsWriter
             claims[label] = value;
 
         return claims;
-    }
-
-    private static byte[] EncodeTextArray(IReadOnlyList<string> values)
-    {
-        var writer = new System.Formats.Cbor.CborWriter(
-            System.Formats.Cbor.CborConformanceMode.Strict
-        );
-        writer.WriteStartArray(values.Count);
-        foreach (var value in values)
-            writer.WriteTextString(value);
-
-        writer.WriteEndArray();
-        return writer.Encode();
     }
 }

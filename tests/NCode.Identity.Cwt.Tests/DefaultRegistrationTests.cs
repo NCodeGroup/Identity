@@ -8,7 +8,7 @@ namespace NCode.Identity.Cwt.Tests;
 
 public class DefaultRegistrationTests
 {
-    #region AddCwtLibrary
+    #region AddCwtLibrary Tests
 
     [Fact]
     public async Task AddCwtLibrary_Registered_ResolvesTheIssuer()

@@ -48,7 +48,7 @@ internal class DefaultCoseKeyTypeCatalog : ICoseKeyTypeCatalog
                     $"The COSE key type {keyType.KeyType} names no JSON Web Key type."
                 );
 
-            if (keyType.Parameters is null)
+            if (keyType.Parameters.IsDefault)
                 throw new InvalidOperationException(
                     $"The COSE key type {keyType.KeyType} has no parameter list."
                 );

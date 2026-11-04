@@ -15,7 +15,7 @@ public class CwtClaimsReaderTests
             host.Serializer
         );
 
-    #region Read
+    #region Read Tests
 
     [Fact]
     public async Task Read_RegisteredClaimsExample_FillsEveryTypedMember()
@@ -30,7 +30,7 @@ public class CwtClaimsReaderTests
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1444064944), claims.ExpiresAt);
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1443944944), claims.NotBefore);
         Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1443944944), claims.IssuedAt);
-        Assert.Equal(Convert.FromHexString("0B71"), claims.CwtId!.Value.ToArray());
+        Assert.Equal(Convert.FromHexString("0B71"), claims.CwtId?.ToArray());
         Assert.Null(claims.ConfirmationKey);
         Assert.Equal(7, claims.Claims.Count);
     }
@@ -62,7 +62,7 @@ public class CwtClaimsReaderTests
 
         var claims = Read(host, "A108A101A10102");
 
-        Assert.Equal(Convert.FromHexString("A10102"), claims.ConfirmationKey!.Value.ToArray());
+        Assert.Equal(Convert.FromHexString("A10102"), claims.ConfirmationKey?.ToArray());
     }
 
     [Theory]

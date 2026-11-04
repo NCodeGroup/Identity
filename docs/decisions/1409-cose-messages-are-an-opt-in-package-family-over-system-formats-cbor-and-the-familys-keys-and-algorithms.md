@@ -36,7 +36,13 @@ of the JOSE stack and the keys of the family.
    the registered vocabularies; `NCode.Identity.Cose` implements them. `AddCoseLibrary()` extends
    `IServiceBuilder<JoseLibrary>` and returns the `IServiceBuilder<CoseLibrary>` that `AddCoseAlgorithm` and the CWT
    package extend. The implementation references only abstractions, and `AddIdentityServer()` composes none of it.
-   `System.Formats.Cbor` is the CBOR codec; `System.Security.Cryptography.Cose` is not used.
+   `System.Formats.Cbor` is the CBOR codec; `System.Security.Cryptography.Cose` is not used. `CoseLabel` and
+   `CoseValue` are the value types of the contracts, as `JsonElement` is of the JOSE contracts: their factories and
+   accessors read and write only their own encoded item, so a consumer of the abstractions, `NCode.Identity.Cwt`
+   included, reads a header or a claim without the implementation. `CoseKeyIdentifiers` is the one rule that names a
+   `kid` as a `KeyId`; the implementation, a key resolver and a reader of a confirmation `kid` apply it alike, so it is
+   a public helper of the abstractions, as `TokenHash` is of the JOSE abstractions
+   ([ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md)).
 
 2. **Reading is strict and bounded.** Every reader uses `CborConformanceMode.Strict` and refuses input larger than
    `CoseOptions.MaxMessageSizeBytes` before parsing it, bytes after the root item, any indefinite-length array, map,
@@ -83,7 +89,10 @@ of the JOSE stack and the keys of the family.
    the caller names its type. Signatures are produced and verified by the JOSE signature algorithm over the
    `Sig_structure`. A message authentication code is computed by the JOSE HMAC over the `MAC_structure`, truncated to the
    descriptor's tag size, and compared in fixed time. Content is encrypted with AES-GCM from the JOSE library, the
-   `Enc_structure` is the additional data, and the initialization vector is random and written as an `IV` header.
+   `Enc_structure` is the additional data, and the initialization vector is random and written as an `IV` header. The
+   encoders return the message as a new byte array, and `ICoseKeyConverter` returns a `COSE_Key` or `COSE_KeySet` the
+   same way: the output is non-secret wire data that the caller keeps or sends whole, as `IJoseEncoder.Encode` returns a
+   compact token as a string.
 
 7. **Keys are selected by what the caller supplies.** The keys a reader tries are those that are not expired (allowing
    for clock skew), are intended for the operation, are not restricted to another algorithm and suit the algorithm. When
@@ -91,8 +100,8 @@ of the JOSE stack and the keys of the family.
    identifier is never tried. A `kid` is an opaque byte string, and keys are matched by its bytes. `CoseKeyIdentifiers`
    names it as a key's text `KeyId`: the UTF-8 text when the bytes are UTF-8 text that does not begin with `h'`, and
    otherwise their CBOR diagnostic notation (RFC 8949 §8), such as `h'a1b2c3d4e5f60718'`; a `KeyId` in that notation is
-   written as the bytes it names, and any other `KeyId` as its UTF-8 text. No candidate is `key_not_found`; candidates that all fail are `invalid_signature` or
-   `decryption_failed`. A `COSE_Sign` verifies when one signature whose algorithm is permitted and available
+   written as the bytes it names, and any other `KeyId` as its UTF-8 text. When no key is a candidate, the failure is
+   `key_not_found`; when every candidate fails, it is `invalid_signature` or `decryption_failed`. A `COSE_Sign` verifies when one signature whose algorithm is permitted and available
    verifies.
 
 8. **Recipients.** The key distribution algorithm of a recipient is in its unprotected bucket. A direct recipient is
@@ -106,7 +115,8 @@ of the JOSE stack and the keys of the family.
    value maps onto, so a COSE_Key is imported through the registered secret key types and reads every key type the
    family serves: `OKP` (Ed25519, Ed448, X25519, X448), `EC2` (P-256, P-384, P-521, secp256k1), `RSA` and `AKP`
    (ML-DSA). `ICoseKeyConverter` reads and writes public keys only: a COSE_Key that carries any private parameter, a
-   symmetric key or a Base IV is refused, and a key with no public form is never written. A COSE_KeySet skips a key of an
+   symmetric key or a Base IV is refused, as is a key whose `key_ops` is empty or combines signature and encryption
+   operations; otherwise its `key_ops` set the key's use. A key with no public form is never written. A COSE_KeySet skips a key of an
    unregistered key type, curve or algorithm and refuses any other failure. The forms a parameter value takes
    (`CoseKeyParameterEncoding`) are a closed enumeration, because a JSON Web Key member is base64url bytes or text.
    A COSE_Key's `kid` becomes the key's `KeyId` by the same rule as a message `kid`, so a binary identifier reads and
@@ -138,6 +148,9 @@ of the JOSE stack and the keys of the family.
   where it can be.
 - **Registering HMAC 256/64, RSAES-OAEP with SHA-1 and RSASSA-PKCS1-v1_5 by default.** Rejected: each is weaker than the
   default set, and an application registers one by name.
+- **Moving the CBOR accessors and the key identifier rule into the implementation.** Rejected:
+  `NCode.Identity.Cwt` references abstractions only and reads its claims through `CoseValue`, and a key resolver would
+  need the implementation to name a `kid`.
 - **A single package.** Rejected: CWT and any other consumer of COSE reference the abstractions without the
   implementation.
 - **Refusing a `kid` that is not UTF-8 text.** Rejected: the example `kid` of RFC 8747 §3.4 is binary, and issuers of
@@ -170,6 +183,7 @@ of the JOSE stack and the keys of the family.
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
+  [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md),
   [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)
 - Issue [#76](https://github.com/NCodeGroup/Identity/issues/76)
 - `NCode.Identity.Cose.Abstractions`: `ICoseSerializer`, `CoseAlgorithms`, `CoseKeyTypeDescriptors`,

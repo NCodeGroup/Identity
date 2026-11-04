@@ -1,6 +1,8 @@
 # 1245. A management request answers 409 for a stored settings document it cannot honor
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the 409 answer also
+  covers the platform and team scopes)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

@@ -10,7 +10,9 @@
   [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md): the root key
   provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`; amended by
   [ADR-1370](1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md): no root key
-  provider is a default, and `ephemeral` is an explicit development opt-in)
+  provider is a default, and `ephemeral` is an explicit development opt-in; amended by
+  [ADR-1405](1405-the-platform-master-key-protects-only-the-data-protection-key-ring.md): the platform's master key
+  protects only the Data Protection key ring)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)

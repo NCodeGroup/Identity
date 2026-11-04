@@ -15,7 +15,8 @@
   the first of them; by
   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md): a key is generated on the curve
   its algorithm is bound to, and a stored key satisfies the algorithm only when its stored public key fits it, so a key
-  stored without a readable public key is provisioned)
+  stored without a readable public key is provisioned; amended by [ADR-1404](1404-settings-are-reconciled-per-team.md):
+  a team's reconciliation seeds the keys of that team's tenants only)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

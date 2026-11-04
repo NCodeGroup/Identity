@@ -3,7 +3,9 @@
 - **Status:** Accepted (amended by
   [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
   event IDs `14003` and `14004` are free, the record's schema version is `"1.0"` with every field it carries, and a
-  field added to a released schema bumps the minor version)
+  field added to a released schema bumps the minor version; amended by
+  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): an audit record carries
+  the team of its tenant)
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group
 

@@ -9,7 +9,8 @@
   announcement run on their own bounded token; amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
-  creates the schema this record names)
+  creates the schema this record names; decision 4 superseded by [ADR-1404](1404-settings-are-reconciled-per-team.md):
+  settings are reconciled per team)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md)

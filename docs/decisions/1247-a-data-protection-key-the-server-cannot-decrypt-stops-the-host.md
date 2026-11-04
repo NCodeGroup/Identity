@@ -1,6 +1,8 @@
 # 1247. A Data Protection key the server cannot decrypt stops the host
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1405](1405-the-platform-master-key-protects-only-the-data-protection-key-ring.md): the Data Protection key ring
+  is protected by the platform's master key)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)

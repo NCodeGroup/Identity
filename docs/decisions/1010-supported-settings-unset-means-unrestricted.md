@@ -1,7 +1,9 @@
 # 1010. `*_supported` settings: unset means unrestricted; a replaceable baseline supplies defaults
 
 - **Status:** Accepted (amended by [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): an
-  algorithm list that decides what the server accepts from another party permits nothing when unset)
+  algorithm list that decides what the server accepts from another party permits nothing when unset; amended by
+  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform and each
+  team have their own settings scopes in the cascade above a tenant)
 - **Date:** 2026-09-28
 - **Deciders:** NCode.Identity maintainers
 

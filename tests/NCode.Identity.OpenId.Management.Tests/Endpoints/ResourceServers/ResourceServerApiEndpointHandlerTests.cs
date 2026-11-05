@@ -576,13 +576,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings()
+    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutReadingTheResourceServer()
     {
-        SetupStore();
-        MockStore
-            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateResourceServer())
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.GetEffectiveSettingsAsync(
@@ -592,8 +587,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
-        // authorization.
+        // No store factory, tenant store or resolver is set up, so a strict-mock failure would mean the resource server
+        // was read before authorization.
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
@@ -1335,6 +1330,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync((PersistedResourceServerSecret?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         // Strict mocks: no GetProtectorAsync setup, so asking for a protector would fail the test.
         var result = await Handler.GetPublicKeyAsync(
@@ -1349,19 +1345,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbidWithoutProtector()
+    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbidWithoutReadingTheSecret()
     {
-        SetupStore();
-        MockStore
-            .Setup(x =>
-                x.GetSecretOrDefaultAsync(
-                    ResourceServerId,
-                    "secret-1",
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(CreateResourceServerSecret())
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.GetPublicKeyAsync(

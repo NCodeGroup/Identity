@@ -397,6 +397,15 @@ internal class LocalAccountApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        // The tenant's context is created before anything is written, whether or not the account has a
+        // self-issued identity: a tenant that is not served refuses the request here, so the answer depends on the
+        // tenant, not on the account's shape.
+        await using var tenantContext = await CreateTenantContextAsync(
+            httpContext,
+            tenantId,
+            cancellationToken
+        );
+
         // Cascade the account's self-issued connection, and the owning principal when this was its only identity.
         var identityStore = storeManager.GetStore<IFederatedIdentityStore>();
         var identity = await identityStore.GetByIssuerSubjectAsync(
@@ -407,12 +416,6 @@ internal class LocalAccountApiEndpointHandler(
         if (identity is not null)
         {
             // The principal's sessions end before the deletion commits, while they can still be listed to notify their relying parties. See ADR-1224.
-            // The tenant's context comes first, so a tenant that is not served refuses the request before anything is written.
-            await using var tenantContext = await CreateTenantContextAsync(
-                httpContext,
-                tenantId,
-                cancellationToken
-            );
             await TerminateSessionsAsync(
                 tenantContext,
                 identity.PrincipalId,

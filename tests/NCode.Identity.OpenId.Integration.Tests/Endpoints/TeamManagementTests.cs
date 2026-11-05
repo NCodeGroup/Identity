@@ -932,6 +932,10 @@ public class TeamManagementTests
         )
             Assert.Equal(HttpStatusCode.NotFound, reset.StatusCode);
 
+        // Deleting the account is refused too, and the account survives it.
+        using (var deleted = await client.DeleteAsync(accountPath))
+            Assert.Equal(HttpStatusCode.NotFound, deleted.StatusCode);
+
         await SetTeamDisabledAsync(client, "wonka", isDisabled: false);
 
         using (var account = await client.GetAsync(accountPath))

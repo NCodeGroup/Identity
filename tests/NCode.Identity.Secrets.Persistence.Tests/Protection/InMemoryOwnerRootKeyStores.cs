@@ -57,6 +57,7 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
             OwnerId = source.OwnerId,
             KeyWrapperName = source.KeyWrapperName,
             KeyReference = source.KeyReference,
+            AccessIdentity = source.AccessIdentity,
             State = source.State,
             CreatedWhen = source.CreatedWhen,
             StateChangedWhen = source.StateChangedWhen,

@@ -72,6 +72,7 @@ public class DefaultRegistrationTests
             CurveName = "brainpoolP256r1",
             CurveSizeBits = 256,
             Curve = ECCurve.NamedCurves.brainpoolP256r1,
+            Domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.brainpoolP256r1),
         };
 
         await using var serviceProvider = BuildServiceProvider(jose =>

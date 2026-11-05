@@ -19,7 +19,8 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 /// <summary>
 /// Provides an implementation of <see cref="IReferencedKeyWrapper"/> that wraps keys with a symmetric encryption key
 /// held in Google Cloud Key Management Service, so the root key never leaves the service. It wraps under the
-/// configured crypto key, or under the crypto key that the caller names.
+/// configured crypto key, or under the crypto key that the caller names, reaching a named crypto key through the
+/// service account that the holder of the key grants when the caller names one.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -42,7 +43,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 /// to reach the service is never mistaken for a wrong key.
 /// </para>
 /// </remarks>
-// See ADR-1260 and ADR-1415.
+// See ADR-1260, ADR-1415 and ADR-1429.
 internal class GoogleCloudKmsKeyWrapper(
     IGoogleCloudKmsClientFactory clientFactory,
     IOptions<GoogleCloudKmsKeyWrapperOptions> options
@@ -77,7 +78,12 @@ internal class GoogleCloudKmsKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(keyName, key, context, cancellationToken);
+        return await WrapUnderAsync(
+            new ReferencedKey(keyName, Access: null),
+            key,
+            context,
+            cancellationToken
+        );
     }
 
     /// <inheritdoc />
@@ -98,35 +104,71 @@ internal class GoogleCloudKmsKeyWrapper(
     }
 
     /// <inheritdoc />
+    public bool TryValidateAccessIdentity(
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (GoogleServiceAccountEmail.IsValid(accessIdentity))
+        {
+            failure = null;
+            return true;
+        }
+
+        failure =
+            "must be the email address of a Google Cloud service account, such as ncode-identity@tenant-project.iam.gserviceaccount.com";
+        return false;
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
+    /// Thrown when the key reference of <paramref name="referencedKey"/> is not a Cloud KMS crypto key name, or its
+    /// access identity is set and is not the email address of a service account.
+    /// </exception>
     /// <exception cref="IOException">
     /// Thrown when the service does not confirm the integrity of the request and response, or reports a crypto key
     /// version that does not belong to the named crypto key.
     /// </exception>
     public async ValueTask<WrappedKey> WrapAsync(
-        string keyReference,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
-        if (!GoogleCloudKmsKeyName.IsCryptoKeyName(keyReference))
+        ArgumentNullException.ThrowIfNull(referencedKey);
+
+        if (!GoogleCloudKmsKeyName.IsCryptoKeyName(referencedKey.KeyReference))
         {
             throw new ArgumentException(
                 "The key reference is not a Cloud KMS crypto key name.",
-                nameof(keyReference)
+                nameof(referencedKey)
             );
         }
 
-        return await WrapUnderAsync(keyReference, key, context, cancellationToken);
+        if (
+            referencedKey.Access is { } access
+            && !TryValidateAccessIdentity(access.Identity, out _)
+        )
+        {
+            throw new ArgumentException(
+                "The access identity is not the email address of a Google Cloud service account.",
+                nameof(referencedKey)
+            );
+        }
+
+        return await WrapUnderAsync(referencedKey, key, context, cancellationToken);
     }
 
     private async ValueTask<WrappedKey> WrapUnderAsync(
-        string keyName,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
+        var keyName = referencedKey.KeyReference;
+
         // The call only reads the caller's buffers and they outlive it, so they are wrapped without a copy.
         var request = new EncryptRequest
         {
@@ -137,8 +179,11 @@ internal class GoogleCloudKmsKeyWrapper(
             AdditionalAuthenticatedDataCrc32C = GoogleCloudKmsChecksum.Compute(context.Span),
         };
 
-        var client = await ClientFactory.GetClientAsync(cancellationToken);
-        var response = await client.EncryptAsync(request, cancellationToken);
+        var response = await ClientFactory.ExecuteAsync(
+            referencedKey.Access,
+            (client, token) => new ValueTask<EncryptResponse>(client.EncryptAsync(request, token)),
+            cancellationToken
+        );
 
         if (
             !response.VerifiedPlaintextCrc32C
@@ -186,8 +231,48 @@ internal class GoogleCloudKmsKeyWrapper(
     /// <exception cref="IOException">
     /// Thrown when the plaintext that the service returns fails its integrity check.
     /// </exception>
-    public async ValueTask UnwrapAsync(
+    public ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    ) => UnwrapCoreAsync(wrappedKey, access: null, context, destination, cancellationToken);
+
+    /// <summary>
+    /// Unwraps a key that was wrapped under a crypto key, reaching the crypto key through the service account that the
+    /// access names.
+    /// </summary>
+    /// <param name="wrappedKey">The wrapped key to unwrap.</param>
+    /// <param name="access">The service account to impersonate to reach the crypto key.</param>
+    /// <param name="context">The context that binds the wrapped key.</param>
+    /// <param name="destination">The writer that receives the unwrapped key.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="wrappedKey"/> or <paramref name="access"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the wrapped key does not name a Cloud KMS crypto key version, is empty or not valid base64url text,
+    /// or was rejected twice by the service because its ciphertext or additional authenticated data does not match.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// Thrown when the plaintext that the service returns fails its integrity check.
+    /// </exception>
+    public ValueTask UnwrapAsync(
+        WrappedKey wrappedKey,
+        KeyAccess access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        return UnwrapCoreAsync(wrappedKey, access, context, destination, cancellationToken);
+    }
+
+    private async ValueTask UnwrapCoreAsync(
+        WrappedKey wrappedKey,
+        KeyAccess? access,
         ReadOnlyMemory<byte> context,
         IBufferWriter<byte> destination,
         CancellationToken cancellationToken
@@ -224,8 +309,11 @@ internal class GoogleCloudKmsKeyWrapper(
             AdditionalAuthenticatedDataCrc32C = GoogleCloudKmsChecksum.Compute(context.Span),
         };
 
-        var client = await ClientFactory.GetClientAsync(cancellationToken);
-        var response = await DecryptAsync(client, request, cancellationToken);
+        var response = await ClientFactory.ExecuteAsync(
+            access,
+            (client, token) => DecryptAsync(client, request, token),
+            cancellationToken
+        );
 
         CopyPlaintext(response, destination);
     }

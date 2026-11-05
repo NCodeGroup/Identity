@@ -20,6 +20,7 @@ public class DefaultSecretKeyFactoryTests : BaseTests
             CurveName = "brainpoolP256r1",
             CurveSizeBits = 256,
             Curve = ECCurve.NamedCurves.brainpoolP256r1,
+            Domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.brainpoolP256r1),
         };
 
     private DefaultSecretKeyFactory CreateSecretKeyFactory(

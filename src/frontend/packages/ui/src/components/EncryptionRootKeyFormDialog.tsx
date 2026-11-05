@@ -19,11 +19,18 @@ export type EncryptionRootKeyFormValues = {
   readonly provider: string;
   /** The reference that names the key at its provider, such as a KMS key ARN. */
   readonly keyReference: string;
+  /**
+   * The identity the server assumes to reach the key, such as an AWS role ARN, or `null` to reach it with the
+   * deployment's identity. The form submits it trimmed, and `null` when blank.
+   */
+  readonly accessIdentity: string | null;
 };
 
 export type EncryptionRootKeyFormDialogProps = {
   readonly open: boolean;
   readonly initialValues: EncryptionRootKeyFormValues;
+  /** The binding of the tenant that an AWS role's trust policy requires as the external ID, or `null` when there is none. */
+  readonly accessBinding: string | null;
   /** The key wrapper names the tenant may choose from. None are offered while they load, and the form cannot be submitted. */
   readonly providers: readonly string[];
   readonly isSubmitting?: boolean;
@@ -36,11 +43,12 @@ export type EncryptionRootKeyFormDialogProps = {
 export const emptyEncryptionRootKeyFormValues: EncryptionRootKeyFormValues = {
   provider: '',
   keyReference: '',
+  accessIdentity: null,
 };
 
 /**
- * Stateless root key form rendered in a dialog (ADR-1414): the provider the tenant chooses from the allowed ones and the
- * key reference. The field state is local because it is intrinsic to the controlled inputs (it reseeds on the rising
+ * Stateless root key form rendered in a dialog (ADR-1414): the provider the tenant chooses from the allowed ones, the
+ * key reference and the optional access identity the server assumes to reach the key. The field state is local because it is intrinsic to the controlled inputs (it reseeds on the rising
  * edge of `open`), so the component still renders in isolation under Storybook/RTL. The server validates the key by
  * wrapping and unwrapping a probe through it, and its error is shown in the dialog; persistence and that error handling
  * live in the container that wires the mutation.
@@ -49,6 +57,7 @@ export function EncryptionRootKeyFormDialog({
   open,
   initialValues,
   providers,
+  accessBinding,
   isSubmitting = false,
   error,
   onSubmit,
@@ -73,7 +82,12 @@ export function EncryptionRootKeyFormDialog({
     if (!canSubmit) {
       return;
     }
-    onSubmit({ provider, keyReference });
+    const accessIdentity = (values.accessIdentity ?? '').trim();
+    onSubmit({
+      provider,
+      keyReference,
+      accessIdentity: accessIdentity.length > 0 ? accessIdentity : null,
+    });
   };
 
   return (
@@ -114,6 +128,19 @@ export function EncryptionRootKeyFormDialog({
             required
             fullWidth
             slotProps={{ htmlInput: { 'data-testid': 'root-key-form-reference' } }}
+          />
+          <TextField
+            label="Access identity"
+            value={values.accessIdentity ?? ''}
+            onChange={(event) => setValues((v) => ({ ...v, accessIdentity: event.target.value }))}
+            placeholder="e.g. arn:aws:iam::111122223333:role/…"
+            fullWidth
+            helperText={
+              accessBinding
+                ? `Leave blank to reach the key with the deployment's identity. An AWS role's trust policy requires the external ID ${accessBinding}.`
+                : "Leave blank to reach the key with the deployment's identity."
+            }
+            slotProps={{ htmlInput: { 'data-testid': 'root-key-form-access-identity' } }}
           />
         </Stack>
       </DialogContent>

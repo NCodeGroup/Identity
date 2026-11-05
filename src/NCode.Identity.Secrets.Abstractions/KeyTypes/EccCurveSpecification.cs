@@ -24,6 +24,11 @@ public sealed class EccCurveSpecification
             CurveName = "P-256",
             CurveSizeBits = 256,
             Curve = ECCurve.NamedCurves.nistP256,
+            Domain = EccCurveDomain.FromHex(
+                "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF",
+                "FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC",
+                "5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B"
+            ),
         };
 
     /// <summary>
@@ -35,6 +40,11 @@ public sealed class EccCurveSpecification
             CurveName = "P-384",
             CurveSizeBits = 384,
             Curve = ECCurve.NamedCurves.nistP384,
+            Domain = EccCurveDomain.FromHex(
+                "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFF",
+                "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFF0000000000000000FFFFFFFC",
+                "B3312FA7E23EE7E4988E056BE3F82D19181D9C6EFE8141120314088F5013875AC656398D8A2ED19D2A85C8EDD3EC2AEF"
+            ),
         };
 
     /// <summary>
@@ -46,6 +56,11 @@ public sealed class EccCurveSpecification
             CurveName = "P-521",
             CurveSizeBits = 521,
             Curve = ECCurve.NamedCurves.nistP521,
+            Domain = EccCurveDomain.FromHex(
+                "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+                "01FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC",
+                "0051953EB9618E1C9A1F929A21A0B68540EEA2DA725B99B315F3B8B489918EF109E156193951EC7E937B1652C0BD3BB1BF073573DF883D2C34F1EF451FD46B503F00"
+            ),
         };
 
     /// <summary>
@@ -90,4 +105,9 @@ public sealed class EccCurveSpecification
     /// Gets the underlying <see cref="System.Security.Cryptography.ECCurve"/>.
     /// </summary>
     public required ECCurve Curve { get; init; }
+
+    /// <summary>
+    /// Gets the curve's domain parameters, which every imported point is checked against.
+    /// </summary>
+    public required EccCurveDomain Domain { get; init; }
 }

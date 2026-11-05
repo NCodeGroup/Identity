@@ -36,4 +36,11 @@ public sealed class EncryptionKeysResource
     /// </summary>
     // See ADR-1414.
     public required List<string> RootKeyProviders { get; init; }
+
+    /// <summary>
+    /// Gets the value that an identity the tenant grants can require of the server, such as the external ID of an AWS
+    /// role's trust policy; <c>null</c> when the owner cannot bring a key.
+    /// </summary>
+    // See ADR-1429.
+    public string? RootKeyAccessBinding { get; init; }
 }

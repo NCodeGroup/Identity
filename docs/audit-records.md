@@ -293,7 +293,8 @@ A read of the encryption keys is not audited.
 | `master_key.destroyed` | `master_key`, `tenant`/`platform` | `unreferenced`: the retired key passed its grace and no stored value names it                                                          |
 
 Both events write `details.reason` (an open vocabulary, `MasterKeyChangeReasons`), `key_id`, `version` and
-`root_key_provider`, and `root_key_reference` when a root key a tenant brings wraps the master key. A rotation also
+`root_key_provider`, and `root_key_reference` when a root key a tenant brings wraps the master key, and
+`root_key_access_identity` when the tenant's key is reached through an identity it grants. A rotation also
 writes `retired_key_id` and `retired_version` when it retired a key.
 
 #### Root keys
@@ -314,7 +315,8 @@ validation makes has `event_source` `openid` and the `system` actor. A read of t
 | `root_key.restored`  | `root_key`, `tenant`   | `success` | `validation_succeeded`: a probe through an `unavailable` key succeeded; `requested`: an administrator set the same key again and it succeeded                         |
 
 Every root key event writes `details.reason` (an open vocabulary, `RootKeyChangeReasons`), `provider` (the key wrapper
-name, such as `aws-kms`), `key_reference`, `state` (`active`, `unavailable` or `removing`, after the change) and
+name, such as `aws-kms`), `key_reference`, `access_identity` (the role, service account or directory the key is
+reached through, when the tenant names one), `state` (`active`, `unavailable` or `removing`, after the change) and
 `failure` (the description of the failed probe, when there is one). A rotation onto the key is recorded separately as
 `master_key.rotated` with the reason `root_key_changed`.
 

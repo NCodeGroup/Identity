@@ -302,9 +302,9 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
         Assert.Equal("admin-1", captured.Actor.Id);
-        Assert.Equal(rotation.ActiveKey.KeyId, captured.KeyId);
-        Assert.Equal(rotation.RetiredKey?.KeyId, captured.RetiredKeyId);
-        Assert.Equal(1, captured.RetiredVersion);
+        Assert.Equal(rotation.ActiveKey, captured.Key);
+        Assert.Equal(rotation.RetiredKey, captured.RetiredKey);
+        Assert.Equal(1, captured.RetiredKey?.Version);
         Assert.Equal(7, captured.EventId.Version);
     }
 
@@ -342,7 +342,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
         Assert.NotNull(captured);
         Assert.Equal("root_key_changed", captured.Reason);
-        Assert.Equal("kms://tenant-1/root", captured.RootKeyReference);
+        Assert.Equal("kms://tenant-1/root", captured.Key.RootKeyReference);
     }
 
     [Theory]
@@ -449,8 +449,8 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal("master_key.rotated", captured.EventName);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Null(captured.TenantEnvironmentType);
-        Assert.Equal("platform", captured.OwnerType);
-        Assert.Equal("platform", captured.OwnerId);
+        Assert.Equal("platform", captured.Key.Owner.OwnerType);
+        Assert.Equal("platform", captured.Key.Owner.OwnerId);
         Assert.Equal("admin-1", captured.Actor.Id);
     }
 

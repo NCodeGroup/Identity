@@ -40,6 +40,11 @@ internal static class Secp256k1Curve
             CurveName = Name,
             CurveSizeBits = SizeBits,
             Curve = ECCurve.CreateFromValue(Oid),
+            Domain = EccCurveDomain.FromHex(
+                "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
+                "00",
+                "07"
+            ),
         };
 
     /// <summary>

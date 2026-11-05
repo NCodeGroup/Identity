@@ -11,14 +11,18 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="Root">The master key wrapped by the root key provider of its owner.</param>
 /// <param name="RootKeyReference">The reference of the owner root key that produced <paramref name="Root"/>, or
 /// <see langword="null"/> when the deployment's root key produced it.</param>
+/// <param name="RootKeyAccessIdentity">The identity that reaches the owner root key that produced
+/// <paramref name="Root"/>, or <see langword="null"/> when the server reaches it as itself or the deployment's root key
+/// produced it.</param>
 /// <param name="Recovery">The master key wrapped under the recovery public key, or <see langword="null"/> when none
 /// applies.</param>
 /// <param name="ClearsRecovery"><see langword="true"/> when the master key has no recovery copy, because an owner root
 /// key wraps it, so any existing recovery copy is removed.</param>
-// See ADR-1414.
+// See ADR-1414 and ADR-1429.
 internal readonly record struct MasterKeyWraps(
     WrappedKey Root,
     string? RootKeyReference,
+    string? RootKeyAccessIdentity,
     WrappedKey? Recovery,
     bool ClearsRecovery
 );

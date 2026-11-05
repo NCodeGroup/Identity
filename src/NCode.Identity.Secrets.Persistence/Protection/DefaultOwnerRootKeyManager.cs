@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Persistence;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logging;
@@ -93,22 +94,10 @@ internal sealed class DefaultOwnerRootKeyManager(
         [NotNullWhen(false)] out string? failure
     )
     {
-        ArgumentNullException.ThrowIfNull(keyWrapperName);
         ArgumentNullException.ThrowIfNull(keyReference);
 
-        if (!AllowedKeyWrapperNames.Contains(keyWrapperName, StringComparer.Ordinal))
-        {
-            failure =
-                $"The key wrapper '{keyWrapperName}' is not allowed for the root key of an owner.";
+        if (!TryGetWrapper(keyWrapperName, out var wrapper, out failure))
             return false;
-        }
-
-        if (!Catalog.TryGetReferenced(keyWrapperName, out var wrapper))
-        {
-            failure =
-                $"The key wrapper '{keyWrapperName}' does not wrap under a key that the owner names.";
-            return false;
-        }
 
         if (keyReference.Length > PersistedOwnerRootKey.MaxKeyReferenceLength)
         {
@@ -128,6 +117,44 @@ internal sealed class DefaultOwnerRootKeyManager(
     }
 
     /// <inheritdoc />
+    // See ADR-1429.
+    public bool TryValidateAccessIdentity(
+        string keyWrapperName,
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        ArgumentNullException.ThrowIfNull(accessIdentity);
+
+        if (!TryGetWrapper(keyWrapperName, out var wrapper, out failure))
+            return false;
+
+        if (accessIdentity.Length > PersistedOwnerRootKey.MaxAccessIdentityLength)
+        {
+            failure =
+                $"The access identity must be at most {PersistedOwnerRootKey.MaxAccessIdentityLength} characters.";
+            return false;
+        }
+
+        if (!wrapper.TryValidateAccessIdentity(accessIdentity, out var identityFailure))
+        {
+            failure = $"The access identity {identityFailure}.";
+            return false;
+        }
+
+        failure = null;
+        return true;
+    }
+
+    /// <inheritdoc />
+    // See ADR-1429.
+    public string GetAccessBinding(SecretOwner owner)
+    {
+        var key = Normalize(owner);
+        return OwnerRootKeyAccess.GetBinding(key);
+    }
+
+    /// <inheritdoc />
     public async ValueTask<OwnerRootKeyInfo?> GetAsync(
         SecretOwner owner,
         CancellationToken cancellationToken
@@ -144,20 +171,33 @@ internal sealed class DefaultOwnerRootKeyManager(
     }
 
     /// <inheritdoc />
+    // See ADR-1429.
     public async ValueTask<OwnerRootKeyChange> SetAsync(
         SecretOwner owner,
-        string keyWrapperName,
-        string keyReference,
+        OwnerRootKeyRequest request,
         CancellationToken cancellationToken
     )
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var key = Normalize(owner);
+        var keyWrapperName = request.KeyWrapperName;
+        var keyReference = request.KeyReference;
+        var accessIdentity = request.AccessIdentity;
 
         if (!CanBringRootKey(key, out var notAllowed))
             throw new OwnerRootKeyNotAllowedException(key, notAllowed);
 
         if (!TryValidateKeyReference(keyWrapperName, keyReference, out var failure))
-            throw new ArgumentException(failure, nameof(keyReference));
+            throw new ArgumentException(failure, nameof(request));
+
+        if (
+            accessIdentity is not null
+            && !TryValidateAccessIdentity(keyWrapperName, accessIdentity, out failure)
+        )
+        {
+            throw new ArgumentException(failure, nameof(request));
+        }
 
         var (binding, rows) = await ReadAsync(key, cancellationToken);
         var sameKey =
@@ -165,10 +205,16 @@ internal sealed class DefaultOwnerRootKeyManager(
             && !IsState(binding, OwnerRootKeyStates.Removing)
             && string.Equals(binding.KeyWrapperName, keyWrapperName, StringComparison.Ordinal)
             && string.Equals(binding.KeyReference, keyReference, StringComparison.Ordinal);
+        var sameAccess = string.Equals(
+            binding?.AccessIdentity,
+            accessIdentity,
+            StringComparison.Ordinal
+        );
 
         var now = TimeProvider.GetUtcNow();
 
-        // A different key rotates the master key, so the spacing is checked before anything is written.
+        // A different key rotates the master key, so the spacing is checked before anything is written. A different
+        // access identity for the same key rotates nothing.
         if (
             !sameKey
             && rows.Any(row => row.RetiredWhen is null)
@@ -183,9 +229,14 @@ internal sealed class DefaultOwnerRootKeyManager(
             throw new MasterKeyRotationTooSoonException(key, remaining);
         }
 
-        var probeFailure = await OwnerRootKeyProbe.ProbeAsync(
-            Catalog.GetReferenced(keyWrapperName),
+        var wrapper = Catalog.GetReferenced(keyWrapperName);
+        var referencedKey = new ReferencedKey(
             keyReference,
+            OwnerRootKeyAccess.For(key, accessIdentity)
+        );
+        var probeFailure = await OwnerRootKeyProbe.ProbeAsync(
+            wrapper,
+            referencedKey,
             key,
             cancellationToken
         );
@@ -193,9 +244,11 @@ internal sealed class DefaultOwnerRootKeyManager(
         {
             Logger.OwnerRootKeyProbeFailed(key, keyWrapperName, keyReference, probeFailure);
 
-            // The key the owner already uses failed, so the owner fails closed as a validation would make it.
+            // The key the owner already uses, through the access identity it already uses, failed, so the owner fails
+            // closed as a validation would make it. A different key or a different access identity is only a request
+            // that failed, so the stored binding stays as it is and keeps serving the owner.
             OwnerRootKeyInfo? unavailable = null;
-            if (sameKey && binding is not null)
+            if (sameKey && sameAccess && binding is not null)
             {
                 unavailable = await RecordProbeFailureAsync(
                     key,
@@ -215,8 +268,7 @@ internal sealed class DefaultOwnerRootKeyManager(
         var stored = await StoreBindingAsync(
             key,
             binding,
-            keyWrapperName,
-            keyReference,
+            request,
             sameKey,
             now,
             cancellationToken
@@ -227,7 +279,7 @@ internal sealed class DefaultOwnerRootKeyManager(
         await NotifyAsync(key);
 
         var change =
-            !sameKey ? RootKeyChanges.Set
+            !sameKey || !sameAccess ? RootKeyChanges.Set
             : wasUnavailable ? RootKeyChanges.Restored
             : null;
 
@@ -284,9 +336,14 @@ internal sealed class DefaultOwnerRootKeyManager(
             return new OwnerRootKeyValidation(remaining, null, null, removalRewrap);
         }
 
-        var probeFailure = await OwnerRootKeyProbe.ProbeAsync(
-            Catalog.GetReferenced(binding.KeyWrapperName),
+        var wrapper = Catalog.GetReferenced(binding.KeyWrapperName);
+        var referencedKey = new ReferencedKey(
             binding.KeyReference,
+            OwnerRootKeyAccess.For(key, binding.AccessIdentity)
+        );
+        var probeFailure = await OwnerRootKeyProbe.ProbeAsync(
+            wrapper,
+            referencedKey,
             key,
             cancellationToken
         );
@@ -378,6 +435,41 @@ internal sealed class DefaultOwnerRootKeyManager(
         return owner.Normalize();
     }
 
+    /// <summary>
+    /// Resolves the key wrapper that wraps under a key an owner names, when the wrapper is allowed for the root key of
+    /// an owner and is registered as one that takes a key reference.
+    /// </summary>
+    /// <param name="keyWrapperName">The name of the key wrapper.</param>
+    /// <param name="wrapper">The key wrapper, or <see langword="null"/> when the resolution fails.</param>
+    /// <param name="failure">The reason the resolution failed, or <see langword="null"/> when it succeeds.</param>
+    /// <returns><see langword="true"/> when the wrapper resolves; otherwise <see langword="false"/>.</returns>
+    private bool TryGetWrapper(
+        string keyWrapperName,
+        [NotNullWhen(true)] out IReferencedKeyWrapper? wrapper,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        ArgumentNullException.ThrowIfNull(keyWrapperName);
+
+        if (!AllowedKeyWrapperNames.Contains(keyWrapperName, StringComparer.Ordinal))
+        {
+            wrapper = null;
+            failure =
+                $"The key wrapper '{keyWrapperName}' is not allowed for the root key of an owner.";
+            return false;
+        }
+
+        if (!Catalog.TryGetReferenced(keyWrapperName, out wrapper))
+        {
+            failure =
+                $"The key wrapper '{keyWrapperName}' does not wrap under a key that the owner names.";
+            return false;
+        }
+
+        failure = null;
+        return true;
+    }
+
     private static bool IsState(PersistedOwnerRootKey binding, string state) =>
         string.Equals(binding.State, state, StringComparison.Ordinal);
 
@@ -414,8 +506,7 @@ internal sealed class DefaultOwnerRootKeyManager(
     private async ValueTask<PersistedOwnerRootKey> StoreBindingAsync(
         SecretOwner key,
         PersistedOwnerRootKey? binding,
-        string keyWrapperName,
-        string keyReference,
+        OwnerRootKeyRequest request,
         bool sameKey,
         DateTimeOffset now,
         CancellationToken cancellationToken
@@ -423,8 +514,9 @@ internal sealed class DefaultOwnerRootKeyManager(
     {
         if (binding is not null)
         {
-            binding.KeyWrapperName = keyWrapperName;
-            binding.KeyReference = keyReference;
+            binding.KeyWrapperName = request.KeyWrapperName;
+            binding.KeyReference = request.KeyReference;
+            binding.AccessIdentity = request.AccessIdentity;
             if (!sameKey)
                 binding.CreatedWhen = now;
 
@@ -445,8 +537,9 @@ internal sealed class DefaultOwnerRootKeyManager(
         {
             OwnerType = key.OwnerType,
             OwnerId = key.OwnerId,
-            KeyWrapperName = keyWrapperName,
-            KeyReference = keyReference,
+            KeyWrapperName = request.KeyWrapperName,
+            KeyReference = request.KeyReference,
+            AccessIdentity = request.AccessIdentity,
             State = OwnerRootKeyStates.Active,
             CreatedWhen = now,
             StateChangedWhen = now,
@@ -517,8 +610,10 @@ internal sealed class DefaultOwnerRootKeyManager(
         return OwnerRootKeyInfo.From(binding);
     }
 
-    // Rotates the owner's master key onto its root key when the active one does not sit under it, and conforms every
-    // other master key to it.
+    // Rotates the owner's master key onto its root key when the active one does not sit under the key it names, and
+    // conforms every other master key to it, including the master keys that sit under the key through another access
+    // identity.
+    // See ADR-1429.
     private async ValueTask<(
         MasterKeyRotation? Rotation,
         MasterKeyRewrapResult Rewrap
@@ -532,7 +627,7 @@ internal sealed class DefaultOwnerRootKeyManager(
         var active = rows.SingleOrDefault(row => row.RetiredWhen is null);
 
         MasterKeyRotation? rotation = null;
-        if (active is null || !MasterKeyFactory.Conforms(active, binding))
+        if (active is null || !MasterKeyFactory.IsUnderKey(active, binding))
         {
             try
             {

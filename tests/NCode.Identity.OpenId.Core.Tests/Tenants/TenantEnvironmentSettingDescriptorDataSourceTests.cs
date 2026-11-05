@@ -79,6 +79,15 @@ public class TenantEnvironmentSettingDescriptorDataSourceTests : BaseTests
     }
 
     [Fact]
+    public void Collection_EachSetting_IsEnvironmentBound()
+    {
+        var descriptors = DataSource.Collection.ToList();
+
+        Assert.Equal(3, descriptors.Count);
+        Assert.All(descriptors, descriptor => Assert.True(descriptor.IsEnvironmentBound));
+    }
+
+    [Fact]
     public void Collection_WhenEnumerated_DefaultsEachSettingToItsUnprotectedValue()
     {
         var type = GetDescriptor<string>(OpenIdSettingNames.EnvironmentType);

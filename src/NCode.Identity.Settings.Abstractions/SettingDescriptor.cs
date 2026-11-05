@@ -49,6 +49,14 @@ public abstract class SettingDescriptor
     public bool IsLimit { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the setting's value belongs to the environment its owner serves, such as a
+    /// redirect URI on that environment's host, so copying an owner's settings to another environment never carries
+    /// it: the other environment keeps its own value.
+    /// </summary>
+    // See ADR-1425.
+    public bool IsEnvironmentBound { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the default value is set.
     /// </summary>
     public abstract bool HasDefault { get; }

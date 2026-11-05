@@ -1,6 +1,6 @@
 # 1414. A tenant can wrap its master keys under a root key it controls
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1428](1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 1

@@ -36,7 +36,12 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _clientStore = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _clientStore = new ClientStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext,
+            TestCryptoServices.CreateResourceIdGenerator()
+        );
         _resourceServerStore = new ResourceServerStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,

@@ -873,11 +873,15 @@ describes the family as it is rather than its changes
   algorithm ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [#241](https://github.com/NCodeGroup/Identity/issues/241)).
 
-- **A Development host can recover from tenant keys it cannot read.** `DeveloperKeys:PruneUnreadableKeys`
+- **A Development host can recover from keys it cannot read.** `DeveloperKeys:PruneUnreadableKeys`
   (`DeveloperKeysOptions`) removes a tenant key whose master key, or the root key that wraps it, was lost or changed
-  when the tenant is seeded, and provisioning generates a fresh one. The reference host's Development launch profiles
-  set it, and Production refuses the `DeveloperKeys` section
-  ([ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+  when the tenant is seeded, and provisioning generates a fresh one. When the host starts and the platform's master keys
+  cannot be unwrapped, it removes them, revokes every Data Protection key they protected, and the platform starts over
+  with a new master key. The reference host's Development launch profiles set it, and Production refuses the
+  `DeveloperKeys` section
+  ([#569](https://github.com/NCodeGroup/Identity/issues/569),
+  [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md),
+  [ADR-1423](docs/decisions/1423-developer-key-pruning-starts-the-platform-over-when-its-master-keys-cannot-be-unwrapped.md)).
 
 - **Asymmetric secret keys model their public half as `SubjectPublicKeyInfo` DER through a buffer writer.** The
   `AsymmetricSecretKey` base exposes `ExportSubjectPublicKeyInfo<TWriter>(ref TWriter destination)`, writing into a
@@ -1959,6 +1963,31 @@ describes the family as it is rather than its changes
   types; the built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
+- **A client acting for itself is a principal.** Every client has a principal (`PersistedClient.PrincipalId`,
+  `ClientResource.principalId`) that its store generates when the client is added — 128 random bits, Base64Url — and
+  that no caller chooses. A token a client obtains for itself, which names no subject, resolves to that principal in
+  the tenant that authenticated it, so a machine client of the control-plane tenant holds role assignments as a person
+  does: `TeamAdmin` through `POST /api/teams/{teamId}/admins` and `Owner` through the `…/owners` endpoints. It becomes
+  the owner of what it creates, its management changes are audited with the `client` actor, a disabled client holds
+  no authority, and deleting a client removes the assignments it holds
+  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)).
+
+- **The management API tells a caller where it holds authority.** `GET /api/me` returns the caller's principal
+  (`CallerResource.principalId`), whether it holds authority at the platform node (`isPlatformAdministrator`) and its
+  role assignments (`RoleAssignmentResource`); `GET /api/me/teams` and `GET /api/me/tenants` list the teams and
+  tenants it holds a role at. Every request is authorized per resource from the caller's role assignments, so one
+  token serves every team and tenant the caller administers and names none of them
+  ([#566](https://github.com/NCodeGroup/Identity/issues/566),
+  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+
+- **The management console opens on the caller's home.** `/home` lists the platform for a caller with platform
+  authority and the teams and tenants the caller holds a role at, and opens the only one at once when there is one.
+  A team administrator signs in with the same token as a platform administrator and works within its teams; a
+  platform route sends a caller without platform authority home, and a scope's back control leads home when the
+  caller holds no role at the scope above it ([#566](https://github.com/NCodeGroup/Identity/issues/566),
+  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+
 - **Collection endpoints page through management resources by keyset.** A collection `GET`, such as `GET api/teams`,
   `GET api/tenants` or `GET api/tenants/{tenantId}/clients`, returns a page of resources (`CollectionResource<T>`, with
   `items` and `continuationToken`) using keyset (cursor) pagination (`?limit=` clamped to 100, `?cursor=` an opaque
@@ -2204,8 +2233,9 @@ describes the family as it is rather than its changes
   token as `id_token_hint`; the auth store keeps the ID token across silent renewals for this, and `buildEndSessionUrl`
   builds the logout URL.
 
-- **The management console's address bar is its navigation state.** The console routes by scope and surface:
-  `/teams`, `/settings` and `/encryption-keys` in the platform scope, `/teams/{teamId}/tenants`, `…/settings` and
+- **The management console's address bar is its navigation state.** The console routes to the caller's home,
+  `/home`, and by scope and surface: `/teams`, `/settings` and `/encryption-keys` in the platform scope,
+  `/teams/{teamId}/tenants`, `…/settings` and
   `…/usage` within a team, and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`, `…/secrets`,
   `…/encryption-keys`, `…/settings` and `…/usage` within a tenant, each tenant surface with its own tab. A view can be
   bookmarked, shared and reloaded, back and forward move between surfaces and scopes, and a deep link that lands on the sign-in screen returns
@@ -2233,24 +2263,27 @@ describes the family as it is rather than its changes
   unit-tested directly (issues [#134](https://github.com/NCodeGroup/Identity/issues/134),
   [#157](https://github.com/NCodeGroup/Identity/issues/157), [#412](https://github.com/NCodeGroup/Identity/issues/412)).
 
-- **The management console manages clients.** Within a tenant scope the console creates, edits and deletes clients
-  through scoped RTK Query mutations (`createClient`/`updateClient`/`deleteClient`), a stateless MUI `ClientTable` (id,
-  status and row actions) and a `ClientFormDialog`, beside the shared `ConfirmDialog`. Its `ClientResource` mirrors the
-  server's shape, and writes send `concurrencyToken` as `If-Match` over a `replace`-only JSON Patch. Selecting a client
-  opens its detail page with Secrets and Settings tabs (issue
-  [#134](https://github.com/NCodeGroup/Identity/issues/134)).
+- **The management console manages clients.** Within a tenant the console creates, edits and deletes clients through
+  RTK Query mutations addressed by the tenant (`createClient`/`updateClient`/`deleteClient` take a `tenantId`), a
+  stateless MUI `ClientTable` (id, status and row actions) and a `ClientFormDialog`, beside the shared `ConfirmDialog`.
+  Its `ClientResource` mirrors the server's shape, and writes send `concurrencyToken` as `If-Match` over a
+  `replace`-only JSON Patch. Selecting a client opens its detail page with Secrets and Settings tabs (issue
+  [#134](https://github.com/NCodeGroup/Identity/issues/134),
+  [ADR-1421](docs/decisions/1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md)).
 
-- **The management console manages resource servers and their scopes.** Within a tenant scope the console creates, edits
-  and deletes resource servers (APIs) and their nested scopes (permissions) through scoped RTK Query mutations
-  (`createResourceServer`/`updateResourceServer`/`deleteResourceServer`, `createScope`/`updateScope`/`deleteScope`),
-  stateless MUI `ResourceServerTable`/`ScopeTable` with row actions, and `ResourceServerFormDialog`/`ScopeFormDialog`
-  beside the shared `ConfirmDialog`. A resource server drills into a `ResourceServerDetailPage` with Scopes, Secrets,
-  Settings and Clients tabs; resource servers embed their scopes inline, so a scope mutation refreshes both views, and
-  the Clients tab lists and creates the clients bound to the resource server for introspection
+- **The management console manages resource servers and their scopes.** Within a tenant the console creates, edits and
+  deletes resource servers (APIs) and their nested scopes (permissions) through RTK Query mutations addressed by the
+  tenant (`createResourceServer`/`updateResourceServer`/`deleteResourceServer`,
+  `createScope`/`updateScope`/`deleteScope` take a `tenantId`), stateless MUI `ResourceServerTable`/`ScopeTable` with
+  row actions, and `ResourceServerFormDialog`/`ScopeFormDialog` beside the shared `ConfirmDialog`. A resource server
+  drills into a `ResourceServerDetailPage` with Scopes, Secrets, Settings and Clients tabs; resource servers embed their
+  scopes inline, so a scope mutation refreshes both views, and the Clients tab lists and creates the clients bound to
+  the resource server for introspection
   ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
   Resource-server edits send `concurrencyToken` as `If-Match` over a `replace`-only JSON Patch, a scope update is a
   whole-resource `PUT`, and system resource servers and their scopes expose no delete control and no Secrets tab (issue
-  [#134](https://github.com/NCodeGroup/Identity/issues/134)).
+  [#134](https://github.com/NCodeGroup/Identity/issues/134),
+  [ADR-1421](docs/decisions/1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md)).
 
 - **The management console reaches every owner's secrets and settings through one endpoint per operation.**
   `@ncode/store` exposes `useListSecretsQuery`, `useCreateSecretMutation`, `useDeleteSecretMutation`,
@@ -3581,7 +3614,8 @@ describes the family as it is rather than its changes
   state, instants, root key provider and recovery key id, and carries no key material. The scopes are
   `read:encryption_keys` and `update:encryption_keys` for a tenant and `read:platform_encryption_keys` and
   `update:platform_encryption_keys` for the platform. A rekey within twice `RefreshInterval` of the owner's last rotation
-  answers `409` with `Retry-After`, and one that loses a race to another rekey answers `412`, as every management
+  answers `409` with `Retry-After` and the same wait in the problem's `retryAfterSeconds`, and one that loses a race to
+  another rekey answers `412`, as every management
   write that loses a race does. A
   rotation creates the successor's key material before it retires the active key, and a store failure re-activates the
   retired key. Every
@@ -3595,9 +3629,18 @@ describes the family as it is rather than its changes
   that names it, and the Data Protection key ring keeps the retired platform key while a live ring key names it.
   `IMasterKeyManager` reports, rotates, rewraps and destroys; `IMasterKeyChangeObserver` hears of each change;
   `master_key.rotated` and `master_key.destroyed` are `key` audit events; and the management console shows the keys of a
-  tenant and of the platform with a confirmed "Rekey" action
+  tenant and of the platform with a confirmed "Rekey" action that says how long to wait when it comes too soon
   ([#171](https://github.com/NCodeGroup/Identity/issues/171),
-  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
+  [ADR-1422](docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).
+
+- **A management problem that asks the caller to wait carries the wait.** A rekey or a root key change that comes too
+  soon, and a root key that is unavailable, answer through `RetryAfterProblem.Create` with `Retry-After` and
+  `retryAfterSeconds` holding the same whole number of seconds, rounded up to at least one.
+  `ManagementProblemMembers` names every extension member the management API writes, and the console's
+  `apiErrorMessage` says "Try again in …" with the wait in seconds, minutes or hours
+  ([#571](https://github.com/NCodeGroup/Identity/issues/571),
+  [ADR-1422](docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).
 
 - **The host image rewraps every master key offline.** `secret-protection rewrap` wraps every master key under the
   configured root key provider and recovery public key, and `secret-protection rewrap-recovery` replaces only the
@@ -3621,19 +3664,19 @@ describes the family as it is rather than its changes
   key records the identity that reaches it (`rootKeyAccessIdentity`, and the `root_key_access_identity` detail of
   `master_key.*` audit events), and changing only the identity rewraps the master keys without a rotation.
   `KeyAccessClientCache<TClient>` keeps a client for an access identity once a call through it succeeds and drops one
-  that never worked. `PUT`, `DELETE` and `POST .../validate` on
-  `/api/tenants/{tenantId}/encryption-keys/root-key` set or change, remove and
-  validate it (scope `update:encryption_keys`), and `GET .../encryption-keys` reports the root key and the providers a
-  tenant may choose (scope `read:encryption_keys`). A `PUT` answers `400` for a field that is blank, not allowed, not
-  registered or malformed, `409` with `Retry-After` within twice `SecretProtection:MasterKeys:RefreshInterval` of the
-  tenant's last rotation, `412` when it loses a race and `422` when the probe fails; a `DELETE` answers `204` once every
-  master key is under the deployment's root key and `202` while master keys remain under the tenant's key. The server
-  validates a key by wrapping 32 random bytes through it under a context label of its own, unwrapping them and comparing
-  the two in constant time, which proves that the key exists, is enabled and grants both the encrypt and the decrypt
-  permission through any provider. Setting or changing the key rotates the tenant's master key so that the successor is
-  created under it and rewraps every retired master key under it, because earlier material exists in backups under the
-  deployment's root key; removing it moves the master keys back under the deployment's root key without a rotation. An
-  Azure Key Vault key reference names a host under the deployment's Key Vault or Managed HSM host suffixes
+  that never worked. `PUT`, `DELETE` and `POST .../validate` on `/api/tenants/{tenantId}/encryption-keys/root-key` set or
+  change, remove and validate it (scope `update:encryption_keys`), and `GET .../encryption-keys` reports the root key and
+  the providers a tenant may choose (scope `read:encryption_keys`). A `PUT` answers `400` for a field that is blank, not
+  allowed, not registered or malformed, `409` with `Retry-After` and `retryAfterSeconds` within twice
+  `SecretProtection:MasterKeys:RefreshInterval` of the tenant's last rotation, `412` when it loses a race and `422` when
+  the probe fails; a `DELETE` answers `204` once every master key is under the deployment's root key and `202` while
+  master keys remain under the tenant's key. The server validates a key by wrapping 32 random bytes through it under a
+  context label of its own, unwrapping them and comparing the two in constant time, which proves that the key exists, is
+  enabled and grants both the encrypt and the decrypt permission through any provider. Setting or changing the key
+  rotates the tenant's master key so that the successor is created under it and rewraps every retired master key under
+  it, because earlier material exists in backups under the deployment's root key; removing it moves the master keys back
+  under the deployment's root key without a rotation. An Azure Key Vault key reference names a host under the
+  deployment's Key Vault or Managed HSM host suffixes
   (`SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes`, by default the public, China and US
   government cloud domains). Which owners can bring a key is a registered `IOwnerRootKeyPolicy`: the `platform` owner
   and the control-plane tenant, which the management API authenticates against, are refused, a consumer registers its
@@ -5281,10 +5324,10 @@ describes the family as it is rather than its changes
   or rewrapped under it unreadable, in the database and in every backup. The key is re-validated every hour by default,
   and a replica unwraps a tenant-keyed master key again at least that often, so a revocation takes effect within that
   period on every replica. While the key is `unavailable` the server reads and writes none of the tenant's secrets: the
-  management API answers `503` with `Retry-After`, a protocol endpoint answers `temporarily_unavailable` with `503`,
-  `Retry-After` and `Cache-Control: no-store`, and the authorization endpoint returns it to the client's redirect URI,
-  the host logs the failure, and `root_key.unavailable` is audited; development pruning never deletes the master keys of
-  such a tenant
+  management API answers `503` with `Retry-After` and `retryAfterSeconds`, a protocol endpoint answers
+  `temporarily_unavailable` with `503`, `Retry-After` and `Cache-Control: no-store`, and the authorization endpoint
+  returns it to the client's redirect URI, the host logs the failure, and `root_key.unavailable` is audited; development
+  pruning never deletes the master keys of such a tenant
   ([#174](https://github.com/NCodeGroup/Identity/issues/174),
   [#573](https://github.com/NCodeGroup/Identity/issues/573),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
@@ -5295,5 +5338,12 @@ describes the family as it is rather than its changes
   invalid-curve point is rejected with the same error on every platform
   ([#575](https://github.com/NCodeGroup/Identity/issues/575),
   [ADR-1427](docs/decisions/1427-an-imported-elliptic-curve-point-is-checked-against-its-curve-before-the-platform-imports-it.md)).
+
+- **Managing a client's credentials needs the authority its roles carry.** Updating, deleting, configuring or changing
+  the owners or secrets of a client whose principal holds role assignments also needs the authority to grant each of
+  them, so a caller who manages the control-plane tenant's clients cannot mint a secret for a client that administers
+  a team it does not
+  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

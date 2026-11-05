@@ -49,22 +49,6 @@ export function isPlatformScope(scope: ManagementScope): scope is { kind: 'platf
   return scope.kind === 'platform';
 }
 
-/**
- * Builds the API path prefix for a scope. Platform resources live under `api`; team and tenant
- * resources are always nested under their team or tenant so an administrator can never address
- * another team or tenant.
- */
-export function scopeApiPrefix(scope: ManagementScope): string {
-  switch (scope.kind) {
-    case 'platform':
-      return 'api';
-    case 'team':
-      return `api/teams/${encodeURIComponent(scope.teamId)}`;
-    case 'tenant':
-      return `api/tenants/${encodeURIComponent(scope.tenantId)}`;
-  }
-}
-
 /** The cache-tag id of a scope's collection of one resource type. */
 export const LIST_TAG = 'LIST';
 

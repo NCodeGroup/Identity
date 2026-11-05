@@ -540,6 +540,9 @@ than inlining the rationale.
   protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data
   Protection's hosted service
   ([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
+- 👁 **A start step that must precede the warmup runs in `IHostedLifecycleService.StartingAsync`**
+  (`DeveloperPlatformMasterKeyPruning`), because every `StartingAsync` runs before any `StartAsync`
+  ([ADR-1423](../../docs/decisions/1423-developer-key-pruning-starts-the-platform-over-when-its-master-keys-cannot-be-unwrapped.md)).
 - 👁 **A `SecretProtectionOptions` validator resolves no key wrapper.** Each KMS adapter's options validator reads
   `IOptions<SecretProtectionOptions>`, so a `SecretProtectionOptions` validator that takes `IEnumerable<IKeyWrapper>`
   closes a dependency cycle that stops every host that registers an adapter. The validators check the options' own
@@ -599,6 +602,9 @@ than inlining the rationale.
   and keep `Resolve` for a proposed document and for a write that replaces the document it cannot read
   ([ADR-1241](../../docs/decisions/1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
   [ADR-1245](../../docs/decisions/1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
+- 👁 **A management problem that asks the caller to wait answers through `RetryAfterProblem.Create`**, which sets
+  `Retry-After` and `retryAfterSeconds`; extension members are named by `ManagementProblemMembers`
+  ([ADR-1422](../../docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).
 - 👁 **A revocation wins a lost race.** Revoke grants through `IPersistedGrantService` (`SetRevokedOnceAsync`,
   `RevokeWhereAsync`, `RevokeByRefreshTokenLineageAsync`), which read again in a new unit of work and retry, never
   through `IGrantStore.RevokeWhereAsync` and a save of your own; a revocation does not depend on what its caller read,

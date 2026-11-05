@@ -293,7 +293,19 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("NormalizedPrincipalId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("PrincipalId")
                         .IsRequired()
                         .HasMaxLength(300)
                         .IsUnicode(false)
@@ -326,6 +338,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.HasIndex("ResourceServerId");
 
                     b.HasIndex("TenantId", "NormalizedClientId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "NormalizedPrincipalId")
                         .IsUnique();
 
                     b.ToTable("Clients", (string)null);

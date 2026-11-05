@@ -1,10 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -23,7 +24,7 @@ internal static class EncryptionKeyEndpoints
     /// The detail of the problem that a rekey within twice the refresh interval of the last rotation answers with.
     /// </summary>
     internal const string RekeyTooSoonDetail =
-        "The last rotation of this master key has not reached every replica yet; retry after the time in Retry-After.";
+        "The last rotation of this master key has not reached every replica yet.";
 
     /// <summary>
     /// The title of the problem that a refused owner answers with when it sets a root key.
@@ -69,7 +70,7 @@ internal static class EncryptionKeyEndpoints
     /// <summary>
     /// Rotates the master key of the owner and answers with the new active key and the retired one. A rekey within
     /// twice the refresh interval of the owner's last rotation answers <c>409 Conflict</c> with a <c>Retry-After</c>
-    /// header; one that loses a race to another rekey throws <see cref="StoreConcurrencyException"/>, which the
+    /// header and the same wait in the problem's <c>retryAfterSeconds</c>; one that loses a race to another rekey throws <see cref="StoreConcurrencyException"/>, which the
     /// management route group answers <c>412</c>.
     /// </summary>
     // See ADR-1214.
@@ -111,8 +112,8 @@ internal static class EncryptionKeyEndpoints
     /// Sets or changes the root key of the owner. The request is checked field by field and answered <c>400</c> with a
     /// problem that names the field; an owner that a registered <see cref="IOwnerRootKeyPolicy"/> refuses is answered
     /// <c>400</c> with the policy's reason; a key that fails its probe is answered <c>422</c>; a change within twice the
-    /// refresh interval of the owner's last rotation is answered <c>409 Conflict</c> with a <c>Retry-After</c> header;
-    /// one that loses a race throws <see cref="StoreConcurrencyException"/>, which the management route group answers
+    /// refresh interval of the owner's last rotation is answered <c>409 Conflict</c> with a <c>Retry-After</c> header
+    /// and the same wait in the problem's <c>retryAfterSeconds</c>; one that loses a race throws <see cref="StoreConcurrencyException"/>, which the management route group answers
     /// <c>412</c>.
     /// </summary>
     public static async ValueTask<IResult> SetRootKeyAsync(
@@ -171,9 +172,9 @@ internal static class EncryptionKeyEndpoints
                 statusCode: StatusCodes.Status422UnprocessableEntity,
                 extensions: new Dictionary<string, object?>
                 {
-                    ["provider"] = request.Provider,
-                    ["keyReference"] = request.KeyReference,
-                    ["accessIdentity"] = request.AccessIdentity,
+                    [ManagementProblemMembers.Provider] = request.Provider,
+                    [ManagementProblemMembers.KeyReference] = request.KeyReference,
+                    [ManagementProblemMembers.AccessIdentity] = request.AccessIdentity,
                 }
             );
         }
@@ -358,15 +359,14 @@ internal static class EncryptionKeyEndpoints
         MasterKeyRotationTooSoonException exception
     )
     {
-        httpContext.Response.Headers.RetryAfter = Math.Max(
-                1,
-                (long)Math.Ceiling(exception.RetryAfter.TotalSeconds)
-            )
-            .ToString(CultureInfo.InvariantCulture);
-
-        return TypedResults.Problem(
-            detail: RekeyTooSoonDetail,
-            statusCode: StatusCodes.Status409Conflict
+        return RetryAfterProblem.Create(
+            httpContext,
+            exception.RetryAfter,
+            new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Detail = RekeyTooSoonDetail,
+            }
         );
     }
 

@@ -322,6 +322,31 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<PersistedTenant>> GetManyAsync(
+        IReadOnlyCollection<string> tenantIds,
+        CancellationToken cancellationToken
+    )
+    {
+        List<string?> normalizedTenantIds = [.. tenantIds.Select(Normalize)];
+        var entities = await DbContext
+            .Tenants.AsNoTracking()
+            .Include(tenant => tenant.Team)
+            .Include(tenant => tenant.Secrets)
+                .ThenInclude(tenantSecret => tenantSecret.Secret)
+            .Where(tenant => normalizedTenantIds.Contains(tenant.NormalizedTenantId))
+            .OrderBy(tenant => tenant.Id)
+            .ToListAsync(cancellationToken);
+
+        var tenants = new List<PersistedTenant>(entities.Count);
+        foreach (var entity in entities)
+        {
+            tenants.Add(await MapFromEntityAsync(entity, cancellationToken));
+        }
+
+        return tenants;
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PersistedTenant?> GetOrDefaultByIssuerAsync(
         string issuer,
         CancellationToken cancellationToken

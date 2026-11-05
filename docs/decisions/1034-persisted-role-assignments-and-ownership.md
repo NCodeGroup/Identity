@@ -4,7 +4,9 @@
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): role assignments at the
   platform and team nodes reach every tenant beneath them and are read across tenants; amended by
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): a tenant administrator is a
-  `TenantAdmin` assignment at the tenant's node)
+  `TenantAdmin` assignment at the tenant's node; amended by
+  [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md): a client acting for itself
+  is a principal)
 - **Date:** 2026-10-01
 - **Deciders:** NCode Group
 

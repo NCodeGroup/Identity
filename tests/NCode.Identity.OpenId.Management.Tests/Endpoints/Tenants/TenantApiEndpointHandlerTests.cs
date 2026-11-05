@@ -3898,6 +3898,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
         Assert.Equal("91", httpContext.Response.Headers.RetryAfter.ToString());
+        Assert.Equal(
+            91L,
+            problem.ProblemDetails.Extensions[ManagementProblemMembers.RetryAfterSeconds]
+        );
     }
 
     [Fact]
@@ -4436,6 +4440,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
         Assert.Equal("91", httpContext.Response.Headers.RetryAfter.ToString());
+        Assert.Equal(
+            91L,
+            problem.ProblemDetails.Extensions[ManagementProblemMembers.RetryAfterSeconds]
+        );
     }
 
     [Fact]

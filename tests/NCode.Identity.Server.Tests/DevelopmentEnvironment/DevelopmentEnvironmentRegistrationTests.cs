@@ -41,6 +41,10 @@ public sealed class DevelopmentEnvironmentRegistrationTests
         );
         Assert.DoesNotContain(
             serviceCollection,
+            descriptor => descriptor.ImplementationType == typeof(DeveloperPlatformMasterKeyPruning)
+        );
+        Assert.DoesNotContain(
+            serviceCollection,
             descriptor => descriptor.ServiceType == typeof(ICorsService)
         );
     }
@@ -55,6 +59,10 @@ public sealed class DevelopmentEnvironmentRegistrationTests
         Assert.Contains(
             serviceCollection,
             descriptor => descriptor.ImplementationType == typeof(DeveloperSecretPruningSeedHandler)
+        );
+        Assert.Contains(
+            serviceCollection,
+            descriptor => descriptor.ImplementationType == typeof(DeveloperPlatformMasterKeyPruning)
         );
     }
 

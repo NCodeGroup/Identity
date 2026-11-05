@@ -11,7 +11,7 @@ import {
   emptyResourceServerFormValues,
   type ResourceServerFormValues,
 } from '@ncode/ui';
-import type { ManagementScope, ResourceServerResource } from '@ncode/api';
+import type { ResourceServerResource } from '@ncode/api';
 import {
   apiErrorMessage,
   useCreateResourceServerMutation,
@@ -23,7 +23,7 @@ import {
 import { ResourceServerDetailPage } from './ResourceServerDetailPage.js';
 
 export type ResourceServersPageProps = {
-  readonly scope: ManagementScope;
+  readonly tenantId: string;
 };
 
 type DialogState =
@@ -35,14 +35,14 @@ type DialogState =
 const closed: DialogState = { kind: 'none' };
 
 /**
- * Container: browses and administers the resource servers (APIs) within a tenant scope. Wires the RTK
+ * Container: browses and administers the resource servers (APIs) within a tenant. Wires the RTK
  * Query resource-server list and mutations to the stateless {@link ResourceServerTable},
  * {@link ResourceServerFormDialog}, and {@link ConfirmDialog}; owns only dialog/error and drill-in
  * state. Selecting a resource server drills into its scopes ({@link ResourceServerScopesPage}), which
  * reads the embedded scopes from this same list query so a scope mutation refreshes both views.
  */
-export function ResourceServersPage({ scope }: ResourceServersPageProps) {
-  const { data, isLoading, error } = useListResourceServersQuery({ scope });
+export function ResourceServersPage({ tenantId }: ResourceServersPageProps) {
+  const { data, isLoading, error } = useListResourceServersQuery({ tenantId });
   const resourceServers = data?.items ?? [];
 
   const [createResourceServer, { isLoading: isCreating }] = useCreateResourceServerMutation();
@@ -58,7 +58,7 @@ export function ResourceServersPage({ scope }: ResourceServersPageProps) {
   if (selected) {
     return (
       <ResourceServerDetailPage
-        scope={scope}
+        tenantId={tenantId}
         resourceServer={selected}
         onBack={() => setSelectedId(undefined)}
       />
@@ -101,7 +101,7 @@ export function ResourceServersPage({ scope }: ResourceServersPageProps) {
     try {
       if (dialog.kind === 'create') {
         await createResourceServer({
-          scope,
+          tenantId,
           body: {
             identifier: values.identifier,
             name: values.name,
@@ -111,7 +111,7 @@ export function ResourceServersPage({ scope }: ResourceServersPageProps) {
         }).unwrap();
       } else if (dialog.kind === 'edit') {
         await updateResourceServer({
-          scope,
+          tenantId,
           resourceServerId: dialog.resourceServer.resourceServerId,
           concurrencyToken: dialog.resourceServer.concurrencyToken,
           fields: { name: values.name, isDisabled: values.isDisabled },
@@ -130,7 +130,7 @@ export function ResourceServersPage({ scope }: ResourceServersPageProps) {
     setDeleteError(undefined);
     try {
       await deleteResourceServer({
-        scope,
+        tenantId,
         resourceServerId: dialog.resourceServer.resourceServerId,
       }).unwrap();
       setDialog(closed);

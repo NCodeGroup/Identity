@@ -185,7 +185,7 @@ internal class TeamApiEndpointHandler(
     /// </summary>
     /// <param name="team">The <see cref="PersistedTeam"/> to map.</param>
     /// <returns>The mapped <see cref="TeamResource"/>.</returns>
-    internal virtual TeamResource ToTeamResource(PersistedTeam team) =>
+    internal static TeamResource ToTeamResource(PersistedTeam team) =>
         new()
         {
             TeamId = team.TeamId,

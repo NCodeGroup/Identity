@@ -104,6 +104,19 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
+    /// Gets the <see cref="PersistedTenant"/> instances with the specified identifiers in one read, ordered by their
+    /// identifier; an identifier that has no tenant is skipped.
+    /// </summary>
+    /// <param name="tenantIds">The identifiers of the tenants to get.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedTenant"/> instances that exist.</returns>
+    ValueTask<IReadOnlyList<PersistedTenant>> GetManyAsync(
+        IReadOnlyCollection<string> tenantIds,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to get a <see cref="PersistedTenant"/> instance from the store with the specified issuer.
     /// </summary>
     /// <remarks>

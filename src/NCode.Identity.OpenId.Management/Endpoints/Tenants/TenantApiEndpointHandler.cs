@@ -261,7 +261,7 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <param name="tenant">The <see cref="PersistedTenant"/> to map.</param>
     /// <returns>The mapped <see cref="TenantResource"/>.</returns>
-    internal virtual TenantResource ToTenantResource(PersistedTenant tenant) =>
+    internal static TenantResource ToTenantResource(PersistedTenant tenant) =>
         ToTenantResource(tenant, environment: null);
 
     /// <summary>
@@ -271,7 +271,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="environment">The tenant's effective environment, or <see langword="null"/> when it cannot be
     /// determined.</param>
     /// <returns>The mapped <see cref="TenantResource"/>.</returns>
-    internal virtual TenantResource ToTenantResource(
+    internal static TenantResource ToTenantResource(
         PersistedTenant tenant,
         TenantEnvironmentResource? environment
     ) =>
@@ -2289,7 +2289,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The new active key and the key that it retired.</response>
     /// <response code="404">The tenant does not exist.</response>
-    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After).</response>
+    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After and the problem's retryAfterSeconds).</response>
     /// <response code="412">Another rekey of the same master key committed first.</response>
     [EndpointName("api/tenants/encryption-keys/rekey")]
     internal virtual async ValueTask<IResult> RekeyEncryptionKeysAsync(
@@ -2336,7 +2336,7 @@ internal class TenantApiEndpointHandler(
     /// <response code="200">The root key as stored, and the master keys of the rotation onto it.</response>
     /// <response code="400">The key wrapper is not allowed, the key reference is malformed, or a registered policy refuses the tenant, as it does the control-plane tenant.</response>
     /// <response code="404">The tenant does not exist.</response>
-    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After).</response>
+    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After and the problem's retryAfterSeconds).</response>
     /// <response code="412">Another writer changed the root key first.</response>
     /// <response code="422">The key could not wrap and unwrap a probe.</response>
     [EndpointName("api/tenants/encryption-keys/root-key/set")]

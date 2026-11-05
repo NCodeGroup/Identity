@@ -129,6 +129,9 @@ applied. Rendered for its side effect only.
 {{- if not (regexMatch "^https://[A-Za-z0-9-]+([.][A-Za-z0-9-]+)+/keys/[A-Za-z0-9-]{1,127}(/[A-Za-z0-9]{32})?$" $azureKeyVault.keyId) }}
 {{- fail "secretProtection.azureKeyVault.keyId must be the identifier of a Key Vault or Managed HSM key, such as https://contoso.vault.azure.net/keys/ncode-identity-root." }}
 {{- end }}
+{{- end }}
+{{- if eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "azure-key-vault")) "true" }}
+{{- $azureKeyVault := .Values.secretProtection.azureKeyVault }}
 {{- if ne (empty $azureKeyVault.workloadIdentity.tenantId) (empty $azureKeyVault.workloadIdentity.clientId) }}
 {{- fail "secretProtection.azureKeyVault.workloadIdentity needs both tenantId and clientId, or neither." }}
 {{- end }}
@@ -138,6 +141,9 @@ applied. Rendered for its side effect only.
 {{- if not (regexMatch "^projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63}/cryptoKeys/[A-Za-z0-9_-]{1,63}$" $googleCloudKms.keyName) }}
 {{- fail "secretProtection.googleCloudKms.keyName must be the resource name of a Cloud KMS crypto key, such as projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root." }}
 {{- end }}
+{{- end }}
+{{- if eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "google-cloud-kms")) "true" }}
+{{- $googleCloudKms := .Values.secretProtection.googleCloudKms }}
 {{- if and $googleCloudKms.workloadIdentityFederation.provider (not (regexMatch "^projects/[0-9]+/locations/global/workloadIdentityPools/[a-z0-9-]+/providers/[a-z0-9-]+$" $googleCloudKms.workloadIdentityFederation.provider)) }}
 {{- fail "secretProtection.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." }}
 {{- end }}

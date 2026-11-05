@@ -1973,7 +1973,7 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Probes the root key of a tenant now and answers with its state.
+    /// Probes the root key of a tenant and answers with its state.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>

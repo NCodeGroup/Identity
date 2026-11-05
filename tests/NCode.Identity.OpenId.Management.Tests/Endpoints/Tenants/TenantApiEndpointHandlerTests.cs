@@ -3030,14 +3030,37 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private void SetupAllowedKeyWrappers(params string[] names) =>
         MockOwnerRootKeyManager.SetupGet(x => x.AllowedKeyWrapperNames).Returns(names).Verifiable();
 
-    private void SetupAuthorizedTenant()
+    private void SetupUpdateAuthorization(AuthorizationResult result)
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
+                        r.Contains(Operations.Update)
+                    )
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    private void SetupAuthorizedTenant(bool forRead = false)
     {
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
-        SetupAuthorization(AuthorizationResult.Success());
+        if (forRead)
+        {
+            SetupAuthorization(AuthorizationResult.Success());
+        }
+        else
+        {
+            SetupUpdateAuthorization(AuthorizationResult.Success());
+        }
     }
 
     private static OwnerRootKeyInfo CreateRootKeyInfo(
@@ -3064,7 +3087,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task GetEncryptionKeysAsync_WithARootKey_ReportsItWithoutMaterial()
     {
-        SetupAuthorizedTenant();
+        SetupAuthorizedTenant(forRead: true);
         SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms", "azure-key-vault");
         MockMasterKeyManager
@@ -3395,7 +3418,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task GetEncryptionKeysAsync_ForTheControlPlaneTenant_ReportsNoRootKeyAndNoProviders()
     {
-        SetupAuthorizedTenant();
+        SetupAuthorizedTenant(forRead: true);
         SetupControlPlaneTenantId(TenantId);
         // The strict owner root key manager is never asked for its allowed providers.
         MockMasterKeyManager
@@ -3454,7 +3477,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
-        SetupAuthorization(AuthorizationResult.Failed());
+        SetupUpdateAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.SetRootKeyAsync(
             CreateHttpContext(authenticated: true),
@@ -3463,7 +3486,47 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsNotType<Ok<EncryptionRootKeyChangeResource>>(result);
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task RemoveRootKeyAsync_WithoutUpdatePermission_NeverReachesTheManager()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupUpdateAuthorization(AuthorizationResult.Failed());
+
+        // The strict owner root key manager and audit recorder have no setups: any call fails the test.
+        var result = await Handler.RemoveRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
+    }
+
+    [Fact]
+    public async Task ValidateRootKeyAsync_WithoutUpdatePermission_NeverReachesTheManager()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupUpdateAuthorization(AuthorizationResult.Failed());
+
+        // The strict owner root key manager and audit recorder have no setups: any call fails the test.
+        var result = await Handler.ValidateRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<ForbidHttpResult>(result);
     }
 
     [Fact]

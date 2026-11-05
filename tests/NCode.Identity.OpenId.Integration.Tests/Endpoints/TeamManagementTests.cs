@@ -346,6 +346,17 @@ public class TeamManagementTests
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
+    private static async Task AssertGetStatusAsync(
+        HttpClient client,
+        string path,
+        HttpStatusCode expected
+    )
+    {
+        using var response = await client.GetAsync(path);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == expected, $"{path}: {body}");
+    }
+
     private static async Task<HttpResponseMessage> SendPatchAsync(
         HttpClient client,
         string path,
@@ -879,6 +890,136 @@ public class TeamManagementTests
             var settingsBody = await settings.Content.ReadAsStringAsync();
             Assert.True(settings.StatusCode == HttpStatusCode.Conflict, settingsBody);
         }
+    }
+
+    #endregion
+
+    #region Authorization Order Tests
+
+    [Fact]
+    public async Task TeamAdmin_GetsForbiddenForAnUnknownTeamAndAnotherTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        await AssertGetStatusAsync(teamAdmin, "/api/teams/globex", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope/settings", HttpStatusCode.Forbidden);
+
+        using var patch = await SendPatchAsync(
+            teamAdmin,
+            "/api/teams/nope/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = "/environment_type",
+                    value = "development",
+                },
+            }
+        );
+        var patchBody = await patch.Content.ReadAsStringAsync();
+        Assert.True(patch.StatusCode == HttpStatusCode.Forbidden, patchBody);
+
+        using var create = await PostTenantAsync(teamAdmin, "nope", "nope-dev");
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
+
+        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope/admins", HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task TeamAdmin_GetsForbiddenForAnUnknownTenantAndAnotherTeamsTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTenantAsync(administrator, "globex", "globex-dev");
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        await AssertGetStatusAsync(teamAdmin, "/api/tenants/globex-dev", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(teamAdmin, "/api/tenants/nope", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/nope/settings",
+            HttpStatusCode.Forbidden
+        );
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/nope/secrets",
+            HttpStatusCode.Forbidden
+        );
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/nope/encryption-keys",
+            HttpStatusCode.Forbidden
+        );
+        await AssertGetStatusAsync(teamAdmin, "/api/tenants/nope/admins", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/globex-dev/owners",
+            HttpStatusCode.Forbidden
+        );
+    }
+
+    [Fact]
+    public async Task TenantAdmin_GetsForbiddenForAnUnknownTenantAndASiblingTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTenantAsync(administrator, "acme", "acme-prod");
+        using var tenantAdmin = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/admins"
+        );
+
+        await AssertGetStatusAsync(tenantAdmin, "/api/tenants/acme-prod", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(tenantAdmin, "/api/tenants/nope", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            tenantAdmin,
+            "/api/tenants/nope/admins",
+            HttpStatusCode.Forbidden
+        );
+
+        using var grant = await tenantAdmin.PostAsJsonAsync(
+            "/api/tenants/nope/admins",
+            new { principalId = "pid-x" }
+        );
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Forbidden, grantBody);
+    }
+
+    [Fact]
+    public async Task Administrator_GetsNotFoundForAnUnknownTeamAndTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        await AssertGetStatusAsync(administrator, "/api/teams/nope", HttpStatusCode.NotFound);
+        await AssertGetStatusAsync(administrator, "/api/tenants/nope", HttpStatusCode.NotFound);
+        await AssertGetStatusAsync(
+            administrator,
+            "/api/tenants/nope/admins",
+            HttpStatusCode.NotFound
+        );
     }
 
     #endregion

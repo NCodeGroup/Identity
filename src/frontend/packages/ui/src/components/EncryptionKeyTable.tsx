@@ -16,6 +16,8 @@ export type EncryptionKeyRow = {
   readonly rootKeyProvider: string;
   /** The recovery key that also wraps the key, or `null` when no recovery copy exists. */
   readonly recoveryKeyId: string | null;
+  /** The reference of the tenant's own root key that wraps the key; absent or `null` when the deployment's root key does. */
+  readonly rootKeyReference?: string | null;
 };
 
 export type EncryptionKeyTableProps = {
@@ -24,7 +26,8 @@ export type EncryptionKeyTableProps = {
 
 /**
  * Stateless table of an owner's master keys (ADR-1407): version, state, when each was created and retired, the root key
- * provider that wraps it, and whether a recovery copy exists. It shows no key material, because the API returns none.
+ * provider that wraps it, the root key reference ("Deployment" when the deployment's root key wraps it, ADR-1411), and
+ * whether a recovery copy exists. It shows no key material, because the API returns none.
  * Holds no state and does no fetching.
  */
 export function EncryptionKeyTable({ keys }: EncryptionKeyTableProps) {
@@ -37,6 +40,7 @@ export function EncryptionKeyTable({ keys }: EncryptionKeyTableProps) {
           <TableCell>Created</TableCell>
           <TableCell>Retired</TableCell>
           <TableCell>Root key provider</TableCell>
+          <TableCell>Root key</TableCell>
           <TableCell>Recovery copy</TableCell>
         </TableRow>
       </TableHead>
@@ -59,6 +63,9 @@ export function EncryptionKeyTable({ keys }: EncryptionKeyTableProps) {
                 {key.retiredWhen ? new Date(key.retiredWhen).toLocaleString() : '—'}
               </TableCell>
               <TableCell>{key.rootKeyProvider}</TableCell>
+              <TableCell data-testid={`encryption-key-root-key-${key.keyId}`}>
+                {key.rootKeyReference ?? 'Deployment'}
+              </TableCell>
               <TableCell>{key.recoveryKeyId ? 'Yes' : 'No'}</TableCell>
             </TableRow>
           );

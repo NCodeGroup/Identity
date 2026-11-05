@@ -38,6 +38,19 @@ describe('EncryptionKeyTable', () => {
     expect(retiredRow).toHaveTextContent('No');
   });
 
+  it('shows the root key reference of a tenant key and "Deployment" for any other', () => {
+    render(
+      <EncryptionKeyTable
+        keys={[{ ...active, rootKeyReference: 'arn:aws:kms:key/abc' }, retired]}
+      />,
+    );
+
+    expect(screen.getByTestId('encryption-key-root-key-k-2')).toHaveTextContent(
+      'arn:aws:kms:key/abc',
+    );
+    expect(screen.getByTestId('encryption-key-root-key-k-1')).toHaveTextContent('Deployment');
+  });
+
   it('shows a dash for the retirement of an active key', () => {
     render(<EncryptionKeyTable keys={[active]} />);
 

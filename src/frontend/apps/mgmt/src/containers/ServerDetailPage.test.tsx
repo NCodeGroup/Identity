@@ -231,6 +231,8 @@ describe('ServerDetailPage', () => {
       if (url.endsWith('/api/servers/root/encryption-keys')) {
         return jsonResponse({
           recoveryConfigured: false,
+          rootKey: null,
+          rootKeyProviders: [],
           keys: [
             {
               keyId: 'k-1',
@@ -241,6 +243,7 @@ describe('ServerDetailPage', () => {
               rootKeyProvider: 'local',
               rootKeyId: 'root-1',
               recoveryKeyId: null,
+              rootKeyReference: null,
             },
           ],
         });

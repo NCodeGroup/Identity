@@ -319,6 +319,8 @@ describe('TenantDetailPage', () => {
       if (url.endsWith('/api/tenants/acme/encryption-keys')) {
         return jsonResponse({
           recoveryConfigured: true,
+          rootKey: null,
+          rootKeyProviders: ['aws-kms'],
           keys: [
             {
               keyId: 'k-1',
@@ -329,6 +331,7 @@ describe('TenantDetailPage', () => {
               rootKeyProvider: 'local',
               rootKeyId: 'root-1',
               recoveryKeyId: 'recovery-1',
+              rootKeyReference: null,
             },
           ],
         });

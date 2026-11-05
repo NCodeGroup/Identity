@@ -2,7 +2,12 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
-import type { EncryptionKeyOwner, EncryptionKeyResource, EncryptionKeysResource } from '@ncode/api';
+import type {
+  EncryptionKeyOwner,
+  EncryptionKeyResource,
+  EncryptionKeysResource,
+  EncryptionRootKeyResource,
+} from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { OwnerEncryptionKeysTab } from './OwnerEncryptionKeysTab.js';
 
@@ -33,13 +38,17 @@ function renderTab(owner: EncryptionKeyOwner, ownerLabel: string) {
   );
 }
 
-type Call = { readonly url: string; readonly method: string };
+type Call = { readonly url: string; readonly method: string; readonly body: string };
 
 function installFetch(handler: (url: string, method: string) => Response) {
   const calls: Call[] = [];
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const request = input as Request;
-    calls.push({ url: request.url, method: request.method });
+    calls.push({
+      url: request.url,
+      method: request.method,
+      body: await request.clone().text(),
+    });
     return handler(request.url, request.method);
   });
   vi.stubGlobal('fetch', fetchMock);
@@ -62,6 +71,7 @@ const activeKey: EncryptionKeyResource = {
   rootKeyProvider: 'aws-kms',
   rootKeyId: 'arn:aws:kms:key',
   recoveryKeyId: 'recovery-1',
+  rootKeyReference: null,
 };
 
 const retiredKey: EncryptionKeyResource = {
@@ -76,6 +86,8 @@ const retiredKey: EncryptionKeyResource = {
 const keys: EncryptionKeysResource = {
   keys: [activeKey, retiredKey],
   recoveryConfigured: true,
+  rootKey: null,
+  rootKeyProviders: [],
 };
 
 describe('OwnerEncryptionKeysTab', () => {
@@ -104,7 +116,13 @@ describe('OwnerEncryptionKeysTab', () => {
   });
 
   it('warns when new keys are not wrapped under a recovery key', async () => {
-    installFetch(() => jsonResponse({ keys: [activeKey], recoveryConfigured: false }));
+    installFetch(() =>
+      jsonResponse({
+        ...keys,
+        keys: [activeKey],
+        recoveryConfigured: false,
+      }),
+    );
 
     renderTab({ kind: 'tenant', tenantId: 'acme' }, 'tenant');
 
@@ -136,8 +154,8 @@ describe('OwnerEncryptionKeysTab', () => {
       return jsonResponse(
         rekeyed
           ? {
+              ...keys,
               keys: [{ ...activeKey, keyId: 'k-3', version: 3 }, activeKey],
-              recoveryConfigured: true,
             }
           : keys,
       );
@@ -197,6 +215,312 @@ describe('OwnerEncryptionKeysTab', () => {
 
     expect(await screen.findByTestId('confirm-error')).toHaveTextContent(
       'changed by another request',
+    );
+  });
+});
+
+describe('OwnerEncryptionKeysTab root key', () => {
+  const tenant: EncryptionKeyOwner = { kind: 'tenant', tenantId: 'acme' };
+  const rootKeyUrl = 'https://api.test/api/tenants/acme/encryption-keys/root-key';
+  const providers = ['aws-kms', 'google-cloud-kms'];
+
+  const rootKey: EncryptionRootKeyResource = {
+    provider: 'aws-kms',
+    keyReference: 'arn:aws:kms:key/abc',
+    state: 'active',
+    createdWhen: '2026-10-01T09:00:00Z',
+    stateChangedWhen: '2026-10-01T09:00:00Z',
+    validatedWhen: '2026-10-01T10:00:00Z',
+    failedWhen: null,
+    failure: null,
+  };
+
+  const withoutRootKey: EncryptionKeysResource = { ...keys, rootKeyProviders: providers };
+  const withRootKey: EncryptionKeysResource = {
+    ...keys,
+    rootKey,
+    rootKeyProviders: providers,
+  };
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('says no provider is available and offers no action when a tenant has none', async () => {
+    installFetch(() => jsonResponse({ ...keys, rootKeyProviders: [] }));
+
+    renderTab(tenant, 'tenant');
+
+    expect(await screen.findByTestId('root-key-none')).toHaveTextContent(
+      'No root key provider is available to this tenant.',
+    );
+    expect(screen.queryByTestId('root-key-set')).not.toBeInTheDocument();
+  });
+
+  it('shows no root key section for the server', async () => {
+    installFetch(() => jsonResponse({ ...keys, rootKeyProviders: [] }));
+
+    renderTab({ kind: 'server', serverId: 'root' }, 'server');
+
+    expect(await screen.findByTestId('encryption-key-row-k-2')).toBeInTheDocument();
+    expect(screen.queryByTestId('root-key-card')).not.toBeInTheDocument();
+  });
+
+  it('shows the root key, replaces the recovery warning and labels each key by its root', async () => {
+    installFetch(() =>
+      jsonResponse({
+        keys: [{ ...activeKey, rootKeyReference: rootKey.keyReference }, retiredKey],
+        recoveryConfigured: false,
+        rootKey,
+        rootKeyProviders: providers,
+      }),
+    );
+
+    renderTab(tenant, 'tenant');
+
+    expect(await screen.findByTestId('root-key-provider')).toHaveTextContent('aws-kms');
+    expect(screen.getByTestId('root-key-reference')).toHaveTextContent('arn:aws:kms:key/abc');
+    expect(screen.getByTestId('root-key-state')).toHaveTextContent('active');
+    expect(screen.getByTestId('encryption-keys-root-key-only')).toHaveTextContent(
+      "This tenant's keys are wrapped only by its own root key. Revoking or destroying that key makes its data unreadable, and no operator can recover it.",
+    );
+    expect(screen.queryByTestId('encryption-keys-no-recovery')).not.toBeInTheDocument();
+    expect(screen.getByTestId('encryption-key-root-key-k-2')).toHaveTextContent(
+      'arn:aws:kms:key/abc',
+    );
+    expect(screen.getByTestId('encryption-key-root-key-k-1')).toHaveTextContent('Deployment');
+  });
+
+  it('shows an error with the failure when the root key is unavailable', async () => {
+    installFetch(() =>
+      jsonResponse({
+        ...withRootKey,
+        rootKey: { ...rootKey, state: 'unavailable', failure: 'The key was revoked.' },
+      }),
+    );
+
+    renderTab(tenant, 'tenant');
+
+    expect(await screen.findByTestId('root-key-unavailable')).toHaveTextContent(
+      'The key was revoked.',
+    );
+  });
+
+  it('sets a root key from the dialog and reloads the keys', async () => {
+    let current: EncryptionKeysResource = withoutRootKey;
+    const calls = installFetch((url, method) => {
+      if (url === rootKeyUrl && method === 'PUT') {
+        current = withRootKey;
+        return jsonResponse({
+          rootKey,
+          activeKey: null,
+          retiredKey: null,
+          rewrappedKeys: 2,
+          failedKeys: 0,
+        });
+      }
+      return jsonResponse(current);
+    });
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+    fireEvent.change(screen.getByTestId('root-key-form-reference'), {
+      target: { value: ' arn:aws:kms:key/abc ' },
+    });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    expect(await screen.findByTestId('root-key-provider')).toHaveTextContent('aws-kms');
+    await waitFor(() =>
+      expect(screen.queryByTestId('root-key-form-submit')).not.toBeInTheDocument(),
+    );
+    const put = calls.find((c) => c.method === 'PUT');
+    expect(put?.url).toBe(rootKeyUrl);
+    expect(JSON.parse(put?.body ?? '{}')).toEqual({
+      provider: 'aws-kms',
+      keyReference: 'arn:aws:kms:key/abc',
+    });
+    expect(screen.getByTestId('encryption-keys-root-key-only')).toBeInTheDocument();
+  });
+
+  it('shows the server explanation of a root key that fails its probe and keeps the dialog open', async () => {
+    installFetch((url, method) =>
+      url === rootKeyUrl && method === 'PUT'
+        ? jsonResponse(
+            {
+              title: 'Unprocessable Entity',
+              status: 422,
+              detail: "The key could not wrap and unwrap a probe through 'aws-kms': access denied",
+            },
+            422,
+          )
+        : jsonResponse(withoutRootKey),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+    fireEvent.change(screen.getByTestId('root-key-form-reference'), { target: { value: 'arn' } });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    expect(await screen.findByTestId('root-key-form-error')).toHaveTextContent('access denied');
+    expect(screen.getByTestId('root-key-form-submit')).toBeInTheDocument();
+  });
+
+  it('shows the validation messages of a rejected field in the dialog', async () => {
+    installFetch((url, method) =>
+      url === rootKeyUrl && method === 'PUT'
+        ? jsonResponse(
+            {
+              title: 'One or more validation errors occurred.',
+              status: 400,
+              errors: {
+                provider: ['The provider is not allowed.'],
+                keyReference: ['The key reference is malformed.'],
+              },
+            },
+            400,
+          )
+        : jsonResponse(withoutRootKey),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+    fireEvent.change(screen.getByTestId('root-key-form-reference'), { target: { value: 'arn' } });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    expect(await screen.findByTestId('root-key-form-error')).toHaveTextContent(
+      'The provider is not allowed. The key reference is malformed.',
+    );
+  });
+
+  it('falls back to the problem title when validation errors carry no messages', async () => {
+    installFetch((url, method) =>
+      url === rootKeyUrl && method === 'PUT'
+        ? jsonResponse({ title: 'Bad Request', status: 400, errors: { provider: 'x' } }, 400)
+        : jsonResponse(withoutRootKey),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+    fireEvent.change(screen.getByTestId('root-key-form-reference'), { target: { value: 'arn' } });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    expect(await screen.findByTestId('root-key-form-error')).toHaveTextContent('Bad Request');
+  });
+
+  it('seeds the dialog with the provider of the current root key', async () => {
+    installFetch(() =>
+      jsonResponse({
+        ...withRootKey,
+        rootKey: { ...rootKey, provider: 'google-cloud-kms' },
+      }),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+
+    expect(screen.getByTestId('root-key-form-provider')).toHaveValue('google-cloud-kms');
+  });
+
+  it('validates the root key and reloads the keys', async () => {
+    let current: EncryptionKeysResource = withRootKey;
+    const calls = installFetch((url, method) => {
+      if (url === `${rootKeyUrl}/validate` && method === 'POST') {
+        current = {
+          ...withRootKey,
+          rootKey: { ...rootKey, state: 'unavailable', failure: 'The key was revoked.' },
+        };
+        return jsonResponse(current.rootKey);
+      }
+      return jsonResponse(current);
+    });
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-validate'));
+
+    expect(await screen.findByTestId('root-key-unavailable')).toHaveTextContent(
+      'The key was revoked.',
+    );
+    expect(calls.some((c) => c.method === 'POST' && c.url === `${rootKeyUrl}/validate`)).toBe(true);
+  });
+
+  it('reports a failed validation', async () => {
+    installFetch((_url, method) =>
+      method === 'POST'
+        ? jsonResponse({ title: 'Not Found', status: 404 }, 404)
+        : jsonResponse(withRootKey),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-validate'));
+
+    expect(await screen.findByTestId('root-key-validate-error')).toHaveTextContent('Not Found');
+  });
+
+  it('removes the root key after confirmation and reloads the keys', async () => {
+    let current: EncryptionKeysResource = withRootKey;
+    const calls = installFetch((url, method) => {
+      if (url === rootKeyUrl && method === 'DELETE') {
+        current = withoutRootKey;
+        return new Response(null, { status: 204 });
+      }
+      return jsonResponse(current);
+    });
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-remove'));
+    fireEvent.click(await screen.findByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('root-key-none')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByTestId('confirm-accept')).not.toBeInTheDocument());
+    expect(calls.some((c) => c.method === 'DELETE' && c.url === rootKeyUrl)).toBe(true);
+  });
+
+  it('shows the root key as removing while keys remain under it', async () => {
+    let current: EncryptionKeysResource = withRootKey;
+    installFetch((url, method) => {
+      if (url === rootKeyUrl && method === 'DELETE') {
+        const removing = { ...rootKey, state: 'removing' };
+        current = { ...withRootKey, rootKey: removing };
+        return jsonResponse(removing, 202);
+      }
+      return jsonResponse(current);
+    });
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-remove'));
+    fireEvent.click(await screen.findByTestId('confirm-accept'));
+
+    await waitFor(() => expect(screen.getByTestId('root-key-state')).toHaveTextContent('removing'));
+    await waitFor(() => expect(screen.queryByTestId('confirm-accept')).not.toBeInTheDocument());
+  });
+
+  it('does not remove the root key when the confirmation is cancelled', async () => {
+    const calls = installFetch(() => jsonResponse(withRootKey));
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-remove'));
+    fireEvent.click(await screen.findByTestId('confirm-cancel'));
+
+    await waitFor(() => expect(screen.queryByTestId('confirm-accept')).not.toBeInTheDocument());
+    expect(calls.every((c) => c.method === 'GET')).toBe(true);
+  });
+
+  it('shows the explanation of a failed removal and keeps the dialog open', async () => {
+    installFetch((_url, method) =>
+      method === 'DELETE'
+        ? jsonResponse(
+            { title: 'Conflict', status: 409, detail: 'The removal is in progress.' },
+            409,
+          )
+        : jsonResponse(withRootKey),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-remove'));
+    fireEvent.click(await screen.findByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('confirm-error')).toHaveTextContent(
+      'The removal is in progress.',
     );
   });
 });

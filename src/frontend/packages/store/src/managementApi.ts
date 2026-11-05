@@ -26,6 +26,9 @@ import {
   type EncryptionKeyOwner,
   type EncryptionKeyRotationResource,
   type EncryptionKeysResource,
+  type EncryptionRootKeyChangeResource,
+  type EncryptionRootKeyRequest,
+  type EncryptionRootKeyResource,
   type GrantResource,
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
@@ -490,6 +493,40 @@ export const managementApi = createApi({
         { type: 'EncryptionKey', id: ownerTagId(owner) },
       ],
     }),
+    // The root key a tenant brings (ADR-1411). Setting, validating or removing it changes only that tenant's keys.
+    setTenantRootKey: build.mutation<
+      EncryptionRootKeyChangeResource,
+      { tenantId: string; body: EncryptionRootKeyRequest }
+    >({
+      query: ({ tenantId, body }) => ({
+        url: `${ownerApiPath({ kind: 'tenant', tenantId })}/encryption-keys/root-key`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'EncryptionKey', id: ownerTagId({ kind: 'tenant', tenantId }) },
+      ],
+    }),
+    // Answers 204 once every master key is back under the deployment's root key, or 202 with the root key while keys
+    // remain under the tenant's.
+    removeTenantRootKey: build.mutation<EncryptionRootKeyResource | null, { tenantId: string }>({
+      query: ({ tenantId }) => ({
+        url: `${ownerApiPath({ kind: 'tenant', tenantId })}/encryption-keys/root-key`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'EncryptionKey', id: ownerTagId({ kind: 'tenant', tenantId }) },
+      ],
+    }),
+    validateTenantRootKey: build.mutation<EncryptionRootKeyResource, { tenantId: string }>({
+      query: ({ tenantId }) => ({
+        url: `${ownerApiPath({ kind: 'tenant', tenantId })}/encryption-keys/root-key/validate`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'EncryptionKey', id: ownerTagId({ kind: 'tenant', tenantId }) },
+      ],
+    }),
     getSecretPublicKey: build.query<
       PublicKeyResource,
       { owner: ManagementOwner; secretId: string }
@@ -569,6 +606,9 @@ export const {
   useLazyGetSecretPublicKeyQuery,
   useListEncryptionKeysQuery,
   useRekeyEncryptionKeysMutation,
+  useSetTenantRootKeyMutation,
+  useRemoveTenantRootKeyMutation,
+  useValidateTenantRootKeyMutation,
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
   useUpdateSettingsMutation,

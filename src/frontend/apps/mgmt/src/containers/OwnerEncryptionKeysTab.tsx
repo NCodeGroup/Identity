@@ -4,14 +4,25 @@ import AutorenewIcon from '@mui/icons-material/Autorenew';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import type { EncryptionKeyOwner } from '@ncode/api';
+import type { EncryptionKeyOwner, EncryptionRootKeyResource } from '@ncode/api';
 import {
   apiErrorMessage,
   useListEncryptionKeysQuery,
   useRekeyEncryptionKeysMutation,
+  useRemoveTenantRootKeyMutation,
+  useSetTenantRootKeyMutation,
+  useValidateTenantRootKeyMutation,
   type ApiError,
 } from '@ncode/store';
-import { ConfirmDialog, DataStateBoundary, EncryptionKeyTable } from '@ncode/ui';
+import {
+  ConfirmDialog,
+  DataStateBoundary,
+  EncryptionKeyTable,
+  EncryptionRootKeyCard,
+  EncryptionRootKeyFormDialog,
+  emptyEncryptionRootKeyFormValues,
+  type EncryptionRootKeyFormValues,
+} from '@ncode/ui';
 
 export type OwnerEncryptionKeysTabProps = {
   readonly owner: EncryptionKeyOwner;
@@ -20,10 +31,129 @@ export type OwnerEncryptionKeysTabProps = {
 };
 
 /**
+ * The message of a failed root key request: the validation messages of a rejected field, else the server's problem
+ * detail or title (such as the failure of the probe that validates the key).
+ */
+function rootKeyErrorMessage(failure: unknown): string {
+  const data = (failure as { data?: unknown } | undefined)?.data;
+  const errors =
+    data && typeof data === 'object' ? (data as { errors?: unknown }).errors : undefined;
+  if (errors && typeof errors === 'object') {
+    const messages = Object.values(errors).flatMap((value) =>
+      Array.isArray(value) ? value.filter((m): m is string => typeof m === 'string') : [],
+    );
+    if (messages.length > 0) {
+      return messages.join(' ');
+    }
+  }
+  return apiErrorMessage(failure as ApiError);
+}
+
+type TenantRootKeySectionProps = {
+  readonly tenantId: string;
+  readonly rootKey: EncryptionRootKeyResource | null;
+  readonly providers: readonly string[];
+};
+
+/**
+ * The root key a tenant brings (ADR-1411): "Set root key" in a dialog that shows the server's error, "Validate" and a
+ * confirmed "Remove". The API returns no key material, and neither does this view.
+ */
+function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySectionProps) {
+  const [setRootKey, { isLoading: isSetting }] = useSetTenantRootKeyMutation();
+  const [removeRootKey, { isLoading: isRemoving }] = useRemoveTenantRootKeyMutation();
+  const [validateRootKey, { isLoading: isValidating }] = useValidateTenantRootKeyMutation();
+  const [setting, setSetting] = useState(false);
+  const [setError, setSetError] = useState<string | undefined>(undefined);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | undefined>(undefined);
+  const [validateError, setValidateError] = useState<string | undefined>(undefined);
+
+  const closeSet = () => {
+    setSetting(false);
+    setSetError(undefined);
+  };
+
+  const closeRemove = () => {
+    setRemoving(false);
+    setRemoveError(undefined);
+  };
+
+  const handleSet = async (values: EncryptionRootKeyFormValues) => {
+    setSetError(undefined);
+    try {
+      await setRootKey({ tenantId, body: values }).unwrap();
+      closeSet();
+    } catch (failure) {
+      setSetError(rootKeyErrorMessage(failure));
+    }
+  };
+
+  const handleRemove = async () => {
+    setRemoveError(undefined);
+    try {
+      await removeRootKey({ tenantId }).unwrap();
+      closeRemove();
+    } catch (failure) {
+      setRemoveError(rootKeyErrorMessage(failure));
+    }
+  };
+
+  const handleValidate = async () => {
+    setValidateError(undefined);
+    try {
+      await validateRootKey({ tenantId }).unwrap();
+    } catch (failure) {
+      setValidateError(rootKeyErrorMessage(failure));
+    }
+  };
+
+  return (
+    <>
+      {validateError && (
+        <Alert severity="error" data-testid="root-key-validate-error">
+          {validateError}
+        </Alert>
+      )}
+      <EncryptionRootKeyCard
+        rootKey={rootKey}
+        canSet={providers.length > 0}
+        isBusy={isSetting || isRemoving || isValidating}
+        onSet={() => setSetting(true)}
+        onValidate={() => void handleValidate()}
+        onRemove={() => setRemoving(true)}
+      />
+      <EncryptionRootKeyFormDialog
+        open={setting}
+        initialValues={{
+          ...emptyEncryptionRootKeyFormValues,
+          provider: rootKey?.provider ?? emptyEncryptionRootKeyFormValues.provider,
+        }}
+        providers={providers}
+        isSubmitting={isSetting}
+        error={setError}
+        onSubmit={(values) => void handleSet(values)}
+        onCancel={closeSet}
+      />
+      <ConfirmDialog
+        open={removing}
+        title="Remove root key"
+        message="Wrap the encryption keys of this tenant under the deployment's root key again and forget this root key? The keys are rewrapped in the background, and the root key is removed once none remains under it."
+        confirmLabel="Remove"
+        isBusy={isRemoving}
+        error={removeError}
+        onConfirm={() => void handleRemove()}
+        onCancel={closeRemove}
+      />
+    </>
+  );
+}
+
+/**
  * Container: the master keys of a tenant or of the server (ADR-1407) with a "Rekey" action. A rekey retires the active
  * key and starts the next version, whose values are then rewrapped in the background, so it is confirmed first. The
  * API returns no key material, and neither does this view. A rekey that loses a race to another rekey shows the
- * server's explanation in the dialog.
+ * server's explanation in the dialog. A tenant also manages the root key it brings (ADR-1411); a server never does.
  */
 export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKeysTabProps) {
   const { data, isLoading, error } = useListEncryptionKeysQuery(owner);
@@ -61,11 +191,26 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
           Rekey
         </Button>
       </Stack>
-      {data && !data.recoveryConfigured && (
-        <Alert severity="warning" data-testid="encryption-keys-no-recovery">
-          New keys are not wrapped under a recovery key, so losing the root key loses every secret
-          this {ownerLabel} stores.
+      {data?.rootKey ? (
+        <Alert severity="info" data-testid="encryption-keys-root-key-only">
+          This {ownerLabel}&apos;s keys are wrapped only by its own root key. Revoking or destroying
+          that key makes its data unreadable, and no operator can recover it.
         </Alert>
+      ) : (
+        data &&
+        !data.recoveryConfigured && (
+          <Alert severity="warning" data-testid="encryption-keys-no-recovery">
+            New keys are not wrapped under a recovery key, so losing the root key loses every secret
+            this {ownerLabel} stores.
+          </Alert>
+        )
+      )}
+      {data && owner.kind === 'tenant' && (
+        <TenantRootKeySection
+          tenantId={owner.tenantId}
+          rootKey={data.rootKey}
+          providers={data.rootKeyProviders}
+        />
       )}
       <DataStateBoundary
         isLoading={isLoading}

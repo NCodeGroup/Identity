@@ -53,13 +53,19 @@ type TenantRootKeySectionProps = {
   readonly tenantId: string;
   readonly rootKey: EncryptionRootKeyResource | null;
   readonly providers: readonly string[];
+  readonly accessBinding: string | null;
 };
 
 /**
  * The root key a tenant brings (ADR-1414): "Set root key" in a dialog that shows the server's error, "Validate" and a
  * confirmed "Remove". The API returns no key material, and neither does this view.
  */
-function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySectionProps) {
+function TenantRootKeySection({
+  tenantId,
+  rootKey,
+  providers,
+  accessBinding,
+}: TenantRootKeySectionProps) {
   const [setRootKey, { isLoading: isSetting }] = useSetTenantRootKeyMutation();
   const [removeRootKey, { isLoading: isRemoving }] = useRemoveTenantRootKeyMutation();
   const [validateRootKey, { isLoading: isValidating }] = useValidateTenantRootKeyMutation();
@@ -130,6 +136,7 @@ function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySec
           provider: rootKey?.provider ?? emptyEncryptionRootKeyFormValues.provider,
         }}
         providers={providers}
+        accessBinding={accessBinding}
         isSubmitting={isSetting}
         error={setError}
         onSubmit={(values) => void handleSet(values)}
@@ -218,6 +225,7 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
           tenantId={owner.tenantId}
           rootKey={data.rootKey}
           providers={data.rootKeyProviders}
+          accessBinding={data.rootKeyAccessBinding}
         />
       )}
       <DataStateBoundary

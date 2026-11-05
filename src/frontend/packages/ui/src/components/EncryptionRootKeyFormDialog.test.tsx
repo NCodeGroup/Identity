@@ -15,6 +15,7 @@ function renderDialog(overrides: Partial<EncryptionRootKeyFormDialogProps> = {})
     open: true,
     initialValues: emptyEncryptionRootKeyFormValues,
     providers,
+    accessBinding: null,
     onSubmit,
     onCancel,
     ...overrides,
@@ -48,12 +49,61 @@ describe('EncryptionRootKeyFormDialog', () => {
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
       provider: 'google-cloud-kms',
       keyReference: 'projects/p/locations/l/keyRings/r/cryptoKeys/k',
+      accessIdentity: null,
     });
+  });
+
+  it('submits the trimmed access identity, and null when it is blank', () => {
+    const { onSubmit } = renderDialog();
+
+    fireEvent.change(screen.getByTestId('root-key-form-reference'), { target: { value: 'arn' } });
+    fireEvent.change(screen.getByTestId('root-key-form-access-identity'), {
+      target: { value: '  arn:aws:iam::111122223333:role/tenant  ' },
+    });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    expect(onSubmit).toHaveBeenLastCalledWith({
+      provider: 'aws-kms',
+      keyReference: 'arn',
+      accessIdentity: 'arn:aws:iam::111122223333:role/tenant',
+    });
+
+    fireEvent.change(screen.getByTestId('root-key-form-access-identity'), {
+      target: { value: '   ' },
+    });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    expect(onSubmit).toHaveBeenLastCalledWith({
+      provider: 'aws-kms',
+      keyReference: 'arn',
+      accessIdentity: null,
+    });
+  });
+
+  it('names the access binding in the helper text only when it is set', () => {
+    const { rerender, props } = renderDialog({ accessBinding: 'tenant:acme' });
+
+    expect(
+      screen.getByText(
+        "Leave blank to reach the key with the deployment's identity. An AWS role's trust policy requires the external ID tenant:acme.",
+      ),
+    ).toBeInTheDocument();
+
+    rerender(<EncryptionRootKeyFormDialog {...props} accessBinding={null} />);
+
+    expect(
+      screen.getByText("Leave blank to reach the key with the deployment's identity."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/external ID/)).not.toBeInTheDocument();
   });
 
   it('seeds the values and gives way to the first provider when the seeded one is not offered', () => {
     const { onSubmit } = renderDialog({
-      initialValues: { provider: 'azure-key-vault', keyReference: 'https://v.example/keys/k' },
+      initialValues: {
+        provider: 'azure-key-vault',
+        keyReference: 'https://v.example/keys/k',
+        accessIdentity: null,
+      },
     });
 
     expect(screen.getByTestId('root-key-form-provider')).toHaveValue('aws-kms');
@@ -62,6 +112,7 @@ describe('EncryptionRootKeyFormDialog', () => {
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
       provider: 'aws-kms',
       keyReference: 'https://v.example/keys/k',
+      accessIdentity: null,
     });
   });
 
@@ -73,7 +124,7 @@ describe('EncryptionRootKeyFormDialog', () => {
 
   it('cannot be submitted while submitting or without a provider', () => {
     const { rerender, props } = renderDialog({
-      initialValues: { provider: 'aws-kms', keyReference: 'arn' },
+      initialValues: { provider: 'aws-kms', keyReference: 'arn', accessIdentity: null },
       isSubmitting: true,
     });
 

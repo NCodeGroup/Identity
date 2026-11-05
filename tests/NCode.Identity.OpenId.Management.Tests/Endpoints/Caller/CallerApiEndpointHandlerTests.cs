@@ -269,12 +269,15 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
             .Returns(teamStore.Object)
             .Verifiable();
         teamStore
-            .Setup(x => x.GetOrDefaultAsync("team-a", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTeam("team-a"))
-            .Verifiable();
-        teamStore
-            .Setup(x => x.GetOrDefaultAsync("team-b", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTeam("team-b"))
+            .Setup(x =>
+                x.GetManyAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids =>
+                        ids.SequenceEqual(new[] { "team-a", "team-b" })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateTeam("team-a"), CreateTeam("team-b")])
             .Verifiable();
 
         var result = await Handler.ListTeamsAsync(CreateHttpContext(), CancellationToken.None);
@@ -302,12 +305,15 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
             .Returns(teamStore.Object)
             .Verifiable();
         teamStore
-            .Setup(x => x.GetOrDefaultAsync("team-a", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTeam("team-a"))
-            .Verifiable();
-        teamStore
-            .Setup(x => x.GetOrDefaultAsync("team-gone", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedTeam?)null)
+            .Setup(x =>
+                x.GetManyAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids =>
+                        ids.SequenceEqual(new[] { "team-a", "team-gone" })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateTeam("team-a")])
             .Verifiable();
 
         var result = await Handler.ListTeamsAsync(CreateHttpContext(), CancellationToken.None);
@@ -339,12 +345,15 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
             .Returns(tenantStore.Object)
             .Verifiable();
         tenantStore
-            .Setup(x => x.GetOrDefaultAsync("tenant-a", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant("tenant-a", "team-1"))
-            .Verifiable();
-        tenantStore
-            .Setup(x => x.GetOrDefaultAsync("tenant-b", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant("tenant-b", "team-1"))
+            .Setup(x =>
+                x.GetManyAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids =>
+                        ids.SequenceEqual(new[] { "tenant-a", "tenant-b" })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateTenant("tenant-a", "team-1"), CreateTenant("tenant-b", "team-1")])
             .Verifiable();
 
         var result = await Handler.ListTenantsAsync(CreateHttpContext(), CancellationToken.None);

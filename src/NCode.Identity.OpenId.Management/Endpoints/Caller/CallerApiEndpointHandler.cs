@@ -12,6 +12,8 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Caller;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
+using NCode.Identity.OpenId.Management.Endpoints.Teams;
+using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -76,38 +78,6 @@ internal class CallerApiEndpointHandler(
         };
 
     /// <summary>
-    /// Maps a <see cref="PersistedTeam"/> to its <see cref="TeamResource"/> representation.
-    /// </summary>
-    /// <param name="team">The <see cref="PersistedTeam"/> to map.</param>
-    /// <returns>The mapped <see cref="TeamResource"/>.</returns>
-    internal virtual TeamResource ToTeamResource(PersistedTeam team) =>
-        new()
-        {
-            TeamId = team.TeamId,
-            ConcurrencyToken = team.ConcurrencyToken,
-            DisplayName = team.DisplayName,
-            IsDisabled = team.IsDisabled,
-        };
-
-    /// <summary>
-    /// Maps a <see cref="PersistedTenant"/> to its <see cref="TenantResource"/> representation without its environment.
-    /// </summary>
-    /// <param name="tenant">The <see cref="PersistedTenant"/> to map.</param>
-    /// <returns>The mapped <see cref="TenantResource"/>.</returns>
-    internal virtual TenantResource ToTenantResource(PersistedTenant tenant) =>
-        new()
-        {
-            TenantId = tenant.TenantId,
-            TeamId = tenant.TeamId,
-            ConcurrencyToken = tenant.ConcurrencyToken,
-            Issuer = tenant.Issuer,
-            MtlsEndpointAliasAuthority = tenant.MtlsEndpointAliasAuthority,
-            IsDisabled = tenant.IsDisabled,
-            DisplayName = tenant.DisplayName,
-            Environment = null,
-        };
-
-    /// <summary>
     /// Gets where the caller holds authority: the principal it acts as, whether it holds authority at the platform
     /// node, and the role assignments it holds.
     /// </summary>
@@ -164,31 +134,15 @@ internal class CallerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = httpContext.GetOpenIdContext();
-
-        using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-
-        var (_, assignments) = await GetAssignmentsAsync(
-            openIdContext,
-            httpContext.User,
-            storeManager,
-            cancellationToken
-        );
-
-        var teams = new List<TeamResource>();
-        var store = storeManager.GetStore<ITeamStore>();
-        foreach (var teamId in GetResourceIds(assignments, ResourceNodeTypes.Team))
-        {
-            var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
-            if (team is not null)
+        return await ListHeldAsync(
+            httpContext,
+            ResourceNodeTypes.Team,
+            async (storeManager, teamIds, ct) =>
             {
-                teams.Add(ToTeamResource(team));
-            }
-        }
-
-        return TypedResults.Json(
-            new CollectionResource<TeamResource> { Items = teams, ContinuationToken = null }
+                var teams = await storeManager.GetStore<ITeamStore>().GetManyAsync(teamIds, ct);
+                return teams.Select(TeamApiEndpointHandler.ToTeamResource).ToList();
+            },
+            cancellationToken
         );
     }
 
@@ -204,6 +158,46 @@ internal class CallerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        return await ListHeldAsync(
+            httpContext,
+            ResourceNodeTypes.Tenant,
+            async (storeManager, tenantIds, ct) =>
+            {
+                var tenants = await storeManager
+                    .GetStore<ITenantStore>()
+                    .GetManyAsync(tenantIds, ct);
+                return tenants
+                    .Select(tenant => TenantApiEndpointHandler.ToTenantResource(tenant))
+                    .ToList();
+            },
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Lists the resources of one node type that the caller holds a role assignment at: reads the caller's role
+    /// assignments in the control-plane tenant scope, then reads and maps the resources they name in one batch.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource representation to list.</typeparam>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="nodeType">The <see cref="ResourceNodeTypes"/> value of the nodes to list.</param>
+    /// <param name="readAndMapAsync">The delegate that reads the resources with the specified identifiers in one batch
+    /// and maps them to their representations.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the JSON result
+    /// with the listed resources.</returns>
+    private async ValueTask<IResult> ListHeldAsync<TResource>(
+        HttpContext httpContext,
+        string nodeType,
+        Func<
+            IStoreManager,
+            IReadOnlyCollection<string>,
+            CancellationToken,
+            ValueTask<List<TResource>>
+        > readAndMapAsync,
+        CancellationToken cancellationToken
+    )
+    {
         var openIdContext = httpContext.GetOpenIdContext();
 
         using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
@@ -216,23 +210,26 @@ internal class CallerApiEndpointHandler(
             cancellationToken
         );
 
-        var tenants = new List<TenantResource>();
-        var store = storeManager.GetStore<ITenantStore>();
-        foreach (var tenantId in GetResourceIds(assignments, ResourceNodeTypes.Tenant))
-        {
-            var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
-            if (tenant is not null)
-            {
-                tenants.Add(ToTenantResource(tenant));
-            }
-        }
+        var items = await readAndMapAsync(
+            storeManager,
+            GetResourceIds(assignments, nodeType).ToList(),
+            cancellationToken
+        );
 
         return TypedResults.Json(
-            new CollectionResource<TenantResource> { Items = tenants, ContinuationToken = null }
+            new CollectionResource<TResource> { Items = items, ContinuationToken = null }
         );
     }
 
-    // The caller's principal and the role assignments it holds; a caller that resolves to no principal holds none.
+    /// <summary>
+    /// Gets the caller's principal and the role assignments it holds; a caller that resolves to no principal holds none.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request.</param>
+    /// <param name="user">The <see cref="ClaimsPrincipal"/> of the caller.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> to read through.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the caller's
+    /// principal identifier, or <see langword="null"/> when it resolves to none, and its role assignments.</returns>
     private async ValueTask<(
         string? PrincipalId,
         IReadOnlyList<PersistedRoleAssignment> Assignments
@@ -259,7 +256,12 @@ internal class CallerApiEndpointHandler(
         return (principalId, assignments);
     }
 
-    // The distinct identifiers of the nodes of one type the assignments are held at, ordered ordinally.
+    /// <summary>
+    /// Gets the distinct identifiers of the nodes of one type that the assignments are held at, ordered ordinally.
+    /// </summary>
+    /// <param name="assignments">The role assignments to read.</param>
+    /// <param name="resourceType">The <see cref="ResourceNodeTypes"/> value of the nodes to select.</param>
+    /// <returns>The distinct node identifiers.</returns>
     private static IEnumerable<string> GetResourceIds(
         IEnumerable<PersistedRoleAssignment> assignments,
         string resourceType

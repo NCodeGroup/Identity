@@ -43,16 +43,16 @@ public sealed class TeamStoreLifecycleTests : IDisposable
         _connection.Dispose();
     }
 
-    private static PersistedTeam CreateTeam() =>
+    private static PersistedTeam CreateTeam(string teamId = TeamId) =>
         new()
         {
-            TeamId = TeamId,
+            TeamId = teamId,
             ConcurrencyToken = string.Empty,
             IsDisabled = false,
             DisplayName = "Team One",
             Settings = new PersistedTeamSettings
             {
-                TeamId = TeamId,
+                TeamId = teamId,
                 ConcurrencyToken = string.Empty,
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
@@ -156,6 +156,24 @@ public sealed class TeamStoreLifecycleTests : IDisposable
 
         Assert.Single(tokens);
         Assert.Equal(team.ConcurrencyToken, tokens[TeamId]);
+    }
+
+    [Fact]
+    public async Task GetManyAsync_ReturnsTheExistingTeamsOrderedAndSkipsTheMissing()
+    {
+        var first = CreateTeam();
+        await _store.AddAsync(first, CancellationToken.None);
+        var second = CreateTeam("team-2");
+        await _store.AddAsync(second, CancellationToken.None);
+        await SaveAndClearAsync();
+
+        var teams = await _store.GetManyAsync(
+            ["TEAM-2", TeamId.ToUpperInvariant(), "missing-team"],
+            CancellationToken.None
+        );
+
+        Assert.Equal([TeamId, "team-2"], teams.Select(team => team.TeamId));
+        Assert.All(teams, team => Assert.Equal("Team One", team.DisplayName));
     }
 
     [Fact]

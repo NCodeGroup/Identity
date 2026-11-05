@@ -89,9 +89,12 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         };
 
     private static PersistedTenant CreateTenant(params PersistedSecret[] secrets) =>
+        CreateTenant(TenantId, secrets);
+
+    private static PersistedTenant CreateTenant(string tenantId, PersistedSecret[] secrets) =>
         new()
         {
-            TenantId = TenantId,
+            TenantId = tenantId,
             TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
@@ -99,13 +102,13 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             DisplayName = "Tenant One",
             Settings = new PersistedTenantSettings
             {
-                TenantId = TenantId,
+                TenantId = tenantId,
                 ConcurrencyToken = string.Empty,
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
             Secrets = new PersistedTenantSecrets
             {
-                TenantId = TenantId,
+                TenantId = tenantId,
                 ConcurrencyToken = string.Empty,
                 Value = secrets,
             },
@@ -245,6 +248,25 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         await _store.AddAsync(tenant, CancellationToken.None);
 
         Assert.False(string.IsNullOrEmpty(tenant.ConcurrencyToken));
+    }
+
+    [Fact]
+    public async Task GetManyAsync_ReturnsTheExistingTenantsOrderedAndSkipsTheMissing()
+    {
+        await _store.AddAsync(CreateTenant(CreateSecret("secret-1")), CancellationToken.None);
+        var second = CreateTenant("tenant-2", []);
+        await _store.AddAsync(second, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var tenants = await _store.GetManyAsync(
+            ["TENANT-2", TenantId.ToUpperInvariant(), "missing-tenant"],
+            CancellationToken.None
+        );
+
+        Assert.Equal([TenantId, "tenant-2"], tenants.Select(tenant => tenant.TenantId));
+        Assert.All(tenants, tenant => Assert.Equal("platform", tenant.TeamId));
+        Assert.Single(tenants[0].Secrets.Value);
     }
 
     [Fact]

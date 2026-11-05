@@ -173,6 +173,76 @@ public class TenantRootKeyTests
     }
 
     [Fact]
+    public async Task RootKey_WithAnAccessIdentity_ReachesTheKeyThroughThatIdentity()
+    {
+        const string accessIdentity = $"{TestReferencedKeyWrapper.AccessIdentityPrefix}acme";
+
+        var wrapper = new TestReferencedKeyWrapper();
+        wrapper.DenyDeploymentIdentity(KeyReference);
+        wrapper.Grant(KeyReference, accessIdentity);
+        using var factory = new TenantRootKeyHostApplicationFactory(
+            wrapper,
+            new RecordingAuditEventHandler()
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var client = CreateHttpClient(factory);
+        await CreateTenantAsync(administrator);
+        var clientId = await CreateClientAsync(administrator);
+        var secretMaterial = await CreateSecretAsync(administrator, clientId);
+
+        var before = await GetKeysAsync(administrator);
+        Assert.Equal("tenant:acme", GetString(before, "rootKeyAccessBinding"));
+
+        using var set = await PutRootKeyAsync(administrator, KeyReference, accessIdentity);
+        var setBody = await set.Content.ReadAsStringAsync();
+        Assert.True(set.StatusCode == HttpStatusCode.OK, setBody);
+        var setResult = JsonElement.Parse(setBody);
+        Assert.Equal(
+            accessIdentity,
+            setResult.GetProperty("rootKey").GetProperty("accessIdentity").GetString()
+        );
+
+        var underKey = await GetKeysAsync(administrator);
+        var keys = underKey.GetProperty("keys").EnumerateArray().ToList();
+        Assert.Equal(2, keys.Count);
+        Assert.All(
+            keys,
+            key =>
+            {
+                Assert.Equal(KeyReference, GetString(key, "rootKeyReference"));
+                Assert.Equal(accessIdentity, GetString(key, "rootKeyAccessIdentity"));
+            }
+        );
+
+        Assert.Null(await AuthenticateClientAsync(client, clientId, secretMaterial));
+
+        Assert.NotEmpty(wrapper.Bindings);
+        Assert.All(wrapper.Bindings, binding => Assert.Equal("tenant:acme", binding));
+    }
+
+    [Fact]
+    public async Task PutRootKey_WithAnAccessIdentityTheWrapperRefuses_ReturnsBadRequestAndSetsNoKey()
+    {
+        using var factory = new TenantRootKeyHostApplicationFactory(
+            new TestReferencedKeyWrapper(),
+            new RecordingAuditEventHandler()
+        );
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTenantAsync(administrator);
+
+        using var response = await PutRootKeyAsync(administrator, KeyReference, "bad");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+        Assert.True(
+            JsonElement.Parse(body).GetProperty("errors").TryGetProperty("accessIdentity", out _)
+        );
+
+        var keys = await GetKeysAsync(administrator);
+        Assert.Null(GetOptionalObject(keys, "rootKey"));
+    }
+
+    [Fact]
     public async Task PutRootKey_WithAProviderThatIsNotListed_ReturnsBadRequestAndSetsNoKey()
     {
         using var factory = new TenantRootKeyHostApplicationFactory(
@@ -349,11 +419,17 @@ public class TenantRootKeyTests
 
     private static Task<HttpResponseMessage> PutRootKeyAsync(
         HttpClient administrator,
-        string keyReference
+        string keyReference,
+        string? accessIdentity = null
     ) =>
         administrator.PutAsJsonAsync(
             RootKeyPath,
-            new { provider = TestReferencedKeyWrapper.WrapperName, keyReference }
+            new
+            {
+                provider = TestReferencedKeyWrapper.WrapperName,
+                keyReference,
+                accessIdentity,
+            }
         );
 
     private static async Task<HttpClient> CreateAdministratorClientAsync(

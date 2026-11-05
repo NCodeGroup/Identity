@@ -4,8 +4,9 @@
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) and amends
   [ADR-1234](1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md),
   [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
-  [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) and
-  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md))
+  [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md),
+  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) and
+  [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md))
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)
@@ -58,6 +59,11 @@ were last reconciled against.**
 8. **A tenant is provisioned against its team.** A new tenant's keys are provisioned with the tenant, as
    [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) records, and are reconciled with the team's
    settings on the team's next pass.
+9. **The key rollover runs per team.** The background key rollover
+   ([ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)) takes one
+   platform-wide lease per pass and walks the enabled teams in turn. It judges a team's tenants, and only those,
+   against that team's effective settings. A disabled team is skipped, because its tenants are not served, and a team
+   whose pass fails is logged and the next enabled team runs.
 
 ## Options considered
 
@@ -70,6 +76,8 @@ were last reconciled against.**
 
 - A change to one team's settings reads that team's tenants and no others, and replicas contend per team.
 - A platform settings change fires one pass per team, each under its own lease.
+- The key rollover reads one team's tenants under that team's effective settings, so an enabled team's keys roll over
+  whatever another team's settings document holds.
 - The team row carries the two reconciliation columns and the platform row carries none.
 - A handler a package registers receives the team's identifier and settings, never a deployment-wide walk.
 

@@ -847,8 +847,10 @@ describes the family as it is rather than its changes
   management API is never retired, extended or removed. The seed applies the plan whenever the tenant is
   materialized, and `TenantKeyRolloverService` applies it in the background every
   `OpenId:Tenant:KeyRollover:Interval` (one hour), one replica per interval under a lease on the shared-state port
-  that lasts half the interval, each tenant in its own unit of work under its optimistic concurrency, and announces
-  every tenant it changed so every replica serves its keys as they are. A team's settings reconciliation seeds a
+  that lasts half the interval, walking each enabled team's tenants under that team's effective settings (a disabled
+  team is skipped, and a team that fails is logged before the next one runs), each tenant in its own unit of work
+  under its optimistic concurrency, and announces every tenant it changed so every replica serves its keys as they
+  are. A team's settings reconciliation seeds a
   tenant whose only key for an algorithm has retired like one that never held it. Every change is an audit event,
   `tenant.key.generated`, `tenant.key.activated`, `tenant.key.retired`, `tenant.key.extended` or
   `tenant.key.removed`, in the `key` category with the `system` actor, published once the change is committed: the
@@ -1933,7 +1935,8 @@ describes the family as it is rather than its changes
 - **One management resource server (`urn:ncode:management`) gates the whole management API through granular per-leaf
   scopes.** Scopes are composed as `{verb}:{family}` (for example `read:clients`, `update:tenant_settings`,
   `update:team_settings`, `create:resource_servers`, `delete:grants`). The control-plane families
-  (`platform_settings`, `teams`, `team_settings`, `tenants`) are seeded only into the root (control-plane) tenant, whose
+  (`platform_settings`, `platform_encryption_keys`, `teams`, `team_settings`, `tenants`) are seeded only into the root
+  (control-plane) tenant, whose
   identifier is `TenantResolutionOptions.Root.TenantId`, bound from `TenantResolution:Root:TenantId` (default `"root"`);
   the tenant-plane families (a tenant's own settings and secrets, its clients, client secrets, resource servers,
   resource-server secrets, client grants and grants) are seeded into every tenant. A `SystemResourceServerDescriptor`
@@ -3577,8 +3580,8 @@ describes the family as it is rather than its changes
 
 ### Security
 
-- **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's, a
-  server's and a resource server's keys all carry an active window inside a validity window: a key that is not yet
+- **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's and a
+  resource server's keys all carry an active window inside a validity window: a key that is not yet
   active or has retired signs and encrypts nothing, and an expired key verifies and decrypts nothing, is not published
   and does not authenticate, on every path. A tenant's provisioned signing and encryption keys roll over every 90
   days by default, so the window a compromised key can be abused in is bounded, each successor is published two days

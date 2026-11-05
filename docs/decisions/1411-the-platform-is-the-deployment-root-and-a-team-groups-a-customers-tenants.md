@@ -59,8 +59,9 @@ the platform and its tenants in the settings cascade and in authority.**
    settings document at `/api/platform/settings`, the master key of the Data Protection key ring
    ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)) and the authority
    node `(platform, platform)`. It has no identifier, no list and no secrets: there is exactly one, so nothing names it.
-   Its management surface is `/api/platform/settings` and its effective settings, with no list, create, delete or
-   secret endpoints.
+   Its management surface is `/api/platform/settings`, its effective settings and its master keys at
+   `/api/platform/encryption-keys` ([ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)),
+   with no list, create, delete or secret endpoints.
 2. **A team is a persisted grouping of tenants.** Its creator names it, in the tenant-identifier form
    ([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)); it has a display name, an `isDisabled` flag and a settings
    document. Every tenant belongs to exactly one team and never moves. The platform's own team
@@ -79,8 +80,8 @@ the platform and its tenants in the settings cascade and in authority.**
    platform, team and tenant nodes have globally unique, retired identifiers, so an assignment matches them on type and
    identifier, and any other node counts an assignment only when it belongs to the node's tenant, because client and
    resource-server identifiers are unique only within a tenant. Tenants are created and listed under
-   `/api/teams/{teamId}/tenants`. The root tenant holds the `platform_settings`, `teams`, `team_settings` and `tenants`
-   scope families.
+   `/api/teams/{teamId}/tenants`. The root tenant holds the `platform_settings`, `platform_encryption_keys`, `teams`,
+   `team_settings` and `tenants` scope families.
 5. **Lifecycle.** A team's lifecycle is platform authority: an assignment at the platform node (or `GlobalAdmin`)
    creates, deletes, disables and restores a team and lists teams and tenants across teams, and a team's own owner or
    admin does none of these. A disabled team's tenants answer `404` on the protocol surface and on the management

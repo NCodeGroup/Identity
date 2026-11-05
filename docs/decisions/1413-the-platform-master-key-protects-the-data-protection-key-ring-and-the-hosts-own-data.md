@@ -35,9 +35,14 @@ application data a host protects under the platform, and no stored secret of the
 4. **The protector is loaded before the ring is judged.** `PlatformSecretProtectorWarmup` loads the platform's
    protector before `DataProtectionKeyRingGate` judges the ring, so a ring the platform key cannot decrypt stops the
    host as ADR-1247 records.
-5. **The platform's master key rotates and is rewrapped like a tenant's.** Its maintenance lease is
-   `master-key-maintenance:platform`, and it is reported and rekeyed under `GET` and `POST
-   /api/platform/encryption-keys[/rekey]` with the `platform_encryption_keys` scope family (ADR-1407).
+5. **The platform's master key rotates, and its retired versions are destroyed under ADR-1407's rules.** A new Data
+   Protection key and the host data protected afterwards are protected under the new version. An existing ring key is
+   never re-encrypted, because Data Protection never rewrites a key element
+   (`DataProtectionKeyRingValueSource.RewrapAsync` rewraps nothing), so a retired version stays while a live ring key
+   names it, and a ring that cannot be read names every version. The maintenance lease is
+   `master-key-maintenance:platform`, and the key is reported and rekeyed at `GET /api/platform/encryption-keys` and
+   `POST /api/platform/encryption-keys/rekey` with the `platform_encryption_keys` scope family, authorized at the
+   platform node.
 
 ## Options considered
 
@@ -48,7 +53,10 @@ application data a host protects under the platform, and no stored secret of the
 
 ## Consequences
 
-- Rotating the platform master key re-protects the key ring and host data and no tenant's secrets.
+- Rotating the platform master key protects the ring keys and host data created afterwards under the new version and
+  touches no tenant's secrets; a ring key written earlier keeps naming the retired version until Data Protection
+  retires that key.
+- A retired platform key version is destroyed only once no live ring key names it and its grace has passed.
 - A tenant's secrets never depend on the platform master key, so a tenant's data stays decryptable through the root key
   and its own master key alone.
 - A team is created and deleted without any key material.

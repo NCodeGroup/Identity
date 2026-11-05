@@ -2761,6 +2761,15 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #region Encryption Keys Tests
 
+    private const string ControlPlaneTenantId = "control-plane";
+
+    // Only a request that reaches the root key rule asks which tenant is the control-plane tenant.
+    private void SetupControlPlaneTenantId(string controlPlaneTenantId = ControlPlaneTenantId) =>
+        MockTenantResolver
+            .Setup(x => x.GetControlPlaneTenantId())
+            .Returns(controlPlaneTenantId)
+            .Verifiable();
+
     private static MasterKeyInfo CreateKeyInfo(int version, bool retired) =>
         new(
             Guid.NewGuid(),
@@ -2783,6 +2792,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms");
         var active = CreateKeyInfo(2, retired: false);
         var retired = CreateKeyInfo(1, retired: true);
@@ -3055,6 +3065,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task GetEncryptionKeysAsync_WithARootKey_ReportsItWithoutMaterial()
     {
         SetupAuthorizedTenant();
+        SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms", "azure-key-vault");
         MockMasterKeyManager
             .Setup(x => x.GetStatusAsync(TenantOwner, It.IsAny<CancellationToken>()))
@@ -3089,6 +3100,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task SetRootKeyAsync_StoresTheKeyAndRecordsTheRootKeyAndTheRotation()
     {
         SetupAuthorizedTenant();
+        SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms");
         MockOwnerRootKeyManager
             .Setup(x =>
@@ -3160,6 +3172,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task SetRootKeyAsync_SameKeyWithNothingToChange_RecordsNothing()
     {
         SetupAuthorizedTenant();
+        SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms");
         MockOwnerRootKeyManager
             .Setup(x =>
@@ -3205,6 +3218,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     )
     {
         SetupAuthorizedTenant();
+        SetupControlPlaneTenantId();
         // A blank provider is refused before the allowed names are read.
         MockOwnerRootKeyManager.SetupGet(x => x.AllowedKeyWrapperNames).Returns(["aws-kms"]);
 
@@ -3224,6 +3238,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task SetRootKeyAsync_MalformedReference_ReturnsAValidationProblemWithTheWrapperPhrase()
     {
         SetupAuthorizedTenant();
+        SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms");
         string? failure = "The key reference must be the ARN of a KMS key or alias.";
         MockOwnerRootKeyManager
@@ -3246,6 +3261,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task SetRootKeyAsync_WhenTheProbeFails_ReturnsUnprocessableAndRecordsAnUnavailableKey()
     {
         SetupAuthorizedTenant();
+        SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms");
         MockOwnerRootKeyManager
             .Setup(x =>
@@ -3300,6 +3316,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task SetRootKeyAsync_WhenTheLastRotationIsTooRecent_ReturnsConflictWithRetryAfter()
     {
         SetupAuthorizedTenant();
+        SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms");
         MockOwnerRootKeyManager
             .Setup(x =>
@@ -3331,6 +3348,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task SetRootKeyAsync_WhenAnotherWriterWonTheRace_ThrowsStoreConcurrencyExceptionForTheFilter()
     {
         SetupAuthorizedTenant();
+        SetupControlPlaneTenantId();
         SetupAllowedKeyWrappers("aws-kms");
         MockOwnerRootKeyManager
             .Setup(x =>
@@ -3372,6 +3390,60 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetEncryptionKeysAsync_ForTheControlPlaneTenant_ReportsNoRootKeyAndNoProviders()
+    {
+        SetupAuthorizedTenant();
+        SetupControlPlaneTenantId(TenantId);
+        // The strict owner root key manager is never asked for its allowed providers.
+        MockMasterKeyManager
+            .Setup(x => x.GetStatusAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<MasterKeyStatus>(
+                    new MasterKeyStatus(
+                        TenantOwner,
+                        [CreateKeyInfo(1, retired: false)],
+                        RecoveryConfigured: true,
+                        RootKey: null
+                    )
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.GetEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionKeysResource>>(result);
+        Assert.Null(ok.Value?.RootKey);
+        Assert.Empty(ok.Value?.RootKeyProviders ?? ["unexpected"]);
+        Assert.Single(ok.Value?.Keys ?? []);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_ForTheControlPlaneTenant_ReturnsBadRequestAndNeverReachesTheManager()
+    {
+        SetupAuthorizedTenant();
+        SetupControlPlaneTenantId(TenantId);
+
+        // The strict owner root key manager and audit recorder have no setups: any call fails the test.
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal(
+            "The control-plane tenant cannot bring a root key.",
+            problem.ProblemDetails.Title
+        );
     }
 
     [Fact]

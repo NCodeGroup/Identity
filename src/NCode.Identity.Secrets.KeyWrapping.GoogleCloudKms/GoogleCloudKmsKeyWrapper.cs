@@ -78,7 +78,12 @@ internal class GoogleCloudKmsKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(keyName, access: null, key, context, cancellationToken);
+        return await WrapUnderAsync(
+            new ReferencedKey(keyName, Access: null),
+            key,
+            context,
+            cancellationToken
+        );
     }
 
     /// <inheritdoc />
@@ -152,23 +157,18 @@ internal class GoogleCloudKmsKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(
-            referencedKey.KeyReference,
-            referencedKey.Access,
-            key,
-            context,
-            cancellationToken
-        );
+        return await WrapUnderAsync(referencedKey, key, context, cancellationToken);
     }
 
     private async ValueTask<WrappedKey> WrapUnderAsync(
-        string keyName,
-        KeyAccess? access,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
+        var keyName = referencedKey.KeyReference;
+
         // The call only reads the caller's buffers and they outlive it, so they are wrapped without a copy.
         var request = new EncryptRequest
         {
@@ -179,25 +179,11 @@ internal class GoogleCloudKmsKeyWrapper(
             AdditionalAuthenticatedDataCrc32C = GoogleCloudKmsChecksum.Compute(context.Span),
         };
 
-        var client = await ClientFactory.GetClientAsync(access, cancellationToken);
-
-        EncryptResponse response;
-        try
-        {
-            response = await client.EncryptAsync(request, cancellationToken);
-        }
-        catch (Exception exception)
-            when (access is not null && exception is not OperationCanceledException)
-        {
-            // An access that has never worked must leave no client cached.
-            ClientFactory.Release(access);
-            throw;
-        }
-
-        if (access is not null)
-        {
-            ClientFactory.Confirm(access);
-        }
+        var response = await ClientFactory.ExecuteAsync(
+            referencedKey.Access,
+            (client, token) => new ValueTask<EncryptResponse>(client.EncryptAsync(request, token)),
+            cancellationToken
+        );
 
         if (
             !response.VerifiedPlaintextCrc32C
@@ -323,25 +309,11 @@ internal class GoogleCloudKmsKeyWrapper(
             AdditionalAuthenticatedDataCrc32C = GoogleCloudKmsChecksum.Compute(context.Span),
         };
 
-        var client = await ClientFactory.GetClientAsync(access, cancellationToken);
-
-        DecryptResponse response;
-        try
-        {
-            response = await DecryptAsync(client, request, cancellationToken);
-        }
-        catch (Exception exception)
-            when (access is not null && exception is not OperationCanceledException)
-        {
-            // An access that has never worked must leave no client cached.
-            ClientFactory.Release(access);
-            throw;
-        }
-
-        if (access is not null)
-        {
-            ClientFactory.Confirm(access);
-        }
+        var response = await ClientFactory.ExecuteAsync(
+            access,
+            (client, token) => DecryptAsync(client, request, token),
+            cancellationToken
+        );
 
         CopyPlaintext(response, destination);
     }

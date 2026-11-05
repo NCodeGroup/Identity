@@ -334,6 +334,12 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns([])
             .Verifiable();
 
+    private void SetupNoChangedLimits() =>
+        MockSettingSerializer
+            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
+            .Returns([])
+            .Verifiable();
+
     private void SetupInvalidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -1303,6 +1309,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupTenantChangedAnnouncement();
         SetupTenantChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore
@@ -1332,11 +1339,111 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTeamRefuses_ReturnsForbiddenWithoutWriting()
+    {
+        SetupValidSettings();
+        MockSettingSerializer
+            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
+            .Returns([OpenIdSettingNames.RateLimitTenantPerMinute])
+            .Verifiable();
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct"))
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == TeamId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        // Strict mocks: no coherence or store-write setup, so continuing past the refusal would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+        Assert.Contains("'rate_limit_tenant_per_minute'", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTeamAuthorizes_ReturnsNoContent()
+    {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
+        SetupValidSettings();
+        MockSettingSerializer
+            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
+            .Returns([OpenIdSettingNames.RateLimitTenantPerMinute])
+            .Verifiable();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == TeamId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+        SetupClientCoherenceCheck();
+        SetupSettingsWrite(settings);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: true);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenTheReplacedDocumentCannotBeHonored_WritesWithoutCheckingTheClients()
     {
         SetupTenantChangedAnnouncement();
         SetupTenantChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore
@@ -1399,6 +1506,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenTheChangeMakesAClientIncoherent_ReturnsValidationProblem()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1445,6 +1553,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenTheChangeMakesManyClientsIncoherent_ListsTenAndCountsTheRest()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))

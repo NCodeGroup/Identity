@@ -1447,6 +1447,16 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
+        var limitRefusal = await AuthorizeLimitChangesOrDefaultAsync(
+            httpContext,
+            SettingSerializer.GetChangedLimits(tenantSettings.Value, settingsValue),
+            GetTeamNode(httpContext, tenant.TeamId)
+        );
+        if (limitRefusal is not null)
+        {
+            return limitRefusal;
+        }
+
         var coherenceErrors = await ValidateClientCoherenceAsync(
             tenant.TeamId,
             tenantId,

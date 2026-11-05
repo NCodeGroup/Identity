@@ -1119,11 +1119,16 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
   - Back-channel logout ends a session on every replica.
   - DPoP nonce challenges are answered.
   - Rotating the BFF's keys keeps live sessions working.
-- **Interop.** One other OP runs in a container, so the library is proven not to depend on NCode behavior.
+- **Interop.** `tests/NCode.Identity.Bff.EndToEnd.Tests` runs the BFF against Keycloak in a container, which requires
+  PAR, PKCE `S256`, DPoP and PS256 ID tokens of the client. Login, `private_key_jwt` through `/bff/jwks`, RFC 9207,
+  refresh-token rotation, RP-initiated logout and back-channel logout work from discovery metadata alone, so the
+  library is proven not to depend on NCode behavior.
 - **OpenID Foundation conformance.** The relying-party test plans (OIDC Basic RP, and FAPI 2.0 client where it
   applies) certify the protocol client from the other side of the suite the OP already targets (issue [#124](https://github.com/NCodeGroup/Identity/issues/124)).
-- **Browser end-to-end.** A Playwright suite checks the cookie attributes, `SameSite` behavior on cross-site
-  navigation, CORS and preflight denial, and Fetch Metadata rejection in real browsers.
+- **Browser end-to-end.** Playwright for .NET in Chromium, Firefox and WebKit checks the cookie attributes, `SameSite`
+  on cross-site navigation and form posts, CORS preflight denial, and Fetch Metadata rejection of what CORS admits.
+  Both end-to-end suites run in the `End-to-end` CI check through `./build/e2e.ps1`, never in the Definition of Done
+  ([ADR-1419](decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 ---
 

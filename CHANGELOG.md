@@ -2509,6 +2509,17 @@ describes the family as it is rather than its changes
   ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
 
+- **The BFF is proven in real browsers and against a second OpenID Provider.** The `End-to-end` check runs
+  `./build/e2e.ps1`, which drives the BFF with Playwright in Chromium, Firefox and WebKit against Keycloak in a
+  container. The session cookie is host-only, `HttpOnly`, `Secure` and `SameSite=Strict` (or `Lax` when chosen). A
+  cross-site navigation carries it only under `Lax`, a cross-origin `fetch` stops at its CORS preflight, and Fetch
+  Metadata refuses a cross-site or untrusted same-site request even when CORS admits it. Login with PAR, PKCE,
+  `private_key_jwt` through `/bff/jwks`, DPoP, RFC 9207 and PS256 ID tokens works, and so do refresh-token
+  rotation, RP-initiated logout and back-channel logout, all from Keycloak's discovery metadata alone.
+  `./build/dod.ps1` never runs these `*.EndToEnd.Tests` suites
+  ([#418](https://github.com/NCodeGroup/Identity/issues/418), [#419](https://github.com/NCodeGroup/Identity/issues/419),
+  [ADR-1419](docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+
 - **Entity Framework persistence is a reusable framework plus domain slices.** The framework package
   `NCode.Identity.OpenId.Persistence.EntityFramework` provides a `DbSet`-less `OpenIdDbContext` that slices plug into
   through `IOpenIdModelContributor`; the core OpenID schema is the

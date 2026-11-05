@@ -1228,6 +1228,42 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenThePlatformDocumentCannotBeHonored_ThrowsNamingThePlatform()
+    {
+        SetupValidSettings();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        SetupTeamSettings(settings);
+        SetupAuthorization(AuthorizationResult.Success());
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(
+                new UnreadableSettingsException(
+                    OpenIdSettingScopes.Platform,
+                    OpenIdConstants.PlatformResourceId,
+                    new JsonException("The platform settings are invalid.")
+                )
+            )
+            .Verifiable();
+
+        // Strict mocks: no team document resolution and no write are set up, so either would fail the test.
+        var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(() =>
+            Handler
+                .UpdateSettingsAsync(
+                    CreateHttpContext(authenticated: true),
+                    TeamId,
+                    CreateAddPatch("foo", "bar"),
+                    ifMatch: null,
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Equal(OpenIdSettingScopes.Platform, exception.ScopeName);
+        Assert.Equal(OpenIdConstants.PlatformResourceId, exception.OwnerId);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenAClientWouldBecomeIncoherent_ReturnsValidationProblemWithoutWriting()
     {
         SetupValidSettings();

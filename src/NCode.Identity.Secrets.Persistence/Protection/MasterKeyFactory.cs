@@ -161,15 +161,13 @@ internal class MasterKeyFactory(
         else
         {
             // See ADR-1429.
+            var access = new KeyAccess(
+                row.RootKeyAccessIdentity,
+                OwnerRootKeyAccess.GetBinding(owner)
+            );
             await Catalog
                 .GetReferenced(row.RootKeyProvider)
-                .UnwrapAsync(
-                    wrappedKey,
-                    new KeyAccess(row.RootKeyAccessIdentity, OwnerRootKeyAccess.GetBinding(owner)),
-                    context,
-                    destination,
-                    cancellationToken
-                );
+                .UnwrapAsync(wrappedKey, access, context, destination, cancellationToken);
         }
 
         using var material = destination.GetSpanLease(isSensitive: true);

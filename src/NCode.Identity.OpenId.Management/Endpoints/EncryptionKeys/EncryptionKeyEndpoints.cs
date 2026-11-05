@@ -131,13 +131,16 @@ internal static class EncryptionKeyEndpoints
         OwnerRootKeyChange change;
         try
         {
+            var ownerRootKeyRequest = new OwnerRootKeyRequest(
+                request.Provider,
+                request.KeyReference
+            )
+            {
+                AccessIdentity = request.AccessIdentity,
+            };
             change = await ownerRootKeyManager.SetAsync(
                 owner,
-                new OwnerRootKeyRequest(
-                    request.Provider,
-                    request.KeyReference,
-                    request.AccessIdentity
-                ),
+                ownerRootKeyRequest,
                 cancellationToken
             );
         }

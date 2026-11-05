@@ -148,8 +148,11 @@ internal sealed class DefaultOwnerRootKeyManager(
 
     /// <inheritdoc />
     // See ADR-1429.
-    public string GetAccessBinding(SecretOwner owner) =>
-        OwnerRootKeyAccess.GetBinding(Normalize(owner));
+    public string GetAccessBinding(SecretOwner owner)
+    {
+        var key = Normalize(owner);
+        return OwnerRootKeyAccess.GetBinding(key);
+    }
 
     /// <inheritdoc />
     public async ValueTask<OwnerRootKeyInfo?> GetAsync(
@@ -226,9 +229,14 @@ internal sealed class DefaultOwnerRootKeyManager(
             throw new MasterKeyRotationTooSoonException(key, remaining);
         }
 
+        var wrapper = Catalog.GetReferenced(keyWrapperName);
+        var referencedKey = new ReferencedKey(
+            keyReference,
+            OwnerRootKeyAccess.For(key, accessIdentity)
+        );
         var probeFailure = await OwnerRootKeyProbe.ProbeAsync(
-            Catalog.GetReferenced(keyWrapperName),
-            new ReferencedKey(keyReference, OwnerRootKeyAccess.For(key, accessIdentity)),
+            wrapper,
+            referencedKey,
             key,
             cancellationToken
         );
@@ -260,9 +268,7 @@ internal sealed class DefaultOwnerRootKeyManager(
         var stored = await StoreBindingAsync(
             key,
             binding,
-            keyWrapperName,
-            keyReference,
-            accessIdentity,
+            request,
             sameKey,
             now,
             cancellationToken
@@ -330,12 +336,14 @@ internal sealed class DefaultOwnerRootKeyManager(
             return new OwnerRootKeyValidation(remaining, null, null, removalRewrap);
         }
 
+        var wrapper = Catalog.GetReferenced(binding.KeyWrapperName);
+        var referencedKey = new ReferencedKey(
+            binding.KeyReference,
+            OwnerRootKeyAccess.For(key, binding.AccessIdentity)
+        );
         var probeFailure = await OwnerRootKeyProbe.ProbeAsync(
-            Catalog.GetReferenced(binding.KeyWrapperName),
-            new ReferencedKey(
-                binding.KeyReference,
-                OwnerRootKeyAccess.For(key, binding.AccessIdentity)
-            ),
+            wrapper,
+            referencedKey,
             key,
             cancellationToken
         );
@@ -427,6 +435,14 @@ internal sealed class DefaultOwnerRootKeyManager(
         return owner.Normalize();
     }
 
+    /// <summary>
+    /// Resolves the key wrapper that wraps under a key an owner names, when the wrapper is allowed for the root key of
+    /// an owner and is registered as one that takes a key reference.
+    /// </summary>
+    /// <param name="keyWrapperName">The name of the key wrapper.</param>
+    /// <param name="wrapper">The key wrapper, or <see langword="null"/> when the resolution fails.</param>
+    /// <param name="failure">The reason the resolution failed, or <see langword="null"/> when it succeeds.</param>
+    /// <returns><see langword="true"/> when the wrapper resolves; otherwise <see langword="false"/>.</returns>
     private bool TryGetWrapper(
         string keyWrapperName,
         [NotNullWhen(true)] out IReferencedKeyWrapper? wrapper,
@@ -490,9 +506,7 @@ internal sealed class DefaultOwnerRootKeyManager(
     private async ValueTask<PersistedOwnerRootKey> StoreBindingAsync(
         SecretOwner key,
         PersistedOwnerRootKey? binding,
-        string keyWrapperName,
-        string keyReference,
-        string? accessIdentity,
+        OwnerRootKeyRequest request,
         bool sameKey,
         DateTimeOffset now,
         CancellationToken cancellationToken
@@ -500,9 +514,9 @@ internal sealed class DefaultOwnerRootKeyManager(
     {
         if (binding is not null)
         {
-            binding.KeyWrapperName = keyWrapperName;
-            binding.KeyReference = keyReference;
-            binding.AccessIdentity = accessIdentity;
+            binding.KeyWrapperName = request.KeyWrapperName;
+            binding.KeyReference = request.KeyReference;
+            binding.AccessIdentity = request.AccessIdentity;
             if (!sameKey)
                 binding.CreatedWhen = now;
 
@@ -523,9 +537,9 @@ internal sealed class DefaultOwnerRootKeyManager(
         {
             OwnerType = key.OwnerType,
             OwnerId = key.OwnerId,
-            KeyWrapperName = keyWrapperName,
-            KeyReference = keyReference,
-            AccessIdentity = accessIdentity,
+            KeyWrapperName = request.KeyWrapperName,
+            KeyReference = request.KeyReference,
+            AccessIdentity = request.AccessIdentity,
             State = OwnerRootKeyStates.Active,
             CreatedWhen = now,
             StateChangedWhen = now,

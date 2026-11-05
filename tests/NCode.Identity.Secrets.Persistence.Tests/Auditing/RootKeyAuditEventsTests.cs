@@ -16,7 +16,7 @@ public sealed class RootKeyAuditEventsTests
         SecretOwner owner,
         string state = OwnerRootKeyStates.Active,
         string? failure = null
-    ) => new(owner, "aws-kms", KeyReference, null, state, Now, Now, Now, null, failure);
+    ) => new(owner, "aws-kms", KeyReference, state, Now, Now, Now, null, failure);
 
     [Fact]
     public void Create_ForATenant_CarriesTheOwnerKeyAndTime()

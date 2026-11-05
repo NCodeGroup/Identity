@@ -3654,11 +3654,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     private const string RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd";
 
-    private static readonly OwnerRootKeyRequest RootKeyRequest = new(
-        "aws-kms",
-        RootKeyReference,
-        null
-    );
+    private static readonly OwnerRootKeyRequest RootKeyRequest = new("aws-kms", RootKeyReference);
 
     private void SetupAllowedKeyWrappers(params string[] names) =>
         MockOwnerRootKeyManager.SetupGet(x => x.AllowedKeyWrapperNames).Returns(names).Verifiable();
@@ -3704,7 +3700,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             TenantOwner,
             "aws-kms",
             RootKeyReference,
-            null,
             state,
             DateTimeOffset.UnixEpoch,
             DateTimeOffset.UnixEpoch.AddHours(1),
@@ -3788,7 +3783,10 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.SetAsync(
                     TenantOwner,
-                    new OwnerRootKeyRequest("aws-kms", RootKeyReference, accessIdentity),
+                    new OwnerRootKeyRequest("aws-kms", RootKeyReference)
+                    {
+                        AccessIdentity = accessIdentity,
+                    },
                     It.IsAny<CancellationToken>()
                 )
             )

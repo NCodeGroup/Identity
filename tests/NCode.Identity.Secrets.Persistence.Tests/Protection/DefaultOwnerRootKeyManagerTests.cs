@@ -146,7 +146,7 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
         string reference = Reference,
         string? accessIdentity = null,
         string wrapper = "fake-kms"
-    ) => new(wrapper, reference, accessIdentity);
+    ) => new(wrapper, reference) { AccessIdentity = accessIdentity };
 
     private static PersistedMasterKey CreateRow(
         int version,

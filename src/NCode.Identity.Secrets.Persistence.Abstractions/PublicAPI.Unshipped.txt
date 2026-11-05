@@ -434,7 +434,7 @@ const NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyStates.Active = 
 const NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyStates.Removing = "removing" -> string!
 const NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyStates.Unavailable = "unavailable" -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo
-NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.OwnerRootKeyInfo(NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, string! KeyWrapperName, string! KeyReference, string? AccessIdentity, string! State, System.DateTimeOffset CreatedWhen, System.DateTimeOffset StateChangedWhen, System.DateTimeOffset? ValidatedWhen, System.DateTimeOffset? FailedWhen, string? Failure) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.OwnerRootKeyInfo(NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, string! KeyWrapperName, string! KeyReference, string! State, System.DateTimeOffset CreatedWhen, System.DateTimeOffset StateChangedWhen, System.DateTimeOffset? ValidatedWhen, System.DateTimeOffset? FailedWhen, string? Failure) -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.CreatedWhen.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.FailedWhen.get -> System.DateTimeOffset?
@@ -484,7 +484,7 @@ NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyReference.g
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyReference.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyWrapperName.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyWrapperName.init -> void
-NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.OwnerRootKeyRequest(string! KeyWrapperName, string! KeyReference, string? AccessIdentity) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.OwnerRootKeyRequest(string! KeyWrapperName, string! KeyReference) -> void
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.GetAccessBinding(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner) -> string!
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.TryValidateAccessIdentity(string! keyWrapperName, string! accessIdentity, out string? failure) -> bool
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.TryValidateKeyReference(string! keyWrapperName, string! keyReference, out string? failure) -> bool

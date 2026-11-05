@@ -8,6 +8,7 @@ using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Platform;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -37,6 +38,7 @@ internal sealed class MasterKeyMaintenanceService(
     IStoreManagerFactory storeManagerFactory,
     IExpiringKeySet expiringKeySet,
     IEventPublisher eventPublisher,
+    ITenantResolver tenantResolver,
     IOptions<SecretProtectionOptions> options,
     TimeProvider timeProvider,
     ILogger<MasterKeyMaintenanceService> logger
@@ -60,6 +62,7 @@ internal sealed class MasterKeyMaintenanceService(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IExpiringKeySet ExpiringKeySet { get; } = expiringKeySet;
     private IEventPublisher EventPublisher { get; } = eventPublisher;
+    private ITenantResolver TenantResolver { get; } = tenantResolver;
     private IOptions<SecretProtectionOptions> Options { get; } = options;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<MasterKeyMaintenanceService> Logger { get; } = logger;
@@ -258,13 +261,7 @@ internal sealed class MasterKeyMaintenanceService(
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
-            TenantId = string.Equals(
-                owner.OwnerType,
-                SecretOwnerTypes.Tenant,
-                StringComparison.OrdinalIgnoreCase
-            )
-                ? owner.OwnerId
-                : null,
+            TenantId = GetTenantId(owner),
             Actor = AuditActor.System,
             Outcome = AuditOutcome.Success,
             Change = change,
@@ -277,6 +274,27 @@ internal sealed class MasterKeyMaintenanceService(
             RetiredKeyId = retired?.KeyId,
             RetiredVersion = retired?.Version,
         };
+    }
+
+    // A tenant's event is recorded in that tenant, and a platform event, which no tenant owns, in the control-plane tenant.
+    private string? GetTenantId(SecretOwner owner)
+    {
+        if (
+            string.Equals(
+                owner.OwnerType,
+                SecretOwnerTypes.Tenant,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+            return owner.OwnerId;
+
+        return string.Equals(
+            owner.OwnerType,
+            SecretOwnerTypes.Platform,
+            StringComparison.OrdinalIgnoreCase
+        )
+            ? TenantResolver.GetControlPlaneTenantId()
+            : null;
     }
 
     // A change is audited once it is committed. No caller token reaches the publishing, so every failure, its timeout

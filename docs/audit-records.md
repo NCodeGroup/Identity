@@ -282,6 +282,8 @@ It lists the `master_key` first and the owner second (`tenant` or `platform`, wi
 material, wrapped key or key check, and is published once the change has committed. An administrator's rekey through the
 management API has `event_source` `management`, the `administrator` actor and the request; the background pass has
 `event_source` `openid` and the `system` actor.
+A tenant's master key event is recorded in that tenant, and a platform master key event, from a rekey or from the
+background pass, is recorded in the control-plane tenant.
 A read of the encryption keys is not audited.
 
 | `event_name`           | Resources                         | `details.reason`                                                                                                                       |

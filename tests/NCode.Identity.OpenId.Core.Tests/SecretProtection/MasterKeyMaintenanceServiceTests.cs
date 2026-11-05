@@ -10,6 +10,7 @@ using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.SecretProtection;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -26,6 +27,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("acme");
     private static readonly SecretOwner OtherOwner = SecretOwner.ForTenant("globex");
     private static readonly SecretOwner PlatformOwner = SecretOwner.Platform;
+    private const string ControlPlaneTenantId = "control-plane";
 
     private readonly MasterKeyOptions _keyOptions = new();
     private readonly FakeTimeProvider _time = new(Now);
@@ -36,6 +38,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     private readonly Mock<IStoreManager> _storeManager;
     private readonly Mock<IExpiringKeySet> _keySet;
     private readonly Mock<IEventPublisher> _publisher;
+    private readonly Mock<ITenantResolver> _tenantResolver;
     private readonly MasterKeyMaintenanceService _service;
     private readonly Mock<OpenIdPlatform> _platform;
     private readonly List<MasterKeyAuditEvent> _published = [];
@@ -49,6 +52,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         _storeManager = CreateStrictMock<IStoreManager>();
         _keySet = CreateStrictMock<IExpiringKeySet>();
         _publisher = CreateStrictMock<IEventPublisher>();
+        _tenantResolver = CreateStrictMock<ITenantResolver>();
         _platform = CreateStrictMock<OpenIdPlatform>();
 
         _service = CreateService(CreateLooseMock<ILogger<MasterKeyMaintenanceService>>().Object);
@@ -71,6 +75,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
             _storeManagerFactory.Object,
             _keySet.Object,
             _publisher.Object,
+            _tenantResolver.Object,
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { MasterKeys = _keyOptions }
             ),
@@ -154,6 +159,13 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
             )
             .Callback<MasterKeyAuditEvent, CancellationToken>((e, _) => _published.Add(e))
             .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    // The control-plane tenant that a platform event is recorded in, for the tests that publish one.
+    private void SetupControlPlaneTenant() =>
+        _tenantResolver
+            .Setup(x => x.GetControlPlaneTenantId())
+            .Returns(ControlPlaneTenantId)
             .Verifiable();
 
     private void SetupLease(bool acquired) =>
@@ -251,6 +263,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         );
         SetupRotate(TenantOwner, tenantRotation);
         SetupRotate(PlatformOwner, platformRotation);
+        SetupControlPlaneTenant();
 
         await _service.RunAsync(CancellationToken.None);
 
@@ -263,7 +276,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         Assert.Equal("acme", tenantEvent.TenantId);
         Assert.Equal(tenantRotation.ActiveKey.KeyId, tenantEvent.KeyId);
         Assert.Equal(tenantRotation.RetiredKey?.KeyId, tenantEvent.RetiredKeyId);
-        Assert.Null(_published[1].TenantId);
+        Assert.Equal(ControlPlaneTenantId, _published[1].TenantId);
     }
 
     [Fact]
@@ -302,7 +315,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task RunAsync_APlatformKeyIsDestroyed_AuditsItWithoutATenant()
+    public async Task RunAsync_APlatformKeyIsDestroyed_AuditsItInTheControlPlaneTenant()
     {
         SetupStore();
         SetupPublisher();
@@ -311,12 +324,13 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         SetupRetired(PlatformOwner);
         SetupRewrap(PlatformOwner, ProtectedValueRewrapResult.None);
         SetupDestroy(PlatformOwner, Info(PlatformOwner, 1, true));
+        SetupControlPlaneTenant();
 
         await _service.RunAsync(CancellationToken.None);
 
         var auditEvent = Assert.Single(_published);
         Assert.Equal("master_key.destroyed", auditEvent.EventName);
-        Assert.Null(auditEvent.TenantId);
+        Assert.Equal(ControlPlaneTenantId, auditEvent.TenantId);
         Assert.Equal(SecretOwnerTypes.Platform, auditEvent.OwnerType);
     }
 

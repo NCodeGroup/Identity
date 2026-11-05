@@ -1959,6 +1959,31 @@ describes the family as it is rather than its changes
   types; the built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
+- **A client acting for itself is a principal.** Every client has a principal (`PersistedClient.PrincipalId`,
+  `ClientResource.principalId`) that its store generates when the client is added — 128 random bits, Base64Url — and
+  that no caller chooses. A token a client obtains for itself, which names no subject, resolves to that principal in
+  the tenant that authenticated it, so a machine client of the control-plane tenant holds role assignments as a person
+  does: `TeamAdmin` through `POST /api/teams/{teamId}/admins` and `Owner` through the `…/owners` endpoints. It becomes
+  the owner of what it creates, its management changes are audited with the `client` actor, a disabled client holds
+  no authority, and deleting a client removes the assignments it holds
+  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)).
+
+- **The management API tells a caller where it holds authority.** `GET /api/me` returns the caller's principal
+  (`CallerResource.principalId`), whether it holds authority at the platform node (`isPlatformAdministrator`) and its
+  role assignments (`RoleAssignmentResource`); `GET /api/me/teams` and `GET /api/me/tenants` list the teams and
+  tenants it holds a role at. Every request is authorized per resource from the caller's role assignments, so one
+  token serves every team and tenant the caller administers and names none of them
+  ([#566](https://github.com/NCodeGroup/Identity/issues/566),
+  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+
+- **The management console opens on the caller's home.** `/home` lists the platform for a caller with platform
+  authority and the teams and tenants the caller holds a role at, and opens the only one at once when there is one.
+  A team administrator signs in with the same token as a platform administrator and works within its teams; a
+  platform route sends a caller without platform authority home, and a scope's back control leads home when the
+  caller holds no role at the scope above it ([#566](https://github.com/NCodeGroup/Identity/issues/566),
+  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+
 - **Collection endpoints page through management resources by keyset.** A collection `GET`, such as `GET api/teams`,
   `GET api/tenants` or `GET api/tenants/{tenantId}/clients`, returns a page of resources (`CollectionResource<T>`, with
   `items` and `continuationToken`) using keyset (cursor) pagination (`?limit=` clamped to 100, `?cursor=` an opaque
@@ -2204,8 +2229,9 @@ describes the family as it is rather than its changes
   token as `id_token_hint`; the auth store keeps the ID token across silent renewals for this, and `buildEndSessionUrl`
   builds the logout URL.
 
-- **The management console's address bar is its navigation state.** The console routes by scope and surface:
-  `/teams`, `/settings` and `/encryption-keys` in the platform scope, `/teams/{teamId}/tenants`, `…/settings` and
+- **The management console's address bar is its navigation state.** The console routes to the caller's home,
+  `/home`, and by scope and surface: `/teams`, `/settings` and `/encryption-keys` in the platform scope,
+  `/teams/{teamId}/tenants`, `…/settings` and
   `…/usage` within a team, and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`, `…/secrets`,
   `…/encryption-keys`, `…/settings` and `…/usage` within a tenant, each tenant surface with its own tab. A view can be
   bookmarked, shared and reloaded, back and forward move between surfaces and scopes, and a deep link that lands on the sign-in screen returns

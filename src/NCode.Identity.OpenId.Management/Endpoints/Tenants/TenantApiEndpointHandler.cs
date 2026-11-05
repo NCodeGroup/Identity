@@ -563,19 +563,17 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-
-        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
-
-        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
-
-        // The environment is resolved only after authorization (ADR-1245).
+        // The tenant is read and its environment is resolved only after authorization (ADR-1245).
         return await ProcessGetAsync(
             httpContext,
-            tenant,
-            node,
+            GetTenantNode(tenantId),
             Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITenantStore>();
+                return await store.GetOrDefaultAsync(tenantId, token);
+            },
             async (persistedTenant, token) =>
             {
                 var toTenantResource = await CreateTenantResourceMapperAsync(
@@ -783,6 +781,17 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Read,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -790,17 +799,6 @@ internal class TenantApiEndpointHandler(
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            node,
-            Operations.Read
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         return await PreviewAddressAsync(
@@ -1159,7 +1157,7 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        var node = GetTenantNode(tenantId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
@@ -1235,18 +1233,18 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-
-        var tenantSettings = await store.GetSettingsOrDefaultAsync(tenantId, cancellationToken);
-
-        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
         return await ProcessGetAsync(
             httpContext,
-            tenantSettings,
-            node,
+            GetTenantNode(tenantId),
             Operations.Read,
-            ToTenantSettingsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITenantStore>();
+                return await store.GetSettingsOrDefaultAsync(tenantId, token);
+            },
+            ToTenantSettingsResource,
+            cancellationToken
         );
     }
 
@@ -1264,29 +1262,27 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-
-        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
-        if (tenant is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
-
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
         // See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            tenant.Settings.Value,
-            node,
+            GetTenantNode(tenantId),
             Operations.Read,
-            async (settings, token) =>
+            async token =>
             {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITenantStore>();
+                var tenant = await store.GetOrDefaultAsync(tenantId, token);
+                return tenant is null
+                    ? ((string, JsonElement)?)null
+                    : (tenant.TeamId, tenant.Settings.Value);
+            },
+            async (tenantDocument, token) =>
+            {
+                var (teamId, settings) = tenantDocument.GetValueOrDefault();
                 var effectiveSettings = await MergeTenantSettingsAsync(
-                    tenant.TeamId,
+                    teamId,
                     tenantId,
                     settings,
                     token
@@ -1412,6 +1408,17 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Update,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -1420,17 +1427,6 @@ internal class TenantApiEndpointHandler(
         if (tenantSettings is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenantSettings,
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         if (
@@ -1546,7 +1542,7 @@ internal class TenantApiEndpointHandler(
 
         var tenantSecrets = await store.GetSecretsOrDefaultAsync(tenantId, cancellationToken);
 
-        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        var node = GetTenantNode(tenantId);
         return await ProcessGetAsync(
             httpContext,
             tenantSecrets,
@@ -1803,7 +1799,7 @@ internal class TenantApiEndpointHandler(
         var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
         var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
 
-        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        var node = GetTenantNode(tenantId);
         return await ProcessGetAsync(
             httpContext,
             scoped,
@@ -1840,7 +1836,7 @@ internal class TenantApiEndpointHandler(
 
         var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
 
-        var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+        var node = GetTenantNode(tenantId);
         return await ProcessGetAsync(
             httpContext,
             scoped,

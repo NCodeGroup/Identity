@@ -114,6 +114,26 @@ internal class TeamStore(
     protected override long GetSortKey(TeamEntity entity) => entity.Id;
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyDictionary<string, string>> GetConcurrencyTokensAsync(
+        IReadOnlyCollection<string> teamIds,
+        CancellationToken cancellationToken
+    )
+    {
+        List<string?> normalizedTeamIds = [.. teamIds.Select(Normalize)];
+        var rows = await DbContext
+            .Teams.AsNoTracking()
+            .Where(team => normalizedTeamIds.Contains(team.NormalizedTeamId))
+            .Select(team => new { team.TeamId, team.ConcurrencyToken })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(
+            row => row.TeamId,
+            row => row.ConcurrencyToken,
+            StringComparer.OrdinalIgnoreCase
+        );
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PersistedTeamSettings> GetSettingsAsync(
         string teamId,
         CancellationToken cancellationToken

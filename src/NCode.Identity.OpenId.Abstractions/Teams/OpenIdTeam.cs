@@ -21,6 +21,12 @@ public abstract class OpenIdTeam : IAsyncDisposable
     public abstract string TeamId { get; }
 
     /// <summary>
+    /// Gets the concurrency token of the persisted team this instance was materialized from. Every committed change to
+    /// the team issues a new one.
+    /// </summary>
+    public abstract string ConcurrencyToken { get; }
+
+    /// <summary>
     /// Gets the display name for the team.
     /// </summary>
     public abstract string DisplayName { get; }

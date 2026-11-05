@@ -82,5 +82,9 @@ internal static class EventIds
 
     public const int OwnerRootKeyAuditPublishFailed = Base + 36;
 
-    public const int TemporarilyUnavailable = Base + 37;
+    public const int TeamCacheRevalidationFailed = Base + 37;
+
+    public const int TeamCacheEvictionFailed = Base + 38;
+
+    public const int TemporarilyUnavailable = Base + 39;
 }

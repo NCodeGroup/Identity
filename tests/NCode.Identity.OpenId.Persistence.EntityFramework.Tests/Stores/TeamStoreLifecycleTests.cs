@@ -144,6 +144,21 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task GetConcurrencyTokensAsync_ReturnsTheRowTokenOfEachExistingTeam()
+    {
+        await SeedTeamAsync();
+        var team = await GetTeamAsync();
+
+        var tokens = await _store.GetConcurrencyTokensAsync(
+            [TeamId.ToUpperInvariant(), "missing-team"],
+            CancellationToken.None
+        );
+
+        Assert.Single(tokens);
+        Assert.Equal(team.ConcurrencyToken, tokens[TeamId]);
+    }
+
+    [Fact]
     public async Task UpdateAsync_WhenTokenMismatch_Throws()
     {
         await SeedTeamAsync();

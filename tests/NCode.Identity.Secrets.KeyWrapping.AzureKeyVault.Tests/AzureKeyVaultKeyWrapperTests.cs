@@ -228,7 +228,7 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var provider = CreateProvider(KeyId);
 
         var wrappedKey = await provider.WrapAsync(
-            TenantKeyId,
+            new ReferencedKey(TenantKeyId, null),
             key,
             context,
             CancellationToken.None
@@ -253,7 +253,14 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var provider = CreateProvider(KeyId);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            provider.WrapAsync(TenantKeyVersionId, key, context, CancellationToken.None).AsTask()
+            provider
+                .WrapAsync(
+                    new ReferencedKey(TenantKeyVersionId, null),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 
@@ -268,7 +275,14 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var provider = CreateProvider(KeyId);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            provider.WrapAsync(TenantKeyId, key, context, CancellationToken.None).AsTask()
+            provider
+                .WrapAsync(
+                    new ReferencedKey(TenantKeyId, null),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 
@@ -283,7 +297,14 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var provider = CreateProvider(KeyId);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            provider.WrapAsync(TenantKeyId, key, context, CancellationToken.None).AsTask()
+            provider
+                .WrapAsync(
+                    new ReferencedKey(TenantKeyId, null),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 
@@ -295,10 +316,17 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var provider = CreateProvider(KeyId);
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            provider.WrapAsync("not-a-key", key, context, CancellationToken.None).AsTask()
+            provider
+                .WrapAsync(
+                    new ReferencedKey("not-a-key", null),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
 
-        Assert.Equal("keyReference", exception.ParamName);
+        Assert.Equal("referencedKey", exception.ParamName);
     }
 
     [Fact]
@@ -316,7 +344,7 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         );
         var provider = CreateProvider(keyId: null);
         var wrappedKey = await provider.WrapAsync(
-            TenantKeyId,
+            new ReferencedKey(TenantKeyId, null),
             key,
             context,
             CancellationToken.None
@@ -398,11 +426,16 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
             provider
-                .WrapAsync("https://internal.corp/keys/x", key, context, CancellationToken.None)
+                .WrapAsync(
+                    new ReferencedKey("https://internal.corp/keys/x", null),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
                 .AsTask()
         );
 
-        Assert.Equal("keyReference", exception.ParamName);
+        Assert.Equal("referencedKey", exception.ParamName);
         Assert.Contains("whose host ends with one of", exception.Message);
     }
 

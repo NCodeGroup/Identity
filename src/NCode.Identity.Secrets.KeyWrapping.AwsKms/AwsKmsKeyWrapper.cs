@@ -94,20 +94,7 @@ internal class AwsKmsKeyWrapper(
         return false;
     }
 
-    /// <summary>
-    /// Validates the syntax of an access identity: the ARN of the IAM role that the wrapper assumes to reach the key.
-    /// </summary>
-    /// <param name="accessIdentity">The access identity to validate.</param>
-    /// <param name="failure">
-    /// When this method returns <see langword="false"/>, a description of what the access identity must be, phrased to
-    /// follow the name of the value (for example, "must be …"); otherwise, <see langword="null"/>.
-    /// </param>
-    /// <returns><see langword="true"/> if the access identity is an IAM role ARN; otherwise, <see langword="false"/>.</returns>
-    [SuppressMessage(
-        "Performance",
-        "CA1822:Mark members as static",
-        Justification = "Part of the instance API alongside the key reference validation."
-    )]
+    /// <inheritdoc />
     public bool TryValidateAccessIdentity(
         string accessIdentity,
         [NotNullWhen(false)] out string? failure
@@ -125,33 +112,6 @@ internal class AwsKmsKeyWrapper(
     }
 
     /// <inheritdoc />
-    public async ValueTask<WrappedKey> WrapAsync(
-        string keyReference,
-        ReadOnlyMemory<byte> key,
-        ReadOnlyMemory<byte> context,
-        CancellationToken cancellationToken
-    )
-    {
-        if (!AwsKmsKeyArn.IsValid(keyReference))
-        {
-            throw new ArgumentException(
-                "The key reference is not the ARN of a KMS key or alias.",
-                nameof(keyReference)
-            );
-        }
-
-        return await WrapUnderAsync(keyReference, access: null, key, context, cancellationToken);
-    }
-
-    /// <summary>
-    /// Wraps a key under the KMS key or alias that the referenced key names, reaching it through the IAM role that the
-    /// access of the referenced key names, if any.
-    /// </summary>
-    /// <param name="referencedKey">The KMS key or alias ARN, and the optional IAM role to assume to reach it.</param>
-    /// <param name="key">The key to wrap.</param>
-    /// <param name="context">The context that binds the wrapped key.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>The wrapped key.</returns>
     /// <exception cref="ArgumentException">
     /// Thrown when the key reference of <paramref name="referencedKey"/> is not the ARN of a KMS key or alias, or its
     /// access identity is set and is not the ARN of an IAM role.

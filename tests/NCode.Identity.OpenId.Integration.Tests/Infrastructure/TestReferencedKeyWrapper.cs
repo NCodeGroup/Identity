@@ -27,6 +27,11 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
     /// </summary>
     public const string ReferencePrefix = "test-key-";
 
+    /// <summary>
+    /// The prefix that every access identity starts with.
+    /// </summary>
+    public const string AccessIdentityPrefix = "test-identity-";
+
     private const int KeySizeBytes = 32;
     private const int NonceSizeBytes = 12;
     private const int TagSizeBytes = 16;
@@ -71,6 +76,25 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
     }
 
     /// <inheritdoc />
+    public bool TryValidateAccessIdentity(
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (
+            string.IsNullOrEmpty(accessIdentity)
+            || !accessIdentity.StartsWith(AccessIdentityPrefix, StringComparison.Ordinal)
+        )
+        {
+            failure = $"must start with '{AccessIdentityPrefix}'";
+            return false;
+        }
+
+        failure = null;
+        return true;
+    }
+
+    /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
@@ -82,14 +106,28 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
 
     /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
-        string keyReference,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
+        ArgumentNullException.ThrowIfNull(referencedKey);
+
+        var keyReference = referencedKey.KeyReference;
         if (!TryValidateKeyReference(keyReference, out var failure))
-            throw new ArgumentException($"The key reference {failure}.", nameof(keyReference));
+            throw new ArgumentException($"The key reference {failure}.", nameof(referencedKey));
+
+        if (
+            referencedKey.Access is { } access
+            && !TryValidateAccessIdentity(access.Identity, out var accessFailure)
+        )
+        {
+            throw new ArgumentException(
+                $"The access identity {accessFailure}.",
+                nameof(referencedKey)
+            );
+        }
 
         ThrowIfRevoked(keyReference);
 
@@ -154,6 +192,15 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
         destination.Advance(ciphertext.Length);
         return ValueTask.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public ValueTask UnwrapAsync(
+        WrappedKey wrappedKey,
+        KeyAccess access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    ) => UnwrapAsync(wrappedKey, context, destination, cancellationToken);
 
     private void ThrowIfRevoked(string keyReference)
     {

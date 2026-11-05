@@ -11,6 +11,8 @@ public class OwnerRootKeyProbeTests : IDisposable
 {
     private const string Reference = "kms://tenant-a/root";
 
+    private static readonly ReferencedKey Key = new(Reference, null);
+
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("tenant-a");
 
     private readonly MockRepository _mocks = new(MockBehavior.Strict);
@@ -27,7 +29,7 @@ public class OwnerRootKeyProbeTests : IDisposable
 
         var failure = await OwnerRootKeyProbe.ProbeAsync(
             wrapper,
-            Reference,
+            Key,
             Owner,
             CancellationToken.None
         );
@@ -45,7 +47,7 @@ public class OwnerRootKeyProbeTests : IDisposable
 
         var failure = await OwnerRootKeyProbe.ProbeAsync(
             wrapper,
-            Reference,
+            Key,
             Owner,
             CancellationToken.None
         );
@@ -61,7 +63,7 @@ public class OwnerRootKeyProbeTests : IDisposable
 
         var failure = await OwnerRootKeyProbe.ProbeAsync(
             wrapper,
-            Reference,
+            Key,
             Owner,
             CancellationToken.None
         );
@@ -71,12 +73,82 @@ public class OwnerRootKeyProbeTests : IDisposable
     }
 
     [Fact]
+    public async Task Probe_KeyWithAccess_WrapsWithTheReferencedKeyAndUnwrapsWithTheAccess()
+    {
+        var access = new KeyAccess("test-identity-a", "tenant:tenant-a");
+        var referencedKey = new ReferencedKey(Reference, access);
+        var mock = _mocks.Create<IReferencedKeyWrapper>();
+        byte[]? probe = null;
+        mock.Setup(x =>
+                x.WrapAsync(
+                    referencedKey,
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (
+                    ReferencedKey _,
+                    ReadOnlyMemory<byte> key,
+                    ReadOnlyMemory<byte> _,
+                    CancellationToken _
+                ) =>
+                {
+                    probe = key.ToArray();
+                    return ValueTask.FromResult(
+                        new WrappedKey
+                        {
+                            WrapperName = "mock",
+                            KeyId = "id",
+                            Ciphertext = "AAAA",
+                        }
+                    );
+                }
+            )
+            .Verifiable();
+        mock.Setup(x =>
+                x.UnwrapAsync(
+                    It.IsAny<WrappedKey>(),
+                    access,
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    It.IsAny<IBufferWriter<byte>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<
+                WrappedKey,
+                KeyAccess,
+                ReadOnlyMemory<byte>,
+                IBufferWriter<byte>,
+                CancellationToken
+            >(
+                (_, _, _, destination, _) =>
+                {
+                    probe.AsSpan().CopyTo(destination.GetSpan(probe!.Length));
+                    destination.Advance(probe.Length);
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var failure = await OwnerRootKeyProbe.ProbeAsync(
+            mock.Object,
+            referencedKey,
+            Owner,
+            CancellationToken.None
+        );
+
+        Assert.Null(failure);
+    }
+
+    [Fact]
     public async Task Probe_WrapperThatReturnsAnotherValue_ReportsAMismatch()
     {
         var mock = _mocks.Create<IReferencedKeyWrapper>();
         mock.Setup(x =>
                 x.WrapAsync(
-                    Reference,
+                    Key,
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<CancellationToken>()
@@ -111,7 +183,7 @@ public class OwnerRootKeyProbeTests : IDisposable
 
         var failure = await OwnerRootKeyProbe.ProbeAsync(
             mock.Object,
-            Reference,
+            Key,
             Owner,
             CancellationToken.None
         );
@@ -125,7 +197,7 @@ public class OwnerRootKeyProbeTests : IDisposable
         var mock = _mocks.Create<IReferencedKeyWrapper>();
         mock.Setup(x =>
                 x.WrapAsync(
-                    Reference,
+                    Key,
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<CancellationToken>()
@@ -136,7 +208,7 @@ public class OwnerRootKeyProbeTests : IDisposable
 
         var failure = await OwnerRootKeyProbe.ProbeAsync(
             mock.Object,
-            Reference,
+            Key,
             Owner,
             CancellationToken.None
         );
@@ -152,7 +224,7 @@ public class OwnerRootKeyProbeTests : IDisposable
         using var source = new CancellationTokenSource();
         mock.Setup(x =>
                 x.WrapAsync(
-                    Reference,
+                    Key,
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<CancellationToken>()
@@ -160,7 +232,7 @@ public class OwnerRootKeyProbeTests : IDisposable
             )
             .Returns(
                 async (
-                    string _,
+                    ReferencedKey _,
                     ReadOnlyMemory<byte> _,
                     ReadOnlyMemory<byte> _,
                     CancellationToken token
@@ -179,7 +251,7 @@ public class OwnerRootKeyProbeTests : IDisposable
             .Verifiable();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
-            await OwnerRootKeyProbe.ProbeAsync(mock.Object, Reference, Owner, source.Token)
+            await OwnerRootKeyProbe.ProbeAsync(mock.Object, Key, Owner, source.Token)
         );
     }
 
@@ -190,19 +262,19 @@ public class OwnerRootKeyProbeTests : IDisposable
         byte[]? context = null;
         mock.Setup(x =>
                 x.WrapAsync(
-                    Reference,
+                    Key,
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<ReadOnlyMemory<byte>>(),
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Callback<string, ReadOnlyMemory<byte>, ReadOnlyMemory<byte>, CancellationToken>(
+            .Callback<ReferencedKey, ReadOnlyMemory<byte>, ReadOnlyMemory<byte>, CancellationToken>(
                 (_, _, wrapContext, _) => context = wrapContext.ToArray()
             )
             .ThrowsAsync(new InvalidOperationException("stop"))
             .Verifiable();
 
-        await OwnerRootKeyProbe.ProbeAsync(mock.Object, Reference, Owner, CancellationToken.None);
+        await OwnerRootKeyProbe.ProbeAsync(mock.Object, Key, Owner, CancellationToken.None);
 
         Assert.NotNull(context);
         Assert.True(

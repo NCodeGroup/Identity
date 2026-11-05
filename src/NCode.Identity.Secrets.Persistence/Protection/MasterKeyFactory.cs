@@ -323,7 +323,7 @@ internal class MasterKeyFactory(
         {
             var referenced = Catalog.GetReferenced(ownerRoot.KeyWrapperName);
             var wrappedUnderOwnerRoot = await referenced.WrapAsync(
-                ownerRoot.KeyReference,
+                new ReferencedKey(ownerRoot.KeyReference, null),
                 material,
                 context,
                 cancellationToken

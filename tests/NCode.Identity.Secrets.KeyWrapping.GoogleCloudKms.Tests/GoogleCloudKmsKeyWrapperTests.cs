@@ -243,7 +243,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var provider = CreateProvider(CryptoKeyName);
 
         var wrappedKey = await provider.WrapAsync(
-            TenantCryptoKeyName,
+            new ReferencedKey(TenantCryptoKeyName, null),
             key,
             context,
             CancellationToken.None
@@ -271,7 +271,14 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var provider = CreateProvider(CryptoKeyName);
 
         await Assert.ThrowsAsync<IOException>(() =>
-            provider.WrapAsync(TenantCryptoKeyName, key, context, CancellationToken.None).AsTask()
+            provider
+                .WrapAsync(
+                    new ReferencedKey(TenantCryptoKeyName, null),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
     }
 
@@ -285,10 +292,12 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var provider = CreateProvider(CryptoKeyName);
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            provider.WrapAsync(reference, key, context, CancellationToken.None).AsTask()
+            provider
+                .WrapAsync(new ReferencedKey(reference, null), key, context, CancellationToken.None)
+                .AsTask()
         );
 
-        Assert.Equal("keyReference", exception.ParamName);
+        Assert.Equal("referencedKey", exception.ParamName);
     }
 
     [Fact]
@@ -306,7 +315,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         SetupDecrypt(CreateDecryptResponse(key), CancellationToken.None);
         var provider = CreateProvider(keyName: null);
         var wrappedKey = await provider.WrapAsync(
-            TenantCryptoKeyName,
+            new ReferencedKey(TenantCryptoKeyName, null),
             key,
             context,
             CancellationToken.None

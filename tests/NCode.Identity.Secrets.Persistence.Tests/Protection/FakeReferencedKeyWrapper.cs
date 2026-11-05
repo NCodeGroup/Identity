@@ -75,6 +75,22 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
     }
 
     /// <inheritdoc />
+    public bool TryValidateAccessIdentity(
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (accessIdentity.StartsWith("test-identity-", StringComparison.Ordinal))
+        {
+            failure = null;
+            return true;
+        }
+
+        failure = "must start with test-identity-";
+        return false;
+    }
+
+    /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
@@ -83,12 +99,13 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
 
     /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
-        string keyReference,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
+        var keyReference = referencedKey.KeyReference;
         Interlocked.Increment(ref _wrapCount);
         ThrowIfRevoked(keyReference);
 
@@ -135,6 +152,15 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
 
         return ValueTask.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public ValueTask UnwrapAsync(
+        WrappedKey wrappedKey,
+        KeyAccess access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    ) => UnwrapAsync(wrappedKey, context, destination, cancellationToken);
 
     private void ThrowIfRevoked(string keyReference)
     {

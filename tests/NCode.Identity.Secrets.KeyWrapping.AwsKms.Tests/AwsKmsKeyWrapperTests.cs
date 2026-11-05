@@ -218,7 +218,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
         var provider = CreateProvider(KeyArn);
 
         var wrappedKey = await provider.WrapAsync(
-            AliasOtherRegion,
+            new ReferencedKey(AliasOtherRegion, null),
             key,
             context,
             CancellationToken.None
@@ -242,10 +242,17 @@ public class AwsKmsKeyWrapperTests : IDisposable
         var provider = CreateProvider(KeyArn);
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            provider.WrapAsync("not-an-arn", key, context, CancellationToken.None).AsTask()
+            provider
+                .WrapAsync(
+                    new ReferencedKey("not-an-arn", null),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
+                .AsTask()
         );
 
-        Assert.Equal("keyReference", exception.ParamName);
+        Assert.Equal("referencedKey", exception.ParamName);
     }
 
     [Fact]
@@ -270,7 +277,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
         );
         var provider = CreateProvider(keyArn: null);
         var wrappedKey = await provider.WrapAsync(
-            OtherRegionKeyArn,
+            new ReferencedKey(OtherRegionKeyArn, null),
             key,
             context,
             CancellationToken.None

@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Persistence;
+using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logging;
@@ -185,7 +186,7 @@ internal sealed class DefaultOwnerRootKeyManager(
 
         var probeFailure = await OwnerRootKeyProbe.ProbeAsync(
             Catalog.GetReferenced(keyWrapperName),
-            keyReference,
+            new ReferencedKey(keyReference, null),
             key,
             cancellationToken
         );
@@ -286,7 +287,7 @@ internal sealed class DefaultOwnerRootKeyManager(
 
         var probeFailure = await OwnerRootKeyProbe.ProbeAsync(
             Catalog.GetReferenced(binding.KeyWrapperName),
-            binding.KeyReference,
+            new ReferencedKey(binding.KeyReference, null),
             key,
             cancellationToken
         );

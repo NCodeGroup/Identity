@@ -3,8 +3,10 @@
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Persistence.Stores;
 using NCode.PropertyBag;
 using Xunit;
 
@@ -17,15 +19,22 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
     private MockRepository Mocks { get; } = new(MockBehavior.Strict);
     private Mock<IOpenIdTeamCache> MockTeamCache { get; }
     private Mock<IOpenIdTenantCache> MockTenantCache { get; }
+    private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
+    private Mock<IStoreManager> MockStoreManager { get; }
+    private Mock<ITeamStore> MockTeamStore { get; }
     private TeamChangeBroadcastHandler Handler { get; }
 
     public TeamChangeBroadcastHandlerTests()
     {
         MockTeamCache = Mocks.Create<IOpenIdTeamCache>();
         MockTenantCache = Mocks.Create<IOpenIdTenantCache>();
+        MockStoreManagerFactory = Mocks.Create<IStoreManagerFactory>();
+        MockStoreManager = Mocks.Create<IStoreManager>();
+        MockTeamStore = Mocks.Create<ITeamStore>();
         Handler = new TeamChangeBroadcastHandler(
             MockTeamCache.Object,
             MockTenantCache.Object,
+            MockStoreManagerFactory.Object,
             NullLogger<TeamChangeBroadcastHandler>.Instance
         );
     }
@@ -96,49 +105,208 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
     #region HandleMissedMessagesAsync Tests
 
     [Fact]
-    public async Task HandleMissedMessagesAsync_ClearsBothCaches()
+    public async Task HandleMissedMessagesAsync_WhenNothingIsCached_ReadsNoStore()
     {
-        MockTeamCache
-            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
-        MockTenantCache
-            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+        SetupRevisions([], []);
 
         await Handler.HandleMissedMessagesAsync(CancellationToken.None);
     }
 
     [Fact]
-    public async Task HandleMissedMessagesAsync_WhenTheTeamCacheClearFails_StillClearsTheTenantCache()
+    public async Task HandleMissedMessagesAsync_EvictsOnlyTheTeamsWhoseRowChangedOrIsGone()
     {
-        MockTeamCache
-            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("The clear failed."))
-            .Verifiable();
-        MockTenantCache
-            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+        SetupRevisions(
+            [new TeamRevision("acme", "a1"), new TeamRevision("globex", "g1")],
+            [new TeamRevision("initech", "i1"), new TeamRevision("acme", "a1")]
+        );
+        SetupStore(
+            ids => Assert.Equal(3, ids.Count),
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["acme"] = "a1",
+                ["globex"] = "g2",
+            }
+        );
+        SetupEviction("globex");
+        SetupEviction("initech");
 
         await Handler.HandleMissedMessagesAsync(CancellationToken.None);
     }
 
     [Fact]
-    public async Task HandleMissedMessagesAsync_WhenBothClearsFail_LogsAndCompletes()
+    public async Task HandleMissedMessagesAsync_WhenTheTenantsWereMaterializedUnderAnOlderRevision_EvictsTheTeam()
     {
+        SetupRevisions([new TeamRevision("acme", "a1")], [new TeamRevision("acme", "a0")]);
+        SetupStore(
+            ids => Assert.Equal(["acme"], ids),
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["acme"] = "a1" }
+        );
+        SetupEviction("acme");
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleMissedMessagesAsync_ReadsTheTokensInBatches()
+    {
+        var revisions = Enumerable
+            .Range(0, TeamChangeBroadcastHandler.TeamBatchSize + 1)
+            .Select(index => new TeamRevision($"team-{index}", "t1"))
+            .ToList();
+        SetupRevisions(revisions, []);
+
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(MockTeamStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockTeamStore
+            .Setup(x =>
+                x.GetConcurrencyTokensAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (IReadOnlyCollection<string> ids, CancellationToken _) =>
+                    (IReadOnlyDictionary<string, string>)
+                        ids.ToDictionary(id => id, _ => "t1", StringComparer.OrdinalIgnoreCase)
+            )
+            .Verifiable(Times.Exactly(2));
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+
+        MockTeamStore.Verify(
+            x =>
+                x.GetConcurrencyTokensAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids =>
+                        ids.Count == TeamChangeBroadcastHandler.TeamBatchSize
+                    ),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+        MockTeamStore.Verify(
+            x =>
+                x.GetConcurrencyTokensAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids => ids.Count == 1),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task HandleMissedMessagesAsync_WhenTheTokensCannotBeRead_ClearsBothCaches()
+    {
+        SetupRevisions([new TeamRevision("acme", "a1")], []);
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
+            .Verifiable();
+        SetupClear(MockTeamCache);
+        SetupClear(MockTenantCache);
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleMissedMessagesAsync_WhenTheTokensCannotBeReadAndTheTeamCacheClearFails_StillClearsTheTenantCache()
+    {
+        MockTeamCache
+            .Setup(x =>
+                x.GetRevisionsAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ThrowsAsync(new InvalidOperationException("The read failed."))
+            .Verifiable();
         MockTeamCache
             .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("The clear failed."))
             .Verifiable();
-        MockTenantCache
-            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("The clear failed."))
-            .Verifiable();
+        SetupClear(MockTenantCache);
 
         await Handler.HandleMissedMessagesAsync(CancellationToken.None);
     }
 
     #endregion
+
+    private void SetupRevisions(
+        IReadOnlyCollection<TeamRevision> teamRevisions,
+        IReadOnlyCollection<TeamRevision> tenantRevisions
+    )
+    {
+        MockTeamCache
+            .Setup(x =>
+                x.GetRevisionsAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(teamRevisions)
+            .Verifiable();
+        MockTenantCache
+            .Setup(x =>
+                x.GetTeamRevisionsAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(tenantRevisions)
+            .Verifiable();
+    }
+
+    private void SetupStore(
+        Action<IReadOnlyCollection<string>> inspectIds,
+        IReadOnlyDictionary<string, string> tokens
+    )
+    {
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(MockTeamStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockTeamStore
+            .Setup(x =>
+                x.GetConcurrencyTokensAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (IReadOnlyCollection<string> ids, CancellationToken _) =>
+                    inspectIds(ids.Order(StringComparer.OrdinalIgnoreCase).ToList())
+            )
+            .ReturnsAsync(tokens)
+            .Verifiable();
+    }
+
+    private void SetupEviction(string teamId)
+    {
+        MockTeamCache
+            .Setup(x =>
+                x.RemoveAsync(teamId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockTenantCache
+            .Setup(x =>
+                x.RemoveTeamAsync(teamId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+    }
+
+    private static void SetupClear(Mock<IOpenIdTeamCache> mockCache) =>
+        mockCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private static void SetupClear(Mock<IOpenIdTenantCache> mockCache) =>
+        mockCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 }

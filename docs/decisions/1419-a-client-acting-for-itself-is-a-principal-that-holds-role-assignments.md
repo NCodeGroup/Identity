@@ -36,6 +36,10 @@ fails least privilege.
 5. **A management change a client makes acting for itself is audited with `AuditActor.Client(clientId)`.**
 6. **The bootstrap administrator stays the cold-start `GlobalAdmin` claim.** Durable administrators, human or machine,
    are assignments it provisions. `BootstrapAdminAccessTokenClaimsHandler` and the claim are unchanged.
+7. **Custody of a client's credentials needs the authority to grant what the client holds.** Managing a client whose
+   principal holds role assignments (updating it, deleting it, changing its settings or owners, or any of its secrets)
+   also needs `Operations.Create` at every node where its principal holds an assignment. The check follows the
+   caller's own authorization at the client and answers 403 when it fails.
 
 ## Options considered
 
@@ -51,6 +55,8 @@ fails least privilege.
 - A machine client can hold `TeamAdmin` at one team and manage that team's tenants without the bootstrap credential.
 - A client's owners can rotate its secrets, so they can act with every role the client holds. A role is granted to a
   client only where its owners may hold it.
+- An administrator of the control-plane tenant's clients cannot impersonate a machine client that administers a team it
+  does not: minting a secret for that client, or changing its settings or owners, is refused.
 - Machine clients that call the management API live in the control-plane tenant
   ([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)), where the resolver reads
   them.

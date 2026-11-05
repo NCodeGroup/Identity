@@ -5254,4 +5254,11 @@ describes the family as it is rather than its changes
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
 
+- **Managing a client's credentials needs the authority its roles carry.** Updating, deleting, configuring or changing
+  the owners or secrets of a client whose principal holds role assignments also needs the authority to grant each of
+  them, so a caller who manages the control-plane tenant's clients cannot mint a secret for a client that administers
+  a team it does not
+  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)).
+
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

@@ -279,3 +279,7 @@ static NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FromHex(string! prime, str
 static NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FromCurve(System.Security.Cryptography.ECCurve curve) -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!
 NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.Domain.get -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!
 NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.Domain.init -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>
+NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.Dispose() -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.KeyAccessClientCache(System.TimeProvider! timeProvider, System.TimeSpan idleTimeout) -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.UseAsync<TResult>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TClient!>>! create, System.Func<TClient!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResult>>! operation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TResult>

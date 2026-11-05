@@ -8,7 +8,9 @@
   registered client coherence rule; amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
-  migration rewrites stored data)
+  migration rewrites stored data; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a platform write merges
+  onto the settings that `OpenIdPlatform.ConfiguredSettingsProvider` exposes)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

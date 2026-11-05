@@ -1,6 +1,8 @@
 # 1036. A single OpenID request environment for every HTTP surface
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the environment
+  abstractions include `OpenIdPlatform` and `OpenIdTeam`, and the platform and team rows are not tenant-scoped)
 - **Date:** 2026-10-02
 - **Deciders:** NCode Group
 

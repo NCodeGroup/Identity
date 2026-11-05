@@ -260,8 +260,8 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
         Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
 
-        // Restoring the default lists permits ES256 again; the reconciliation of the platform's settings seeds it for the
-        // tenant (ADR-1219), so the key arrives after the PATCH returns.
+        // Restoring the default lists permits ES256 again; the reconciliation of the platform's own team, which holds
+        // the tenant, seeds it for the tenant (ADR-1412), so the key arrives after the PATCH returns.
         await PatchPlatformSettingsAsync(client, operation: "remove", value: null);
 
         var secretIds = await WaitForSecretIdsAsync(factory, "acme", count: 3);
@@ -302,8 +302,9 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
         Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
 
-        // A configuration reload that adds ES256 to every list permits it; the reconciliation of the platform's settings
-        // seeds the key for the tenant (ADR-1219), though nothing was written through the management API.
+        // A configuration reload that adds ES256 to every list permits it; the reconciliation of the platform's own
+        // team, which holds the tenant, seeds the key (ADR-1412), though nothing was written through the management
+        // API.
         var configuration = (IConfigurationRoot)
             factory.Services.GetRequiredService<IConfiguration>();
         foreach (var name in SigningListNames)
@@ -444,8 +445,8 @@ public class TenantKeyProvisioningTests
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
     }
 
-    // The reconciliation of the platform's settings runs in the background, so the keys of the other tenants arrive after
-    // the change that permits them returns.
+    // A change of the platform's settings reconciles every team in the background, so the keys of the other
+    // tenants arrive after the change that permits them returns.
     private static async Task<List<string>> WaitForSecretIdsAsync(
         HostApplicationFactory factory,
         string tenantId,

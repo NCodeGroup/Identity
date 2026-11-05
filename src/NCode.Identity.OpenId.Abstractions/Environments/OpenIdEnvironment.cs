@@ -51,9 +51,9 @@ public abstract class OpenIdEnvironment
     /// <summary>
     /// Extracts the subject id from a <see cref="ClaimsPrincipal"/> by returning the value of the first non-empty claim
     /// whose type matches <paramref name="subjectClaimTypes"/>, in order. This is the host-replaceable extraction
-    /// algorithm; the claim types are supplied per request (per-tenant for the end-user via
-    /// <see cref="NCode.Identity.OpenId.Contexts.OpenIdContext.GetSubjectId"/>, or the server default for app-level
-    /// callers).
+    /// algorithm; the claim types are supplied per request (the tenant's <c>subject_claim_types</c> setting for an
+    /// end-user, through <see cref="NCode.Identity.OpenId.Contexts.OpenIdContext.GetSubjectId"/>, or
+    /// <see cref="OpenIdConstants.DefaultSubjectClaimTypes"/> for an app-level caller).
     /// </summary>
     /// <param name="subject">The <see cref="ClaimsPrincipal"/> to search for the subject id.</param>
     /// <param name="subjectClaimTypes">The ordered claim types to try, in priority order.</param>
@@ -67,9 +67,9 @@ public abstract class OpenIdEnvironment
     /// Rewrites the subject claims of a <see cref="ClaimsPrincipal"/> so its authoritative subject identifier becomes
     /// <paramref name="subjectId"/>. This is the host-replaceable inverse of <see cref="GetSubjectId"/>: the returned
     /// principal satisfies <c>GetSubjectId(result, subjectClaimTypes) == subjectId</c>. The claim types are supplied
-    /// per request (per-tenant for the end-user via
-    /// <see cref="NCode.Identity.OpenId.Contexts.OpenIdContext.NormalizeSubjectId"/>, or the server default for
-    /// app-level callers).
+    /// per request (the tenant's <c>subject_claim_types</c> setting for an end-user, through
+    /// <see cref="NCode.Identity.OpenId.Contexts.OpenIdContext.NormalizeSubjectId"/>, or
+    /// <see cref="OpenIdConstants.DefaultSubjectClaimTypes"/> for an app-level caller).
     /// </summary>
     /// <param name="subject">The <see cref="ClaimsPrincipal"/> whose subject claims are rewritten.</param>
     /// <param name="subjectId">The authoritative subject identifier to stamp onto the principal.</param>

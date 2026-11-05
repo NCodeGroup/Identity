@@ -8,11 +8,11 @@ public class DefaultSettingScopeCollectionTests
     private static SettingScopeDescriptor Scope(string name, string? parentName = null) =>
         new() { Name = name, ParentName = parentName };
 
-    // server -> tenant -> { client, resource_server }, plus an extension's organization beneath the tenant.
+    // root -> tenant -> { client, resource_server }, plus an extension's organization beneath the tenant.
     private static DefaultSettingScopeCollection CreateCascade() =>
         new([
-            Scope("server"),
-            Scope("tenant", "server"),
+            Scope("root"),
+            Scope("tenant", "root"),
             Scope("client", "tenant"),
             Scope("resource_server", "tenant"),
             Scope("organization", "tenant"),
@@ -86,17 +86,17 @@ public class DefaultSettingScopeCollectionTests
     #region AppliesWithin Tests
 
     [Theory]
-    [InlineData("client", "server", true)]
+    [InlineData("client", "root", true)]
     [InlineData("client", "tenant", true)]
     [InlineData("client", "client", true)]
     [InlineData("client", "resource_server", false)]
     [InlineData("client", "organization", false)]
     [InlineData("resource_server", "tenant", true)]
     [InlineData("resource_server", "client", false)]
-    [InlineData("tenant", "server", true)]
+    [InlineData("tenant", "root", true)]
     [InlineData("tenant", "tenant", true)]
     [InlineData("tenant", "client", false)]
-    [InlineData("server", "tenant", false)]
+    [InlineData("root", "tenant", false)]
     public void AppliesWithin_FollowsTheCascade(string appliesTo, string scopeName, bool expected)
     {
         var scopes = CreateCascade();
@@ -105,7 +105,7 @@ public class DefaultSettingScopeCollectionTests
     }
 
     [Theory]
-    [InlineData("server", true)]
+    [InlineData("root", true)]
     [InlineData("tenant", true)]
     [InlineData("organization", true)]
     [InlineData("client", false)]
@@ -164,7 +164,7 @@ public class DefaultSettingScopeCollectionTests
         "resource_server",
         "does not apply to the 'resource_server' scope; it applies to the 'tenant' and 'client' scopes"
     )]
-    [InlineData(new[] { "client", "resource_server", "organization" }, "server", null)]
+    [InlineData(new[] { "client", "resource_server", "organization" }, "root", null)]
     [InlineData(
         new[] { "tenant", "client", "organization" },
         "resource_server",
@@ -172,12 +172,12 @@ public class DefaultSettingScopeCollectionTests
     )]
     [InlineData(
         new[] { "connection" },
-        "server",
+        "root",
         "applies to no registered scope, so no settings document may carry it"
     )]
     [InlineData(
         new string[0],
-        "server",
+        "root",
         "applies to no registered scope, so no settings document may carry it"
     )]
     public void AppliesWithin_StatesTheRegisteredScopesTheSettingAppliesTo(

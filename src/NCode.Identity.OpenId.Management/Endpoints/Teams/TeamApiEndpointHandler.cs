@@ -703,15 +703,20 @@ internal class TeamApiEndpointHandler(
             return limitRefusal;
         }
 
-        var currentTeamSettings = await ResolveReplacedTeamSettingsOrDefaultAsync(
-            teamId,
-            teamSettings.Value,
+        // The platform is resolved outside the replaced document's catch, so a platform document that cannot be honored
+        // fails the write naming the platform (ADR-1245).
+        var platformSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
             cancellationToken
         );
-        var newTeamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+        var newTeamSettings = EffectiveSettingsResolver.Resolve(
+            platformSettings,
+            OpenIdSettingScopes.Team,
+            settingsValue
+        );
+        var currentTeamSettings = ResolveReplacedTeamSettingsOrDefault(
             teamId,
-            settingsValue,
-            cancellationToken
+            platformSettings,
+            teamSettings.Value
         );
 
         if (
@@ -758,27 +763,28 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
-    /// Resolves the effective settings of the team's committed settings document, which a settings write replaces. When
-    /// the document cannot be honored by the settings vocabulary, nothing was coherent under it, so no client is checked
-    /// and the write may replace it with a document that can be honored.
+    /// Resolves the effective settings of the team's committed settings document, which a settings write replaces, onto
+    /// the platform's effective settings that the caller resolved. When the document cannot be honored by the settings
+    /// vocabulary, nothing was coherent under it, so no client is checked and the write may replace it with a document
+    /// that can be honored.
     /// </summary>
     /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="platformSettings">The platform's effective settings, which are the team's parent settings.</param>
     /// <param name="replacedSettings">The team's committed settings document.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The team's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
     // See ADR-1241.
-    private async ValueTask<IReadOnlySettingCollection?> ResolveReplacedTeamSettingsOrDefaultAsync(
+    private IReadOnlySettingCollection? ResolveReplacedTeamSettingsOrDefault(
         string teamId,
-        JsonElement replacedSettings,
-        CancellationToken cancellationToken
+        IReadOnlySettingCollection platformSettings,
+        JsonElement replacedSettings
     )
     {
         try
         {
-            return await EffectiveSettingsResolver.ResolveTeamAsync(
-                teamId,
-                replacedSettings,
-                cancellationToken
+            return EffectiveSettingsResolver.Resolve(
+                platformSettings,
+                OpenIdSettingScopes.Team,
+                replacedSettings
             );
         }
         catch (JsonException exception)

@@ -31,6 +31,7 @@ abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Issuer.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.MtlsEndpointAliasAuthority.get -> string?
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Team.get -> NCode.Identity.OpenId.Teams.OpenIdTeam!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TeamId.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TenantId.get -> string!
@@ -975,6 +976,7 @@ NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.set -> void
 NCode.Identity.OpenId.Teams.ITeamProvisioner
 NCode.Identity.OpenId.Teams.ITeamProvisioner.EnsureCreatedAsync(string! teamId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxTenants = "max_tenants" -> string!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.ConcurrencyToken.get -> string!
 abstract NCode.Identity.OpenId.Teams.OpenIdTeam.DisplayName.get -> string!
 abstract NCode.Identity.OpenId.Teams.OpenIdTeam.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
 abstract NCode.Identity.OpenId.Teams.OpenIdTeam.IsDisabled.get -> bool
@@ -1009,7 +1011,16 @@ NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamChangedCommand() -> void
 NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamChangedCommand(string! TeamId, bool SettingsChanged) -> void
 NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.get -> string!
 NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.init -> void
+NCode.Identity.OpenId.Teams.TeamRevision
+NCode.Identity.OpenId.Teams.TeamRevision.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Teams.TeamRevision.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Teams.TeamRevision.TeamId.get -> string!
+NCode.Identity.OpenId.Teams.TeamRevision.TeamId.init -> void
+NCode.Identity.OpenId.Teams.TeamRevision.TeamRevision() -> void
+NCode.Identity.OpenId.Teams.TeamRevision.TeamRevision(string! TeamId, string! ConcurrencyToken) -> void
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.GetRevisionsAsync(NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Teams.TeamRevision>!>
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveTeamAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.GetTeamRevisionsAsync(NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Teams.TeamRevision>!>
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Teams = "Teams" -> string!
 static NCode.Identity.OpenId.Tenants.TenantIdentifierRules.IsValidTenantId(string? tenantId) -> bool
 NCode.Identity.OpenId.Locales.IUiLocale

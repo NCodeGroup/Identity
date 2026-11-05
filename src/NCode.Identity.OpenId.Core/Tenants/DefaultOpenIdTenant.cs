@@ -39,6 +39,9 @@ internal class DefaultOpenIdTenant(
     public override string TeamId { get; } = teamId;
 
     /// <inheritdoc />
+    public override OpenIdTeam Team => TeamReference.Value;
+
+    /// <inheritdoc />
     public override string DisplayName { get; } = displayName;
 
     /// <inheritdoc />

@@ -2766,11 +2766,17 @@ describes the family as it is rather than its changes
 
 - **A replica that may have missed a broadcast drops what the message would have invalidated.** The Valkey subscriber
   calls `IReplicaBroadcastHandler.HandleMissedMessagesAsync` once it subscribes a channel and whenever its connection is
-  restored. The tenant handler evicts every cached tenant through `IOpenIdTenantCache.ClearAsync`, and the platform
+  restored. The tenant handler evicts every cached tenant through `IOpenIdTenantCache.ClearAsync`, the team handler
+  evicts only the cached teams whose stored row changed or is gone, with their tenants, comparing each served team's
+  concurrency token (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
+  `IOpenIdTenantCache.GetTeamRevisionsAsync`) with the store's (`ITeamStore.GetConcurrencyTokensAsync`) and clearing
+  both caches when it cannot read them, and the platform
   handler reads the platform's settings again
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
-  [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md), issue
-  [#249](https://github.com/NCodeGroup/Identity/issues/249)).
+  [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
+  issue [#249](https://github.com/NCodeGroup/Identity/issues/249),
+  [#564](https://github.com/NCodeGroup/Identity/issues/564)).
 
 - **A committed tenant, team or platform settings change is applied and announced on its own bounded token.**
   `TenantChangedHandler`, `TeamChangedHandler` and `PlatformSettingsChangedHandler` evict, read back and announce a committed change each on its
@@ -3537,7 +3543,9 @@ describes the family as it is rather than its changes
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
   one team when its own change, under the lease `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
-  (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants. A
+  (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants.
+  Requests that arrive during a pass coalesce, one per team, and a request for every team covers them all, so none is
+  dropped however many arrive ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A
   team change evicts the team and its tenants on every replica over the `team-changed` channel
   ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md)).
 

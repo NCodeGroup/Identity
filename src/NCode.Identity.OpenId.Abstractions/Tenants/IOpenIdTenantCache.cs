@@ -3,6 +3,7 @@
 
 using JetBrains.Annotations;
 using NCode.Disposables;
+using NCode.Identity.OpenId.Teams;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.OpenId.Tenants;
@@ -79,4 +80,15 @@ public interface IOpenIdTenantCache
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask ClearAsync(IPropertyBag propertyBag, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the distinct revisions of the teams that the cached <see cref="OpenIdTenant"/> instances were materialized under.
+    /// </summary>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="TeamRevision"/> of each such team.</returns>
+    ValueTask<IReadOnlyCollection<TeamRevision>> GetTeamRevisionsAsync(
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    );
 }

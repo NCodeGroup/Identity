@@ -2,19 +2,28 @@
 
 - **Status:** Accepted (amends [ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
   [ADR-1011](1011-secret-management-api.md),
+  [ADR-1012](1012-interceptor-managed-concurrency-tokens.md),
+  [ADR-1014](1014-server-generated-opaque-resource-ids.md),
   [ADR-1019](1019-collection-endpoints-keyset-pagination.md),
   [ADR-1024](1024-control-plane-and-per-tenant-planes.md),
   [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md),
   [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
+  [ADR-1036](1036-unified-openid-request-environment.md),
   [ADR-1040](1040-effective-settings-preview-endpoints.md),
   [ADR-1042](1042-management-api-route-driven-tenant-scope.md),
+  [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md),
   [ADR-1050](1050-secret-material-revealed-once-on-create.md),
   [ADR-1058](1058-asymmetric-public-key-material-read-path.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
+  [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md),
   [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
+  [ADR-1140](1140-setting-values-are-validated-against-their-domain.md),
+  [ADR-1142](1142-listed-response-types-are-the-only-front-channel-token-control.md),
   [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md),
+  [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
   [ADR-1159](1159-a-tenant-is-named-by-its-creator.md),
   [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
   [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
@@ -22,13 +31,17 @@
   [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
   [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md),
+  [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md),
+  [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md),
   [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
+  [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md),
   [ADR-1241](1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
   [ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md),
   [ADR-1257](1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
-  [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) and
-  [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md); amended by
+  [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md),
+  [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) and
+  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md); amended by
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): a tenant administrator is a
   `TenantAdmin` assignment at the tenant's node; amended by
   [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md): a limit is set by the

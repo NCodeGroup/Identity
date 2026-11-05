@@ -62,6 +62,49 @@ public sealed class DefaultOpenIdTenantTests
         return (tenant, () => Volatile.Read(ref teamReleases));
     }
 
+    #region Team Tests
+
+    [Fact]
+    public async Task Team_ReturnsTheTeamTheTenantHolds()
+    {
+        var teamInstance = Mock.Of<OpenIdTeam>();
+
+        await using var settings = AsyncSharedReference.Create(
+            Mock.Of<IReadOnlySettingCollectionProvider>(),
+            _ => ValueTask.CompletedTask
+        );
+        await using var secrets = AsyncSharedReference.Create(
+            Mock.Of<ISecretKeyCollectionProvider>(),
+            _ => ValueTask.CompletedTask
+        );
+        await using var team = AsyncSharedReference.Create(
+            teamInstance,
+            _ => ValueTask.CompletedTask
+        );
+
+        await using var tenant = new DefaultOpenIdTenant(
+            "acme",
+            "platform",
+            "Acme",
+            "https://op.example/acme",
+            mtlsEndpointAliasAuthority: null,
+            new UriDescriptor
+            {
+                Scheme = "https",
+                Host = new HostString("op.example"),
+                Path = "/acme",
+            },
+            settings,
+            secrets,
+            team.AddReference(),
+            PropertyBagFactory.Create()
+        );
+
+        Assert.Same(teamInstance, tenant.Team);
+    }
+
+    #endregion
+
     #region DisposeAsync Tests
 
     [Fact]

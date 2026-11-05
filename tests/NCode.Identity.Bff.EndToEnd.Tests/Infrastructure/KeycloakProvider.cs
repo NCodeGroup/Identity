@@ -7,6 +7,7 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Docker.DotNet.Models;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Images;
@@ -93,6 +94,16 @@ public sealed class KeycloakProvider : IAsyncDisposable
         var builder = new ContainerBuilder(image)
             .WithCommand("start-dev", "--import-realm")
             .WithPortBinding(HttpsPort, true)
+            .WithCreateParameterModifier(parameters =>
+            {
+                // The container is reachable from loopback only.
+                var hostConfig = parameters.HostConfig ??= new HostConfig();
+                hostConfig.PortBindings ??= new Dictionary<string, IList<PortBinding>>();
+                hostConfig.PortBindings[$"{HttpsPort}/tcp"] =
+                [
+                    new PortBinding { HostIP = "127.0.0.1", HostPort = "0" },
+                ];
+            })
             .WithEnvironment("KC_HTTP_ENABLED", "false")
             .WithEnvironment("KC_HTTPS_CERTIFICATE_FILE", CertificatePath)
             .WithEnvironment("KC_HTTPS_CERTIFICATE_KEY_FILE", PrivateKeyPath)

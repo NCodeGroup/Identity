@@ -87,13 +87,14 @@ public sealed class ClientStoreLifecycleTests : IDisposable
         string assignmentId,
         string roleName,
         string resourceType,
-        string resourceId
+        string resourceId,
+        string principalId = "subject-1"
     ) =>
         new()
         {
             TenantId = TenantId,
             AssignmentId = assignmentId,
-            PrincipalId = "subject-1",
+            PrincipalId = principalId,
             RoleName = roleName,
             ResourceType = resourceType,
             ResourceId = resourceId,
@@ -146,6 +147,24 @@ public sealed class ClientStoreLifecycleTests : IDisposable
         await _store.AddAsync(client, CancellationToken.None);
 
         Assert.False(string.IsNullOrEmpty(client.ConcurrencyToken));
+    }
+
+    [Fact]
+    public async Task AddAsync_AssignsAServerGeneratedPrincipalId()
+    {
+        await SeedTenantAsync();
+        var client = CreateClient();
+        client.PrincipalId = "caller-chosen";
+
+        await _store.AddAsync(client, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.NotEqual("caller-chosen", client.PrincipalId);
+        Assert.Equal(22, client.PrincipalId.Length);
+        var reloaded = await _store.GetOrDefaultAsync(ClientId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Equal(client.PrincipalId, reloaded.PrincipalId);
     }
 
     [Fact]
@@ -223,6 +242,42 @@ public sealed class ClientStoreLifecycleTests : IDisposable
             .OrderBy(assignmentId => assignmentId)
             .ToListAsync();
         Assert.Equal(["assign-2", "assign-3"], remaining);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_RemovesTheRoleAssignmentsTheClientsPrincipalHolds()
+    {
+        await SeedClientAsync();
+        var client = await _store.GetOrDefaultAsync(ClientId, CancellationToken.None);
+        Assert.NotNull(client);
+        var principalId = client.PrincipalId;
+        var roleAssignmentStore = new RoleAssignmentStore(
+            Mock.Of<IStoreProvider>(),
+            _provider.GetRequiredService<IIdGenerator<long>>(),
+            _dbContext
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-1", "TeamAdmin", "team", "acme", principalId),
+            CancellationToken.None
+        );
+        await roleAssignmentStore.AddAsync(
+            CreateAssignment("assign-2", "TenantAdmin", "tenant", TenantId),
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveAsync(ClientId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.True(removed);
+        var remaining = await _dbContext
+            .RoleAssignments.IgnoreQueryFilters()
+            .Select(entity => entity.AssignmentId)
+            .OrderBy(assignmentId => assignmentId)
+            .ToListAsync();
+        Assert.Equal(["assign-2"], remaining);
     }
 
     [Fact]

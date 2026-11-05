@@ -14,8 +14,12 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.IsD
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.IsDisabled.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedClientId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedClientId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedPrincipalId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedPrincipalId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedTenantId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.NormalizedTenantId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.PrincipalId.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.PrincipalId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ResourceServer.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ResourceServerEntity?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ResourceServer.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.ClientEntity.ResourceServerId.get -> long?

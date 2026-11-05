@@ -1,7 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers.Text;
 using System.Linq.Expressions;
+using System.Security.Cryptography;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -86,6 +88,7 @@ internal class ClientStore(
             ClientId = client.ClientId,
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
+            PrincipalId = client.PrincipalId,
             ResourceServerId = client.ResourceServer?.ResourceServerId,
             Settings = await MapSettingsAsync(client, cancellationToken),
             Secrets = await MapSecretsAsync(client, cancellationToken),
@@ -262,6 +265,9 @@ internal class ClientStore(
         persistedClient.Settings.ConcurrencyToken = NextConcurrencyToken();
         persistedClient.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
+        // The store generates the client's principal identifier, so no caller chooses the principal its tokens resolve to.
+        persistedClient.PrincipalId = NextPrincipalId();
+
         var secrets = new List<ClientSecretEntity>(persistedClient.Secrets.Value.Count);
 
         var clientEntity = new ClientEntity
@@ -271,6 +277,8 @@ internal class ClientStore(
             NormalizedTenantId = tenantEntity.NormalizedTenantId,
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
+            PrincipalId = persistedClient.PrincipalId,
+            NormalizedPrincipalId = Normalize(persistedClient.PrincipalId),
             ConcurrencyToken = persistedClient.ConcurrencyToken,
             SettingsConcurrencyToken = persistedClient.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedClient.Secrets.ConcurrencyToken,
@@ -546,7 +554,7 @@ internal class ClientStore(
             return false;
         }
 
-        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, the grants issued to it, and the role assignments at its resource node, whose resource type is the client's. See ADR-1212.
+        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, the grants issued to it, the role assignments at its resource node, whose resource type is the client's, and every role assignment its principal holds, in any tenant. See ADR-1212 and ADR-1419.
         DbContext.ClientSecrets.RemoveRange(clientEntity.Secrets);
         DbContext.Secrets.RemoveRange(
             clientEntity.Secrets.Select(clientSecret => clientSecret.Secret)
@@ -555,6 +563,7 @@ internal class ClientStore(
         var clientKey = clientEntity.Id;
         var tenantKey = clientEntity.TenantId;
         var normalizedClientId = clientEntity.NormalizedClientId;
+        var normalizedPrincipalId = clientEntity.NormalizedPrincipalId;
 
         DbContext.ClientGrants.RemoveRange(
             await DbContext
@@ -578,9 +587,12 @@ internal class ClientStore(
             await DbContext
                 .RoleAssignments.IgnoreQueryFilters()
                 .Where(entity =>
-                    entity.TenantId == tenantKey
-                    && entity.ResourceType == OpenIdResourceTypes.Client
-                    && entity.NormalizedResourceId == normalizedClientId
+                    (
+                        entity.TenantId == tenantKey
+                        && entity.ResourceType == OpenIdResourceTypes.Client
+                        && entity.NormalizedResourceId == normalizedClientId
+                    )
+                    || entity.NormalizedPrincipalId == normalizedPrincipalId
                 )
                 .ToListAsync(cancellationToken)
         );
@@ -589,4 +601,7 @@ internal class ClientStore(
 
         return true;
     }
+
+    private static string NextPrincipalId() =>
+        Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16));
 }

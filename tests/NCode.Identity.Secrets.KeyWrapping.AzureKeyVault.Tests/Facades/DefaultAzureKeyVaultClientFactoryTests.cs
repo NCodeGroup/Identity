@@ -81,10 +81,60 @@ public class DefaultAzureKeyVaultClientFactoryTests
 
     #endregion
 
+    #region Confirm Tests
+
+    [Fact]
+    public void Confirm_ThenRelease_KeepsClientCached()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+        var access = new KeyAccess(DirectoryId, "tenant:acme");
+        var before = factory.GetClient(KeyVersionId, access);
+
+        factory.Confirm(access);
+        factory.Release(access);
+        var after = factory.GetClient(KeyVersionId, access);
+
+        Assert.Same(before, after);
+    }
+
+    [Fact]
+    public void Confirm_AnotherDirectory_StillReleases()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+        var access = new KeyAccess(DirectoryId, "tenant:acme");
+        var other = new KeyAccess(OtherDirectoryId, "tenant:acme");
+        var before = factory.GetClient(KeyVersionId, access);
+        factory.GetClient(KeyVersionId, other);
+
+        factory.Confirm(other);
+        factory.Release(access);
+        var after = factory.GetClient(KeyVersionId, access);
+
+        Assert.NotSame(before, after);
+    }
+
+    [Fact]
+    public void Confirm_DirectoryWithoutClient_Succeeds()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+
+        factory.Confirm(new KeyAccess(DirectoryId, "tenant:acme"));
+    }
+
+    [Fact]
+    public void Confirm_NullAccess_Throws()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+
+        Assert.Throws<ArgumentNullException>(() => factory.Confirm(null!));
+    }
+
+    #endregion
+
     #region Release Tests
 
     [Fact]
-    public void Release_AfterGetClient_ReturnsDifferentClientForSameDirectoryAndKeyId()
+    public void Release_WithoutConfirm_ReturnsDifferentClientForSameDirectoryAndKeyId()
     {
         var factory = new DefaultAzureKeyVaultClientFactory();
         var access = new KeyAccess(DirectoryId, "tenant:acme");
@@ -94,6 +144,20 @@ public class DefaultAzureKeyVaultClientFactoryTests
         var after = factory.GetClient(KeyVersionId, access);
 
         Assert.NotSame(before, after);
+    }
+
+    [Fact]
+    public void Release_AfterConfirm_KeepsClientCached()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+        var access = new KeyAccess(DirectoryId, "tenant:acme");
+        var before = factory.GetClient(KeyVersionId, access);
+        factory.Confirm(access);
+
+        factory.Release(access);
+        var after = factory.GetClient(KeyVersionId, access);
+
+        Assert.Same(before, after);
     }
 
     [Fact]

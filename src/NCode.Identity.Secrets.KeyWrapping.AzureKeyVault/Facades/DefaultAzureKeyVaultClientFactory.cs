@@ -22,14 +22,17 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 /// it to <c>WorkloadIdentityCredential</c>, so exactly one credential is tried). A directory gets its own credential,
 /// which requests tokens for that directory, so the deployment's multi-tenant application reaches a key in a directory
 /// that consented to it. A client first requests a token on its first call, so creating a client never fails for lack
-/// of credentials; the first call that uses one does.
+/// of credentials; the first call that uses one does. A directory is confirmed after its first successful call and its
+/// credential and clients are then kept for the lifetime of the factory; a directory whose calls have not succeeded
+/// is removed when the wrapper releases it after a failed call, so the next call creates it again, while a failure of
+/// a confirmed directory (a throttle, for example) leaves its credential in use.
 /// </remarks>
 // See ADR-1260 and ADR-1429.
 internal sealed class DefaultAzureKeyVaultClientFactory : IAzureKeyVaultClientFactory
 {
     private Lazy<TokenCredential> Credential { get; } = new(() => new DefaultAzureCredential());
 
-    private ConcurrentDictionary<string, Lazy<TokenCredential>> DirectoryCredentials { get; } =
+    private ConcurrentDictionary<string, DirectoryEntry> DirectoryCredentials { get; } =
         new(StringComparer.Ordinal);
 
     private ConcurrentDictionary<string, CryptographyClient> Clients { get; } =
@@ -58,6 +61,17 @@ internal sealed class DefaultAzureKeyVaultClientFactory : IAzureKeyVaultClientFa
     }
 
     /// <inheritdoc />
+    public void Confirm(KeyAccess access)
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        if (DirectoryCredentials.TryGetValue(access.Identity, out var entry))
+        {
+            entry.Confirm();
+        }
+    }
+
+    /// <inheritdoc />
     public void Release(KeyAccess access)
     {
         ArgumentNullException.ThrowIfNull(access);
@@ -69,14 +83,22 @@ internal sealed class DefaultAzureKeyVaultClientFactory : IAzureKeyVaultClientFa
             return;
         }
 
-        DirectoryCredentials.TryRemove(access.Identity, out _);
+        if (!DirectoryCredentials.TryGetValue(access.Identity, out var entry) || entry.IsConfirmed)
+        {
+            return;
+        }
+
+        // Removes exactly the entry that was read, so an entry that another caller has since added stays cached.
+        DirectoryCredentials.TryRemove(
+            new KeyValuePair<string, DirectoryEntry>(access.Identity, entry)
+        );
 
         var prefix = $"{access.Identity}|";
-        foreach (var key in Clients.Keys)
+        foreach (var pair in Clients)
         {
-            if (key.StartsWith(prefix, StringComparison.Ordinal))
+            if (pair.Key.StartsWith(prefix, StringComparison.Ordinal))
             {
-                Clients.TryRemove(key, out _);
+                Clients.TryRemove(pair);
             }
         }
     }
@@ -88,13 +110,32 @@ internal sealed class DefaultAzureKeyVaultClientFactory : IAzureKeyVaultClientFa
             return Credential;
         }
 
-        return DirectoryCredentials.GetOrAdd(
-            access.Identity,
-            static directory => new Lazy<TokenCredential>(() =>
-                new DefaultAzureCredential(
-                    new DefaultAzureCredentialOptions { TenantId = directory }
+        return DirectoryCredentials
+            .GetOrAdd(
+                access.Identity,
+                static directory => new DirectoryEntry(
+                    new Lazy<TokenCredential>(() =>
+                        new DefaultAzureCredential(
+                            new DefaultAzureCredentialOptions { TenantId = directory }
+                        )
+                    )
                 )
             )
-        );
+            .Credential;
+    }
+
+    /// <summary>
+    /// The credential for a Microsoft Entra directory and whether a call through it has succeeded.
+    /// </summary>
+    private sealed class DirectoryEntry(Lazy<TokenCredential> credential)
+    {
+        // Read and written with Volatile, because the entry is shared by concurrent calls.
+        private bool _confirmed;
+
+        public Lazy<TokenCredential> Credential { get; } = credential;
+
+        public bool IsConfirmed => Volatile.Read(ref _confirmed);
+
+        public void Confirm() => Volatile.Write(ref _confirmed, true);
     }
 }

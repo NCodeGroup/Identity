@@ -134,6 +134,9 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
     private void SetupRelease(KeyAccess access) =>
         ClientFactory.Setup(x => x.Release(access)).Verifiable();
 
+    private void SetupConfirm(KeyAccess access) =>
+        ClientFactory.Setup(x => x.Confirm(access)).Verifiable();
+
     #region WrapAsync Tests
 
     [Fact]
@@ -483,6 +486,7 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var encryptedKey = RandomNumberGenerator.GetBytes(384);
         SetupClient(TenantKeyId, Access);
         SetupWrapKey(CreateWrapResult(TenantKeyVersionId, encryptedKey), CancellationToken.None);
+        SetupConfirm(Access);
         var provider = CreateProvider(keyId: null);
 
         var wrappedKey = await provider.WrapAsync(
@@ -571,6 +575,7 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
             CreateUnwrapResult(TenantKeyVersionId, plaintext.ToArray()),
             CancellationToken.None
         );
+        SetupConfirm(Access);
         var provider = CreateProvider(keyId: null);
 
         await provider.UnwrapAsync(
@@ -626,6 +631,51 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
     #endregion
 
     #region Release Tests
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithAccessSucceeds_ConfirmsTheCredentialAndReleasesNothing()
+    {
+        SetupClient(TenantKeyId, Access);
+        SetupWrapKey(
+            CreateWrapResult(TenantKeyVersionId, RandomNumberGenerator.GetBytes(384)),
+            CancellationToken.None
+        );
+        SetupConfirm(Access);
+        var provider = CreateProvider(keyId: null);
+
+        await provider.WrapAsync(
+            new ReferencedKey(TenantKeyId, Access),
+            RandomNumberGenerator.GetBytes(32),
+            "root-context"u8.ToArray(),
+            CancellationToken.None
+        );
+
+        ClientFactory.Verify(x => x.Confirm(Access), Times.Once);
+        ClientFactory.Verify(x => x.Release(It.IsAny<KeyAccess>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessSucceeds_ConfirmsTheCredentialAndReleasesNothing()
+    {
+        SetupClient(TenantKeyVersionId, Access);
+        SetupUnwrapKey(
+            CreateUnwrapResult(TenantKeyVersionId, RandomNumberGenerator.GetBytes(32)),
+            CancellationToken.None
+        );
+        SetupConfirm(Access);
+        var provider = CreateProvider(keyId: null);
+
+        await provider.UnwrapAsync(
+            CreateWrappedKey(TenantKeyVersionId, RandomNumberGenerator.GetBytes(384)),
+            Access,
+            "root-context"u8.ToArray(),
+            new ArrayBufferWriter<byte>(),
+            CancellationToken.None
+        );
+
+        ClientFactory.Verify(x => x.Confirm(Access), Times.Once);
+        ClientFactory.Verify(x => x.Release(It.IsAny<KeyAccess>()), Times.Never);
+    }
 
     [Fact]
     public async Task WrapAsync_ReferencedKeyWithAccessFails_ReleasesTheCredential()

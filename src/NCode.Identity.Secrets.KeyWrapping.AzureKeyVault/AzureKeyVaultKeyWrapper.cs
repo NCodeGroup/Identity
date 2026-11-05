@@ -198,13 +198,18 @@ internal class AzureKeyVaultKeyWrapper(
         catch (Exception exception)
             when (access is not null && exception is not OperationCanceledException)
         {
-            // An identity that fails must leave no credential cached.
+            // An identity that has never worked must leave no credential cached.
             ClientFactory.Release(access);
             throw;
         }
         finally
         {
             CryptographicOperations.ZeroMemory(plaintext);
+        }
+
+        if (access is not null)
+        {
+            ClientFactory.Confirm(access);
         }
 
         if (!AzureKeyVaultKeyId.IsKeyVersionId(result.KeyId))
@@ -314,7 +319,7 @@ internal class AzureKeyVaultKeyWrapper(
         }
         catch (Exception exception)
         {
-            // An identity that fails must leave no credential cached.
+            // An identity that has never worked must leave no credential cached.
             if (access is not null && exception is not OperationCanceledException)
             {
                 ClientFactory.Release(access);
@@ -332,6 +337,11 @@ internal class AzureKeyVaultKeyWrapper(
             }
 
             throw;
+        }
+
+        if (access is not null)
+        {
+            ClientFactory.Confirm(access);
         }
 
         CopyPlaintext(result.Key, destination);

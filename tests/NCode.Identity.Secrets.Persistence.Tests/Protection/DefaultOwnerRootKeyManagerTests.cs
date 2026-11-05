@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -63,11 +64,12 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     private DefaultOwnerRootKeyManager CreateManager(
-        ILogger<DefaultOwnerRootKeyManager>? logger = null
+        ILogger<DefaultOwnerRootKeyManager>? logger = null,
+        IReferencedKeyWrapper? wrapper = null
     )
     {
         var catalog = new DefaultKeyWrapperCatalog(
-            [_kms],
+            [wrapper ?? _kms],
             Microsoft.Extensions.Options.Options.Create(_options)
         );
         return new DefaultOwnerRootKeyManager(
@@ -447,6 +449,47 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
         Assert.Equal(OwnerRootKeyStates.Unavailable, stored.State);
         Assert.Equal(_time.GetUtcNow(), stored.FailedWhen);
         Assert.Contains("revoked", stored.Failure);
+    }
+
+    [Fact]
+    public async Task Set_SameKeyAndSameAccessIdentityFailingItsProbe_RecordsTheOwnerUnavailableAndThrows()
+    {
+        _stores.Seed(CreateRootKey(accessIdentity: Identity));
+        ExpectEvictAndNotify(Times.Once());
+        _kms.Revoke(Reference);
+
+        var exception = await Assert.ThrowsAsync<OwnerRootKeyProbeException>(async () =>
+            await CreateManager()
+                .SetAsync(Owner, Request(accessIdentity: Identity), CancellationToken.None)
+        );
+
+        Assert.Equal(OwnerRootKeyStates.Unavailable, exception.UnavailableRootKey?.State);
+        var stored = Assert.Single(_stores.RootKeys);
+        Assert.Equal(OwnerRootKeyStates.Unavailable, stored.State);
+        Assert.Equal(Identity, stored.AccessIdentity);
+        Assert.Equal(_time.GetUtcNow(), stored.FailedWhen);
+        Assert.Contains("revoked", stored.Failure);
+    }
+
+    [Fact]
+    public async Task Set_SameKeyWithAnotherAccessIdentityFailingItsProbe_ThrowsAndLeavesTheStoredBindingAlone()
+    {
+        var existing = _stores.Seed(CreateRootKey(accessIdentity: Identity));
+        var wrapper = new FailingIdentityWrapper(_kms, OtherIdentity);
+
+        var exception = await Assert.ThrowsAsync<OwnerRootKeyProbeException>(async () =>
+            await CreateManager(wrapper: wrapper)
+                .SetAsync(Owner, Request(accessIdentity: OtherIdentity), CancellationToken.None)
+        );
+
+        Assert.Null(exception.UnavailableRootKey);
+        Assert.Contains("is refused", exception.Failure);
+        var stored = Assert.Single(_stores.RootKeys);
+        Assert.Equal(OwnerRootKeyStates.Active, stored.State);
+        Assert.Equal(Identity, stored.AccessIdentity);
+        Assert.Null(stored.FailedWhen);
+        Assert.Null(stored.Failure);
+        Assert.Equal(existing.StateChangedWhen, stored.StateChangedWhen);
     }
 
     [Fact]
@@ -997,6 +1040,55 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     #endregion
+
+    // A key wrapper that refuses every wrap through the one access identity it names and delegates all else to the
+    // wrapper it decorates.
+    private sealed class FailingIdentityWrapper(IReferencedKeyWrapper inner, string refusedIdentity)
+        : IReferencedKeyWrapper
+    {
+        public string Name => inner.Name;
+
+        public bool TryValidateKeyReference(
+            string keyReference,
+            [NotNullWhen(false)] out string? failure
+        ) => inner.TryValidateKeyReference(keyReference, out failure);
+
+        public bool TryValidateAccessIdentity(
+            string accessIdentity,
+            [NotNullWhen(false)] out string? failure
+        ) => inner.TryValidateAccessIdentity(accessIdentity, out failure);
+
+        public ValueTask<WrappedKey> WrapAsync(
+            ReadOnlyMemory<byte> key,
+            ReadOnlyMemory<byte> context,
+            CancellationToken cancellationToken
+        ) => inner.WrapAsync(key, context, cancellationToken);
+
+        public ValueTask<WrappedKey> WrapAsync(
+            ReferencedKey referencedKey,
+            ReadOnlyMemory<byte> key,
+            ReadOnlyMemory<byte> context,
+            CancellationToken cancellationToken
+        ) =>
+            string.Equals(referencedKey.Access?.Identity, refusedIdentity, StringComparison.Ordinal)
+                ? throw new InvalidOperationException("The access identity is refused.")
+                : inner.WrapAsync(referencedKey, key, context, cancellationToken);
+
+        public ValueTask UnwrapAsync(
+            WrappedKey wrappedKey,
+            ReadOnlyMemory<byte> context,
+            IBufferWriter<byte> destination,
+            CancellationToken cancellationToken
+        ) => inner.UnwrapAsync(wrappedKey, context, destination, cancellationToken);
+
+        public ValueTask UnwrapAsync(
+            WrappedKey wrappedKey,
+            KeyAccess access,
+            ReadOnlyMemory<byte> context,
+            IBufferWriter<byte> destination,
+            CancellationToken cancellationToken
+        ) => inner.UnwrapAsync(wrappedKey, access, context, destination, cancellationToken);
+    }
 
     // A policy that refuses the one owner id it names, compared on the normalized id the manager hands it.
     private sealed class RefusingPolicy(string ownerId, string refusal) : IOwnerRootKeyPolicy

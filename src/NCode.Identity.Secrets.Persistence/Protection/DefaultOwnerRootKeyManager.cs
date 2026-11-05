@@ -236,9 +236,11 @@ internal sealed class DefaultOwnerRootKeyManager(
         {
             Logger.OwnerRootKeyProbeFailed(key, keyWrapperName, keyReference, probeFailure);
 
-            // The key the owner already uses failed, so the owner fails closed as a validation would make it.
+            // The key the owner already uses, through the access identity it already uses, failed, so the owner fails
+            // closed as a validation would make it. A different key or a different access identity is only a request
+            // that failed, so the stored binding stays as it is and keeps serving the owner.
             OwnerRootKeyInfo? unavailable = null;
-            if (sameKey && binding is not null)
+            if (sameKey && sameAccess && binding is not null)
             {
                 unavailable = await RecordProbeFailureAsync(
                     key,

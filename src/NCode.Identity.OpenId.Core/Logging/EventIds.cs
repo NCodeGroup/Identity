@@ -73,4 +73,6 @@ internal static class EventIds
     public const int ProtectedValuePageAbandoned = Base + 31;
 
     public const int ProtectedValuePageUnreadable = Base + 32;
+
+    public const int TenantKeyRolloverTeamFailed = Base + 33;
 }

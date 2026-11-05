@@ -19,14 +19,16 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Tenants.Keys;
 
 /// <summary>
-/// Rolls the keys of every seeded tenant over in the background, once the replica's platform is materialized and then
+/// Rolls the keys of every seeded tenant of every enabled team over in the background, once the replica's platform is materialized and then
 /// every <see cref="OpenIdTenantKeyRolloverOptions.Interval"/>: it generates the successor of a key that nears its
 /// retirement, activates a published key when no key signs, retires a key the tenant's settings do not use, and
 /// removes an expired key the platform generated. One replica runs each pass, under a lease on the shared-state port
 /// that lasts half the interval, and each tenant is changed in its own unit of work under the tenant's optimistic
 /// concurrency, so a pass that overlaps a seed or another pass loses the race for that tenant and leaves it to the
 /// winner; the audit event of each change is published once the unit of work has committed, so a lost race records
-/// nothing. A tenant that holds no key is left to its first materialization, which seeds it in full. A tenant the
+/// nothing. The pass runs team by team under the one platform-wide lease: it judges a team's tenants against that
+/// team's effective settings, skips a disabled team, and logs a team it cannot handle before it goes on to the next.
+/// A tenant that holds no key is left to its first materialization, which seeds it in full. A tenant the
 /// pass changed is announced, so every replica evicts it and serves its keys as they are. The publishing and the
 /// announcement follow a committed change, so each runs on its own bounded token, never the host's stopping token,
 /// and the announcement follows whatever the publishing did.
@@ -54,6 +56,7 @@ internal sealed class TenantKeyRolloverService(
 
     // The tenants are read in pages, so the pass never holds every tenant's settings at once.
     private const int TenantPageSize = 100;
+    private const int TeamPageSize = 100;
 
     private IMaterializedPlatformAccessor MaterializedPlatformAccessor { get; } =
         materializedPlatformAccessor;
@@ -134,14 +137,64 @@ internal sealed class TenantKeyRolloverService(
         if (!await ExpiringKeySet.TryAddAsync(LeasePurpose, leaseExpiresWhen, cancellationToken))
             return;
 
-        var parentSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
-            cancellationToken
-        );
-
         // The mediator is scoped (its handlers' unit of work is), and the pass runs outside any request, so the
         // announcements run in their own scope.
         await using var scope = ServiceScopeFactory.CreateAsyncScope();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+        // Each team's tenants are judged against that team's effective settings, and a disabled team's tenants are
+        // left as they are, as the team's settings reconciliation does. See ADR-1411.
+        var teamPage = new PageRequest { Limit = TeamPageSize };
+        do
+        {
+            var teams = await GetTeamPageAsync(teamPage, cancellationToken);
+            foreach (var team in teams.Items)
+            {
+                if (team.IsDisabled)
+                    continue;
+
+                try
+                {
+                    await RollOverTeamAsync(
+                        team.TeamId,
+                        mediator,
+                        resolution.Specifications,
+                        cancellationToken
+                    );
+                }
+                catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+                {
+                    // One team that cannot be handled, say one with a settings document the platform's settings
+                    // reject, must not stop the pass: the other teams still need their tenants' keys rolled over.
+                    Logger.TenantKeyRolloverTeamFailed(team.TeamId, exception);
+                }
+            }
+
+            teamPage = teamPage with { Cursor = teams.NextCursor };
+        } while (teamPage.Cursor is not null);
+    }
+
+    private async ValueTask<PagedResult<PersistedTeam>> GetTeamPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var teamStore = storeManager.GetStore<ITeamStore>();
+        return await teamStore.GetPageAsync(page, cancellationToken);
+    }
+
+    private async ValueTask RollOverTeamAsync(
+        string teamId,
+        IMediator mediator,
+        IReadOnlyList<TenantKeySpecification> specifications,
+        CancellationToken cancellationToken
+    )
+    {
+        var parentSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            teamId,
+            cancellationToken
+        );
 
         var page = new PageRequest { Limit = TenantPageSize };
         do
@@ -152,7 +205,7 @@ internal sealed class TenantKeyRolloverService(
             )
             {
                 var tenantStore = storeManager.GetStore<ITenantStore>();
-                result = await tenantStore.GetSettingsPageAsync(page, cancellationToken);
+                result = await tenantStore.GetSettingsPageAsync(teamId, page, cancellationToken);
             }
 
             foreach (var tenantSettings in result.Items)
@@ -162,7 +215,7 @@ internal sealed class TenantKeyRolloverService(
                     var committed = await RollOverTenantAsync(
                         tenantSettings,
                         parentSettings,
-                        resolution.Specifications,
+                        specifications,
                         cancellationToken
                     );
                     if (committed is null)

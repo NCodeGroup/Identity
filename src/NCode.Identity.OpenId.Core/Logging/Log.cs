@@ -59,6 +59,17 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.TenantKeyRolloverTeamFailed,
+        Level = LogLevel.Warning,
+        Message = "Rolling over the keys of the tenants of the team '{TeamId}' failed; they are rolled over again at the next pass"
+    )]
+    internal static partial void TenantKeyRolloverTeamFailed(
+        this ILogger logger,
+        string teamId,
+        Exception exception
+    );
+
+    [LoggerMessage(
         EventId = EventIds.TenantKeyRolloverPassFailed,
         Level = LogLevel.Warning,
         Message = "The tenant key rollover pass failed; it runs again at the next interval"

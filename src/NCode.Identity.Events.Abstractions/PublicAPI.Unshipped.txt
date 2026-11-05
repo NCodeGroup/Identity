@@ -129,6 +129,7 @@ const NCode.Identity.Events.Audit.ResourceChangeTypes.Created = "created" -> str
 const NCode.Identity.Events.Audit.ResourceChangeTypes.Deleted = "deleted" -> string!
 const NCode.Identity.Events.Audit.ResourceChangeTypes.SettingsUpdated = "settings.updated" -> string!
 const NCode.Identity.Events.Audit.ResourceChangeTypes.Updated = "updated" -> string!
+const NCode.Identity.Events.Audit.ResourceChangeTypes.Promoted = "promoted" -> string!
 NCode.Identity.Events.Audit.AuditEvent
 NCode.Identity.Events.Audit.AuditEvent.ClientId.get -> string?
 NCode.Identity.Events.Audit.AuditEvent.ClientId.init -> void

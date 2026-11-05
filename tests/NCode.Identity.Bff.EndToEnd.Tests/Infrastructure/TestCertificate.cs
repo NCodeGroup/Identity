@@ -73,7 +73,7 @@ public sealed class TestCertificate : IDisposable
         alternativeNames.AddIpAddress(IPAddress.IPv6Loopback);
         request.CertificateExtensions.Add(alternativeNames.Build());
 
-        var now = DateTimeOffset.UtcNow;
+        var now = TimeProvider.System.GetUtcNow();
         using var ephemeral = request.CreateSelfSigned(now.AddDays(-1), now.AddDays(1));
 
         // Windows SChannel cannot serve a certificate whose private key is ephemeral.

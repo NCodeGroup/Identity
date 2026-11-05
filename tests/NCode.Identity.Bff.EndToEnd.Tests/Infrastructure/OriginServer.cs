@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using NCode.Buffers;
 
 namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 
@@ -14,9 +15,6 @@ namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 /// </summary>
 public sealed class OriginServer : IAsyncDisposable
 {
-    private const string BlankPage =
-        "<!doctype html><html><head><title>origin</title></head><body></body></html>";
-
     private readonly WebApplication _app;
 
     private OriginServer(WebApplication app)
@@ -48,7 +46,11 @@ public sealed class OriginServer : IAsyncDisposable
         });
 
         var app = builder.Build();
-        app.MapGet("/", static () => Results.Content(BlankPage, "text/html"));
+        app.MapGet(
+            "/",
+            static () =>
+                Results.Content(TestPages.Blank, "text/html", contentEncoding: SecureEncoding.UTF8)
+        );
 
         await app.StartAsync();
         return new OriginServer(app);

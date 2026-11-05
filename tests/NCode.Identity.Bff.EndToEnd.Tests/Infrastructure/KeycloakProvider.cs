@@ -12,6 +12,7 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Images;
 using NCode.Buffers;
+using NCode.Identity.OpenId;
 
 namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 
@@ -169,7 +170,12 @@ public sealed class KeycloakProvider : IAsyncDisposable
         )
         {
             Content = new FormUrlEncodedContent(
-                new Dictionary<string, string> { ["grant_type"] = "client_credentials" }
+                new Dictionary<string, string>
+                {
+                    [OpenIdProtocol.Parameters.GrantType] = OpenIdProtocol
+                        .GrantTypes
+                        .ClientCredentials,
+                }
             ),
         };
         tokenRequest.Headers.Authorization = new AuthenticationHeaderValue(

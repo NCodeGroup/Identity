@@ -3,8 +3,10 @@
 
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Playwright;
 using NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId;
 using Xunit;
 
@@ -51,7 +53,7 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
             IsTrue(metadata, OpenIdProtocol.MetadataNames.BackchannelLogoutSessionSupported)
         );
         Assert.Contains(
-            "S256",
+            OpenIdProtocol.CodeChallengeMethods.S256,
             Values(metadata, OpenIdProtocol.MetadataNames.CodeChallengeMethodsSupported)
         );
         Assert.Contains(
@@ -59,11 +61,11 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
             Values(metadata, OpenIdProtocol.MetadataNames.TokenEndpointAuthMethodsSupported)
         );
         Assert.Contains(
-            "ES256",
+            AlgorithmCodes.DigitalSignature.EcdsaSha256,
             Values(metadata, OpenIdProtocol.MetadataNames.DPoPSigningAlgValuesSupported)
         );
         Assert.Contains(
-            "PS256",
+            AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
             Values(metadata, OpenIdProtocol.MetadataNames.IdTokenSigningAlgValuesSupported)
         );
     }
@@ -81,7 +83,7 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
         await BrowserFlows.LoginAsync(page, environment.StrictBff, environment.Keycloak);
 
         var outcome = await BrowserFlows.FetchAsync(page, UserPath, true);
-        Assert.Equal(200, outcome.Status);
+        Assert.Equal(StatusCodes.Status200OK, outcome.Status);
         var user = Deserialize<UserResponse>(outcome.Body);
         Assert.Equal(KeycloakProvider.UserEmail, user.Claims.Email);
     }
@@ -100,8 +102,8 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
         var first = await BrowserFlows.FetchAsync(page, "/api/token", true);
         var second = await BrowserFlows.FetchAsync(page, "/api/token", true);
 
-        Assert.Equal(200, first.Status);
-        Assert.Equal(200, second.Status);
+        Assert.Equal(StatusCodes.Status200OK, first.Status);
+        Assert.Equal(StatusCodes.Status200OK, second.Status);
         var firstProbe = Deserialize<TokenProbe>(first.Body);
         var secondProbe = Deserialize<TokenProbe>(second.Body);
         Assert.Equal("DPoP", firstProbe.TokenType);
@@ -131,7 +133,7 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
         );
 
         var outcome = await BrowserFlows.FetchAsync(page, UserPath, true);
-        Assert.Equal(401, outcome.Status);
+        Assert.Equal(StatusCodes.Status401Unauthorized, outcome.Status);
 
         await page.GotoAsync($"{bff.Origin}/bff/login?returnUrl=%2F");
         var usernameField = await page.WaitForSelectorAsync("#username");
@@ -145,19 +147,22 @@ public sealed class KeycloakInteropTests(EndToEndEnvironment environment)
         var page = await context.NewPageAsync();
         await BrowserFlows.LoginAsync(page, environment.StrictBff, environment.Keycloak);
         var before = await BrowserFlows.FetchAsync(page, UserPath, true);
-        Assert.Equal(200, before.Status);
+        Assert.Equal(StatusCodes.Status200OK, before.Status);
 
         await environment.Keycloak.LogOutUserAsync();
 
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(15);
+        var deadline = TimeProvider.System.GetUtcNow().AddSeconds(15);
         var outcome = await BrowserFlows.FetchAsync(page, UserPath, true);
-        while (outcome.Status != 401 && DateTimeOffset.UtcNow < deadline)
+        while (
+            outcome.Status != StatusCodes.Status401Unauthorized
+            && TimeProvider.System.GetUtcNow() < deadline
+        )
         {
             await Task.Delay(TimeSpan.FromMilliseconds(250));
             outcome = await BrowserFlows.FetchAsync(page, UserPath, true);
         }
 
-        Assert.Equal(401, outcome.Status);
+        Assert.Equal(StatusCodes.Status401Unauthorized, outcome.Status);
     }
 
     #endregion

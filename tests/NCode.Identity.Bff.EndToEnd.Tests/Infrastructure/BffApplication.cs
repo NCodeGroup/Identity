@@ -16,6 +16,7 @@ using NCode.Identity.Bff.Antiforgery;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Server;
 using NCode.Identity.Jose;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using NCode.Identity.Secrets.Collections;
@@ -32,8 +33,6 @@ public sealed class BffApplication : IAsyncDisposable
 {
     private const string ClientKeyRing = "e2e-client";
     private const string DPoPKeyRing = "e2e-dpop";
-    private const string BlankPage =
-        "<!doctype html><html><head><title>origin</title></head><body></body></html>";
 
     private readonly WebApplication _app;
     private readonly List<ECDsa> _keys = [];
@@ -69,7 +68,7 @@ public sealed class BffApplication : IAsyncDisposable
             ["Bff:ClientAuthentication:KeyRing"] = ClientKeyRing,
             ["Bff:DPoP:KeyRing"] = DPoPKeyRing,
             ["Bff:Jwks:Enabled"] = "true",
-            ["Bff:IdToken:SigningAlgorithms:0"] = "PS256",
+            ["Bff:IdToken:SigningAlgorithms:0"] = AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
             ["Bff:ReturnUrls:0"] = "/",
             ["Bff:UserClaims:0"] = "email",
             ["Bff:Session:SameSite"] = settings.SameSite.ToString(),
@@ -81,12 +80,12 @@ public sealed class BffApplication : IAsyncDisposable
 
         builder.Configuration.AddInMemoryCollection(configuration);
 
-        var services = builder.Services;
-        AddKeyRing(services, ClientKeyRing);
-        AddKeyRing(services, DPoPKeyRing);
+        var serviceCollection = builder.Services;
+        AddKeyRing(serviceCollection, ClientKeyRing);
+        AddKeyRing(serviceCollection, DPoPKeyRing);
 
-        services.AddIdentityBff(builder.Configuration);
-        services.AddCors(options =>
+        serviceCollection.AddIdentityBff(builder.Configuration);
+        serviceCollection.AddCors(options =>
             options.AddDefaultPolicy(policy =>
                 policy
                     .WithOrigins([.. settings.CorsOrigins])
@@ -97,7 +96,7 @@ public sealed class BffApplication : IAsyncDisposable
         );
 
         // Registered after the library, which configures its own primary handler for the named client.
-        services
+        serviceCollection
             .AddHttpClient(OpenIdClientDefaults.HttpClientName)
             .ConfigurePrimaryHttpMessageHandler(
                 (handler, _) =>
@@ -133,14 +132,19 @@ public sealed class BffApplication : IAsyncDisposable
         app.UseAuthorization();
         app.MapBffEndpoints();
 
-        app.MapGet("/", static () => Results.Content(BlankPage, "text/html"));
+        app.MapGet(
+            "/",
+            static () =>
+                Results.Content(TestPages.Blank, "text/html", contentEncoding: SecureEncoding.UTF8)
+        );
         app.MapGet(
             "/probe/cookie",
             static (HttpContext context) =>
                 Results.Text(
                     context.Request.Cookies.ContainsKey(BffDefaults.SessionCookieName)
                         ? "present"
-                        : "absent"
+                        : "absent",
+                    contentEncoding: SecureEncoding.UTF8
                 )
         );
         app.MapMethods(
@@ -215,11 +219,11 @@ public sealed class BffApplication : IAsyncDisposable
         }
     }
 
-    private void AddKeyRing(IServiceCollection services, string keyRing)
+    private void AddKeyRing(IServiceCollection serviceCollection, string keyRing)
     {
         var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         _keys.Add(key);
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             keyRing,
             (serviceProvider, _) =>
                 serviceProvider

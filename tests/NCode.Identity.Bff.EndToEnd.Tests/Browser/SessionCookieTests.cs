@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Playwright;
 using NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 using Xunit;
@@ -30,7 +31,7 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
         Assert.True(cookie.HttpOnly);
         Assert.True(cookie.Secure);
         Assert.Equal(SameSiteAttribute.Strict, cookie.SameSite);
-        Assert.True(cookie.Expires > DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        Assert.True(cookie.Expires > TimeProvider.System.GetUtcNow().ToUnixTimeSeconds());
         Assert.DoesNotContain(cookies, x => x.Name == BffDefaults.LoginCookieName);
 
         var visibleCookies = await page.EvaluateAsync<string>("() => document.cookie");
@@ -65,7 +66,7 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
         var outcome = await BrowserFlows.FetchAsync(page, "/bff/user", true);
 
         Assert.False(outcome.Blocked);
-        Assert.Equal(200, outcome.Status);
+        Assert.Equal(StatusCodes.Status200OK, outcome.Status);
         Assert.Contains(KeycloakProvider.UserEmail, outcome.Body);
     }
 
@@ -79,7 +80,7 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
         var outcome = await BrowserFlows.FetchAsync(page, "/bff/user", false);
 
         Assert.False(outcome.Blocked);
-        Assert.Equal(403, outcome.Status);
+        Assert.Equal(StatusCodes.Status403Forbidden, outcome.Status);
         Assert.Contains(BffProblemTypes.AntiforgeryHeaderMissing, outcome.Body);
     }
 

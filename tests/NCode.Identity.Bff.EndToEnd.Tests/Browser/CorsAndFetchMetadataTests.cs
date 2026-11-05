@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 using Xunit;
 
@@ -45,7 +46,7 @@ public sealed class CorsAndFetchMetadataTests(EndToEndEnvironment environment)
 
         var outcome = await BrowserFlows.FetchAsync(originPage, $"{bff.Origin}/api/me", true);
 
-        Assert.Equal(403, outcome.Status);
+        Assert.Equal(StatusCodes.Status403Forbidden, outcome.Status);
         Assert.Contains(BffProblemTypes.CrossSiteRequest, outcome.Body);
         Assert.Equal(apiCalls, bff.ApiCalls);
     }
@@ -62,7 +63,7 @@ public sealed class CorsAndFetchMetadataTests(EndToEndEnvironment environment)
 
         var outcome = await BrowserFlows.FetchAsync(originPage, $"{bff.Origin}/api/me", true);
 
-        Assert.Equal(403, outcome.Status);
+        Assert.Equal(StatusCodes.Status403Forbidden, outcome.Status);
         Assert.Contains(BffProblemTypes.CrossSiteRequest, outcome.Body);
         Assert.Equal(apiCalls, bff.ApiCalls);
     }
@@ -79,7 +80,7 @@ public sealed class CorsAndFetchMetadataTests(EndToEndEnvironment environment)
 
         var outcome = await BrowserFlows.FetchAsync(originPage, $"{bff.Origin}/api/me", true);
 
-        Assert.Equal(200, outcome.Status);
+        Assert.Equal(StatusCodes.Status200OK, outcome.Status);
         Assert.Equal(apiCalls + 1, bff.ApiCalls);
     }
 

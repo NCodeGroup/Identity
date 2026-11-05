@@ -12,7 +12,7 @@ namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 public static class BrowserFlows
 {
     private const string FetchScript =
-        "async ([url, withHeader]) => { try { const r = await fetch(url, { credentials: 'include', headers: withHeader ? { 'X-CSRF': '1' } : {} }); return JSON.stringify({ status: r.status, body: await r.text(), blocked: false }); } catch { return JSON.stringify({ status: 0, body: '', blocked: true }); } }";
+        "async ([url, withHeader, headerName]) => { try { const r = await fetch(url, { credentials: 'include', headers: withHeader ? { [headerName]: '1' } : {} }); return JSON.stringify({ status: r.status, body: await r.text(), blocked: false }); } catch { return JSON.stringify({ status: 0, body: '', blocked: true }); } }";
 
     private const string FollowLinkScript =
         "url => { const a = document.createElement('a'); a.href = url; document.body.appendChild(a); a.click(); }";
@@ -54,7 +54,7 @@ public static class BrowserFlows
     {
         var json = await page.EvaluateAsync<string>(
             FetchScript,
-            new object[] { url, withAntiforgeryHeader }
+            new object[] { url, withAntiforgeryHeader, BffDefaults.AntiforgeryHeaderName }
         );
         return JsonSerializer.Deserialize<FetchOutcome>(json, JsonSerializerOptions.Web)
             ?? throw new InvalidOperationException("The fetch script returned null.");

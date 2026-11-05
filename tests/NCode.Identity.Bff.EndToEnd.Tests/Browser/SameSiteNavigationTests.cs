@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 using Xunit;
 
@@ -78,7 +79,7 @@ public sealed class SameSiteNavigationTests(EndToEndEnvironment environment)
 
         Assert.Equal(apiCalls, bff.ApiCalls);
         var outcome = await BrowserFlows.FetchAsync(page, "/bff/user", true);
-        Assert.Equal(200, outcome.Status);
+        Assert.Equal(StatusCodes.Status200OK, outcome.Status);
     }
 
     [Theory, MemberData(nameof(BrowserNames.All), MemberType = typeof(BrowserNames))]
@@ -103,7 +104,7 @@ public sealed class SameSiteNavigationTests(EndToEndEnvironment environment)
         );
 
         var outcome = await BrowserFlows.FetchAsync(page, "/bff/user", true);
-        Assert.Equal(200, outcome.Status);
+        Assert.Equal(StatusCodes.Status200OK, outcome.Status);
     }
 
     #endregion

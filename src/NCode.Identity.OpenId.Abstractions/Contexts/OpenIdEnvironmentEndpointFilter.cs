@@ -1,14 +1,12 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Exceptions;
-using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Results;
 using NCode.Mediator;
@@ -69,7 +67,11 @@ public sealed class OpenIdEnvironmentEndpointFilter(
         }
         catch (Exception exception)
             when (exception is not OperationCanceledException
-                && TryTranslate(exception, out var error)
+                && ExceptionTranslators.TryTranslate(
+                    OpenIdEnvironmentProvider.Get(),
+                    exception,
+                    out var error
+                )
             )
         {
             // The tenant's context cannot be created (such as a root key that is unavailable), so the translator's
@@ -79,18 +81,5 @@ public sealed class OpenIdEnvironmentEndpointFilter(
 
         using var scope = AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId);
         return await next(context);
-    }
-
-    private bool TryTranslate(Exception exception, [NotNullWhen(true)] out IOpenIdError? error)
-    {
-        var openIdEnvironment = OpenIdEnvironmentProvider.Get();
-        foreach (var translator in ExceptionTranslators)
-        {
-            if (translator.TryTranslate(openIdEnvironment, exception, out error))
-                return true;
-        }
-
-        error = null;
-        return false;
     }
 }

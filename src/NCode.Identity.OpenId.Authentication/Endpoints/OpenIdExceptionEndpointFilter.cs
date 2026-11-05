@@ -64,12 +64,9 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
             // See ADR-1428.
             if (
                 exception is not OpenIdException
-                && OpenIdExceptionTranslation.TryTranslate(
-                    httpContext.RequestServices.GetServices<IOpenIdExceptionTranslator>(),
-                    openIdEnvironment,
-                    exception,
-                    out var translatedError
-                )
+                && httpContext
+                    .RequestServices.GetServices<IOpenIdExceptionTranslator>()
+                    .TryTranslate(openIdEnvironment, exception, out var translatedError)
             )
             {
                 exception = new OpenIdException(translatedError, exception);

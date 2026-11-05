@@ -76,8 +76,7 @@ internal class DefaultAuthorizationRequestProcessor(
             return openIdException.Error.WithState(state);
 
         if (
-            OpenIdExceptionTranslation.TryTranslate(
-                ExceptionTranslators,
+            ExceptionTranslators.TryTranslate(
                 openIdContext.Environment,
                 exception,
                 out var translatedError

@@ -21,6 +21,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// </summary>
 // See ADR-1235.
 // See ADR-1370.
+// See ADR-1411.
 internal static class SecretProtectionRegistration
 {
     private const string RootKeyProvidersSubsection = "RootKeyProviders";
@@ -33,6 +34,7 @@ internal static class SecretProtectionRegistration
             nameof(SecretProtectionOptions.RootKeyProvider),
             nameof(SecretProtectionOptions.Recovery),
             nameof(SecretProtectionOptions.MasterKeys),
+            nameof(SecretProtectionOptions.OwnerRootKeys),
             RootKeyProvidersSubsection
         );
 
@@ -52,7 +54,8 @@ internal static class SecretProtectionRegistration
     /// <param name="configuration">The <see cref="IConfiguration"/> that holds the
     /// <see cref="SecretProtectionOptions.DefaultSectionName"/> section.</param>
     /// <exception cref="InvalidOperationException">The section has a direct child other than the root key provider,
-    /// the recovery options, the master key options and the root key provider options.</exception>
+    /// the recovery options, the master key options, the owner root key options and the root key provider
+    /// options.</exception>
     public static void AddSecretProtection(
         IIdentityServerBuilder builder,
         IConfiguration configuration
@@ -63,6 +66,9 @@ internal static class SecretProtectionRegistration
 
         var recoverySection = section.GetSection(nameof(SecretProtectionOptions.Recovery));
         var masterKeysSection = section.GetSection(nameof(SecretProtectionOptions.MasterKeys));
+        var ownerRootKeysSection = section.GetSection(
+            nameof(SecretProtectionOptions.OwnerRootKeys)
+        );
         var localSection = configuration.GetSection(LocalKeyWrapperOptions.DefaultSectionName);
         var keyRingSection = configuration.GetSection(
             DataProtectionKeyRingOptions.DefaultSectionName
@@ -79,6 +85,7 @@ internal static class SecretProtectionRegistration
                 options.RootKeyProvider = section[nameof(SecretProtectionOptions.RootKeyProvider)];
                 recoverySection.BindStrictly(options.Recovery);
                 masterKeysSection.BindStrictly(options.MasterKeys);
+                ownerRootKeysSection.BindStrictly(options.OwnerRootKeys);
             })
             .ValidateOnStart();
 

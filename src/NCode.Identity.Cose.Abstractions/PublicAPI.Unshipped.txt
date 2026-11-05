@@ -1,0 +1,381 @@
+#nullable enable
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A128Gcm = 1 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A128Kw = -3 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A192Gcm = 2 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A192Kw = -4 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A256Gcm = 3 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.A256Kw = -5 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Direct = -6 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ed25519 = -19 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ed448 = -53 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.EdDsa = -8 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Es256 = -7 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Es256K = -47 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Es384 = -35 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Es512 = -36 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Esp256 = -9 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Esp384 = -51 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Esp512 = -52 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.HmacSha256 = 5 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.HmacSha256Truncated64 = 4 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.HmacSha384 = 6 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.HmacSha512 = 7 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.MlDsa44 = -48 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.MlDsa65 = -49 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.MlDsa87 = -50 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ps256 = -37 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ps384 = -38 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Ps512 = -39 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Rs256 = -257 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Rs384 = -258 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.Rs512 = -259 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.RsaesOaepSha1 = -40 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.RsaesOaepSha256 = -41 -> int
+const NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers.RsaesOaepSha512 = -42 -> int
+const NCode.Identity.Cose.CoseFailureCodes.AlgorithmNotPermitted = "algorithm_not_permitted" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.CriticalHeaderNotUnderstood = "critical_header_not_understood" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.DecryptionFailed = "decryption_failed" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.DetachedContent = "detached_content" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.InvalidHeader = "invalid_header" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.InvalidKey = "invalid_key" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.InvalidMessage = "invalid_message" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.InvalidSignature = "invalid_signature" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.KeyNotFound = "key_not_found" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.LimitExceeded = "limit_exceeded" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UnprotectedAlgorithm = "unprotected_algorithm" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UnsupportedAlgorithm = "unsupported_algorithm" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UnsupportedKeyType = "unsupported_key_type" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UnsupportedMessageType = "unsupported_message_type" -> string!
+const NCode.Identity.Cose.CoseFailureCodes.UntaggedMessage = "untagged_message" -> string!
+const NCode.Identity.Cose.CoseHeaderLabels.Algorithm = 1 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.ContentType = 3 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.Critical = 2 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.CwtClaims = 15 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.InitializationVector = 5 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.KeyId = 4 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.PartialInitializationVector = 6 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.Type = 16 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.X509Bag = 32 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.X509Chain = 33 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.X509ThumbprintSha256 = 34 -> long
+const NCode.Identity.Cose.CoseHeaderLabels.X509Url = 35 -> long
+const NCode.Identity.Cose.CoseTags.Encrypt = 96 -> ulong
+const NCode.Identity.Cose.CoseTags.Encrypt0 = 16 -> ulong
+const NCode.Identity.Cose.CoseTags.Mac = 97 -> ulong
+const NCode.Identity.Cose.CoseTags.Mac0 = 17 -> ulong
+const NCode.Identity.Cose.CoseTags.Sign = 98 -> ulong
+const NCode.Identity.Cose.CoseTags.Sign1 = 18 -> ulong
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.Ed25519 = 6 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.Ed448 = 7 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.P256 = 1 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.P384 = 2 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.P521 = 3 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.Secp256k1 = 8 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.X25519 = 4 -> int
+const NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers.X448 = 5 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.Decrypt = 4 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.DeriveBits = 8 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.DeriveKey = 7 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.Encrypt = 3 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.MacCreate = 9 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.MacVerify = 10 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.Sign = 1 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.UnwrapKey = 6 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.Verify = 2 -> int
+const NCode.Identity.Cose.Keys.CoseKeyOperations.WrapKey = 5 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.Algorithm = 3 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.BaseIv = 5 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.KeyId = 2 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.KeyOperations = 4 -> int
+const NCode.Identity.Cose.Keys.CoseKeyParameterLabels.KeyType = 1 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Akp = 7 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Ec2 = 2 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.HssLms = 5 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Okp = 1 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Rsa = 3 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.Symmetric = 4 -> int
+const NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers.WalnutDsa = 6 -> int
+NCode.Identity.Cose.Algorithms.CoseAlgorithm
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.CoseAlgorithm() -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Identifier.get -> int
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Identifier.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.JoseAlgorithmCode.get -> string!
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.JoseAlgorithmCode.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Kind.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Kind.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Name.get -> string!
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.Name.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.TagSizeBytes.get -> int?
+NCode.Identity.Cose.Algorithms.CoseAlgorithm.TagSizeBytes.init -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding
+NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding.Algorithm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding.CoseAlgorithmBinding(NCode.Identity.Cose.Algorithms.CoseAlgorithm! algorithm, NCode.Identity.Jose.Algorithms.Algorithm! joseAlgorithm) -> void
+NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding.JoseAlgorithm.get -> NCode.Identity.Jose.Algorithms.Algorithm!
+NCode.Identity.Cose.Algorithms.CoseAlgorithmIdentifiers
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind.ContentEncryption = 2 -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind.KeyDistribution = 3 -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind.Mac = 1 -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithmKind.Signature = 0 -> NCode.Identity.Cose.Algorithms.CoseAlgorithmKind
+NCode.Identity.Cose.Algorithms.CoseAlgorithms
+NCode.Identity.Cose.Algorithms.ICoseAlgorithmCatalog
+NCode.Identity.Cose.Algorithms.ICoseAlgorithmCatalog.Algorithms.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding!>!
+NCode.Identity.Cose.Algorithms.ICoseAlgorithmCatalog.TryGet(int identifier, out NCode.Identity.Cose.Algorithms.CoseAlgorithmBinding? binding) -> bool
+NCode.Identity.Cose.CoseCredentials
+NCode.Identity.Cose.CoseCredentials.Algorithm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+NCode.Identity.Cose.CoseCredentials.CoseCredentials(NCode.Identity.Secrets.Keys.SecretKey! secretKey, NCode.Identity.Cose.Algorithms.CoseAlgorithm! algorithm) -> void
+NCode.Identity.Cose.CoseCredentials.SecretKey.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Cose.CoseDecryptionParameters
+NCode.Identity.Cose.CoseDecryptionParameters.ClockSkew.get -> System.TimeSpan
+NCode.Identity.Cose.CoseDecryptionParameters.ClockSkew.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.CoseDecryptionParameters() -> void
+NCode.Identity.Cose.CoseDecryptionParameters.DetachedContent.get -> System.ReadOnlyMemory<byte>?
+NCode.Identity.Cose.CoseDecryptionParameters.DetachedContent.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.ExternalAad.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Cose.CoseDecryptionParameters.ExternalAad.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.Keys.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.Cose.CoseDecryptionParameters.Keys.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.UnderstoodCriticalHeaders.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.CoseLabel>!
+NCode.Identity.Cose.CoseDecryptionParameters.UnderstoodCriticalHeaders.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.UntaggedMessageType.get -> NCode.Identity.Cose.CoseMessageType?
+NCode.Identity.Cose.CoseDecryptionParameters.UntaggedMessageType.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.ValidAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+NCode.Identity.Cose.CoseDecryptionParameters.ValidAlgorithms.init -> void
+NCode.Identity.Cose.CoseDecryptionParameters.ValidKeyDistributionAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+NCode.Identity.Cose.CoseDecryptionParameters.ValidKeyDistributionAlgorithms.init -> void
+NCode.Identity.Cose.CoseEncodingOptions
+NCode.Identity.Cose.CoseEncodingOptions.CoseEncodingOptions() -> void
+NCode.Identity.Cose.CoseEncodingOptions.DetachContent.get -> bool
+NCode.Identity.Cose.CoseEncodingOptions.DetachContent.init -> void
+NCode.Identity.Cose.CoseEncodingOptions.ExternalAad.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Cose.CoseEncodingOptions.ExternalAad.init -> void
+NCode.Identity.Cose.CoseEncodingOptions.OmitTag.get -> bool
+NCode.Identity.Cose.CoseEncodingOptions.OmitTag.init -> void
+NCode.Identity.Cose.CoseEncodingOptions.ProtectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseEncodingOptions.ProtectedHeaders.init -> void
+NCode.Identity.Cose.CoseEncodingOptions.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseEncodingOptions.UnprotectedHeaders.init -> void
+NCode.Identity.Cose.CoseException
+NCode.Identity.Cose.CoseException.CoseException(string! failureCode, string! message) -> void
+NCode.Identity.Cose.CoseException.CoseException(string! failureCode, string! message, System.Exception! inner) -> void
+NCode.Identity.Cose.CoseException.FailureCode.get -> string!
+NCode.Identity.Cose.CoseFailureCodes
+NCode.Identity.Cose.CoseHeaderLabels
+NCode.Identity.Cose.CoseLabel
+NCode.Identity.Cose.CoseLabel.CoseLabel() -> void
+NCode.Identity.Cose.CoseLabel.CoseLabel(long value) -> void
+NCode.Identity.Cose.CoseLabel.CoseLabel(string! value) -> void
+NCode.Identity.Cose.CoseLabel.IntegerValue.get -> long
+NCode.Identity.Cose.CoseLabel.IsText.get -> bool
+NCode.Identity.Cose.CoseLabel.TextValue.get -> string?
+NCode.Identity.Cose.CoseLayerHeaders
+NCode.Identity.Cose.CoseLayerHeaders.CoseLayerHeaders() -> void
+NCode.Identity.Cose.CoseLayerHeaders.ProtectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseLayerHeaders.ProtectedHeaders.init -> void
+NCode.Identity.Cose.CoseLayerHeaders.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseLayerHeaders.UnprotectedHeaders.init -> void
+NCode.Identity.Cose.CoseLibrary
+NCode.Identity.Cose.CoseLibrary.CoseLibrary() -> void
+NCode.Identity.Cose.CoseMessageInfo
+NCode.Identity.Cose.CoseMessageInfo.CoseMessageInfo() -> void
+NCode.Identity.Cose.CoseMessageInfo.IsContentDetached.get -> bool
+NCode.Identity.Cose.CoseMessageInfo.IsContentDetached.init -> void
+NCode.Identity.Cose.CoseMessageInfo.IsTagged.get -> bool
+NCode.Identity.Cose.CoseMessageInfo.IsTagged.init -> void
+NCode.Identity.Cose.CoseMessageInfo.MessageType.get -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageInfo.MessageType.init -> void
+NCode.Identity.Cose.CoseMessageInfo.ProtectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseMessageInfo.ProtectedHeaders.init -> void
+NCode.Identity.Cose.CoseMessageInfo.Recipients.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseLayerHeaders!>!
+NCode.Identity.Cose.CoseMessageInfo.Recipients.init -> void
+NCode.Identity.Cose.CoseMessageInfo.Signatures.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseLayerHeaders!>!
+NCode.Identity.Cose.CoseMessageInfo.Signatures.init -> void
+NCode.Identity.Cose.CoseMessageInfo.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseMessageInfo.UnprotectedHeaders.init -> void
+NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Encrypt = 2 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Encrypt0 = 3 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Mac = 4 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Mac0 = 5 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Sign = 0 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseMessageType.Sign1 = 1 -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseRecipient
+NCode.Identity.Cose.CoseRecipient.CoseRecipient(NCode.Identity.Cose.CoseCredentials! credentials) -> void
+NCode.Identity.Cose.CoseRecipient.Credentials.get -> NCode.Identity.Cose.CoseCredentials!
+NCode.Identity.Cose.CoseRecipient.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseRecipient.UnprotectedHeaders.init -> void
+NCode.Identity.Cose.CoseRecipients
+NCode.Identity.Cose.CoseRecipients.ContentAlgorithm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+NCode.Identity.Cose.CoseRecipients.CoseRecipients(NCode.Identity.Cose.Algorithms.CoseAlgorithm! contentAlgorithm, System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseRecipient!>! recipients) -> void
+NCode.Identity.Cose.CoseRecipients.Recipients.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Cose.CoseRecipient!>
+NCode.Identity.Cose.CoseSigner
+NCode.Identity.Cose.CoseSigner.CoseSigner(NCode.Identity.Cose.CoseCredentials! credentials) -> void
+NCode.Identity.Cose.CoseSigner.Credentials.get -> NCode.Identity.Cose.CoseCredentials!
+NCode.Identity.Cose.CoseSigner.ProtectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseSigner.ProtectedHeaders.init -> void
+NCode.Identity.Cose.CoseSigner.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseSigner.UnprotectedHeaders.init -> void
+NCode.Identity.Cose.CoseTags
+NCode.Identity.Cose.CoseValue
+NCode.Identity.Cose.CoseValue.EncodedValue.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Cose.CoseValue.IsMap.get -> bool
+NCode.Identity.Cose.CoseValue.TryGetArray(out System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseValue!>? value) -> bool
+NCode.Identity.Cose.CoseValue.TryGetByteString(out System.ReadOnlyMemory<byte> value) -> bool
+NCode.Identity.Cose.CoseValue.TryGetDouble(out double value) -> bool
+NCode.Identity.Cose.CoseValue.TryGetInt64(out long value) -> bool
+NCode.Identity.Cose.CoseValue.TryGetTextString(out string? value) -> bool
+NCode.Identity.Cose.CoseVerificationParameters
+NCode.Identity.Cose.CoseVerificationParameters.ClockSkew.get -> System.TimeSpan
+NCode.Identity.Cose.CoseVerificationParameters.ClockSkew.init -> void
+NCode.Identity.Cose.CoseVerificationParameters.CoseVerificationParameters() -> void
+NCode.Identity.Cose.CoseVerificationParameters.DetachedContent.get -> System.ReadOnlyMemory<byte>?
+NCode.Identity.Cose.CoseVerificationParameters.DetachedContent.init -> void
+NCode.Identity.Cose.CoseVerificationParameters.ExternalAad.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Cose.CoseVerificationParameters.ExternalAad.init -> void
+NCode.Identity.Cose.CoseVerificationParameters.Keys.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.Cose.CoseVerificationParameters.Keys.init -> void
+NCode.Identity.Cose.CoseVerificationParameters.UnderstoodCriticalHeaders.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.CoseLabel>!
+NCode.Identity.Cose.CoseVerificationParameters.UnderstoodCriticalHeaders.init -> void
+NCode.Identity.Cose.CoseVerificationParameters.UntaggedMessageType.get -> NCode.Identity.Cose.CoseMessageType?
+NCode.Identity.Cose.CoseVerificationParameters.UntaggedMessageType.init -> void
+NCode.Identity.Cose.CoseVerificationParameters.ValidAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+NCode.Identity.Cose.CoseVerificationParameters.ValidAlgorithms.init -> void
+NCode.Identity.Cose.CoseVerificationParameters.ValidKeyDistributionAlgorithms.get -> System.Collections.Generic.IReadOnlyCollection<int>!
+NCode.Identity.Cose.CoseVerificationParameters.ValidKeyDistributionAlgorithms.init -> void
+NCode.Identity.Cose.CoseVerifiedMessage
+NCode.Identity.Cose.CoseVerifiedMessage.Algorithm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+NCode.Identity.Cose.CoseVerifiedMessage.Algorithm.init -> void
+NCode.Identity.Cose.CoseVerifiedMessage.Content.get -> System.ReadOnlyMemory<byte>
+NCode.Identity.Cose.CoseVerifiedMessage.Content.init -> void
+NCode.Identity.Cose.CoseVerifiedMessage.CoseVerifiedMessage() -> void
+NCode.Identity.Cose.CoseVerifiedMessage.Key.get -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Cose.CoseVerifiedMessage.Key.init -> void
+NCode.Identity.Cose.CoseVerifiedMessage.MessageType.get -> NCode.Identity.Cose.CoseMessageType
+NCode.Identity.Cose.CoseVerifiedMessage.MessageType.init -> void
+NCode.Identity.Cose.CoseVerifiedMessage.ProtectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseVerifiedMessage.ProtectedHeaders.init -> void
+NCode.Identity.Cose.CoseVerifiedMessage.Recipient.get -> NCode.Identity.Cose.CoseLayerHeaders?
+NCode.Identity.Cose.CoseVerifiedMessage.Recipient.init -> void
+NCode.Identity.Cose.CoseVerifiedMessage.Signature.get -> NCode.Identity.Cose.CoseLayerHeaders?
+NCode.Identity.Cose.CoseVerifiedMessage.Signature.init -> void
+NCode.Identity.Cose.CoseVerifiedMessage.UnprotectedHeaders.get -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.CoseVerifiedMessage.UnprotectedHeaders.init -> void
+NCode.Identity.Cose.ICoseSerializer
+NCode.Identity.Cose.ICoseSerializer.DecodeMap(System.ReadOnlyMemory<byte> encodedMap) -> System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>!
+NCode.Identity.Cose.ICoseSerializer.Decrypt(System.ReadOnlyMemory<byte> message, NCode.Identity.Cose.CoseDecryptionParameters! parameters) -> NCode.Identity.Cose.CoseVerifiedMessage!
+NCode.Identity.Cose.ICoseSerializer.EncodeEncrypt(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseRecipients! recipients, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeEncrypt0(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeMac(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseRecipients! recipients, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeMac0(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeMap(System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>! map) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeSign(System.ReadOnlySpan<byte> content, System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseSigner!>! signers, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeSign1(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.Inspect(System.ReadOnlyMemory<byte> message, NCode.Identity.Cose.CoseMessageType? untaggedMessageType) -> NCode.Identity.Cose.CoseMessageInfo!
+NCode.Identity.Cose.ICoseSerializer.Verify(System.ReadOnlyMemory<byte> message, NCode.Identity.Cose.CoseVerificationParameters! parameters) -> NCode.Identity.Cose.CoseVerifiedMessage!
+NCode.Identity.Cose.Keys.CoseEllipticCurve
+NCode.Identity.Cose.Keys.CoseEllipticCurve.CoseEllipticCurve() -> void
+NCode.Identity.Cose.Keys.CoseEllipticCurve.Identifier.get -> int
+NCode.Identity.Cose.Keys.CoseEllipticCurve.Identifier.init -> void
+NCode.Identity.Cose.Keys.CoseEllipticCurve.JwkCurveName.get -> string!
+NCode.Identity.Cose.Keys.CoseEllipticCurve.JwkCurveName.init -> void
+NCode.Identity.Cose.Keys.CoseEllipticCurve.KeyType.get -> int
+NCode.Identity.Cose.Keys.CoseEllipticCurve.KeyType.init -> void
+NCode.Identity.Cose.Keys.CoseEllipticCurveIdentifiers
+NCode.Identity.Cose.Keys.CoseEllipticCurves
+NCode.Identity.Cose.Keys.CoseKeyIdentifiers
+static NCode.Identity.Cose.Keys.CoseKeyIdentifiers.GetBytes(string! keyId) -> byte[]!
+static NCode.Identity.Cose.Keys.CoseKeyIdentifiers.GetKeyId(System.ReadOnlySpan<byte> keyId) -> string!
+NCode.Identity.Cose.Keys.CoseKeyOperations
+NCode.Identity.Cose.Keys.CoseKeyParameter
+NCode.Identity.Cose.Keys.CoseKeyParameter.CoseKeyParameter() -> void
+NCode.Identity.Cose.Keys.CoseKeyParameter.Encoding.get -> NCode.Identity.Cose.Keys.CoseKeyParameterEncoding
+NCode.Identity.Cose.Keys.CoseKeyParameter.Encoding.init -> void
+NCode.Identity.Cose.Keys.CoseKeyParameter.IsPrivate.get -> bool
+NCode.Identity.Cose.Keys.CoseKeyParameter.IsPrivate.init -> void
+NCode.Identity.Cose.Keys.CoseKeyParameter.JwkMember.get -> string!
+NCode.Identity.Cose.Keys.CoseKeyParameter.JwkMember.init -> void
+NCode.Identity.Cose.Keys.CoseKeyParameter.Label.get -> int
+NCode.Identity.Cose.Keys.CoseKeyParameter.Label.init -> void
+NCode.Identity.Cose.Keys.CoseKeyParameterEncoding
+NCode.Identity.Cose.Keys.CoseKeyParameterEncoding.ByteString = 0 -> NCode.Identity.Cose.Keys.CoseKeyParameterEncoding
+NCode.Identity.Cose.Keys.CoseKeyParameterEncoding.Curve = 1 -> NCode.Identity.Cose.Keys.CoseKeyParameterEncoding
+NCode.Identity.Cose.Keys.CoseKeyParameterLabels
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.CoseKeyTypeDescriptor() -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.JwkKeyType.get -> string!
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.JwkKeyType.init -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.KeyType.get -> int
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.KeyType.init -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.Parameters.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Cose.Keys.CoseKeyParameter!>
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.Parameters.init -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.RequiresAlgorithm.get -> bool
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor.RequiresAlgorithm.init -> void
+NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors
+NCode.Identity.Cose.Keys.CoseKeyTypeIdentifiers
+NCode.Identity.Cose.Keys.ICoseKeyConverter
+NCode.Identity.Cose.Keys.ICoseKeyConverter.ReadPublicKey(System.ReadOnlyMemory<byte> encodedKey) -> NCode.Identity.Secrets.Keys.SecretKey!
+NCode.Identity.Cose.Keys.ICoseKeyConverter.ReadPublicKeySet(System.ReadOnlyMemory<byte> encodedKeySet) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.Keys.SecretKey!>!
+NCode.Identity.Cose.Keys.ICoseKeyConverter.WritePublicKey(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> byte[]!
+NCode.Identity.Cose.Keys.ICoseKeyConverter.WritePublicKeySet(System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.Keys.SecretKey!>! secretKeys) -> byte[]!
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.Curves.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.Keys.CoseEllipticCurve!>!
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.KeyTypes.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!>!
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.TryGetCurve(int keyType, int identifier, out NCode.Identity.Cose.Keys.CoseEllipticCurve? curve) -> bool
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.TryGetCurveByJwkName(int keyType, string! jwkCurveName, out NCode.Identity.Cose.Keys.CoseEllipticCurve? curve) -> bool
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.TryGetKeyType(int keyType, out NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor? descriptor) -> bool
+NCode.Identity.Cose.Keys.ICoseKeyTypeCatalog.TryGetKeyTypeByJwkKeyType(string! jwkKeyType, out NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor? descriptor) -> bool
+override NCode.Identity.Cose.CoseLabel.ToString() -> string!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A128Gcm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A128Kw.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A192Gcm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A192Kw.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A256Gcm.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.A256Kw.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Direct.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ed25519.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ed448.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.EdDsa.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Es256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Es256K.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Es384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Es512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Esp256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Esp384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Esp512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.HmacSha256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.HmacSha256Truncated64.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.HmacSha384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.HmacSha512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.MlDsa44.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.MlDsa65.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.MlDsa87.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ps256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ps384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Ps512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Rs256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Rs384.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.Rs512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.RsaesOaepSha1.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.RsaesOaepSha256.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.Algorithms.CoseAlgorithms.RsaesOaepSha512.get -> NCode.Identity.Cose.Algorithms.CoseAlgorithm!
+static NCode.Identity.Cose.CoseLabel.implicit operator NCode.Identity.Cose.CoseLabel(long value) -> NCode.Identity.Cose.CoseLabel
+static NCode.Identity.Cose.CoseLabel.implicit operator NCode.Identity.Cose.CoseLabel(string! value) -> NCode.Identity.Cose.CoseLabel
+static NCode.Identity.Cose.CoseValue.FromByteString(System.ReadOnlySpan<byte> value) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromEncodedValue(System.ReadOnlyMemory<byte> encodedValue) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromInt64(long value) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromTextStrings(System.Collections.Generic.IReadOnlyCollection<string!>! values) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromLabels(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Cose.CoseLabel>! labels) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.CoseValue.FromTextString(string! value) -> NCode.Identity.Cose.CoseValue!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.Ed25519.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.Ed448.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.P256.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.P384.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.P521.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.Secp256k1.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.X25519.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseEllipticCurves.X448.get -> NCode.Identity.Cose.Keys.CoseEllipticCurve!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Akp.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Ec2.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Okp.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Rsa.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!
+static NCode.Identity.Cose.Keys.CoseKeyTypeDescriptors.Symmetric.get -> NCode.Identity.Cose.Keys.CoseKeyTypeDescriptor!

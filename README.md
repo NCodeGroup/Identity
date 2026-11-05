@@ -75,6 +75,10 @@ thumbprints, requirement-and-handler style validation, strict RFC 7519 `NumericD
 Ed448) signatures and **ECDH-ES** over X25519 / X448 as a clean-room opt-in package, **ES256K** (secp256k1) as an opt-in
 package where the platform supports the curve, and **ML-DSA** post-quantum signatures through the BCL.
 
+**COSE / CWT** — CBOR Object Signing and Encryption (`NCode.Identity.Cose`) and CBOR Web Tokens (`NCode.Identity.Cwt`)
+as opt-in packages over the JOSE algorithms and the family's keys: all six COSE message types, public COSE_Key
+conversion, and fail-closed CWT issuance and validation; see [COSE and CWT](docs/capabilities/cose-and-cwt.md).
+
 **Encryption at rest:** every stored secret is encrypted under a root key held in AWS KMS, Azure Key Vault or Google
 Cloud KMS. That covers private keys, client secrets, grant payloads and the Data Protection key ring. Each tenant has
 its own master key, so deleting a tenant crypto-shreds its data, and secret plaintext is kept in pinned memory that is
@@ -95,6 +99,7 @@ Production projects are under `src/`, tests under `tests/`.
 | Area                 | Packages                                                                                                                           |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | JOSE / JWT           | `NCode.Identity.Jose(.Abstractions)`, `.Jose.EdDsa`, `.Jose.Secp256k1`, `.Jose.SdJwt`, `.Jwt(.Abstractions)`, `.Jwk`, `NCode.Json`, `NCode.Time` |
+| COSE / CWT           | `NCode.Identity.Cose(.Abstractions)`, `NCode.Identity.Cwt(.Abstractions)`                                                          |
 | Secrets              | `NCode.Identity.Secrets(.Abstractions)`, `.Secrets.Persistence(.Abstractions)`, key wrappers `.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms` |
 | OpenID protocol      | `NCode.Identity.OpenId.Abstractions`, `.Core`, `.Messages.Abstractions`                                                            |
 | Endpoints & grants   | `NCode.Identity.OpenId.Authentication(.Abstractions)`, `.Authentication.Interactive(.Abstractions)`, `NCode.AspNetCore`            |

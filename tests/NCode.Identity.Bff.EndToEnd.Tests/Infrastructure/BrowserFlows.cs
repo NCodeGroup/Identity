@@ -17,6 +17,8 @@ public static class BrowserFlows
     private const string FollowLinkScript =
         "url => { const a = document.createElement('a'); a.href = url; document.body.appendChild(a); a.click(); }";
 
+    private const string DocumentCompleteScript = "() => document.readyState === 'complete'";
+
     private const string SubmitFormScript =
         "([action, fields]) => { const f = document.createElement('form'); f.method = 'post'; f.action = action; for (const [name, value] of Object.entries(fields)) { const i = document.createElement('input'); i.type = 'hidden'; i.name = name; i.value = value; f.appendChild(i); } document.body.appendChild(f); f.submit(); }";
 
@@ -29,7 +31,11 @@ public static class BrowserFlows
         await page.FillAsync("#username", KeycloakProvider.UserName);
         await page.FillAsync("#password", keycloak.UserPassword);
         await page.ClickAsync("#kc-login");
-        await page.WaitForURLAsync($"{bff.Origin}/");
+        await page.WaitForURLAsync(
+            $"{bff.Origin}/",
+            new PageWaitForURLOptions { WaitUntil = WaitUntilState.Commit }
+        );
+        await WaitForDocumentAsync(page);
     }
 
     /// <summary>
@@ -65,8 +71,12 @@ public static class BrowserFlows
     public static async Task<string> FollowLinkAsync(IPage page, string url)
     {
 #pragma warning disable CS0612 // Playwright marks it obsolete without a replacement that waits for whatever URL the redirects reach.
-        await page.RunAndWaitForNavigationAsync(() => page.EvaluateAsync(FollowLinkScript, url));
+        await page.RunAndWaitForNavigationAsync(
+            () => page.EvaluateAsync(FollowLinkScript, url),
+            new PageRunAndWaitForNavigationOptions { WaitUntil = WaitUntilState.Commit }
+        );
 #pragma warning restore CS0612
+        await WaitForDocumentAsync(page);
         return await page.InnerTextAsync("body");
     }
 
@@ -84,4 +94,33 @@ public static class BrowserFlows
             response => response.Request.Method == "POST" && response.Url == action
         );
     }
+
+    /// <summary>
+    /// Submits a <c>POST</c> form of hidden fields to the action and waits until the navigation that its redirects
+    /// start has loaded a URL that the destination predicate accepts.
+    /// </summary>
+    public static async Task SubmitFormAndWaitForUrlAsync(
+        IPage page,
+        string action,
+        IReadOnlyDictionary<string, string> fields,
+        Func<string, bool> destination
+    )
+    {
+#pragma warning disable CS0612 // Playwright marks it obsolete without a replacement that waits for a navigation the page has not started yet.
+        await page.RunAndWaitForNavigationAsync(
+            () => page.EvaluateAsync(SubmitFormScript, new object[] { action, fields }),
+            new PageRunAndWaitForNavigationOptions
+            {
+                UrlFunc = destination,
+                WaitUntil = WaitUntilState.Commit,
+            }
+        );
+#pragma warning restore CS0612
+        await WaitForDocumentAsync(page);
+    }
+
+    // Firefox can finish loading a page that a cross-origin redirect chain reaches without Playwright seeing its load
+    // event, so a navigation is awaited until it commits and the document's own ready state says that it loaded.
+    private static async Task WaitForDocumentAsync(IPage page) =>
+        await page.WaitForFunctionAsync(DocumentCompleteScript);
 }

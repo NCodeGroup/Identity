@@ -280,8 +280,10 @@ packages, so a BFF in front of a non-NCode OP pulls in no server code: the clien
 **Authorization request.**
 
 - `response_type=code`, PKCE `S256` on every request, a fresh `state` and `nonce`, and `response_mode=query`.
-- `scope` is `openid` plus the configured scopes. It includes `offline_access` whenever any token requirement needs a
-  user token beyond the first access token.
+- `scope` is `openid` plus the configured `Bff:Scopes`, each once. It includes `offline_access` only when `Bff:Scopes`
+  lists it, for an OP that issues a refresh token for that scope alone: an offline grant outlives the OP's login
+  session, so an OP such as Keycloak ends that session without a back-channel logout to the BFF
+  ([ADR-1420](decisions/1420-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
 - `resource` lists the RFC 8707 resource indicators for the frontend's APIs.
 - `dpop_jkt` is sent when DPoP is in use.
 - The request goes through **PAR** whenever the OP advertises `pushed_authorization_request_endpoint`. PAR is mandatory
@@ -855,7 +857,7 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
     "PublicOrigin": "https://orders.example.com",                 // the BFF's own URL; redirect_uri is built from it
     "ClientId": "orders-web",
     "ClientAuthentication": { "Method": "private_key_jwt", "KeyRing": "orders-web-client-key" }, // key from Secrets
-    "Scopes": ["openid", "profile", "email", "offline_access"],
+    "Scopes": ["openid", "profile", "email", "offline_access"],   // offline_access: this OP issues refresh tokens only for it
     "ReturnUrls": ["/"],
     "UserClaims": ["email", "role"],
     "TrustedOrigins": ["https://admin.example.com"],              // same-site origins allowed to call the APIs

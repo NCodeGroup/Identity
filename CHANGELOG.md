@@ -2429,8 +2429,10 @@ describes the family as it is rather than its changes
   `IBffSessionStore`. `IBffTokenAccessor` and `AddBffAccessTokenHandler` attach the user's access token, refreshed
   single-flight across replicas under a lease on the refresh token, and DPoP-bound when the provider supports it;
   `BffAccessToken.TokenType` is `Bearer` when the provider's token response omits the `token_type` that RFC 6749 §5.1
-  requires. `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and back-channel
-  logout ends sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD only.
+  requires. The login requests `openid` and the scopes `Bff:Scopes` lists, never `offline_access` on its own, so by
+  default the grant stays inside the provider's login session and the provider's logout reaches the BFF.
+  `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and back-channel logout ends
+  sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD only.
   A won refresh and a logout are never cancelled by the browser, so a rotated refresh token is kept and a session always
   ends. `AddIdentityBff` validates the refresh lease against the client's request timeout, and the protocol client's
   `IdTokenValidationResult` exposes the validated `Identity` ([#394](https://github.com/NCodeGroup/Identity/issues/394),
@@ -2438,7 +2440,8 @@ describes the family as it is rather than its changes
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
-  [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)).
+  [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
+  [ADR-1420](docs/decisions/1420-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
 
 - **A BFF is composed in one call.** The `NCode.Identity.Bff.Server` package is the BFF's composition root:
   `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,

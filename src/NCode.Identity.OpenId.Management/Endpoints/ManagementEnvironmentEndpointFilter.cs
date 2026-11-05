@@ -16,7 +16,8 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// the authorization handler to read; a caller is therefore authenticated by the tenant that issued its token under
 /// every tenant strategy. It does <b>not</b> open a tenant scope: control-plane endpoints act on unscoped
 /// platform/team/tenant rows, and tenant-bound endpoints open their scope from the route's <c>tenantId</c> via the <see
-/// cref="TenantScopeEndpointFilter"/> on the tenant-plane group, so the route's tenant only scopes the data.
+/// cref="TenantScopeEndpointFilter"/> on the tenant-plane group, so the route's tenant only scopes the data. An
+/// <see cref="HttpResultException"/> raised anywhere beneath it is answered with that exception's result.
 /// </summary>
 // See ADR-1191 (the management API authenticates against the control-plane tenant).
 internal sealed class ManagementEnvironmentEndpointFilter(
@@ -42,12 +43,12 @@ internal sealed class ManagementEnvironmentEndpointFilter(
                 mediator,
                 httpContext.RequestAborted
             );
+
+            return await next(context);
         }
         catch (HttpResultException exception)
         {
             return exception.HttpResult;
         }
-
-        return await next(context);
     }
 }

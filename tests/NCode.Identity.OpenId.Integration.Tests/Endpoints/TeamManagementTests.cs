@@ -858,6 +858,11 @@ public class TeamManagementTests
             Assert.Contains(clientId, ids);
         }
 
+        // Revoking a session acts through the tenant's OpenID runtime, which a disabled team's tenant does not serve.
+        // The runtime is materialized before the session is looked up, so an unknown session id answers 404 here.
+        using (var revoked = await client.DeleteAsync("/api/tenants/umbrella-dev/sessions/unknown"))
+            Assert.Equal(HttpStatusCode.NotFound, revoked.StatusCode);
+
         // PatchAsync asserts 204 No Content.
         await PatchAsync(
             client,
@@ -877,6 +882,14 @@ public class TeamManagementTests
 
         using (var restored = await GetDiscoveryAsync(client, "umbrella-dev"))
             Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+
+        // An unknown session is reported as revoked once the tenant is served again.
+        using (
+            var revokedAgain = await client.DeleteAsync(
+                "/api/tenants/umbrella-dev/sessions/unknown"
+            )
+        )
+            Assert.Equal(HttpStatusCode.NoContent, revokedAgain.StatusCode);
     }
 
     #endregion

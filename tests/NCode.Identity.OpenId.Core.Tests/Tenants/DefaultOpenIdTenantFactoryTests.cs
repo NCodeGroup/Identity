@@ -473,6 +473,56 @@ public sealed class DefaultOpenIdTenantFactoryTests
         mocks.Verify();
     }
 
+    [Fact]
+    public async Task CreateTenantByIdAsync_WhenTheTeamIsDisabled_ThrowsNotFound()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var storeManagerFactory = mocks.Create<IStoreManagerFactory>();
+        var storeManager = mocks.Create<IStoreManager>();
+        var tenantStore = mocks.Create<ITenantStore>();
+
+        storeManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(storeManager.Object)
+            .Verifiable();
+        storeManager
+            .Setup(x => x.GetStore<ITenantStore>())
+            .Returns(tenantStore.Object)
+            .Verifiable();
+        storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        tenantStore
+            .Setup(x => x.GetOrDefaultAsync("acme", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreatePersistedTenant("https://op.example/acme"))
+            .Verifiable();
+
+        // The tenant is enabled and its team is disabled; the strict collaborators have no other setup, so serving
+        // the tenant any further would fail the test too.
+        var teamProvider = CreateTeamProvider(mocks, isDisabled: true);
+
+        var factory = CreateFactory(
+            mocks,
+            mocks.Create<ITenantResolver>().Object,
+            mocks.Create<IOpenIdTenantCache>().Object,
+            storeManagerFactory.Object,
+            teamProvider.Object
+        );
+
+        var exception = await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await factory.CreateTenantByIdAsync(
+                new DefaultHttpContext(),
+                Mock.Of<OpenIdEnvironment>(),
+                Mock.Of<OpenIdPlatform>(),
+                "acme",
+                Mock.Of<IPropertyBag>(),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains("is disabled", exception.Message, StringComparison.Ordinal);
+        mocks.Verify();
+    }
+
     #endregion
 
     #region MaterializeTenantAsync Tests

@@ -313,12 +313,21 @@ rewrapped under it unreadable, in the database and in every backup
 - **The key reference.** The tenant gives the key wrapper name and a reference its provider understands: a KMS key or
   alias ARN for `aws-kms`, a crypto key name without a version for `google-cloud-kms`, and a key id with or without a
   version for `azure-key-vault`. The tenant grants the deployment's identity only the permission to wrap and unwrap with
-  that key ([Helm chart: Tenant root keys](../../charts/ncode-identity-host/README.md#tenant-root-keys)).
-- **Who cannot bring a key.** The `server` owner cannot, because its master keys protect the deployment's Data Protection
-  key ring. The control-plane tenant cannot either: the management API authenticates every administrator against it
+  that key ([Helm chart: Tenant root keys](../../charts/ncode-identity-host/README.md#tenant-root-keys)). An Azure Key
+  Vault key reference names a host that ends with one of the suffixes in
+  `SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes`, compared without regard to case, so the
+  server never calls a host the tenant picked outside Key Vault and Managed HSM. The default suffixes are
+  `.vault.azure.net`, `.managedhsm.azure.net`, `.vault.azure.cn`, `.managedhsm.azure.cn`, `.vault.usgovcloudapi.net` and
+  `.managedhsm.usgovcloudapi.net`; configuring the list replaces them, and the deployment's own configured key is not
+  restricted.
+- **Who cannot bring a key.** Which owners can bring a key is decided by the registered `IOwnerRootKeyPolicy`
+  strategies: an owner that any of them refuses cannot, and setting a key on it answers `400` with the policy's reason.
+  The `server` owner is refused, because its master keys protect the deployment's Data Protection key ring. The
+  control-plane tenant is refused too: the management API authenticates every administrator against it
   ([ADR-1191](../decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)), so a revoked
-  key would fail every management request, including the ones that restore it, and lock the administrators out. Its
-  keys stay under the deployment's root key, and setting a key on it answers `400`.
+  key would fail every management request, including the ones that restore it, and lock the administrators out. Their
+  keys stay under the deployment's root key. A consumer registers its own `IOwnerRootKeyPolicy` to refuse further
+  owners.
 - **Set or change.** The server probes the key, stores the tenant's binding as `active`, and rotates the tenant's master
   key so that its successor is created under the tenant's key, then rewraps every retired master key under it and drops
   its recovery copy. Rotation is what gives the tenant sole control: the earlier master key material exists in backups

@@ -29,10 +29,10 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 /// </para>
 /// <para>
 /// The identifier of the root key is the identifier of the key version that the service reports, and a result without
-/// a version, or with the version of another key, is refused. Unwrapping names the recorded key version, so a configured identifier without a version wraps
-/// with the key's current version, and rotating the key in Key Vault leaves older master keys unwrapping under their
-/// own version. A wrapped key shorter than <see cref="MinimumWrappedKeySizeBytes"/> bytes, which an RSA key under 3072
-/// bits produces, is refused when wrapping.
+/// a version, or with the version of another key, is refused. Unwrapping names the recorded key version, so a
+/// configured identifier without a version wraps with the key's current version, and rotating the key in Key Vault
+/// leaves older master keys unwrapping under their own version. A wrapped key shorter than
+/// <see cref="MinimumWrappedKeySizeBytes"/> bytes, which an RSA key under 3072 bits produces, is refused when wrapping.
 /// </para>
 /// <para>
 /// A wrapped key that the service rejects with an HTTP 400 response when unwrapping fails with a

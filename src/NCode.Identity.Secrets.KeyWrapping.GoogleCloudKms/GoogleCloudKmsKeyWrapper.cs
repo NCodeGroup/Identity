@@ -27,10 +27,10 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 /// key with any other context. The context holds identifiers only, never key material.
 /// </para>
 /// <para>
-/// Encryption names the configured or the named crypto key, and the service encrypts with its primary version. The identifier of
-/// the root key is the resource name of the crypto key version that the service reports, which must be a version of
-/// the crypto key that encryption named. Decryption names the crypto key that the recorded version belongs to, so a wrapped key
-/// is never decrypted under any other crypto key.
+/// Encryption names the configured or the named crypto key, and the service encrypts with its primary version. The
+/// identifier of the root key is the resource name of the crypto key version that the service reports, which must be a
+/// version of the crypto key that encryption named. Decryption names the crypto key that the recorded version belongs
+/// to, so a wrapped key is never decrypted under any other crypto key.
 /// </para>
 /// <para>
 /// Every request and response carries CRC32C checksums, so a value corrupted in transit is detected. A response that

@@ -3529,11 +3529,11 @@ describes the family as it is rather than its changes
   configured root key provider and recovery public key, and `secret-protection rewrap-recovery` replaces only the
   recovery copies, each unwrapping a key with the root key provider it names or, with `--recovery-private-key <file>`,
   from its recovery copy. `--owner <type:id>` limits the run to one owner and `--dry-run` verifies every key without
-  writing.   An `--owner` with no master keys exits `1`. A master key under a tenant's root key stays under it: the command never
-  wraps it under the deployment's root key and never adds a recovery copy to it, and a dry run still unwraps it through
-  the tenant's key. The recovery private key is read from the file only, held in memory that is zeroed when the command ends,
-  and never reaches a serving process. The Helm chart's `secretProtection.rewrapJob` runs the command as a Job, and
-  `IMasterKeyRewrapper` is its engine
+  writing. An `--owner` with no master keys exits `1`. A master key under a tenant's root key stays under it: the
+  command never wraps it under the deployment's root key and never adds a recovery copy to it, and a dry run still
+  unwraps it through the tenant's key. The recovery private key is read from the file only, held in memory that is
+  zeroed when the command ends, and never reaches a serving process. The Helm chart's `secretProtection.rewrapJob` runs
+  the command as a Job, and `IMasterKeyRewrapper` is its engine
   ([#172](https://github.com/NCodeGroup/Identity/issues/172),
   [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
 
@@ -3552,8 +3552,11 @@ describes the family as it is rather than its changes
   through any provider. Setting or changing the key rotates the tenant's master key so that the successor is created
   under it and rewraps every retired master key under it, because earlier material exists in backups under the
   deployment's root key; removing it moves the master keys back under the deployment's root key without a rotation.
-  The `server` owner and the control-plane tenant, which the management API authenticates against, cannot bring a key,
-  and a `PUT` on the control-plane tenant answers `400`. A root key is `active`, `unavailable` or `removing`, and an
+  An Azure Key Vault key reference names a host under the deployment's Key Vault or Managed HSM host suffixes
+  (`SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes`, by default the public, China and US
+  government cloud domains). Which owners can bring a key is a registered `IOwnerRootKeyPolicy`: the `server` owner and
+  the control-plane tenant, which the management API authenticates against, are refused, a consumer registers its own,
+  and a `PUT` for a refused owner answers `400`. A root key is `active`, `unavailable` or `removing`, and an
   unknown state reads as `unavailable`. `SecretProtection:OwnerRootKeys:Providers` (empty by default, so no tenant can
   bring a key), `ValidationInterval` (one hour, between one minute and one day) and `RetryInterval` (one minute,
   between one second and the validation interval) tune it, and a listed provider that is not a registered referenced
@@ -3568,6 +3571,7 @@ describes the family as it is rather than its changes
   ([#174](https://github.com/NCodeGroup/Identity/issues/174),
   [ADR-1411](docs/decisions/1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1412](docs/decisions/1412-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
+
 ### Security
 
 - **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's, a

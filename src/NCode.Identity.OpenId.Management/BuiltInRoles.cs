@@ -21,8 +21,10 @@ public static class BuiltInRoles
     public const string TeamAdmin = "TeamAdmin";
 
     /// <summary>
-    /// The role name for tenant administrators who have administrative access within a specific tenant.
+    /// The role name for tenant administrators, who manage a tenant and everything beneath it, including creating its
+    /// clients, resource servers and other resources.
     /// </summary>
+    // See ADR-1417
     public const string TenantAdmin = "TenantAdmin";
 
     /// <summary>

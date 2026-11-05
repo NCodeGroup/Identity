@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// only when it belongs to the node's tenant. This realizes ownership: an <c>Owner</c> assignment at an instance lets the principal
 /// manage that instance (and everything beneath it) without any tenant-wide role. Ownership grants every operation
 /// except <see cref="Operations.Create"/>; creating a new resource is authority at the parent node, held by a
-/// <c>TeamAdmin</c> or <c>GlobalAdmin</c> assignment at the node or an ancestor.
+/// <c>TeamAdmin</c>, <c>TenantAdmin</c> or <c>GlobalAdmin</c> assignment at the node or an ancestor.
 /// </summary>
 internal class OwnershipHandler(
     IStoreManagerFactory storeManagerFactory,
@@ -175,6 +175,7 @@ internal class OwnershipHandler(
 
     private static bool IsCreationRole(string roleName) =>
         string.Equals(roleName, BuiltInRoles.TeamAdmin, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(roleName, BuiltInRoles.TenantAdmin, StringComparison.OrdinalIgnoreCase)
         || string.Equals(roleName, BuiltInRoles.GlobalAdmin, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsManagementRole(string roleName) =>

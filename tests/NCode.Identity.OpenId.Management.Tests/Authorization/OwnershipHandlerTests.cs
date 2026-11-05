@@ -463,6 +463,47 @@ public class OwnershipHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleRequirementAsync_WhenAnEntityAndCreateAndTenantAdminAtTheTenant_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            new TenantEntity(TenantId),
+            CreateSubject(),
+            Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateOnTheTeamNodeAndTenantAdminAtATenant_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            TeamNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)],
+            readsTenant: false
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenTenantAdminAtTheTenantOnThePlatformNode_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ResourceNode.For(TenantId, ResourceNodeTypes.Platform, "platform"),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)],
+            readsTenant: false
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
     public async Task HandleRequirementAsync_WhenAnEntityAndCreateAndOwnerAtTheTenant_DoesNotSucceed()
     {
         var succeeded = await HandleAsync(

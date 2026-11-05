@@ -314,7 +314,8 @@ validation makes has `event_source` `openid` and the `system` actor. A read of t
 | `root_key.restored`  | `root_key`, `tenant`   | `success` | `validation_succeeded`: a probe through an `unavailable` key succeeded; `requested`: an administrator set the same key again and it succeeded                         |
 
 Every root key event writes `details.reason` (an open vocabulary, `RootKeyChangeReasons`), `provider` (the key wrapper
-name, such as `aws-kms`), `key_reference`, `state` (`active`, `unavailable` or `removing`, after the change) and
+name, such as `aws-kms`), `key_reference`, `access_identity` (the role, service account or directory the key is
+reached through, when the tenant names one), `state` (`active`, `unavailable` or `removing`, after the change) and
 `failure` (the description of the failed probe, when there is one). A rotation onto the key is recorded separately as
 `master_key.rotated` with the reason `root_key_changed`.
 

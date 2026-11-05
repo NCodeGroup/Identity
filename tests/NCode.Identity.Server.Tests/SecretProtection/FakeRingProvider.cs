@@ -59,7 +59,7 @@ internal sealed class FakeRingProvider(params Guid[] loadableKeys) : ISecretProt
         foreach (var value in protectedValues)
         {
             if (!TryReadMasterKeyId(value, out var keyId) || !LoadableKeys.Contains(keyId))
-                throw new CryptographicException($"The master key of the value is not available.");
+                throw new CryptographicException("The master key of the value is not available.");
         }
 
         return ValueTask.FromResult<ISecretProtector>(new Protector(owner));

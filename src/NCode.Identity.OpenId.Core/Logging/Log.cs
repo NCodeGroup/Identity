@@ -260,7 +260,7 @@ internal static partial class Log
 
     [LoggerMessage(
         EventId = EventIds.MasterKeyMaintenancePassFailed,
-        Level = LogLevel.Error,
+        Level = LogLevel.Warning,
         Message = "The master key maintenance pass failed; it runs again at the next interval"
     )]
     internal static partial void MasterKeyMaintenancePassFailed(
@@ -270,7 +270,7 @@ internal static partial class Log
 
     [LoggerMessage(
         EventId = EventIds.MasterKeyMaintenanceOwnerFailed,
-        Level = LogLevel.Error,
+        Level = LogLevel.Warning,
         Message = "The master key maintenance of '{Owner}' failed; the pass continues with the other owners"
     )]
     internal static partial void MasterKeyMaintenanceOwnerFailed(

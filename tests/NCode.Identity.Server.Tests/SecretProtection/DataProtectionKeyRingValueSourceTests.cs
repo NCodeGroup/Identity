@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
@@ -48,27 +49,35 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
     private DataProtectionKeyRingReader CreateReader(params KeyRingValue[] values)
     {
         var mock = CreatePartialMock<DataProtectionKeyRingReader>(
-            Options.Create(
-                new Microsoft.AspNetCore.DataProtection.KeyManagement.KeyManagementOptions()
-            )
+            Options.Create(new KeyManagementOptions())
         );
         IReadOnlyList<KeyRingValue> read = values;
-        mock.Setup(x => x.TryRead(out read)).Returns(true);
+        mock.Setup(x => x.TryRead(out read)).Returns(true).Verifiable();
         return mock.Object;
     }
 
+    // A ring that cannot be read; no test that uses it reads the ring.
+    private static DataProtectionKeyRingReader CreateUnreadableReader() =>
+        new(Options.Create(new KeyManagementOptions()));
+
     private static readonly IReadOnlySet<Guid> Keys = new HashSet<Guid> { KeyId };
 
+    #region RewrapAsync Tests
+
     [Fact]
-    public async Task Rewrap_ReturnsNone()
+    public async Task RewrapAsync_AnyKeys_ReturnsNone()
     {
-        var source = CreateSource(CreateReader(), new FakeRingProvider());
+        var source = CreateSource(CreateUnreadableReader(), new FakeRingProvider());
 
         Assert.Equal(
             ProtectedValueRewrapResult.None,
             await source.RewrapAsync(Owner, Keys, CancellationToken.None)
         );
     }
+
+    #endregion
+
+    #region FindReferencedAsync Tests
 
     [Fact]
     public async Task FindReferenced_ALiveRingKeyNamesTheKey_ReportsIt()
@@ -85,7 +94,7 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
     }
 
     [Fact]
-    public async Task FindReferenced_ReturnsOnlyTheKeysALiveRingKeyNames()
+    public async Task FindReferenced_SeveralKeys_ReturnsOnlyThoseALiveRingKeyNames()
     {
         var other = Guid.NewGuid();
         var source = CreateSource(
@@ -133,12 +142,7 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
     [Fact]
     public async Task FindReferenced_AnUnreadableRing_ReturnsEveryKey()
     {
-        var reader = new DataProtectionKeyRingReader(
-            Options.Create(
-                new Microsoft.AspNetCore.DataProtection.KeyManagement.KeyManagementOptions()
-            )
-        );
-        var source = CreateSource(reader, new FakeRingProvider());
+        var source = CreateSource(CreateUnreadableReader(), new FakeRingProvider());
 
         Assert.Equal(
             [KeyId],
@@ -149,10 +153,7 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
     [Fact]
     public async Task FindReferenced_AnotherOwner_ReturnsNone()
     {
-        var source = CreateSource(
-            CreateReader(new KeyRingValue(FakeRingProvider.Value(KeyId), Now.AddDays(5))),
-            new FakeRingProvider()
-        );
+        var source = CreateSource(CreateUnreadableReader(), new FakeRingProvider());
 
         Assert.Empty(
             await source.FindReferencedAsync(
@@ -162,4 +163,6 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
             )
         );
     }
+
+    #endregion
 }

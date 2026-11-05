@@ -49,7 +49,7 @@ internal sealed class DataProtectionKeyRingValueSource(
         CancellationToken cancellationToken
     )
     {
-        if (!IsServerOwner(owner))
+        if (!Loader.IsOwner(owner))
             return ValueTask.FromResult<IReadOnlySet<Guid>>(new HashSet<Guid>());
 
         if (!KeyRingReader.TryRead(out var values))
@@ -72,14 +72,5 @@ internal sealed class DataProtectionKeyRingValueSource(
         }
 
         return ValueTask.FromResult<IReadOnlySet<Guid>>(referenced);
-    }
-
-    // Owners are matched without regard to case, as the key ring matches them.
-    private bool IsServerOwner(SecretOwner owner)
-    {
-        var server = Loader.Owner;
-
-        return string.Equals(owner.OwnerType, server.OwnerType, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(owner.OwnerId, server.OwnerId, StringComparison.OrdinalIgnoreCase);
     }
 }

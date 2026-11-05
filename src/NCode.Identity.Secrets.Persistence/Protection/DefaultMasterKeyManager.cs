@@ -35,8 +35,8 @@ internal sealed class DefaultMasterKeyManager(
     // An observer runs on its own token so that the caller's cancellation cannot leave a committed change unannounced.
     private static readonly TimeSpan ObserverTimeout = TimeSpan.FromSeconds(30);
 
-    // The insert of a successor and its repair run on a token of their own so that the caller's cancellation cannot
-    // leave the owner without an active key. See ADR-1351.
+    // The insert of a successor, and its repair on a token of its own, cannot be cut short by the caller or by a
+    // timed-out insert, so neither leaves the owner without an active key. See ADR-1351.
     private static readonly TimeSpan CommitTimeout = TimeSpan.FromSeconds(30);
 
     private ISecretProtectorProvider ProtectorProvider { get; } = protectorProvider;
@@ -127,7 +127,9 @@ internal sealed class DefaultMasterKeyManager(
             }
             catch (Exception exception)
             {
-                var winner = await FindActiveAsync(key, commit.Token);
+                // The repair gets a bounded token of its own: the insert may have failed because its token timed out.
+                using var repair = new CancellationTokenSource(CommitTimeout, TimeProvider);
+                var winner = await FindActiveAsync(key, repair.Token);
                 if (winner is not null && active is not null)
                 {
                     Logger.MasterKeyRotationAdoptedSuccessor(owner, winner.KeyId);
@@ -143,7 +145,7 @@ internal sealed class DefaultMasterKeyManager(
                 else
                 {
                     if (active is not null)
-                        await RevertRetirementAsync(owner, key, active, exception, commit.Token);
+                        await RevertRetirementAsync(owner, active, exception, repair.Token);
 
                     throw;
                 }
@@ -173,7 +175,6 @@ internal sealed class DefaultMasterKeyManager(
     // the owner creates its key.
     private async ValueTask RevertRetirementAsync(
         SecretOwner owner,
-        SecretOwner key,
         PersistedMasterKey retired,
         Exception cause,
         CancellationToken cancellationToken
@@ -184,7 +185,7 @@ internal sealed class DefaultMasterKeyManager(
             await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
             var store = storeManager.GetStore<IMasterKeyStore>();
             var current = (
-                await store.FindByKeyIdsAsync(key, [retired.KeyId], cancellationToken)
+                await store.FindByKeyIdsAsync(owner.Normalize(), [retired.KeyId], cancellationToken)
             ).SingleOrDefault();
             if (current is null)
                 return;
@@ -280,34 +281,48 @@ internal sealed class DefaultMasterKeyManager(
         }
 
         var destroyed = new List<MasterKeyInfo>();
-        foreach (var row in candidates)
+        try
         {
-            if (referenced.Contains(row.KeyId))
-                continue;
+            foreach (var row in candidates)
+            {
+                if (referenced.Contains(row.KeyId))
+                    continue;
 
-            await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-            var removed = await storeManager
-                .GetStore<IMasterKeyStore>()
-                .RemoveAsync(row, cancellationToken);
-            if (!removed)
-                continue;
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var removed = await storeManager
+                    .GetStore<IMasterKeyStore>()
+                    .RemoveAsync(row, cancellationToken);
+                if (!removed)
+                    continue;
 
-            await storeManager.SaveChangesAsync(cancellationToken);
+                await storeManager.SaveChangesAsync(cancellationToken);
 
-            Logger.MasterKeyDestroyed(owner, row.KeyId, row.Version);
-            destroyed.Add(MasterKeyInfo.From(row));
+                Logger.MasterKeyDestroyed(owner, row.KeyId, row.Version);
+                destroyed.Add(MasterKeyInfo.From(row));
+            }
+        }
+        finally
+        {
+            // The keys already removed are committed, so they are announced even when a later removal fails or the
+            // caller cancels.
+            await AnnounceDestroyedAsync(owner, destroyed);
         }
 
+        return destroyed;
+    }
+
+    private async ValueTask AnnounceDestroyedAsync(SecretOwner owner, List<MasterKeyInfo> destroyed)
+    {
         if (destroyed.Count == 0)
-            return destroyed;
+            return;
 
         ProtectorProvider.Evict(owner);
         foreach (var info in destroyed)
         {
             await NotifyAsync(owner, (observer, token) => observer.DestroyedAsync(info, token));
         }
-
-        return destroyed;
     }
 
     private async ValueTask<IReadOnlyList<PersistedMasterKey>> ListAsync(

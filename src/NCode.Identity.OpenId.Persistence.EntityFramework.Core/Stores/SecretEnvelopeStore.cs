@@ -42,7 +42,10 @@ internal class SecretEnvelopeStore(IStoreProvider storeProvider, OpenIdDbContext
         CancellationToken cancellationToken
     )
     {
-        var (prefixes, length) = ValidatePrefixes(valuePrefixes, nameof(valuePrefixes));
+        var (prefixes, length) = ProtectedValuePrefixes.Validate(
+            valuePrefixes,
+            nameof(valuePrefixes)
+        );
 
         var query = GetOwnerSecrets(owner);
         if (query is null)
@@ -123,23 +126,6 @@ internal class SecretEnvelopeStore(IStoreProvider storeProvider, OpenIdDbContext
 
         await BumpOwnerTokenAsync(entity.Id, cancellationToken);
         return true;
-    }
-
-    // Copies the prefixes and checks that there is at least one and that they share a length.
-    private static (List<string> Prefixes, int Length) ValidatePrefixes(
-        IReadOnlyCollection<string> prefixes,
-        string paramName
-    )
-    {
-        var list = new List<string>(prefixes);
-        if (list.Count == 0 || list[0].Length == 0)
-            throw new ArgumentException("At least one non-empty prefix is required.", paramName);
-
-        var length = list[0].Length;
-        if (list.Any(prefix => prefix.Length != length))
-            throw new ArgumentException("The prefixes must all have the same length.", paramName);
-
-        return (list, length);
     }
 
     // Selects the secrets of an owner, or null for an owner type that holds none.

@@ -1,26 +1,17 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Options;
+
 namespace NCode.Identity.Secrets.Persistence.Options;
 
 public class MasterKeyOptionsValidatorTests
 {
-    private static ValidateOptionsResultWrapper Validate(MasterKeyOptions keys) =>
-        new(
-            new MasterKeyOptionsValidator().Validate(
-                null,
-                new SecretProtectionOptions { MasterKeys = keys }
-            )
+    private static ValidateOptionsResult Validate(MasterKeyOptions keys) =>
+        new MasterKeyOptionsValidator().Validate(
+            null,
+            new SecretProtectionOptions { MasterKeys = keys }
         );
-
-    private sealed class ValidateOptionsResultWrapper(
-        Microsoft.Extensions.Options.ValidateOptionsResult result
-    )
-    {
-        public bool Succeeded => result.Succeeded;
-
-        public IEnumerable<string> Failures => result.Failures ?? [];
-    }
 
     #region Validate Tests
 
@@ -49,7 +40,7 @@ public class MasterKeyOptionsValidatorTests
     {
         var result = Validate(new MasterKeyOptions { RotationPeriod = TimeSpan.FromHours(23) });
 
-        var failure = Assert.Single(result.Failures);
+        var failure = Assert.Single(result.Failures ?? []);
         Assert.StartsWith("SecretProtection:MasterKeys:RotationPeriod ", failure);
     }
 
@@ -66,7 +57,7 @@ public class MasterKeyOptionsValidatorTests
             }
         );
 
-        var failure = Assert.Single(result.Failures);
+        var failure = Assert.Single(result.Failures ?? []);
         Assert.StartsWith("SecretProtection:MasterKeys:RefreshInterval ", failure);
     }
 
@@ -81,7 +72,7 @@ public class MasterKeyOptionsValidatorTests
             }
         );
 
-        var failure = Assert.Single(result.Failures);
+        var failure = Assert.Single(result.Failures ?? []);
         Assert.StartsWith("SecretProtection:MasterKeys:RetirementGrace ", failure);
     }
 
@@ -94,7 +85,7 @@ public class MasterKeyOptionsValidatorTests
             new MasterKeyOptions { MaintenanceInterval = TimeSpan.FromSeconds(seconds) }
         );
 
-        var failure = Assert.Single(result.Failures);
+        var failure = Assert.Single(result.Failures ?? []);
         Assert.StartsWith("SecretProtection:MasterKeys:MaintenanceInterval ", failure);
     }
 
@@ -109,7 +100,7 @@ public class MasterKeyOptionsValidatorTests
             }
         );
 
-        Assert.Equal(2, result.Failures.Count());
+        Assert.Equal(2, (result.Failures ?? []).Count());
     }
 
     #endregion

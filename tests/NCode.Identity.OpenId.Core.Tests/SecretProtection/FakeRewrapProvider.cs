@@ -25,6 +25,12 @@ internal sealed class FakeRewrapProvider(Guid activeKeyId) : ISecretProtectorPro
     /// </summary>
     public HashSet<string> Unrewrappable { get; } = [];
 
+    /// <summary>
+    /// Gets or sets a value that makes <see cref="GetProtectorAsync"/> throw a <see cref="CryptographicException"/>,
+    /// as a master key that a value names but that is gone does.
+    /// </summary>
+    public bool KeysMissing { get; set; }
+
     public static string Value(Guid keyId, string payload) => $"k:{keyId:D}|{payload}";
 
     public bool TryReadMasterKeyId(ReadOnlySpan<char> protectedValue, out Guid masterKeyId)
@@ -44,6 +50,9 @@ internal sealed class FakeRewrapProvider(Guid activeKeyId) : ISecretProtectorPro
     )
     {
         Requests.Add(protectedValues);
+        if (KeysMissing)
+            throw new CryptographicException("The master key of the value is not available.");
+
         return ValueTask.FromResult<ISecretProtector>(
             new Protector(owner, ActiveKeyId, Contexts, Unrewrappable)
         );

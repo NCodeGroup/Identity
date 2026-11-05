@@ -435,13 +435,17 @@ public class DefaultSecretProtectorTests
 
         var rewrapped = both.RewrapToString(original, Context);
 
+        // The wrapped-key half of the header; the payload nonce, tag and ciphertext follow.
+        const int payloadOffset =
+            SecretProtectionFormat.KeyIdSizeBytes
+            + SecretProtectionFormat.NonceSizeBytes
+            + SecretProtectionFormat.DataKeySizeBytes
+            + SecretProtectionFormat.TagSizeBytes;
+
         var before = Decode(original);
         var after = Decode(rewrapped);
         Assert.Equal(before.Length, after.Length);
-        Assert.Equal(
-            before.AsSpan(SecretProtectionFormat.KeyIdSizeBytes + 60),
-            after.AsSpan(SecretProtectionFormat.KeyIdSizeBytes + 60)
-        );
+        Assert.Equal(before.AsSpan(payloadOffset), after.AsSpan(payloadOffset));
         Assert.Equal(original.Length, rewrapped.Length);
     }
 

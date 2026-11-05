@@ -18,12 +18,6 @@ namespace NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
 internal static class EncryptionKeyEndpoints
 {
     /// <summary>
-    /// The detail of the problem that a rekey which lost a race to another rekey answers with.
-    /// </summary>
-    internal const string RekeyConflictDetail =
-        "Another rotation of this master key committed first; read the encryption keys and retry.";
-
-    /// <summary>
     /// The detail of the problem that a rekey within twice the refresh interval of the last rotation answers with.
     /// </summary>
     internal const string RekeyTooSoonDetail =
@@ -50,10 +44,12 @@ internal static class EncryptionKeyEndpoints
     }
 
     /// <summary>
-    /// Rotates the master key of the owner and answers with the new active key and the retired one. A rekey that lost
-    /// a race to another rekey, or that follows the last rotation of the owner within twice the refresh interval,
-    /// answers <c>409 Conflict</c>; the second carries a <c>Retry-After</c> header.
+    /// Rotates the master key of the owner and answers with the new active key and the retired one. A rekey within
+    /// twice the refresh interval of the owner's last rotation answers <c>409 Conflict</c> with a <c>Retry-After</c>
+    /// header; one that loses a race to another rekey throws <see cref="StoreConcurrencyException"/>, which the
+    /// management route group answers <c>412</c>.
     /// </summary>
+    // See ADR-1214.
     public static async ValueTask<IResult> RekeyAsync(
         IMasterKeyManager masterKeyManager,
         IManagementAuditRecorder auditRecorder,
@@ -77,13 +73,6 @@ internal static class EncryptionKeyEndpoints
 
             return TypedResults.Problem(
                 detail: RekeyTooSoonDetail,
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-        catch (StoreConcurrencyException)
-        {
-            return TypedResults.Problem(
-                detail: RekeyConflictDetail,
                 statusCode: StatusCodes.Status409Conflict
             );
         }

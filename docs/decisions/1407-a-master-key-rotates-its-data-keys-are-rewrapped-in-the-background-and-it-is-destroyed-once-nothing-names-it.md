@@ -36,7 +36,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
    `RotateAsync(owner)` reads the owner's rows, creates version `latest + 1`'s material through the root key provider,
    retires the active row with its concurrency token checked, and stores the successor on a bounded token of its own;
    a store failure with no other active row re-activates the retired row, and a successor that another replica's ring
-   stored first is adopted. An owner without any key receives its first and reports no retired key; an owner with
+   stored first is adopted, and the repair after a failed insert runs on a bounded token of its own. An owner without any key receives its first and reports no retired key; an owner with
    retired keys and no active key, and the second of two concurrent rotations, fail with `StoreConcurrencyException`.
    A rotation within twice `RefreshInterval` of the owner's last one fails with `MasterKeyRotationTooSoonException`,
    since every replica has not yet loaded the active key.
@@ -73,7 +73,8 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 7. **Destroy needs a grace, no reference and a switch.** `IMasterKeyManager.DestroyRetiredAsync(owner)` asks each source
    once for every candidate and removes each retired row whose `RetiredWhen + RetirementGrace` has passed and that no
    source reports, each in its own unit of work
-   with its token checked, then evicts the owner and tells the observers. `SecretProtection:MasterKeys:DestroyRetired`
+   with its token checked, and evicts the owner and tells the observers of every key it removed, also when a later
+   removal fails. `SecretProtection:MasterKeys:DestroyRetired`
    set to `false` keeps retired keys for good. The grace (30 days) covers in-flight protectors, replicas that have not
    reloaded and Data Protection payloads that a key protected just before it expired. A backup keeps its own copies of
    the destroyed key.
@@ -93,7 +94,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
 10. **A background pass is the durable path.** `MasterKeyMaintenanceService` waits for the server to materialize and then
     runs every `MaintenanceInterval` (one day). One replica takes the lease `master-key-maintenance:{serverId}` for half the
     interval and rotates every active key older than `RotationPeriod` (365 days), then rewraps and destroys for every
-    owner that has retired keys. Each owner runs in its own try block, and the audit event of a change is published after
+    owner that has retired keys, which it reads in keyset pages that carry only the owner of each retired row. Each owner runs in its own try block, and the audit event of a change is published after
     its commit through `PostCommitWork` ([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)).
     The pass never runs on the dispatcher.
 11. **Options are validated when the host starts.** `SecretProtection:MasterKeys` binds strictly:
@@ -107,7 +108,9 @@ a retired key is destroyed once a scan finds no value that still names it. The p
     answer `EncryptionKeysResource` and `EncryptionKeyRotationResource`. The owner must exist (404 otherwise, and a key
     is never created for an unknown owner), and the caller needs `Read` or `Update` on it. The scope families are
     `encryption_keys` in the tenant plane and `server_encryption_keys` in the control plane. A rekey that loses a race to
-    another rekey answers 409, and so does a rekey within twice `RefreshInterval` of the last rotation, with `Retry-After`.
+    another rekey answers 412 through `StoreConcurrencyEndpointFilter`
+    ([ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md)), and a rekey within twice
+    `RefreshInterval` of the last rotation answers 409 with `Retry-After`.
 14. **Master key changes are audit events.** `master_key.rotated` and `master_key.destroyed` belong to the `key` category
     with the resources `master_key` and the owner. The reason is `requested`, `rotation_period_elapsed` or
     `unreferenced`; the source is `management` with the administrator for a rekey through the API and `openid` with the

@@ -23,6 +23,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Queue<IStoreManager> _storeManagers = new();
     private readonly FakeTimeProvider _time = new();
+    private bool _storeManagerFactorySetUp;
 
     // The old provider wrapped the stored rows, the new one is the configured provider.
     private readonly EphemeralKeyWrapper _oldProvider = new();
@@ -32,11 +33,6 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
     {
         _catalog = _mocks.Create<IKeyWrapperCatalog>();
         _storeManagerFactory = _mocks.Create<IStoreManagerFactory>();
-        _storeManagerFactory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()));
-        _catalog.Setup(x => x.Get(KeyWrapperNames.Ephemeral)).Returns(_oldProvider);
-        _catalog.Setup(x => x.GetConfigured()).Returns(_newProvider);
     }
 
     public void Dispose()
@@ -54,16 +50,19 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
                 Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions())
             );
 
-    private DefaultMasterKeyRewrapper CreateRewrapper(RecoveryKeyWrapper recovery)
-    {
-        // The rows were created with the old provider, so the creating factory selects it.
-        return new DefaultMasterKeyRewrapper(
+    private void SetupOldProvider() =>
+        _catalog.Setup(x => x.Get(KeyWrapperNames.Ephemeral)).Returns(_oldProvider).Verifiable();
+
+    private void SetupNewProvider() =>
+        _catalog.Setup(x => x.GetConfigured()).Returns(_newProvider).Verifiable();
+
+    private DefaultMasterKeyRewrapper CreateRewrapper(RecoveryKeyWrapper recovery) =>
+        new(
             new MasterKeyFactory(_catalog.Object, recovery, _time),
             _storeManagerFactory.Object,
             recovery,
             NullLogger<DefaultMasterKeyRewrapper>.Instance
         );
-    }
 
     // Creates a row wrapped under the old provider (and under the recovery key when it is configured).
     private async Task<PersistedMasterKey> CreateRowAsync(
@@ -71,8 +70,9 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         int version = 1
     )
     {
+        // The row is created with the old provider, which its own factory selects.
         var oldCatalog = _mocks.Create<IKeyWrapperCatalog>();
-        oldCatalog.Setup(x => x.GetConfigured()).Returns(_oldProvider);
+        oldCatalog.Setup(x => x.GetConfigured()).Returns(_oldProvider).Verifiable();
         var creator = new MasterKeyFactory(oldCatalog.Object, recoveryAtCreation, _time);
         var created = await creator.CreateAsync(Owner, version, CancellationToken.None);
         created.Key.Dispose();
@@ -82,10 +82,19 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
 
     private (Mock<IMasterKeyStore> Store, Mock<IStoreManager> Manager) EnqueueStoreManager()
     {
+        if (!_storeManagerFactorySetUp)
+        {
+            _storeManagerFactorySetUp = true;
+            _storeManagerFactory
+                .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+                .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()))
+                .Verifiable();
+        }
+
         var store = _mocks.Create<IMasterKeyStore>();
         var manager = _mocks.Create<IStoreManager>();
-        manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object);
-        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
+        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         _storeManagers.Enqueue(manager.Object);
         return (store, manager);
     }
@@ -95,7 +104,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         var (store, _) = EnqueueStoreManager();
         store
             .Setup(x => x.ListAsync(Owner, It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>(rows));
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>(rows))
+            .Verifiable();
     }
 
     private void SetupSave(PersistedMasterKey row, Exception? failure = null)
@@ -103,12 +113,13 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         var (store, manager) = EnqueueStoreManager();
         store
             .Setup(x => x.UpdateAsync(row, It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
         var save = manager.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()));
         if (failure is null)
-            save.Returns(ValueTask.CompletedTask);
+            save.Returns(ValueTask.CompletedTask).Verifiable();
         else
-            save.Throws(failure);
+            save.Throws(failure).Verifiable();
     }
 
     private static MasterKeyRewrapRequest Request(
@@ -133,6 +144,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         using var recovery = CreateRecovery(configured: false);
         var row = await CreateRowAsync(recovery);
         var originalRootKeyId = row.RootKeyId;
+        SetupOldProvider();
+        SetupNewProvider();
         SetupList(row);
         SetupSave(row);
 
@@ -143,7 +156,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
 
         // The row now unwraps with the configured provider alone and keeps its key check.
         var verify = _mocks.Create<IKeyWrapperCatalog>();
-        verify.Setup(x => x.Get(KeyWrapperNames.Ephemeral)).Returns(_newProvider);
+        verify.Setup(x => x.Get(KeyWrapperNames.Ephemeral)).Returns(_newProvider).Verifiable();
         using var key = await new MasterKeyFactory(verify.Object, recovery, _time).UnwrapAsync(
             row,
             CancellationToken.None
@@ -157,6 +170,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         using var recovery = CreateRecovery(configured: true);
         var row = await CreateRowAsync(CreateRecovery(configured: false));
         Assert.Null(row.RecoveryWrappedKey);
+        SetupOldProvider();
+        SetupNewProvider();
         SetupList(row);
         SetupSave(row);
 
@@ -173,6 +188,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         var row = await CreateRowAsync(creatingRecovery);
         var copy = row.RecoveryWrappedKey;
         using var recovery = CreateRecovery(configured: false);
+        SetupOldProvider();
+        SetupNewProvider();
         SetupList(row);
         SetupSave(row);
 
@@ -187,6 +204,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         using var recovery = CreateRecovery(configured: true);
         var row = await CreateRowAsync(CreateRecovery(configured: false));
         var rootWrapped = row.RootWrappedKey;
+        SetupOldProvider();
         SetupList(row);
         SetupSave(row);
 
@@ -216,8 +234,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         var row = await CreateRowAsync(recovery);
 
         // The root provider that wrapped the row is unavailable: only the recovery copy unwraps it.
-        _catalog.Reset();
-        _catalog.Setup(x => x.GetConfigured()).Returns(_newProvider);
+        SetupNewProvider();
         SetupList(row);
         SetupSave(row);
 
@@ -250,6 +267,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         using var recovery = CreateRecovery(configured: false);
         var row = await CreateRowAsync(recovery);
         var rootWrapped = row.RootWrappedKey;
+        SetupOldProvider();
         SetupList(row);
 
         var result = await CreateRewrapper(recovery)
@@ -277,6 +295,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
             RootWrappedKey = bad.RootWrappedKey,
             KeyCheck = good.KeyCheck,
         };
+        SetupOldProvider();
+        SetupNewProvider();
         SetupList(tampered, good);
         SetupSave(good);
 
@@ -290,6 +310,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
     {
         using var recovery = CreateRecovery(configured: false);
         var row = await CreateRowAsync(recovery);
+        SetupOldProvider();
+        SetupNewProvider();
         SetupList(row);
         SetupSave(row, new StoreConcurrencyException());
 
@@ -304,7 +326,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([current]));
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([current]))
+            .Verifiable();
         SetupSave(current);
 
         var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
@@ -313,10 +336,63 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
     }
 
     [Fact]
+    public async Task Rewrap_ConflictsOnEveryAttempt_StopsAfterThreeAttemptsAndCountsTheRowFailed()
+    {
+        using var recovery = CreateRecovery(configured: false);
+        var row = await CreateRowAsync(recovery);
+        SetupOldProvider();
+        SetupNewProvider();
+        SetupList(row);
+
+        // Each re-read finds the row as the other writer left it, not as this attempt changed it.
+        var reads = new Queue<PersistedMasterKey>([
+            await CreateRowAsync(recovery),
+            await CreateRowAsync(recovery),
+        ]);
+        reads.Enqueue(await CreateRowAsync(recovery));
+
+        var (saveStore, saveManager) = EnqueueStoreManager();
+        saveStore
+            .Setup(x =>
+                x.UpdateAsync(It.IsAny<PersistedMasterKey>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(3));
+        saveManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Throws(new StoreConcurrencyException())
+            .Verifiable(Times.Exactly(3));
+        var (findStore, findManager) = EnqueueStoreManager();
+        findStore
+            .Setup(x =>
+                x.FindByKeyIdsAsync(
+                    Owner,
+                    It.IsAny<IReadOnlyCollection<Guid>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() => new ValueTask<IReadOnlyList<PersistedMasterKey>>([reads.Dequeue()]))
+            .Verifiable(Times.Exactly(3));
+
+        // The same two units of work serve the second and the third attempt.
+        for (var attempt = 2; attempt <= 3; attempt++)
+        {
+            _storeManagers.Enqueue(saveManager.Object);
+            _storeManagers.Enqueue(findManager.Object);
+        }
+
+        var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 1), result);
+    }
+
+    [Fact]
     public async Task Rewrap_AVanishedRowAfterAConflict_CountsAsExaminedOnly()
     {
         using var recovery = CreateRecovery(configured: false);
         var row = await CreateRowAsync(recovery);
+        SetupOldProvider();
+        SetupNewProvider();
         SetupList(row);
         SetupSave(row, new StoreConcurrencyException());
         var (store, _) = EnqueueStoreManager();
@@ -328,7 +404,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([]));
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([]))
+            .Verifiable();
 
         var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
 
@@ -340,6 +417,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
     {
         using var recovery = CreateRecovery(configured: false);
         var row = await CreateRowAsync(recovery);
+        SetupOldProvider();
+        SetupNewProvider();
         SetupList(row);
         SetupSave(row, new InvalidOperationException("The row no longer exists."));
         var (store, _) = EnqueueStoreManager();
@@ -351,7 +430,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([]));
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([]))
+            .Verifiable();
 
         var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
 
@@ -363,6 +443,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
     {
         using var recovery = CreateRecovery(configured: false);
         var row = await CreateRowAsync(recovery);
+        SetupOldProvider();
+        SetupNewProvider();
         SetupList(row);
         SetupSave(row, new InvalidOperationException("The update failed."));
         var (store, _) = EnqueueStoreManager();
@@ -374,7 +456,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([row]));
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([row]))
+            .Verifiable();
 
         var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
 
@@ -387,6 +470,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         using var recovery = CreateRecovery(configured: false);
         var first = await CreateRowAsync(recovery, version: 1);
         var second = await CreateRowAsync(recovery, version: 2);
+        SetupOldProvider();
+        SetupNewProvider();
         var (store1, _) = EnqueueStoreManager();
         store1
             .Setup(x =>
@@ -399,7 +484,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
                 new ValueTask<PagedResult<PersistedMasterKey>>(
                     new PagedResult<PersistedMasterKey> { Items = [first], NextCursor = "next" }
                 )
-            );
+            )
+            .Verifiable();
         SetupSave(first);
         var (store2, _) = EnqueueStoreManager();
         store2
@@ -413,7 +499,8 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
                 new ValueTask<PagedResult<PersistedMasterKey>>(
                     new PagedResult<PersistedMasterKey> { Items = [second], NextCursor = null }
                 )
-            );
+            )
+            .Verifiable();
         SetupSave(second);
 
         var result = await CreateRewrapper(recovery)

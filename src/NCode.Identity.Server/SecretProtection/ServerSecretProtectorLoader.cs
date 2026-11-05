@@ -53,11 +53,24 @@ internal class ServerSecretProtectorLoader(
     public SecretOwner Owner => SecretOwner.ForServer(GetServerId());
 
     /// <summary>
+    /// Determines whether an owner is the server's, matching without regard to case as the key ring does.
+    /// </summary>
+    /// <param name="owner">The owner to check.</param>
+    /// <returns><see langword="true"/> when the owner is the server's.</returns>
+    public bool IsOwner(SecretOwner owner)
+    {
+        var server = Owner;
+
+        return string.Equals(owner.OwnerType, server.OwnerType, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(owner.OwnerId, server.OwnerId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Loads the server's protector and publishes it to the holder.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-    public async Task LoadAsync(CancellationToken cancellationToken)
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    public async ValueTask LoadAsync(CancellationToken cancellationToken)
     {
         var owner = Owner;
         var loadable = await GetLoadableValuesAsync(owner, cancellationToken);
@@ -66,7 +79,7 @@ internal class ServerSecretProtectorLoader(
     }
 
     // Picks one protected value of every master key that the live ring keys name and that loads.
-    private async Task<IReadOnlyCollection<string>> GetLoadableValuesAsync(
+    private async ValueTask<IReadOnlyCollection<string>> GetLoadableValuesAsync(
         SecretOwner owner,
         CancellationToken cancellationToken
     )

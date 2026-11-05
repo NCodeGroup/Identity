@@ -95,7 +95,7 @@ internal static partial class Log
 
     [LoggerMessage(
         EventId = EventIds.ServerSecretProtectorRefreshFailed,
-        Level = LogLevel.Error,
+        Level = LogLevel.Warning,
         Message = "Loading the server's secret protector again failed; the protector in use stays, and the next refresh tries again."
     )]
     internal static partial void ServerSecretProtectorRefreshFailed(
@@ -142,5 +142,16 @@ internal static partial class Log
     internal static partial void SecretProtectionCommandOwnerHasNoMasterKeys(
         this ILogger logger,
         SecretOwner owner
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionCommandUsageInvalid,
+        Level = LogLevel.Error,
+        Message = "The secret-protection command line is invalid: {Error} {Usage}"
+    )]
+    internal static partial void SecretProtectionCommandUsageInvalid(
+        this ILogger logger,
+        string error,
+        string usage
     );
 }

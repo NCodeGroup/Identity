@@ -175,52 +175,68 @@ internal sealed class MasterKeyMaintenanceService(
         }
     }
 
-    // Rewraps the values of every owner that has retired keys, then destroys the keys that nothing names.
+    // Rewraps the values of every owner that has retired keys, then destroys the keys that nothing names. The owners are
+    // read in keyset pages that carry no key material, and an owner with retired keys on several pages is handled once.
     private async ValueTask RewrapAndDestroyRetiredAsync(CancellationToken cancellationToken)
     {
-        IReadOnlyList<PersistedMasterKey> retired;
-        await using (var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken))
-        {
-            retired = await storeManager
-                .GetStore<IMasterKeyStore>()
-                .ListRetiredAsync(cancellationToken);
-        }
+        // The owners are normalized, so the default equality of the owner finds the ones already handled.
+        var handled = new HashSet<SecretOwner>();
 
-        // The owners are normalized, so the default equality of the owner finds the distinct ones.
-        var owners = retired.Select(row => row.Owner.Normalize()).Distinct();
-
-        foreach (var owner in owners)
+        var page = new PageRequest { Limit = PageSize };
+        do
         {
-            try
+            PagedResult<SecretOwner> result;
+            await using (
+                var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken)
+            )
             {
-                await MasterKeyManager.RewrapAsync(owner, cancellationToken);
+                result = await storeManager
+                    .GetStore<IMasterKeyStore>()
+                    .GetRetiredOwnerPageAsync(page, cancellationToken);
+            }
 
-                var destroyed = await MasterKeyManager.DestroyRetiredAsync(
-                    owner,
-                    cancellationToken
-                );
-                foreach (var key in destroyed)
-                {
-                    await PostCommitWork.RunAsync(
-                        TimeProvider,
-                        PublishAsync,
-                        (
-                            owner,
-                            CreateEvent(
-                                MasterKeyChanges.Destroyed,
-                                MasterKeyChangeReasons.Unreferenced,
-                                key,
-                                null
-                            )
+            foreach (var item in result.Items)
+            {
+                var owner = item.Normalize();
+                if (handled.Add(owner))
+                    await RewrapAndDestroyAsync(owner, cancellationToken);
+            }
+
+            page = page with { Cursor = result.NextCursor };
+        } while (page.Cursor is not null);
+    }
+
+    private async ValueTask RewrapAndDestroyAsync(
+        SecretOwner owner,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            await MasterKeyManager.RewrapAsync(owner, cancellationToken);
+
+            var destroyed = await MasterKeyManager.DestroyRetiredAsync(owner, cancellationToken);
+            foreach (var key in destroyed)
+            {
+                await PostCommitWork.RunAsync(
+                    TimeProvider,
+                    PublishAsync,
+                    (
+                        owner,
+                        CreateEvent(
+                            MasterKeyChanges.Destroyed,
+                            MasterKeyChangeReasons.Unreferenced,
+                            key,
+                            null
                         )
-                    );
-                }
+                    )
+                );
             }
-            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
-            {
-                // One owner that cannot be handled must not stop the pass.
-                Logger.MasterKeyMaintenanceOwnerFailed(owner, exception);
-            }
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            // One owner that cannot be handled must not stop the pass.
+            Logger.MasterKeyMaintenanceOwnerFailed(owner, exception);
         }
     }
 

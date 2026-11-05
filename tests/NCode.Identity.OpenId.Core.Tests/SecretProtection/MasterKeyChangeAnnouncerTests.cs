@@ -3,6 +3,7 @@
 
 using Moq;
 using NCode.Identity.Dispatch;
+using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.SecretProtection;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -11,21 +12,18 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.SecretProtection;
 
-public sealed class MasterKeyChangeAnnouncerTests : IDisposable
+public sealed class MasterKeyChangeAnnouncerTests : BaseTests
 {
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("acme");
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IReplicaBroadcaster> _broadcaster;
     private readonly Mock<IJobDispatcher> _dispatcher;
 
     public MasterKeyChangeAnnouncerTests()
     {
-        _broadcaster = _mocks.Create<IReplicaBroadcaster>();
-        _dispatcher = _mocks.Create<IJobDispatcher>();
+        _broadcaster = CreateStrictMock<IReplicaBroadcaster>();
+        _dispatcher = CreateStrictMock<IJobDispatcher>();
     }
-
-    public void Dispose() => _mocks.Verify();
 
     private MasterKeyChangeAnnouncer CreateAnnouncer() =>
         new(
@@ -51,6 +49,8 @@ public sealed class MasterKeyChangeAnnouncerTests : IDisposable
             null
         );
 
+    #region RotatedAsync Tests
+
     [Fact]
     public async Task Rotated_BroadcastsTheOwnerAndDispatchesADelayedRewrapJob()
     {
@@ -58,7 +58,8 @@ public sealed class MasterKeyChangeAnnouncerTests : IDisposable
             .Setup(x =>
                 x.PublishAsync("master-key-changed", "tenant:acme", It.IsAny<CancellationToken>())
             )
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
         DispatchOptions? options = null;
         MasterKeyRewrapJob? job = null;
         _dispatcher
@@ -76,7 +77,8 @@ public sealed class MasterKeyChangeAnnouncerTests : IDisposable
                     options = o;
                 }
             )
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         await CreateAnnouncer()
             .RotatedAsync(
@@ -97,11 +99,18 @@ public sealed class MasterKeyChangeAnnouncerTests : IDisposable
             .Setup(x =>
                 x.PublishAsync("master-key-changed", "tenant:acme", It.IsAny<CancellationToken>())
             )
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         await CreateAnnouncer()
             .RotatedAsync(new MasterKeyRotation(Owner, Info(1), null), CancellationToken.None);
+
+        Assert.Empty(_dispatcher.Invocations);
     }
+
+    #endregion
+
+    #region DestroyedAsync Tests
 
     [Fact]
     public async Task Destroyed_BroadcastsTheOwner()
@@ -110,9 +119,12 @@ public sealed class MasterKeyChangeAnnouncerTests : IDisposable
             .Setup(x =>
                 x.PublishAsync("master-key-changed", "tenant:acme", It.IsAny<CancellationToken>())
             )
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         await CreateAnnouncer()
             .DestroyedAsync(Info(1, DateTimeOffset.UnixEpoch), CancellationToken.None);
     }
+
+    #endregion
 }

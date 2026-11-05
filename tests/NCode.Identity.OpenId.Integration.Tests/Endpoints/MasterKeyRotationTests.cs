@@ -33,7 +33,7 @@ public class MasterKeyRotationTests
     {
         using var factory = new BootstrapAdminHostApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
-        var client = CreateHttpClient(factory);
+        using var client = CreateHttpClient(factory);
         var clientId = await CreateClientAsync(administrator);
         var secretMaterial = await CreateSecretAsync(administrator, clientId);
 
@@ -50,7 +50,8 @@ public class MasterKeyRotationTests
         Assert.True(rekey.StatusCode == HttpStatusCode.OK, rekeyBody);
         var rotation = JsonElement.Parse(rekeyBody);
         var activeKeyId = Guid.Parse(
-            rotation.GetProperty("activeKey").GetProperty("keyId").GetString()!
+            rotation.GetProperty("activeKey").GetProperty("keyId").GetString()
+                ?? throw new InvalidOperationException("The response has no activeKey.keyId.")
         );
         Assert.Equal(2, rotation.GetProperty("activeKey").GetProperty("version").GetInt32());
         Assert.Equal("active", rotation.GetProperty("activeKey").GetProperty("state").GetString());
@@ -167,15 +168,13 @@ public class MasterKeyRotationTests
         var clientId = await CreateClientAsync(administrator);
         await CreateSecretAsync(administrator, clientId);
 
-        Assert.True(
-            SecretProtectionCommandLine.TryParse(
-                ["secret-protection", "rewrap", "--dry-run"],
-                out var command,
-                out var error
-            ),
-            error
-        );
+        var command = SecretProtectionCommandLine.Parse([
+            "secret-protection",
+            "rewrap",
+            "--dry-run",
+        ]);
         Assert.NotNull(command);
+        Assert.Null(command.Error);
 
         var exitCode = await command.RunAsync(factory.Services, CancellationToken.None);
 
@@ -248,7 +247,8 @@ public class MasterKeyRotationTests
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        return JsonElement.Parse(body).GetProperty("clientId").GetString()!;
+        return JsonElement.Parse(body).GetProperty("clientId").GetString()
+            ?? throw new InvalidOperationException("The response has no clientId.");
     }
 
     private static async Task<string> CreateSecretAsync(HttpClient administrator, string clientId)
@@ -264,7 +264,8 @@ public class MasterKeyRotationTests
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        return JsonElement.Parse(body).GetProperty("secretMaterial").GetString()!;
+        return JsonElement.Parse(body).GetProperty("secretMaterial").GetString()
+            ?? throw new InvalidOperationException("The response has no secretMaterial.");
     }
 
     private sealed class BootstrapAdminHostApplicationFactory : HostApplicationFactory

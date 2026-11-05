@@ -56,14 +56,14 @@ internal sealed class DefaultMasterKeyRewrapper(
             ? null
             : RecoveryKeyUnwrapper.FromPem(request.RecoveryPrivateKeyPem.Span);
 
-        var counts = new Counts();
+        var total = new MasterKeyRewrapResult(0, 0, 0, 0);
 
         if (request.Owner is { } owner)
         {
             var rows = await ListAsync(owner, cancellationToken);
             foreach (var row in rows)
             {
-                await ProcessAsync(row, request, unwrapper, counts, cancellationToken);
+                total = Add(total, await ProcessAsync(row, request, unwrapper, cancellationToken));
             }
         }
         else
@@ -74,7 +74,10 @@ internal sealed class DefaultMasterKeyRewrapper(
                 var page = await GetPageAsync(cursor, cancellationToken);
                 foreach (var row in page.Items)
                 {
-                    await ProcessAsync(row, request, unwrapper, counts, cancellationToken);
+                    total = Add(
+                        total,
+                        await ProcessAsync(row, request, unwrapper, cancellationToken)
+                    );
                 }
 
                 cursor = page.NextCursor;
@@ -82,19 +85,25 @@ internal sealed class DefaultMasterKeyRewrapper(
         }
 
         Logger.MasterKeyRewrapCompleted(
-            counts.Examined,
-            counts.Rewrapped,
-            counts.Verified,
-            counts.Failed
+            total.Examined,
+            total.Rewrapped,
+            total.Verified,
+            total.Failed
         );
 
-        return new MasterKeyRewrapResult(
-            counts.Examined,
-            counts.Rewrapped,
-            counts.Verified,
-            counts.Failed
-        );
+        return total;
     }
+
+    private static MasterKeyRewrapResult Add(
+        MasterKeyRewrapResult total,
+        MasterKeyRewrapResult row
+    ) =>
+        new(
+            total.Examined + row.Examined,
+            total.Rewrapped + row.Rewrapped,
+            total.Verified + row.Verified,
+            total.Failed + row.Failed
+        );
 
     private async ValueTask<IReadOnlyList<PersistedMasterKey>> ListAsync(
         SecretOwner owner,
@@ -118,17 +127,14 @@ internal sealed class DefaultMasterKeyRewrapper(
             .GetPageAsync(new PageRequest { Limit = PageSize, Cursor = cursor }, cancellationToken);
     }
 
-    // Rewraps one row in its own unit of work, retrying when another writer changed the row, and counts the outcome.
-    private async ValueTask ProcessAsync(
+    // Rewraps one row in its own unit of work, retrying when another writer changed the row, and returns the outcome.
+    private async ValueTask<MasterKeyRewrapResult> ProcessAsync(
         PersistedMasterKey row,
         MasterKeyRewrapRequest request,
         RecoveryKeyUnwrapper? unwrapper,
-        Counts counts,
         CancellationToken cancellationToken
     )
     {
-        counts.Examined++;
-
         try
         {
             for (var attempt = 1; ; attempt++)
@@ -139,8 +145,7 @@ internal sealed class DefaultMasterKeyRewrapper(
 
                 if (request.DryRun)
                 {
-                    counts.Verified++;
-                    return;
+                    return new MasterKeyRewrapResult(1, 0, 1, 0);
                 }
 
                 await ApplyWrapsAsync(row, masterKey, request, cancellationToken);
@@ -148,8 +153,7 @@ internal sealed class DefaultMasterKeyRewrapper(
                 try
                 {
                     await SaveAsync(row, cancellationToken);
-                    counts.Rewrapped++;
-                    return;
+                    return new MasterKeyRewrapResult(1, 1, 0, 0);
                 }
                 catch (Exception exception)
                     when (exception is StoreConcurrencyException or InvalidOperationException)
@@ -157,7 +161,7 @@ internal sealed class DefaultMasterKeyRewrapper(
                     // A row the maintenance pass destroyed during the run is gone, and counts as examined only.
                     var current = await FindAsync(row, cancellationToken);
                     if (current is null)
-                        return;
+                        return new MasterKeyRewrapResult(1, 0, 0, 0);
 
                     // Another writer changed the row, so it is read again and rewrapped from its current state.
                     if (exception is not StoreConcurrencyException || attempt >= MaxAttempts)
@@ -169,8 +173,8 @@ internal sealed class DefaultMasterKeyRewrapper(
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            counts.Failed++;
             Logger.MasterKeyRewrapRowFailed(exception, row.Owner, row.KeyId, row.Version);
+            return new MasterKeyRewrapResult(1, 0, 0, 1);
         }
     }
 
@@ -216,16 +220,5 @@ internal sealed class DefaultMasterKeyRewrapper(
             .FindByKeyIdsAsync(row.Owner.Normalize(), [row.KeyId], cancellationToken);
 
         return rows.SingleOrDefault();
-    }
-
-    private sealed class Counts
-    {
-        public int Examined { get; set; }
-
-        public int Rewrapped { get; set; }
-
-        public int Verified { get; set; }
-
-        public int Failed { get; set; }
     }
 }

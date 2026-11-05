@@ -2664,7 +2664,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task RekeyEncryptionKeysAsync_WhenAnotherRekeyCommittedFirst_ReturnsConflict()
+    public async Task RekeyEncryptionKeysAsync_WhenAnotherRekeyCommittedFirst_ThrowsStoreConcurrencyExceptionForTheFilter()
     {
         SetupStore();
         MockServerStore
@@ -2679,14 +2679,13 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             .Throws(new StoreConcurrencyException())
             .Verifiable();
 
-        var result = await Handler.RekeyEncryptionKeysAsync(
-            CreateHttpContext(authenticated: true),
-            ServerId,
-            CancellationToken.None
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await Handler.RekeyEncryptionKeysAsync(
+                CreateHttpContext(authenticated: true),
+                ServerId,
+                CancellationToken.None
+            )
         );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
     [Fact]

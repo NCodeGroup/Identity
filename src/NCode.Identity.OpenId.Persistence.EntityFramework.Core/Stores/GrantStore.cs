@@ -456,7 +456,10 @@ internal class GrantStore(
         CancellationToken cancellationToken
     )
     {
-        var (prefixes, length) = ValidatePrefixes(payloadPrefixes, nameof(payloadPrefixes));
+        var (prefixes, length) = ProtectedValuePrefixes.Validate(
+            payloadPrefixes,
+            nameof(payloadPrefixes)
+        );
 
         var normalizedTenantId = Normalize(tenantId);
         var tenantKey = await DbContext
@@ -546,22 +549,5 @@ internal class GrantStore(
         grantEntity.ProtectedPayload = value.ProtectedValue;
         DbContext.Grants.Update(grantEntity);
         return true;
-    }
-
-    // Copies the prefixes and checks that there is at least one and that they share a length.
-    private static (List<string> Prefixes, int Length) ValidatePrefixes(
-        IReadOnlyCollection<string> prefixes,
-        string paramName
-    )
-    {
-        var list = new List<string>(prefixes);
-        if (list.Count == 0 || list[0].Length == 0)
-            throw new ArgumentException("At least one non-empty prefix is required.", paramName);
-
-        var length = list[0].Length;
-        if (list.Any(prefix => prefix.Length != length))
-            throw new ArgumentException("The prefixes must all have the same length.", paramName);
-
-        return (list, length);
     }
 }

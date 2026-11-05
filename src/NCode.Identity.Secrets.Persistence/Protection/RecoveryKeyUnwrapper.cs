@@ -59,26 +59,14 @@ internal sealed class RecoveryKeyUnwrapper : IDisposable
             );
         }
 
-        var base64 = pem[fields.Base64Data];
-        using var lease = BufferFactory.Rent(
-            (base64.Length / 4 * 3) + 3,
-            isSensitive: true,
-            out Span<byte> buffer
-        );
-        if (!Convert.TryFromBase64Chars(base64, buffer, out var bytesWritten))
-        {
-            throw new InvalidOperationException(
-                "The recovery private key is not valid PEM: its Base64 data is not valid."
-            );
-        }
-
         var rsa = RSA.Create();
         var succeeded = false;
         try
         {
             try
             {
-                rsa.ImportPkcs8PrivateKey(buffer[..bytesWritten], out _);
+                // The platform decodes the Base64 data and clears its own buffer.
+                rsa.ImportFromPem(pem[fields.Location]);
             }
             catch (CryptographicException exception)
             {
@@ -131,19 +119,7 @@ internal sealed class RecoveryKeyUnwrapper : IDisposable
             isSensitive: true,
             out Span<byte> plaintext
         );
-        if (
-            !PrivateKey.TryDecrypt(
-                wrapped,
-                plaintext,
-                RSAEncryptionPadding.OaepSHA256,
-                out var bytesWritten
-            )
-        )
-        {
-            throw new CryptographicException(
-                "The master key could not be unwrapped with the recovery private key."
-            );
-        }
+        var bytesWritten = PrivateKey.Decrypt(wrapped, plaintext, RSAEncryptionPadding.OaepSHA256);
 
         destination.Write(plaintext[..bytesWritten]);
     }

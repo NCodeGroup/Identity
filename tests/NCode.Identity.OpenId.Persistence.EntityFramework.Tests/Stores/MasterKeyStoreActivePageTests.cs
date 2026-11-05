@@ -52,6 +52,8 @@ public sealed class MasterKeyStoreActivePageTests : IDisposable
             KeyCheck = "key-check",
         };
 
+    #region GetActivePageAsync Tests
+
     [Fact]
     public async Task GetActivePage_ReturnsOnlyActiveRowsCreatedBeforeTheInstant()
     {
@@ -78,4 +80,6 @@ public sealed class MasterKeyStoreActivePageTests : IDisposable
 
         Assert.Equal(old.KeyId, Assert.Single(result.Items).KeyId);
     }
+
+    #endregion
 }

@@ -54,8 +54,8 @@ internal class ServerSecretProtectorRefreshService(
     /// Loads the server's protector once, logging a failure instead of throwing it.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
-    internal async Task RefreshAsync(CancellationToken cancellationToken)
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    internal async ValueTask RefreshAsync(CancellationToken cancellationToken)
     {
         try
         {

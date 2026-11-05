@@ -23,8 +23,8 @@ namespace NCode.Identity.Server.SecretProtection;
 /// configuration, into sensitive buffers that are zeroed when the command ends, and it exists only inside this command.
 /// </para>
 /// <para>
-/// The exit code is <c>0</c> when no master key failed and <c>1</c> otherwise or when the configuration is invalid; the
-/// host returns <c>2</c> for a usage error.
+/// The exit code is <c>0</c> when no master key failed, <c>1</c> otherwise or when the configuration is invalid, and
+/// <c>2</c> for a usage error.
 /// </para>
 /// </remarks>
 // See ADR-1408.
@@ -95,27 +95,23 @@ public sealed class SecretProtectionCommandLine
     public bool DryRun { get; private init; }
 
     /// <summary>
+    /// Gets the reason the arguments are invalid, or <see langword="null"/> when they are. A command with an error
+    /// logs it with the <see cref="Usage"/> when it runs and exits with <c>2</c>.
+    /// </summary>
+    public string? Error { get; private init; }
+
+    /// <summary>
     /// Parses the command line of the host.
     /// </summary>
     /// <param name="args">The command-line arguments of the host.</param>
-    /// <param name="commandLine">The parsed command, when the method returns <see langword="true"/>.</param>
-    /// <param name="error">The reason the arguments are invalid, when the arguments select this command and are wrong.</param>
-    /// <returns><see langword="true"/> when the arguments are this command. <see langword="false"/> with a
-    /// <see langword="null"/> <paramref name="error"/> when the arguments do not start with <see cref="CommandName"/>,
-    /// and <see langword="false"/> with an <paramref name="error"/> when they do but are invalid.</returns>
-    public static bool TryParse(
-        IReadOnlyList<string> args,
-        out SecretProtectionCommandLine? commandLine,
-        out string? error
-    )
+    /// <returns>The command, or <see langword="null"/> when the arguments do not start with <see cref="CommandName"/>.
+    /// A command whose <see cref="Error"/> is set names what is wrong with the arguments.</returns>
+    public static SecretProtectionCommandLine? Parse(IReadOnlyList<string> args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        commandLine = null;
-        error = null;
-
         if (args.Count == 0 || !string.Equals(args[0], CommandName, StringComparison.Ordinal))
-            return false;
+            return null;
 
         if (
             args.Count < 2
@@ -125,9 +121,11 @@ public sealed class SecretProtectionCommandLine
             )
         )
         {
-            error =
-                $"The {CommandName} command takes the verb '{RewrapVerb}' or '{RewrapRecoveryVerb}'.";
-            return false;
+            return new SecretProtectionCommandLine
+            {
+                Error =
+                    $"The {CommandName} command takes the verb '{RewrapVerb}' or '{RewrapRecoveryVerb}'.",
+            };
         }
 
         string? path = null;
@@ -141,26 +139,33 @@ public sealed class SecretProtectionCommandLine
             {
                 case RecoveryPrivateKeyOption:
                     if (path is not null)
-                        return Fail(RepeatedMessage(option), out error);
+                        return new SecretProtectionCommandLine { Error = RepeatedMessage(option) };
 
                     if (!TryReadValue(args, ref index, out path))
-                        return Fail(MissingValueMessage(option), out error);
+                        return new SecretProtectionCommandLine
+                        {
+                            Error = MissingValueMessage(option),
+                        };
 
                     break;
 
                 case OwnerOption:
                     if (owner is not null)
-                        return Fail(RepeatedMessage(option), out error);
+                        return new SecretProtectionCommandLine { Error = RepeatedMessage(option) };
 
                     if (!TryReadValue(args, ref index, out var ownerText))
-                        return Fail(MissingValueMessage(option), out error);
+                        return new SecretProtectionCommandLine
+                        {
+                            Error = MissingValueMessage(option),
+                        };
 
                     if (!SecretOwner.TryParse(ownerText, out var parsed))
                     {
-                        return Fail(
-                            $"The value of {OwnerOption} must be an owner in the form <type:id>, such as tenant:acme.",
-                            out error
-                        );
+                        return new SecretProtectionCommandLine
+                        {
+                            Error =
+                                $"The value of {OwnerOption} must be an owner in the form <type:id>, such as tenant:acme.",
+                        };
                     }
 
                     owner = parsed;
@@ -168,24 +173,41 @@ public sealed class SecretProtectionCommandLine
 
                 case DryRunOption:
                     if (dryRun)
-                        return Fail(RepeatedMessage(option), out error);
+                        return new SecretProtectionCommandLine { Error = RepeatedMessage(option) };
 
                     dryRun = true;
                     break;
 
                 default:
-                    return Fail($"The option '{option}' is not recognized.", out error);
+                    return new SecretProtectionCommandLine
+                    {
+                        Error = $"The option '{option}' is not recognized.",
+                    };
             }
         }
 
-        commandLine = new SecretProtectionCommandLine
+        return new SecretProtectionCommandLine
         {
             Verb = args[1],
             RecoveryPrivateKeyPath = path,
             Owner = owner,
             DryRun = dryRun,
         };
-        return true;
+    }
+
+    /// <summary>
+    /// Gets the arguments that the host builds with: none when they select this command, because a command-line
+    /// configuration provider would read the verb and its options as configuration, and the arguments otherwise.
+    /// </summary>
+    /// <param name="args">The command-line arguments of the host.</param>
+    /// <returns>The arguments for the host builder.</returns>
+    public static string[] GetHostArguments(string[] args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+
+        return args.Length > 0 && string.Equals(args[0], CommandName, StringComparison.Ordinal)
+            ? []
+            : args;
     }
 
     /// <summary>
@@ -193,8 +215,11 @@ public sealed class SecretProtectionCommandLine
     /// </summary>
     /// <param name="services">The services of the built host.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the command.</param>
-    /// <returns>The <see cref="Task"/> that represents the command, containing its exit code.</returns>
-    public async Task<int> RunAsync(IServiceProvider services, CancellationToken cancellationToken)
+    /// <returns>The <see cref="ValueTask{TResult}"/> that represents the command, containing its exit code.</returns>
+    public async ValueTask<int> RunAsync(
+        IServiceProvider services,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(services);
 
@@ -202,13 +227,26 @@ public sealed class SecretProtectionCommandLine
             .GetRequiredService<ILoggerFactory>()
             .CreateLogger<SecretProtectionCommandLine>();
 
+        if (Error is { } error)
+        {
+            logger.SecretProtectionCommandUsageInvalid(error, Usage);
+            return 2;
+        }
+
         // The command checks the same configuration the host checks when it starts.
         try
         {
             services.GetService<IStartupValidator>()?.Validate();
         }
-        catch (OptionsValidationException exception)
+        catch (Exception exception)
+            when (exception is OptionsValidationException
+                || (
+                    exception is AggregateException aggregate
+                    && aggregate.InnerExceptions.All(inner => inner is OptionsValidationException)
+                )
+            )
         {
+            // The startup validator throws one exception per options type, or an aggregate when several fail.
             logger.SecretProtectionCommandConfigurationInvalid(exception);
             return 1;
         }
@@ -226,7 +264,7 @@ public sealed class SecretProtectionCommandLine
         }
     }
 
-    private async Task<int> RewrapAsync(
+    private async ValueTask<int> RewrapAsync(
         IMasterKeyRewrapper rewrapper,
         ILogger logger,
         CancellationToken cancellationToken
@@ -259,13 +297,16 @@ public sealed class SecretProtectionCommandLine
 
     // Reads the recovery private key file into sensitive buffers, or returns null when no file is named or it cannot
     // be read, which is logged.
-    private async Task<RecoveryKeyLease?> ReadRecoveryPrivateKeyAsync(
+    private async ValueTask<RecoveryKeyLease?> ReadRecoveryPrivateKeyAsync(
         ILogger logger,
         CancellationToken cancellationToken
     )
     {
         if (RecoveryPrivateKeyPath is not { } path)
             return null;
+
+        // A cancelled command opens no key file and rents no sensitive buffer.
+        cancellationToken.ThrowIfCancellationRequested();
 
         try
         {
@@ -326,28 +367,9 @@ public sealed class SecretProtectionCommandLine
         return true;
     }
 
-    private static bool Fail(string message, out string? error)
-    {
-        error = message;
-        return false;
-    }
-
     private static string RepeatedMessage(string option) =>
         $"The option '{option}' can be given only once.";
 
     private static string MissingValueMessage(string option) =>
         $"The option '{option}' needs a value.";
-
-    // Holds the two sensitive buffers of the recovery private key until the command ends.
-    private sealed class RecoveryKeyLease(IDisposable bytesLease, IDisposable charsLease)
-        : IDisposable
-    {
-        public ReadOnlyMemory<char> Pem { get; set; }
-
-        public void Dispose()
-        {
-            bytesLease.Dispose();
-            charsLease.Dispose();
-        }
-    }
 }

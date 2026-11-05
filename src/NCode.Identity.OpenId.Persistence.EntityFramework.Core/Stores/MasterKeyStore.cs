@@ -212,19 +212,40 @@ internal class MasterKeyStore(
     }
 
     /// <inheritdoc />
-    public async ValueTask<IReadOnlyList<PersistedMasterKey>> ListRetiredAsync(
+    public async ValueTask<PagedResult<SecretOwner>> GetRetiredOwnerPageAsync(
+        PageRequest page,
         CancellationToken cancellationToken
     )
     {
-        var entities = await DbContext
-            .MasterKeys.AsNoTracking()
-            .Where(entity => entity.RetiredWhen != null)
-            .OrderBy(entity => entity.OwnerType)
-            .ThenBy(entity => entity.NormalizedOwnerId)
-            .ThenByDescending(entity => entity.Version)
+        var query = DbContext.MasterKeys.AsNoTracking().Where(entity => entity.RetiredWhen != null);
+
+        var afterId = KeysetCursor.Decode(page.Cursor);
+        if (afterId is not null)
+            query = query.Where(entity => entity.Id > afterId.Value);
+
+        // Only the row identifier and the owner leave the database, never a wrapped key, a key check or a token.
+        var rows = await query
+            .OrderBy(entity => entity.Id)
+            .Take(page.Limit + 1)
+            .Select(entity => new
+            {
+                entity.Id,
+                entity.OwnerType,
+                entity.OwnerId,
+            })
             .ToListAsync(cancellationToken);
 
-        return entities.Select(MapToPersistedMasterKey).ToList();
+        var hasMore = rows.Count > page.Limit;
+        var count = hasMore ? page.Limit : rows.Count;
+
+        return new PagedResult<SecretOwner>
+        {
+            Items = rows.Take(count)
+                .Select(row => new SecretOwner(row.OwnerType, row.OwnerId))
+                .Distinct()
+                .ToList(),
+            NextCursor = hasMore ? KeysetCursor.Encode(rows[count - 1].Id) : null,
+        };
     }
 
     /// <inheritdoc />

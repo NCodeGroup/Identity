@@ -32,16 +32,10 @@ internal sealed class ServerMasterKeyChangeBroadcastHandler(
         if (!SecretOwner.TryParse(message, out var owner))
             return;
 
-        var server = Loader.Owner;
-        if (
-            !string.Equals(owner.OwnerType, server.OwnerType, StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(owner.OwnerId, server.OwnerId, StringComparison.OrdinalIgnoreCase)
-        )
-        {
+        if (!Loader.IsOwner(owner))
             return;
-        }
 
-        Provider.Evict(server);
+        Provider.Evict(Loader.Owner);
         await Loader.LoadAsync(cancellationToken);
     }
 

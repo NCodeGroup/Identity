@@ -10,6 +10,14 @@ using NCode.Identity.Server.Logging;
 
 namespace NCode.Identity.Server.SecretProtection;
 
+/// <summary>
+/// Loads the server's secret protector through <see cref="ServerSecretProtectorLoader"/> when the host starts, so that
+/// the Data Protection key ring, which protects and unprotects synchronously, finds it ready with every retired server
+/// key a live ring key names. It must start before the hosted service that loads the key ring.
+/// </summary>
+/// <remarks>
+/// It also warns when a Production host protects its master keys under a root key that is a local file.
+/// </remarks>
 // See ADR-1235 and ADR-1407.
 internal class ServerSecretProtectorWarmup(
     ServerSecretProtectorLoader loader,
@@ -27,6 +35,7 @@ internal class ServerSecretProtectorWarmup(
 
     private ILogger<ServerSecretProtectorWarmup> Logger { get; } = logger;
 
+    /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await Loader.LoadAsync(cancellationToken);
@@ -44,5 +53,6 @@ internal class ServerSecretProtectorWarmup(
         }
     }
 
+    /// <inheritdoc />
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

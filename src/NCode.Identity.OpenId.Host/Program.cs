@@ -25,24 +25,14 @@ using NCode.Registration.AspNetCore;
 // developer-only startup logic does NOT belong here — put it in the owning package as an extension
 // (dev helpers live in NCode.Identity.Server/DevelopmentEnvironment, e.g. AddDeveloperCors). If a step
 // needs an `if`, a `foreach`, a policy builder, or config parsing, move it to a package extension.
-// See csharp-production.instructions.md §4.
+// See csharp-production.instructions.md §4. The offline command's dispatch below is the one exception: only the entry
+// point can return its exit code.
 
 // OFFLINE COMMAND: 'secret-protection rewrap|rewrap-recovery' rewraps the master keys and exits without serving, for a
-// one-off Job that runs this image (ADR-1408). A command-line configuration provider would read the verb and its
-// options as configuration, so the command builds the host without the arguments.
-var isSecretProtectionCommand = SecretProtectionCommandLine.TryParse(
-    args,
-    out var secretProtectionCommand,
-    out var secretProtectionCommandError
-);
-if (!isSecretProtectionCommand && secretProtectionCommandError is not null)
-{
-    await Console.Error.WriteLineAsync(secretProtectionCommandError);
-    await Console.Error.WriteLineAsync(SecretProtectionCommandLine.Usage);
-    return 2;
-}
-
-var builder = WebApplication.CreateBuilder(isSecretProtectionCommand ? [] : args);
+// one-off Job that runs this image (ADR-1408). The host is built without the command's arguments, which a command-line
+// configuration provider would read as configuration.
+var secretProtectionCommand = SecretProtectionCommandLine.Parse(args);
+var builder = WebApplication.CreateBuilder(SecretProtectionCommandLine.GetHostArguments(args));
 
 var configuration = builder.Configuration;
 var hostEnvironment = builder.Environment;
@@ -183,7 +173,8 @@ else
 
 await using var app = builder.Build();
 
-// The command runs against the built services and never starts the hosted services or binds a port.
+// The command runs against the built services, never starts the hosted services or binds a port, and returns its exit
+// code. It is the one branch this file keeps, because only the entry point can return an exit code.
 if (secretProtectionCommand is not null)
     return await secretProtectionCommand.RunAsync(app.Services, CancellationToken.None);
 

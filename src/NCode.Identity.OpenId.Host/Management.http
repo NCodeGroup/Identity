@@ -162,7 +162,7 @@ Accept: application/json
 GET {{host}}/api/tenants/{{tenantId}}/encryption-keys
 Accept: application/json
 
-### Rekey a tenant (update:encryption_keys) — retires the active master key and creates the next version; returns the new active key and the retired one, or 409 when another rekey committed first
+### Rekey a tenant (update:encryption_keys) — retires the active master key and creates the next version; returns the new active key and the retired one, or 412 when another rekey committed first, or 409 with Retry-After when the last rotation is too recent
 POST {{host}}/api/tenants/{{tenantId}}/encryption-keys/rekey
 Accept: application/json
 

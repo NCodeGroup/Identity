@@ -37,11 +37,12 @@ rewraps every master key and exits without starting the server.
    file `--recovery-private-key` names, never from configuration, into sensitive buffers that are zeroed when the command
    ends.
 3. **The verb is `SecretProtectionCommandLine`.** `secret-protection rewrap` and `secret-protection rewrap-recovery`
-   accept `--recovery-private-key <file>`, `--owner <type:id>` and `--dry-run`. The host parses the arguments first and
-   builds without them when they select the command, so the command-line configuration provider never reads the verb. The
-   command validates the same options the host validates when it starts, returns `0` when no key failed and `1` when one failed,
-   when an explicit `--owner` has no master keys or when the configuration is invalid, and the host returns `2` for a usage error. `--dry-run` unwraps and verifies
-   every key and writes nothing.
+   accept `--recovery-private-key <file>`, `--owner <type:id>` and `--dry-run`. The host parses the arguments with
+   `SecretProtectionCommandLine.Parse` and builds without them when they select the command (`GetHostArguments`), so the
+   command-line configuration provider never reads the verb. The command validates the same options the host validates
+   when it starts, returns `0` when no key failed and `1` when one failed, when an explicit `--owner` has no master keys
+   or when the configuration is invalid, and logs a usage error with the usage and returns `2`. `--dry-run` unwraps and
+   verifies every key and writes nothing.
 4. **The chart runs it as a Job.** `secretProtection.rewrapJob` renders a plain Job, not a hook, named for the release
    revision, with the host's service account, image, security contexts, scheduling, environment and mounts. A recovery
    private key Secret is mounted into the Job only. The host Deployment and the Job share the environment, volume mount and

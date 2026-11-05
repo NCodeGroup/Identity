@@ -33,11 +33,13 @@ public class DataProtectionKeyRingReaderTests : BaseTests
     private DataProtectionKeyRingReader CreateReader(params XElement[] elements)
     {
         var repository = CreateStrictMock<IXmlRepository>();
-        repository.Setup(x => x.GetAllElements()).Returns(elements);
+        repository.Setup(x => x.GetAllElements()).Returns(elements).Verifiable();
         return new DataProtectionKeyRingReader(
             Options.Create(new KeyManagementOptions { XmlRepository = repository.Object })
         );
     }
+
+    #region TryRead Tests
 
     [Fact]
     public void TryRead_WithoutARepository_ReturnsFalse()
@@ -49,7 +51,7 @@ public class DataProtectionKeyRingReaderTests : BaseTests
     }
 
     [Fact]
-    public void TryRead_ReturnsTheValueAndTheExpirationOfEveryKey()
+    public void TryRead_ARingWithKeys_ReturnsTheValueAndExpirationOfEach()
     {
         var reader = CreateReader(
             KeyElement("2027-01-01T00:00:00+00:00", "value-1"),
@@ -66,7 +68,7 @@ public class DataProtectionKeyRingReaderTests : BaseTests
     }
 
     [Fact]
-    public void TryRead_IgnoresElementsThatAreNotKeys()
+    public void TryRead_ElementsThatAreNotKeys_AreIgnored()
     {
         var revocation = new XElement(
             "revocation",
@@ -93,6 +95,10 @@ public class DataProtectionKeyRingReaderTests : BaseTests
         Assert.True(value.IsLive(DateTimeOffset.MaxValue.AddYears(-1), TimeSpan.Zero));
     }
 
+    #endregion
+
+    #region IsLive Tests
+
     [Fact]
     public void IsLive_AKeyExpiredWithinTheGrace_IsLive()
     {
@@ -102,4 +108,6 @@ public class DataProtectionKeyRingReaderTests : BaseTests
         Assert.True(value.IsLive(now, TimeSpan.FromDays(30)));
         Assert.False(value.IsLive(now, TimeSpan.FromDays(5)));
     }
+
+    #endregion
 }

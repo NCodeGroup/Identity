@@ -15,18 +15,17 @@ public class SecretProtectionCommandLineTests : BaseTests
 {
     private static SecretProtectionCommandLine Parse(params string[] args)
     {
-        Assert.True(SecretProtectionCommandLine.TryParse(args, out var commandLine, out var error));
-        Assert.Null(error);
-        return Assert.IsType<SecretProtectionCommandLine>(commandLine);
+        var command = SecretProtectionCommandLine.Parse(args);
+        Assert.NotNull(command);
+        Assert.Null(command.Error);
+        return command;
     }
 
     private static string ParseError(params string[] args)
     {
-        Assert.False(
-            SecretProtectionCommandLine.TryParse(args, out var commandLine, out var error)
-        );
-        Assert.Null(commandLine);
-        return Assert.IsType<string>(error);
+        var command = SecretProtectionCommandLine.Parse(args);
+        Assert.NotNull(command);
+        return Assert.IsType<string>(command.Error);
     }
 
     private static ServiceProvider CreateServices(
@@ -43,23 +42,19 @@ public class SecretProtectionCommandLineTests : BaseTests
         return services.BuildServiceProvider();
     }
 
-    #region TryParse Tests
+    #region Parse Tests
 
     [Theory]
     [InlineData]
     [InlineData("--urls", "http://localhost")]
     [InlineData("rewrap")]
-    public void TryParse_ArgsThatAreNotTheCommand_ReturnFalseWithNoError(params string[] args)
+    public void Parse_ArgsThatAreNotTheCommand_ReturnNull(params string[] args)
     {
-        Assert.False(
-            SecretProtectionCommandLine.TryParse(args, out var commandLine, out var error)
-        );
-        Assert.Null(commandLine);
-        Assert.Null(error);
+        Assert.Null(SecretProtectionCommandLine.Parse(args));
     }
 
     [Fact]
-    public void TryParse_Rewrap_HasNoOptionsByDefault()
+    public void Parse_Rewrap_HasNoOptionsByDefault()
     {
         var command = Parse("secret-protection", "rewrap");
 
@@ -70,7 +65,7 @@ public class SecretProtectionCommandLineTests : BaseTests
     }
 
     [Fact]
-    public void TryParse_EveryOptionOnRewrapRecovery()
+    public void Parse_EveryOptionOnRewrapRecovery()
     {
         var command = Parse(
             "secret-protection",
@@ -89,7 +84,7 @@ public class SecretProtectionCommandLineTests : BaseTests
     }
 
     [Fact]
-    public void TryParse_OptionsInAnyOrder()
+    public void Parse_OptionsInAnyOrder()
     {
         var command = Parse(
             "secret-protection",
@@ -123,10 +118,44 @@ public class SecretProtectionCommandLineTests : BaseTests
     [InlineData("secret-protection", "rewrap", "--owner", "acme")]
     [InlineData("secret-protection", "rewrap", "--owner", "tenant:")]
     [InlineData("secret-protection", "rewrap", "extra")]
-    public void TryParse_InvalidArgs_ReturnAnError(params string[] args)
+    public void Parse_InvalidArgs_ReturnACommandWithAnError(params string[] args)
     {
         Assert.False(string.IsNullOrWhiteSpace(ParseError(args)));
     }
+
+    #endregion
+
+    #region GetHostArguments Tests
+
+    [Fact]
+    public void GetHostArguments_TheCommand_ReturnsNoArguments()
+    {
+        Assert.Empty(
+            SecretProtectionCommandLine.GetHostArguments([
+                "secret-protection",
+                "rewrap",
+                "--dry-run",
+            ])
+        );
+    }
+
+    [Fact]
+    public void GetHostArguments_OtherArguments_ReturnsThem()
+    {
+        string[] args = ["--urls", "http://localhost"];
+
+        Assert.Equal(args, SecretProtectionCommandLine.GetHostArguments(args));
+    }
+
+    [Fact]
+    public void GetHostArguments_NoArguments_ReturnsNone()
+    {
+        Assert.Empty(SecretProtectionCommandLine.GetHostArguments([]));
+    }
+
+    #endregion
+
+    #region Usage Tests
 
     [Fact]
     public void Usage_NamesTheVerbsAndOptions()
@@ -157,7 +186,8 @@ public class SecretProtectionCommandLineTests : BaseTests
                 x.RewrapAsync(It.IsAny<MasterKeyRewrapRequest>(), It.IsAny<CancellationToken>())
             )
             .Callback<MasterKeyRewrapRequest, CancellationToken>((r, _) => captured = r)
-            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(2, 2, 0, 0)));
+            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(2, 2, 0, 0)))
+            .Verifiable();
         using var services = CreateServices(rewrapper.Object);
 
         var exitCode = await Parse(
@@ -185,7 +215,8 @@ public class SecretProtectionCommandLineTests : BaseTests
             .Setup(x =>
                 x.RewrapAsync(It.IsAny<MasterKeyRewrapRequest>(), It.IsAny<CancellationToken>())
             )
-            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(2, 1, 0, 1)));
+            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(2, 1, 0, 1)))
+            .Verifiable();
         using var services = CreateServices(rewrapper.Object);
 
         var exitCode = await Parse("secret-protection", "rewrap")
@@ -202,7 +233,8 @@ public class SecretProtectionCommandLineTests : BaseTests
             .Setup(x =>
                 x.RewrapAsync(It.IsAny<MasterKeyRewrapRequest>(), It.IsAny<CancellationToken>())
             )
-            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(0, 0, 0, 0)));
+            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(0, 0, 0, 0)))
+            .Verifiable();
         using var services = CreateServices(rewrapper.Object);
 
         var exitCode = await Parse("secret-protection", "rewrap", "--owner", "tenant:acme")
@@ -219,7 +251,8 @@ public class SecretProtectionCommandLineTests : BaseTests
             .Setup(x =>
                 x.RewrapAsync(It.IsAny<MasterKeyRewrapRequest>(), It.IsAny<CancellationToken>())
             )
-            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(0, 0, 0, 0)));
+            .Returns(new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(0, 0, 0, 0)))
+            .Verifiable();
         using var services = CreateServices(rewrapper.Object);
 
         var exitCode = await Parse("secret-protection", "rewrap")
@@ -252,7 +285,8 @@ public class SecretProtectionCommandLineTests : BaseTests
                 )
                 .Returns(
                     new ValueTask<MasterKeyRewrapResult>(new MasterKeyRewrapResult(1, 1, 0, 0))
-                );
+                )
+                .Verifiable();
             using var services = CreateServices(rewrapper.Object);
 
             var exitCode = await Parse(
@@ -290,6 +324,102 @@ public class SecretProtectionCommandLineTests : BaseTests
             .RunAsync(services, CancellationToken.None);
 
         Assert.Equal(1, exitCode);
+        Assert.Empty(rewrapper.Invocations);
+    }
+
+    [Fact]
+    public async Task RunAsync_AnEmptyKeyFile_ReturnsOneWithoutCallingTheRewrapper()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            var rewrapper = CreateStrictMock<IMasterKeyRewrapper>();
+            using var services = CreateServices(rewrapper.Object);
+
+            var exitCode = await Parse(
+                    "secret-protection",
+                    "rewrap",
+                    "--recovery-private-key",
+                    path
+                )
+                .RunAsync(services, CancellationToken.None);
+
+            Assert.Equal(1, exitCode);
+            Assert.Empty(rewrapper.Invocations);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_AKeyFileOver64KiB_ReturnsOneWithoutCallingTheRewrapper()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllBytesAsync(path, new byte[(64 * 1024) + 1]);
+            var rewrapper = CreateStrictMock<IMasterKeyRewrapper>();
+            using var services = CreateServices(rewrapper.Object);
+
+            var exitCode = await Parse(
+                    "secret-protection",
+                    "rewrap",
+                    "--recovery-private-key",
+                    path
+                )
+                .RunAsync(services, CancellationToken.None);
+
+            Assert.Equal(1, exitCode);
+            Assert.Empty(rewrapper.Invocations);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_CancelledWhileReadingTheKeyFile_ThrowsWithoutCallingTheRewrapper()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            await File.WriteAllTextAsync(path, "-----BEGIN PRIVATE KEY-----", SecureEncoding.UTF8);
+            var rewrapper = CreateStrictMock<IMasterKeyRewrapper>();
+            using var services = CreateServices(rewrapper.Object);
+            using var cancelled = new CancellationTokenSource();
+            await cancelled.CancelAsync();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                await Parse("secret-protection", "rewrap", "--recovery-private-key", path)
+                    .RunAsync(services, cancelled.Token)
+            );
+
+            Assert.Empty(rewrapper.Invocations);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task RunAsync_AnInvalidCommandLine_ReturnsTwoWithoutValidatingOrRewrapping()
+    {
+        var rewrapper = CreateStrictMock<IMasterKeyRewrapper>();
+        var validator = CreateStrictMock<IStartupValidator>();
+        using var services = CreateServices(rewrapper.Object, validator.Object);
+
+        var command = SecretProtectionCommandLine.Parse(["secret-protection", "rewrap", "--force"]);
+        Assert.NotNull(command);
+
+        var exitCode = await command.RunAsync(services, CancellationToken.None);
+
+        Assert.Equal(2, exitCode);
+        Assert.Empty(validator.Invocations);
+        Assert.Empty(rewrapper.Invocations);
     }
 
     [Fact]
@@ -299,13 +429,38 @@ public class SecretProtectionCommandLineTests : BaseTests
         var validator = CreateStrictMock<IStartupValidator>();
         validator
             .Setup(x => x.Validate())
-            .Throws(new OptionsValidationException("x", typeof(object), ["bad"]));
+            .Throws(new OptionsValidationException("x", typeof(object), ["bad"]))
+            .Verifiable();
         using var services = CreateServices(rewrapper.Object, validator.Object);
 
         var exitCode = await Parse("secret-protection", "rewrap")
             .RunAsync(services, CancellationToken.None);
 
         Assert.Equal(1, exitCode);
+        Assert.Empty(rewrapper.Invocations);
+    }
+
+    [Fact]
+    public async Task RunAsync_TwoOptionsTypesAreInvalid_ReturnsOneWithoutCallingTheRewrapper()
+    {
+        var rewrapper = CreateStrictMock<IMasterKeyRewrapper>();
+        var validator = CreateStrictMock<IStartupValidator>();
+        validator
+            .Setup(x => x.Validate())
+            .Throws(
+                new AggregateException(
+                    new OptionsValidationException("a", typeof(object), ["bad a"]),
+                    new OptionsValidationException("b", typeof(object), ["bad b"])
+                )
+            )
+            .Verifiable();
+        using var services = CreateServices(rewrapper.Object, validator.Object);
+
+        var exitCode = await Parse("secret-protection", "rewrap")
+            .RunAsync(services, CancellationToken.None);
+
+        Assert.Equal(1, exitCode);
+        Assert.Empty(rewrapper.Invocations);
     }
 
     [Fact]
@@ -316,7 +471,8 @@ public class SecretProtectionCommandLineTests : BaseTests
             .Setup(x =>
                 x.RewrapAsync(It.IsAny<MasterKeyRewrapRequest>(), It.IsAny<CancellationToken>())
             )
-            .Throws(new InvalidOperationException("boom"));
+            .Throws(new InvalidOperationException("boom"))
+            .Verifiable();
         using var services = CreateServices(rewrapper.Object);
 
         var exitCode = await Parse("secret-protection", "rewrap-recovery")

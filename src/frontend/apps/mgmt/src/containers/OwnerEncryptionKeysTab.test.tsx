@@ -178,12 +178,12 @@ describe('OwnerEncryptionKeysTab', () => {
       if (url.endsWith('/encryption-keys/rekey') && method === 'POST') {
         return jsonResponse(
           {
-            title: 'Conflict',
-            status: 409,
+            title: 'Precondition Failed',
+            status: 412,
             detail:
-              'Another rotation of this master key committed first; read the encryption keys and retry.',
+              'The resource was changed by another request after this request read it. Read it again and retry.',
           },
-          409,
+          412,
         );
       }
       return jsonResponse(keys);
@@ -195,6 +195,8 @@ describe('OwnerEncryptionKeysTab', () => {
     fireEvent.click(screen.getByTestId('encryption-keys-rekey'));
     fireEvent.click(await screen.findByTestId('confirm-accept'));
 
-    expect(await screen.findByTestId('confirm-error')).toHaveTextContent('Another rotation');
+    expect(await screen.findByTestId('confirm-error')).toHaveTextContent(
+      'changed by another request',
+    );
   });
 });

@@ -356,21 +356,72 @@ public sealed class MasterKeyStoreTests : IDisposable
 
     #endregion
 
-    #region ListRetiredAsync Tests
+    #region GetRetiredOwnerPageAsync Tests
+
+    private async Task<List<SecretOwner>> ReadRetiredOwnersAsync(int limit)
+    {
+        var owners = new List<SecretOwner>();
+        string? cursor = null;
+        do
+        {
+            using var scope = _provider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+            var page = await CreateStore(context)
+                .GetRetiredOwnerPageAsync(
+                    new PageRequest { Limit = limit, Cursor = cursor },
+                    CancellationToken.None
+                );
+            owners.AddRange(page.Items);
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+
+        return owners;
+    }
 
     [Fact]
-    public async Task ListRetired_ReturnsRetiredRowsNewestFirstPerOwner()
+    public async Task GetRetiredOwnerPage_RetiredRowsOfSeveralOwners_ReturnsEachOwnerAcrossPages()
     {
-        var v1 = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true);
-        var v2 = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true);
-        var v3 = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 3);
-        await AddAsync(v1, v2, v3);
+        await AddAsync(
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 3),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Server, "server-one", 1, retired: true)
+        );
 
-        using var scope = _provider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
-        var result = await CreateStore(context).ListRetiredAsync(CancellationToken.None);
+        var owners = await ReadRetiredOwnersAsync(limit: 1);
 
-        Assert.Equal([v2.KeyId, v1.KeyId], result.Select(key => key.KeyId));
+        // An owner with two retired keys appears on two pages, so the caller handles each owner once.
+        Assert.Equal(
+            [
+                SecretOwner.ForTenant(TenantOneId),
+                SecretOwner.ForTenant(TenantTwoId),
+                SecretOwner.ForServer("server-one"),
+            ],
+            owners.Distinct()
+        );
+        Assert.Equal(4, owners.Count);
+    }
+
+    [Fact]
+    public async Task GetRetiredOwnerPage_OnlyActiveRows_ReturnsNoOwners()
+    {
+        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+
+        Assert.Empty(await ReadRetiredOwnersAsync(limit: 10));
+    }
+
+    [Fact]
+    public async Task GetRetiredOwnerPage_TwoRetiredRowsOfOneOwnerOnOnePage_ReturnsTheOwnerOnce()
+    {
+        await AddAsync(
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true)
+        );
+
+        var owner = Assert.Single(await ReadRetiredOwnersAsync(limit: 10));
+
+        Assert.Equal(SecretOwner.ForTenant(TenantOneId), owner);
     }
 
     #endregion

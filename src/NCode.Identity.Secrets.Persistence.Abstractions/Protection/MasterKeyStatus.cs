@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Immutable;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -15,6 +16,6 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 [PublicAPI]
 public sealed record MasterKeyStatus(
     SecretOwner Owner,
-    IReadOnlyList<MasterKeyInfo> Keys,
+    ImmutableArray<MasterKeyInfo> Keys,
     bool RecoveryConfigured
 );

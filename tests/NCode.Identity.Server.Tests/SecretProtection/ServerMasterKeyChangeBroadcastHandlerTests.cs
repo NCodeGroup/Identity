@@ -39,11 +39,17 @@ public class ServerMasterKeyChangeBroadcastHandlerTests : BaseTests
         return (new ServerMasterKeyChangeBroadcastHandler(loader, provider), provider, holder);
     }
 
+    #region Channel Tests
+
     [Fact]
     public void Channel_IsTheMasterKeyChannel()
     {
         Assert.Equal("master-key-changed", Create().Handler.Channel);
     }
+
+    #endregion
+
+    #region HandleAsync Tests
 
     [Fact]
     public async Task HandleAsync_ThisServersOwner_EvictsAndReloadsTheHolder()
@@ -70,6 +76,10 @@ public class ServerMasterKeyChangeBroadcastHandlerTests : BaseTests
         Assert.Null(holder.Protector);
     }
 
+    #endregion
+
+    #region HandleMissedMessagesAsync Tests
+
     [Fact]
     public async Task HandleMissedMessagesAsync_EvictsEverythingAndReloads()
     {
@@ -80,4 +90,6 @@ public class ServerMasterKeyChangeBroadcastHandlerTests : BaseTests
         Assert.Equal(1, provider.EvictAllCount);
         Assert.NotNull(holder.Protector);
     }
+
+    #endregion
 }

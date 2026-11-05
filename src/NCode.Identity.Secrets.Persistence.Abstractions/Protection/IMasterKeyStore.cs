@@ -130,14 +130,17 @@ public interface IMasterKeyStore : IStore<PersistedMasterKey>
     );
 
     /// <summary>
-    /// Gets every retired <see cref="PersistedMasterKey"/> instance of every owner, newest version first within each
-    /// owner.
+    /// Gets a page of the owners that have retired master keys, read from the retired rows in an opaque row order.
+    /// Only the owner of each row leaves the store, never its key material; an owner with several retired keys can
+    /// appear on more than one page.
     /// </summary>
+    /// <param name="page">The <see cref="PageRequest"/> that selects the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the retired master
-    /// keys, or an empty list when there are none.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page, in which
+    /// an owner appears once.</returns>
     // See ADR-1407.
-    ValueTask<IReadOnlyList<PersistedMasterKey>> ListRetiredAsync(
+    ValueTask<PagedResult<SecretOwner>> GetRetiredOwnerPageAsync(
+        PageRequest page,
         CancellationToken cancellationToken
     );
 

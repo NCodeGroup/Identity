@@ -22,9 +22,9 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
     private sealed class CapturingLogger<T> : ILogger<T>
     {
         private readonly object _gate = new();
-        private readonly List<EventId> _events = [];
+        private readonly List<(LogLevel Level, EventId Id)> _events = [];
 
-        public IReadOnlyList<EventId> Events
+        public IReadOnlyList<(LogLevel Level, EventId Id)> Events
         {
             get
             {
@@ -47,7 +47,7 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
         )
         {
             lock (_gate)
-                _events.Add(eventId);
+                _events.Add((logLevel, eventId));
         }
     }
 
@@ -60,21 +60,25 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
         TimeSpan Interval
     );
 
-    private Fixture CreateFixture()
+    private Fixture CreateFixture(bool loads = true)
     {
         var provider = new FakeRingProvider();
         var holder = new ServerSecretProtectorHolder();
         var time = new FakeTimeProvider(Now);
         var options = Options.Create(new SecretProtectionOptions());
 
-        var repository = CreateStrictMock<IXmlRepository>();
-        repository.Setup(x => x.GetAllElements()).Returns([]);
+        // A fixture that never loads reads no ring.
+        var keyManagement = new KeyManagementOptions();
+        if (loads)
+        {
+            var repository = CreateStrictMock<IXmlRepository>();
+            repository.Setup(x => x.GetAllElements()).Returns([]).Verifiable();
+            keyManagement.XmlRepository = repository.Object;
+        }
 
         var loader = new ServerSecretProtectorLoader(
             provider,
-            new DataProtectionKeyRingReader(
-                Options.Create(new KeyManagementOptions { XmlRepository = repository.Object })
-            ),
+            new DataProtectionKeyRingReader(Options.Create(keyManagement)),
             Options.Create(
                 new OpenIdOptions { Server = new OpenIdServerOptions { ServerId = "server-a" } }
             ),
@@ -124,6 +128,8 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
         return false;
     }
 
+    #region ExecuteAsync Tests
+
     [Fact]
     public async Task ExecuteAsync_EachRefreshInterval_LoadsTheProtectorAgain()
     {
@@ -161,6 +167,7 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
                 fixture.Logger.Events.Any(e => e.Id == EventIds.ServerSecretProtectorRefreshFailed)
             )
         );
+        Assert.All(fixture.Logger.Events, e => Assert.Equal(LogLevel.Warning, e.Level));
         Assert.False(fixture.Service.ExecuteTask?.IsCompleted);
         Assert.Null(fixture.Holder.Protector);
 
@@ -172,6 +179,22 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_Stopping_EndsQuietly()
+    {
+        var fixture = CreateFixture(loads: false);
+
+        await fixture.Service.StartAsync(CancellationToken.None);
+        await fixture.Service.StopAsync(CancellationToken.None);
+
+        Assert.True(fixture.Service.ExecuteTask is { IsCompleted: true, IsFaulted: false });
+        Assert.Empty(fixture.Logger.Events);
+    }
+
+    #endregion
+
+    #region RefreshAsync Tests
+
+    [Fact]
     public async Task RefreshAsync_WhenCancelled_Throws()
     {
         var fixture = CreateFixture();
@@ -180,21 +203,11 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
         await cts.CancelAsync();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            fixture.Service.RefreshAsync(cts.Token)
+            fixture.Service.RefreshAsync(cts.Token).AsTask()
         );
 
         Assert.Empty(fixture.Logger.Events);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_Stopping_EndsQuietly()
-    {
-        var fixture = CreateFixture();
-
-        await fixture.Service.StartAsync(CancellationToken.None);
-        await fixture.Service.StopAsync(CancellationToken.None);
-
-        Assert.True(fixture.Service.ExecuteTask is { IsCompleted: true, IsFaulted: false });
-        Assert.Empty(fixture.Logger.Events);
-    }
+    #endregion
 }

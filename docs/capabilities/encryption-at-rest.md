@@ -314,8 +314,9 @@ sequenceDiagram
 - **Rekey through the API.** `GET` and `POST /api/tenants/{tenantId}/encryption-keys[/rekey]` and
   `/api/servers/{serverId}/encryption-keys[/rekey]` report the keys and rotate them (Auth0's rekey shape). The response
   names keys by id, version, state, instants, root key provider and recovery key id and carries no key material. A rekey
-  that loses a race to another rekey, or comes within twice `RefreshInterval` of the owner's last rotation, answers
-  `409` (with `Retry-After` in the second case). The management console shows both.
+  within twice `RefreshInterval` of the owner's last rotation answers `409` with `Retry-After`, and one that loses a
+  race to another rekey answers `412`, as every management write that loses a race does. The management console shows
+  both.
 - **Every replica follows.** A replica keeps an owner's unwrapped keys for at most
   `SecretProtection:MasterKeys:RefreshInterval` (five minutes). A refresh reuses the keys it holds, so it makes no KMS
   call, and drops destroyed keys. A broadcast makes the others reload at once; a lost one costs at most

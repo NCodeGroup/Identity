@@ -24,6 +24,7 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
     private readonly TenantStore _tenantStore;
     private readonly ClientStore _clientStore;
     private readonly ServerStore _serverStore;
+    private readonly ResourceServerStore _resourceServerStore;
     private readonly SecretEnvelopeStore _store;
 
     public SecretEnvelopeStoreTests()
@@ -39,6 +40,11 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
         _clientStore = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
         _serverStore = new ServerStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _resourceServerStore = new ResourceServerStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext
+        );
         _store = new SecretEnvelopeStore(Mock.Of<IStoreProvider>(), _dbContext);
     }
 
@@ -132,6 +138,42 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         _dbContext.ChangeTracker.Clear();
     }
 
+    private async Task SeedResourceServerAsync(
+        string tenantId,
+        string resourceServerId,
+        params PersistedSecret[] secrets
+    )
+    {
+        await _resourceServerStore.AddAsync(
+            new PersistedResourceServer
+            {
+                TenantId = tenantId,
+                ResourceServerId = resourceServerId,
+                Identifier = $"https://{resourceServerId}.example.com",
+                ConcurrencyToken = string.Empty,
+                Name = resourceServerId,
+                IsSystem = false,
+                IsDisabled = false,
+                Settings = new PersistedResourceServerSettings
+                {
+                    TenantId = tenantId,
+                    ResourceServerId = resourceServerId,
+                    Value = EmptyObject(),
+                },
+                Scopes = [],
+                Secrets = new PersistedResourceServerSecrets
+                {
+                    TenantId = tenantId,
+                    ResourceServerId = resourceServerId,
+                    Value = secrets,
+                },
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
     private async Task SeedServerAsync(params PersistedSecret[] secrets)
     {
         await _serverStore.AddAsync(
@@ -196,6 +238,20 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         Assert.Equal(["client-secret", "tenant-secret"], values.Select(x => x.RecordId).Order());
         Assert.All(values, x => Assert.Equal(x.RecordId, x.ItemId));
         Assert.All(values, x => Assert.False(string.IsNullOrEmpty(x.ConcurrencyToken)));
+    }
+
+    [Fact]
+    public async Task GetPage_TenantOwner_ReturnsTheSecretsOfItsResourceServers()
+    {
+        await SeedTenantAsync(TenantId);
+        await SeedTenantAsync(OtherTenantId);
+        await SeedResourceServerAsync(TenantId, "rs-1", CreateSecret("rs-secret", "v1"));
+        await SeedResourceServerAsync(OtherTenantId, "rs-2", CreateSecret("other-rs-secret", "v2"));
+
+        var values = await ReadAllAsync(SecretOwner.ForTenant(TenantId));
+
+        var value = Assert.Single(values);
+        Assert.Equal("rs-secret", value.RecordId);
     }
 
     [Fact]
@@ -341,6 +397,31 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
             await _dbContext
                 .Clients.AsNoTracking()
                 .SingleAsync(x => x.NormalizedClientId == "client-1")
+        ).SecretsConcurrencyToken;
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
+    public async Task Update_ResourceServerSecret_ChangesTheResourceServersSecretsToken()
+    {
+        await SeedTenantAsync(TenantId);
+        await SeedResourceServerAsync(TenantId, "rs-1", CreateSecret("rs-secret", "v1"));
+        var before = (
+            await _dbContext
+                .ResourceServers.AsNoTracking()
+                .SingleAsync(x => x.NormalizedResourceServerId == "rs-1")
+        ).SecretsConcurrencyToken;
+        var value = Assert.Single(await ReadAllAsync(SecretOwner.ForTenant(TenantId)));
+        value.ProtectedValue = "rewrapped";
+
+        await _store.UpdateAsync(value, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var after = (
+            await _dbContext
+                .ResourceServers.AsNoTracking()
+                .SingleAsync(x => x.NormalizedResourceServerId == "rs-1")
         ).SecretsConcurrencyToken;
         Assert.NotEqual(before, after);
     }

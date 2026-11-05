@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
+using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.SecretProtection;
@@ -12,7 +13,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.SecretProtection;
 
-public sealed class PersistedSecretValueSourceTests : IDisposable
+public sealed class PersistedSecretValueSourceTests : BaseTests
 {
     private static readonly SecretOwner Tenant = SecretOwner.ForTenant("tenant-1");
     private static readonly Guid OldKey = Guid.NewGuid();
@@ -20,23 +21,22 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
     private static readonly Guid ActiveKey = Guid.NewGuid();
     private static readonly IReadOnlySet<Guid> OldKeys = new HashSet<Guid> { OldKey };
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Queue<IStoreManager> _storeManagers = new();
     private readonly FakeRewrapProvider _provider = new(ActiveKey);
+    private bool _storeManagerFactorySetUp;
 
     public PersistedSecretValueSourceTests()
     {
-        _storeManagerFactory = _mocks.Create<IStoreManagerFactory>();
-        _storeManagerFactory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()));
+        _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        _mocks.Verify();
-        Assert.Empty(_storeManagers);
+        if (disposing)
+            Assert.Empty(_storeManagers);
+
+        base.Dispose(disposing);
     }
 
     private PersistedSecretValueSource CreateSource() =>
@@ -48,10 +48,19 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
 
     private (Mock<ISecretEnvelopeStore> Store, Mock<IStoreManager> Manager) EnqueueManager()
     {
-        var store = _mocks.Create<ISecretEnvelopeStore>();
-        var manager = _mocks.Create<IStoreManager>();
-        manager.Setup(x => x.GetStore<ISecretEnvelopeStore>()).Returns(store.Object);
-        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
+        if (!_storeManagerFactorySetUp)
+        {
+            _storeManagerFactorySetUp = true;
+            _storeManagerFactory
+                .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+                .Returns(() => new ValueTask<IStoreManager>(_storeManagers.Dequeue()))
+                .Verifiable();
+        }
+
+        var store = CreateStrictMock<ISecretEnvelopeStore>();
+        var manager = CreateStrictMock<IStoreManager>();
+        manager.Setup(x => x.GetStore<ISecretEnvelopeStore>()).Returns(store.Object).Verifiable();
+        manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         _storeManagers.Enqueue(manager.Object);
         return (store, manager);
     }
@@ -96,7 +105,8 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(new ValueTask<PagedResult<PersistedProtectedValue>>(Page(next, items)));
+            .Returns(new ValueTask<PagedResult<PersistedProtectedValue>>(Page(next, items)))
+            .Verifiable();
     }
 
     private static void SetupUpdate(
@@ -106,12 +116,14 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
     ) =>
         store
             .Setup(x => x.UpdateAsync(value, It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<bool>(exists));
+            .Returns(new ValueTask<bool>(exists))
+            .Verifiable();
 
     private static void SetupSave(Mock<IStoreManager> manager) =>
         manager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Returns(ValueTask.CompletedTask);
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
     #region RewrapAsync Tests
 
@@ -227,7 +239,8 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
         SetupUpdate(store1, stale);
         manager1
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .Throws(new StoreConcurrencyException());
+            .Throws(new StoreConcurrencyException())
+            .Verifiable();
 
         var again = Value("s1", OldKey);
         var (store2, manager2) = EnqueueManager();
@@ -251,7 +264,8 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
             SetupUpdate(store, stale);
             manager
                 .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
-                .Throws(new StoreConcurrencyException());
+                .Throws(new StoreConcurrencyException())
+                .Verifiable();
         }
 
         var next = Value("s2", OldKey);
@@ -263,6 +277,24 @@ public sealed class PersistedSecretValueSourceTests : IDisposable
         var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
 
         Assert.Equal(new ProtectedValueRewrapResult(1, 1), result);
+    }
+
+    [Fact]
+    public async Task Rewrap_AMasterKeyThePageNamesIsGone_CountsThePageFailedAndReadsTheNextPage()
+    {
+        _provider.KeysMissing = true;
+        var first = Value("s1", OldKey);
+        var second = Value("s2", OldKey);
+        var third = Value("s3", OldKey);
+        var (store1, _) = EnqueueManager();
+        SetupPage(store1, null, "next", first, second);
+        var (store2, _) = EnqueueManager();
+        SetupPage(store2, "next", null, third);
+
+        var result = await CreateSource().RewrapAsync(Tenant, OldKeys, CancellationToken.None);
+
+        Assert.Equal(new ProtectedValueRewrapResult(0, 3), result);
+        Assert.Equal(2, _provider.Requests.Count);
     }
 
     [Fact]

@@ -4,6 +4,7 @@
 using System.Xml.Linq;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.DataProtection.Repositories;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.OpenId;
@@ -42,25 +43,45 @@ public class ServerSecretProtectorLoaderTests : BaseTests
     )
     {
         var repository = CreateStrictMock<IXmlRepository>();
-        repository.Setup(x => x.GetAllElements()).Returns(ringKeys);
+        repository.Setup(x => x.GetAllElements()).Returns(ringKeys).Verifiable();
 
-        return new ServerSecretProtectorLoader(
+        return CreateLoader(
             provider,
+            holder,
             new DataProtectionKeyRingReader(
                 Options.Create(new KeyManagementOptions { XmlRepository = repository.Object })
-            ),
+            )
+        );
+    }
+
+    private static ServerSecretProtectorLoader CreateLoader(
+        FakeRingProvider provider,
+        ServerSecretProtectorHolder holder,
+        DataProtectionKeyRingReader reader
+    ) =>
+        new(
+            provider,
+            reader,
             Options.Create(
                 new OpenIdOptions { Server = new OpenIdServerOptions { ServerId = ServerId } }
             ),
             Options.Create(new SecretProtectionOptions()),
             new FakeTimeProvider(Now),
             holder,
-            CreateLooseMock<Microsoft.Extensions.Logging.ILogger<ServerSecretProtectorLoader>>().Object
+            NullLogger<ServerSecretProtectorLoader>.Instance
         );
-    }
+
+    private static ServerSecretProtectorLoader CreateLoaderWithoutRing() =>
+        CreateLoader(
+            new FakeRingProvider(),
+            new ServerSecretProtectorHolder(),
+            new DataProtectionKeyRingReader(Options.Create(new KeyManagementOptions()))
+        );
+
+    #region LoadAsync Tests
 
     [Fact]
-    public async Task LoadAsync_LoadsEveryRetiredKeyThatALiveRingKeyNames()
+    public async Task LoadAsync_ALiveRingKeyNamesARetiredKey_LoadsIt()
     {
         var provider = new FakeRingProvider(ActiveKey, RetiredLiveKey);
         var holder = new ServerSecretProtectorHolder();
@@ -83,7 +104,7 @@ public class ServerSecretProtectorLoaderTests : BaseTests
     }
 
     [Fact]
-    public async Task LoadAsync_IgnoresARingKeyThatExpiredPastTheGrace()
+    public async Task LoadAsync_ARingKeyExpiredPastTheGrace_IsIgnored()
     {
         var provider = new FakeRingProvider(ActiveKey);
         var holder = new ServerSecretProtectorHolder();
@@ -114,11 +135,43 @@ public class ServerSecretProtectorLoaderTests : BaseTests
         Assert.Single(provider.Requests[^1].Values);
     }
 
-    [Fact]
-    public void Owner_UsesTheConfiguredServerId()
-    {
-        var loader = CreateLoader(new FakeRingProvider(), new ServerSecretProtectorHolder());
+    #endregion
 
-        Assert.Equal(Owner, loader.Owner);
+    #region Owner Tests
+
+    [Fact]
+    public void Owner_WithAConfiguredServerId_IsThatServer()
+    {
+        Assert.Equal(Owner, CreateLoaderWithoutRing().Owner);
     }
+
+    #endregion
+
+    #region IsOwner Tests
+
+    [Fact]
+    public void IsOwner_TheConfiguredServer_ReturnsTrue()
+    {
+        Assert.True(CreateLoaderWithoutRing().IsOwner(Owner));
+    }
+
+    [Fact]
+    public void IsOwner_TheServerInAnotherCase_ReturnsTrue()
+    {
+        Assert.True(CreateLoaderWithoutRing().IsOwner(SecretOwner.ForServer("SERVER-A")));
+    }
+
+    [Fact]
+    public void IsOwner_ATenantWithTheServersId_ReturnsFalse()
+    {
+        Assert.False(CreateLoaderWithoutRing().IsOwner(SecretOwner.ForTenant(ServerId)));
+    }
+
+    [Fact]
+    public void IsOwner_AnotherServer_ReturnsFalse()
+    {
+        Assert.False(CreateLoaderWithoutRing().IsOwner(SecretOwner.ForServer("server-b")));
+    }
+
+    #endregion
 }

@@ -89,6 +89,10 @@ internal static class SecretProtectionFormat
     /// </summary>
     public const int MasterKeyIdPrefixLength = 25;
 
+    // The bytes of the master key identifier that the prefix encodes: the MasterKeyIdPrefixLength characters after the
+    // Prefix are 20, five whole 4-character groups of base64url, which hold 15 bytes.
+    private const int MasterKeyIdPrefixByteCount = 15;
+
     // The header is read from the first 24 base64url characters, which are whole 4-character groups that decode to
     // 18 bytes and so cover the master key identifier.
     private const int KeyIdHeaderCharCount = 24;
@@ -350,7 +354,7 @@ internal static class SecretProtectionFormat
         WriteMasterKeyId(masterKeyId, bytes);
 
         Span<char> chars = stackalloc char[MasterKeyIdPrefixLength - Prefix.Length];
-        if (!Base64Url.TryEncode(bytes[..15], chars, out _))
+        if (!Base64Url.TryEncode(bytes[..MasterKeyIdPrefixByteCount], chars, out _))
         {
             throw new InvalidOperationException("The master key identifier cannot be encoded.");
         }

@@ -233,9 +233,11 @@ const NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RewrapR
 const NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RewrapVerb = "rewrap" -> string!
 NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine
 NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.DryRun.get -> bool
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Error.get -> string?
 NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner?
 NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RecoveryPrivateKeyPath.get -> string?
-NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RunAsync(System.IServiceProvider! services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<int>!
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RunAsync(System.IServiceProvider! services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
 NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Verb.get -> string!
-static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.TryParse(System.Collections.Generic.IReadOnlyList<string!>! args, out NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine? commandLine, out string? error) -> bool
+static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.GetHostArguments(string![]! args) -> string![]!
+static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Parse(System.Collections.Generic.IReadOnlyList<string!>! args) -> NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine?
 static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Usage.get -> string!

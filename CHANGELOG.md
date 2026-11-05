@@ -3474,8 +3474,9 @@ describes the family as it is rather than its changes
   `POST /api/servers/{serverId}/encryption-keys/rekey`; `GET .../encryption-keys` reports the keys by id, version,
   state, instants, root key provider and recovery key id, and carries no key material. The scopes are
   `read:encryption_keys` and `update:encryption_keys` for a tenant and `read:server_encryption_keys` and
-  `update:server_encryption_keys` for the server. A rekey that loses a race to another rekey, or that comes within
-  twice `RefreshInterval` of the owner's last rotation, answers `409`, with `Retry-After` in the second case. A
+  `update:server_encryption_keys` for the server. A rekey within twice `RefreshInterval` of the owner's last rotation
+  answers `409` with `Retry-After`, and one that loses a race to another rekey answers `412`, as every management
+  write that loses a race does. A
   rotation creates the successor's key material before it retires the active key, and a store failure re-activates the
   retired key. Every
   replica reloads an owner's keys within `SecretProtection:MasterKeys:RefreshInterval` (five minutes) without a KMS

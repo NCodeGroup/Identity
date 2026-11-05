@@ -69,4 +69,10 @@ internal static class EventIds
     public const int ProtectedValuePageAbandoned = Base + 31;
 
     public const int ProtectedValuePageUnreadable = Base + 32;
+
+    public const int OwnerRootKeyValidationPassFailed = Base + 33;
+
+    public const int OwnerRootKeyValidationOwnerFailed = Base + 34;
+
+    public const int OwnerRootKeyAuditPublishFailed = Base + 35;
 }

@@ -118,6 +118,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
             retired ? Now.AddDays(-40) : null,
             "local",
             "root",
+            null,
             null
         );
 

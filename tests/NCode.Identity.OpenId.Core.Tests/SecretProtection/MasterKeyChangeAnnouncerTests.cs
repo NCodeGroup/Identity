@@ -46,6 +46,7 @@ public sealed class MasterKeyChangeAnnouncerTests : BaseTests
             retiredWhen,
             "local",
             "root",
+            null,
             null
         );
 

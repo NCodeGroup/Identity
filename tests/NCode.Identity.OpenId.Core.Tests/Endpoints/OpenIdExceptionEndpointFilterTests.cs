@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -9,7 +10,11 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Endpoints;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
+using NCode.Mediator;
+using NCode.Registration.AspNetCore;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Endpoints;
@@ -18,12 +23,18 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
 {
     private static HttpContext CreateHttpContext(
         IAuditEventRecorder recorder,
-        OpenIdContext openIdContext
+        OpenIdContext openIdContext,
+        IOpenIdExceptionHandler? handler = null,
+        params IOpenIdExceptionTranslator[] translators
     )
     {
         var services = new ServiceCollection();
         services.AddSingleton(recorder);
         services.AddLogging();
+        if (handler is not null)
+            services.AddSingleton(handler);
+        foreach (var translator in translators)
+            services.AddSingleton(translator);
 
         var httpContext = new DefaultHttpContext
         {
@@ -34,6 +45,8 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
         );
         return httpContext;
     }
+
+    #region InvokeAsync
 
     [Fact]
     public async Task InvokeAsync_WhenAuthorizationResultCarriesError_AuditsOnce()
@@ -105,4 +118,80 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
             Times.Never
         );
     }
+
+    [Fact]
+    public async Task InvokeAsync_WhenTranslatorAnswersForException_HandlerReceivesOpenIdExceptionAndErrorIsAuditedOnce()
+    {
+        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        var mockMediator = CreateStrictMock<IMediator>();
+        var mockContext = CreateLooseMock<OpenIdContext>();
+        mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object).Verifiable();
+        mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
+
+        var mockError = CreateLooseMock<IOpenIdError>();
+        mockError.SetupGet(x => x.Code).Returns("temporarily_unavailable");
+
+        var thrown = new InvalidOperationException("outage");
+
+        var mockTranslator = CreateStrictMock<IOpenIdExceptionTranslator>();
+        var translatedError = mockError.Object;
+        mockTranslator
+            .Setup(x => x.TryTranslate(mockEnvironment.Object, thrown, out translatedError))
+            .Returns(true)
+            .Verifiable();
+
+        var mockRecorder = CreateStrictMock<IAuditEventRecorder>();
+        mockRecorder
+            .Setup(x =>
+                x.RecordOpenIdErrorAsync(
+                    mockContext.Object,
+                    mockError.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        ExceptionDispatchInfo? captured = null;
+        var disposition = ReadOnlyEndpointDisposition.Handled(TypedResults.Ok());
+        var mockHandler = CreateStrictMock<IOpenIdExceptionHandler>();
+        mockHandler
+            .Setup(x =>
+                x.HandleExceptionAsync(
+                    mockEnvironment.Object,
+                    It.IsAny<HttpContext>(),
+                    mockMediator.Object,
+                    It.IsAny<ExceptionDispatchInfo>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<
+                OpenIdEnvironment,
+                HttpContext,
+                IMediator,
+                ExceptionDispatchInfo,
+                CancellationToken
+            >((_, _, _, info, _) => captured = info)
+            .Returns(new ValueTask<ReadOnlyEndpointDisposition>(disposition))
+            .Verifiable();
+
+        var httpContext = CreateHttpContext(
+            mockRecorder.Object,
+            mockContext.Object,
+            mockHandler.Object,
+            mockTranslator.Object
+        );
+        var filterContext = EndpointFilterInvocationContext.Create(httpContext);
+
+        var filter = new OpenIdExceptionEndpointFilter();
+        var result = await filter.InvokeAsync(filterContext, _ => throw thrown);
+
+        Assert.Same(disposition.HttpResult, result);
+        Assert.NotNull(captured);
+        var openIdException = Assert.IsType<OpenIdException>(captured.SourceException);
+        Assert.Same(mockError.Object, openIdException.Error);
+        Assert.Same(thrown, openIdException.InnerException);
+    }
+
+    #endregion
 }

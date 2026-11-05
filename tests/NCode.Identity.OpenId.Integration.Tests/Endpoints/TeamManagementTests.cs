@@ -512,6 +512,182 @@ public class TeamManagementTests
         return response.StatusCode;
     }
 
+    // Creates team acme with tenants acme-dev and acme-prod and fills acme-dev with a development environment, a
+    // resource server with a scope, a client with a secret and a grant of the client to the resource server; returns
+    // the client's id and the resource server's id.
+    private static async Task<(
+        string ClientId,
+        string ResourceServerId
+    )> ArrangePromotionSourceAsync(HttpClient administrator)
+    {
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTenantAsync(administrator, "acme", "acme-prod");
+        await PatchAsync(
+            administrator,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.RequireConsent}",
+                    value = (object)true,
+                },
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.EnvironmentType}",
+                    value = (object)"development",
+                },
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.EnvironmentName}",
+                    value = (object)"sandbox",
+                },
+            }
+        );
+
+        using var resourceServer = await administrator.PostAsJsonAsync(
+            "/api/tenants/acme-dev/resource-servers",
+            new
+            {
+                identifier = "https://api.acme.test",
+                name = "Acme API",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var resourceServerBody = await resourceServer.Content.ReadAsStringAsync();
+        Assert.True(resourceServer.StatusCode == HttpStatusCode.Created, resourceServerBody);
+        var resourceServerId = JsonElement
+            .Parse(resourceServerBody)
+            .GetProperty("resourceServerId")
+            .GetString();
+        Assert.NotNull(resourceServerId);
+
+        using var scope = await administrator.PostAsJsonAsync(
+            $"/api/tenants/acme-dev/resource-servers/{resourceServerId}/scopes",
+            new { value = "read:things", description = (string?)null }
+        );
+        var scopeBody = await scope.Content.ReadAsStringAsync();
+        Assert.True(scope.StatusCode == HttpStatusCode.Created, scopeBody);
+
+        using var created = await administrator.PostAsJsonAsync(
+            "/api/tenants/acme-dev/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                    [OpenIdSettingNames.ClientName] = "Acme Web",
+                    [OpenIdSettingNames.RedirectUris] = new[] { "https://dev.acme.test/cb" },
+                },
+            }
+        );
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+        var clientId = JsonElement.Parse(createdBody).GetProperty("clientId").GetString();
+        Assert.NotNull(clientId);
+
+        using var secret = await administrator.PostAsJsonAsync(
+            $"/api/tenants/acme-dev/clients/{clientId}/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var secretBody = await secret.Content.ReadAsStringAsync();
+        Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
+
+        using var grant = await administrator.PostAsJsonAsync(
+            $"/api/tenants/acme-dev/clients/{clientId}/grants",
+            new { resourceServerId, scopes = new[] { "read:things" } }
+        );
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, grantBody);
+
+        return (clientId, resourceServerId);
+    }
+
+    private static Task<HttpResponseMessage> PostPromotionAsync(
+        HttpClient client,
+        string teamId,
+        string route,
+        string sourceTenantId,
+        string targetTenantId,
+        object? environmentSettings = null
+    ) =>
+        client.PostAsJsonAsync(
+            $"/api/teams/{teamId}/promotions{route}",
+            new
+            {
+                sourceTenantId,
+                targetTenantId,
+                environmentSettings = environmentSettings ?? Array.Empty<object>(),
+            }
+        );
+
+    private static async Task<JsonElement> ReadPromotionAsync(
+        HttpResponseMessage response,
+        HttpStatusCode expected
+    )
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == expected, body);
+        return JsonElement.Parse(body);
+    }
+
+    private static bool HasChange(
+        JsonElement report,
+        string resourceType,
+        string resourceId,
+        string action
+    ) =>
+        report
+            .GetProperty("changes")
+            .EnumerateArray()
+            .Any(change =>
+                change.GetProperty("resourceType").GetString() == resourceType
+                && change.GetProperty("resourceId").GetString() == resourceId
+                && change.GetProperty("action").GetString() == action
+            );
+
+    private static bool HasNote(
+        JsonElement report,
+        string resourceId,
+        string code,
+        string? settingName = null
+    ) =>
+        report
+            .GetProperty("notes")
+            .EnumerateArray()
+            .Any(note =>
+                note.GetProperty("resourceId").GetString() == resourceId
+                && note.GetProperty("code").GetString() == code
+                && (
+                    settingName is null
+                    || (
+                        note.TryGetProperty("settingName", out var name)
+                        && name.GetString() == settingName
+                    )
+                )
+            );
+
+    private static async Task<JsonElement> GetJsonAsync(HttpClient client, string path)
+    {
+        using var response = await client.GetAsync(path);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"{path}: {body}");
+        return JsonElement.Parse(body);
+    }
+
     #endregion
 
     #region CreateTeam Tests
@@ -1858,6 +2034,289 @@ public class TeamManagementTests
         Assert.Equal(HostApplicationFactory.TeamId, usage.GetProperty("teamId").GetString());
         Assert.True(GetCount(usage, "usage-one") >= 2, usage.ToString());
         Assert.True(GetCount(usage, "usage-two") >= 2, usage.ToString());
+    }
+
+    #endregion
+
+    #region Promotion Tests
+
+    [Fact]
+    public async Task PromoteTenant_CopiesConfigurationButNoSecretsOrEnvironmentValues()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(administrator);
+
+        using var previewResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            "/preview",
+            "acme-dev",
+            "acme-prod"
+        );
+        var preview = await ReadPromotionAsync(previewResponse, HttpStatusCode.OK);
+        Assert.False(preview.GetProperty("isApplied").GetBoolean());
+        Assert.True(HasChange(preview, "client", clientId, "created"), preview.ToString());
+        Assert.True(
+            HasChange(preview, "resource_server", resourceServerId, "created"),
+            preview.ToString()
+        );
+        Assert.True(
+            HasChange(preview, "client_grant", $"{clientId}/{resourceServerId}", "created"),
+            preview.ToString()
+        );
+        Assert.True(HasNote(preview, clientId, "credential_required"), preview.ToString());
+        Assert.True(
+            HasNote(
+                preview,
+                clientId,
+                "environment_setting_unset",
+                OpenIdSettingNames.RedirectUris
+            ),
+            preview.ToString()
+        );
+
+        using var promoteResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod"
+        );
+        var promoted = await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
+        Assert.True(promoted.GetProperty("isApplied").GetBoolean());
+
+        var settings = (
+            await GetJsonAsync(administrator, "/api/tenants/acme-prod/settings")
+        ).GetProperty("settings");
+        Assert.True(settings.GetProperty(OpenIdSettingNames.RequireConsent).GetBoolean());
+        Assert.False(settings.TryGetProperty(OpenIdSettingNames.EnvironmentName, out _));
+
+        var client = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/acme-prod/clients/{clientId}"
+        );
+        Assert.Equal(clientId, client.GetProperty("clientId").GetString());
+        var clientSettings = (
+            await GetJsonAsync(administrator, $"/api/tenants/acme-prod/clients/{clientId}/settings")
+        ).GetProperty("settings");
+        Assert.Equal(
+            "Acme Web",
+            clientSettings.GetProperty(OpenIdSettingNames.ClientName).GetString()
+        );
+        Assert.False(clientSettings.TryGetProperty(OpenIdSettingNames.RedirectUris, out _));
+
+        var secrets = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/acme-prod/clients/{clientId}/secrets"
+        );
+        Assert.Empty(secrets.GetProperty("secrets").EnumerateArray());
+
+        var grant = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/acme-prod/clients/{clientId}/grants/{resourceServerId}"
+        );
+        Assert.Equal(
+            ["read:things"],
+            grant.GetProperty("scopes").EnumerateArray().Select(scope => scope.GetString())
+        );
+
+        using var againResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod"
+        );
+        var again = await ReadPromotionAsync(againResponse, HttpStatusCode.OK);
+        var actions = again
+            .GetProperty("changes")
+            .EnumerateArray()
+            .Select(change => change.GetProperty("action").GetString())
+            .ToList();
+        Assert.NotEmpty(actions);
+        Assert.All(actions, action => Assert.Equal("unchanged", action));
+    }
+
+    [Fact]
+    public async Task PromoteTenant_WithEnvironmentSettings_WritesTheSuppliedValues()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, _) = await ArrangePromotionSourceAsync(administrator);
+
+        using var promoteResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod",
+            new[]
+            {
+                new
+                {
+                    resourceType = "client",
+                    resourceId = clientId,
+                    settings = new Dictionary<string, object>
+                    {
+                        [OpenIdSettingNames.RedirectUris] = new[] { "https://prod.acme.test/cb" },
+                    },
+                },
+            }
+        );
+        await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
+
+        var clientSettings = (
+            await GetJsonAsync(administrator, $"/api/tenants/acme-prod/clients/{clientId}/settings")
+        ).GetProperty("settings");
+        Assert.Equal(
+            ["https://prod.acme.test/cb"],
+            clientSettings
+                .GetProperty(OpenIdSettingNames.RedirectUris)
+                .EnumerateArray()
+                .Select(uri => uri.GetString())
+        );
+    }
+
+    [Fact]
+    public async Task PromoteTenant_ByATeamOwner_ReturnsForbidden()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await ArrangePromotionSourceAsync(administrator);
+        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+
+        foreach (var route in new[] { "/preview", string.Empty })
+        {
+            using var response = await PostPromotionAsync(
+                owner,
+                "acme",
+                route,
+                "acme-dev",
+                "acme-prod"
+            );
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
+        }
+    }
+
+    [Fact]
+    public async Task PromoteTenant_ToAnotherTeamsTenant_ReturnsNotFound()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await ArrangePromotionSourceAsync(administrator);
+        await CreateTeamAsync(administrator, "beta", new { });
+        await CreateTenantAsync(administrator, "beta", "beta-prod");
+
+        using var response = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "beta-prod"
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NotFound, body);
+    }
+
+    [Fact]
+    public async Task PromoteTenant_ByATenantAdminOfBoth_WhenALimitChanges_ReturnsForbidden()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await ArrangePromotionSourceAsync(administrator);
+        await PatchAsync(
+            administrator,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
+                    value = 100,
+                },
+            }
+        );
+        using var tenantAdmin = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/admins"
+        );
+        var admins = await GetJsonAsync(administrator, "/api/tenants/acme-dev/admins");
+        var principalId = admins
+            .GetProperty("items")
+            .EnumerateArray()
+            .Select(admin => admin.GetProperty("principalId").GetString())
+            .Single();
+        using var grant = await administrator.PostAsJsonAsync(
+            "/api/tenants/acme-prod/admins",
+            new { principalId }
+        );
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, grantBody);
+
+        foreach (var route in new[] { "/preview", string.Empty })
+        {
+            using var refused = await PostPromotionAsync(
+                tenantAdmin,
+                "acme",
+                route,
+                "acme-dev",
+                "acme-prod"
+            );
+            var refusedBody = await refused.Content.ReadAsStringAsync();
+            Assert.True(refused.StatusCode == HttpStatusCode.Forbidden, refusedBody);
+            Assert.Contains(
+                OpenIdSettingNames.RateLimitTenantPerMinute,
+                refusedBody,
+                StringComparison.Ordinal
+            );
+        }
+
+        using var allowed = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod"
+        );
+        await ReadPromotionAsync(allowed, HttpStatusCode.OK);
+        var settings = (
+            await GetJsonAsync(administrator, "/api/tenants/acme-prod/settings")
+        ).GetProperty("settings");
+        Assert.Equal(
+            100,
+            settings.GetProperty(OpenIdSettingNames.RateLimitTenantPerMinute).GetInt32()
+        );
+    }
+
+    [Fact]
+    public async Task PromoteTenant_LeavesTheHostManagedClientAlone()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var root = await GetJsonAsync(administrator, $"/api/tenants/{RootTenantId}");
+        var teamId = root.GetProperty("teamId").GetString();
+        Assert.NotNull(teamId);
+        await CreateTenantAsync(administrator, teamId, "root-staging");
+
+        using var response = await PostPromotionAsync(
+            administrator,
+            teamId,
+            "/preview",
+            RootTenantId,
+            "root-staging"
+        );
+
+        var preview = await ReadPromotionAsync(response, HttpStatusCode.OK);
+        Assert.True(HasNote(preview, BootstrapClientId, "host_managed"), preview.ToString());
+        Assert.DoesNotContain(
+            preview.GetProperty("changes").EnumerateArray(),
+            change => change.GetProperty("resourceId").GetString() == BootstrapClientId
+        );
     }
 
     #endregion

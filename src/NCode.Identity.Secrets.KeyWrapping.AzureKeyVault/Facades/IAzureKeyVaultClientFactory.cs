@@ -23,4 +23,11 @@ internal interface IAzureKeyVaultClientFactory
     /// requested from; or <see langword="null"/> for the directory of the deployment's own identity.</param>
     /// <returns>The <see cref="CryptographyClient"/> that performs cryptographic operations with the key.</returns>
     CryptographyClient GetClient(string keyId, KeyAccess? access);
+
+    /// <summary>
+    /// Removes the credential of the directory that the access names, and every client created with it, so that an
+    /// access whose calls fail leaves nothing cached. Does nothing when no such credential exists.
+    /// </summary>
+    /// <param name="access">The Microsoft Entra directory, as the identity of the access, to release.</param>
+    void Release(KeyAccess access);
 }

@@ -119,6 +119,21 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
             .ThrowsAsync(exception)
             .Verifiable();
 
+    private void SetupWrapKeyThrows(Exception exception) =>
+        Client
+            .Setup(x =>
+                x.WrapKeyAsync(
+                    KeyWrapAlgorithm.RsaOaep256,
+                    It.IsAny<byte[]>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(exception)
+            .Verifiable();
+
+    private void SetupRelease(KeyAccess access) =>
+        ClientFactory.Setup(x => x.Release(access)).Verifiable();
+
     #region WrapAsync Tests
 
     [Fact]
@@ -606,6 +621,174 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         Assert.Equal(expected, failure is null);
         if (!expected)
             Assert.Equal("must be a Microsoft Entra tenant ID, a GUID", failure);
+    }
+
+    #endregion
+
+    #region Release Tests
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithAccessFails_ReleasesTheCredential()
+    {
+        var failure = new InvalidOperationException("The directory has not consented.");
+        SetupClient(TenantKeyId, Access);
+        SetupWrapKeyThrows(failure);
+        SetupRelease(Access);
+        var provider = CreateProvider(keyId: null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider
+                .WrapAsync(
+                    new ReferencedKey(TenantKeyId, Access),
+                    RandomNumberGenerator.GetBytes(32),
+                    "root-context"u8.ToArray(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithoutAccessFails_ReleasesNothing()
+    {
+        var failure = new InvalidOperationException("The service is unavailable.");
+        SetupClient(TenantKeyId, access: null);
+        SetupWrapKeyThrows(failure);
+        var provider = CreateProvider(keyId: null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider
+                .WrapAsync(
+                    new ReferencedKey(TenantKeyId, Access: null),
+                    RandomNumberGenerator.GetBytes(32),
+                    "root-context"u8.ToArray(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithAccessIsCanceled_ReleasesNothing()
+    {
+        var failure = new OperationCanceledException();
+        SetupClient(TenantKeyId, Access);
+        SetupWrapKeyThrows(failure);
+        var provider = CreateProvider(keyId: null);
+
+        var exception = await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            provider
+                .WrapAsync(
+                    new ReferencedKey(TenantKeyId, Access),
+                    RandomNumberGenerator.GetBytes(32),
+                    "root-context"u8.ToArray(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessFails_ReleasesTheCredential()
+    {
+        var failure = new RequestFailedException(403, "The directory has not consented.");
+        var wrappedKey = CreateWrappedKey(TenantKeyVersionId, RandomNumberGenerator.GetBytes(384));
+        SetupClient(TenantKeyVersionId, Access);
+        SetupUnwrapKeyThrows(failure);
+        SetupRelease(Access);
+        var provider = CreateProvider(keyId: null);
+
+        var exception = await Assert.ThrowsAsync<RequestFailedException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    Access,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessRejectedByTheService_ReleasesTheCredentialAndThrowsCryptographicException()
+    {
+        var failure = new RequestFailedException(400, "x");
+        var wrappedKey = CreateWrappedKey(TenantKeyVersionId, RandomNumberGenerator.GetBytes(384));
+        SetupClient(TenantKeyVersionId, Access);
+        SetupUnwrapKeyThrows(failure);
+        SetupRelease(Access);
+        var provider = CreateProvider(keyId: null);
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    Access,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception.InnerException);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithoutAccessFails_ReleasesNothing()
+    {
+        var failure = new RequestFailedException(503, "x");
+        var wrappedKey = CreateWrappedKey(KeyVersionId, RandomNumberGenerator.GetBytes(384));
+        SetupClient(KeyVersionId);
+        SetupUnwrapKeyThrows(failure);
+        var provider = CreateProvider(keyId: null);
+
+        var exception = await Assert.ThrowsAsync<RequestFailedException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessIsCanceled_ReleasesNothing()
+    {
+        var failure = new OperationCanceledException();
+        var wrappedKey = CreateWrappedKey(TenantKeyVersionId, RandomNumberGenerator.GetBytes(384));
+        SetupClient(TenantKeyVersionId, Access);
+        SetupUnwrapKeyThrows(failure);
+        var provider = CreateProvider(keyId: null);
+
+        var exception = await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    Access,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
     }
 
     #endregion

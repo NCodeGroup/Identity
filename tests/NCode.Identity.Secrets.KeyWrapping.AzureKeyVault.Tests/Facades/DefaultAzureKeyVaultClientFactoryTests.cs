@@ -80,4 +80,62 @@ public class DefaultAzureKeyVaultClientFactoryTests
     }
 
     #endregion
+
+    #region Release Tests
+
+    [Fact]
+    public void Release_AfterGetClient_ReturnsDifferentClientForSameDirectoryAndKeyId()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+        var access = new KeyAccess(DirectoryId, "tenant:acme");
+        var before = factory.GetClient(KeyVersionId, access);
+
+        factory.Release(access);
+        var after = factory.GetClient(KeyVersionId, access);
+
+        Assert.NotSame(before, after);
+    }
+
+    [Fact]
+    public void Release_AnotherDirectory_KeepsClientCached()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+        var other = new KeyAccess(OtherDirectoryId, "tenant:acme");
+        var before = factory.GetClient(KeyVersionId, other);
+
+        factory.Release(new KeyAccess(DirectoryId, "tenant:acme"));
+        var after = factory.GetClient(KeyVersionId, other);
+
+        Assert.Same(before, after);
+    }
+
+    [Fact]
+    public void Release_DirectoryWithoutClient_Succeeds()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+
+        factory.Release(new KeyAccess(DirectoryId, "tenant:acme"));
+    }
+
+    [Fact]
+    public void Release_EmptyIdentity_KeepsClientOfTheDeploymentsOwnIdentity()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+        var before = factory.GetClient(KeyVersionId, access: null);
+
+        factory.Release(new KeyAccess(string.Empty, "tenant:acme"));
+        var after = factory.GetClient(KeyVersionId, access: null);
+
+        Assert.Same(before, after);
+    }
+
+    [Fact]
+    public void Release_NullAccess_Throws()
+    {
+        var factory = new DefaultAzureKeyVaultClientFactory();
+
+        Assert.Throws<ArgumentNullException>(() => factory.Release(null!));
+    }
+
+    #endregion
 }

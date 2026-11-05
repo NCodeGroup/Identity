@@ -57,6 +57,30 @@ internal sealed class DefaultAzureKeyVaultClientFactory : IAzureKeyVaultClientFa
         return new CryptographyClient(new Uri(keyId), credential.Value);
     }
 
+    /// <inheritdoc />
+    public void Release(KeyAccess access)
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        // The clients of the deployment's own identity have an empty identity in their key, so a release never reaches
+        // them.
+        if (string.IsNullOrEmpty(access.Identity))
+        {
+            return;
+        }
+
+        DirectoryCredentials.TryRemove(access.Identity, out _);
+
+        var prefix = $"{access.Identity}|";
+        foreach (var key in Clients.Keys)
+        {
+            if (key.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                Clients.TryRemove(key, out _);
+            }
+        }
+    }
+
     private Lazy<TokenCredential> GetCredential(KeyAccess? access)
     {
         if (access is null)

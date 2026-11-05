@@ -195,6 +195,13 @@ internal class AzureKeyVaultKeyWrapper(
                 cancellationToken
             );
         }
+        catch (Exception exception)
+            when (access is not null && exception is not OperationCanceledException)
+        {
+            // An identity that fails must leave no credential cached.
+            ClientFactory.Release(access);
+            throw;
+        }
         finally
         {
             CryptographicOperations.ZeroMemory(plaintext);
@@ -305,15 +312,26 @@ internal class AzureKeyVaultKeyWrapper(
                 cancellationToken
             );
         }
-        catch (RequestFailedException exception) when (exception.Status == 400)
+        catch (Exception exception)
         {
+            // An identity that fails must leave no credential cached.
+            if (access is not null && exception is not OperationCanceledException)
+            {
+                ClientFactory.Release(access);
+            }
+
             // Only a ciphertext that the service rejects is a cryptographic failure. Anything else propagates
             // unchanged. An outage must not look like a wrong key: callers delete keys on CryptographicException in
             // Development.
-            throw new CryptographicException(
-                $"Azure Key Vault key '{keyId}' did not unwrap the master key: the service rejected the ciphertext.",
-                exception
-            );
+            if (exception is RequestFailedException { Status: 400 })
+            {
+                throw new CryptographicException(
+                    $"Azure Key Vault key '{keyId}' did not unwrap the master key: the service rejected the ciphertext.",
+                    exception
+                );
+            }
+
+            throw;
         }
 
         CopyPlaintext(result.Key, destination);

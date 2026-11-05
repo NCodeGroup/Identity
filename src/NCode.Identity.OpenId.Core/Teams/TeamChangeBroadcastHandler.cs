@@ -65,41 +65,35 @@ internal sealed class TeamChangeBroadcastHandler(
     {
         var propertyBag = PropertyBagFactory.Create();
 
+        var staleTeamIds = await GetStaleTeamIdsAsync(propertyBag, cancellationToken);
+        if (staleTeamIds is null)
+        {
+            await ClearCachesAsync(propertyBag, cancellationToken);
+            return;
+        }
+
+        await EvictTeamsAsync(staleTeamIds, propertyBag, cancellationToken);
+    }
+
+    private async ValueTask<IReadOnlyList<string>?> GetStaleTeamIdsAsync(
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
         try
         {
-            List<TeamRevision> served =
-            [
-                .. await TeamCache.GetRevisionsAsync(propertyBag, cancellationToken),
-                .. await TenantCache.GetTeamRevisionsAsync(propertyBag, cancellationToken),
-            ];
-
+            var served = await ReadServedRevisionsAsync(propertyBag, cancellationToken);
             if (served.Count == 0)
-                return;
+                return [];
 
             var teamIds = served
                 .Select(revision => revision.TeamId)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            var currentTokens = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var currentTokens = await ReadCurrentTokensAsync(teamIds, cancellationToken);
 
-            await using (
-                var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken)
-            )
-            {
-                var store = storeManager.GetStore<ITeamStore>();
-
-                foreach (var batch in teamIds.Chunk(TeamBatchSize))
-                {
-                    var tokens = await store.GetConcurrencyTokensAsync(batch, cancellationToken);
-                    foreach (var (teamId, token) in tokens)
-                    {
-                        currentTokens[teamId] = token;
-                    }
-                }
-            }
-
-            var staleTeamIds = served
+            return served
                 .Where(revision =>
                     !currentTokens.TryGetValue(revision.TeamId, out var token)
                     || !string.Equals(token, revision.ConcurrencyToken, StringComparison.Ordinal)
@@ -107,17 +101,72 @@ internal sealed class TeamChangeBroadcastHandler(
                 .Select(revision => revision.TeamId)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
-
-            foreach (var teamId in staleTeamIds)
-            {
-                await HandleAsync(teamId, cancellationToken);
-            }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             Logger.TeamCacheRevalidationFailed(exception);
-            await ClearCachesAsync(propertyBag, cancellationToken);
+            return null;
         }
+    }
+
+    private async ValueTask<List<TeamRevision>> ReadServedRevisionsAsync(
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    ) =>
+        [
+            .. await TeamCache.GetRevisionsAsync(propertyBag, cancellationToken),
+            .. await TenantCache.GetTeamRevisionsAsync(propertyBag, cancellationToken),
+        ];
+
+    private async ValueTask<Dictionary<string, string>> ReadCurrentTokensAsync(
+        List<string> teamIds,
+        CancellationToken cancellationToken
+    )
+    {
+        var currentTokens = new Dictionary<string, string>(
+            teamIds.Count,
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITeamStore>();
+
+        foreach (var batch in teamIds.Chunk(TeamBatchSize))
+        {
+            var tokens = await store.GetConcurrencyTokensAsync(batch, cancellationToken);
+            foreach (var (teamId, token) in tokens)
+            {
+                currentTokens[teamId] = token;
+            }
+        }
+
+        return currentTokens;
+    }
+
+    private async ValueTask EvictTeamsAsync(
+        IReadOnlyList<string> teamIds,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        // One failing team never stops the others; a failure clears both caches so no stale entry survives.
+        var failed = false;
+
+        foreach (var teamId in teamIds)
+        {
+            try
+            {
+                await HandleAsync(teamId, cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                Logger.TeamCacheEvictionFailed(exception, teamId);
+                failed = true;
+            }
+        }
+
+        if (failed)
+            await ClearCachesAsync(propertyBag, cancellationToken);
     }
 
     private async ValueTask ClearCachesAsync(

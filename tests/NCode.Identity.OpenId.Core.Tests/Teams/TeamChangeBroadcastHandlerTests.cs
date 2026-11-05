@@ -232,6 +232,37 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
         await Handler.HandleMissedMessagesAsync(CancellationToken.None);
     }
 
+    [Fact]
+    public async Task HandleMissedMessagesAsync_WhenAnEvictionFails_EvictsTheOtherStaleTeamsAndClearsBothCaches()
+    {
+        SetupRevisions([new TeamRevision("acme", "a1"), new TeamRevision("globex", "g1")], []);
+        SetupStore(
+            ids => Assert.Equal(["acme", "globex"], ids),
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["acme"] = "a2",
+                ["globex"] = "g2",
+            }
+        );
+        MockTeamCache
+            .Setup(x =>
+                x.RemoveAsync("acme", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(() => ValueTask.FromException(new InvalidOperationException("Failed.")))
+            .Verifiable();
+        MockTenantCache
+            .Setup(x =>
+                x.RemoveTeamAsync("acme", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupEviction("globex");
+        SetupClear(MockTeamCache);
+        SetupClear(MockTenantCache);
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+    }
+
     #endregion
 
     private void SetupRevisions(

@@ -505,6 +505,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
+    #region ToClientResource Tests
+
+    [Fact]
+    public void ToClientResource_MapsTheClientsPrincipalId()
+    {
+        var client = CreateClient("ct-1");
+        client.PrincipalId = "principal-1";
+
+        var resource = Handler.ToClientResource(client);
+
+        Assert.Equal("principal-1", resource.PrincipalId);
+        Assert.Equal(ClientId, resource.ClientId);
+    }
+
+    #endregion
+
     #region CreateClientAsync Tests
 
     [Fact]

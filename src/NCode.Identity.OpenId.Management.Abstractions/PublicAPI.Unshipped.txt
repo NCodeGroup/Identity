@@ -164,6 +164,8 @@ NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ConcurrencyTok
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ConcurrencyToken.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.PrincipalId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource

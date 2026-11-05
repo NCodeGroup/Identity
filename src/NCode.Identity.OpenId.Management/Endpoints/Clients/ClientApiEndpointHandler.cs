@@ -239,6 +239,7 @@ internal class ClientApiEndpointHandler(
             ClientId = client.ClientId,
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
+            PrincipalId = client.PrincipalId,
             ResourceServerId = client.ResourceServerId,
         };
     }

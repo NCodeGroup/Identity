@@ -28,6 +28,11 @@ public sealed class ClientResource : ISupportClientId, ISupportTenantId, ISuppor
     /// <inheritdoc cref="PersistedClient.IsDisabled"/>
     public required bool IsDisabled { get; init; }
 
+    /// <summary>
+    /// Gets the identifier of the client's principal, which role assignments name to grant the client authority.
+    /// </summary>
+    public required string PrincipalId { get; init; }
+
     /// <inheritdoc cref="PersistedClient.ResourceServerId"/>
     public string? ResourceServerId { get; init; }
 }

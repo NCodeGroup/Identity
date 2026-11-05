@@ -638,7 +638,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        // A caller whose token names no subject becomes no owner, so no AddAssignmentAsync setup exists: the strict
+        // A caller that resolves to no principal becomes no owner, so no AddAssignmentAsync setup exists: the strict
         // mock fails the test if a TeamAdmin assignment is granted.
         MockResourceOwnershipService
             .Setup(x =>

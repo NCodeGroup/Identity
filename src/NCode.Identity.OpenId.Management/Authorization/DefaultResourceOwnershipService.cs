@@ -50,7 +50,7 @@ internal class DefaultResourceOwnershipService(
             );
         }
 
-        // A caller whose token names no subject, such as a service token, becomes no owner.
+        // A caller that resolves to no principal becomes no owner.
         if (string.IsNullOrEmpty(principalId))
         {
             return;

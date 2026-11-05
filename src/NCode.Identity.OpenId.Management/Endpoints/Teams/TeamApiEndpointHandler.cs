@@ -397,17 +397,18 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITeamStore>();
-
-        var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
-
         return await ProcessGetAsync(
             httpContext,
-            team,
             GetTeamNode(httpContext, teamId),
             Operations.Read,
-            ToTeamResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITeamStore>();
+                return await store.GetOrDefaultAsync(teamId, token);
+            },
+            ToTeamResource,
+            cancellationToken
         );
     }
 
@@ -584,17 +585,18 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITeamStore>();
-
-        var teamSettings = await store.GetSettingsOrDefaultAsync(teamId, cancellationToken);
-
         return await ProcessGetAsync(
             httpContext,
-            teamSettings,
             GetTeamNode(httpContext, teamId),
             Operations.Read,
-            ToTeamSettingsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITeamStore>();
+                return await store.GetSettingsOrDefaultAsync(teamId, token);
+            },
+            ToTeamSettingsResource,
+            cancellationToken
         );
     }
 
@@ -612,23 +614,20 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITeamStore>();
-
-        var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
-        if (team is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
         // See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            team.Settings.Value,
             GetTeamNode(httpContext, teamId),
             Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITeamStore>();
+                var team = await store.GetOrDefaultAsync(teamId, token);
+                return team?.TeamId;
+            },
             async (_, token) =>
             {
                 var effectiveSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
@@ -659,6 +658,17 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTeamNode(httpContext, teamId),
+            Operations.Update,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
 
@@ -666,16 +676,6 @@ internal class TeamApiEndpointHandler(
         if (teamSettings is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTeamNode(httpContext, teamId),
-            Operations.Update
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         if (

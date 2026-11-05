@@ -431,6 +431,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         SetupTeam(null);
+        SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.GetTeamAsync(
             CreateHttpContext(authenticated: true),
@@ -442,10 +443,8 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTeamAsync_WhenForbidden_ReturnsForbid()
+    public async Task GetTeamAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTeam()
     {
-        SetupStore();
-        SetupTeam(CreateTeam());
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.GetTeamAsync(
@@ -1060,6 +1059,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         SetupTeamSettings(null);
+        SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.GetSettingsAsync(
             CreateHttpContext(authenticated: true),
@@ -1068,6 +1068,22 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTeam()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -1143,6 +1159,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         SetupTeam(null);
+        SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.GetEffectiveSettingsAsync(
             CreateHttpContext(authenticated: true),
@@ -1151,6 +1168,22 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTeam()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetEffectiveSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -1633,6 +1666,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         SetupTeamSettings(null);
+        SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.UpdateSettingsAsync(
             CreateHttpContext(authenticated: true),
@@ -1646,10 +1680,8 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateSettingsAsync_WhenForbidden_ReturnsForbid()
+    public async Task UpdateSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTeam()
     {
-        SetupStore();
-        SetupTeamSettings(CreateSettings("settings-ct"));
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.UpdateSettingsAsync(
@@ -2060,7 +2092,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task ListAdminsAsync_WhenForbidden_ReturnsForbid()
+    public async Task ListAdminsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTeam()
     {
         SetupAuthorization(AuthorizationResult.Failed());
 

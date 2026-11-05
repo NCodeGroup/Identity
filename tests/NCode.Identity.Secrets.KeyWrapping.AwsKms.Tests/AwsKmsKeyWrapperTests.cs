@@ -122,6 +122,15 @@ public class AwsKmsKeyWrapperTests : IDisposable
             .ThrowsAsync(exception)
             .Verifiable();
 
+    private void SetupEncryptThrows(Exception exception) =>
+        Client
+            .Setup(x => x.EncryptAsync(It.IsAny<EncryptRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(exception)
+            .Verifiable();
+
+    private void SetupRelease(string region, KeyAccess access) =>
+        ClientFactory.Setup(x => x.Release(region, access)).Verifiable();
+
     #region WrapAsync Tests
 
     [Theory]
@@ -474,6 +483,174 @@ public class AwsKmsKeyWrapperTests : IDisposable
         Assert.Equal(expected, failure is null);
         if (!expected)
             Assert.StartsWith("must be the ARN of an IAM role", failure);
+    }
+
+    #endregion
+
+    #region Release Tests
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithAccessFails_ReleasesTheClient()
+    {
+        var failure = new InvalidOperationException("The role cannot be assumed.");
+        SetupClient("eu-central-1", Access);
+        SetupEncryptThrows(failure);
+        SetupRelease("eu-central-1", Access);
+        var provider = CreateProvider(keyArn: null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider
+                .WrapAsync(
+                    new ReferencedKey(AliasOtherRegion, Access),
+                    RandomNumberGenerator.GetBytes(32),
+                    "root-context"u8.ToArray(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithoutAccessFails_ReleasesNothing()
+    {
+        var failure = new InvalidOperationException("The service is unavailable.");
+        SetupClient("eu-central-1", access: null);
+        SetupEncryptThrows(failure);
+        var provider = CreateProvider(keyArn: null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider
+                .WrapAsync(
+                    new ReferencedKey(AliasOtherRegion, Access: null),
+                    RandomNumberGenerator.GetBytes(32),
+                    "root-context"u8.ToArray(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithAccessIsCanceled_ReleasesNothing()
+    {
+        var failure = new OperationCanceledException();
+        SetupClient("eu-central-1", Access);
+        SetupEncryptThrows(failure);
+        var provider = CreateProvider(keyArn: null);
+
+        var exception = await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            provider
+                .WrapAsync(
+                    new ReferencedKey(AliasOtherRegion, Access),
+                    RandomNumberGenerator.GetBytes(32),
+                    "root-context"u8.ToArray(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessFails_ReleasesTheClient()
+    {
+        var failure = new InvalidOperationException("The role cannot be assumed.");
+        var wrappedKey = CreateWrappedKey(OtherRegionKeyArn, RandomNumberGenerator.GetBytes(64));
+        SetupClient("eu-central-1", Access);
+        SetupDecryptThrows(failure);
+        SetupRelease("eu-central-1", Access);
+        var provider = CreateProvider(keyArn: null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    Access,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessRejectedByTheService_ReleasesTheClientAndThrowsCryptographicException()
+    {
+        var failure = new InvalidCiphertextException("The ciphertext is invalid.");
+        var wrappedKey = CreateWrappedKey(OtherRegionKeyArn, RandomNumberGenerator.GetBytes(64));
+        SetupClient("eu-central-1", Access);
+        SetupDecryptThrows(failure);
+        SetupRelease("eu-central-1", Access);
+        var provider = CreateProvider(keyArn: null);
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    Access,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception.InnerException);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithoutAccessFails_ReleasesNothing()
+    {
+        var failure = new InvalidOperationException("The service is unavailable.");
+        var wrappedKey = CreateWrappedKey(OtherRegionKeyArn, RandomNumberGenerator.GetBytes(64));
+        SetupClient("eu-central-1");
+        SetupDecryptThrows(failure);
+        var provider = CreateProvider(keyArn: null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessIsCanceled_ReleasesNothing()
+    {
+        var failure = new OperationCanceledException();
+        var wrappedKey = CreateWrappedKey(OtherRegionKeyArn, RandomNumberGenerator.GetBytes(64));
+        SetupClient("eu-central-1", Access);
+        SetupDecryptThrows(failure);
+        var provider = CreateProvider(keyArn: null);
+
+        var exception = await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    Access,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Same(failure, exception);
     }
 
     #endregion

@@ -179,8 +179,21 @@ internal class AwsKmsKeyWrapper(
             EncryptionContext = CreateEncryptionContext(context),
         };
 
-        var client = ClientFactory.GetClient(AwsKmsKeyArn.GetRegion(keyArn), access);
-        var response = await client.EncryptAsync(request, cancellationToken);
+        var region = AwsKmsKeyArn.GetRegion(keyArn);
+        var client = ClientFactory.GetClient(region, access);
+
+        EncryptResponse response;
+        try
+        {
+            response = await client.EncryptAsync(request, cancellationToken);
+        }
+        catch (Exception exception)
+            when (access is not null && exception is not OperationCanceledException)
+        {
+            // An identity that fails must leave no client cached.
+            ClientFactory.Release(region, access);
+            throw;
+        }
 
         return new WrappedKey
         {
@@ -270,7 +283,8 @@ internal class AwsKmsKeyWrapper(
             EncryptionContext = CreateEncryptionContext(context),
         };
 
-        var client = ClientFactory.GetClient(AwsKmsKeyArn.GetRegion(keyId), access);
+        var region = AwsKmsKeyArn.GetRegion(keyId);
+        var client = ClientFactory.GetClient(region, access);
 
         DecryptResponse response;
         try
@@ -278,15 +292,25 @@ internal class AwsKmsKeyWrapper(
             response = await client.DecryptAsync(request, cancellationToken);
         }
         catch (Exception exception)
-            when (exception is InvalidCiphertextException or IncorrectKeyException)
         {
+            // An identity that fails must leave no client cached.
+            if (access is not null && exception is not OperationCanceledException)
+            {
+                ClientFactory.Release(region, access);
+            }
+
             // Only a ciphertext or key that the service rejects is a cryptographic failure. Anything else
             // propagates unchanged. An outage must not look like a wrong key: callers delete keys on
             // CryptographicException in Development.
-            throw new CryptographicException(
-                $"AWS KMS key '{keyId}' did not unwrap the master key: the ciphertext or its encryption context does not match.",
-                exception
-            );
+            if (exception is InvalidCiphertextException or IncorrectKeyException)
+            {
+                throw new CryptographicException(
+                    $"AWS KMS key '{keyId}' did not unwrap the master key: the ciphertext or its encryption context does not match.",
+                    exception
+                );
+            }
+
+            throw;
         }
 
         CopyPlaintext(response.Plaintext, destination);

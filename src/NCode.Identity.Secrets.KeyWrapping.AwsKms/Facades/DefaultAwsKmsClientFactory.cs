@@ -24,7 +24,8 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 /// <para>
 /// A role that the holder of the key grants through an identity gets its own client, whose credentials come from STS
 /// AssumeRole with the binding as the external ID. The credentials of the role are cached and refreshed by the SDK,
-/// and the credentials that call AssumeRole come from the default chain.
+/// and the credentials that call AssumeRole come from the default chain. A role whose calls fail is released, which
+/// disposes its client and credentials, so that a request for a role that does not work leaves nothing cached.
 /// </para>
 /// </remarks>
 // See ADR-1235.
@@ -35,7 +36,7 @@ internal sealed class DefaultAwsKmsClientFactory : IAwsKmsClientFactory, IDispos
 {
     private const string RoleSessionName = "ncode-identity-root-key";
 
-    private ConcurrentDictionary<string, Lazy<AmazonKeyManagementServiceClient>> Clients { get; } =
+    private ConcurrentDictionary<string, Lazy<ClientEntry>> Clients { get; } =
         new(StringComparer.Ordinal);
 
     /// <inheritdoc />
@@ -46,29 +47,45 @@ internal sealed class DefaultAwsKmsClientFactory : IAwsKmsClientFactory, IDispos
             return Clients
                 .GetOrAdd(
                     region,
-                    static name => new Lazy<AmazonKeyManagementServiceClient>(() =>
-                        new AmazonKeyManagementServiceClient(RegionEndpoint.GetBySystemName(name))
+                    static name => new Lazy<ClientEntry>(() =>
+                        new ClientEntry(
+                            new AmazonKeyManagementServiceClient(
+                                RegionEndpoint.GetBySystemName(name)
+                            ),
+                            credentials: null
+                        )
                     )
                 )
-                .Value;
+                .Value.Client;
         }
 
         return Clients
             .GetOrAdd(
-                $"{region}|{access.Identity}|{access.Binding}",
+                GetAccessKey(region, access),
                 static (_, state) =>
-                    new Lazy<AmazonKeyManagementServiceClient>(() =>
+                    new Lazy<ClientEntry>(() =>
                         CreateAssumedRoleClient(state.Region, state.Access)
                     ),
                 (Region: region, Access: access)
             )
-            .Value;
+            .Value.Client;
     }
 
-    private static AmazonKeyManagementServiceClient CreateAssumedRoleClient(
-        string region,
-        KeyAccess access
-    )
+    /// <inheritdoc />
+    public void Release(string region, KeyAccess access)
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        if (Clients.TryRemove(GetAccessKey(region, access), out var entry) && entry.IsValueCreated)
+        {
+            entry.Value.Dispose();
+        }
+    }
+
+    private static string GetAccessKey(string region, KeyAccess access) =>
+        $"{region}|{access.Identity}|{access.Binding}";
+
+    private static ClientEntry CreateAssumedRoleClient(string region, KeyAccess access)
     {
         var config = new AmazonKeyManagementServiceConfig
         {
@@ -82,20 +99,42 @@ internal sealed class DefaultAwsKmsClientFactory : IAwsKmsClientFactory, IDispos
             new AssumeRoleAWSCredentialsOptions { ExternalId = access.Binding }
         );
 
-        return new AmazonKeyManagementServiceClient(credentials, config);
+        return new ClientEntry(
+            new AmazonKeyManagementServiceClient(credentials, config),
+            credentials
+        );
     }
 
     /// <summary>
-    /// Disposes every client that has been created.
+    /// Disposes every client that has been created, with its credentials.
     /// </summary>
     public void Dispose()
     {
-        foreach (var client in Clients.Values)
+        foreach (var entry in Clients.Values)
         {
-            if (client.IsValueCreated)
+            if (entry.IsValueCreated)
             {
-                client.Value.Dispose();
+                entry.Value.Dispose();
             }
+        }
+    }
+
+    /// <summary>
+    /// A client with the credentials that were created for it, if any, so that both are disposed together.
+    /// </summary>
+    private sealed class ClientEntry(
+        AmazonKeyManagementServiceClient client,
+        AssumeRoleAWSCredentials? credentials
+    ) : IDisposable
+    {
+        public AmazonKeyManagementServiceClient Client { get; } = client;
+
+        private AssumeRoleAWSCredentials? Credentials { get; } = credentials;
+
+        public void Dispose()
+        {
+            Client.Dispose();
+            (Credentials as IDisposable)?.Dispose();
         }
     }
 }

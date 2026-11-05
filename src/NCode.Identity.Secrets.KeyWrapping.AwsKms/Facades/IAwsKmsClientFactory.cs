@@ -23,4 +23,12 @@ internal interface IAwsKmsClientFactory
     /// </param>
     /// <returns>The <see cref="IAmazonKeyManagementService"/> that calls the KMS endpoint of the region.</returns>
     IAmazonKeyManagementService GetClient(string region, KeyAccess? access);
+
+    /// <summary>
+    /// Removes the client for the specified region and access, and disposes it with its credentials, so that an access
+    /// whose calls fail leaves nothing cached. Does nothing when no such client exists.
+    /// </summary>
+    /// <param name="region">The system name of the AWS region, such as <c>us-west-2</c>.</param>
+    /// <param name="access">The IAM role and external ID that the client to release was created for.</param>
+    void Release(string region, KeyAccess access);
 }

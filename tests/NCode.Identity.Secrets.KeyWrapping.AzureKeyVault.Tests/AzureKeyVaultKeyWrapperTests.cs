@@ -43,13 +43,20 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         Client.Verify();
     }
 
-    private AzureKeyVaultKeyWrapper CreateProvider(string? keyId) =>
-        new(
+    private AzureKeyVaultKeyWrapper CreateProvider(
+        string? keyId,
+        string[]? referencedKeyHostSuffixes = null
+    )
+    {
+        var options = new AzureKeyVaultKeyWrapperOptions { KeyId = keyId };
+        if (referencedKeyHostSuffixes is not null)
+            options.ReferencedKeyHostSuffixes = referencedKeyHostSuffixes;
+
+        return new AzureKeyVaultKeyWrapper(
             ClientFactory.Object,
-            Microsoft.Extensions.Options.Options.Create(
-                new AzureKeyVaultKeyWrapperOptions { KeyId = keyId }
-            )
+            Microsoft.Extensions.Options.Options.Create(options)
         );
+    }
 
     private static WrapResult CreateWrapResult(string keyId, byte[] encryptedKey) =>
         CryptographyModelFactory.WrapResult(keyId, encryptedKey, KeyWrapAlgorithm.RsaOaep256);
@@ -321,6 +328,10 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
     [Theory]
     [InlineData(KeyId, true)]
     [InlineData(KeyVersionId, true)]
+    [InlineData("https://CONTOSO.VAULT.AZURE.NET/keys/ncode-identity-root", true)]
+    [InlineData("https://x.managedhsm.azure.net/keys/tenant-root", true)]
+    [InlineData("https://x.vault.azure.cn/keys/tenant-root", true)]
+    [InlineData("https://x.managedhsm.usgovcloudapi.net/keys/tenant-root", true)]
     [InlineData("http://contoso.vault.azure.net/keys/ncode-identity-root", false)]
     [InlineData("not-a-key", false)]
     [InlineData("", false)]
@@ -334,6 +345,78 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         Assert.Equal(expected, failure is null);
         if (!expected)
             Assert.StartsWith("must be the identifier of a Key Vault key", failure);
+    }
+
+    [Theory]
+    [InlineData("https://internal.corp/keys/x")]
+    [InlineData("https://vault.azure.net/keys/x")]
+    [InlineData("https://contoso.vault.azure.net.evil.example/keys/x")]
+    [InlineData("https://contoso-vault.azure.net/keys/x")]
+    public void TryValidateKeyReference_HostOutsideTheSuffixes_FailsWithTheSuffixes(
+        string reference
+    )
+    {
+        var provider = CreateProvider(keyId: null);
+
+        var valid = provider.TryValidateKeyReference(reference, out var failure);
+
+        Assert.False(valid);
+        Assert.StartsWith(
+            "must name a key in an Azure Key Vault or Managed HSM, whose host ends with one of ",
+            failure
+        );
+        Assert.Contains(".vault.azure.net, .managedhsm.azure.net", failure);
+    }
+
+    [Fact]
+    public void TryValidateKeyReference_CustomSuffixes_AllowsItsHostOnly()
+    {
+        var provider = CreateProvider(keyId: null, [".corp.example"]);
+
+        var custom = provider.TryValidateKeyReference(
+            "https://hsm.corp.example/keys/x",
+            out var customFailure
+        );
+        var standard = provider.TryValidateKeyReference(TenantKeyId, out var standardFailure);
+
+        Assert.True(custom);
+        Assert.Null(customFailure);
+        Assert.False(standard);
+        Assert.EndsWith(".corp.example", standardFailure);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyOnAnotherHost_ThrowsWithoutCallingTheClient()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var provider = CreateProvider(KeyId);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider
+                .WrapAsync("https://internal.corp/keys/x", key, context, CancellationToken.None)
+                .AsTask()
+        );
+
+        Assert.Equal("keyReference", exception.ParamName);
+        Assert.Contains("whose host ends with one of", exception.Message);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ConfiguredKeyOnAnotherHost_IsNotRestricted()
+    {
+        const string internalKeyId = "https://hsm.internal.corp/keys/root";
+        const string internalKeyVersionId = internalKeyId + "/0123456789abcdef0123456789abcdef";
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var encryptedKey = RandomNumberGenerator.GetBytes(384);
+        SetupClient(internalKeyId);
+        SetupWrapKey(CreateWrapResult(internalKeyVersionId, encryptedKey), CancellationToken.None);
+        var provider = CreateProvider(internalKeyId);
+
+        var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
+
+        Assert.Equal(internalKeyVersionId, wrappedKey.KeyId);
     }
 
     #endregion

@@ -78,4 +78,61 @@ public class DefaultRegistrationTests
     }
 
     #endregion
+
+    #region ReferencedKeyHostSuffixes Tests
+
+    [Fact]
+    public async Task AddAzureKeyVaultKeyWrapper_NoSuffixesConfigured_UsesTheDefaultSuffixes()
+    {
+        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var serviceCollection = AddAzureKeyVault(
+            CreateConfiguration(("SecretProtection:RootKeyProviders:AzureKeyVault:KeyId", KeyId)),
+            clientFactory.Object
+        );
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<AzureKeyVaultKeyWrapperOptions>>();
+
+        Assert.Equal(
+            [
+                ".vault.azure.net",
+                ".managedhsm.azure.net",
+                ".vault.azure.cn",
+                ".managedhsm.azure.cn",
+                ".vault.usgovcloudapi.net",
+                ".managedhsm.usgovcloudapi.net",
+            ],
+            options.Value.ReferencedKeyHostSuffixes
+        );
+    }
+
+    [Fact]
+    public async Task AddAzureKeyVaultKeyWrapper_SuffixesConfigured_ReplacesTheDefaultSuffixes()
+    {
+        var clientFactory = new Mock<IAzureKeyVaultClientFactory>(MockBehavior.Strict);
+        var serviceCollection = AddAzureKeyVault(
+            CreateConfiguration(
+                ("SecretProtection:RootKeyProviders:AzureKeyVault:KeyId", KeyId),
+                (
+                    "SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes:0",
+                    ".corp.example"
+                ),
+                (
+                    "SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes:1",
+                    ".vault.azure.net"
+                )
+            ),
+            clientFactory.Object
+        );
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var options = provider.GetRequiredService<IOptions<AzureKeyVaultKeyWrapperOptions>>();
+
+        Assert.Equal(
+            [".corp.example", ".vault.azure.net"],
+            options.Value.ReferencedKeyHostSuffixes
+        );
+    }
+
+    #endregion
 }

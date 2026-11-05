@@ -87,15 +87,27 @@ internal class AzureKeyVaultKeyWrapper(
         [NotNullWhen(false)] out string? failure
     )
     {
-        if (AzureKeyVaultKeyId.IsKeyId(keyReference))
+        if (!AzureKeyVaultKeyId.IsKeyId(keyReference))
         {
-            failure = null;
-            return true;
+            failure =
+                "must be the identifier of a Key Vault key, such as https://tenant-vault.vault.azure.net/keys/tenant-root";
+            return false;
         }
 
-        failure =
-            "must be the identifier of a Key Vault key, such as https://tenant-vault.vault.azure.net/keys/tenant-root";
-        return false;
+        // A reference that a caller names must stay on a Key Vault or Managed HSM host, so that the server's identity is
+        // never presented to another endpoint. The configured root key is not restricted.
+        // See ADR-1412.
+        var hostSuffixes = RootKeyOptions.Value.ReferencedKeyHostSuffixes;
+        if (!AzureKeyVaultKeyId.IsOnHostEndingWith(keyReference, hostSuffixes))
+        {
+            failure =
+                "must name a key in an Azure Key Vault or Managed HSM, whose host ends with one of "
+                + string.Join(", ", hostSuffixes);
+            return false;
+        }
+
+        failure = null;
+        return true;
     }
 
     /// <inheritdoc />
@@ -109,12 +121,9 @@ internal class AzureKeyVaultKeyWrapper(
         CancellationToken cancellationToken
     )
     {
-        if (!AzureKeyVaultKeyId.IsKeyId(keyReference))
+        if (!TryValidateKeyReference(keyReference, out var failure))
         {
-            throw new ArgumentException(
-                "The key reference is not a Key Vault key identifier.",
-                nameof(keyReference)
-            );
+            throw new ArgumentException($"The key reference {failure}.", nameof(keyReference));
         }
 
         return await WrapUnderAsync(keyReference, key, cancellationToken);

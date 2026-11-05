@@ -43,6 +43,25 @@ internal static partial class AzureKeyVaultKeyId
         value is not null && KeyVersionPattern().IsMatch(value);
 
     /// <summary>
+    /// Determines whether the host of a key identifier ends with one of the suffixes, compared without regard to case.
+    /// </summary>
+    /// <param name="keyId">The identifier of a key, with or without a version.</param>
+    /// <param name="hostSuffixes">The host suffixes, each starting with a dot.</param>
+    /// <returns>
+    /// <see langword="true"/> if the identifier has a host that ends with a suffix; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool IsOnHostEndingWith(string keyId, IEnumerable<string> hostSuffixes)
+    {
+        if (!Uri.TryCreate(keyId, UriKind.Absolute, out var uri))
+            return false;
+
+        var host = uri.Host;
+        return hostSuffixes.Any(suffix =>
+            host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
+        );
+    }
+
+    /// <summary>
     /// Gets the identifier of a key without its version: a key version identifier loses its last segment, and an
     /// identifier without a version is returned as it is.
     /// </summary>

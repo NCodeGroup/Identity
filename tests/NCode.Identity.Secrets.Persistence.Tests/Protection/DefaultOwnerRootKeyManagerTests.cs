@@ -373,6 +373,54 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task Remove_WithEveryRowUnderTheDeploymentRoot_DeletesTheBinding()
+    {
+        _stores.Seed(CreateRootKey());
+        _stores.Seed(CreateRow(1, _time.GetUtcNow().AddDays(-1)));
+        ExpectEvictAndNotify();
+        ExpectRewrap(new MasterKeyRewrapResult(1, 1, 0, 0));
+
+        var removal = await CreateManager().RemoveAsync(Owner, CancellationToken.None);
+
+        Assert.True(removal.Removed);
+        Assert.Null(removal.Remaining);
+        Assert.Empty(_stores.RootKeys);
+    }
+
+    [Fact]
+    public async Task Remove_WithARowStillUnderTheOwnersKeyAndNoReportedFailure_StaysRemovingAndRecordsTheFailure()
+    {
+        _stores.Seed(CreateRootKey());
+        _stores.Seed(CreateRow(1, _time.GetUtcNow().AddDays(-1), rootKeyReference: Reference));
+        ExpectEvictAndNotify();
+        ExpectRewrap(new MasterKeyRewrapResult(1, 1, 0, 0));
+
+        var removal = await CreateManager().RemoveAsync(Owner, CancellationToken.None);
+
+        Assert.True(removal.Removed);
+        Assert.Equal(OwnerRootKeyStates.Removing, removal.Remaining?.State);
+        var stored = Assert.Single(_stores.RootKeys);
+        Assert.Equal(OwnerRootKeyStates.Removing, stored.State);
+        Assert.Equal(_time.GetUtcNow(), stored.FailedWhen);
+        Assert.Contains("1 master keys could not be unwrapped", stored.Failure);
+    }
+
+    [Fact]
+    public async Task Validate_RemovingKeyWithARowStillUnderTheOwnersKey_KeepsTheBinding()
+    {
+        _stores.Seed(CreateRootKey(OwnerRootKeyStates.Removing));
+        _stores.Seed(CreateRow(1, _time.GetUtcNow().AddDays(-1), rootKeyReference: Reference));
+        ExpectRewrap(new MasterKeyRewrapResult(1, 1, 0, 0));
+
+        var validation = await CreateManager().ValidateAsync(Owner, CancellationToken.None);
+
+        Assert.Equal(OwnerRootKeyStates.Removing, validation.RootKey?.State);
+        var stored = Assert.Single(_stores.RootKeys);
+        Assert.Equal(OwnerRootKeyStates.Removing, stored.State);
+        Assert.NotNull(stored.Failure);
+    }
+
+    [Fact]
     public async Task Remove_WithRowsThatCannotBeMoved_StaysRemovingAndRecordsTheFailure()
     {
         _stores.Seed(CreateRootKey());

@@ -555,7 +555,7 @@ internal sealed class DefaultOwnerRootKeyManager(
             cancellationToken
         );
 
-        var (binding, _) = await ReadAsync(key, cancellationToken);
+        var (binding, rows) = await ReadAsync(key, cancellationToken);
         if (binding is null)
             return (null, rewrap);
 
@@ -563,12 +563,18 @@ internal sealed class DefaultOwnerRootKeyManager(
         if (!IsState(binding, OwnerRootKeyStates.Removing))
             return (OwnerRootKeyInfo.From(binding), rewrap);
 
-        if (rewrap.Failed > 0)
+        // A master key written or rewrapped under the owner's key after the rewrap listed it stays under that key, so
+        // the binding stays until none remains.
+        var remaining = Math.Max(
+            rewrap.Failed,
+            rows.Count(row => row.RootKeyReference is not null)
+        );
+        if (remaining > 0)
         {
             binding.FailedWhen = TimeProvider.GetUtcNow();
             binding.Failure =
-                $"{rewrap.Failed} master keys could not be unwrapped by the owner root key";
-            Logger.OwnerRootKeyRemovalIncomplete(key, rewrap.Failed);
+                $"{remaining} master keys could not be unwrapped by the owner root key";
+            Logger.OwnerRootKeyRemovalIncomplete(key, remaining);
 
             try
             {

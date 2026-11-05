@@ -16,13 +16,16 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
+using NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
@@ -38,10 +41,13 @@ GET   api/platform/settings
 PATCH api/platform/settings
 GET   api/platform/effective-settings
 
+GET   api/platform/encryption-keys
+POST  api/platform/encryption-keys/rekey
+
 */
 
 /// <summary>
-/// Provides the API endpoints for the platform's settings. The platform is the one deployment root, so its routes carry
+/// Provides the API endpoints for the platform's settings and master keys. The platform is the one deployment root, so its routes carry
 /// no identifier.
 /// </summary>
 internal class PlatformApiEndpointHandler(
@@ -54,6 +60,7 @@ internal class PlatformApiEndpointHandler(
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator,
     ITenantClientCoherenceChecker tenantClientCoherenceChecker,
+    IMasterKeyManager masterKeyManager,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<PlatformApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
@@ -73,6 +80,7 @@ internal class PlatformApiEndpointHandler(
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
     private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
         tenantClientCoherenceChecker;
+    private IMasterKeyManager MasterKeyManager { get; } = masterKeyManager;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ILogger<PlatformApiEndpointHandler> Logger { get; } = logger;
 
@@ -97,6 +105,13 @@ internal class PlatformApiEndpointHandler(
         platform
             .MapGet("/effective-settings", GetEffectiveSettingsAsync)
             .Produces<PlatformEffectiveSettingsResource>();
+        platform
+            .MapGet("/encryption-keys", GetEncryptionKeysAsync)
+            .Produces<EncryptionKeysResource>();
+        platform
+            .MapPost("/encryption-keys/rekey", RekeyEncryptionKeysAsync)
+            .Produces<EncryptionKeyRotationResource>()
+            .ProducesProblem(StatusCodes.Status409Conflict);
     }
 
     /// <summary>
@@ -185,6 +200,92 @@ internal class PlatformApiEndpointHandler(
             },
             cancellationToken
         );
+    }
+
+    /// <summary>
+    /// Gets the status of the platform's master keys. The response never carries key material.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The platform's encryption keys.</response>
+    /// <response code="404">The platform does not exist.</response>
+    [EndpointName("api/platform/encryption-keys/get")]
+    internal virtual async ValueTask<IResult> GetEncryptionKeysAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!await PlatformExistsAsync(cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            GetPlatformNode(httpContext),
+            Operations.Read
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return await EncryptionKeyEndpoints.GetAsync(
+            MasterKeyManager,
+            SecretOwner.Platform,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Rekeys the platform: retires its active master key and creates the next version, whose values are then
+    /// rewrapped in the background.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The new active key and the key that it retired.</response>
+    /// <response code="404">The platform does not exist.</response>
+    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After).</response>
+    /// <response code="412">Another rekey of the same master key committed first.</response>
+    [EndpointName("api/platform/encryption-keys/rekey")]
+    internal virtual async ValueTask<IResult> RekeyEncryptionKeysAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!await PlatformExistsAsync(cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            GetPlatformNode(httpContext),
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return await EncryptionKeyEndpoints.RekeyAsync(
+            MasterKeyManager,
+            ManagementAuditRecorder,
+            httpContext,
+            SecretOwner.Platform,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<bool> PlatformExistsAsync(CancellationToken cancellationToken)
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var platform = await storeManager
+            .GetStore<IPlatformStore>()
+            .GetOrDefaultAsync(cancellationToken);
+        return platform is not null;
     }
 
     /// <summary>

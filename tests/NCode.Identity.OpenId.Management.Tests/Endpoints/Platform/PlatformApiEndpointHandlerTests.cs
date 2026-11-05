@@ -16,6 +16,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -1715,6 +1716,10 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
         Assert.Equal("91", httpContext.Response.Headers.RetryAfter.ToString());
+        Assert.Equal(
+            91L,
+            problem.ProblemDetails.Extensions[ManagementProblemMembers.RetryAfterSeconds]
+        );
     }
 
     [Fact]

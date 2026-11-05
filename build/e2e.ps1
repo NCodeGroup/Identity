@@ -106,7 +106,12 @@ try {
             throw "Building $relativeProject failed with exit code $LASTEXITCODE."
         }
 
-        $playwrightScript = Join-Path $projectDir "bin/$Configuration/net10.0/playwright.ps1"
+        $targetFramework = (dotnet msbuild $project -getProperty:TargetFramework | Out-String).Trim()
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($targetFramework)) {
+            throw "Reading the TargetFramework property of $relativeProject failed."
+        }
+
+        $playwrightScript = Join-Path $projectDir "bin/$Configuration/$targetFramework/playwright.ps1"
         $browserArguments = @('install', 'chromium', 'firefox', 'webkit')
         if ($IsLinux -and $env:GITHUB_ACTIONS -eq 'true') {
             $browserArguments += '--with-deps'

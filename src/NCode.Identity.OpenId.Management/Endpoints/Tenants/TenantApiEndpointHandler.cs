@@ -185,7 +185,8 @@ internal class TenantApiEndpointHandler(
 
         tenants
             .MapGet("/{tenantId}/encryption-keys", GetEncryptionKeysAsync)
-            .Produces<EncryptionKeysResource>();
+            .Produces<EncryptionKeysResource>()
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         tenants
             .MapPost("/{tenantId}/encryption-keys/rekey", RekeyEncryptionKeysAsync)
             .Produces<EncryptionKeyRotationResource>()
@@ -194,15 +195,22 @@ internal class TenantApiEndpointHandler(
             .MapPut("/{tenantId}/encryption-keys/root-key", SetRootKeyAsync)
             .Produces<EncryptionRootKeyChangeResource>()
             .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
-            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         tenants
             .MapDelete("/{tenantId}/encryption-keys/root-key", RemoveRootKeyAsync)
             .Produces(StatusCodes.Status204NoContent)
-            .Produces<EncryptionRootKeyResource>(StatusCodes.Status202Accepted);
+            .Produces<EncryptionRootKeyResource>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         tenants
             .MapPost("/{tenantId}/encryption-keys/root-key/validate", ValidateRootKeyAsync)
-            .Produces<EncryptionRootKeyResource>();
+            .Produces<EncryptionRootKeyResource>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         tenants
             .MapGet("/{tenantId}/owners", ListOwnersAsync)

@@ -72,6 +72,11 @@ public static class BffLoginFailureReasons
     public const string UserInfoFailed = "userinfo_failed";
 
     /// <summary>
+    /// The login transaction belongs to another frontend than the callback that received it.
+    /// </summary>
+    public const string FrontendMismatch = "frontend_mismatch";
+
+    /// <summary>
     /// A login gate rejected the login.
     /// </summary>
     public const string RejectedByGate = "rejected_by_gate";

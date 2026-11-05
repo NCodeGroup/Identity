@@ -208,3 +208,7 @@ NCode.Identity.Bff.IBffFrontendSelector.IsMatch(Microsoft.AspNetCore.Http.HttpRe
 NCode.Identity.Bff.IBffFrontendSelector.Name.get -> string!
 NCode.Identity.Bff.IBffFrontendSelector.Overlaps(NCode.Identity.Bff.BffFrontendSelection! first, NCode.Identity.Bff.BffFrontendSelection! second) -> bool
 NCode.Identity.Bff.IBffFrontendSelector.Validate(NCode.Identity.Bff.BffFrontendSelection! selection) -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Bff.BffFrontendAttribute
+NCode.Identity.Bff.BffFrontendAttribute.BffFrontendAttribute(string! name) -> void
+NCode.Identity.Bff.BffFrontendAttribute.Name.get -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.FrontendMismatch = "frontend_mismatch" -> string!

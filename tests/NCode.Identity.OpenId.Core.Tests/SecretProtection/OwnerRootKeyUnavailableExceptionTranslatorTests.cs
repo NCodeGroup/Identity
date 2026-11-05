@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 using Moq;
 using NCode.Identity.OpenId.Core.Tests;
@@ -36,27 +35,11 @@ public sealed class OwnerRootKeyUnavailableExceptionTranslatorTests : BaseTests
         return new OwnerRootKeyUnavailableExceptionTranslator(Options.Create(options));
     }
 
-    private void SetupCreateError()
-    {
+    private void SetupCreateError() =>
         MockEnvironment
             .Setup(x => x.CreateError(It.IsAny<string>()))
-            .Returns<string>(code =>
-            {
-                // The response headers the translator sets are kept, so a test can assert them.
-                var responseHeaders = new Dictionary<string, StringValues>(
-                    StringComparer.OrdinalIgnoreCase
-                );
-                var mockError = CreateLooseMock<IOpenIdError>();
-                mockError.SetupAllProperties();
-                mockError
-                    .Setup(x => x.SetResponseHeader(It.IsAny<string>(), It.IsAny<StringValues>()))
-                    .Callback<string, StringValues>((name, value) => responseHeaders[name] = value);
-                mockError.SetupGet(x => x.ResponseHeaders).Returns(responseHeaders);
-                mockError.Object.Code = code;
-                return mockError.Object;
-            })
+            .Returns<string>(code => new DefaultOpenIdError(MockEnvironment.Object, code))
             .Verifiable();
-    }
 
     #region TryTranslate Tests
 

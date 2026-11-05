@@ -46,15 +46,17 @@ public class DefaultOpenIdExceptionHandlerTests : BaseTests
         return httpContext;
     }
 
-    #region HandleExceptionAsync
+    #region HandleExceptionAsync Tests
 
     [Fact]
     public async Task HandleExceptionAsync_WhenErrorIsTemporarilyUnavailable_LogsOneWarning()
     {
         var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        var mockError = CreateLooseMock<IOpenIdError>();
-        mockError.SetupGet(x => x.Code).Returns(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable);
-        var exception = new OpenIdException(mockError.Object);
+        var error = new DefaultOpenIdError(
+            mockEnvironment.Object,
+            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable
+        );
+        var exception = new OpenIdException(error);
 
         var disposition = await Handler.HandleExceptionAsync(
             mockEnvironment.Object,
@@ -76,11 +78,14 @@ public class DefaultOpenIdExceptionHandlerTests : BaseTests
     [Fact]
     public async Task HandleExceptionAsync_WhenExceptionIsNotAProtocolError_LogsError()
     {
-        var mockError = CreateLooseMock<IOpenIdError>();
         var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
+        var error = new DefaultOpenIdError(
+            mockEnvironment.Object,
+            OpenIdProtocol.ErrorCodes.ServerError
+        );
         mockEnvironment
             .Setup(x => x.CreateError(OpenIdProtocol.ErrorCodes.ServerError))
-            .Returns(mockError.Object)
+            .Returns(error)
             .Verifiable();
         var exception = new InvalidOperationException("boom");
 

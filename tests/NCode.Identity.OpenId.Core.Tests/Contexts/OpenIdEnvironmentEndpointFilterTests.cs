@@ -77,9 +77,10 @@ public class OpenIdEnvironmentEndpointFilterTests : BaseTests
     {
         var exception = new InvalidOperationException("The root key is unavailable.");
         var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
-        var mockError = CreateLooseMock<IOpenIdError>();
-        mockError.SetupAllProperties();
-        var error = mockError.Object;
+        IOpenIdError? error = new DefaultOpenIdError(
+            mockEnvironment.Object,
+            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable
+        );
         SetupContextFailure(exception);
         MockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
         MockTranslator

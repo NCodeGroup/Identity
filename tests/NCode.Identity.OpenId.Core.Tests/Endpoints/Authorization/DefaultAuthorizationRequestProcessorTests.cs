@@ -62,17 +62,9 @@ public class DefaultAuthorizationRequestProcessorTests : BaseTests
             .Verifiable();
     }
 
-    private static Mock<IOpenIdError> SetupErrorProperties(
-        Mock<IOpenIdError> mockError,
-        string code
-    )
-    {
-        mockError.SetupAllProperties();
-        mockError.Object.Code = code;
-        return mockError;
-    }
+    private DefaultOpenIdError CreateError(string code) => new(MockEnvironment.Object, code);
 
-    #region ProcessRequestAsync
+    #region ProcessRequestAsync Tests
 
     [Fact]
     public async Task ProcessRequestAsync_WhenTranslatorAnswersForException_DeliversTranslatedErrorWithState()
@@ -81,13 +73,10 @@ public class DefaultAuthorizationRequestProcessorTests : BaseTests
         SetupMediatorThrows(thrown);
         MockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
 
-        var mockError = SetupErrorProperties(
-            CreateLooseMock<IOpenIdError>(),
-            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable
-        );
+        var translated = CreateError(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable);
+        IOpenIdError? translatedError = translated;
 
         var mockTranslator = CreateStrictMock<IOpenIdExceptionTranslator>();
-        var translatedError = mockError.Object;
         mockTranslator
             .Setup(x => x.TryTranslate(MockEnvironment.Object, thrown, out translatedError))
             .Returns(true)
@@ -104,9 +93,10 @@ public class DefaultAuthorizationRequestProcessorTests : BaseTests
         );
 
         var result = Assert.IsType<AuthorizationResult>(disposition.HttpResult);
-        Assert.Same(mockError.Object, result.Error);
-        Assert.Equal(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable, result.Error!.Code);
-        Assert.Equal(State, result.Error!.State);
+        var error = Assert.IsAssignableFrom<IOpenIdError>(result.Error);
+        Assert.Same(translated, error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable, error.Code);
+        Assert.Equal(State, error.State);
         Assert.Same(Delivery, result.Delivery);
     }
 
@@ -117,14 +107,11 @@ public class DefaultAuthorizationRequestProcessorTests : BaseTests
         SetupMediatorThrows(thrown);
         MockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
 
-        var mockError = SetupErrorProperties(
-            CreateLooseMock<IOpenIdError>(),
-            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable
-        );
-        mockError.Object.StatusCode = 503;
+        var translated = CreateError(OpenIdProtocol.ErrorCodes.TemporarilyUnavailable);
+        translated.StatusCode = 503;
+        IOpenIdError? translatedError = translated;
 
         var mockTranslator = CreateStrictMock<IOpenIdExceptionTranslator>();
-        var translatedError = mockError.Object;
         mockTranslator
             .Setup(x => x.TryTranslate(MockEnvironment.Object, thrown, out translatedError))
             .Returns(true)
@@ -141,9 +128,10 @@ public class DefaultAuthorizationRequestProcessorTests : BaseTests
         );
 
         var result = Assert.IsType<AuthorizationResult>(disposition.HttpResult);
-        Assert.Same(mockError.Object, result.Error);
-        Assert.Null(result.Error!.StatusCode);
-        Assert.Equal(State, result.Error!.State);
+        var error = Assert.IsAssignableFrom<IOpenIdError>(result.Error);
+        Assert.Same(translated, error);
+        Assert.Null(error.StatusCode);
+        Assert.Equal(State, error.State);
     }
 
     [Fact]
@@ -153,14 +141,11 @@ public class DefaultAuthorizationRequestProcessorTests : BaseTests
         SetupMediatorThrows(thrown);
         MockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
 
-        var mockError = SetupErrorProperties(
-            CreateLooseMock<IOpenIdError>(),
-            OpenIdProtocol.ErrorCodes.ServerError
-        );
+        var created = CreateError(OpenIdProtocol.ErrorCodes.ServerError);
         var mockErrorFactory = CreateStrictMock<IOpenIdErrorFactory>();
         mockErrorFactory
             .Setup(x => x.Create(OpenIdProtocol.ErrorCodes.ServerError))
-            .Returns(mockError.Object)
+            .Returns(created)
             .Verifiable();
         MockContext.SetupGet(x => x.ErrorFactory).Returns(mockErrorFactory.Object).Verifiable();
 
@@ -182,10 +167,11 @@ public class DefaultAuthorizationRequestProcessorTests : BaseTests
         );
 
         var result = Assert.IsType<AuthorizationResult>(disposition.HttpResult);
-        Assert.Same(mockError.Object, result.Error);
-        Assert.Equal(OpenIdProtocol.ErrorCodes.ServerError, result.Error!.Code);
-        Assert.Equal(State, result.Error!.State);
-        Assert.Same(thrown, result.Error!.Exception);
+        var error = Assert.IsAssignableFrom<IOpenIdError>(result.Error);
+        Assert.Same(created, error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.ServerError, error.Code);
+        Assert.Equal(State, error.State);
+        Assert.Same(thrown, error.Exception);
     }
 
     #endregion

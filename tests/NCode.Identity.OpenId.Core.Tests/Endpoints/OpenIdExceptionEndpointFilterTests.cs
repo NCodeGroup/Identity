@@ -46,8 +46,7 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
         return httpContext;
     }
 
-    #region InvokeAsync
-
+    #region InvokeAsync Tests
     [Fact]
     public async Task InvokeAsync_WhenAuthorizationResultCarriesError_AuditsOnce()
     {
@@ -122,19 +121,21 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
     [Fact]
     public async Task InvokeAsync_WhenTranslatorAnswersForException_HandlerReceivesOpenIdExceptionAndErrorIsAuditedOnce()
     {
-        var mockEnvironment = CreateLooseMock<OpenIdEnvironment>();
+        var mockEnvironment = CreateStrictMock<OpenIdEnvironment>();
         var mockMediator = CreateStrictMock<IMediator>();
-        var mockContext = CreateLooseMock<OpenIdContext>();
+        var mockContext = CreateStrictMock<OpenIdContext>();
         mockContext.SetupGet(x => x.Environment).Returns(mockEnvironment.Object).Verifiable();
         mockContext.SetupGet(x => x.Mediator).Returns(mockMediator.Object).Verifiable();
 
-        var mockError = CreateLooseMock<IOpenIdError>();
-        mockError.SetupGet(x => x.Code).Returns("temporarily_unavailable");
+        var error = new DefaultOpenIdError(
+            mockEnvironment.Object,
+            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable
+        );
+        IOpenIdError? translatedError = error;
 
         var thrown = new InvalidOperationException("outage");
 
         var mockTranslator = CreateStrictMock<IOpenIdExceptionTranslator>();
-        var translatedError = mockError.Object;
         mockTranslator
             .Setup(x => x.TryTranslate(mockEnvironment.Object, thrown, out translatedError))
             .Returns(true)
@@ -143,11 +144,7 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
         var mockRecorder = CreateStrictMock<IAuditEventRecorder>();
         mockRecorder
             .Setup(x =>
-                x.RecordOpenIdErrorAsync(
-                    mockContext.Object,
-                    mockError.Object,
-                    It.IsAny<CancellationToken>()
-                )
+                x.RecordOpenIdErrorAsync(mockContext.Object, error, It.IsAny<CancellationToken>())
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Once);
@@ -189,7 +186,7 @@ public class OpenIdExceptionEndpointFilterTests : BaseTests
         Assert.Same(disposition.HttpResult, result);
         Assert.NotNull(captured);
         var openIdException = Assert.IsType<OpenIdException>(captured.SourceException);
-        Assert.Same(mockError.Object, openIdException.Error);
+        Assert.Same(error, openIdException.Error);
         Assert.Same(thrown, openIdException.InnerException);
     }
 

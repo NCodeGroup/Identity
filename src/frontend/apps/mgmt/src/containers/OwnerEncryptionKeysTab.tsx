@@ -134,6 +134,9 @@ function TenantRootKeySection({
         initialValues={{
           ...emptyEncryptionRootKeyFormValues,
           provider: rootKey?.provider ?? emptyEncryptionRootKeyFormValues.provider,
+          keyReference: rootKey?.keyReference ?? emptyEncryptionRootKeyFormValues.keyReference,
+          accessIdentity:
+            rootKey?.accessIdentity ?? emptyEncryptionRootKeyFormValues.accessIdentity,
         }}
         providers={providers}
         accessBinding={accessBinding}

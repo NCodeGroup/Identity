@@ -415,6 +415,40 @@ describe('OwnerEncryptionKeysTab root key', () => {
     });
   });
 
+  it('opens the dialog with the stored key reference and access identity and submits them unchanged', async () => {
+    const stored: EncryptionRootKeyResource = {
+      ...rootKey,
+      accessIdentity: 'arn:aws:iam::111122223333:role/tenant',
+    };
+    const calls = installFetch((url, method) =>
+      url === rootKeyUrl && method === 'PUT'
+        ? jsonResponse({
+            rootKey: stored,
+            activeKey: null,
+            retiredKey: null,
+            rewrappedKeys: 0,
+            failedKeys: 0,
+          })
+        : jsonResponse({ ...withRootKey, rootKey: stored }),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+
+    expect(screen.getByTestId('root-key-form-reference')).toHaveValue('arn:aws:kms:key/abc');
+    expect(screen.getByTestId('root-key-form-access-identity')).toHaveValue(
+      'arn:aws:iam::111122223333:role/tenant',
+    );
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
+    expect(JSON.parse(calls.find((c) => c.method === 'PUT')?.body ?? '{}')).toEqual({
+      provider: 'aws-kms',
+      keyReference: 'arn:aws:kms:key/abc',
+      accessIdentity: 'arn:aws:iam::111122223333:role/tenant',
+    });
+  });
+
   it('shows the server explanation of a root key that fails its probe and keeps the dialog open', async () => {
     installFetch((url, method) =>
       url === rootKeyUrl && method === 'PUT'

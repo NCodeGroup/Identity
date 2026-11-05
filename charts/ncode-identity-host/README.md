@@ -346,6 +346,66 @@ checksum, so a change restarts it. It does this only for the `google-cloud-kms` 
 provider never carries Google Cloud credentials. On GKE with Workload Identity Federation for GKE, which supplies
 credentials itself, leave `provider` empty: the chart then sets only the key name.
 
+### Tenant root keys
+
+A tenant can wrap its own master keys under a root key it controls and can revoke, with no recovery copy that the
+operator holds
+([ADR-1411](../../docs/decisions/1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)). The server
+reaches the tenant's key with the deployment's own workload identity, so the operator opts in per provider.
+`secretProtection.ownerRootKeys.providers` lists the key wrappers a tenant may choose from `aws-kms`, `azure-key-vault`
+and `google-cloud-kms`, and is empty by default, which means no tenant can bring a key. The chart renders it as
+`SecretProtection__OwnerRootKeys__Providers__<index>`; `ci/tenant-root-keys-values.yaml` shows a release.
+
+The provider list does not choose the deployment's root key: `secretProtection.rootKeyProvider` still does, and the
+tenant's key is independent of it. The control-plane tenant cannot bring a root key, because the management API
+authenticates against it and a revoked key would lock out the administrators who restore it; its keys stay under the
+deployment's root key.
+
+**Credentials.** The pods carry a provider's workload credentials when it is the root key provider or is listed in
+`secretProtection.ownerRootKeys.providers`: for AWS KMS the web identity (`secretProtection.awsKms.webIdentity.roleArn`),
+for Azure Key Vault the workload identity (`secretProtection.azureKeyVault.workloadIdentity.clientId` and `tenantId`),
+and for Google Cloud KMS the federation (`secretProtection.googleCloudKms.workloadIdentityFederation.provider`), each
+set up as in the sections above. The provider's own key values (`awsKms.keyArn`, `azureKeyVault.keyId`,
+`googleCloudKms.keyName`) are rendered only when it is the root key provider, because a tenant names its key itself. A
+pod never carries the credentials of a provider that is neither.
+
+**What a tenant grants.** The tenant gives the deployment's identity the permission to wrap and unwrap with its one key,
+and nothing else; the server calls no other operation:
+
+- AWS KMS: the key policy allows the IAM role in `secretProtection.awsKms.webIdentity.roleArn` to call `kms:Encrypt` and
+  `kms:Decrypt` on the key, as the policy in [AWS KMS](#aws-kms) shows, including the condition on the encryption
+  context key `ncode-identity:root-context`. For a key in another AWS account, the role's own policy must also allow the
+  key.
+- Azure Key Vault: assign the deployment's identity the role "Key Vault Crypto Service Encryption User" on the key only,
+  or, for a key in a Managed HSM, the local role "Managed HSM Crypto Service Encryption User" at the key's scope.
+- Google Cloud KMS: grant `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the key to the federated principal, or to the
+  service account in `secretProtection.googleCloudKms.workloadIdentityFederation.serviceAccountEmail` when the host
+  impersonates one.
+
+The tenant then sets its key through the management API, `PUT /api/tenants/{tenantId}/encryption-keys/root-key` with the
+key wrapper name and the key reference, or in the console's encryption keys tab. The server validates the key by wrapping
+and unwrapping a probe through it, rotates the tenant onto master key material created under it, and rewraps the
+tenant's retired keys under it. Material that existed earlier remains in backups under the deployment's root key and its
+recovery copy; every value written or rewrapped afterwards is readable only while the tenant's key is.
+
+**Intervals.** The host probes an `active` tenant key every `SecretProtection:OwnerRootKeys:ValidationInterval` (one
+hour by default, between one minute and one day), and retries an `unavailable` or `removing` one every
+`SecretProtection:OwnerRootKeys:RetryInterval` (one minute by default, between one second and the validation interval).
+Replicas reuse material unwrapped under a tenant key for no longer than the validation interval. Tune them in `extraEnv`
+with `SecretProtection__OwnerRootKeys__ValidationInterval` and `SecretProtection__OwnerRootKeys__RetryInterval`, for
+example `01:00:00` and `00:01:00`.
+
+**Revocation.** When the tenant revokes, disables or destroys its key, or the deployment's identity loses its grant, the
+next probe, or the next unwrap after a replica's reuse period, fails. The tenant's key then reads `unavailable`: the
+tenant's data is unreadable on every replica, the host writes a log entry and an audit event, the management API
+answers `503` with `Retry-After` for that tenant, and the console shows a banner. The server fails closed, so nothing
+reads or writes the tenant's secrets until the key is restored; restoring the grant makes the next retry succeed and the
+tenant readable again. Removing the key moves the tenant's master keys back under the deployment's root key.
+
+**No recovery copy.** A master key under a tenant key has no recovery copy: the recovery public key and the recovery
+private key never touch it, so the operator cannot read the tenant's data without the tenant's key. Destroying the key,
+without removing it first, loses every value written or rewrapped under it, in the database and in every backup.
+
 ### A key the master key cannot decrypt
 
 The host refuses to start while the Data Protection key ring holds a live key, one that is not revoked and has not

@@ -273,6 +273,7 @@ internal sealed class MasterKeyMaintenanceService(
             Version = key.Version,
             RootKeyProvider = key.RootKeyProvider,
             RootKeyReference = key.RootKeyReference,
+            RootKeyAccessIdentity = key.RootKeyAccessIdentity,
             RetiredKeyId = retired?.KeyId,
             RetiredVersion = retired?.Version,
         };

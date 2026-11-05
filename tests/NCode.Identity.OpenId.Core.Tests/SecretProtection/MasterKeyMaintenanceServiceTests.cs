@@ -306,6 +306,31 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task RunAsync_ARotatedKeyWithAnAccessIdentity_AuditsTheIdentity()
+    {
+        SetupStore();
+        SetupPublisher();
+        SetupLease(true);
+        SetupActivePage(Row(TenantOwner, 1, false));
+        SetupRetired();
+        const string accessIdentity = "arn:aws:iam::111122223333:role/tenant-key-access";
+        var rotation = new MasterKeyRotation(
+            TenantOwner,
+            Info(TenantOwner, 2, false) with
+            {
+                RootKeyAccessIdentity = accessIdentity,
+            },
+            Info(TenantOwner, 1, true)
+        );
+        SetupRotate(TenantOwner, rotation);
+
+        await _service.RunAsync(CancellationToken.None);
+
+        var auditEvent = Assert.Single(_published);
+        Assert.Equal(accessIdentity, auditEvent.RootKeyAccessIdentity);
+    }
+
+    [Fact]
     public async Task RunAsync_WhenTheLeaseIsTaken_DoesNothing()
     {
         SetupLease(false);

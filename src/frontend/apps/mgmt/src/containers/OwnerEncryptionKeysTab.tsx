@@ -21,9 +21,11 @@ export type OwnerEncryptionKeysTabProps = {
 
 /**
  * Container: the master keys of a tenant or of the platform (ADR-1407) with a "Rekey" action. A rekey retires the active
- * key and starts the next version, whose values are then rewrapped in the background, so it is confirmed first. The
- * API returns no key material, and neither does this view. A rekey that loses a race to another rekey shows the
- * server's explanation in the dialog.
+ * key and starts the next version, so it is confirmed first. A tenant's values are rewrapped under the next version in
+ * the background. The platform's next version protects the Data Protection keys and host data created afterwards,
+ * existing Data Protection keys keep naming the old version until they expire, and the old key is destroyed once
+ * nothing names it. The API returns no key material, and neither does this view. A rekey that loses a race to another
+ * rekey shows the server's explanation in the dialog.
  */
 export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKeysTabProps) {
   const { data, isLoading, error } = useListEncryptionKeysQuery(owner);
@@ -45,6 +47,11 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
       setRekeyError(apiErrorMessage(failure as ApiError));
     }
   };
+
+  const rekeyMessage =
+    owner.kind === 'platform'
+      ? `Retire the active encryption key of this ${ownerLabel} and start the next version? The next version protects the Data Protection keys and host data created afterwards. Existing Data Protection keys keep naming the old version until they expire, and the old key is destroyed once nothing names it.`
+      : `Retire the active encryption key of this ${ownerLabel} and start the next version? The values the old key protects are rewrapped under the new one in the background, and the old key is destroyed once nothing uses it.`;
 
   return (
     <Stack spacing={2}>
@@ -78,7 +85,7 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
       <ConfirmDialog
         open={confirming}
         title="Rekey"
-        message={`Retire the active encryption key of this ${ownerLabel} and start the next version? The values the old key protects are rewrapped under the new one in the background, and the old key is destroyed once nothing uses it.`}
+        message={rekeyMessage}
         confirmLabel="Rekey"
         confirmColor="primary"
         isBusy={isRekeying}

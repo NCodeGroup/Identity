@@ -239,8 +239,8 @@ internal class PlatformApiEndpointHandler(
     }
 
     /// <summary>
-    /// Rekeys the platform: retires its active master key and creates the next version, whose values are then
-    /// rewrapped in the background.
+    /// Rekeys the platform: retires its active master key and creates the next version, which protects the Data
+    /// Protection keys and host data created afterwards.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

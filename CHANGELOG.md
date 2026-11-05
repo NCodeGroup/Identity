@@ -5171,9 +5171,10 @@ describes the family as it is rather than its changes
   with `git rebase origin/main --exec "git commit --amend --no-edit --reset-author"` and `git push --force-with-lease`
   ([ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md)).
 - **A master key is bounded in time and destroyed once nothing names it.** An owner's master key rotates every year, the
-  values a tenant's key protected are rewrapped under the new version without their payloads being touched, a retired key
-  is destroyed only after its grace and when no stored secret, grant payload or live Data Protection key names it, so a
-  retired platform version stays while a live Data Protection key names it, and the recovery private key that can
+  values a tenant's key protected, and a platform value that a registered protected-value source reports, are rewrapped
+  under the new version without their payloads being touched, a retired key is destroyed only after its grace and when
+  no stored secret, grant payload, live Data Protection key or reported platform value names it, so a retired platform
+  version stays while a live Data Protection key names it, and the recovery private key that can
   unwrap every master key exists only inside the offline rewrap command
   ([#171](https://github.com/NCodeGroup/Identity/issues/171),
   [#172](https://github.com/NCodeGroup/Identity/issues/172),

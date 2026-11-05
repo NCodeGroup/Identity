@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (amended by [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md):
   the owners are the platform and each tenant, the platform's master key rotates and protects only the Data Protection
-  key ring and the host's own data, its retired versions are destroyed once no live ring key names them, the lease is
+  key ring and the host's own data, its retired versions are destroyed once their grace has passed and no live ring key
+  and no value that a registered protected-value source reports for the platform names them, the lease is
   `master-key-maintenance:platform`, and the platform's keys are reported and rekeyed under
   `/api/platform/encryption-keys` with the `platform_encryption_keys` scope family)
 - **Date:** 2026-11-04

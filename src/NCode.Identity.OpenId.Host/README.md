@@ -86,9 +86,11 @@ reset the database with it.
 Each tenant and the platform have one active master key. It rotates to a new version after
 `SecretProtection:MasterKeys:RotationPeriod` or when an administrator rekeys through the management API
 (`POST /api/tenants/{tenantId}/encryption-keys/rekey`, `POST /api/platform/encryption-keys/rekey`), the old
-version retires, and a tenant's values are rewrapped under the new version in the background. A retired key is
-destroyed once its grace has passed and no stored secret, grant payload or live Data Protection key names it, so the
-platform's retired version stays until no live Data Protection key names it
+version retires, and a tenant's values, and a platform value that a registered protected-value source reports, are
+rewrapped under the new version in the background. The platform's next version protects the Data Protection keys and
+host data created afterwards, and an existing Data Protection key is never re-encrypted. A retired key is destroyed
+once its grace has passed and no stored secret, grant payload, live Data Protection key or reported platform value
+names it, so the platform's retired version stays while a live Data Protection key names it
 ([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
 
 The host also runs one offline command from its own image, for a one-off Job (the Helm chart's

@@ -40,7 +40,7 @@
 | 5   | **The KMS is off the hot path.** The KMS is called only to unwrap a master key, roughly once per owner per process, never once per token or request. |
 | 6   | **Secret plaintext never sits on the garbage-collected heap.** It lives in pinned or stack memory and is zeroed when released. A secret is never a `string`. |
 | 7   | **Production refuses an unsafe setup.** It won't start with a throwaway key, a key in a config file, or no decision about recovery.                   |
-| 8   | **A master key rotates every year, and a retired one is destroyed once nothing names it.** Rotation rewraps 32-byte data keys and never touches a payload. |
+| 8   | **A master key rotates every year, and a retired one is destroyed once nothing names it.** Rotation rewraps a tenant's 32-byte data keys and never touches a payload; the platform's next version protects the Data Protection keys and host data created afterwards. |
 
 ## Why this matters
 
@@ -291,9 +291,14 @@ keep unwrapping under their own version.
 
 A master key does not live forever. Each owner's active master key **rotates** to a new version after
 `SecretProtection:MasterKeys:RotationPeriod` (365 days), or at once when an administrator **rekeys** it. The old version
-retires. The 32-byte data keys it wrapped are **rewrapped** under the new version in the background, and the retired key
-is **destroyed** once its grace has passed and no stored value names it
+retires. A tenant's 32-byte data keys that it wrapped are **rewrapped** under the new version in the background, and the
+retired key is **destroyed** once its grace has passed and no stored value names it
 ([ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+The platform's next version protects the Data Protection keys and the host data created afterwards. An existing Data
+Protection key is never re-encrypted, so a retired platform version stays while a live ring key names it; a value that
+a registered protected-value source reports for the platform (a host's own data) is rewrapped like a tenant's, and the
+version is destroyed once its grace has passed and no live ring key and no such value names it
+([ADR-1413](../decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
 
 ```mermaid
 sequenceDiagram
@@ -307,7 +312,7 @@ sequenceDiagram
     M-->>R: master-key-changed (best effort)
     R->>DB: reload the owner's keys (also every RefreshInterval)
     M->>J: rewrap job after twice the refresh interval
-    J->>DB: rewrap each data key under version N+1, payloads untouched
+    J->>DB: rewrap each tenant data key (and each platform value a source reports) under N+1, payloads untouched
     J->>DB: destroy the retired key once past its grace and unreferenced
 ```
 

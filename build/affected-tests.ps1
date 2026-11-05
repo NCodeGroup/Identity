@@ -14,7 +14,8 @@
     such as docs/, charts/, src/frontend/ or .github/, selects nothing (ADR-1263).
 
     Outputs one object with All (true when a global trigger matched), Projects (repository-relative test .csproj paths
-    with / separators, sorted ordinal, empty when All is true) and Reasons (one line per changed path).
+    with / separators, sorted ordinal, empty when All is true), EndToEndProjects (the *.EndToEnd.Tests projects, which
+    ./build/e2e.ps1 runs, in the same form as Projects) and Reasons (one line per changed path).
 
 .PARAMETER Root
     The repository root. Defaults to the parent of the build/ directory.
@@ -153,6 +154,7 @@ foreach ($path in $changedPaths) {
 }
 
 $selected = [string[]]@()
+$selectedEndToEnd = [string[]]@()
 if (-not $all) {
     $visited = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $queue = [System.Collections.Generic.Queue[string]]::new()
@@ -171,12 +173,18 @@ if (-not $all) {
             }
         }
     }
-    $selected = [string[]]@($visited | Where-Object { $_.StartsWith('tests/', [StringComparison]::Ordinal) })
+    $tiers = & (Join-Path $PSScriptRoot 'test-projects.ps1') -Root $Root
+    $testProjects = [System.Collections.Generic.HashSet[string]]::new([string[]]@($tiers.Tests), [StringComparer]::Ordinal)
+    $endToEndProjects = [System.Collections.Generic.HashSet[string]]::new([string[]]@($tiers.EndToEnd), [StringComparer]::Ordinal)
+    $selected = [string[]]@($visited | Where-Object { $testProjects.Contains($_) })
     [Array]::Sort($selected, [StringComparer]::Ordinal)
+    $selectedEndToEnd = [string[]]@($visited | Where-Object { $endToEndProjects.Contains($_) })
+    [Array]::Sort($selectedEndToEnd, [StringComparer]::Ordinal)
 }
 
 [pscustomobject]@{
-    All      = $all
-    Projects = $selected
-    Reasons  = [string[]]@($reasons)
+    All              = $all
+    Projects         = $selected
+    EndToEndProjects = $selectedEndToEnd
+    Reasons          = [string[]]@($reasons)
 }

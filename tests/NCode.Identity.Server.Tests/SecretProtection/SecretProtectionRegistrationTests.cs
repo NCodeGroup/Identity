@@ -6,8 +6,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.SecretProtection;
 using Xunit;
@@ -193,32 +191,6 @@ public class SecretProtectionRegistrationTests : BaseTests
 
         Assert.ThrowsAny<Exception>(() =>
             serviceProvider.GetRequiredService<IOptions<SecretProtectionOptions>>().Value
-        );
-    }
-
-    [Fact]
-    public void AddSecretProtection_OwnerRootKeyProviderThatCannotWrapUnderANamedKey_FailsValidation()
-    {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddSecretsLibrary().AddPersistenceLibrary();
-        AddSecretProtection(
-            new Dictionary<string, string?>
-            {
-                ["SecretProtection:RootKeyProvider"] = "ephemeral",
-                ["SecretProtection:OwnerRootKeys:Providers:0"] = "local",
-            },
-            serviceCollection
-        );
-        using var serviceProvider = serviceCollection.BuildServiceProvider();
-
-        var exception = Assert.Throws<OptionsValidationException>(() =>
-            serviceProvider.GetRequiredService<IOptions<SecretProtectionOptions>>().Value
-        );
-
-        Assert.Contains(
-            "SecretProtection:OwnerRootKeys:Providers names 'local'",
-            exception.Message,
-            StringComparison.Ordinal
         );
     }
 

@@ -8,6 +8,8 @@ using Moq;
 using NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 using NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Options;
+using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests;
@@ -59,6 +61,38 @@ public class DefaultRegistrationTests
 
         Assert.Contains(rootKeyProviders, x => x.Name == KeyWrapperNames.AwsKms);
         Assert.Contains(rootKeyProviders, x => x is AwsKmsKeyWrapper);
+        clientFactory.Verify();
+    }
+
+    [Fact]
+    public async Task AddAwsKmsKeyWrapper_OwnerRootKeyProviderIsAwsKms_BuildsWithValidateOnBuildAndResolvesWrappersAndOptions()
+    {
+        var clientFactory = new Mock<IAwsKmsClientFactory>(MockBehavior.Strict);
+        var configuration = CreateConfiguration(
+            ("SecretProtection:RootKeyProvider", KeyWrapperNames.AwsKms),
+            ("SecretProtection:OwnerRootKeys:Providers:0", KeyWrapperNames.AwsKms),
+            ("SecretProtection:RootKeyProviders:AwsKms:KeyArn", KeyArn)
+        );
+        var serviceCollection = AddAwsKms(configuration, clientFactory.Object);
+
+        // The persistence library's services need a store factory to be constructed; this test never reads a store.
+        serviceCollection.AddSingleton(new Mock<IStoreManagerFactory>(MockBehavior.Strict).Object);
+        serviceCollection
+            .AddOptions<SecretProtectionOptions>()
+            .Configure(options =>
+                configuration.GetSection(SecretProtectionOptions.DefaultSectionName).Bind(options)
+            );
+
+        await using var provider = serviceCollection.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true }
+        );
+
+        var wrappers = provider.GetRequiredService<IEnumerable<IKeyWrapper>>().ToList();
+        var options = provider.GetRequiredService<IOptions<SecretProtectionOptions>>().Value;
+
+        Assert.Contains(wrappers, x => x is AwsKmsKeyWrapper);
+        Assert.Equal(KeyWrapperNames.AwsKms, options.RootKeyProvider);
+        Assert.Equal([KeyWrapperNames.AwsKms], options.OwnerRootKeys.Providers);
         clientFactory.Verify();
     }
 

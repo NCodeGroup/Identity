@@ -2,31 +2,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
-using Moq;
-using NCode.Identity.Secrets.KeyWrapping;
-using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Secrets.Persistence.Options;
 
 public class OwnerRootKeyOptionsValidatorTests
 {
-    private static ValidateOptionsResult Validate(
-        OwnerRootKeyOptions rootKeys,
-        params IKeyWrapper[] wrappers
-    ) =>
-        new OwnerRootKeyOptionsValidator(wrappers).Validate(
+    private static ValidateOptionsResult Validate(OwnerRootKeyOptions rootKeys) =>
+        new OwnerRootKeyOptionsValidator().Validate(
             null,
             new SecretProtectionOptions { OwnerRootKeys = rootKeys }
         );
-
-    private static IKeyWrapper Plain(string name)
-    {
-        var mock = new Mock<IKeyWrapper>(MockBehavior.Strict);
-        mock.Setup(x => x.Name).Returns(name);
-        return mock.Object;
-    }
-
-    private static IKeyWrapper Referenced(string name) => new FakeReferencedKeyWrapper(name);
 
     [Fact]
     public void Validate_Defaults_Succeeds()
@@ -35,13 +20,10 @@ public class OwnerRootKeyOptionsValidatorTests
     }
 
     [Fact]
-    public void Validate_ReferencedProviders_Succeed()
+    public void Validate_DistinctProviders_Succeed()
     {
         var result = Validate(
-            new OwnerRootKeyOptions { Providers = ["aws-kms", "azure-key-vault"] },
-            Plain("local"),
-            Referenced("aws-kms"),
-            Referenced("azure-key-vault")
+            new OwnerRootKeyOptions { Providers = ["aws-kms", "azure-key-vault", "local"] }
         );
 
         Assert.True(result.Succeeded);
@@ -66,40 +48,9 @@ public class OwnerRootKeyOptionsValidatorTests
     }
 
     [Fact]
-    public void Validate_PlainProvider_NamesTheKeyTheProviderAndTheReferencedOnes()
-    {
-        var result = Validate(
-            new OwnerRootKeyOptions { Providers = ["local"] },
-            Plain("local"),
-            Referenced("gcp-kms"),
-            Referenced("aws-kms")
-        );
-
-        var failure = Assert.Single(result.Failures ?? []);
-        Assert.StartsWith("SecretProtection:OwnerRootKeys:Providers names 'local'", failure);
-        Assert.Contains("does not wrap under a key the caller names", failure);
-        Assert.EndsWith("are: 'aws-kms', 'gcp-kms'.", failure);
-    }
-
-    [Fact]
-    public void Validate_UnregisteredProvider_Fails()
-    {
-        var result = Validate(
-            new OwnerRootKeyOptions { Providers = ["missing"] },
-            Referenced("aws-kms")
-        );
-
-        var failure = Assert.Single(result.Failures ?? []);
-        Assert.Contains("'missing', which is not registered", failure);
-    }
-
-    [Fact]
     public void Validate_DuplicateAndBlankProviders_Fail()
     {
-        var result = Validate(
-            new OwnerRootKeyOptions { Providers = ["aws-kms", "aws-kms", " "] },
-            Referenced("aws-kms")
-        );
+        var result = Validate(new OwnerRootKeyOptions { Providers = ["aws-kms", "aws-kms", " "] });
 
         Assert.Equal(2, result.Failures?.Count());
         Assert.Contains(
@@ -147,7 +98,7 @@ public class OwnerRootKeyOptionsValidatorTests
     public void Validate_NullOptions_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new OwnerRootKeyOptionsValidator([]).Validate(null, null!)
+            new OwnerRootKeyOptionsValidator().Validate(null, null!)
         );
     }
 }

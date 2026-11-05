@@ -39,7 +39,8 @@ to take effect within a bounded period across replicas without a KMS call per re
    because the server calls the tenant's KMS with the deployment's own identity. `ValidationInterval` (default one hour,
    between one minute and one day) and `RetryInterval` (default one minute, between one second and `ValidationInterval`)
    are validated when the host starts. The allowed list governs `PUT` only: an owner bound to a provider that leaves the
-   list keeps working, because its data stays readable.
+   list keeps working, because its data stays readable. A listed provider that is not a registered referenced key
+   wrapper stops the host when the key wrapper catalog is composed, which the server does as it starts.
 3. **The record holds a state, never material.** `State` is `active`, `unavailable` or `removing`; an unknown state reads
    as `unavailable`. The record also holds the key wrapper name, the key reference, when it was set, when its state last
    changed, the last successful validation, the last failure and its description. A master key row names the reference it

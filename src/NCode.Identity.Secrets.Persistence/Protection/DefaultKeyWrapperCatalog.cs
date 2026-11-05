@@ -16,25 +16,37 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <remarks>
 /// The constructor throws an <see cref="InvalidOperationException"/> when more than one registered provider has the
-/// same name, so an inconsistent registration fails when the catalog is composed rather than when a key is wrapped.
+/// same name, and when a provider that <see cref="OwnerRootKeyOptions.Providers"/> lists is not a registered
+/// <see cref="IReferencedKeyWrapper"/>, so an inconsistent registration or configuration fails when the catalog is
+/// composed rather than when a key is wrapped.
 /// </remarks>
-/// <param name="providers">The registered root key providers.</param>
-/// <param name="options">The options that select the provider for wrapping new keys.</param>
-// See ADR-1150, ADR-1235 and ADR-1412.
-internal class DefaultKeyWrapperCatalog(
-    IEnumerable<IKeyWrapper> providers,
-    IOptions<SecretProtectionOptions> options
-) : IKeyWrapperCatalog
+// See ADR-1150, ADR-1235, ADR-1411 and ADR-1412.
+internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
 {
-    private FrozenDictionary<string, IKeyWrapper> ProvidersByName { get; } = IndexByName(providers);
-
-    // Declared after ProvidersByName, whose initializer rejects duplicate names before this one runs.
-    private FrozenDictionary<string, IReferencedKeyWrapper> ReferencedByName { get; } =
-        providers
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultKeyWrapperCatalog"/> class.
+    /// </summary>
+    /// <param name="providers">The registered root key providers.</param>
+    /// <param name="options">The options that select the provider for wrapping new keys.</param>
+    public DefaultKeyWrapperCatalog(
+        IEnumerable<IKeyWrapper> providers,
+        IOptions<SecretProtectionOptions> options
+    )
+    {
+        ProvidersByName = IndexByName(providers);
+        ReferencedByName = providers
             .OfType<IReferencedKeyWrapper>()
             .ToFrozenDictionary(wrapper => wrapper.Name, StringComparer.Ordinal);
+        ProtectionOptions = options;
 
-    private IOptions<SecretProtectionOptions> ProtectionOptions { get; } = options;
+        ValidateOwnerRootKeyProviders(options.Value.OwnerRootKeys.Providers);
+    }
+
+    private FrozenDictionary<string, IKeyWrapper> ProvidersByName { get; }
+
+    private FrozenDictionary<string, IReferencedKeyWrapper> ReferencedByName { get; }
+
+    private IOptions<SecretProtectionOptions> ProtectionOptions { get; }
 
     /// <inheritdoc />
     public IKeyWrapper Get(string providerName)
@@ -109,6 +121,42 @@ internal class DefaultKeyWrapperCatalog(
 
         return providersByName.ToFrozenDictionary(StringComparer.Ordinal);
     }
+
+    private void ValidateOwnerRootKeyProviders(string[]? ownerProviders)
+    {
+        if (ownerProviders is null || ownerProviders.Length == 0)
+            return;
+
+        var key =
+            $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.OwnerRootKeys)}:{nameof(OwnerRootKeyOptions.Providers)}";
+        var choices = FormatChoices(ReferencedByName.Keys);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var failures = new List<string>();
+
+        foreach (var provider in ownerProviders)
+        {
+            // Blank and repeated names are reported by the options validator.
+            if (string.IsNullOrWhiteSpace(provider) || !seen.Add(provider))
+                continue;
+
+            if (ReferencedByName.ContainsKey(provider))
+                continue;
+
+            var reason = ProvidersByName.ContainsKey(provider)
+                ? "is registered but does not wrap under a key the caller names"
+                : "is not registered";
+
+            failures.Add(
+                $"{key} names '{provider}', which {reason}. The key wrappers that an owner can choose are: {choices}."
+            );
+        }
+
+        if (failures.Count > 0)
+            throw new InvalidOperationException(string.Join(" ", failures));
+    }
+
+    private static string FormatChoices(IEnumerable<string> names) =>
+        names.Any() ? FormatNames(names) : "none";
 
     private static string FormatNames(IEnumerable<string> names) =>
         string.Join(", ", names.Order(StringComparer.Ordinal).Select(name => $"'{name}'"));

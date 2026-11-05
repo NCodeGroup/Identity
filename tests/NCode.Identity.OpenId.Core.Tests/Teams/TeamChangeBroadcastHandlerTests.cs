@@ -67,6 +67,30 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
         await Handler.HandleAsync(TeamId, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task HandleAsync_WhenTheTeamRemovalFails_StillEvictsTheTenantsAndThrows()
+    {
+        var failure = new InvalidOperationException("The removal failed.");
+        MockTeamCache
+            .Setup(x =>
+                x.RemoveAsync(TeamId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(() => ValueTask.FromException(failure))
+            .Verifiable();
+        MockTenantCache
+            .Setup(x =>
+                x.RemoveTeamAsync(TeamId, It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Handler.HandleAsync(TeamId, CancellationToken.None)
+        );
+
+        Assert.Same(failure, thrown);
+    }
+
     #endregion
 
     #region HandleMissedMessagesAsync Tests

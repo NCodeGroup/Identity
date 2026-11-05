@@ -59,7 +59,7 @@ public interface IEffectiveSettingsResolver
 
     /// <summary>
     /// Merges the settings document that a store holds for an owner of a scope (a tenant, a client or a resource
-    /// platform) onto its parent's effective settings, and names the document when it cannot be honored.
+    /// server) onto its parent's effective settings, and names the document when it cannot be honored.
     /// </summary>
     /// <param name="parentSettings">The effective settings of the scope's parent (the platform for a tenant, the tenant
     /// for a client or resource server).</param>

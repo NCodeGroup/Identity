@@ -1413,7 +1413,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // dpop_signing_alg_values_supported: JWS algorithms accepted in a DPoP proof JWT (RFC 9449). The baseline
-            // is the server's asymmetric signing set (supplied by the algorithm pipeline); symmetric algorithms are
+            // is the platform's asymmetric signing set (supplied by the algorithm pipeline); symmetric algorithms are
             // never acceptable for a DPoP proof. Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {

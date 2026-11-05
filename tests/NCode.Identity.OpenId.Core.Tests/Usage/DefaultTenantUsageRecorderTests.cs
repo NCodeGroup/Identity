@@ -83,6 +83,16 @@ public sealed class DefaultTenantUsageRecorderTests
         Assert.ThrowsAny<ArgumentException>(() => Recorder.Record("team-1", tenantId, meter!));
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public void Record_WhenTheTeamIsEmpty_Throws(string? teamId)
+    {
+        Assert.ThrowsAny<ArgumentException>(() =>
+            Recorder.Record(teamId!, "tenant-1", TenantUsageMeters.Requests)
+        );
+    }
+
     [Fact]
     public void Record_WhenTheMeterIsTooLongToStore_Throws()
     {

@@ -124,6 +124,74 @@ public class DefaultOpenIdPlatformProviderTests : BaseTests
     }
 
     [Fact]
+    public async Task GetAsync_WhenThePlatformSettingsChange_ClearsTheTeamsBeforeTheTenants()
+    {
+        var (mockEnvironment, _, mockTenantCache, mockTeamCache, provider) = CreateProvider();
+        await using var _ = provider;
+        var teamClear = new TaskCompletionSource();
+        var tenantClear = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        mockTeamCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), CancellationToken.None))
+            .Returns(() => new ValueTask(teamClear.Task))
+            .Verifiable(Times.Once());
+        mockTenantCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), CancellationToken.None))
+            .Returns(() =>
+            {
+                tenantClear.TrySetResult(teamClear.Task.IsCompletedSuccessfully);
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable(Times.Once());
+        await provider.GetAsync(mockEnvironment.Object, CancellationToken.None);
+
+        var changed = SettingsChanged;
+        SettingsChanged = new CancellationTokenSource();
+        await changed.CancelAsync();
+        changed.Dispose();
+
+        Assert.False(tenantClear.Task.IsCompleted);
+
+        teamClear.SetResult();
+
+        var teamsWereClearedFirst = await tenantClear.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.True(teamsWereClearedFirst);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenTheTeamCacheClearFails_StillClearsTheTenants()
+    {
+        var (mockEnvironment, _, mockTenantCache, mockTeamCache, provider) = CreateProvider();
+        await using var _ = provider;
+        var tenantClear = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        mockTeamCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), CancellationToken.None))
+            .Returns(() =>
+                ValueTask.FromException(new InvalidOperationException("The clear failed."))
+            )
+            .Verifiable(Times.Once());
+        mockTenantCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), CancellationToken.None))
+            .Returns(() =>
+            {
+                tenantClear.TrySetResult();
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable(Times.Once());
+        await provider.GetAsync(mockEnvironment.Object, CancellationToken.None);
+
+        var changed = SettingsChanged;
+        SettingsChanged = new CancellationTokenSource();
+        await changed.CancelAsync();
+        changed.Dispose();
+
+        await tenantClear.Task.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
     public async Task DisposeAsync_AfterThePlatformIsCreated_StopsEvictingTenants()
     {
         var (mockEnvironment, _, mockTenantCache, mockTeamCache, provider) = CreateProvider();

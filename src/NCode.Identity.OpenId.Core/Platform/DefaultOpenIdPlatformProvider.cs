@@ -99,44 +99,31 @@ internal class DefaultOpenIdPlatformProvider(
         return InstanceOrNull;
     }
 
-    private void EvictTenants()
-    {
-        Observe(
-            () => TenantCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None),
-            Logger.TenantCacheClearFailed
-        );
-        Observe(
-            () => TeamCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None),
-            Logger.TeamCacheClearFailed
-        );
-    }
+    // Both clears are caught inside the pass, so the task it returns never faults and starting it unawaited leaves
+    // nothing unobserved.
+    private void EvictTenants() => _ = EvictAsync();
 
-    private static void Observe(Func<ValueTask> clear, Action<Exception> onFailure)
+    private async Task EvictAsync()
     {
-        ValueTask clearing;
+        // The team cache is cleared first: a tenant materialized between the two clears is then rebuilt from a fresh
+        // team rather than from a cached team that still holds the old platform-derived settings. Each cache is
+        // cleared on its own, so a failed team-cache clear still clears the tenants.
         try
         {
-            clearing = clear();
+            await TeamCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None);
         }
         catch (Exception exception)
         {
-            onFailure(exception);
-            return;
+            Logger.TeamCacheClearFailed(exception);
         }
 
-        if (!clearing.IsCompletedSuccessfully)
-            _ = ObserveAsync(clearing, onFailure);
-    }
-
-    private static async Task ObserveAsync(ValueTask clearing, Action<Exception> onFailure)
-    {
         try
         {
-            await clearing;
+            await TenantCache.ClearAsync(PropertyBagFactory.Create(), CancellationToken.None);
         }
         catch (Exception exception)
         {
-            onFailure(exception);
+            Logger.TenantCacheClearFailed(exception);
         }
     }
 }

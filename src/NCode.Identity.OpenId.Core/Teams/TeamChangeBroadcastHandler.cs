@@ -38,8 +38,16 @@ internal sealed class TeamChangeBroadcastHandler(
     public async ValueTask HandleAsync(string message, CancellationToken cancellationToken)
     {
         var propertyBag = PropertyBagFactory.Create();
-        await TeamCache.RemoveAsync(message, propertyBag, cancellationToken);
-        await TenantCache.RemoveTeamAsync(message, propertyBag, cancellationToken);
+
+        // The team's tenants are evicted even when the team's removal fails, and the failure still propagates.
+        try
+        {
+            await TeamCache.RemoveAsync(message, propertyBag, cancellationToken);
+        }
+        finally
+        {
+            await TenantCache.RemoveTeamAsync(message, propertyBag, cancellationToken);
+        }
     }
 
     /// <inheritdoc />

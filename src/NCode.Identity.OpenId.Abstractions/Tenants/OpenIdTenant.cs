@@ -49,7 +49,7 @@ public abstract class OpenIdTenant : IAsyncDisposable
     public abstract UriDescriptor BaseAddress { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyCollectionProvider"/> that contains tenant settings merged with platform settings.
+    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> that contains tenant settings merged with platform settings.
     /// This collection provider will periodically refresh the items from the backing store and provide change notifications.
     /// </summary>
     public abstract IReadOnlySettingCollectionProvider SettingsProvider { get; }

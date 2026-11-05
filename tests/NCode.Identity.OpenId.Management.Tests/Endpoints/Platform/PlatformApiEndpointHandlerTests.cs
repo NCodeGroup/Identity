@@ -77,7 +77,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         Handler = new PlatformApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
-            TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,

@@ -53,7 +53,6 @@ POST  api/platform/encryption-keys/rekey
 internal class PlatformApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
-    TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
@@ -69,7 +68,6 @@ internal class PlatformApiEndpointHandler(
     private const int TenantPageSize = 100;
 
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =

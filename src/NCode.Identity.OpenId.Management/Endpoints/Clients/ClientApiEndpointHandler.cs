@@ -828,6 +828,18 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
         client.IsDisabled = model.IsDisabled;
 
         await store.UpdateAsync(client, cancellationToken);
@@ -879,6 +891,18 @@ internal class ClientApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
+        {
+            return AuthorizationFailed(httpContext);
         }
 
         var resourceValues = ToResourceValues(ToClientResource(client));
@@ -1025,6 +1049,18 @@ internal class ClientApiEndpointHandler(
         );
 
         if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
         {
             return AuthorizationFailed(httpContext);
         }
@@ -1272,6 +1308,18 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
         var createdWhen = TimeProvider.GetUtcNow();
         var validation = SecretValidator.ValidateCreate(request, createdWhen);
         if (!validation.IsValid)
@@ -1437,6 +1485,18 @@ internal class ClientApiEndpointHandler(
         );
 
         if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
         {
             return AuthorizationFailed(httpContext);
         }
@@ -1649,6 +1709,24 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
+        if (client is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
         if (
             !string.IsNullOrEmpty(ifMatch)
             && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
@@ -1717,6 +1795,24 @@ internal class ClientApiEndpointHandler(
         );
 
         if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
+        if (client is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
         {
             return AuthorizationFailed(httpContext);
         }
@@ -1798,6 +1894,18 @@ internal class ClientApiEndpointHandler(
             Operations.Update
         );
         if (!updateResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
         {
             return AuthorizationFailed(httpContext);
         }
@@ -1991,6 +2099,23 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var client = await storeManager
+            .GetStore<IClientStore>()
+            .GetOrDefaultAsync(clientId, cancellationToken);
+        if (
+            client is not null
+            && !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
         return await ProcessAddOwnerAsync(
             httpContext,
             tenantId,
@@ -2016,6 +2141,23 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var client = await storeManager
+            .GetStore<IClientStore>()
+            .GetOrDefaultAsync(clientId, cancellationToken);
+        if (
+            client is not null
+            && !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
         return await ProcessRemoveOwnerAsync(
             httpContext,
             tenantId,
@@ -2024,6 +2166,39 @@ internal class ClientApiEndpointHandler(
             principalId,
             cancellationToken
         );
+    }
+
+    // Custody of a client's credentials needs the authority to grant what the client holds (ADR-1419).
+    private async ValueTask<bool> HoldsAuthorityOverClientRolesAsync(
+        HttpContext httpContext,
+        IStoreManager storeManager,
+        PersistedClient client,
+        CancellationToken cancellationToken
+    )
+    {
+        var assignments = await storeManager
+            .GetStore<IRoleAssignmentStore>()
+            .GetByPrincipalAsync(client.PrincipalId, cancellationToken);
+
+        foreach (var assignment in assignments)
+        {
+            var authorizationResult = await AuthorizationService.AuthorizeAsync(
+                httpContext.User,
+                ResourceNode.For(
+                    assignment.TenantId,
+                    assignment.ResourceType,
+                    assignment.ResourceId
+                ),
+                Operations.Create
+            );
+
+            if (!authorizationResult.Succeeded)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static async ValueTask<bool> ClientExistsAsync(

@@ -438,6 +438,21 @@ public class TeamManagementTests
         Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
     }
 
+    // Creates a client secret for a client of the control-plane tenant and returns the response.
+    private static Task<HttpResponseMessage> PostClientSecretAsync(
+        HttpClient client,
+        string clientId
+    ) =>
+        client.PostAsJsonAsync(
+            $"/api/tenants/{RootTenantId}/clients/{clientId}/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+
     private static async Task<HttpStatusCode> RequestClientCredentialsTokenAsync(
         HostApplicationFactory factory,
         string tenantId,
@@ -857,6 +872,38 @@ public class TeamManagementTests
 
         using var response = await PostTenantAsync(machine, "acme", "acme-dev");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task MachineClient_CredentialsAreManagedOnlyWithTheAuthorityItHolds()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(administrator);
+        await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId);
+        var (managerClientId, managerSecret, managerPrincipalId) = await CreateMachineClientAsync(
+            administrator
+        );
+        await GrantTeamAdminAsync(administrator, "platform", managerPrincipalId);
+        var (plainClientId, _, _) = await CreateMachineClientAsync(administrator);
+        using var manager = await factory.CreateManagementClientAsync(
+            managerClientId,
+            managerSecret
+        );
+
+        // The manager administers the team of the control-plane tenant, so it manages the clients of that tenant that
+        // hold no role.
+        using var plain = await PostClientSecretAsync(manager, plainClientId);
+        Assert.Equal(HttpStatusCode.Created, plain.StatusCode);
+
+        // It cannot mint a secret for a client that administers a team it does not administer.
+        using var refused = await PostClientSecretAsync(manager, teamClientId);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+
+        using var granted = await PostClientSecretAsync(administrator, teamClientId);
+        var grantedBody = await granted.Content.ReadAsStringAsync();
+        Assert.True(granted.StatusCode == HttpStatusCode.Created, grantedBody);
     }
 
     #endregion

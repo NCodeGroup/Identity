@@ -1,6 +1,8 @@
 # 1414. A tenant can wrap its master keys under a root key it controls
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1422](1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md): its 409
+  and 503 problems also carry the wait in retryAfterSeconds)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 1

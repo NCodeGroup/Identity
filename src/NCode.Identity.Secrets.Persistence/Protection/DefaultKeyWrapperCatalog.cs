@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -19,13 +20,19 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </remarks>
 /// <param name="providers">The registered root key providers.</param>
 /// <param name="options">The options that select the provider for wrapping new keys.</param>
-// See ADR-1150 and ADR-1235.
+// See ADR-1150, ADR-1235 and ADR-1412.
 internal class DefaultKeyWrapperCatalog(
     IEnumerable<IKeyWrapper> providers,
     IOptions<SecretProtectionOptions> options
 ) : IKeyWrapperCatalog
 {
     private FrozenDictionary<string, IKeyWrapper> ProvidersByName { get; } = IndexByName(providers);
+
+    // Declared after ProvidersByName, whose initializer rejects duplicate names before this one runs.
+    private FrozenDictionary<string, IReferencedKeyWrapper> ReferencedByName { get; } =
+        providers
+            .OfType<IReferencedKeyWrapper>()
+            .ToFrozenDictionary(wrapper => wrapper.Name, StringComparer.Ordinal);
 
     private IOptions<SecretProtectionOptions> ProtectionOptions { get; } = options;
 
@@ -38,6 +45,24 @@ internal class DefaultKeyWrapperCatalog(
         throw new InvalidOperationException(
             $"No root key provider is registered with the name '{providerName}'. "
                 + $"The registered providers are: {FormatNames(ProvidersByName.Keys)}."
+        );
+    }
+
+    /// <inheritdoc />
+    public bool TryGetReferenced(
+        string name,
+        [NotNullWhen(true)] out IReferencedKeyWrapper? wrapper
+    ) => ReferencedByName.TryGetValue(name, out wrapper);
+
+    /// <inheritdoc />
+    public IReferencedKeyWrapper GetReferenced(string name)
+    {
+        if (ReferencedByName.TryGetValue(name, out var wrapper))
+            return wrapper;
+
+        throw new InvalidOperationException(
+            $"No key wrapper that wraps under a key the caller names is registered with the name '{name}'. "
+                + $"The registered ones are: {FormatNames(ReferencedByName.Keys)}."
         );
     }
 

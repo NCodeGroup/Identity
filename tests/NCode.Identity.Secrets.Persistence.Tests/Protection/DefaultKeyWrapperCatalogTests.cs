@@ -23,6 +23,13 @@ public class DefaultKeyWrapperCatalogTests : IDisposable
         return provider;
     }
 
+    private Mock<IReferencedKeyWrapper> CreateReferencedProvider(string providerName)
+    {
+        var provider = _mocks.Create<IReferencedKeyWrapper>();
+        provider.Setup(x => x.Name).Returns(providerName).Verifiable();
+        return provider;
+    }
+
     private static DefaultKeyWrapperCatalog CreateCatalog(
         IEnumerable<IKeyWrapper> providers,
         string? rootKeyProvider = null
@@ -137,6 +144,83 @@ public class DefaultKeyWrapperCatalogTests : IDisposable
         var result = catalog.GetConfigured();
 
         Assert.Same(local.Object, result);
+    }
+
+    #endregion
+
+    #region GetReferenced Tests
+
+    [Fact]
+    public void GetReferenced_ReferencedWrapper_ReturnsWrapper()
+    {
+        var local = CreateProvider(KeyWrapperNames.Local);
+        var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        var catalog = CreateCatalog([local.Object, awsKms.Object]);
+
+        var result = catalog.GetReferenced(KeyWrapperNames.AwsKms);
+
+        Assert.Same(awsKms.Object, result);
+    }
+
+    [Fact]
+    public void GetReferenced_PlainWrapper_ThrowsListingReferencedNamesInOrder()
+    {
+        var local = CreateProvider(KeyWrapperNames.Local);
+        var googleCloudKms = CreateReferencedProvider(KeyWrapperNames.GoogleCloudKms);
+        var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        var catalog = CreateCatalog([local.Object, googleCloudKms.Object, awsKms.Object]);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            catalog.GetReferenced(KeyWrapperNames.Local)
+        );
+
+        Assert.Contains($"'{KeyWrapperNames.Local}'", exception.Message);
+        var awsIndex = exception.Message.LastIndexOf(
+            $"'{KeyWrapperNames.AwsKms}'",
+            StringComparison.Ordinal
+        );
+        var googleIndex = exception.Message.LastIndexOf(
+            $"'{KeyWrapperNames.GoogleCloudKms}'",
+            StringComparison.Ordinal
+        );
+        Assert.InRange(awsIndex, 1, googleIndex - 1);
+    }
+
+    [Fact]
+    public void GetReferenced_Unknown_Throws()
+    {
+        var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        var catalog = CreateCatalog([awsKms.Object]);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            catalog.GetReferenced(KeyWrapperNames.AzureKeyVault)
+        );
+
+        Assert.Contains($"'{KeyWrapperNames.AzureKeyVault}'", exception.Message);
+    }
+
+    [Fact]
+    public void TryGetReferenced_ReferencedWrapper_ReturnsTrue()
+    {
+        var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        var catalog = CreateCatalog([awsKms.Object]);
+
+        var found = catalog.TryGetReferenced(KeyWrapperNames.AwsKms, out var wrapper);
+
+        Assert.True(found);
+        Assert.Same(awsKms.Object, wrapper);
+    }
+
+    [Fact]
+    public void TryGetReferenced_PlainOrUnknownWrapper_ReturnsFalse()
+    {
+        var local = CreateProvider(KeyWrapperNames.Local);
+        var catalog = CreateCatalog([local.Object]);
+
+        Assert.False(catalog.TryGetReferenced(KeyWrapperNames.Local, out var plain));
+        Assert.Null(plain);
+        Assert.False(catalog.TryGetReferenced("unknown", out var unknown));
+        Assert.Null(unknown);
     }
 
     #endregion

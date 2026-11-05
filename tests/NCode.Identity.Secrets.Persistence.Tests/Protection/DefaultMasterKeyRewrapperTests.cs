@@ -131,7 +131,10 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         };
 
     // Creates a row wrapped under the owner root key, with no recovery copy.
-    private async Task<PersistedMasterKey> CreateOwnerRootedRowAsync(int version = 1)
+    private async Task<PersistedMasterKey> CreateOwnerRootedRowAsync(
+        int version = 1,
+        PersistedOwnerRootKey? rootKey = null
+    )
     {
         var creatorCatalog = _mocks.Create<IKeyWrapperCatalog>();
         creatorCatalog.Setup(x => x.GetReferenced(_referenced.Name)).Returns(_referenced);
@@ -140,7 +143,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
             creatorCatalog.Object,
             recovery,
             _time
-        ).CreateAsync(Owner, version, CreateOwnerRootKey(), CancellationToken.None);
+        ).CreateAsync(Owner, version, rootKey ?? CreateOwnerRootKey(), CancellationToken.None);
         created.Key.Dispose();
         created.Row.ConcurrencyToken = $"token-{version}";
         return created.Row;
@@ -627,6 +630,56 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
 
         Assert.Equal(new MasterKeyRewrapResult(1, 0, 1, 0), result);
         Assert.Equal(1, _referenced.UnwrapCount);
+    }
+
+    [Fact]
+    public async Task Rewrap_AConflictThatFindsTheOwnerBoundToAnotherKey_LeavesTheRowUnderThatKeyWithoutARecoveryCopy()
+    {
+        var row = await CreateOwnerRootedRowAsync();
+        _ownerRootKey = CreateOwnerRootKey(OwnerRootKeyStates.Removing);
+        SetupGetReferenced();
+        SetupNewProvider();
+        SetupList(row);
+
+        // The save conflicts because another writer bound the owner to key B and moved the row under it.
+        var (saveStore, saveManager) = EnqueueStoreManager();
+        saveStore
+            .Setup(x => x.UpdateAsync(row, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        saveManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Callback(() =>
+            {
+                var keyB = CreateOwnerRootKey();
+                keyB.KeyReference = "kms://tenant-a/key-b";
+                _ownerRootKey = keyB;
+            })
+            .Throws(new StoreConcurrencyException())
+            .Verifiable();
+
+        var keyBBinding = CreateOwnerRootKey();
+        keyBBinding.KeyReference = "kms://tenant-a/key-b";
+        var current = await CreateOwnerRootedRowAsync(rootKey: keyBBinding);
+        var (findStore, _) = EnqueueStoreManager();
+        findStore
+            .Setup(x =>
+                x.FindByKeyIdsAsync(
+                    Owner,
+                    It.Is<IReadOnlyCollection<Guid>>(ids => ids.Contains(row.KeyId)),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([current]))
+            .Verifiable();
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 0), result);
+        Assert.Equal("kms://tenant-a/key-b", current.RootKeyReference);
+        Assert.Null(current.RecoveryKeyId);
+        Assert.Null(current.RecoveryWrappedKey);
     }
 
     [Fact]

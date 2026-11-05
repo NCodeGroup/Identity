@@ -230,15 +230,20 @@ internal sealed class DefaultMasterKeyRewrapper(
                     when (exception is StoreConcurrencyException or InvalidOperationException)
                 {
                     // A row the maintenance pass destroyed during the run is gone, and counts as examined only.
-                    var current = await FindAsync(row, cancellationToken);
+                    var (current, currentRootKey) = await FindAsync(row, cancellationToken);
                     if (current is null)
                         return new MasterKeyRewrapResult(1, 0, 0, 0);
 
-                    // Another writer changed the row, so it is read again and rewrapped from its current state.
+                    // Another writer changed the row, so it is read again and rewrapped from its current state. The
+                    // conflicting writer is often a change of the owner's root key, so the row is judged against the
+                    // binding read in the same unit of work, which replaces the one this run cached for the owner.
                     if (exception is not StoreConcurrencyException || attempt >= MaxAttempts)
                         throw;
 
                     row = current;
+                    rootKey = currentRootKey;
+                    rootKeys[row.Owner] = rootKey;
+                    ownerRooted = MasterKeyFactory.IsOwnerRooted(rootKey);
                 }
             }
         }
@@ -302,7 +307,8 @@ internal sealed class DefaultMasterKeyRewrapper(
         await storeManager.SaveChangesAsync(cancellationToken);
     }
 
-    private async ValueTask<PersistedMasterKey?> FindAsync(
+    // Reads the row again and the root key of its owner through the same unit of work.
+    private async ValueTask<(PersistedMasterKey? Row, PersistedOwnerRootKey? RootKey)> FindAsync(
         PersistedMasterKey row,
         CancellationToken cancellationToken
     )
@@ -312,6 +318,10 @@ internal sealed class DefaultMasterKeyRewrapper(
             .GetStore<IMasterKeyStore>()
             .FindByKeyIdsAsync(row.Owner.Normalize(), [row.KeyId], cancellationToken);
 
-        return rows.SingleOrDefault();
+        var rootKey = await storeManager
+            .GetStore<IOwnerRootKeyStore>()
+            .FindAsync(row.Owner.Normalize(), cancellationToken);
+
+        return (rows.SingleOrDefault(), rootKey);
     }
 }

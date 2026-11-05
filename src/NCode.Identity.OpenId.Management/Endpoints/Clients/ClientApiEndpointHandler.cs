@@ -1092,7 +1092,8 @@ internal class ClientApiEndpointHandler(
         var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
             httpContext,
             changedLimits,
-            authorityAbove
+            authorityAbove,
+            cancellationToken
         );
         if (limitRefusal is not null)
         {

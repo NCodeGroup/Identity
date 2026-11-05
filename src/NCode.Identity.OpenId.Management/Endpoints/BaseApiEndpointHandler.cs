@@ -168,13 +168,14 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="changedLimits">The names of the limits the write adds, changes or removes.</param>
     /// <param name="authorityAbove">The node above the one whose settings document carries the limits.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <c>403 Forbidden</c> result, or <c>null</c> when the write changes no limit or the caller may update <paramref name="authorityAbove"/>.</returns>
     // See ADR-1418.
-    // No CancellationToken: IAuthorizationService.AuthorizeAsync, its only asynchronous call, takes none.
     internal virtual async ValueTask<IResult?> GetLimitChangeRefusalOrDefaultAsync(
         HttpContext httpContext,
         IReadOnlyList<string> changedLimits,
-        ISupportTenantId authorityAbove
+        ISupportTenantId authorityAbove,
+        CancellationToken cancellationToken
     )
     {
         if (changedLimits.Count == 0)

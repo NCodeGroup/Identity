@@ -838,6 +838,49 @@ public class TeamManagementTests
         Assert.True(intruder.StatusCode == HttpStatusCode.Forbidden, intruderBody);
     }
 
+    [Fact]
+    public async Task TenantAdminOfTheRootTenant_CannotTakeOverTheBootstrapClient()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var user = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            $"/api/tenants/{RootTenantId}/admins"
+        );
+
+        foreach (var caller in new[] { user, administrator })
+        {
+            using var secret = await caller.PostAsJsonAsync(
+                $"/api/tenants/{RootTenantId}/clients/{BootstrapClientId}/secrets",
+                new
+                {
+                    secretType = "symmetric",
+                    keySizeBits = 256,
+                    expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+                }
+            );
+            var secretBody = await secret.Content.ReadAsStringAsync();
+            Assert.True(secret.StatusCode == HttpStatusCode.Conflict, secretBody);
+
+            using var settings = await SendPatchAsync(
+                caller,
+                $"/api/tenants/{RootTenantId}/clients/{BootstrapClientId}/settings",
+                new[]
+                {
+                    new
+                    {
+                        op = "add",
+                        path = "/redirect_uris",
+                        value = new[] { "https://attacker.test/callback" },
+                    },
+                }
+            );
+            var settingsBody = await settings.Content.ReadAsStringAsync();
+            Assert.True(settings.StatusCode == HttpStatusCode.Conflict, settingsBody);
+        }
+    }
+
     #endregion
 
     #region Limit Tests

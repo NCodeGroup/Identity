@@ -289,6 +289,24 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .ReturnsAsync(result)
             .Verifiable();
 
+    // The authorization of the client's node, which the caller's own authority to update the client decides.
+    private void SetupClientNodeAuthorization(AuthorizationResult result) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Client
+                        && ((ResourceNode)resource).ResourceId == ClientId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
     // The authorization of a node the client's principal holds a role at, which the caller's authority to grant decides.
     private void SetupRoleNodeAuthorization(AuthorizationResult result) =>
         MockAuthorizationService
@@ -3973,25 +3991,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
-    #region AddOwnerAsync / RemoveOwnerAsync Tests
-
-    // The authorization of the client's node, which the caller's own authority to update the client decides.
-    private void SetupClientNodeAuthorization(AuthorizationResult result) =>
-        MockAuthorizationService
-            .Setup(x =>
-                x.AuthorizeAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.Is<object?>(resource =>
-                        resource is ResourceNode
-                        && ((ResourceNode)resource).TenantId == TenantId
-                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Client
-                        && ((ResourceNode)resource).ResourceId == ClientId
-                    ),
-                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
-                )
-            )
-            .ReturnsAsync(result)
-            .Verifiable();
+    #region AddOwnerAsync Tests
 
     [Fact]
     public async Task AddOwnerAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutAddingTheOwner()
@@ -4017,6 +4017,50 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task AddOwnerAsync_WhenTheCallerIsNotAuthorizedAtTheClient_ReturnsForbiddenBeforeReadingTheClient()
+    {
+        SetupClientNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store manager factory setup, so reading the client would fail the test.
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddOwnerRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupClientLookup();
+        var handler = CreateHostManagedHandler();
+
+        // Strict mocks: no ownership setup, so continuing past the refusal would fail the test.
+        var result = await handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddOwnerRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region RemoveOwnerAsync Tests
+
+    [Fact]
     public async Task RemoveOwnerAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutRemovingTheOwner()
     {
         SetupClientRoleAssignments(CreateTeamAssignment());
@@ -4031,25 +4075,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             TenantId,
             ClientId,
             "principal-1",
-            CancellationToken.None
-        );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-
-        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
-    }
-
-    [Fact]
-    public async Task AddOwnerAsync_WhenTheCallerIsNotAuthorizedAtTheClient_ReturnsForbiddenBeforeReadingTheClient()
-    {
-        SetupClientNodeAuthorization(AuthorizationResult.Failed());
-
-        // Strict mocks: no store manager factory setup, so reading the client would fail the test.
-        var result = await Handler.AddOwnerAsync(
-            CreateHttpContext(authenticated: true),
-            TenantId,
-            ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
             CancellationToken.None
         );
 
@@ -4174,29 +4199,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var result = await handler.DeleteClientAsync(
             CreateHttpContext(authenticated: true),
             ClientId,
-            CancellationToken.None
-        );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
-    }
-
-    #endregion
-
-    #region AddOwnerAsync Tests
-
-    [Fact]
-    public async Task AddOwnerAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-        var handler = CreateHostManagedHandler();
-
-        // Strict mocks: no store or ownership setup, so continuing past the refusal would fail the test.
-        var result = await handler.AddOwnerAsync(
-            CreateHttpContext(authenticated: true),
-            TenantId,
-            ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
             CancellationToken.None
         );
 

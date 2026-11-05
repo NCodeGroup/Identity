@@ -38,6 +38,7 @@ internal sealed class DefaultClientSecretIssuer(
 
     /// <inheritdoc />
     public async ValueTask<string?> GetTokenEndpointAuthMethodAsync(
+        string teamId,
         string tenantId,
         JsonElement? tenantSettings,
         string clientId,
@@ -52,11 +53,12 @@ internal sealed class DefaultClientSecretIssuer(
 
         try
         {
-            var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(
+            var teamEffective = await EffectiveSettingsResolver.ResolveTeamAsync(
+                teamId,
                 cancellationToken
             );
             var tenantEffective = EffectiveSettingsResolver.ResolveStored(
-                serverEffective,
+                teamEffective,
                 OpenIdSettingScopes.Tenant,
                 tenantId,
                 tenantDocument

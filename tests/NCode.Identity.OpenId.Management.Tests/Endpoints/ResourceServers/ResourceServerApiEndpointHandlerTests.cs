@@ -494,15 +494,25 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Returns(mockTenantStore.Object)
             .Verifiable();
         mockTenantStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(
-                new PersistedTenantSettings
+                new PersistedTenant
                 {
                     TenantId = TenantId,
+                    TeamId = "platform",
                     ConcurrencyToken = "tenant-ct",
-                    Value = JsonSerializer.SerializeToElement(
-                        new Dictionary<string, object> { ["scope"] = "tenant" }
-                    ),
+                    Issuer = null,
+                    IsDisabled = false,
+                    DisplayName = TenantId,
+                    Settings = new PersistedTenantSettings
+                    {
+                        TenantId = TenantId,
+                        ConcurrencyToken = "tenant-ct",
+                        Value = JsonSerializer.SerializeToElement(
+                            new Dictionary<string, object> { ["scope"] = "tenant" }
+                        ),
+                    },
+                    Secrets = null!,
                 }
             )
             .Verifiable();
@@ -563,7 +573,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
         // authorization.
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     private void SetupSettingScopes(
@@ -593,17 +604,17 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetEnumerator())
             .Returns(() => effectiveScopeSettings.GetEnumerator());
 
-        var serverSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
+        var teamSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
         var tenantSettings = MockRepository.Create<IReadOnlySettingCollection>().Object;
 
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(serverSettings)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(teamSettings)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.ResolveStored(
-                    serverSettings,
+                    teamSettings,
                     OpenIdSettingScopes.Tenant,
                     TenantId,
                     It.IsAny<JsonElement>()
@@ -1296,6 +1307,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 }

@@ -16,19 +16,17 @@ namespace NCode.Identity.Server.Tests;
 
 public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
 {
-    private const string ServerId = "server-a";
-
-    private static readonly SecretOwner ServerOwner = SecretOwner.ForServer(ServerId);
+    private static readonly SecretOwner PlatformOwner = SecretOwner.Platform;
 
     #region Helpers
 
-    private async Task<ServerSecretProtectorHolder> CreateLoadedHolderAsync() =>
+    private async Task<PlatformSecretProtectorHolder> CreateLoadedHolderAsync() =>
         new()
         {
-            Protector = await GetProtectorAsync(CreateSecretServices(ServerOwner), ServerOwner),
+            Protector = await GetProtectorAsync(CreateSecretServices(PlatformOwner), PlatformOwner),
         };
 
-    private ServiceProvider CreateDecryptorServices(ServerSecretProtectorHolder holder)
+    private ServiceProvider CreateDecryptorServices(PlatformSecretProtectorHolder holder)
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(holder);
@@ -40,7 +38,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
 
     private ServiceProvider CreateDataProtectionServices(
         IXmlRepository repository,
-        ServerSecretProtectorHolder holder
+        PlatformSecretProtectorHolder holder
     )
     {
         var serviceCollection = new ServiceCollection();
@@ -95,7 +93,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
         Assert.Equal(typeof(MasterKeyXmlDecryptor), info.DecryptorType);
         Assert.Equal(MasterKeyXmlFormat.EncryptedSecretName, info.EncryptedElement.Name);
         Assert.Equal(
-            ServerOwner.ToString(),
+            PlatformOwner.ToString(),
             (string?)info.EncryptedElement.Attribute(MasterKeyXmlFormat.OwnerName)
         );
         var value = (string?)info.EncryptedElement.Element(MasterKeyXmlFormat.ValueName);
@@ -106,7 +104,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
     [Fact]
     public void Encrypt_HolderNotLoaded_Throws()
     {
-        var encryptor = new MasterKeyXmlEncryptor(new ServerSecretProtectorHolder());
+        var encryptor = new MasterKeyXmlEncryptor(new PlatformSecretProtectorHolder());
 
         Assert.Throws<InvalidOperationException>(() => encryptor.Encrypt(CreateKeyElement()));
     }
@@ -161,7 +159,7 @@ public class MasterKeyXmlEncryptorTests : SecretProtectionTestBase
     public void Decrypt_HolderNotLoaded_Throws()
     {
         var decryptor = new MasterKeyXmlDecryptor(
-            CreateDecryptorServices(new ServerSecretProtectorHolder())
+            CreateDecryptorServices(new PlatformSecretProtectorHolder())
         );
         var element = new XElement(MasterKeyXmlFormat.EncryptedSecretName);
 

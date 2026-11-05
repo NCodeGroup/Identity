@@ -118,15 +118,15 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             .Returns([])
             .Verifiable();
 
-        var server = CreateLooseMock<ISettingCollection>().Object;
+        var platform = CreateLooseMock<ISettingCollection>().Object;
         var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
         var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         mockResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(server)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(platform)
             .Verifiable();
         mockResolver
-            .Setup(x => x.Resolve(server, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Setup(x => x.Resolve(platform, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
             .Returns(tenantSettings)
             .Verifiable();
 
@@ -156,6 +156,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         var persistedTenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,
@@ -428,15 +429,15 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             .Returns([])
             .Verifiable();
 
-        var server = CreateLooseMock<ISettingCollection>().Object;
+        var platform = CreateLooseMock<ISettingCollection>().Object;
         var tenantSettings = CreateLooseMock<ISettingCollection>().Object;
         var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         mockResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(server)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(platform)
             .Verifiable();
         mockResolver
-            .Setup(x => x.Resolve(server, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
+            .Setup(x => x.Resolve(platform, OpenIdSettingScopes.Tenant, It.IsAny<JsonElement>()))
             .Returns(tenantSettings)
             .Verifiable();
 

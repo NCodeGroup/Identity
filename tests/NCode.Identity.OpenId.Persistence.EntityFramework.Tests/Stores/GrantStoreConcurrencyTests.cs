@@ -37,6 +37,7 @@ public sealed class GrantStoreConcurrencyTests : IAsyncLifetime, IDisposable
         using var scope = _provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         await context.Database.EnsureCreatedAsync();
+        context.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
         var tenantStore = new TenantStore(
             Mock.Of<IStoreProvider>(),
@@ -65,6 +66,7 @@ public sealed class GrantStoreConcurrencyTests : IAsyncLifetime, IDisposable
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,

@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// persisted secrets. The complimentary DTO for this entity is <see cref="PersistedMasterKey"/>.
 /// </summary>
 /// <remarks>
-/// This entity is intentionally not tenant-scoped: server-owned rows have no tenant, so the store always filters by
+/// This entity is intentionally not tenant-scoped: platform-owned rows have no tenant, so the store always filters by
 /// owner explicitly.
 /// </remarks>
 [Index(nameof(KeyId), IsUnique = true)]
@@ -59,7 +59,7 @@ public sealed class MasterKeyEntity : ISupportConcurrencyToken
     public required Guid KeyId { get; init; }
 
     /// <summary>
-    /// Gets the type of owner of this master key, such as <c>server</c> or <c>tenant</c>.
+    /// Gets the type of owner of this master key, such as <c>platform</c> or <c>tenant</c>.
     /// </summary>
     [Unicode(false)]
     [MaxLength(OwnerTypeMaxLength)]

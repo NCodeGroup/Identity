@@ -1,7 +1,9 @@
 # 1166. A tenant is provisioned through one pipeline under every strategy
 
 - **Status:** Accepted (production key provisioning realized by
-  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md))
+  [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md); amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a tenant is created
+  under its team at `POST /api/teams/{teamId}/tenants`)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

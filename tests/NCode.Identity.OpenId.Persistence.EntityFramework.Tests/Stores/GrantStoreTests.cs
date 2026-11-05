@@ -52,10 +52,12 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
 
     private async Task SeedTenantAsync()
     {
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         await _tenantStore.AddAsync(
             new PersistedTenant
             {
                 TenantId = TenantId,
+                TeamId = "platform",
                 ConcurrencyToken = string.Empty,
                 Issuer = null,
                 IsDisabled = false,
@@ -297,6 +299,7 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
             new PersistedTenant
             {
                 TenantId = disabledTenantId,
+                TeamId = "platform",
                 ConcurrencyToken = string.Empty,
                 Issuer = null,
                 IsDisabled = true,
@@ -347,6 +350,74 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
 
         Assert.Single(page.Items);
         Assert.Equal("grant-enabled", page.Items[0].GrantId);
+    }
+
+    [Fact]
+    public async Task GetUnrevokedExpiredPageAsync_SkipsTheGrantsOfATenantWhoseTeamIsDisabled()
+    {
+        const string disabledTeamId = "disabled-team";
+        const string tenantId = "tenant-of-disabled-team";
+        var team = _dbContext.SeedTeam(
+            _provider.GetRequiredService<IIdGenerator<long>>(),
+            disabledTeamId
+        );
+        team.IsDisabled = true;
+        await _dbContext.SaveChangesAsync();
+
+        await _tenantStore.AddAsync(
+            new PersistedTenant
+            {
+                TenantId = tenantId,
+                TeamId = disabledTeamId,
+                ConcurrencyToken = string.Empty,
+                Issuer = null,
+                IsDisabled = false,
+                DisplayName = "Tenant Of Disabled Team",
+                Settings = new PersistedTenantSettings
+                {
+                    TenantId = tenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = EmptyObject(),
+                },
+                Secrets = new PersistedTenantSecrets
+                {
+                    TenantId = tenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = [],
+                },
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var enabledGrant = CreateGrant(
+            hashedKey: "hk-enabled",
+            grantId: "grant-enabled",
+            grantType: SessionGrantType
+        );
+        enabledGrant.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+        var skippedGrant = CreateGrant(
+            hashedKey: "hk-skipped",
+            grantId: "grant-skipped",
+            grantType: SessionGrantType,
+            tenantId: tenantId
+        );
+        skippedGrant.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+
+        await _store.AddAsync(enabledGrant, CancellationToken.None);
+        await _store.AddAsync(skippedGrant, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var page = await _store.GetUnrevokedExpiredPageAsync(
+            SessionGrantType,
+            DateTimeOffset.UnixEpoch.AddDays(10),
+            new PageRequest { Limit = 50 },
+            CancellationToken.None
+        );
+
+        Assert.Equal("grant-enabled", Assert.Single(page.Items).GrantId);
     }
 
     [Fact]

@@ -15,7 +15,7 @@ export type OwnerSettingsTabProps = {
 // See ADR-1050 (secret material is revealed once), ADR-1257 (owner-generic settings) and ADR-1391 (a client's secrets
 // follow its method).
 /**
- * Container: the settings of any owner (a server, a tenant, or a client or resource server in a scope),
+ * Container: the settings of any owner (the platform, a team, a tenant, or a client or resource server in a scope),
  * wiring the owner-generic settings endpoints to the shared {@link SettingsManager}. Settings are a top-level
  * JSON Patch diff. A client's settings change can issue the secret its client-authentication method needs; the
  * response carries its material once, which the tab reveals in the one-time dialog.

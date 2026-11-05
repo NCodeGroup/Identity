@@ -11,8 +11,7 @@ const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Principa
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServer = "resource_server" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServerScope = "resource_server.scope" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ResourceServerSecret = "resource_server.secret" -> string!
-const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Server = "server" -> string!
-const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ServerSecret = "server.secret" -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Platform = "platform" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.TenantSecret = "tenant.secret" -> string!
 const NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.DefaultPageSize = 50 -> int
@@ -134,9 +133,7 @@ NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourc
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerScopeChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! scopeValue, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordServerChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! serverId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordServerSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! serverId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! teamId, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.ManagementAuditEventNames
 NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes
@@ -148,10 +145,7 @@ NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.R
 NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent.ResourceServerId.get -> string!
 NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent.ResourceServerId.init -> void
-NCode.Identity.OpenId.Management.Auditing.ServerChangedAuditEvent
-NCode.Identity.OpenId.Management.Auditing.ServerSecretChangedAuditEvent
-NCode.Identity.OpenId.Management.Auditing.ServerSecretChangedAuditEvent.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Auditing.ServerSecretChangedAuditEvent.ServerId.init -> void
+NCode.Identity.OpenId.Management.Auditing.PlatformChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.TenantSecretChangedAuditEvent
 NCode.Identity.OpenId.Management.Authorization.TenantScopeResource
@@ -480,46 +474,16 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.ExpiresWh
 NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.UpdateSecretRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.Use.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.Use.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest
-NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.CreateServerRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.DisplayName.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.DisplayName.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Contracts.Servers.CreateServerRequest.Settings.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource.DisplayName.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource.DisplayName.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource.ServerId.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerResource.ServerResource() -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource!>!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.Secrets.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.ServerId.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSecretsResource.ServerSecretsResource() -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.ServerEffectiveSettingsResource() -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.ServerId.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerEffectiveSettingsResource.Settings.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.ConcurrencyToken.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.ConcurrencyToken.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.ServerId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.ServerId.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.ServerSettingsResource() -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Management.Contracts.Servers.ServerSettingsResource.Settings.init -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.UpdateServerRequest
-NCode.Identity.OpenId.Management.Contracts.Servers.UpdateServerRequest.DisplayName.get -> string?
-NCode.Identity.OpenId.Management.Contracts.Servers.UpdateServerRequest.DisplayName.set -> void
-NCode.Identity.OpenId.Management.Contracts.Servers.UpdateServerRequest.UpdateServerRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformEffectiveSettingsResource
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformEffectiveSettingsResource.PlatformEffectiveSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformEffectiveSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformEffectiveSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSettingsResource
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSettingsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSettingsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSettingsResource.PlatformSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Platform.PlatformSettingsResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.CreateTenantRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.DisplayName.get -> string!
@@ -613,12 +577,8 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Algorithm
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Algorithm.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ExpiresWhen.init -> void
-NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator
-NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Identity.OpenId.Management.Contracts.Servers.UpdateServerRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Servers.IServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedServer! server, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.ManagementError
@@ -644,8 +604,7 @@ override NCode.Identity.OpenId.Management.Auditing.SessionsRevokedAuditEvent.Res
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerScopeChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.ResourceServerSecretChangedAuditEvent.ResourceType.get -> string!
-override NCode.Identity.OpenId.Management.Auditing.ServerSecretChangedAuditEvent.ResourceType.get -> string!
-override NCode.Identity.OpenId.Management.Auditing.ServerChangedAuditEvent.ResourceType.get -> string!
+override NCode.Identity.OpenId.Management.Auditing.PlatformChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent.ResourceType.get -> string!
 override NCode.Identity.OpenId.Management.Auditing.TenantSecretChangedAuditEvent.ResourceType.get -> string!
 static NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.For(string! tenantId) -> NCode.Identity.OpenId.Management.Authorization.TenantScopeResource!
@@ -661,7 +620,7 @@ virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, object? authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, TResponse>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, object? authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResponse>>! mapperAsync, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
-virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessListAsync<TItem, TResource>(Microsoft.AspNetCore.Http.HttpContext! httpContext, object? authorizationResource, System.Func<System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem>!>>! fetchPageAsync, System.Func<TItem, TResource>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessListAsync<TItem, TResource>(Microsoft.AspNetCore.Http.HttpContext! httpContext, object! authorizationResource, System.Func<System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem>!>>! fetchPageAsync, System.Func<TItem, TResource>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ToErrorResult(NCode.Identity.OpenId.Management.ManagementError! error) -> Microsoft.AspNetCore.Http.IResult!
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Issuer.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Issuer.init -> void
@@ -766,6 +725,79 @@ NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Genera
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.IsValid.get -> bool
 static NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Invalid(NCode.Identity.OpenId.Management.ManagementError! error) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
 static NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Valid(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! generationParameters) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordPlatformChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.TeamId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.DisplayName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.DisplayName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.IsDisabled.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.TeamResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.TeamId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.DisplayName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.DisplayName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.IsDisabled.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.CreateTeamRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest
+NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest.DisplayName.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest.DisplayName.set -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest.IsDisabled.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest.IsDisabled.set -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest.UpdateTeamRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamSettingsResource
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamSettingsResource.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamSettingsResource.TeamId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamSettingsResource.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamSettingsResource.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamSettingsResource.TeamSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.TeamId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.TeamEffectiveSettingsResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.Day.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.Day.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.Meter.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.Meter.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.Count.get -> long
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.Count.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TeamUsageEntry() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.TeamId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.From.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.From.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.To.get -> System.DateOnly
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.To.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.Entries.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry!>!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.Entries.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageResource.TeamUsageResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Tenants.TenantResource.TeamId.init -> void
+NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent.TeamId.init -> void
+NCode.Identity.OpenId.Management.Auditing.TeamChangedAuditEvent
+override NCode.Identity.OpenId.Management.Auditing.TeamChangedAuditEvent.ResourceType.get -> string!
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Team = "team" -> string!
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTeamChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! teamId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator
+NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ActivatesWhen.init -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.RetiresWhen.get -> System.DateTimeOffset?

@@ -354,6 +354,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = null,
             IsDisabled = false,
             DisplayName = "Test Tenant",

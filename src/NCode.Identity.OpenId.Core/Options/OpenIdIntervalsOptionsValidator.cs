@@ -7,7 +7,7 @@ using NCode.Time;
 namespace NCode.Identity.OpenId;
 
 /// <summary>
-/// Validates the refresh intervals and lifetimes that the server and the tenants run timers on when the host starts,
+/// Validates the refresh intervals and lifetimes that the platform and the tenants run timers on when the host starts,
 /// so a value that a timer refuses stops the host instead of failing the first time a timer is created.
 /// </summary>
 // See ADR-1221.
@@ -22,21 +22,9 @@ internal sealed class OpenIdIntervalsOptionsValidator : IValidateOptions<OpenIdO
 
         Check(
             failures,
-            nameof(OpenIdOptions.Server),
-            nameof(OpenIdServerOptions.SettingsPeriodicRefreshInterval),
-            options.Server.SettingsPeriodicRefreshInterval
-        );
-        Check(
-            failures,
-            nameof(OpenIdOptions.Server),
-            nameof(OpenIdServerOptions.SecretsPeriodicRefreshInterval),
-            options.Server.SecretsPeriodicRefreshInterval
-        );
-        Check(
-            failures,
-            nameof(OpenIdOptions.Server),
-            nameof(OpenIdServerOptions.ReconciliationLeaseDuration),
-            options.Server.ReconciliationLeaseDuration
+            nameof(OpenIdOptions.Platform),
+            nameof(OpenIdPlatformOptions.SettingsPeriodicRefreshInterval),
+            options.Platform.SettingsPeriodicRefreshInterval
         );
         Check(
             failures,
@@ -55,6 +43,24 @@ internal sealed class OpenIdIntervalsOptionsValidator : IValidateOptions<OpenIdO
             nameof(OpenIdOptions.Tenant),
             nameof(OpenIdTenantOptions.TenantCacheLifetime),
             options.Tenant.TenantCacheLifetime
+        );
+        Check(
+            failures,
+            nameof(OpenIdOptions.Team),
+            nameof(OpenIdTeamOptions.SettingsPeriodicRefreshInterval),
+            options.Team.SettingsPeriodicRefreshInterval
+        );
+        Check(
+            failures,
+            nameof(OpenIdOptions.Team),
+            nameof(OpenIdTeamOptions.TeamCacheLifetime),
+            options.Team.TeamCacheLifetime
+        );
+        Check(
+            failures,
+            nameof(OpenIdOptions.Team),
+            nameof(OpenIdTeamOptions.ReconciliationLeaseDuration),
+            options.Team.ReconciliationLeaseDuration
         );
 
         return failures.Count == 0

@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md): a management
-  request that needs a stored document it cannot honor answers 409 with a problem that names it)
+  request that needs a stored document it cannot honor answers 409 with a problem that names it; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a settings write also
+  covers the platform and team scopes)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

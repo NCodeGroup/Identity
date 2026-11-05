@@ -13,9 +13,9 @@ namespace NCode.Identity.OpenId.Management.ResourceServers;
 /// <summary>
 /// Seeds the reserved management resource server (<c>urn:ncode:management</c>) into a tenant. Its tenant-plane scope
 /// families (a tenant's own settings and secrets, plus its clients, client secrets, resource servers, client grants,
-/// and grants) are seeded into every tenant; its control-plane families (server management and tenant provisioning)
-/// are added only when seeding the root tenant. The handler is idempotent: it creates the resource server only when it
-/// is absent.
+/// and grants) are seeded into every tenant; its control-plane families (platform settings, team management and
+/// tenant provisioning) are added only when seeding the root tenant. The handler is idempotent: it creates the
+/// resource server only when it is absent.
 /// </summary>
 internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoService)
     : ICommandHandler<SeedTenantCommand>,
@@ -107,13 +107,13 @@ internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoS
         {
             // Control-plane families, seeded only into the root tenant.
             scopes = scopes.Concat([
-                .. CrudScopes(ManagementScopes.Families.Servers, "servers"),
-                .. SettingsScopes(ManagementScopes.Families.ServerSettings, "server settings"),
-                .. CrudScopes(ManagementScopes.Families.ServerSecrets, "server secrets"),
+                .. SettingsScopes(ManagementScopes.Families.PlatformSettings, "platform settings"),
                 .. SettingsScopes(
-                    ManagementScopes.Families.ServerEncryptionKeys,
-                    "server encryption keys"
+                    ManagementScopes.Families.PlatformEncryptionKeys,
+                    "platform encryption keys"
                 ),
+                .. CrudScopes(ManagementScopes.Families.Teams, "teams"),
+                .. SettingsScopes(ManagementScopes.Families.TeamSettings, "team settings"),
                 .. CrudScopes(ManagementScopes.Families.Tenants, "tenants"),
             ]);
         }

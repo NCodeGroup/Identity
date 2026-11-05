@@ -11,7 +11,7 @@ using Nerdbank.Streams;
 namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
-/// Encrypts the keys of the Data Protection key ring under the master key of the server, so that the key ring is
+/// Encrypts the keys of the Data Protection key ring under the master key of the platform, so that the key ring is
 /// unreadable without the root key that wraps that master key.
 /// </summary>
 /// <remarks>
@@ -19,14 +19,14 @@ namespace NCode.Identity.Server.SecretProtection;
 /// The XML of a key is written to a sensitive buffer and never becomes a string; only the protected value, which is
 /// not secret, is stored in the element that is returned.
 /// </remarks>
-/// <param name="holder">The holder of the protector of the server.</param>
+/// <param name="holder">The holder of the protector of the platform.</param>
 // See ADR-1235.
-internal class MasterKeyXmlEncryptor(ServerSecretProtectorHolder holder) : IXmlEncryptor
+internal class MasterKeyXmlEncryptor(PlatformSecretProtectorHolder holder) : IXmlEncryptor
 {
-    private ServerSecretProtectorHolder Holder { get; } = holder;
+    private PlatformSecretProtectorHolder Holder { get; } = holder;
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">Thrown when the protector of the server is not loaded.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the protector of the platform is not loaded.</exception>
     public EncryptedXmlInfo Encrypt(XElement plaintextElement)
     {
         ArgumentNullException.ThrowIfNull(plaintextElement);

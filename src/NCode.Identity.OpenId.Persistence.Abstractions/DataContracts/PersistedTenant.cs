@@ -20,6 +20,12 @@ public sealed class PersistedTenant : BasePersistedTenantResource
     public override string ResourceType => ResourceTypePrefix;
 
     /// <summary>
+    /// Gets the identifier of the team the tenant belongs to. A tenant never moves between teams.
+    /// </summary>
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string TeamId { get; init; }
+
+    /// <summary>
     /// Gets or sets the issuer identifier for this tenant — its request-independent identity, and therefore also the
     /// origin of every absolute URL the server publishes for it (the discovery endpoint URLs, the RFC 7592
     /// <c>registration_client_uri</c>, the device <c>verification_uri</c>, the <c>check_session_iframe</c>). It is

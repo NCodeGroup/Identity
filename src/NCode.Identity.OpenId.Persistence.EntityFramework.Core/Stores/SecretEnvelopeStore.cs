@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 /// <summary>
 /// Provides a default implementation of <see cref="ISecretEnvelopeStore"/> that uses Entity Framework Core for
 /// persistence. It reads the secrets of an owner through the join rows of the tenant, its clients and its resource
-/// servers, or of the server, and rewrites only the protected value of a secret.
+/// servers, and rewrites only the protected value of a secret.
 /// </summary>
 /// <remarks>
 /// This store does not save changes. The caller's store manager commits them. The queries ignore the tenant-scoping
@@ -161,26 +161,6 @@ internal class SecretEnvelopeStore(IStoreProvider storeProvider, OpenIdDbContext
                 );
         }
 
-        if (
-            string.Equals(
-                owner.OwnerType,
-                SecretOwnerTypes.Server,
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            var serverSecrets = DbContext.ServerSecrets;
-
-            return DbContext
-                .Secrets.AsNoTracking()
-                .Where(secret =>
-                    serverSecrets.Any(join =>
-                        join.SecretId == secret.Id
-                        && join.Server.NormalizedServerId == normalizedOwnerId
-                    )
-                );
-        }
-
         return null;
     }
 
@@ -219,14 +199,6 @@ internal class SecretEnvelopeStore(IStoreProvider storeProvider, OpenIdDbContext
         if (resourceServer is not null)
         {
             resourceServer.SecretsConcurrencyToken = token;
-            return;
         }
-
-        var server = await DbContext
-            .ServerSecrets.Where(join => join.SecretId == secretId)
-            .Select(join => join.Server)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (server is not null)
-            server.SecretsConcurrencyToken = token;
     }
 }

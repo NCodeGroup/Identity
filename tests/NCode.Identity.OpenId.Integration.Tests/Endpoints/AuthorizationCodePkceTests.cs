@@ -28,9 +28,9 @@ public class AuthorizationCodePkceTests
 
     private static readonly Dictionary<string, string?> NonceExemptionConfiguration = new()
     {
-        ["OpenId:Server:Settings:require_pkce"] = "false",
-        ["OpenId:Server:Settings:pkce_nonce_exemption"] = "true",
-        ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+        ["OpenId:Platform:Settings:require_pkce"] = "false",
+        ["OpenId:Platform:Settings:pkce_nonce_exemption"] = "true",
+        ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
     };
 
     #region Scaffolding

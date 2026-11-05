@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md):
-  the tenant's own secrets, settings, and usage are separate surfaces)
+  the tenant's own secrets, settings, and usage are separate surfaces; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the console addresses a
+  team and its tenants)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

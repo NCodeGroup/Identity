@@ -16,9 +16,16 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 public static class ResourceNodeTypes
 {
     /// <summary>
-    /// The server root node. A role assigned here applies across the whole server.
+    /// The platform root node, whose resource id is <see cref="OpenIdConstants.PlatformResourceId"/>. A role assigned
+    /// here applies across the whole platform.
     /// </summary>
-    public const string Server = OpenIdResourceTypes.Server;
+    public const string Platform = OpenIdResourceTypes.Platform;
+
+    /// <summary>
+    /// A team node. A role assigned here applies across the team and every tenant beneath it.
+    /// </summary>
+    // See ADR-1411
+    public const string Team = OpenIdResourceTypes.Team;
 
     /// <summary>
     /// A tenant node. A role assigned here applies across the tenant and its child resources.

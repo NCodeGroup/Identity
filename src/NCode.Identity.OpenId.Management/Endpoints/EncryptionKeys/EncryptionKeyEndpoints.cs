@@ -11,7 +11,7 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
 
 /// <summary>
-/// Provides the status and rekey operations that the tenant and server endpoint handlers share, once they have found
+/// Provides the status and rekey operations that the tenant and platform endpoint handlers share, once they have found
 /// the owner and authorized the caller: the same master key lifecycle serves both.
 /// </summary>
 // See ADR-1407.

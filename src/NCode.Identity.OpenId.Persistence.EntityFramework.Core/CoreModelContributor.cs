@@ -8,11 +8,10 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core;
 
 /// <summary>
 /// Contributes the core OpenID schema (clients, grants, tenants, secrets, master keys, resource servers, scopes, roles,
-/// servers, and federated principals/identities) to the shared <see cref="OpenIdDbContext"/> model. Because the
-/// framework context is <c>DbSet</c>-less, each core entity is added to the model here; the framework's schema-agnostic
-/// passes (restrict-all-foreign-keys and the tenant-scope filter over every
-/// <see cref="NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity"/>) then cover
-/// them.
+/// the platform, teams, and federated principals/identities) to the shared <see cref="OpenIdDbContext"/> model. Because
+/// the framework context is <c>DbSet</c>-less, each core entity is added to the model here; the framework's
+/// schema-agnostic passes (restrict-all-foreign-keys and the tenant-scope filter over every <see
+/// cref="NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ISupportTenantEntity"/>) then cover them.
 /// </summary>
 internal sealed class CoreModelContributor : IOpenIdModelContributor
 {
@@ -21,8 +20,7 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
     {
         modelBuilder.Entity<SecretEntity>().ToTable("Secrets");
         modelBuilder.Entity<MasterKeyEntity>().ToTable("MasterKeys");
-        modelBuilder.Entity<ServerEntity>().ToTable("Servers");
-        modelBuilder.Entity<ServerSecretEntity>().ToTable("ServerSecrets");
+        modelBuilder.Entity<PlatformEntity>().ToTable("Platform");
         modelBuilder.Entity<TenantSecretEntity>().ToTable("TenantSecrets");
         modelBuilder.Entity<ClientEntity>().ToTable("Clients");
         modelBuilder.Entity<ClientSecretEntity>().ToTable("ClientSecrets");
@@ -35,6 +33,8 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
         modelBuilder.Entity<RoleAssignmentEntity>().ToTable("RoleAssignments");
         modelBuilder.Entity<FederatedPrincipalEntity>().ToTable("FederatedPrincipals");
         modelBuilder.Entity<FederatedIdentityEntity>().ToTable("FederatedIdentities");
+        modelBuilder.Entity<TeamEntity>().ToTable("Teams");
+        modelBuilder.Entity<RetiredTeamEntity>().ToTable("RetiredTeams");
         modelBuilder.Entity<RetiredTenantEntity>().ToTable("RetiredTenants");
         modelBuilder.Entity<RetiredIssuerEntity>().ToTable("RetiredIssuers");
         modelBuilder.Entity<TenantUsageEntity>().ToTable("TenantUsage");

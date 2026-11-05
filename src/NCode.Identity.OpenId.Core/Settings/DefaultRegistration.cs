@@ -23,7 +23,7 @@ internal static class DefaultRegistration
     {
         /// <summary>
         /// Configures the base setting-descriptor catalog, the built-in default settings provider, and the validation of
-        /// the server's configured settings. The catalog is a composable collection; the authentication slice contributes
+        /// the platform's configured settings. The catalog is a composable collection; the authentication slice contributes
         /// its protocol-specific descriptors additively. Setting names are a closed vocabulary, so a configured setting
         /// with no registered descriptor, or a value that does not convert to its type, stops the host when it starts.
         /// </summary>
@@ -53,7 +53,7 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<IDefaultSettingsProvider, DefaultSettingsProvider>()
             );
 
-            // The server's configured settings are a closed vocabulary typed by the descriptor catalog; a configured
+            // The platform's configured settings are a closed vocabulary typed by the descriptor catalog; a configured
             // setting that cannot be honored stops the host when it starts (ADR-1137, ADR-1139).
             serviceCollection.TryAddSingleton<
                 ISettingConfigurationReader,
@@ -63,7 +63,7 @@ internal static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<OpenIdOptions>,
-                    ServerSettingsOptionsValidator
+                    PlatformSettingsOptionsValidator
                 >()
             );
 

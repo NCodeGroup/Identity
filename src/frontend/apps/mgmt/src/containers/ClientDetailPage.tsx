@@ -5,7 +5,7 @@ import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import type { ClientResource, ManagementOwner, ManagementScope } from '@ncode/api';
+import type { ClientResource, SecretOwner, ManagementScope } from '@ncode/api';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 
@@ -25,7 +25,7 @@ type ClientSurface = 'secrets' | 'settings';
  */
 export function ClientDetailPage({ scope, client, onBack }: ClientDetailPageProps) {
   const [surface, setSurface] = useState<ClientSurface>('secrets');
-  const owner: ManagementOwner = { kind: 'client', scope, clientId: client.clientId };
+  const owner: SecretOwner = { kind: 'client', scope, clientId: client.clientId };
 
   return (
     <>

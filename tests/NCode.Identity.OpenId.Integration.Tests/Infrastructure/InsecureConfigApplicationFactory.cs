@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// domain, and PKCE <c>plain</c> is not a registered transformation, so neither can be re-enabled.
 /// </summary>
 /// <remarks>
-/// Server settings read from <c>OpenId:Server:Settings</c> are applied last and overwrite the baseline, so an
+/// Platform settings read from <c>OpenId:Platform:Settings</c> are applied last and overwrite the baseline, so an
 /// operator widens a ceiling simply by configuring it — this fixture proves that operator override path and that
 /// the widened values are then advertised in discovery and accepted by the authorization endpoint.
 /// </remarks>
@@ -32,27 +32,27 @@ public sealed class InsecureConfigApplicationFactory : HostApplicationFactory
                 {
                     // Re-add an implicit and a hybrid response type. The setting lists whole response_type values,
                     // so exactly these are advertised and accepted.
-                    ["OpenId:Server:Settings:response_types_supported:0"] = OpenIdProtocol
+                    ["OpenId:Platform:Settings:response_types_supported:0"] = OpenIdProtocol
                         .ResponseTypes
                         .Code,
-                    ["OpenId:Server:Settings:response_types_supported:1"] = OpenIdProtocol
+                    ["OpenId:Platform:Settings:response_types_supported:1"] = OpenIdProtocol
                         .ResponseTypes
                         .Token,
-                    ["OpenId:Server:Settings:response_types_supported:2"] = OpenIdProtocol
+                    ["OpenId:Platform:Settings:response_types_supported:2"] = OpenIdProtocol
                         .ResponseTypes
                         .CodeIdToken,
 
                     // Re-add the 'implicit' grant type alongside the secure defaults.
-                    ["OpenId:Server:Settings:grant_types_supported:0"] = OpenIdProtocol
+                    ["OpenId:Platform:Settings:grant_types_supported:0"] = OpenIdProtocol
                         .GrantTypes
                         .AuthorizationCode,
-                    ["OpenId:Server:Settings:grant_types_supported:1"] = OpenIdProtocol
+                    ["OpenId:Platform:Settings:grant_types_supported:1"] = OpenIdProtocol
                         .GrantTypes
                         .Implicit,
-                    ["OpenId:Server:Settings:grant_types_supported:2"] = OpenIdProtocol
+                    ["OpenId:Platform:Settings:grant_types_supported:2"] = OpenIdProtocol
                         .GrantTypes
                         .RefreshToken,
-                    ["OpenId:Server:Settings:grant_types_supported:3"] = OpenIdProtocol
+                    ["OpenId:Platform:Settings:grant_types_supported:3"] = OpenIdProtocol
                         .GrantTypes
                         .DeviceCode,
                 }

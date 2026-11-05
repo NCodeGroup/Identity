@@ -31,11 +31,11 @@ public interface ISecurityProfileCatalog
 
     /// <summary>
     /// Runs the selected profiles' requirements for a single enforcement phase: it resolves every profile the supplied
-    /// <paramref name="settings"/> select (via their effective <c>security_profiles</c> value) and invokes each of their
-    /// requirements assignable to <c>ISecurityProfileRequirement&lt;TContext&gt;</c> against <paramref name="context"/>,
-    /// profile by profile and in each profile's order, evaluating a requirement instance shared by several profiles
-    /// once. A requirement throws to reject the request; this method does nothing when the settings select no profile
-    /// or no selected profile imposes a requirement for the phase.
+    /// <paramref name="settings"/> select (via their effective <c>security_profiles</c> value) and invokes each of
+    /// their requirements assignable to <c>ISecurityProfileRequirement&lt;TContext&gt;</c> against <paramref
+    /// name="context"/>, profile by profile and in each profile's order, evaluating a requirement instance shared by
+    /// several profiles once. A requirement throws to reject the request; this method does nothing when the settings
+    /// select no profile or no selected profile imposes a requirement for the phase.
     /// </summary>
     /// <typeparam name="TContext">The phase-specific evaluation context type, which selects the applicable requirements.</typeparam>
     /// <param name="settings">The effective settings of the scope (typically a client) to evaluate.</param>
@@ -50,10 +50,10 @@ public interface ISecurityProfileCatalog
     );
 
     /// <summary>
-    /// Returns the supplied <paramref name="scopeSettings"/> expanded with the ceiling settings and the defaults of every
-    /// profile the scope declares in <c>security_profiles</c> — including a profile that another profile's ceiling
-    /// selects — or the settings unchanged when it declares none. It is the three-argument overload with an empty
-    /// baseline.
+    /// Returns the supplied <paramref name="scopeSettings"/> expanded with the ceiling settings and the defaults of
+    /// every profile the scope declares in <c>security_profiles</c> — including a profile that another profile's
+    /// ceiling selects — or the settings unchanged when it declares none. It is the three-argument overload with an
+    /// empty baseline.
     /// </summary>
     /// <remarks>
     /// A profile's default applies only to a setting that applies within the scope: a setting that applies to the scope
@@ -79,7 +79,7 @@ public interface ISecurityProfileCatalog
     /// A value in <paramref name="scopeSettings"/> replaces the baseline value of its setting. A selected profile's
     /// default replaces a baseline value but never a value in <paramref name="scopeSettings"/>, and it applies only to
     /// a setting that applies within the scope: a setting that applies to the scope itself or to a scope below it.
-    /// Every selected profile's ceiling then bounds the result, baseline values included. The server root passes its
+    /// Every selected profile's ceiling then bounds the result, baseline values included. The platform root passes its
     /// descriptor defaults, computed supported values and default-settings-provider values as the baseline and its
     /// configuration as the scope's settings.
     /// </remarks>

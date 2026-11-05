@@ -9,10 +9,10 @@ using NCode.Identity.OpenId.Persistence;
 namespace NCode.Identity.OpenId.Management.Contracts.Tenants;
 
 /// <summary>
-/// Represents the REST resource for a tenant's <b>effective</b> (merged) settings: the server baseline, the tenant's
-/// persisted overrides, and descriptor defaults, resolved through the settings merge pipeline. This is the read-only
-/// view the authorization server itself resolves at runtime, and — unlike the discovery document — it includes
-/// settings that are not advertised (not discoverable). It is the gated replacement for the removed anonymous
+/// Represents the REST resource for a tenant's <b>effective</b> (merged) settings: the team's effective settings, the
+/// tenant's persisted overrides, and descriptor defaults, resolved through the settings merge pipeline. This is the
+/// read-only view the authorization server itself resolves at runtime, and — unlike the discovery document — it
+/// includes settings that are not advertised (not discoverable). It is the gated replacement for the removed anonymous
 /// discovery override.
 /// </summary>
 [PublicAPI]

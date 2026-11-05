@@ -1,6 +1,9 @@
 # 1050. Secret material is revealed once, only by the client-secret create endpoint
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  singleton with no list, create, delete or secrets, and its management surface is its settings and effective
+  settings under `/api/platform`)
 - **Date:** 2026-10-05
 - **Deciders:** NCode.Identity maintainers
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)

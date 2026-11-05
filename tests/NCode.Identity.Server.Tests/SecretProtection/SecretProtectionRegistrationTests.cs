@@ -45,7 +45,7 @@ public class SecretProtectionRegistrationTests : BaseTests
 
     private static bool IsWarmup(ServiceDescriptor descriptor) =>
         descriptor.ServiceType == typeof(IHostedService)
-        && descriptor.ImplementationType == typeof(ServerSecretProtectorWarmup);
+        && descriptor.ImplementationType == typeof(PlatformSecretProtectorWarmup);
 
     private static bool IsKeyRingGate(ServiceDescriptor descriptor) =>
         descriptor.ServiceType == typeof(IHostedService)
@@ -53,7 +53,7 @@ public class SecretProtectionRegistrationTests : BaseTests
 
     private static bool IsRefreshService(ServiceDescriptor descriptor) =>
         descriptor.ServiceType == typeof(IHostedService)
-        && descriptor.ImplementationType == typeof(ServerSecretProtectorRefreshService);
+        && descriptor.ImplementationType == typeof(PlatformSecretProtectorRefreshService);
 
     #region AddSecretProtection Tests
 
@@ -329,7 +329,7 @@ public class SecretProtectionRegistrationTests : BaseTests
         Assert.Single(serviceCollection, IsKeyRingGate);
         Assert.Single(
             serviceCollection,
-            descriptor => descriptor.ServiceType == typeof(ServerSecretProtectorHolder)
+            descriptor => descriptor.ServiceType == typeof(PlatformSecretProtectorHolder)
         );
     }
 

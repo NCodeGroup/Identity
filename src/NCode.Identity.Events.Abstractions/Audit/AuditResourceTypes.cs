@@ -34,7 +34,7 @@ public static class AuditResourceTypes
     public const string TenantSecret = "tenant.secret";
 
     /// <summary>
-    /// The resource type of a master key, which protects the stored secrets of a tenant or of the server.
+    /// The resource type of a master key, which protects the stored secrets of a tenant, and the Data Protection key ring and host data of the platform.
     /// </summary>
     public const string MasterKey = "master_key";
 }

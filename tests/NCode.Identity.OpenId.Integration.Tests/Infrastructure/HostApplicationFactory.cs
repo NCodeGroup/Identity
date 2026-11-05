@@ -27,6 +27,8 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -53,6 +55,9 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 {
     /// <summary>The tenant id used by the host's static single-tenant provider.</summary>
     public const string TenantId = "default";
+
+    /// <summary>The team that holds the tenants a test creates through the management API.</summary>
+    public const string TeamId = RootTenantOptions.DefaultTeamId;
 
     /// <summary>
     /// The issuer pinned on the static tenant: the origin <see cref="Microsoft.AspNetCore.TestHost.TestServer"/> serves
@@ -90,7 +95,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     /// <summary>
     /// Gets a value indicating whether the developer clients of the Development overlay are seeded. They are seeded
     /// only when a derived factory returns <see langword="true"/>, because they are public clients with <c>http</c>
-    /// redirect URIs that a test narrowing the server's or the tenant's ceilings would make incoherent.
+    /// redirect URIs that a test narrowing the platform's or the tenant's ceilings would make incoherent.
     /// </summary>
     protected virtual bool SeedsDeveloperClients => false;
 
@@ -108,10 +113,10 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     private string RootKey { get; } = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>
-    /// Gets or sets the server's own settings document, persisted before the host starts so the server materializes
+    /// Gets or sets the platform's own settings document, persisted before the host starts so the platform materializes
     /// with it. Set it before the factory serves any request or reads <see cref="WebApplicationFactory{TEntryPoint}.Services"/>.
     /// </summary>
-    public IReadOnlyDictionary<string, object>? PersistedServerSettings { get; set; }
+    public IReadOnlyDictionary<string, object>? PersistedPlatformSettings { get; set; }
 
     /// <summary>
     /// Ensures the tenant exists (persisted lazily on first request) and seeds a public client
@@ -1047,6 +1052,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             CancellationToken.None
         );
 
+        await EnsureTeamAsync();
         var tenantStore = storeManager.GetStore<ITenantStore>();
         if (await tenantStore.GetOrDefaultAsync(TenantId, CancellationToken.None) is null)
         {
@@ -1165,6 +1171,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             );
         }
 
+        await EnsureTeamAsync();
         var tenant = CreateEmptyTenant(TenantId);
         tenant.Settings.Value = System.Text.Json.JsonSerializer.SerializeToElement(settings);
         await tenantStore.AddAsync(tenant, CancellationToken.None);
@@ -1243,10 +1250,131 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         return client;
     }
 
+    /// <summary>
+    /// Creates an HTTP client that calls the management API as an end-user: it signs the user in through the
+    /// interactive login page, runs the authorization-code flow with PKCE <c>S256</c> as the given public client, then
+    /// sends the resulting access token as a bearer token.
+    /// </summary>
+    /// <param name="clientId">The identifier of a public client registered with <paramref name="redirectUri"/>.</param>
+    /// <param name="redirectUri">The redirect URI the client is registered with.</param>
+    /// <param name="userName">The user name of a seeded local account.</param>
+    /// <param name="password">The password of the account.</param>
+    /// <param name="scope">The space-delimited scopes the authorization request asks for.</param>
+    /// <returns>The HTTP client, which does not follow redirects and carries the bearer token.</returns>
+    public async Task<HttpClient> CreateManagementUserClientAsync(
+        string clientId,
+        string redirectUri,
+        string userName,
+        string password,
+        string scope
+    )
+    {
+        using var browser = CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                AllowAutoRedirect = false,
+                HandleCookies = false,
+            }
+        );
+        var sessionCookie = await InteractiveLogin.SignInAsync(browser, userName, password);
+
+        var codeVerifier = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+        var codeChallenge = Base64Url.EncodeToString(
+            SHA256.HashData(SecureEncoding.UTF8.GetBytes(codeVerifier))
+        );
+        var state = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16));
+
+        var authorizeParameters = new Dictionary<string, string>
+        {
+            ["response_type"] = OpenIdProtocol.ResponseTypes.Code,
+            ["client_id"] = clientId,
+            ["redirect_uri"] = redirectUri,
+            ["scope"] = scope,
+            ["state"] = state,
+            ["code_challenge"] = codeChallenge,
+            ["code_challenge_method"] = "S256",
+        };
+        var authorizeQuery = string.Join(
+            '&',
+            authorizeParameters.Select(pair =>
+                $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"
+            )
+        );
+        using var authorizeRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"/oauth2/authorize?{authorizeQuery}"
+        );
+        authorizeRequest.Headers.Add(
+            "Cookie",
+            $"{InteractiveLogin.SessionCookieName}={sessionCookie}"
+        );
+        using var authorizeResponse = await browser.SendAsync(authorizeRequest);
+
+        var location = authorizeResponse.Headers.Location;
+        if (
+            location is null
+            || !location.OriginalString.StartsWith(redirectUri, StringComparison.Ordinal)
+        )
+        {
+            throw new InvalidOperationException(
+                $"The authorization request was not redirected to '{redirectUri}': {(int)authorizeResponse.StatusCode} {location}"
+            );
+        }
+
+        var code = System.Web.HttpUtility.ParseQueryString(location.Query)["code"];
+        if (string.IsNullOrEmpty(code))
+        {
+            throw new InvalidOperationException(
+                $"The authorization response carries no code: {location}"
+            );
+        }
+
+        var client = CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        using var tokenRequest = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+        {
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string>
+                {
+                    ["grant_type"] = OpenIdProtocol.GrantTypes.AuthorizationCode,
+                    ["code"] = code,
+                    ["redirect_uri"] = redirectUri,
+                    ["client_id"] = clientId,
+                    ["code_verifier"] = codeVerifier,
+                }
+            ),
+        };
+
+        using var response = await client.SendAsync(tokenRequest);
+        response.EnsureSuccessStatusCode();
+        var jsonElement = System.Text.Json.JsonElement.Parse(
+            await response.Content.ReadAsStringAsync()
+        );
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            jsonElement.GetProperty("access_token").GetString()
+        );
+        return client;
+    }
+
+    /// <summary>
+    /// Creates the <see cref="TeamId"/> team when it does not exist, so a test that persists a tenant directly has the
+    /// team the tenant belongs to.
+    /// </summary>
+    public async Task EnsureTeamAsync()
+    {
+        using var scope = Services.CreateScope();
+        await scope
+            .ServiceProvider.GetRequiredService<ITeamProvisioner>()
+            .EnsureCreatedAsync(TeamId, TeamId, CancellationToken.None);
+    }
+
     private static PersistedTenant CreateEmptyTenant(string tenantId) =>
         new()
         {
             TenantId = tenantId,
+            TeamId = TeamId,
             Issuer = TestServerIssuer,
             ConcurrencyToken = Guid.NewGuid().ToString("N"),
             IsDisabled = false,
@@ -1306,10 +1434,13 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                 .AddDataProtection()
                 .PersistKeysToDbContext<DeveloperDataProtectionDbContext>();
 
-            // Widen the server ceiling (registered after the library default, so it unions on top):
+            // Widen the platform ceiling (registered after the library default, so it unions on top):
             // enables the client_credentials and resource-owner password grants plus a custom "api" scope for
             // integration coverage. Both grants stay off in the host's own secure defaults.
-            serviceCollection.AddSingleton<IDefaultSettingsProvider, TestServerSettingsProvider>();
+            serviceCollection.AddSingleton<
+                IDefaultSettingsProvider,
+                TestPlatformSettingsProvider
+            >();
 
             // A supplied client_secret is stored as a PBKDF2 verifier whose work factor would make every seeded
             // client's token request cost what a password check costs; a verifier records its own count, so a low one
@@ -1371,14 +1502,14 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
                     .ConfigurePrimaryHttpMessageHandler(CreateStub);
             }
 
-            // The reconciliation service materializes and persists the server when the host starts, so a persisted
-            // server document is seeded from the host's own lifecycle, before any hosted service starts.
-            if (PersistedServerSettings is { } persistedServerSettings)
+            // The reconciliation service materializes and persists the platform when the host starts, so a persisted
+            // platform document is seeded from the host's own lifecycle, before any hosted service starts.
+            if (PersistedPlatformSettings is { } persistedPlatformSettings)
             {
                 serviceCollection.AddSingleton<Microsoft.Extensions.Hosting.IHostedService>(
-                    provider => new PersistedServerSeedService(
+                    provider => new PersistedPlatformSeedService(
                         provider.GetRequiredService<IServiceScopeFactory>(),
-                        persistedServerSettings
+                        persistedPlatformSettings
                     )
                 );
             }

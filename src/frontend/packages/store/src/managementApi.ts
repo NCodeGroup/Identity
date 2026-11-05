@@ -1,7 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import {
   diffPatch,
-  GLOBAL_SCOPE,
+  PLATFORM_SCOPE,
   LIST_TAG,
   ownerApiPath,
   ownerEffectiveTagId,
@@ -10,6 +10,7 @@ import {
   replacePatch,
   scopeApiPrefix,
   scopeTagId,
+  teamScope,
   type ClientOwner,
   type ClientResource,
   type CollectionResource,
@@ -21,6 +22,7 @@ import {
   type CreateScopeRequest,
   type CreateSecretRequest,
   type RotateSecretRequest,
+  type CreateTeamRequest,
   type CreateTenantRequest,
   type EffectiveSettingsResource,
   type EncryptionKeyOwner,
@@ -35,22 +37,26 @@ import {
   type ResourceServerResource,
   type ScopeResource,
   type SecretsResource,
-  type ServerResource,
+  type SecretOwner,
   type SettingsResource,
+  type TeamResource,
+  type TeamUsageResource,
   type TenantAddressResource,
   type TenantResource,
   type TenantUsageResource,
   type UpdateClientFields,
   type UpdateResourceServerFields,
   type UpdateScopeRequest,
-  type UpdateServerFields,
+  type UpdateTeamFields,
   type UpdateTenantFields,
-  type CreateServerRequest,
 } from '@ncode/api';
 import { dynamicBaseQuery } from './baseQuery.js';
 
-/** A cache-tag id in the global scope, which owns the tenants and the servers. */
-const globalTag = (id: string): string => scopeTagId(GLOBAL_SCOPE, id);
+/** A cache-tag id in the platform scope, which owns the teams and identifies every tenant. */
+const platformTag = (id: string): string => scopeTagId(PLATFORM_SCOPE, id);
+
+/** A cache-tag id in a team's scope, which owns the list of its tenants. */
+const teamTag = (teamId: string, id: string): string => scopeTagId(teamScope(teamId), id);
 
 /** A cache-tag id in a tenant's scope, which owns its grants, secrets, and settings. */
 const tenantTag = (tenantId: string, id: string): string =>
@@ -59,16 +65,16 @@ const tenantTag = (tenantId: string, id: string): string =>
 /**
  * The RTK Query client for the Management REST API. Co-located with the store (one RTK module
  * boundary) so its middleware/reducer types reconcile with `configureStore`. Every cache-tag id is
- * derived from the scope that owns the resource ({@link scopeTagId}), so the global and tenant
- * boundaries invalidate independently (see docs/decisions/1064): a mutation in one scope never invalidates
- * the caches of the global scope or another tenant.
+ * derived from the scope that owns the resource ({@link scopeTagId}), so the platform, team and
+ * tenant boundaries invalidate independently (see docs/decisions/1064): a mutation in one scope never
+ * invalidates the caches of the platform scope, another team or another tenant.
  */
 export const managementApi = createApi({
   reducerPath: 'managementApi',
   baseQuery: dynamicBaseQuery,
   tagTypes: [
     'Tenant',
-    'Server',
+    'Team',
     'Client',
     'ResourceServer',
     'Grant',
@@ -80,22 +86,81 @@ export const managementApi = createApi({
     getCapabilities: build.query<ManagementCapabilitiesResource, void>({
       query: () => 'api/capabilities',
     }),
-    listTenants: build.query<CollectionResource<TenantResource>, void>({
-      query: () => 'api/tenants',
+    listTeams: build.query<CollectionResource<TeamResource>, void>({
+      query: () => 'api/teams',
       providesTags: (result) => [
-        { type: 'Tenant' as const, id: globalTag(LIST_TAG) },
+        { type: 'Team' as const, id: platformTag(LIST_TAG) },
+        ...(result?.items ?? []).map((t) => ({
+          type: 'Team' as const,
+          id: platformTag(t.teamId),
+        })),
+      ],
+    }),
+    getTeam: build.query<TeamResource, string>({
+      query: (teamId) => `api/teams/${encodeURIComponent(teamId)}`,
+      providesTags: (_result, _error, teamId) => [{ type: 'Team', id: platformTag(teamId) }],
+    }),
+    createTeam: build.mutation<TeamResource, CreateTeamRequest>({
+      query: (body) => ({ url: 'api/teams', method: 'POST', body }),
+      invalidatesTags: [{ type: 'Team', id: platformTag(LIST_TAG) }],
+    }),
+    updateTeam: build.mutation<
+      void,
+      { teamId: string; concurrencyToken: string; fields: UpdateTeamFields }
+    >({
+      query: ({ teamId, concurrencyToken, fields }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}`,
+        method: 'PATCH',
+        body: replacePatch({ ...fields }),
+        headers: { 'If-Match': concurrencyToken },
+      }),
+      invalidatesTags: (_result, _error, { teamId }) => [
+        { type: 'Team', id: platformTag(LIST_TAG) },
+        { type: 'Team', id: platformTag(teamId) },
+      ],
+    }),
+    deleteTeam: build.mutation<void, { teamId: string }>({
+      query: ({ teamId }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { teamId }) => [
+        { type: 'Team', id: platformTag(LIST_TAG) },
+        { type: 'Team', id: platformTag(teamId) },
+      ],
+    }),
+    // The usage ledger of a team's tenants grows with every flush of the server (ADR-1199), so nothing is cached once
+    // unused: every mount reads the current ledger.
+    getTeamUsage: build.query<
+      TeamUsageResource,
+      { teamId: string; from?: string | undefined; to?: string | undefined }
+    >({
+      query: ({ teamId, from, to }) => {
+        const params = new URLSearchParams();
+        if (from) params.set('from', from);
+        if (to) params.set('to', to);
+        const search = params.toString();
+        return `api/teams/${encodeURIComponent(teamId)}/usage${search ? `?${search}` : ''}`;
+      },
+      keepUnusedDataFor: 0,
+    }),
+    // The tenants of one team; each tenant's own tag lives in the platform scope, where its id is unique.
+    listTenants: build.query<CollectionResource<TenantResource>, { teamId: string }>({
+      query: ({ teamId }) => `api/teams/${encodeURIComponent(teamId)}/tenants`,
+      providesTags: (result, _error, { teamId }) => [
+        { type: 'Tenant' as const, id: teamTag(teamId, LIST_TAG) },
         ...(result?.items ?? []).map((t) => ({
           type: 'Tenant' as const,
-          id: globalTag(t.tenantId),
+          id: platformTag(t.tenantId),
         })),
       ],
     }),
     getTenant: build.query<TenantResource, string>({
       query: (tenantId) => `api/tenants/${encodeURIComponent(tenantId)}`,
-      providesTags: (_result, _error, tenantId) => [{ type: 'Tenant', id: globalTag(tenantId) }],
+      providesTags: (_result, _error, tenantId) => [{ type: 'Tenant', id: platformTag(tenantId) }],
     }),
-    // A preview of the address a tenant has or would have. It is never cached beyond its subscriber,
-    // so it always reflects the tenants that exist when it is asked.
+    // A preview of the address an existing tenant has, or would have with a proposed issuer or alias. It
+    // is never cached beyond its subscriber, so it always reflects the tenants that exist when it is asked.
     getTenantAddress: build.query<
       TenantAddressResource,
       { tenantId: string; issuer?: string; mtlsEndpointAliasAuthority?: string }
@@ -112,44 +177,23 @@ export const managementApi = createApi({
       },
       keepUnusedDataFor: 0,
     }),
-    listServers: build.query<CollectionResource<ServerResource>, void>({
-      query: () => 'api/servers',
-      providesTags: (result) => [
-        { type: 'Server' as const, id: globalTag(LIST_TAG) },
-        ...(result?.items ?? []).map((s) => ({
-          type: 'Server' as const,
-          id: globalTag(s.serverId),
-        })),
-      ],
-    }),
-    createServer: build.mutation<ServerResource, CreateServerRequest>({
-      query: (body) => ({ url: 'api/servers', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Server', id: globalTag(LIST_TAG) }],
-    }),
-    updateServer: build.mutation<
-      void,
-      { serverId: string; concurrencyToken: string; fields: UpdateServerFields }
+    // A preview of the address a tenant that does not exist yet would have in a team. It is never cached
+    // beyond its subscriber, so it always reflects the tenants that exist when it is asked.
+    getNewTenantAddress: build.query<
+      TenantAddressResource,
+      { teamId: string; tenantId: string; issuer?: string; mtlsEndpointAliasAuthority?: string }
     >({
-      query: ({ serverId, concurrencyToken, fields }) => ({
-        url: `api/servers/${encodeURIComponent(serverId)}`,
-        method: 'PATCH',
-        body: replacePatch({ ...fields }),
-        headers: { 'If-Match': concurrencyToken },
-      }),
-      invalidatesTags: (_result, _error, { serverId }) => [
-        { type: 'Server', id: globalTag(LIST_TAG) },
-        { type: 'Server', id: globalTag(serverId) },
-      ],
-    }),
-    deleteServer: build.mutation<void, { serverId: string }>({
-      query: ({ serverId }) => ({
-        url: `api/servers/${encodeURIComponent(serverId)}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: (_result, _error, { serverId }) => [
-        { type: 'Server', id: globalTag(LIST_TAG) },
-        { type: 'Server', id: globalTag(serverId) },
-      ],
+      query: ({ teamId, tenantId, issuer, mtlsEndpointAliasAuthority }) => {
+        const params = {
+          ...(issuer ? { issuer } : {}),
+          ...(mtlsEndpointAliasAuthority ? { mtlsEndpointAliasAuthority } : {}),
+        };
+        return {
+          url: `api/teams/${encodeURIComponent(teamId)}/tenants/${encodeURIComponent(tenantId)}/address`,
+          ...(Object.keys(params).length > 0 ? { params } : {}),
+        };
+      },
+      keepUnusedDataFor: 0,
     }),
     // `resourceServerId` lists only the clients that act for that resource server.
     listClients: build.query<
@@ -168,13 +212,19 @@ export const managementApi = createApi({
         })),
       ],
     }),
-    createTenant: build.mutation<TenantResource, CreateTenantRequest>({
-      query: (body) => ({ url: 'api/tenants', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Tenant', id: globalTag(LIST_TAG) }],
+    createTenant: build.mutation<TenantResource, { teamId: string; body: CreateTenantRequest }>({
+      query: ({ teamId, body }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}/tenants`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { teamId }) => [
+        { type: 'Tenant', id: teamTag(teamId, LIST_TAG) },
+      ],
     }),
     updateTenant: build.mutation<
       void,
-      { tenantId: string; concurrencyToken: string; fields: UpdateTenantFields }
+      { teamId: string; tenantId: string; concurrencyToken: string; fields: UpdateTenantFields }
     >({
       query: ({ tenantId, concurrencyToken, fields }) => ({
         url: `api/tenants/${encodeURIComponent(tenantId)}`,
@@ -182,19 +232,19 @@ export const managementApi = createApi({
         body: replacePatch({ ...fields }),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { tenantId }) => [
-        { type: 'Tenant', id: globalTag(LIST_TAG) },
-        { type: 'Tenant', id: globalTag(tenantId) },
+      invalidatesTags: (_result, _error, { teamId, tenantId }) => [
+        { type: 'Tenant', id: teamTag(teamId, LIST_TAG) },
+        { type: 'Tenant', id: platformTag(tenantId) },
       ],
     }),
-    deleteTenant: build.mutation<void, { tenantId: string }>({
+    deleteTenant: build.mutation<void, { teamId: string; tenantId: string }>({
       query: ({ tenantId }) => ({
         url: `api/tenants/${encodeURIComponent(tenantId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { tenantId }) => [
-        { type: 'Tenant', id: globalTag(LIST_TAG) },
-        { type: 'Tenant', id: globalTag(tenantId) },
+      invalidatesTags: (_result, _error, { teamId, tenantId }) => [
+        { type: 'Tenant', id: teamTag(teamId, LIST_TAG) },
+        { type: 'Tenant', id: platformTag(tenantId) },
       ],
     }),
     createClient: build.mutation<
@@ -426,9 +476,10 @@ export const managementApi = createApi({
       },
       keepUnusedDataFor: 0,
     }),
-    // The secrets and settings of any owner: a server, a tenant, or a client or resource server in a scope
-    // (docs/decisions/1257). Every tag is scoped by the owner's scope, so one owner's caches never invalidate another's.
-    listSecrets: build.query<SecretsResource, ManagementOwner>({
+    // The secrets of a tenant, or of a client or resource server in a scope, and the settings of any owner: the
+    // platform, a team, a tenant, or a client or resource server (docs/decisions/1257). Every tag is scoped by the
+    // owner's scope, so one owner's caches never invalidate another's.
+    listSecrets: build.query<SecretsResource, SecretOwner>({
       query: (owner) => `${ownerApiPath(owner)}/secrets`,
       providesTags: (result, _error, owner) => [
         { type: 'Secret' as const, id: ownerTagId(owner) },
@@ -440,7 +491,7 @@ export const managementApi = createApi({
     }),
     createSecret: build.mutation<
       CreatedSecretResource,
-      { owner: ManagementOwner; body: CreateSecretRequest }
+      { owner: SecretOwner; body: CreateSecretRequest }
     >({
       query: ({ owner, body }) => ({
         url: `${ownerApiPath(owner)}/secrets`,
@@ -449,7 +500,7 @@ export const managementApi = createApi({
       }),
       invalidatesTags: (_result, _error, { owner }) => [{ type: 'Secret', id: ownerTagId(owner) }],
     }),
-    deleteSecret: build.mutation<void, { owner: ManagementOwner; secretId: string }>({
+    deleteSecret: build.mutation<void, { owner: SecretOwner; secretId: string }>({
       query: ({ owner, secretId }) => ({
         url: `${ownerApiPath(owner)}/secrets/${encodeURIComponent(secretId)}`,
         method: 'DELETE',
@@ -474,7 +525,7 @@ export const managementApi = createApi({
         { type: 'Secret', id: scopeTagId(ownerScope(owner), secretId) },
       ],
     }),
-    // The master keys of a tenant or of the server (ADR-1407). A rekey invalidates only its owner's keys.
+    // The master keys of a tenant or of the platform (ADR-1407). A rekey invalidates only its owner's keys.
     listEncryptionKeys: build.query<EncryptionKeysResource, EncryptionKeyOwner>({
       query: (owner) => `${ownerApiPath(owner)}/encryption-keys`,
       providesTags: (_result, _error, owner) => [
@@ -490,10 +541,7 @@ export const managementApi = createApi({
         { type: 'EncryptionKey', id: ownerTagId(owner) },
       ],
     }),
-    getSecretPublicKey: build.query<
-      PublicKeyResource,
-      { owner: ManagementOwner; secretId: string }
-    >({
+    getSecretPublicKey: build.query<PublicKeyResource, { owner: SecretOwner; secretId: string }>({
       query: ({ owner, secretId }) =>
         `${ownerApiPath(owner)}/secrets/${encodeURIComponent(secretId)}/public-key`,
     }),
@@ -539,12 +587,15 @@ export const {
   useListTenantsQuery,
   useGetTenantQuery,
   useGetTenantAddressQuery,
-  useListServersQuery,
+  useGetNewTenantAddressQuery,
+  useListTeamsQuery,
+  useGetTeamQuery,
+  useGetTeamUsageQuery,
   useListClientsQuery,
   useListResourceServersQuery,
-  useCreateServerMutation,
-  useUpdateServerMutation,
-  useDeleteServerMutation,
+  useCreateTeamMutation,
+  useUpdateTeamMutation,
+  useDeleteTeamMutation,
   useCreateTenantMutation,
   useUpdateTenantMutation,
   useDeleteTenantMutation,

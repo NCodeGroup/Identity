@@ -8,8 +8,8 @@ using NCode.Identity.Settings;
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides the setting scopes of the OpenID server: the server is the root of the cascade, the tenant inherits the
-/// server's settings, and each client and each resource server inherits its tenant's. A package that stores settings for
+/// Provides the setting scopes of the OpenID server: the platform is the root of the cascade, each team inherits the
+/// platform's settings, each tenant inherits its team's, and each client and each resource server inherits its tenant's. A package that stores settings for
 /// an entity of its own contributes its scope through another data source, beneath the scope it inherits from.
 /// </summary>
 // See ADR-1149.
@@ -26,12 +26,18 @@ internal class DefaultSettingScopeDataSource(INullChangeToken nullChangeToken)
     {
         get
         {
-            yield return new SettingScopeDescriptor { Name = OpenIdSettingScopes.Server };
+            yield return new SettingScopeDescriptor { Name = OpenIdSettingScopes.Platform };
+
+            yield return new SettingScopeDescriptor
+            {
+                Name = OpenIdSettingScopes.Team,
+                ParentName = OpenIdSettingScopes.Platform,
+            };
 
             yield return new SettingScopeDescriptor
             {
                 Name = OpenIdSettingScopes.Tenant,
-                ParentName = OpenIdSettingScopes.Server,
+                ParentName = OpenIdSettingScopes.Team,
             };
 
             yield return new SettingScopeDescriptor

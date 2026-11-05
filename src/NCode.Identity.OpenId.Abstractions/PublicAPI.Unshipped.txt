@@ -5,7 +5,7 @@ abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Environment.get -> NCode.I
 abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Http.get -> Microsoft.AspNetCore.Http.HttpContext!
 abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Mediator.get -> NCode.Mediator.IMediator!
 abstract NCode.Identity.OpenId.Contexts.OpenIdContext.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
-abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Server.get -> NCode.Identity.OpenId.Servers.OpenIdServer!
+abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Platform.get -> NCode.Identity.OpenId.Platform.OpenIdPlatform!
 abstract NCode.Identity.OpenId.Contexts.OpenIdContext.Tenant.get -> NCode.Identity.OpenId.Tenants.OpenIdTenant!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.CreateError(string! errorCode) -> NCode.Identity.OpenId.Messages.IOpenIdError!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.CreateMessage(string! typeDiscriminator, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Messages.Parameters.IParameter!>! parameters) -> NCode.Identity.OpenId.Messages.IOpenIdMessage!
@@ -20,12 +20,10 @@ abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.JsonSerializerOpti
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.KnownParameters.get -> NCode.Identity.OpenId.Messages.Parameters.IKnownParameterCollection!
 abstract NCode.Identity.OpenId.Environments.OpenIdEnvironment.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Messages.Parameters.KnownParameter.ValueType.get -> System.Type!
-abstract NCode.Identity.OpenId.Servers.OpenIdServer.ConfiguredSettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
-abstract NCode.Identity.OpenId.Servers.OpenIdServer.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
-abstract NCode.Identity.OpenId.Servers.OpenIdServer.RefreshSettingsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-abstract NCode.Identity.OpenId.Servers.OpenIdServer.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
-abstract NCode.Identity.OpenId.Servers.OpenIdServer.ServerId.get -> string!
-abstract NCode.Identity.OpenId.Servers.OpenIdServer.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
+abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.ConfiguredSettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
+abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.RefreshSettingsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.BaseAddress.get -> NCode.Identity.Models.UriDescriptor
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisplayName.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
@@ -33,10 +31,12 @@ abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Issuer.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.MtlsEndpointAliasAuthority.get -> string?
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TeamId.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TenantId.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationContextClassReferencePrefixes.IdentityProvider = "idp:" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.AuthenticationPropertyItems.TenantId = ".tenant" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.PlatformResourceId = "platform" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ContinueCodes.Authorization = "continue_authorization" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.ContinueCodes.EndSession = "continue_end_session" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointNames.Authorization = "authorization_endpoint" -> string!
@@ -76,7 +76,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.LocalAccounts = "LocalA
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.OpenId = "oidc" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Principals = "Principals" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ResourceServers = "ResourceServers" -> string!
-const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Servers = "Servers" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Platform = "Platform" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Sessions = "Sessions" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Tenants = "Tenants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.PersistedGrantTypes.AuthorizationCode = "authorization_code" -> string!
@@ -313,6 +313,7 @@ NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.get -> NCode.Identity.Op
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.Context.init -> void
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.SeedTenantCommand() -> void
 NCode.Identity.OpenId.Tenants.SeedTenantCommand.SeedTenantCommand(NCode.Identity.OpenId.Tenants.TenantSeedContext! Context) -> void
+NCode.Identity.OpenId.Tenants.TenantIdentifierRules
 NCode.Identity.OpenId.Tenants.TenantPlane
 NCode.Identity.OpenId.Tenants.TenantPlane.Root = 1 -> NCode.Identity.OpenId.Tenants.TenantPlane
 NCode.Identity.OpenId.Tenants.TenantPlane.Workload = 0 -> NCode.Identity.OpenId.Tenants.TenantPlane
@@ -569,39 +570,30 @@ NCode.Identity.OpenId.Results.OpenIdResult<T>.OpenIdResult(T! response) -> void
 NCode.Identity.OpenId.Results.OpenIdResult<T>.Response.get -> T!
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider
 NCode.Identity.OpenId.Serialization.IOpenIdJsonConverterProvider.GetJsonConverters(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment) -> System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.JsonConverter!>!
-NCode.Identity.OpenId.Servers.IMaterializedServerAccessor
-NCode.Identity.OpenId.Servers.IMaterializedServerAccessor.GetServerAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
-NCode.Identity.OpenId.Servers.IOpenIdServerFactory
-NCode.Identity.OpenId.Servers.IOpenIdServerFactory.CreateAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
-NCode.Identity.OpenId.Servers.IOpenIdServerProvider
-NCode.Identity.OpenId.Servers.IOpenIdServerProvider.GetAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Servers.OpenIdServer!>
-NCode.Identity.OpenId.Servers.OpenIdServer
-NCode.Identity.OpenId.Servers.OpenIdServer.OpenIdServer() -> void
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.PreviousSettings.get -> NCode.Identity.Settings.IReadOnlySettingCollection?
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.PreviousSettings.init -> void
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ReconcileServerSettingsCommand() -> void
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ReconcileServerSettingsCommand(string! ServerId, NCode.Identity.Settings.IReadOnlySettingCollection! Settings) -> void
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ServerId.get -> string!
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.ServerId.init -> void
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.Settings.get -> NCode.Identity.Settings.IReadOnlySettingCollection!
-NCode.Identity.OpenId.Servers.ReconcileServerSettingsCommand.Settings.init -> void
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.PreviousSettings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.PreviousSettings.init -> void
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.ServerId.get -> string!
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.ServerId.init -> void
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.ServerSettingsChangedCommand() -> void
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.ServerSettingsChangedCommand(string! ServerId, System.Text.Json.JsonElement PreviousSettings, System.Text.Json.JsonElement Settings) -> void
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.Settings.get -> System.Text.Json.JsonElement
-NCode.Identity.OpenId.Servers.ServerSettingsChangedCommand.Settings.init -> void
+NCode.Identity.OpenId.Platform.IMaterializedPlatformAccessor
+NCode.Identity.OpenId.Platform.IMaterializedPlatformAccessor.GetPlatformAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Platform.OpenIdPlatform!>
+NCode.Identity.OpenId.Platform.IOpenIdPlatformFactory
+NCode.Identity.OpenId.Platform.IOpenIdPlatformFactory.CreateAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Platform.OpenIdPlatform!>
+NCode.Identity.OpenId.Platform.IOpenIdPlatformProvider
+NCode.Identity.OpenId.Platform.IOpenIdPlatformProvider.GetAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Platform.OpenIdPlatform!>
+NCode.Identity.OpenId.Platform.OpenIdPlatform
+NCode.Identity.OpenId.Platform.OpenIdPlatform.OpenIdPlatform() -> void
+NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand
+NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PreviousSettings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PreviousSettings.init -> void
+NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PlatformSettingsChangedCommand() -> void
+NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.PlatformSettingsChangedCommand(System.Text.Json.JsonElement PreviousSettings, System.Text.Json.JsonElement Settings) -> void
+NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Platform.PlatformSettingsChangedCommand.Settings.init -> void
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider
 NCode.Identity.OpenId.Settings.IDefaultSettingsProvider.Configure(NCode.Identity.Settings.ISettingCollection! settings) -> void
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ReadScopeSettings(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Text.Json.JsonElement settings) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.Resolve(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, System.Text.Json.JsonElement settings) -> NCode.Identity.Settings.IReadOnlySettingCollection!
-NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Text.Json.JsonElement settings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
-NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveServerAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolvePlatformAsync(System.Text.Json.JsonElement settings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolvePlatformAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveTeamAsync(string! teamId, System.Text.Json.JsonElement settings, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
+NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveTeamAsync(string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Settings.IReadOnlySettingCollection!>
 NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver.ResolveStored(NCode.Identity.Settings.IReadOnlySettingCollection! parentSettings, string! scopeName, string! ownerId, System.Text.Json.JsonElement settings) -> NCode.Identity.Settings.IReadOnlySettingCollection!
 NCode.Identity.OpenId.Settings.OpenIdSettingKeys
 NCode.Identity.OpenId.Settings.OpenIdSettingNames
@@ -628,9 +620,9 @@ NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveAsync(string! tenantId, N
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.SetAsync(string! tenantId, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!> tenant, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.TryGetAsync(string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory
-NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateTenantForRequestAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Servers.OpenIdServer! openIdServer, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
-NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateControlPlaneTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Servers.OpenIdServer! openIdServer, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
-NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateTenantByIdAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Servers.OpenIdServer! openIdServer, string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
+NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateTenantForRequestAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Platform.OpenIdPlatform! openIdPlatform, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
+NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateControlPlaneTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Platform.OpenIdPlatform! openIdPlatform, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
+NCode.Identity.OpenId.Tenants.IOpenIdTenantFactory.CreateTenantByIdAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Platform.OpenIdPlatform! openIdPlatform, string! tenantId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Tenants.OpenIdTenant!>>
 NCode.Identity.OpenId.Tenants.ITenantResolver
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetTenantRoute() -> Microsoft.AspNetCore.Routing.Patterns.RoutePattern!
 NCode.Identity.OpenId.Tenants.ITenantResolver.ResolveControlPlaneTenantAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
@@ -777,6 +769,7 @@ static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.SessionIdleTimeout.get -
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MaxConcurrentSessions.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.EnvironmentType.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.EnvironmentName.get -> NCode.Identity.Settings.SettingKey<string!>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MaxTenants.get -> NCode.Identity.Settings.SettingKey<int>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DeletionProtection.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.BackChannelLogoutSessionSupported.get -> NCode.Identity.Settings.SettingKey<bool>
 static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.RegistrationEndpointAllowAnonymous.get -> NCode.Identity.Settings.SettingKey<bool>
@@ -873,7 +866,8 @@ NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.MtlsEndpointAliasAuthori
 NCode.Identity.OpenId.Tenants.StaticSingleTenantOptions.MtlsEndpointAliasAuthority.set -> void
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Client = "client" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.ResourceServer = "resource_server" -> string!
-const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Server = "server" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Platform = "platform" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Team = "team" -> string!
 const NCode.Identity.OpenId.Settings.OpenIdSettingScopes.Tenant = "tenant" -> string!
 NCode.Identity.OpenId.Settings.OpenIdSettingScopes
 const NCode.Identity.OpenId.Tenants.RootTenantOptions.DefaultDisplayName = "Root Tenant" -> string!
@@ -885,7 +879,7 @@ NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.MtlsEndpointAliasTempla
 NCode.Identity.OpenId.Tenants.DynamicByHostTenantOptions.MtlsEndpointAliasTemplate.set -> void
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.IssuerTemplate.get -> string?
 NCode.Identity.OpenId.Tenants.DynamicByPathTenantOptions.IssuerTemplate.set -> void
-NCode.Identity.OpenId.Tenants.ITenantProvisioner.EnsureCreatedAsync(string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
+NCode.Identity.OpenId.Tenants.ITenantProvisioner.EnsureCreatedAsync(string! teamId, string! tenantId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantProvisioner.SeedAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!>
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetDefaultIssuerAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
 NCode.Identity.OpenId.Tenants.ITenantResolver.GetDefaultMtlsEndpointAliasAuthorityAsync(string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
@@ -972,6 +966,52 @@ NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.IsProduction.get -> bool
 NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.SecurityProfiles.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.OpenId.Tenants.ITenantEnvironmentType.TypeName.get -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.AuditRecords = "AuditRecords" -> string!
+const NCode.Identity.OpenId.Tenants.RootTenantOptions.DefaultTeamDisplayName = "Platform" -> string!
+const NCode.Identity.OpenId.Tenants.RootTenantOptions.DefaultTeamId = "platform" -> string!
+NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamDisplayName.get -> string!
+NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamDisplayName.set -> void
+NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.get -> string!
+NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.set -> void
+NCode.Identity.OpenId.Teams.ITeamProvisioner
+NCode.Identity.OpenId.Teams.ITeamProvisioner.EnsureCreatedAsync(string! teamId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxTenants = "max_tenants" -> string!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.DisplayName.get -> string!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.IsDisabled.get -> bool
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
+abstract NCode.Identity.OpenId.Teams.OpenIdTeam.TeamId.get -> string!
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.ClearAsync(NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.RemoveAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.SetAsync(string! teamId, NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Teams.OpenIdTeam!> team, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Teams.IOpenIdTeamCache.TryGetAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Teams.OpenIdTeam!>>
+NCode.Identity.OpenId.Teams.IOpenIdTeamFactory
+NCode.Identity.OpenId.Teams.IOpenIdTeamFactory.CreateTeamAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Platform.OpenIdPlatform! openIdPlatform, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! persistedTeam, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Teams.OpenIdTeam!>>
+NCode.Identity.OpenId.Teams.IOpenIdTeamProvider
+NCode.Identity.OpenId.Teams.IOpenIdTeamProvider.GetTeamAsync(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, NCode.Identity.OpenId.Platform.OpenIdPlatform! openIdPlatform, string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Disposables.AsyncSharedReferenceLease<NCode.Identity.OpenId.Teams.OpenIdTeam!>>
+NCode.Identity.OpenId.Teams.OpenIdTeam
+NCode.Identity.OpenId.Teams.OpenIdTeam.DisposeAsync() -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Teams.OpenIdTeam.OpenIdTeam() -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.PreviousSettings.get -> NCode.Identity.Settings.IReadOnlySettingCollection?
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.PreviousSettings.init -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.ReconcileTeamSettingsCommand() -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.ReconcileTeamSettingsCommand(string! TeamId, NCode.Identity.Settings.IReadOnlySettingCollection! Settings) -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.Settings.get -> NCode.Identity.Settings.IReadOnlySettingCollection!
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.Settings.init -> void
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.TeamId.get -> string!
+NCode.Identity.OpenId.Teams.ReconcileTeamSettingsCommand.TeamId.init -> void
+NCode.Identity.OpenId.Teams.TeamChangedCommand
+NCode.Identity.OpenId.Teams.TeamChangedCommand.SettingsChanged.get -> bool
+NCode.Identity.OpenId.Teams.TeamChangedCommand.SettingsChanged.init -> void
+NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamChangedCommand() -> void
+NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamChangedCommand(string! TeamId, bool SettingsChanged) -> void
+NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.get -> string!
+NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.init -> void
+NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveTeamAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Teams = "Teams" -> string!
+static NCode.Identity.OpenId.Tenants.TenantIdentifierRules.IsValidTenantId(string? tenantId) -> bool
 NCode.Identity.OpenId.Locales.IUiLocale
 NCode.Identity.OpenId.Locales.IUiLocale.LanguageTag.get -> string!
 NCode.Identity.OpenId.Locales.IUiLocaleCatalog

@@ -12,7 +12,7 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
@@ -28,17 +28,19 @@ namespace NCode.Identity.OpenId.Core.Tenants.Keys;
 
 public sealed class TenantKeyRolloverServiceTests : BaseTests
 {
-    private const string ServerId = "default";
     private const string FirstTenantId = "acme";
     private const string SecondTenantId = "globex";
+    private const string TeamId = "team-a";
+    private const string OtherTeamId = "team-b";
+    private const string DisabledTeamId = "team-off";
     private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
     private static readonly TimeSpan Lease = Interval / 2;
     private static readonly TimeSpan WaitTimeout = TimeSpan.FromSeconds(5);
 
     private OpenIdOptions OpenIdOptions { get; } = new();
-    private Mock<IMaterializedServerAccessor> MockServerAccessor { get; }
-    private Mock<OpenIdServer> MockServer { get; }
+    private Mock<IMaterializedPlatformAccessor> MockPlatformAccessor { get; }
+    private Mock<OpenIdPlatform> MockPlatform { get; }
     private Mock<ITenantKeyPolicy> MockPolicy { get; }
     private Mock<ITenantKeyRolloverPlanner> MockPlanner { get; }
     private Mock<ITenantKeyRollover> MockRollover { get; }
@@ -46,10 +48,11 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
+    private Mock<ITeamStore> MockTeamStore { get; }
     private Mock<IExpiringKeySet> MockExpiringKeySet { get; }
     private Mock<IEventPublisher> MockEventPublisher { get; }
     private Mock<IMediator> MockMediator { get; }
-    private IReadOnlySettingCollection ServerSettings { get; }
+    private IReadOnlySettingCollection TeamSettings { get; }
     private ServiceProvider ServiceProvider { get; }
     private FakeTimeProvider TimeProvider { get; } = new(Now);
     private TenantKeyRolloverService Service { get; }
@@ -57,8 +60,8 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     public TenantKeyRolloverServiceTests()
     {
         OpenIdOptions.Tenant.KeyRollover.Interval = Interval;
-        MockServerAccessor = CreateStrictMock<IMaterializedServerAccessor>();
-        MockServer = CreateStrictMock<OpenIdServer>();
+        MockPlatformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
+        MockPlatform = CreateStrictMock<OpenIdPlatform>();
         MockPolicy = CreateStrictMock<ITenantKeyPolicy>();
         MockPlanner = CreateStrictMock<ITenantKeyRolloverPlanner>();
         MockRollover = CreateStrictMock<ITenantKeyRollover>();
@@ -66,10 +69,11 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTenantStore = CreateStrictMock<ITenantStore>();
+        MockTeamStore = CreateStrictMock<ITeamStore>();
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
         MockEventPublisher = CreateStrictMock<IEventPublisher>();
         MockMediator = CreateStrictMock<IMediator>();
-        ServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        TeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
         ServiceProvider = new ServiceCollection()
             .AddScoped(_ => MockMediator.Object)
@@ -83,7 +87,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         IExpiringKeySet expiringKeySet
     ) =>
         new(
-            MockServerAccessor.Object,
+            MockPlatformAccessor.Object,
             Options.Create(OpenIdOptions),
             MockPolicy.Object,
             MockPlanner.Object,
@@ -118,7 +122,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         SetupSpecifications();
         SetupLease(acquired: true);
-        SetupServerSettings();
+        SetupTeam();
         SetupStoreManager();
 
         // Two pages, so the pass follows the cursor rather than stopping after the first page.
@@ -138,7 +142,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         SetupSecrets(SecondTenantId, [second]);
         SetupPlan([second], empty: true);
 
-        await Service.RollOverAsync(ServerId, CancellationToken.None);
+        await Service.RollOverAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -146,7 +150,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         SetupSpecifications();
         SetupLease(acquired: true);
-        SetupServerSettings();
+        SetupTeam();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
 
@@ -178,7 +182,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Verifiable(Times.Once);
         SetupAnnouncement(FirstTenantId);
 
-        await Service.RollOverAsync(ServerId, CancellationToken.None);
+        await Service.RollOverAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -190,22 +194,26 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         var keySet = new FakeExpiringKeySet(TimeProvider);
         using var service = CreateService(TimeProvider, keySet);
         SetupSpecifications();
-        SetupServerSettings();
+        SetupTeam();
         SetupStoreManager();
         MockTenantStore
             .Setup(x =>
-                x.GetSettingsPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>())
+                x.GetSettingsPageAsync(
+                    TeamId,
+                    It.IsAny<PageRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
             )
             .ReturnsAsync(
                 new PagedResult<PersistedTenantSettings> { Items = [], NextCursor = null }
             )
             .Verifiable(Times.Exactly(2));
 
-        await service.RollOverAsync(ServerId, CancellationToken.None);
+        await service.RollOverAsync(CancellationToken.None);
         TimeProvider.Advance(TimeSpan.FromMilliseconds(5));
-        await service.RollOverAsync(ServerId, CancellationToken.None);
+        await service.RollOverAsync(CancellationToken.None);
         TimeProvider.Advance(Interval - TimeSpan.FromMilliseconds(5));
-        await service.RollOverAsync(ServerId, CancellationToken.None);
+        await service.RollOverAsync(CancellationToken.None);
 
         Assert.Equal(2, keySet.Taken);
     }
@@ -218,7 +226,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         using var stopping = new CancellationTokenSource();
         SetupSpecifications();
         SetupLease(acquired: true);
-        SetupServerSettings();
+        SetupTeam();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
 
@@ -249,7 +257,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Service.RollOverAsync(ServerId, stopping.Token);
+        await Service.RollOverAsync(stopping.Token);
 
         Assert.NotNull(publishToken);
         Assert.NotEqual(stopping.Token, publishToken.Value);
@@ -264,7 +272,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         // next tenant is still rolled over.
         SetupSpecifications();
         SetupLease(acquired: true);
-        SetupServerSettings();
+        SetupTeam();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
 
@@ -290,7 +298,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
 
-        await Service.RollOverAsync(ServerId, CancellationToken.None);
+        await Service.RollOverAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -300,7 +308,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         SetupSpecifications();
         SetupLease(acquired: false);
 
-        await Service.RollOverAsync(ServerId, CancellationToken.None);
+        await Service.RollOverAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -309,7 +317,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         // Every mock is strict with no setup: resolving the specifications or taking the lease fails the test.
         KeyProvisioning.Enabled = false;
 
-        await Service.RollOverAsync(ServerId, CancellationToken.None);
+        await Service.RollOverAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -317,7 +325,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         SetupSpecifications();
         SetupLease(acquired: true);
-        SetupServerSettings();
+        SetupTeam();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
 
@@ -325,7 +333,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         SetupSecrets(FirstTenantId, secrets: null);
         SetupSecrets(SecondTenantId, secrets: []);
 
-        await Service.RollOverAsync(ServerId, CancellationToken.None);
+        await Service.RollOverAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -334,7 +342,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         // The publisher is strict: an event for the discarded change fails the test.
         SetupSpecifications();
         SetupLease(acquired: true);
-        SetupServerSettings();
+        SetupTeam();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
 
@@ -364,7 +372,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Verifiable(Times.Exactly(2));
         SetupAnnouncement(SecondTenantId);
 
-        await Service.RollOverAsync(ServerId, CancellationToken.None);
+        await Service.RollOverAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -372,7 +380,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         SetupSpecifications();
         SetupLease(acquired: true);
-        SetupServerSettings();
+        SetupTeam();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
 
@@ -388,7 +396,68 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         SetupSave();
         SetupAnnouncement(SecondTenantId);
 
-        await Service.RollOverAsync(ServerId, CancellationToken.None);
+        await Service.RollOverAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WithADisabledTeam_SkipsItsTenantsAndJudgesEachEnabledTeamsTenantsByItsOwnSettings()
+    {
+        // The disabled team has no settings, tenant page or secrets setup on the strict mocks: touching it fails the
+        // test.
+        var firstTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        var otherTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupStoreManager();
+        SetupTeams(
+            (TeamId, false, firstTeamSettings),
+            (DisabledTeamId, true, CreateStrictMock<IReadOnlySettingCollection>().Object),
+            (OtherTeamId, false, otherTeamSettings)
+        );
+        SetupTeamTenantPage(TeamId, cursor: null, nextCursor: null, FirstTenantId);
+        SetupTeamTenantPage(OtherTeamId, cursor: null, nextCursor: null, SecondTenantId);
+
+        var first = CreateSecret("first");
+        var second = CreateSecret("second");
+        SetupTenantSettings(FirstTenantId, firstTeamSettings);
+        SetupSecrets(FirstTenantId, [first]);
+        var plan = SetupPlan([first], empty: false);
+        SetupApply(FirstTenantId, [first], plan);
+        SetupSave();
+        SetupAnnouncement(FirstTenantId);
+        SetupTenantSettings(SecondTenantId, otherTeamSettings);
+        SetupSecrets(SecondTenantId, [second]);
+        SetupPlan([second], empty: true);
+
+        await Service.RollOverAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WhenATeamFails_ContinuesWithTheNextTeam()
+    {
+        var otherTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupStoreManager();
+        SetupTeamPage((TeamId, false), (OtherTeamId, false));
+        SetupTeamSettings(OtherTeamId, otherTeamSettings);
+
+        // The first team's settings cannot be resolved, so its tenants are not read.
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveTeamAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"))
+            .Verifiable();
+        SetupTeamTenantPage(OtherTeamId, cursor: null, nextCursor: null, SecondTenantId);
+
+        var second = CreateSecret("second");
+        SetupTenantSettings(SecondTenantId, otherTeamSettings);
+        SetupSecrets(SecondTenantId, [second]);
+        var plan = SetupPlan([second], empty: false);
+        SetupApply(SecondTenantId, [second], plan);
+        SetupSave();
+        SetupAnnouncement(SecondTenantId);
+
+        await Service.RollOverAsync(CancellationToken.None);
     }
 
     #endregion
@@ -396,7 +465,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     #region ExecuteAsync Tests
 
     [Fact]
-    public async Task ExecuteAsync_RollsOverOnceTheServerIsMaterializedAndAgainAtEveryTick()
+    public async Task ExecuteAsync_RollsOverOnceThePlatformIsMaterializedAndAgainAtEveryTick()
     {
         var timerCreated = new TaskCompletionSource<(TimerCallback Callback, object? State)>(
             TaskCreationOptions.RunContinuationsAsynchronously
@@ -415,10 +484,9 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Returns(mockTimer.Object)
             .Verifiable();
         mockTimeProvider.Setup(x => x.GetUtcNow()).Returns(Now).Verifiable();
-        MockServer.Setup(x => x.ServerId).Returns(ServerId).Verifiable();
-        MockServerAccessor
-            .Setup(x => x.GetServerAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MockServer.Object)
+        MockPlatformAccessor
+            .Setup(x => x.GetPlatformAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockPlatform.Object)
             .Verifiable();
         SetupSpecifications();
 
@@ -434,7 +502,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         MockExpiringKeySet
             .Setup(x =>
                 x.TryAddAsync(
-                    $"{TenantKeyRolloverService.LeasePurpose}:{ServerId}",
+                    TenantKeyRolloverService.LeasePurpose,
                     Now + Lease,
                     It.IsAny<CancellationToken>()
                 )
@@ -500,7 +568,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         MockExpiringKeySet
             .Setup(x =>
                 x.TryAddAsync(
-                    $"{TenantKeyRolloverService.LeasePurpose}:{ServerId}",
+                    TenantKeyRolloverService.LeasePurpose,
                     Now + Lease,
                     It.IsAny<CancellationToken>()
                 )
@@ -508,10 +576,56 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .ReturnsAsync(acquired)
             .Verifiable();
 
-    private void SetupServerSettings() =>
+    // The pass's one enabled team, whose effective settings are TeamSettings.
+    private void SetupTeam() => SetupTeams((TeamId, false, TeamSettings));
+
+    // Pages the teams, each with its disabled flag, and resolves the effective settings of each enabled one.
+    private void SetupTeams(
+        params (string TeamId, bool IsDisabled, IReadOnlySettingCollection Settings)[] teams
+    )
+    {
+        SetupTeamPage(teams.Select(team => (team.TeamId, team.IsDisabled)).ToArray());
+        foreach (var team in teams.Where(team => !team.IsDisabled))
+            SetupTeamSettings(team.TeamId, team.Settings);
+    }
+
+    private void SetupTeamSettings(string teamId, IReadOnlySettingCollection settings) =>
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ServerSettings)
+            .Setup(x => x.ResolveTeamAsync(teamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+
+    // Pages the teams only, each with its disabled flag.
+    private void SetupTeamPage(params (string TeamId, bool IsDisabled)[] teams) =>
+        MockTeamStore
+            .Setup(x =>
+                x.GetPageAsync(
+                    It.Is<PageRequest>(page => page.Cursor == null && page.Limit == 100),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<PersistedTeam>
+                {
+                    Items =
+                    [
+                        .. teams.Select(team => new PersistedTeam
+                        {
+                            TeamId = team.TeamId,
+                            DisplayName = team.TeamId,
+                            IsDisabled = team.IsDisabled,
+                            Settings = new PersistedTeamSettings
+                            {
+                                TeamId = team.TeamId,
+                                ConcurrencyToken = "token",
+                                Value = JsonElement.Parse("{}"),
+                            },
+                            ConcurrencyToken = "token",
+                        }),
+                    ],
+                    NextCursor = null,
+                }
+            )
             .Verifiable();
 
     private void SetupStoreManager()
@@ -524,6 +638,10 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Setup(x => x.GetStore<ITenantStore>())
             .Returns(MockTenantStore.Object)
             .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(MockTeamStore.Object)
+            .Verifiable();
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
@@ -535,9 +653,18 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Verifiable(Times.Once);
 
     private void SetupTenantPage(string? cursor, string? nextCursor, params string[] tenantIds) =>
+        SetupTeamTenantPage(TeamId, cursor, nextCursor, tenantIds);
+
+    private void SetupTeamTenantPage(
+        string teamId,
+        string? cursor,
+        string? nextCursor,
+        params string[] tenantIds
+    ) =>
         MockTenantStore
             .Setup(x =>
                 x.GetSettingsPageAsync(
+                    teamId,
                     It.Is<PageRequest>(page => page.Cursor == cursor && page.Limit == 100),
                     It.IsAny<CancellationToken>()
                 )
@@ -560,14 +687,14 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
 
     private Dictionary<string, IReadOnlySettingCollection> TenantSettings { get; } = [];
 
-    private void SetupTenantSettings(string tenantId)
+    private void SetupTenantSettings(string tenantId, IReadOnlySettingCollection? parent = null)
     {
         var settings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         TenantSettings[tenantId] = settings;
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    ServerSettings,
+                    parent ?? TeamSettings,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => IsTenantDocument(e, tenantId))
                 )

@@ -15,8 +15,9 @@ using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Tokens;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
@@ -85,20 +86,20 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_WhenServerSettingsCanBeHonored_BindsThem()
+    public void AddIdentityServer_WhenPlatformSettingsCanBeHonored_BindsThem()
     {
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:grant_types_supported:0"] = "authorization_code",
-                ["OpenId:Server:Settings:session_management_supported"] = "true",
-                ["OpenId:Server:Settings:acr_values_supported"] = null,
+                ["OpenId:Platform:Settings:grant_types_supported:0"] = "authorization_code",
+                ["OpenId:Platform:Settings:session_management_supported"] = "true",
+                ["OpenId:Platform:Settings:acr_values_supported"] = null,
             }
         );
 
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("OpenId:Server:Settings", options.Server.Settings?.Path);
+        Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings?.Path);
     }
 
     [Theory]
@@ -106,13 +107,13 @@ public sealed class DefaultRegistrationTests
     [InlineData("session_management_supported", "yes")]
     [InlineData("grant_types_supported", "authorization_code")]
     [InlineData("session_idle_timeout", "00:00:00")]
-    public async Task AddIdentityServer_WhenServerSettingCannotBeHonored_FailsToStart(
+    public async Task AddIdentityServer_WhenPlatformSettingCannotBeHonored_FailsToStart(
         string name,
         string value
     )
     {
         using var host = BuildHost(
-            new Dictionary<string, string?> { [$"OpenId:Server:Settings:{name}"] = value }
+            new Dictionary<string, string?> { [$"OpenId:Platform:Settings:{name}"] = value }
         );
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
@@ -120,7 +121,7 @@ public sealed class DefaultRegistrationTests
         );
 
         Assert.Contains(
-            $"OpenId:Server:Settings:{name}",
+            $"OpenId:Platform:Settings:{name}",
             exception.Message,
             StringComparison.Ordinal
         );
@@ -145,14 +146,17 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegistersTheOpenIdSettingScopeCascade()
     {
-        // The server's settings cascade into every tenant's, and a tenant's into its clients' and resource servers'.
+        // The platform's settings cascade into every team's, a team's into its tenants', and a tenant's into its
+        // clients' and resource servers'.
         using var host = BuildHost([]);
         var scopes = host.Services.GetRequiredService<ISettingScopeCollectionProvider>().Collection;
 
-        Assert.True(scopes.TryGet(OpenIdSettingScopes.Server, out var server));
-        Assert.Null(server.ParentName);
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.Platform, out var platform));
+        Assert.Null(platform.ParentName);
+        Assert.True(scopes.TryGet(OpenIdSettingScopes.Team, out var team));
+        Assert.Equal(OpenIdSettingScopes.Platform, team.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Tenant, out var tenant));
-        Assert.Equal(OpenIdSettingScopes.Server, tenant.ParentName);
+        Assert.Equal(OpenIdSettingScopes.Team, tenant.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.Client, out var client));
         Assert.Equal(OpenIdSettingScopes.Tenant, client.ParentName);
         Assert.True(scopes.TryGet(OpenIdSettingScopes.ResourceServer, out var resourceServer));
@@ -213,42 +217,62 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_RegistersTheServerSettingsChangeBroadcastHandler()
+    public void AddIdentityServer_RegistersThePlatformSettingsChangeBroadcastHandler()
     {
-        // Without this handler a server settings change reaches only the replica that handled it.
+        // Without this handler a platform settings change reaches only the replica that handled it.
         using var host = BuildHost([]);
 
         Assert.Single(
             host.Services.GetServices<IReplicaBroadcastHandler>().Select(x => x.Channel),
-            "server-settings-changed"
+            "platform-settings-changed"
         );
     }
 
     [Fact]
-    public void AddIdentityServer_RegistersTheServerSettingsChangedHandler()
+    public void AddIdentityServer_RegistersThePlatformSettingsChangedHandler()
     {
-        // Without this handler a server settings change reaches the replicas only at their next poll.
+        // Without this handler a platform settings change reaches the replicas only at their next poll.
         using var host = BuildHost([]);
 
-        var handlers = host.Services.GetServices<ICommandHandler<ServerSettingsChangedCommand>>();
+        var handlers = host.Services.GetServices<ICommandHandler<PlatformSettingsChangedCommand>>();
 
         Assert.Contains(
             handlers,
-            handler => handler.GetType().Name == "ServerSettingsChangedHandler"
+            handler => handler.GetType().Name == "PlatformSettingsChangedHandler"
         );
     }
 
     [Fact]
-    public void AddIdentityServer_RegistersTheServerSettingsReconciliationService()
+    public void AddIdentityServer_RegistersTheTeamChangeBroadcastHandler()
     {
-        // Without this service a configuration reload or a deployment that changes the server's settings reaches the
-        // tenants only when each is next materialized.
+        // Without this handler a team change reaches only the replica that handled it.
         using var host = BuildHost([]);
 
-        Assert.Contains(
-            host.Services.GetServices<IHostedService>(),
-            service => service.GetType().Name == "ServerSettingsReconciliationService"
+        Assert.Single(
+            host.Services.GetServices<IReplicaBroadcastHandler>().Select(x => x.Channel),
+            "team-changed"
         );
+    }
+
+    [Fact]
+    public void AddIdentityServer_RegistersTheTeamChangedHandler()
+    {
+        // Without this handler a team change reaches the replicas only when their cached team expires.
+        using var host = BuildHost([]);
+
+        var handlers = host.Services.GetServices<ICommandHandler<TeamChangedCommand>>();
+
+        Assert.Contains(handlers, handler => handler.GetType().Name == "TeamChangedHandler");
+    }
+
+    [Fact]
+    public void AddIdentityServer_ResolvesTheTeamServices()
+    {
+        using var host = BuildHost([]);
+        using var scope = host.Services.CreateScope();
+
+        Assert.NotNull(host.Services.GetRequiredService<IOpenIdTeamProvider>());
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<ITeamProvisioner>());
     }
 
     [Fact]
@@ -264,7 +288,7 @@ public sealed class DefaultRegistrationTests
             .ToList();
         var dataProtectionIndex = names.IndexOf("DataProtectionHostedService");
 
-        Assert.Equal("ServerSecretProtectorWarmup", names[0]);
+        Assert.Equal("PlatformSecretProtectorWarmup", names[0]);
         Assert.Equal("DataProtectionKeyRingGate", names[1]);
         Assert.InRange(dataProtectionIndex, 2, names.Count - 1);
     }
@@ -283,26 +307,39 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_ResolvesTheMaterializedServerAccessorToTheRegistry()
+    public void AddIdentityServer_RegistersTheTeamSettingsReconciliationService()
     {
-        // Background work in another package waits for the replica's server through the public accessor, which is
+        // Without this service a change to a team's effective settings, or to the platform's, reaches the team's tenants
+        // and clients only when each is next used (ADR-1219).
+        using var host = BuildHost([]);
+
+        Assert.Contains(
+            host.Services.GetServices<IHostedService>(),
+            service => service.GetType().Name == "TeamSettingsReconciliationService"
+        );
+    }
+
+    [Fact]
+    public void AddIdentityServer_ResolvesTheMaterializedPlatformAccessorToTheRegistry()
+    {
+        // Background work in another package waits for the replica's platform through the public accessor, which is
         // the registry that the first request completes.
         using var host = BuildHost([]);
 
         Assert.Equal(
-            "DefaultMaterializedServerRegistry",
-            host.Services.GetRequiredService<IMaterializedServerAccessor>().GetType().Name
+            "DefaultMaterializedPlatformRegistry",
+            host.Services.GetRequiredService<IMaterializedPlatformAccessor>().GetType().Name
         );
     }
 
     [Fact]
     public void AddIdentityServer_RegistersTheTenantKeyReconciliationHandler()
     {
-        // Without this handler a key that the server's settings permit is provisioned only when a tenant is next
+        // Without this handler a key that the platform's settings permit is provisioned only when a tenant is next
         // materialized.
         using var host = BuildHost([]);
 
-        var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
+        var handlers = host.Services.GetServices<ICommandHandler<ReconcileTeamSettingsCommand>>();
 
         Assert.Contains(
             handlers,
@@ -361,7 +398,7 @@ public sealed class DefaultRegistrationTests
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:session_management_supported"] = "true",
+                ["OpenId:Platform:Settings:session_management_supported"] = "true",
             },
             services =>
                 services.AddSingleton<IClientAuthenticationHandler>(_ =>
@@ -373,7 +410,7 @@ public sealed class DefaultRegistrationTests
 
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.NotNull(options.Server.Settings);
+        Assert.NotNull(options.Platform.Settings);
     }
 
     [Fact]
@@ -500,11 +537,11 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegistersTheClientCoherenceReportHandler()
     {
-        // Without this handler a change to the server's settings that is not a write leaves the stored clients that it
+        // Without this handler a change to the platform's settings that is not a write leaves the stored clients that it
         // makes incoherent unreported until they fail at their next request (ADR-1219).
         using var host = BuildHost([]);
 
-        var handlers = host.Services.GetServices<ICommandHandler<ReconcileServerSettingsCommand>>();
+        var handlers = host.Services.GetServices<ICommandHandler<ReconcileTeamSettingsCommand>>();
 
         Assert.Contains(
             handlers,
@@ -635,6 +672,11 @@ public sealed class DefaultRegistrationTests
     [InlineData(OpenIdSettingNames.TokenEndpointAuthMethod, OpenIdSettingScopes.Client, true)]
     [InlineData(OpenIdSettingNames.CodeChallengeMethodsSupported, OpenIdSettingScopes.Client, true)]
     [InlineData(OpenIdSettingNames.ClientName, OpenIdSettingScopes.ResourceServer, false)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Platform, true)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Team, true)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Tenant, false)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.Client, false)]
+    [InlineData(OpenIdSettingNames.MaxTenants, OpenIdSettingScopes.ResourceServer, false)]
     public void AddIdentityServer_ASettingAppliesWithinTheScopesThatReadIt(
         string settingName,
         string scopeName,
@@ -687,7 +729,7 @@ public sealed class DefaultRegistrationTests
         var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
         Assert.Empty(
-            serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Server, jsonOptions)
+            serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Platform, jsonOptions)
         );
         Assert.Empty(
             serializer.ValidateSettings(jsonElement, OpenIdSettingScopes.Tenant, jsonOptions)
@@ -743,7 +785,7 @@ public sealed class DefaultRegistrationTests
             scopeSettings.Set(OpenIdSettingKeys.SecurityProfiles, [profile.ProfileName]);
 
             var expanded = settingCollectionFactory.Create(
-                catalog.Expand(scopeSettings, OpenIdSettingScopes.Server)
+                catalog.Expand(scopeSettings, OpenIdSettingScopes.Platform)
             );
 
             Assert.True(expanded.TryGetValue(OpenIdSettingKeys.SecurityProfiles, out var selected));
@@ -847,7 +889,7 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
-    public void AddIdentityServer_WhenTheServerDeclaresADevelopmentEnvironment_ATenantInheritsIt()
+    public void AddIdentityServer_WhenThePlatformDeclaresADevelopmentEnvironment_ATenantInheritsIt()
     {
         using var host = BuildHost([]);
         var resolver = host.Services.GetRequiredService<IEffectiveSettingsResolver>();
@@ -1041,13 +1083,13 @@ public sealed class DefaultRegistrationTests
     [InlineData("request_object_signing_alg_values_supported:0", "none")]
     [InlineData("id_token_encryption_alg_values_supported:0", "dir")]
     [InlineData("access_token_confirmation_methods_supported:0", "x5t")]
-    public async Task AddIdentityServer_WhenServerSettingIsOutsideItsDomain_FailsToStart(
+    public async Task AddIdentityServer_WhenPlatformSettingIsOutsideItsDomain_FailsToStart(
         string key,
         string value
     )
     {
         using var host = BuildHost(
-            new Dictionary<string, string?> { [$"OpenId:Server:Settings:{key}"] = value }
+            new Dictionary<string, string?> { [$"OpenId:Platform:Settings:{key}"] = value }
         );
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
@@ -1056,36 +1098,37 @@ public sealed class DefaultRegistrationTests
 
         var settingName = key.Split(':')[0];
         Assert.Contains(
-            $"OpenId:Server:Settings:{settingName}' must",
+            $"OpenId:Platform:Settings:{settingName}' must",
             exception.Message,
             StringComparison.Ordinal
         );
     }
 
     [Fact]
-    public void AddIdentityServer_WhenServerSettingsAreInTheirDomains_BindsThem()
+    public void AddIdentityServer_WhenPlatformSettingsAreInTheirDomains_BindsThem()
     {
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:security_profiles:0"] = "fapi2",
-                ["OpenId:Server:Settings:token_endpoint_auth_method"] = "private_key_jwt",
-                ["OpenId:Server:Settings:id_token_signing_alg_values_supported:0"] = "ES256",
-                ["OpenId:Server:Settings:request_object_signing_alg_values_supported:0"] = "HS256",
-                ["OpenId:Server:Settings:grant_types_supported:0"] =
+                ["OpenId:Platform:Settings:security_profiles:0"] = "fapi2",
+                ["OpenId:Platform:Settings:token_endpoint_auth_method"] = "private_key_jwt",
+                ["OpenId:Platform:Settings:id_token_signing_alg_values_supported:0"] = "ES256",
+                ["OpenId:Platform:Settings:request_object_signing_alg_values_supported:0"] =
+                    "HS256",
+                ["OpenId:Platform:Settings:grant_types_supported:0"] =
                     "urn:ietf:params:oauth:grant-type:device_code",
-                ["OpenId:Server:Settings:jwks_uri_allowed_hosts:0"] = "keys.example.com",
-                ["OpenId:Server:Settings:user_code_length"] = "12",
-                ["OpenId:Server:Settings:code_challenge_methods_supported:0"] = "S256",
-                ["OpenId:Server:Settings:require_pkce"] = "false",
-                ["OpenId:Server:Settings:pkce_nonce_exemption"] = "true",
+                ["OpenId:Platform:Settings:jwks_uri_allowed_hosts:0"] = "keys.example.com",
+                ["OpenId:Platform:Settings:user_code_length"] = "12",
+                ["OpenId:Platform:Settings:code_challenge_methods_supported:0"] = "S256",
+                ["OpenId:Platform:Settings:require_pkce"] = "false",
+                ["OpenId:Platform:Settings:pkce_nonce_exemption"] = "true",
             }
         );
 
-        // Resolving the options runs their validators, which read the server settings through the descriptors.
+        // Resolving the options runs their validators, which read the platform settings through the descriptors.
         var options = host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("OpenId:Server:Settings", options.Server.Settings?.Path);
+        Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings?.Path);
     }
 
     [Fact]
@@ -1167,14 +1210,9 @@ public sealed class DefaultRegistrationTests
 
     [Theory]
     [InlineData(
-        "OpenId:Server:SettingsPeriodicRefreshInterval",
+        "OpenId:Platform:SettingsPeriodicRefreshInterval",
         "00:00:00",
-        "Server:SettingsPeriodicRefreshInterval"
-    )]
-    [InlineData(
-        "OpenId:Server:ReconciliationLeaseDuration",
-        "-00:01:00",
-        "Server:ReconciliationLeaseDuration"
+        "Platform:SettingsPeriodicRefreshInterval"
     )]
     [InlineData("OpenId:Tenant:TenantCacheLifetime", "50.00:00:00", "Tenant:TenantCacheLifetime")]
     [InlineData("OpenId:GrantRetention:PruneInterval", "00:00:00", "GrantRetention:PruneInterval")]

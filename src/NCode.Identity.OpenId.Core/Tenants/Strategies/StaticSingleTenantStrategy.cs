@@ -123,6 +123,7 @@ internal class StaticSingleTenantStrategy(
         // resolved from the request's service provider.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         var persistedTenant = await provisioner.EnsureCreatedAsync(
+            RootOptions.TeamId,
             tenantId,
             displayName,
             cancellationToken

@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
@@ -19,8 +19,8 @@ namespace NCode.Identity.OpenId.Contexts;
 /// </summary>
 /// <remarks>
 /// Member convention: an <c>abstract</c> member is request state a concrete context supplies; a <c>virtual</c> member
-/// (such as <see cref="ErrorFactory"/> or <see cref="GetSubjectId"/>) is behavior derived from that state with a correct
-/// default, overridable when a host needs to. This split is by modeling intent, not SemVer compatibility.
+/// (such as <see cref="ErrorFactory"/> or <see cref="GetSubjectId"/>) is behavior derived from that state with a
+/// correct default, overridable when a host needs to. This split is by modeling intent, not SemVer compatibility.
 /// </remarks>
 [PublicAPI]
 public abstract class OpenIdContext : IAsyncDisposable
@@ -41,9 +41,9 @@ public abstract class OpenIdContext : IAsyncDisposable
     public virtual IOpenIdErrorFactory ErrorFactory => Environment.ErrorFactory;
 
     /// <summary>
-    /// Gets the <see cref="OpenIdServer"/> associated with the current request.
+    /// Gets the <see cref="OpenIdPlatform"/> associated with the current request.
     /// </summary>
-    public abstract OpenIdServer Server { get; }
+    public abstract OpenIdPlatform Platform { get; }
 
     /// <summary>
     /// Gets the <see cref="OpenIdTenant"/> associated with the current request.
@@ -88,10 +88,9 @@ public abstract class OpenIdContext : IAsyncDisposable
     /// <summary>
     /// Rewrites the subject claims of a <see cref="ClaimsPrincipal"/> so its authoritative subject identifier becomes
     /// <paramref name="subjectId"/>, using the resolved tenant's <c>subject_claim_types</c> setting (falling back to
-    /// <see cref="OpenIdConstants.DefaultSubjectClaimTypes"/>). This is the inverse of <see cref="GetSubjectId"/> and the
-    /// single seam that stamps the resolved principal id back onto a subject so that
-    /// <c>GetSubjectId(result) == subjectId</c> — the <c>Subject.sub == PrincipalId</c> invariant every
-    /// ticket-construction site relies on.
+    /// <see cref="OpenIdConstants.DefaultSubjectClaimTypes"/>). This is the inverse of <see cref="GetSubjectId"/> and
+    /// the single seam that stamps the resolved principal id back onto a subject so that <c>GetSubjectId(result) ==
+    /// subjectId</c> — the <c>Subject.sub == PrincipalId</c> invariant every ticket-construction site relies on.
     /// </summary>
     /// <param name="subject">The <see cref="ClaimsPrincipal"/> whose subject claims are rewritten.</param>
     /// <param name="subjectId">The authoritative subject identifier to stamp onto the principal.</param>

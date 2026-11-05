@@ -24,7 +24,7 @@ public class TokenEndpointClientCredentialsTests
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = factory.CreateClient(
@@ -37,7 +37,7 @@ public class TokenEndpointClientCredentialsTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = ClientSecret,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 
@@ -53,7 +53,7 @@ public class TokenEndpointClientCredentialsTests
         Assert.False(string.IsNullOrEmpty(accessToken.GetString()));
 
         Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, root.GetProperty("token_type").GetString());
-        Assert.Equal(TestServerSettingsProvider.ApiScope, root.GetProperty("scope").GetString());
+        Assert.Equal(TestPlatformSettingsProvider.ApiScope, root.GetProperty("scope").GetString());
 
         // The access token audience is bound to the resource server that owns the scope, not the client (ADR-1027).
         var payload = DecodeJwtPayload(accessToken.GetString()!);
@@ -82,7 +82,7 @@ public class TokenEndpointClientCredentialsTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = "wrong-secret",
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 
@@ -103,7 +103,7 @@ public class TokenEndpointClientCredentialsTests
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = factory.CreateClient(
@@ -131,7 +131,7 @@ public class TokenEndpointClientCredentialsTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = ClientId,
                 ["client_secret"] = clientSecret,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 

@@ -94,12 +94,12 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         // 60-second future tolerance when validating token time claims, so a child may only reduce it further.
         ceiling.Set(OpenIdSettingKeys.ClockSkew, TimeSpan.FromSeconds(60));
 
-        // Pin the client-assertion lifetime at the secure default (Min ceiling) so raising the server-wide value for
+        // Pin the client-assertion lifetime at the secure default (Min ceiling) so raising the platform-wide value for
         // other clients never extends to a FAPI client (ADR-1124).
         ceiling.Set(OpenIdSettingKeys.ClientAssertionMaxLifetime, TimeSpan.FromMinutes(5));
 
         // A request object carries 'nbf' and 'exp', at most 60 minutes apart (FAPI 2.0 Message Signing §5.3.1,
-        // FAPI 1.0 Advanced §5.2.2); pinned so raising the server-wide values never extends to a FAPI client (ADR-1187).
+        // FAPI 1.0 Advanced §5.2.2); pinned so raising the platform-wide values never extends to a FAPI client (ADR-1187).
         ceiling.Set(OpenIdSettingKeys.RequestObjectMaxLifetime, TimeSpan.FromMinutes(60));
         ceiling.Set(OpenIdSettingKeys.RequestObjectNotBeforeRequired, true);
 
@@ -136,7 +136,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         );
 
         // FAPI 2.0 §5.3.2.1-9 forbids rotating the sender-constrained refresh tokens of its confidential clients except
-        // in extraordinary circumstances, so a server-wide 'always' is not inherited; the scope that selects the profile
+        // in extraordinary circumstances, so a platform-wide 'always' is not inherited; the scope that selects the profile
         // may still choose 'always' (ADR-1216).
         defaults.Set(
             OpenIdSettingKeys.RefreshTokenRotationPolicy,

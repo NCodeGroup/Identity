@@ -22,6 +22,7 @@ import {
   apiErrorMessage,
   useCreateTenantMutation,
   useDeleteTenantMutation,
+  useGetNewTenantAddressQuery,
   useGetTenantAddressQuery,
   useListTenantsQuery,
   useUpdateTenantMutation,
@@ -29,6 +30,8 @@ import {
 } from '@ncode/store';
 
 export type TenantsPageProps = {
+  /** The team whose tenants are listed and created. */
+  readonly teamId: string;
   readonly onOpenTenant: (tenantId: string) => void;
   /**
    * How long the address must stay unchanged before it is previewed. Defaults to 300 ms so typing sends no burst of
@@ -58,16 +61,17 @@ function useDebouncedValue<T>(value: T, delayMs: number): T {
 }
 
 /**
- * Container: the global-scope tenant browser and CRUD surface. Wires the RTK Query tenant list and
+ * Container: a team's tenant browser and CRUD surface. Wires the RTK Query tenant list and
  * mutations to the stateless {@link TenantTable}, {@link TenantEnvironmentFilter}, {@link TenantFormDialog},
  * and {@link ConfirmDialog}. Owns only dialog, filter, and error state; all persistence, cache invalidation, and error shaping come from the
  * store layer. Selecting a tenant crosses into that tenant's security boundary.
  */
 export function TenantsPage({
+  teamId,
   onOpenTenant,
   addressPreviewDelayMs = defaultAddressPreviewDelayMs,
 }: TenantsPageProps) {
-  const { data, isLoading, error } = useListTenantsQuery();
+  const { data, isLoading, error } = useListTenantsQuery({ teamId });
   const tenants = data?.items ?? [];
 
   const [environmentFilter, setEnvironmentFilter] = useState(allTenantEnvironments);
@@ -125,9 +129,9 @@ export function TenantsPage({
         }
       : emptyTenantFormValues;
 
-  // The address is previewed against the server's own rules: for a new tenant always, and for an existing
-  // one only when its issuer or mTLS endpoint alias changes, because the server judges an address only
-  // when it can change.
+  // The address is previewed against the server's own rules: for a new tenant through its team's route,
+  // always, and for an existing tenant through its own route, only when its issuer or mTLS endpoint alias
+  // changes, because the server judges an address only when it can change.
   const debouncedAddress = useDebouncedValue(addressInput, addressPreviewDelayMs);
   const isAddressUnchanged =
     dialog.kind === 'edit' &&
@@ -140,16 +144,23 @@ export function TenantsPage({
     debouncedAddress !== undefined &&
     isValidTenantId(debouncedAddress.tenantId) &&
     !isAddressUnchanged;
-  const { data: preview, originalArgs: previewArgs } = useGetTenantAddressQuery(
-    {
-      tenantId: debouncedAddress?.tenantId ?? '',
-      ...(debouncedAddress?.issuer ? { issuer: debouncedAddress.issuer } : {}),
-      ...(debouncedAddress?.mtlsEndpointAliasAuthority
-        ? { mtlsEndpointAliasAuthority: debouncedAddress.mtlsEndpointAliasAuthority }
-        : {}),
-    },
-    { skip: !shouldPreview, refetchOnMountOrArgChange: true },
+  const previewArgsInput = {
+    tenantId: debouncedAddress?.tenantId ?? '',
+    ...(debouncedAddress?.issuer ? { issuer: debouncedAddress.issuer } : {}),
+    ...(debouncedAddress?.mtlsEndpointAliasAuthority
+      ? { mtlsEndpointAliasAuthority: debouncedAddress.mtlsEndpointAliasAuthority }
+      : {}),
+  };
+  const newTenantPreview = useGetNewTenantAddressQuery(
+    { teamId, ...previewArgsInput },
+    { skip: dialog.kind !== 'create' || !shouldPreview, refetchOnMountOrArgChange: true },
   );
+  const existingTenantPreview = useGetTenantAddressQuery(previewArgsInput, {
+    skip: dialog.kind !== 'edit' || !shouldPreview,
+    refetchOnMountOrArgChange: true,
+  });
+  const { data: preview, originalArgs: previewArgs } =
+    dialog.kind === 'edit' ? existingTenantPreview : newTenantPreview;
 
   // A preview is shown only while it describes the address as it is entered now.
   const addressPreview =
@@ -170,15 +181,19 @@ export function TenantsPage({
     try {
       if (dialog.kind === 'create') {
         await createTenant({
-          tenantId: values.tenantId,
-          issuer,
-          mtlsEndpointAliasAuthority,
-          displayName: values.displayName,
-          isDisabled: values.isDisabled,
-          settings: {},
+          teamId,
+          body: {
+            tenantId: values.tenantId,
+            issuer,
+            mtlsEndpointAliasAuthority,
+            displayName: values.displayName,
+            isDisabled: values.isDisabled,
+            settings: {},
+          },
         }).unwrap();
       } else if (dialog.kind === 'edit') {
         await updateTenant({
+          teamId,
           tenantId: dialog.tenant.tenantId,
           concurrencyToken: dialog.tenant.concurrencyToken,
           fields: {
@@ -201,7 +216,7 @@ export function TenantsPage({
     }
     setDeleteError(undefined);
     try {
-      await deleteTenant({ tenantId: dialog.tenant.tenantId }).unwrap();
+      await deleteTenant({ teamId, tenantId: dialog.tenant.tenantId }).unwrap();
       setDialog(closed);
     } catch (removeError) {
       setDeleteError(apiErrorMessage(removeError as ApiError));

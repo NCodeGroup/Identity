@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Contexts;
 
 /// <summary>
 /// The shared endpoint filter that materializes the OpenID request environment for every OpenID endpoint: it builds the
-/// <see cref="OpenIdContext"/> (the server and the resolved, settings/secrets-bearing tenant), publishes it on the
+/// <see cref="OpenIdContext"/> (the platform and the resolved, settings/secrets-bearing tenant), publishes it on the
 /// request as an <see cref="IOpenIdContextFeature"/> so endpoints and services can retrieve it, and opens the ambient
 /// tenant scope that tenant-scoped data access reads. Installing this once per endpoint group means the authentication
 /// (protocol) endpoints and the management endpoints run the exact same environment pipeline.
@@ -48,7 +48,7 @@ public sealed class OpenIdEnvironmentEndpointFilter(
         catch (HttpResultException exception)
         {
             // An unresolvable tenant (unknown host/path) is reported as its mapped result (typically 404). The ambient
-            // scope opens only below, so tenant/server listings on central-admin surfaces are never tenant-restricted.
+            // scope opens only below, so tenant/platform listings on central-admin surfaces are never tenant-restricted.
             return exception.HttpResult;
         }
 

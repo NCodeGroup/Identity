@@ -78,9 +78,9 @@ public class TokenEndpointBootstrapAdminTests
     }
 
     [Fact]
-    public async Task PostToken_WhenTheServerDefaultsAnotherMethod_TheBootstrapClientStillUsesBasic()
+    public async Task PostToken_WhenThePlatformDefaultsAnotherMethod_TheBootstrapClientStillUsesBasic()
     {
-        // The bootstrap client registers client_secret_basic itself, so a server-wide default for clients that register
+        // The bootstrap client registers client_secret_basic itself, so a platform-wide default for clients that register
         // no method does not change how it authenticates.
         using var factory = new HostApplicationFactory();
         using var configured = factory.WithWebHostBuilder(builder =>
@@ -92,7 +92,7 @@ public class TokenEndpointBootstrapAdminTests
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
                             ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                            ["OpenId:Server:Settings:token_endpoint_auth_method"] = OpenIdProtocol
+                            ["OpenId:Platform:Settings:token_endpoint_auth_method"] = OpenIdProtocol
                                 .ClientAuthenticationMethods
                                 .PrivateKeyJwt,
                         }
@@ -111,9 +111,9 @@ public class TokenEndpointBootstrapAdminTests
     }
 
     [Fact]
-    public async Task PostToken_WhenTheServerDoesNotPermitClientSecretBasic_RefusesToSeedTheBootstrapClient()
+    public async Task PostToken_WhenThePlatformDoesNotPermitClientSecretBasic_RefusesToSeedTheBootstrapClient()
     {
-        // The bootstrap client registers client_secret_basic, which the server's ceiling excludes, so the seed refuses
+        // The bootstrap client registers client_secret_basic, which the platform's ceiling excludes, so the seed refuses
         // to store a client the tenant could never serve.
         using var factory = new HostApplicationFactory();
         using var configured = factory.WithWebHostBuilder(builder =>
@@ -125,7 +125,7 @@ public class TokenEndpointBootstrapAdminTests
                             ["BootstrapAdmin:ClientId"] = BootstrapClientId,
                             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
                             ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
-                            ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] =
+                            ["OpenId:Platform:Settings:token_endpoint_auth_methods_supported:0"] =
                                 OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
                         }
                     )

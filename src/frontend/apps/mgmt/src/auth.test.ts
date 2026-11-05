@@ -106,13 +106,13 @@ describe('return path', () => {
   });
 
   it('returns the default route when nothing was remembered', () => {
-    expect(takeReturnPath(memoryStorage())).toBe('/tenants');
+    expect(takeReturnPath(memoryStorage())).toBe('/teams');
   });
 
   it('never restores a path off the console', () => {
     const storage = memoryStorage();
     rememberReturnPath(storage, '//evil.test/tenants');
 
-    expect(takeReturnPath(storage)).toBe('/tenants');
+    expect(takeReturnPath(storage)).toBe('/teams');
   });
 });

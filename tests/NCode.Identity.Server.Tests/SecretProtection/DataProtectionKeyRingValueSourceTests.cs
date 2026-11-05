@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.SecretProtection;
@@ -15,9 +14,8 @@ namespace NCode.Identity.Server.Tests;
 
 public class DataProtectionKeyRingValueSourceTests : BaseTests
 {
-    private const string ServerId = "server-a";
     private static readonly DateTimeOffset Now = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly SecretOwner Owner = SecretOwner.ForServer(ServerId);
+    private static readonly SecretOwner Owner = SecretOwner.Platform;
     private static readonly Guid KeyId = Guid.NewGuid();
 
     private DataProtectionKeyRingValueSource CreateSource(
@@ -25,16 +23,13 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
         FakeRingProvider provider
     )
     {
-        var loader = new ServerSecretProtectorLoader(
+        var loader = new PlatformSecretProtectorLoader(
             provider,
             reader,
-            Options.Create(
-                new OpenIdOptions { Server = new OpenIdServerOptions { ServerId = ServerId } }
-            ),
             Options.Create(new SecretProtectionOptions()),
             new FakeTimeProvider(Now),
-            new ServerSecretProtectorHolder(),
-            CreateLooseMock<ILogger<ServerSecretProtectorLoader>>().Object
+            new PlatformSecretProtectorHolder(),
+            CreateLooseMock<ILogger<PlatformSecretProtectorLoader>>().Object
         );
 
         return new DataProtectionKeyRingValueSource(
@@ -157,7 +152,7 @@ public class DataProtectionKeyRingValueSourceTests : BaseTests
 
         Assert.Empty(
             await source.FindReferencedAsync(
-                SecretOwner.ForTenant(ServerId),
+                SecretOwner.ForTenant(SecretOwner.PlatformOwnerId),
                 Keys,
                 CancellationToken.None
             )

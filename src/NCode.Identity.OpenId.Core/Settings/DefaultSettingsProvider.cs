@@ -6,7 +6,7 @@ using NCode.Identity.Settings;
 namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
-/// Provides the built-in, off-the-shelf baseline for the <c>*_supported</c> server settings so that a host
+/// Provides the built-in, off-the-shelf baseline for the <c>*_supported</c> platform settings so that a host
 /// which configures nothing still gets a sensible, spec-compliant baseline. Registered by default and
 /// replaceable/extendable by hosts.
 /// </summary>

@@ -136,8 +136,8 @@ than inlining the rationale.
     - A persisted or wire value is its string name, never an ordinal, so an older node that meets a newer member fails
       closed by name instead of misreading a number.
 
-    The lesson behind the rule: setting scopes were first a `[Flags]` enum of the server, tenant, client, and resource
-    server, with their cascade hard-coded in a `switch`, judged closed because the library owned all four entities — which
+    The lesson behind the rule: setting scopes were first a `[Flags]` enum of the deployment root, the tenant, the client
+    and the resource server, with their cascade hard-coded in a `switch`, judged closed because the library owned all four entities — which
     shut out every extension that stores settings for an entity of its own. They are registered `SettingScopeDescriptor`
     data. See [ADR-1150](../../docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md).
 
@@ -277,7 +277,7 @@ than inlining the rationale.
   `TryAddEnumerable`. The rule reads a `ClientCoherenceContext` (the client's registered and its effective settings; a
   value a ceiling drops is visible only in the registered settings) and reports a missing companion with
   `ClientCoherenceViolation.Missing`. Every entry point that stores a client, a configuration seeder through
-  `SeededClientValidator` included, and every tenant or server settings change checks it with
+  `SeededClientValidator` included, and every platform, team or tenant settings change checks it with
   `IClientCoherenceValidator.Validate(tenantSettings, clientSettings)`; never add the check to one caller
   ([ADR-1206](../../docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)). List a tenant's
   incoherent clients, in a report or a background pass, only through `IClientCoherenceReporter`, which checks one page
@@ -312,15 +312,16 @@ than inlining the rationale.
   restored: drop or read again everything a lost message on the channel could have made stale.
 - 👁 **Work proportional to the deployment never runs inside a request.** A pass over every tenant or every client
   reads a settings projection (`GetSettingsPageAsync`, untracked, no secrets) and skips when the change cannot affect
-  it. A pass that brings tenants or clients in line with the server's settings is a handler of
-  `ReconcileServerSettingsCommand`, which one replica runs in the background whenever the server's effective settings
-  change ([ADR-1219](../../docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md));
+  it. A pass that brings tenants or clients in line with their team's settings is a handler of
+  `ReconcileTeamSettingsCommand`, which `TeamSettingsReconciliationService` sends per team and one replica runs in the
+  background whenever the team's effective settings change
+  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md));
   never put such a pass on the in-process job dispatcher, whose bounded workers it would hold.
 - 👁 **State derived from settings converges by reconciliation, not by replaying an event.** A background pass reads the
   current state and repairs what differs, so a pass that a restart interrupted is run again and nothing depends on a
   queued job that a restart loses. Record durably what the pass reconciled against — the input itself beside its
-  fingerprint (`PersistedServer.ReconciledSettings`, `ReconciledSettingsFingerprint`) — and let each handler compare
-  it with the current input (`ReconcileServerSettingsCommand.PreviousSettings`) to skip what the change cannot affect,
+  fingerprint (`PersistedTeam.ReconciledSettings`, `ReconciledSettingsFingerprint`) — and let each handler compare
+  it with the current input (`ReconcileTeamSettingsCommand.PreviousSettings`) to skip what the change cannot affect,
   reconciling everything when there is nothing to compare with. Mark the record stale in the unit of work that changes
   its input, discard the compared input when a second change arrives before the first was reconciled, write the
   record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
@@ -357,8 +358,8 @@ than inlining the rationale.
 - 👁 **A client authenticates only with its registered method, and its type is that one fact.** The registered
   `token_endpoint_auth_method` (RFC 7591 §2; `client_secret_basic` when none is registered) is the only method that
   authenticates a client at every endpoint that authenticates clients, and `token_endpoint_auth_methods_supported` is
-  only the server/tenant/profile **ceiling** over it — never a list of alternatives. Authenticate a client only through
-  `IClientAuthenticationService`, which enforces this; a new `IClientAuthenticationHandler` authenticates only a client
+  only the platform/team/tenant/profile **ceiling** over it — never a list of alternatives. Authenticate a client only
+  through `IClientAuthenticationService`, which enforces this; a new `IClientAuthenticationHandler` authenticates only a client
   registered for its method (the `CommonClientAuthenticationHandler` base does). Anything that provisions a client
   registers its method explicitly — a public client registers `none`. The authorization endpoint **identifies** the
   client by `client_id` and never authenticates it, so a rule there reads the type the client is registered as —
@@ -380,7 +381,7 @@ than inlining the rationale.
   [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md),
   [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md), and
   [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md).
-- 👁 **Setting names are a closed vocabulary.** Every setting a server, tenant, client, or resource server carries has a
+- 👁 **Setting names are a closed vocabulary.** Every setting a platform, team, tenant, client, or resource server carries has a
   registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
   Settings are rejected wherever they enter — configuration on start, management writes (`ISettingSerializer.ValidateSettings`
@@ -411,9 +412,10 @@ than inlining the rationale.
   See [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md) and
   [ADR-1141](../../docs/decisions/1141-response-types-are-whole-values.md).
 - 👁 **A security profile binds every scope below the one that selects it.** Outside the live providers, resolve a
-  scope's effective settings only through `IEffectiveSettingsResolver`. Use `Resolve(parent, scope, document)`, and
-  `ResolveServerAsync` for the server's committed settings. Never hand-merge a deserialized document, and never take
-  server settings from this replica's poll for a seed or a check. Only the server factory and the root settings source
+  scope's effective settings only through `IEffectiveSettingsResolver`. Use `Resolve(parent, scope, document)`,
+  the platform's committed one with `ResolvePlatformAsync`, and a team's effective settings with `ResolveTeamAsync`.
+  Never hand-merge a deserialized document, and never take platform settings from this replica's poll for a seed or a
+  check. Only the platform factory and the root settings source
   call the catalog directly
   ([ADR-1204](../../docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service.md)).
   `security_profiles` accumulates down the cascade (`Union`), so enforcement evaluates the requirements of every profile
@@ -444,9 +446,9 @@ than inlining the rationale.
   `require_dpop_bound_access_tokens`). A requirement is named `require_` plus its RFC client metadata member
   (`tls_client_certificate_bound_access_tokens`, `dpop_bound_access_tokens`). See
   [ADR-1097](../../docs/decisions/1097-sender-constrained-access-tokens-dpop-and-mtls.md).
-- 👁 **A value nobody chose sits beneath a security profile's default.** At the server root the descriptor defaults, the
+- 👁 **A value nobody chose sits beneath a security profile's default.** At the platform root the descriptor defaults, the
   computed `*_supported` values and the default-settings providers are the baseline passed to
-  `ISecurityProfileCatalog.Expand(scopeSettings, OpenIdSettingScopes.Server, baselineSettings)`, and only the
+  `ISecurityProfileCatalog.Expand(scopeSettings, OpenIdSettingScopes.Platform, baselineSettings)`, and only the
   configuration is the root's own settings, so a selected profile's default replaces the baseline and never a
   configured value. Every `Expand` names its scope, and a default applies only to a setting that applies within that
   scope. See
@@ -523,15 +525,15 @@ than inlining the rationale.
   [Distributed State and Background Work](csharp.instructions.md#distributed-state-and-background-work)
   (`TenantUsageFlushService.StopAsync`,
   [ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
-- 👁 **A hosted service that reads the store waits for the server to be materialized.** It starts from
-  `IMaterializedServerAccessor.GetServerAsync`, public so a package other than the core waits the same way, which
-  completes once the replica materializes its server: `ServerSettingsReconciliationService` materializes it when the
+- 👁 **A hosted service that reads the store waits for the platform to be materialized.** It starts from
+  `IMaterializedPlatformAccessor.GetPlatformAsync`, public so a package other than the core waits the same way, which
+  completes once the replica materializes its platform: `TeamSettingsReconciliationService` materializes it when the
   replica starts and, when that fails because the database may still be migrating, the replica's first request does.
-  An integration test that needs a persisted server document sets `HostApplicationFactory.PersistedServerSettings`,
-  which `PersistedServerSeedService` writes in `StartingAsync`, before any hosted service starts
-  ([ADR-1219](../../docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
-- 👁 **A start check that needs the server's protector is a hosted service after the warmup.** `ValidateOnStart` and
-  every startup validator run before any hosted service starts, so before `ServerSecretProtectorWarmup` loads the
+  An integration test that needs a persisted platform document sets `HostApplicationFactory.PersistedPlatformSettings`,
+  which `PersistedPlatformSeedService` writes in `StartingAsync`, before any hosted service starts
+  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md)).
+- 👁 **A start check that needs the platform's protector is a hosted service after the warmup.** `ValidateOnStart` and
+  every startup validator run before any hosted service starts, so before `PlatformSecretProtectorWarmup` loads the
   protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data
   Protection's hosted service
   ([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
@@ -581,8 +583,8 @@ than inlining the rationale.
   [ADR-1214](../../docs/decisions/1214-a-management-write-that-loses-a-race-is-answered-412.md).
 - 👁 **A stored settings document that cannot be honored is answered `409` once, by the management route group.** A
   management request resolves a document a store holds with
-  `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the server's committed one with
-  `ResolveServerAsync`; both throw `UnreadableSettingsException` naming the scope and the owner, and
+  `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the platform's committed one
+  with `ResolvePlatformAsync`; both throw `UnreadableSettingsException` naming the scope and the owner, and
   `UnreadableSettingsEndpointFilter` answers it with a `409` problem (`settingsScope`, `ownerId`, `documentError`), so
   no handler catches it. Resolve only after authorization (a read resolves in the `mapperAsync` of `ProcessGetAsync`),
   and keep `Resolve` for a proposed document and for a write that replaces the document it cannot read

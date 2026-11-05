@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -127,7 +128,18 @@ public sealed class TenantEntity : ISupportConcurrencyToken
     /// </summary>
     public required JsonElement SettingsJson { get; set; }
 
+    /// <summary>
+    /// Gets the surrogate identifier of the team this tenant belongs to. A tenant never moves between teams.
+    /// </summary>
+    [ForeignKey(nameof(Team))]
+    public required long TeamId { get; init; }
+
     // navigation properties
+
+    /// <summary>
+    /// Gets the team this tenant belongs to.
+    /// </summary>
+    public required TeamEntity Team { get; init; }
 
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.

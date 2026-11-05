@@ -27,6 +27,7 @@ public sealed class TenantStoreHostLookupTests : IDisposable
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
     }
 
     public void Dispose()
@@ -43,6 +44,7 @@ public sealed class TenantStoreHostLookupTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = issuer,
             MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,

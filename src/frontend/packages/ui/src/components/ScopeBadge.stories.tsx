@@ -11,5 +11,6 @@ export default meta;
 type Story = StoryObj<typeof ScopeBadge>;
 
 export const Tenant: Story = { args: { kind: 'tenant' } };
-export const Global: Story = { args: { kind: 'global' } };
+export const Team: Story = { args: { kind: 'team' } };
+export const Platform: Story = { args: { kind: 'platform' } };
 export const CustomLabel: Story = { args: { kind: 'tenant', label: 'acme' } };

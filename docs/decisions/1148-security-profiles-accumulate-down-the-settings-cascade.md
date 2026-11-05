@@ -5,7 +5,9 @@
   applies only to a setting that applies within the expanding scope; amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
-  migration rewrites stored data)
+  migration rewrites stored data; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): security profiles also
+  accumulate through the platform and team scopes)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

@@ -8,12 +8,14 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts.Principals;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Results;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
@@ -204,7 +206,9 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -287,6 +291,36 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task BlockPrincipalAsync_WhenTheTenantIsNotServed_RefusesBeforeWriting()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupPrincipal(CreatePrincipal(isBlocked: false));
+        MockOpenIdContextFactory
+            .Setup(x =>
+                x.CreateForTenantAsync(
+                    It.IsAny<HttpContext>(),
+                    TenantId,
+                    It.IsAny<IMediator>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(TypedResults.NotFound().AsException("The tenant is not served."))
+            .Verifiable();
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // No UpdateAsync/SaveChangesAsync, session or audit scaffold: a strict-mock failure would mean the block was
+        // written, its sessions ended or the change audited although the tenant is not served.
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await Handler.BlockPrincipalAsync(
+                httpContext,
+                TenantId,
+                PrincipalId,
+                CancellationToken.None
+            )
+        );
     }
 
     [Fact]

@@ -29,14 +29,16 @@ internal class DefaultTenantValidator(
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateCreateAsync(
         ClaimsPrincipal user,
+        string controlPlaneTenantId,
         PersistedTenant tenant,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
+        // Creating a tenant is authority at its team's node (ADR-1411).
         var error = await AuthorizeAsync(
             user,
-            tenant,
+            ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, tenant.TeamId),
             Operations.Create,
             "The caller is not authorized to create this tenant.",
             "Authentication is required to create this tenant."
@@ -44,6 +46,15 @@ internal class DefaultTenantValidator(
         if (error is not null)
         {
             return error;
+        }
+
+        if (string.IsNullOrWhiteSpace(tenant.DisplayName))
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status400BadRequest,
+                Detail = "The 'displayName' is required.",
+            };
         }
 
         var failures = await TenantResolver.ValidateTenantAsync(
@@ -109,7 +120,7 @@ internal class DefaultTenantValidator(
             };
         }
 
-        if (string.IsNullOrEmpty(model.DisplayName))
+        if (string.IsNullOrWhiteSpace(model.DisplayName))
         {
             return new ManagementError
             {

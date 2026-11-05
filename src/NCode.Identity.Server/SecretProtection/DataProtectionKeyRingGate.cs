@@ -10,9 +10,9 @@ using NCode.Identity.Server.Logging;
 namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
-/// Refuses to start the host while a live Data Protection key cannot be decrypted with the master key of the server,
+/// Refuses to start the host while a live Data Protection key cannot be decrypted with the master key of the platform,
 /// and revokes the keys that <see cref="DataProtectionKeyRingOptions.RevokedKeyIds"/> lists. It starts after
-/// <see cref="ServerSecretProtectorWarmup"/>, which loads the protector that decrypts the keys, and before the hosted
+/// <see cref="PlatformSecretProtectorWarmup"/>, which loads the protector that decrypts the keys, and before the hosted
 /// service of Data Protection, which would otherwise load the key ring and fail on the first key it cannot read.
 /// </summary>
 /// <remarks>
@@ -47,7 +47,7 @@ internal class DataProtectionKeyRingGate(
     /// The reason recorded when a key is revoked because the Development environment cannot decrypt it.
     /// </summary>
     internal const string DevelopmentRevocationReason =
-        "the server's master key cannot decrypt it in the Development environment";
+        "the platform's master key cannot decrypt it in the Development environment";
 
     private IKeyManager KeyManager { get; } = keyManager;
 
@@ -102,7 +102,7 @@ internal class DataProtectionKeyRingGate(
         var keyIds = string.Join(", ", undecryptableKeyIds);
         throw new InvalidOperationException(
             $"Refusing to start: the Data Protection key ring holds {undecryptableKeyIds.Count} live key(s) that "
-                + $"the server's master key cannot decrypt: {keyIds}. Restore the master key that encrypted them, or "
+                + $"the platform's master key cannot decrypt: {keyIds}. Restore the master key that encrypted them, or "
                 + "revoke them by listing their IDs under 'DataProtectionKeyRing:RevokedKeyIds' and start the host "
                 + "again."
         );

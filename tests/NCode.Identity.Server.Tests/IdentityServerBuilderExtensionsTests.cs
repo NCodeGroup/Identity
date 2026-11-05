@@ -37,6 +37,8 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
                 ["OpenId:TenantResolution:StrategyCode"] = "StaticSingle",
                 ["OpenId:TenantResolution:Root:TenantId"] = "control",
                 ["OpenId:TenantResolution:Root:DisplayName"] = "Control Plane",
+                ["OpenId:TenantResolution:Root:TeamId"] = "operators",
+                ["OpenId:TenantResolution:Root:TeamDisplayName"] = "Operators",
                 ["OpenId:TenantResolution:StaticSingle:TenantId"] = "acme",
                 ["OpenId:TenantResolution:StaticSingle:TenantPath"] = "/identity",
                 ["OpenId:TenantResolution:StaticSingle:Issuer"] = "https://op.example/identity",
@@ -48,6 +50,8 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         Assert.Equal("StaticSingle", options.StrategyCode);
         Assert.Equal("control", options.Root.TenantId);
         Assert.Equal("Control Plane", options.Root.DisplayName);
+        Assert.Equal("operators", options.Root.TeamId);
+        Assert.Equal("Operators", options.Root.TeamDisplayName);
         Assert.NotNull(options.StaticSingle);
         Assert.Equal("acme", options.StaticSingle.TenantId);
         Assert.Equal("/identity", options.StaticSingle.TenantPath);
@@ -126,37 +130,54 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     }
 
     [Fact]
-    public void AddConfiguration_WhenServerAndTenantConfigured_BindsThem()
+    public void AddConfiguration_WhenPlatformAndTenantConfigured_BindsThem()
     {
         using var serviceProvider = BuildConfiguredServiceProvider(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:ServerId"] = "primary",
-                ["OpenId:Server:ReconciliationLeaseDuration"] = "00:20:00",
-                ["OpenId:Server:Settings:grant_types_supported:0"] = "authorization_code",
+                ["OpenId:Platform:Settings:grant_types_supported:0"] = "authorization_code",
                 ["OpenId:Tenant:TenantCacheLifetime"] = "00:30:00",
+                ["OpenId:Team:SettingsPeriodicRefreshInterval"] = "00:07:00",
+                ["OpenId:Team:TeamCacheLifetime"] = "00:40:00",
+                ["OpenId:Team:ReconciliationLeaseDuration"] = "00:20:00",
             }
         );
 
         var options = serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.Equal("primary", options.Server.ServerId);
-        Assert.Equal(TimeSpan.FromMinutes(20), options.Server.ReconciliationLeaseDuration);
         Assert.Equal(TimeSpan.FromMinutes(30), options.Tenant.TenantCacheLifetime);
-        Assert.NotNull(options.Server.Settings);
-        Assert.Equal("OpenId:Server:Settings", options.Server.Settings.Path);
-        Assert.Equal("authorization_code", options.Server.Settings["grant_types_supported:0"]);
+        Assert.Equal(TimeSpan.FromMinutes(7), options.Team.SettingsPeriodicRefreshInterval);
+        Assert.Equal(TimeSpan.FromMinutes(40), options.Team.TeamCacheLifetime);
+        Assert.Equal(TimeSpan.FromMinutes(20), options.Team.ReconciliationLeaseDuration);
+        Assert.NotNull(options.Platform.Settings);
+        Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings.Path);
+        Assert.Equal("authorization_code", options.Platform.Settings["grant_types_supported:0"]);
     }
 
     [Fact]
-    public void AddConfiguration_WhenServerSectionAbsent_StillAssignsTheSettingsSection()
+    public void AddConfiguration_WhenTeamHasUnknownKey_Throws()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?> { ["OpenId:Team:CacheLifetime"] = "00:30:00" }
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value
+        );
+
+        Assert.Contains("'OpenId:Team'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'CacheLifetime'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenPlatformSectionAbsent_StillAssignsTheSettingsSection()
     {
         using var serviceProvider = BuildConfiguredServiceProvider([]);
 
         var options = serviceProvider.GetRequiredService<IOptions<OpenIdOptions>>().Value;
 
-        Assert.NotNull(options.Server.Settings);
-        Assert.Equal("OpenId:Server:Settings", options.Server.Settings.Path);
+        Assert.NotNull(options.Platform.Settings);
+        Assert.Equal("OpenId:Platform:Settings", options.Platform.Settings.Path);
     }
 
     [Fact]
@@ -414,7 +435,6 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         using var serviceProvider = BuildConfiguredServiceProvider(
             new Dictionary<string, string?>
             {
-                ["Identity:Server:ServerId"] = "primary",
                 ["Identity:TenantResolution:StaticSingle:TenantId"] = "acme",
                 ["Identity:MutualTls:CertificateHeaderName"] = "X-Client-Cert",
                 ["OpenId:Unrelated"] = "ignored",
@@ -430,8 +450,7 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             .GetRequiredService<IOptions<MutualTlsForwardingOptions>>()
             .Value;
 
-        Assert.Equal("primary", openIdOptions.Server.ServerId);
-        Assert.Equal("Identity:Server:Settings", openIdOptions.Server.Settings?.Path);
+        Assert.Equal("Identity:Platform:Settings", openIdOptions.Platform.Settings?.Path);
         Assert.Equal("acme", tenantResolutionOptions.StaticSingle?.TenantId);
         Assert.Equal("X-Client-Cert", mutualTlsOptions.CertificateHeaderName);
     }
@@ -471,7 +490,7 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         secretProtectorProvider
             .Setup(x =>
                 x.GetProtectorAsync(
-                    SecretOwner.ForServer(OpenIdServerOptions.DefaultServerId),
+                    SecretOwner.Platform,
                     It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
                     It.IsAny<CancellationToken>()
                 )

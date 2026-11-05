@@ -7,7 +7,8 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Logging;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -18,7 +19,7 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.SecretProtection;
 
 /// <summary>
-/// Keeps master keys fresh in the background, once the replica's server is materialized and then every
+/// Keeps master keys fresh in the background, once the replica's platform is materialized and then every
 /// <see cref="MasterKeyOptions.MaintenanceInterval"/>: it rotates every active key older than the
 /// <see cref="MasterKeyOptions.RotationPeriod"/>, and for every owner that has retired keys it rewraps the values they
 /// protect and destroys the keys that nothing names after their grace. One replica runs each pass, under a lease on the
@@ -32,11 +33,12 @@ namespace NCode.Identity.OpenId.SecretProtection;
 /// </remarks>
 // See ADR-1351 (an effect that follows a committed change runs on its own bounded token) and ADR-1407.
 internal sealed class MasterKeyMaintenanceService(
-    IMaterializedServerAccessor materializedServerAccessor,
+    IMaterializedPlatformAccessor materializedPlatformAccessor,
     IMasterKeyManager masterKeyManager,
     IStoreManagerFactory storeManagerFactory,
     IExpiringKeySet expiringKeySet,
     IEventPublisher eventPublisher,
+    ITenantResolver tenantResolver,
     IOptions<SecretProtectionOptions> options,
     TimeProvider timeProvider,
     ILogger<MasterKeyMaintenanceService> logger
@@ -47,14 +49,20 @@ internal sealed class MasterKeyMaintenanceService(
     /// </summary>
     internal const string LeasePurpose = "master-key-maintenance";
 
+    /// <summary>
+    /// The key of the lease, which the one platform of the deployment shares.
+    /// </summary>
+    internal const string LeaseKey = $"{LeasePurpose}:platform";
+
     private const int PageSize = 100;
 
-    private IMaterializedServerAccessor MaterializedServerAccessor { get; } =
-        materializedServerAccessor;
+    private IMaterializedPlatformAccessor MaterializedPlatformAccessor { get; } =
+        materializedPlatformAccessor;
     private IMasterKeyManager MasterKeyManager { get; } = masterKeyManager;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IExpiringKeySet ExpiringKeySet { get; } = expiringKeySet;
     private IEventPublisher EventPublisher { get; } = eventPublisher;
+    private ITenantResolver TenantResolver { get; } = tenantResolver;
     private IOptions<SecretProtectionOptions> Options { get; } = options;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<MasterKeyMaintenanceService> Logger { get; } = logger;
@@ -67,15 +75,15 @@ internal sealed class MasterKeyMaintenanceService(
     {
         try
         {
-            // The pass reads the store, so it waits for the replica to materialize its server, as every hosted
+            // The pass reads the store, so it waits for the replica to materialize its platform, as every hosted
             // service that reads the store does.
-            var server = await MaterializedServerAccessor.GetServerAsync(stoppingToken);
-            await RunAsync(server.ServerId, stoppingToken);
+            await MaterializedPlatformAccessor.GetPlatformAsync(stoppingToken);
+            await RunAsync(stoppingToken);
 
             using var timer = new PeriodicTimer(MasterKeys.MaintenanceInterval, TimeProvider);
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
-                await RunAsync(server.ServerId, stoppingToken);
+                await RunAsync(stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -88,14 +96,13 @@ internal sealed class MasterKeyMaintenanceService(
     /// Runs one pass, when this replica wins the pass's lease. A pass that fails is logged and run again at the next
     /// interval.
     /// </summary>
-    /// <param name="serverId">The identifier of the server whose master keys are maintained.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    internal async ValueTask RunAsync(string serverId, CancellationToken cancellationToken)
+    internal async ValueTask RunAsync(CancellationToken cancellationToken)
     {
         try
         {
-            await RunCoreAsync(serverId, cancellationToken);
+            await RunCoreAsync(cancellationToken);
         }
         // A timeout throws OperationCanceledException with the token untouched; only a cancelled token is shutdown.
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
@@ -104,13 +111,12 @@ internal sealed class MasterKeyMaintenanceService(
         }
     }
 
-    private async ValueTask RunCoreAsync(string serverId, CancellationToken cancellationToken)
+    private async ValueTask RunCoreAsync(CancellationToken cancellationToken)
     {
         // The lease lasts half the interval, as the tenant key rollover's does: one that lasted the whole interval
         // would still be held when the same replica's timer ticks next.
-        var leaseKey = $"{LeasePurpose}:{serverId}";
         var leaseExpiresWhen = TimeProvider.GetUtcNow() + MasterKeys.MaintenanceInterval / 2;
-        if (!await ExpiringKeySet.TryAddAsync(leaseKey, leaseExpiresWhen, cancellationToken))
+        if (!await ExpiringKeySet.TryAddAsync(LeaseKey, leaseExpiresWhen, cancellationToken))
             return;
 
         await RotateOverdueAsync(cancellationToken);
@@ -255,13 +261,7 @@ internal sealed class MasterKeyMaintenanceService(
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
-            TenantId = string.Equals(
-                owner.OwnerType,
-                SecretOwnerTypes.Tenant,
-                StringComparison.OrdinalIgnoreCase
-            )
-                ? owner.OwnerId
-                : null,
+            TenantId = GetTenantId(owner),
             Actor = AuditActor.System,
             Outcome = AuditOutcome.Success,
             Change = change,
@@ -274,6 +274,27 @@ internal sealed class MasterKeyMaintenanceService(
             RetiredKeyId = retired?.KeyId,
             RetiredVersion = retired?.Version,
         };
+    }
+
+    // A tenant's event is recorded in that tenant, and a platform event, which no tenant owns, in the control-plane tenant.
+    private string? GetTenantId(SecretOwner owner)
+    {
+        if (
+            string.Equals(
+                owner.OwnerType,
+                SecretOwnerTypes.Tenant,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+            return owner.OwnerId;
+
+        return string.Equals(
+            owner.OwnerType,
+            SecretOwnerTypes.Platform,
+            StringComparison.OrdinalIgnoreCase
+        )
+            ? TenantResolver.GetControlPlaneTenantId()
+            : null;
     }
 
     // A change is audited once it is committed. No caller token reaches the publishing, so every failure, its timeout

@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Extends <see cref="ManagementApiEndpointHandler"/> with the management implementation's own secret- and
-/// settings-projection helpers shared by the client, tenant, and server endpoint handlers.
+/// settings-projection helpers shared by the client, tenant, team, and platform endpoint handlers.
 /// </summary>
 internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
 {
@@ -134,7 +134,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <summary>
     /// Builds the <c>400 Bad Request</c> validation problem for a settings document that cannot be honored: the
     /// problem's <c>errors</c> map each offending setting name to its errors, and its <c>detail</c> lists them. A
-    /// tenant or server change can report one error per client, so each setting lists at most
+    /// tenant, team or platform change can report one error per client, so each setting lists at most
     /// <see cref="MaxErrorsPerSetting"/> errors and then counts the rest.
     /// </summary>
     /// <param name="errors">The <see cref="SettingError"/> instances describing each setting that cannot be honored.</param>

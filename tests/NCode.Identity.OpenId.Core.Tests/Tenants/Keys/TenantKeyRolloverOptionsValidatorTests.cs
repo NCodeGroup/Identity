@@ -154,11 +154,11 @@ public sealed class TenantKeyRolloverOptionsValidatorTests : BaseTests
     {
         var options = new OpenIdOptions
         {
-            Tenant = { KeyRollover = { TokenLifetimeSettings = ["server_only_lifetime"] } },
+            Tenant = { KeyRollover = { TokenLifetimeSettings = ["platform_only_lifetime"] } },
         };
         SetupDescriptor(
-            "server_only_lifetime",
-            CreateDescriptor<TimeSpan>("server_only_lifetime", OpenIdSettingScopes.Server),
+            "platform_only_lifetime",
+            CreateDescriptor<TimeSpan>("platform_only_lifetime", OpenIdSettingScopes.Platform),
             appliesWithinTenant: false
         );
 
@@ -166,7 +166,7 @@ public sealed class TenantKeyRolloverOptionsValidatorTests : BaseTests
 
         Assert.True(result.Failed);
         var failure = Assert.Single(result.Failures ?? []);
-        Assert.Contains("'server_only_lifetime'", failure, StringComparison.Ordinal);
+        Assert.Contains("'platform_only_lifetime'", failure, StringComparison.Ordinal);
     }
 
     #endregion

@@ -38,6 +38,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         _clientStore = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
         _resourceServerStore = new ResourceServerStore(
             Mock.Of<IStoreProvider>(),
@@ -80,6 +81,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,
@@ -266,12 +268,13 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     {
         await SeedTenantAsync();
         var otherTenantKey = CreateMasterKey(SecretOwnerTypes.Tenant, "tenant-2", 1);
-        var serverKey = CreateMasterKey(SecretOwnerTypes.Server, TenantId, 1);
+        // The platform key's owner id matches the tenant's on purpose: only the owner type keeps it.
+        var platformKey = CreateMasterKey(SecretOwnerTypes.Platform, TenantId, 1);
         await SeedMasterKeysAsync(
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantId, 1),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantId.ToUpperInvariant(), 2),
             otherTenantKey,
-            serverKey
+            platformKey
         );
 
         var removed = await _store.RemoveAsync(TenantId, CancellationToken.None);
@@ -284,7 +287,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             .ToListAsync();
         Assert.Equal(2, remainingKeyIds.Count);
         Assert.Contains(otherTenantKey.KeyId, remainingKeyIds);
-        Assert.Contains(serverKey.KeyId, remainingKeyIds);
+        Assert.Contains(platformKey.KeyId, remainingKeyIds);
     }
 
     [Fact]

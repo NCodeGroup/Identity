@@ -14,7 +14,9 @@
   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): an owner's master key rotates, its data keys are rewrapped and a retired key is destroyed, and cached keys
   reload after a refresh interval, which decides decision 11's master key rotation and the rotation the Consequences
   list; amended by
-  [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): the recovery private key unwraps master keys only inside the offline command, which is the rewrap and recovery tool the Consequences list)
+  [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): the recovery private key unwraps master keys only inside the offline command, which is the rewrap and recovery tool the Consequences list; amended by
+  [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md): the platform's master key
+  protects the Data Protection key ring and the host's own data, and no stored secret)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)

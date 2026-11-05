@@ -1,6 +1,8 @@
 # 1159. A tenant is named by its creator
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a tenant is created
+  under its team at `POST /api/teams/{teamId}/tenants`)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0123](project-template/0123-resource-ids-are-server-generated-and-opaque.md)

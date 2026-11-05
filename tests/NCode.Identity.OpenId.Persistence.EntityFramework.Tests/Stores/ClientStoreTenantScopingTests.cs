@@ -107,9 +107,12 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
 
     private async Task SeedTenantAsync(string tenantId)
     {
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
+
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,

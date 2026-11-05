@@ -17,7 +17,7 @@ namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
 /// Binds the <see cref="SecretProtectionOptions.DefaultSectionName"/> configuration section and protects the Data
-/// Protection key ring under the master key of the server.
+/// Protection key ring under the master key of the platform.
 /// </summary>
 // See ADR-1235.
 // See ADR-1370.
@@ -38,7 +38,7 @@ internal static class SecretProtectionRegistration
 
     /// <summary>
     /// Binds the options that configure how stored secrets are protected from <paramref name="configuration"/> and
-    /// encrypts the Data Protection key ring under the master key of the server. The server's protector is loaded by a
+    /// encrypts the Data Protection key ring under the master key of the platform. The platform's protector is loaded by a
     /// hosted service that is placed before every other one, and the key ring gate is placed right after it, so the
     /// protector is ready and every live key of the ring is known to decrypt before Data Protection loads the key ring.
     /// </summary>
@@ -99,16 +99,16 @@ internal static class SecretProtectionRegistration
             .Configure(options => keyRingSection.BindStrictly(options))
             .ValidateOnStart();
 
-        serviceCollection.TryAddSingleton<ServerSecretProtectorHolder>();
+        serviceCollection.TryAddSingleton<PlatformSecretProtectorHolder>();
         serviceCollection.TryAddSingleton<DataProtectionKeyRingReader>();
-        serviceCollection.TryAddSingleton<ServerSecretProtectorLoader>();
+        serviceCollection.TryAddSingleton<PlatformSecretProtectorLoader>();
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<IProtectedValueSource, DataProtectionKeyRingValueSource>()
         );
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<
                 IReplicaBroadcastHandler,
-                ServerMasterKeyChangeBroadcastHandler
+                PlatformMasterKeyChangeBroadcastHandler
             >()
         );
         serviceCollection.TryAddSingleton(TimeProvider.System);
@@ -124,13 +124,13 @@ internal static class SecretProtectionRegistration
         if (
             !serviceCollection.Any(descriptor =>
                 descriptor.ServiceType == typeof(IHostedService)
-                && descriptor.ImplementationType == typeof(ServerSecretProtectorWarmup)
+                && descriptor.ImplementationType == typeof(PlatformSecretProtectorWarmup)
             )
         )
         {
             serviceCollection.Insert(
                 0,
-                ServiceDescriptor.Singleton<IHostedService, ServerSecretProtectorWarmup>()
+                ServiceDescriptor.Singleton<IHostedService, PlatformSecretProtectorWarmup>()
             );
         }
 
@@ -147,20 +147,20 @@ internal static class SecretProtectionRegistration
             );
         }
 
-        // The refresh follows the gate, so it never runs before the server's protector is loaded and checked.
+        // The refresh follows the gate, so it never runs before the platform's protector is loaded and checked.
         if (
             !serviceCollection.Any(descriptor =>
                 descriptor.ServiceType == typeof(IHostedService)
-                && descriptor.ImplementationType == typeof(ServerSecretProtectorRefreshService)
+                && descriptor.ImplementationType == typeof(PlatformSecretProtectorRefreshService)
             )
         )
         {
-            serviceCollection.AddHostedService<ServerSecretProtectorRefreshService>();
+            serviceCollection.AddHostedService<PlatformSecretProtectorRefreshService>();
         }
 
         serviceCollection
             .AddOptions<KeyManagementOptions>()
-            .Configure<ServerSecretProtectorHolder>(
+            .Configure<PlatformSecretProtectorHolder>(
                 (options, holder) => options.XmlEncryptor = new MasterKeyXmlEncryptor(holder)
             );
     }

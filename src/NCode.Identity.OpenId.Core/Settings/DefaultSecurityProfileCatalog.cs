@@ -152,7 +152,7 @@ internal sealed class DefaultSecurityProfileCatalog(
             scopeName
         );
 
-    // The scope's own settings replace the baseline's, as the server's configuration replaces a descriptor default.
+    // The scope's own settings replace the baseline's, as the platform's configuration replaces a descriptor default.
     private IReadOnlySettingCollection Layer(
         IReadOnlyCollection<Setting> baselineSettings,
         IReadOnlyCollection<Setting> scopeSettings

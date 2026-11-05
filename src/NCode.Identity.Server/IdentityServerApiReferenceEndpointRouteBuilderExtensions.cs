@@ -16,8 +16,9 @@ namespace NCode.Identity.Server;
 
 /// <summary>
 /// Provides turnkey endpoint mapping for the OpenID server's API reference: the OpenAPI document and a Scalar UI wired
-/// to the server's own security schemes. It is safe in every environment — the client-credentials login is only
-/// pre-filled with the bootstrap administrator credentials during development, and never carries a secret otherwise.
+/// to the OpenID Provider's own security schemes. It is safe in every environment — the client-credentials login is
+/// only pre-filled with the bootstrap administrator credentials during development, and never carries a secret
+/// otherwise.
 /// </summary>
 [PublicAPI]
 public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions

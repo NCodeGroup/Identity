@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Mediator;
 using Xunit;
@@ -29,7 +29,7 @@ public class DefaultOpenIdContextFactoryTests : BaseTests
             .BuildServiceProvider();
         var factory = CreatePartialMock<DefaultOpenIdContextFactory>(
             CreateStrictMock<IOpenIdEnvironmentProvider>().Object,
-            CreateStrictMock<IOpenIdServerProvider>().Object,
+            CreateStrictMock<IOpenIdPlatformProvider>().Object,
             CreateStrictMock<IOpenIdTenantFactory>().Object
         );
         factory

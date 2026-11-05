@@ -55,6 +55,24 @@ public interface ITenantUsageStore : IStore
     );
 
     /// <summary>
+    /// Lists the usage of every tenant of a team, including tenants since deleted, of every meter on the days from
+    /// <paramref name="firstDay"/> to <paramref name="lastDay"/>, both inclusive, ordered by day, then by tenant, then
+    /// by meter.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="firstDay">The first UTC calendar day to list.</param>
+    /// <param name="lastDay">The last UTC calendar day to list.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the usage.</returns>
+    // See ADR-1411.
+    ValueTask<IReadOnlyList<PersistedTenantUsage>> ListByTeamAsync(
+        string teamId,
+        DateOnly firstDay,
+        DateOnly lastDay,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Removes, when the unit of work is saved, up to <paramref name="limit"/> of the usage entries counted before
     /// <paramref name="day"/>, the end of the ledger's retention, and the last added batch of every replica whose
     /// latest usage day is before it.

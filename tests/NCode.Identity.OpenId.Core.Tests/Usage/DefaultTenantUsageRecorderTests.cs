@@ -26,35 +26,51 @@ public sealed class DefaultTenantUsageRecorderTests
     [Fact]
     public void Record_CountsEachTenantDayAndMeter()
     {
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
-        Recorder.Record("tenant-1", TenantUsageMeters.TokenRequests);
-        Recorder.Record("tenant-2", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.TokenRequests);
+        Recorder.Record("team-1", "tenant-2", TenantUsageMeters.Requests);
 
         var usage = Recorder.Drain();
 
         Assert.Equal(3, usage.Count);
-        Assert.Equal(2, usage[new TenantUsageKey("tenant-1", Today, TenantUsageMeters.Requests)]);
+        Assert.Equal(
+            2,
+            usage[new TenantUsageKey("team-1", "tenant-1", Today, TenantUsageMeters.Requests)]
+        );
         Assert.Equal(
             1,
-            usage[new TenantUsageKey("tenant-1", Today, TenantUsageMeters.TokenRequests)]
+            usage[new TenantUsageKey("team-1", "tenant-1", Today, TenantUsageMeters.TokenRequests)]
         );
-        Assert.Equal(1, usage[new TenantUsageKey("tenant-2", Today, TenantUsageMeters.Requests)]);
+        Assert.Equal(
+            1,
+            usage[new TenantUsageKey("team-1", "tenant-2", Today, TenantUsageMeters.Requests)]
+        );
     }
 
     [Fact]
     public void Record_WhenTheUtcDayChanges_CountsTheNewDaySeparately()
     {
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
         TimeProvider.Advance(TimeSpan.FromSeconds(1));
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
 
         var usage = Recorder.Drain();
 
-        Assert.Equal(1, usage[new TenantUsageKey("tenant-1", Today, TenantUsageMeters.Requests)]);
         Assert.Equal(
             1,
-            usage[new TenantUsageKey("tenant-1", Today.AddDays(1), TenantUsageMeters.Requests)]
+            usage[new TenantUsageKey("team-1", "tenant-1", Today, TenantUsageMeters.Requests)]
+        );
+        Assert.Equal(
+            1,
+            usage[
+                new TenantUsageKey(
+                    "team-1",
+                    "tenant-1",
+                    Today.AddDays(1),
+                    TenantUsageMeters.Requests
+                )
+            ]
         );
     }
 
@@ -64,7 +80,17 @@ public sealed class DefaultTenantUsageRecorderTests
     [InlineData("tenant-1", null)]
     public void Record_WhenATenantOrMeterIsEmpty_Throws(string tenantId, string? meter)
     {
-        Assert.ThrowsAny<ArgumentException>(() => Recorder.Record(tenantId, meter!));
+        Assert.ThrowsAny<ArgumentException>(() => Recorder.Record("team-1", tenantId, meter!));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public void Record_WhenTheTeamIsEmpty_Throws(string? teamId)
+    {
+        Assert.ThrowsAny<ArgumentException>(() =>
+            Recorder.Record(teamId!, "tenant-1", TenantUsageMeters.Requests)
+        );
     }
 
     [Fact]
@@ -72,7 +98,9 @@ public sealed class DefaultTenantUsageRecorderTests
     {
         var meter = new string('m', OpenIdMaxLengths.UsageMeter + 1);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => Recorder.Record("tenant-1", meter));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Recorder.Record("team-1", "tenant-1", meter)
+        );
     }
 
     #endregion
@@ -82,7 +110,7 @@ public sealed class DefaultTenantUsageRecorderTests
     [Fact]
     public void Drain_TakesTheUsageOnce()
     {
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
 
         Assert.Single(Recorder.Drain());
         Assert.Empty(Recorder.Drain());

@@ -79,6 +79,7 @@ public sealed class FrontendIssuerResolverTests : BaseTests
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = issuer,
             IsDisabled = false,
             DisplayName = "Test Tenant",

@@ -3,6 +3,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
+using NCode.Identity.OpenId.Persistence;
 
 namespace NCode.Identity.OpenId;
 
@@ -12,6 +13,11 @@ namespace NCode.Identity.OpenId;
 [PublicAPI]
 public static partial class OpenIdConstants
 {
+    /// <summary>
+    /// Contains the identifier of the platform's authority node and settings document, the one deployment root.
+    /// </summary>
+    public const string PlatformResourceId = OpenIdResourceIds.Platform;
+
     /// <summary>
     /// Contains the names for various <c>OAuth</c> and <c>OpenID Connect</c> endpoints and routes.
     /// </summary>
@@ -242,14 +248,19 @@ public static partial class OpenIdConstants
         public const string ResourceServers = "ResourceServers";
 
         /// <summary>
-        /// Contains the OpenAPI tag applied to the <c>servers</c> management endpoints.
+        /// Contains the OpenAPI tag applied to the <c>platform</c> management endpoints.
         /// </summary>
-        public const string Servers = "Servers";
+        public const string Platform = "Platform";
 
         /// <summary>
         /// Contains the OpenAPI tag applied to the <c>tenants</c> management endpoints.
         /// </summary>
         public const string Tenants = "Tenants";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the <c>teams</c> management endpoints.
+        /// </summary>
+        public const string Teams = "Teams";
 
         /// <summary>
         /// Contains the OpenAPI tag applied to the <c>local accounts</c> management endpoints.
@@ -262,7 +273,7 @@ public static partial class OpenIdConstants
         public const string Principals = "Principals";
 
         /// <summary>
-        /// Contains the OpenAPI tag applied to the server <c>capabilities</c> discovery endpoint.
+        /// Contains the OpenAPI tag applied to the platform <c>capabilities</c> discovery endpoint.
         /// </summary>
         public const string Capabilities = "Capabilities";
     }
@@ -488,7 +499,7 @@ public static partial class OpenIdConstants
     }
 
     /// <summary>
-    /// Contains constants for the named <c>security_profiles</c> values a server, tenant, or client can select to
+    /// Contains constants for the named <c>security_profiles</c> values a platform, team, tenant, or client can select to
     /// tighten the OP to a standardized security baseline.
     /// </summary>
     public static class SecurityProfiles

@@ -67,7 +67,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.KeyRingKeyUndecryptable,
         Level = LogLevel.Error,
-        Message = "The Data Protection key '{KeyId}' cannot be decrypted with the server's master key."
+        Message = "The Data Protection key '{KeyId}' cannot be decrypted with the platform's master key."
     )]
     internal static partial void KeyRingKeyUndecryptable(
         this ILogger logger,
@@ -94,11 +94,11 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSecretProtectorRefreshFailed,
+        EventId = EventIds.PlatformSecretProtectorRefreshFailed,
         Level = LogLevel.Warning,
-        Message = "Loading the server's secret protector again failed; the protector in use stays, and the next refresh tries again."
+        Message = "Loading the platform's secret protector again failed; the protector in use stays, and the next refresh tries again."
     )]
-    internal static partial void ServerSecretProtectorRefreshFailed(
+    internal static partial void PlatformSecretProtectorRefreshFailed(
         this ILogger logger,
         Exception exception
     );

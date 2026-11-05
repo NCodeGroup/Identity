@@ -199,6 +199,7 @@ public class TenantRouteTests
         string? issuer
     )
     {
+        await factory.EnsureTeamAsync();
         using var scope = factory.Services.CreateScope();
         var storeManagerFactory = scope.ServiceProvider.GetRequiredService<IStoreManagerFactory>();
         await using var storeManager = await storeManagerFactory.CreateAsync(
@@ -210,6 +211,7 @@ public class TenantRouteTests
             new PersistedTenant
             {
                 TenantId = tenantId,
+                TeamId = "platform",
                 Issuer = issuer,
                 ConcurrencyToken = Guid.NewGuid().ToString("N"),
                 IsDisabled = false,

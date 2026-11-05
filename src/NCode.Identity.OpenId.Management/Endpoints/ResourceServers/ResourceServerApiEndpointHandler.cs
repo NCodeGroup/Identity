@@ -198,8 +198,9 @@ internal class ResourceServerApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent);
     }
 
-    // A system resource server's tokens are read by the server itself, which decrypts them with the tenant's keys; a key
-    // of its own would make issuance encrypt its tokens to a key the server's own endpoints do not read (ADR-1167).
+    // A system resource server's tokens are read by the server itself, which decrypts them with the tenant's keys; a
+    // key of its own would make issuance encrypt its tokens to a key the OpenID Provider's own endpoints do not read
+    // (ADR-1167).
     private static ProblemHttpResult SystemResourceServerHoldsNoKeys() =>
         TypedResults.Problem(
             detail: "A system resource server is read by the server itself and holds no keys.",
@@ -345,8 +346,8 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         // Setting names are a closed vocabulary (ADR-1139), and a resource server carries only the settings that apply
-        // within it (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and failed
-        // when the resource server's settings are next loaded.
+        // within it (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and
+        // failed when the resource server's settings are next loaded.
         var settingErrors = SettingSerializer.ValidateSettings(
             request.Settings,
             OpenIdSettingScopes.ResourceServer,
@@ -885,13 +886,13 @@ internal class ResourceServerApiEndpointHandler(
 
     /// <summary>
     /// Merges a resource server's persisted settings onto the addressed tenant's effective settings, producing the same
-    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (server baseline
-    /// merged with the tenant's — expanded with the ceilings of the security profiles it selects — and then the resource
-    /// server's persisted overrides). Every document is read through the <see cref="IEffectiveSettingsResolver"/>;
-    /// a resource server selects no security profile, so its document adds none. A document that
-    /// cannot be honored fails naming its owner.
+    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves at runtime (the team's
+    /// effective settings merged with the tenant's — expanded with the ceilings of the security profiles it selects —
+    /// and then the resource server's persisted overrides). Every document is read through the <see
+    /// cref="IEffectiveSettingsResolver"/>; a resource server selects no security profile, so its document adds none. A
+    /// document that cannot be honored fails naming its owner.
     /// </summary>
-    /// <exception cref="UnreadableSettingsException">The resource server's document, the tenant's or the server's
+    /// <exception cref="UnreadableSettingsException">The resource server's document, the tenant's or its team's
     /// cannot be honored.</exception>
     // See ADR-1149, ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection?> MergeResourceServerSettingsAsync(
@@ -901,20 +902,23 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantSettings = await storeManager
+        var tenant = await storeManager
             .GetStore<ITenantStore>()
-            .GetSettingsOrDefaultAsync(tenantId, cancellationToken);
-        if (tenantSettings is null)
+            .GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
         {
             return null;
         }
 
-        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var teamEffective = await EffectiveSettingsResolver.ResolveTeamAsync(
+            tenant.TeamId,
+            cancellationToken
+        );
         var tenantEffective = EffectiveSettingsResolver.ResolveStored(
-            serverEffective,
+            teamEffective,
             OpenIdSettingScopes.Tenant,
             tenantId,
-            tenantSettings.Value
+            tenant.Settings.Value
         );
         return EffectiveSettingsResolver.ResolveStored(
             tenantEffective,

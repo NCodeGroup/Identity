@@ -3,7 +3,9 @@
 - **Status:** Accepted (extended by [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md): setting names are a
   closed vocabulary, and the remaining lenient configuration inputs are bound and validated; extended by
   [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md): each tenant strategy validates its
-  own options, by the same rules that judge the tenants written while the host runs)
+  own options, by the same rules that judge the tenants written while the host runs; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the `OpenId:Platform`
+  and `OpenId:Team` sections bind strictly and are validated at startup)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)

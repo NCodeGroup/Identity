@@ -33,7 +33,7 @@ public class ClientAuthenticationAttemptLimitTests
             new Dictionary<string, string?>
             {
                 [
-                    $"OpenId:Server:Settings:{OpenIdSettingNames.ClientAuthenticationFailedAttemptsLimit}"
+                    $"OpenId:Platform:Settings:{OpenIdSettingNames.ClientAuthenticationFailedAttemptsLimit}"
                 ] = limit.ToString(CultureInfo.InvariantCulture),
             }
         );
@@ -61,7 +61,7 @@ public class ClientAuthenticationAttemptLimitTests
                     ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                     ["client_id"] = ClientId,
                     ["client_secret"] = clientSecret,
-                    ["scope"] = TestServerSettingsProvider.ApiScope,
+                    ["scope"] = TestPlatformSettingsProvider.ApiScope,
                 }
             ),
         };
@@ -76,7 +76,7 @@ public class ClientAuthenticationAttemptLimitTests
             ClientId,
             "it-attempt-rs-api",
             "https://api.attempt.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
     }
 

@@ -94,13 +94,13 @@ describe('OwnerEncryptionKeysTab', () => {
     expect(screen.queryByTestId('encryption-keys-no-recovery')).not.toBeInTheDocument();
   });
 
-  it('lists the keys of the server from its encryption-keys path', async () => {
+  it('lists the keys of the platform from its encryption-keys path', async () => {
     const calls = installFetch(() => jsonResponse(keys));
 
-    renderTab({ kind: 'server', serverId: 'root' }, 'server');
+    renderTab({ kind: 'platform' }, 'platform');
 
     expect(await screen.findByTestId('encryption-key-row-k-2')).toBeInTheDocument();
-    expect(calls[0]?.url).toBe('https://api.test/api/servers/root/encryption-keys');
+    expect(calls[0]?.url).toBe('https://api.test/api/platform/encryption-keys');
   });
 
   it('warns when new keys are not wrapped under a recovery key', async () => {
@@ -109,7 +109,7 @@ describe('OwnerEncryptionKeysTab', () => {
     renderTab({ kind: 'tenant', tenantId: 'acme' }, 'tenant');
 
     expect(await screen.findByTestId('encryption-keys-no-recovery')).toHaveTextContent(
-      'this tenant stores',
+      'this tenant protects',
     );
   });
 
@@ -160,6 +160,38 @@ describe('OwnerEncryptionKeysTab', () => {
     await waitFor(() => expect(screen.queryByTestId('confirm-accept')).not.toBeInTheDocument());
   });
 
+  it('tells a tenant that its values are rewrapped in the background', async () => {
+    installFetch(() => jsonResponse(keys));
+
+    renderTab({ kind: 'tenant', tenantId: 'acme' }, 'tenant');
+    await screen.findByTestId('encryption-key-row-k-2');
+
+    fireEvent.click(screen.getByTestId('encryption-keys-rekey'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(
+      'Retire the active encryption key of this tenant and start the next version? The values the old key protects are rewrapped under the new one in the background, and the old key is destroyed once nothing uses it.',
+    );
+  });
+
+  it('tells the platform what its next version protects and when the old key is destroyed', async () => {
+    installFetch(() => jsonResponse(keys));
+
+    renderTab({ kind: 'platform' }, 'platform');
+    await screen.findByTestId('encryption-key-row-k-2');
+
+    fireEvent.click(screen.getByTestId('encryption-keys-rekey'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(
+      'The next version protects the Data Protection keys and host data created afterwards.',
+    );
+    expect(dialog).toHaveTextContent(
+      'Existing Data Protection keys keep naming the old version until they expire, and the old key is destroyed once nothing names it.',
+    );
+    expect(dialog).not.toHaveTextContent('rewrapped');
+  });
+
   it('does not rekey when the confirmation is cancelled', async () => {
     const calls = installFetch(() => jsonResponse(keys));
 
@@ -189,7 +221,7 @@ describe('OwnerEncryptionKeysTab', () => {
       return jsonResponse(keys);
     });
 
-    renderTab({ kind: 'server', serverId: 'root' }, 'server');
+    renderTab({ kind: 'platform' }, 'platform');
     await screen.findByTestId('encryption-key-row-k-2');
 
     fireEvent.click(screen.getByTestId('encryption-keys-rekey'));

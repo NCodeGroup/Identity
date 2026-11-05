@@ -64,9 +64,11 @@ public sealed class ClientStorePagingTests : IDisposable
 
     private async Task SeedAsync(int count)
     {
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         var tenant = new PersistedTenant
         {
             TenantId = TenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,

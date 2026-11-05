@@ -413,15 +413,15 @@ public sealed class ExpandOnlyRuleTests
             new AddForeignKeyOperation
             {
                 Table = Table,
-                Name = "FK_Tenants_Servers_ServerId",
-                Columns = ["ServerId"],
-                PrincipalTable = "Servers",
+                Name = "FK_Tenants_Teams_TeamId",
+                Columns = ["TeamId"],
+                PrincipalTable = "Teams",
                 PrincipalColumns = ["Id"],
             },
         ]);
 
         Assert.Equal(
-            ["adds foreign key FK_Tenants_Servers_ServerId to existing table Tenants"],
+            ["adds foreign key FK_Tenants_Teams_TeamId to existing table Tenants"],
             findings
         );
     }

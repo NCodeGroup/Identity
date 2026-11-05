@@ -24,6 +24,11 @@ public static class ManagementResourceTypes
     public const string ClientSecret = "client.secret";
 
     /// <summary>
+    /// A team, a grouping of related tenants.
+    /// </summary>
+    public const string Team = "team";
+
+    /// <summary>
     /// An OpenID tenant.
     /// </summary>
     public const string Tenant = AuditResourceTypes.Tenant;
@@ -34,14 +39,9 @@ public static class ManagementResourceTypes
     public const string TenantSecret = AuditResourceTypes.TenantSecret;
 
     /// <summary>
-    /// An OpenID server.
+    /// The platform, the deployment root.
     /// </summary>
-    public const string Server = "server";
-
-    /// <summary>
-    /// A secret belonging to an OpenID server.
-    /// </summary>
-    public const string ServerSecret = "server.secret";
+    public const string Platform = "platform";
 
     /// <summary>
     /// A resource server (API, in Auth0 terms).

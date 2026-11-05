@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore, managementApi } from '@ncode/store';
-import type { ManagementOwner, SecretResource } from '@ncode/api';
+import type { SecretOwner, SecretResource } from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 
@@ -33,12 +33,11 @@ const symmetricSecret: SecretResource = {
 
 type OwnerCase = {
   readonly key: string;
-  readonly owner: ManagementOwner;
+  readonly owner: SecretOwner;
   readonly rotates: boolean;
 };
 
 const cases: readonly OwnerCase[] = [
-  { key: 'server', owner: { kind: 'server', serverId: 'root' }, rotates: false },
   { key: 'tenant', owner: { kind: 'tenant', tenantId: 'acme' }, rotates: false },
   {
     key: 'client',

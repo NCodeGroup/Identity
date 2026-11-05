@@ -116,7 +116,7 @@ secretProtection:
     # 'rewrap' wraps every master key under the root key provider and the recovery public key; 'rewrap-recovery'
     # replaces only the recovery copies and needs recovery.publicKeyConfigMap.
     command: rewrap
-    # Limits the run to one owner, such as tenant:acme or server:default; empty rewraps every owner.
+    # Limits the run to one owner, such as tenant:acme or platform:platform; empty rewraps every owner.
     owner: ""
     # true only verifies that every master key can be unwrapped, and writes nothing.
     dryRun: false

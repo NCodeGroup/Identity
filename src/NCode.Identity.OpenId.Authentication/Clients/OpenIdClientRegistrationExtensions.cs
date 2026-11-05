@@ -7,7 +7,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
 /// Provides the client-authentication registration of an <see cref="OpenIdClient"/>: the one method it is registered to
-/// use (RFC 7591 §2), the client type that method decides (RFC 6749 §2.1), and whether the server, tenant, and security
+/// use (RFC 7591 §2), the client type that method decides (RFC 6749 §2.1), and whether the platform, team, tenant, and security
 /// profile permit it. Every endpoint that authenticates a client accepts only its registered method, so a client that
 /// authenticated is always of the type it is registered as; the authorization endpoint, which does not authenticate the
 /// client, reads the registered type directly.
@@ -20,7 +20,7 @@ internal static class OpenIdClientRegistrationExtensions
         /// <summary>
         /// Gets the client-authentication method the client is registered to use: its effective
         /// <c>token_endpoint_auth_method</c> setting, which is <c>client_secret_basic</c> when neither the client nor
-        /// its server or tenant registers one.
+        /// its platform, team or tenant registers one.
         /// </summary>
         public string RegisteredAuthenticationMethod
         {
@@ -47,7 +47,7 @@ internal static class OpenIdClientRegistrationExtensions
 
         /// <summary>
         /// Gets a value indicating whether the client's effective <c>token_endpoint_auth_methods_supported</c> — the
-        /// ceiling its server, tenant, and security profile impose — permits its registered client-authentication
+        /// ceiling its platform, team, tenant, and security profile impose — permits its registered client-authentication
         /// method. An unset ceiling permits every method; a client whose registered method the ceiling excludes cannot
         /// authenticate at all.
         /// </summary>

@@ -14,7 +14,7 @@ using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.SharedState;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -38,7 +38,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
         TimeSpan.Zero
     );
 
-    private Mock<IMaterializedServerAccessor> MockMaterializedServerAccessor { get; }
+    private Mock<IMaterializedPlatformAccessor> MockMaterializedPlatformAccessor { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IGrantStore> MockGrantStore { get; }
@@ -52,7 +52,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
 
     public EndedSessionTerminationServiceTests()
     {
-        MockMaterializedServerAccessor = CreateStrictMock<IMaterializedServerAccessor>();
+        MockMaterializedPlatformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockGrantStore = CreateStrictMock<IGrantStore>();
@@ -61,7 +61,7 @@ public sealed class EndedSessionTerminationServiceTests : BaseTests
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
         RootServiceProvider = new ServiceCollection().BuildServiceProvider();
         Service = new EndedSessionTerminationService(
-            MockMaterializedServerAccessor.Object,
+            MockMaterializedPlatformAccessor.Object,
             RootServiceProvider.GetRequiredService<IServiceScopeFactory>(),
             MockStoreManagerFactory.Object,
             MockOpenIdContextFactory.Object,

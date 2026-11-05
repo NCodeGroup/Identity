@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Clients.Coherence;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Registration;
@@ -204,10 +204,10 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A change of the server's settings that is not a write is reported client by client (ADR-1219).
+            // A change of the platform's settings that is not a write is reported client by client (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    ICommandHandler<ReconcileServerSettingsCommand>,
+                    ICommandHandler<ReconcileTeamSettingsCommand>,
                     ClientCoherenceReportHandler
                 >()
             );

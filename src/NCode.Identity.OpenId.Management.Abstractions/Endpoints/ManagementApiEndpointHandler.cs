@@ -54,15 +54,26 @@ public abstract class ManagementApiEndpointHandler
         JsonSerializer.SerializeToElement(resource, JsonSerializerOptions.Web);
 
     /// <summary>
-    /// Returns the appropriate <see cref="IResult"/> for a failed authorization: <c>403 Forbidden</c> when the
-    /// user is authenticated (but lacks permission) and <c>401 Unauthorized</c> when the user is anonymous.
+    /// Returns the problem-details <see cref="IResult"/> for a failed authorization: <c>403 Forbidden</c> when the
+    /// user is authenticated (but lacks permission) and <c>401 Unauthorized</c> when the user is anonymous. The
+    /// management API publishes the bearer principal itself through <c>ManagementAuthenticationEndpointFilter</c>
+    /// and never through an authentication scheme, so the refusal never runs a scheme's forbid or challenge, which
+    /// could redirect to an interactive page.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <returns>The <see cref="IResult"/> representing the authorization failure.</returns>
     protected internal virtual IResult AuthorizationFailed(HttpContext httpContext)
     {
         var isAuthenticated = httpContext.User.Identity?.IsAuthenticated ?? false;
-        return isAuthenticated ? TypedResults.Forbid() : TypedResults.Unauthorized();
+        return isAuthenticated
+            ? TypedResults.Problem(
+                detail: "The caller is not authorized for this operation.",
+                statusCode: StatusCodes.Status403Forbidden
+            )
+            : TypedResults.Problem(
+                detail: "Authentication is required.",
+                statusCode: StatusCodes.Status401Unauthorized
+            );
     }
 
     /// <summary>
@@ -239,8 +250,9 @@ public abstract class ManagementApiEndpointHandler
     /// touches the store.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="authorizationResource">The resource evaluated by <see cref="Operations.List"/> authorization — a
-    /// tenant-scoped marker for a tenant-bound family, or <c>null</c> for a central-admin family.</param>
+    /// <param name="authorizationResource">The node the list is authorized at with <see cref="Operations.List"/>,
+    /// such as the tenant scope for a tenant's own family or the platform node for a platform-wide list, so a list is
+    /// never authorized without a node.</param>
     /// <param name="fetchPageAsync">A function that fetches the page once authorization has succeeded.</param>
     /// <param name="mapper">A function that maps a persisted item to its response representation.</param>
     /// <typeparam name="TItem">The type of the persisted item.</typeparam>
@@ -248,7 +260,7 @@ public abstract class ManagementApiEndpointHandler
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     protected internal virtual async ValueTask<IResult> ProcessListAsync<TItem, TResource>(
         HttpContext httpContext,
-        object? authorizationResource,
+        object authorizationResource,
         Func<ValueTask<PagedResult<TItem>>> fetchPageAsync,
         Func<TItem, TResource> mapper
     )

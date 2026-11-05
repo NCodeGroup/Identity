@@ -294,10 +294,10 @@ public sealed class GrantPayloadValueSourceTests : BaseTests
     }
 
     [Fact]
-    public async Task Rewrap_TheServerOwner_ReturnsNoneWithoutReading()
+    public async Task Rewrap_ThePlatformOwner_ReturnsNoneWithoutReading()
     {
         var result = await CreateSource()
-            .RewrapAsync(SecretOwner.ForServer("server-1"), OldKeys, CancellationToken.None);
+            .RewrapAsync(SecretOwner.Platform, OldKeys, CancellationToken.None);
 
         Assert.Equal(ProtectedValueRewrapResult.None, result);
     }

@@ -21,6 +21,11 @@ public abstract class OpenIdTenant : IAsyncDisposable
     public abstract string TenantId { get; }
 
     /// <summary>
+    /// Gets the identifier of the team the tenant belongs to. A tenant never moves between teams.
+    /// </summary>
+    public abstract string TeamId { get; }
+
+    /// <summary>
     /// Gets the display name for the tenant.
     /// </summary>
     public abstract string DisplayName { get; }
@@ -44,7 +49,7 @@ public abstract class OpenIdTenant : IAsyncDisposable
     public abstract UriDescriptor BaseAddress { get; }
 
     /// <summary>
-    /// Gets the <see cref="ISecretKeyCollectionProvider"/> that contains tenant settings merged with server settings.
+    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> that contains tenant settings merged with platform settings.
     /// This collection provider will periodically refresh the items from the backing store and provide change notifications.
     /// </summary>
     public abstract IReadOnlySettingCollectionProvider SettingsProvider { get; }

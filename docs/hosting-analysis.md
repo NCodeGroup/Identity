@@ -319,7 +319,7 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Bandwidth is not a cost driver.** Token responses are a few KB; even 1M interactive logins/month at ~500 KB of
   assets each is ~0.5 TB, below every vendor's included transfer.
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
-  ([ADR-1073](decisions/1073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the server
+  ([ADR-1073](decisions/1073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the platform
   master key, whose root key lives outside the database —
   [ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
   and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
@@ -405,7 +405,7 @@ cluster). Neon and Aiven Free/Developer are fine for dev/staging, not for a prod
 single-use DPoP-proof and client-assertion `jti`s
 ([ADR-1164](decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); losing it on restart only
 reopens a replay window bounded by the proof and assertion lifetimes. Enable AOF persistence if that window matters.
-Valkey also carries the replica broadcast port, so a tenant or server settings change reaches every replica at once
+Valkey also carries the replica broadcast port, so a tenant, team or platform settings change reaches every replica at once
 ([ADR-1205](decisions/1205-replicas-announce-changes-through-a-broadcast-port.md)); the access-control user needs `PUBLISH`
 and `SUBSCRIBE` as well as the key-set and counter commands, and an outage costs only that promptness, because the
 replicas converge through their polls and the 15-minute tenant cache lifetime.

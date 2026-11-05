@@ -100,7 +100,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -140,7 +140,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -160,6 +160,7 @@ public class TenantProvisioningTests
         var acme = list.GetProperty("items")
             .EnumerateArray()
             .Single(item => item.GetProperty("tenantId").GetString() == "acme");
+        Assert.Equal(HostApplicationFactory.TeamId, acme.GetProperty("teamId").GetString());
         var environment = acme.GetProperty("environment");
         Assert.Equal("development", environment.GetProperty("type").GetString());
         Assert.Equal("Acme Dev", environment.GetProperty("name").GetString());
@@ -173,7 +174,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -216,7 +217,9 @@ public class TenantProvisioningTests
         );
         using var client = await CreateAdministratorClientAsync(factory);
 
-        using var previewResponse = await client.GetAsync("/api/tenants/acme/address");
+        using var previewResponse = await client.GetAsync(
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/acme/address"
+        );
         var previewBody = await previewResponse.Content.ReadAsStringAsync();
         Assert.True(previewResponse.StatusCode == HttpStatusCode.OK, previewBody);
 
@@ -228,7 +231,7 @@ public class TenantProvisioningTests
         Assert.True(preview.GetProperty("isMtlsEndpointAliasAuthorityDerived").GetBoolean());
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -266,7 +269,7 @@ public class TenantProvisioningTests
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var firstResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -278,7 +281,7 @@ public class TenantProvisioningTests
         Assert.Equal(HttpStatusCode.Created, firstResponse.StatusCode);
 
         using var secondResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "globex",
@@ -299,7 +302,9 @@ public class TenantProvisioningTests
         using var factory = CreateFactory();
         using var client = await CreateAdministratorClientAsync(factory);
 
-        using var response = await client.GetAsync("/api/tenants/globex/address");
+        using var response = await client.GetAsync(
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address"
+        );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
 
@@ -313,13 +318,31 @@ public class TenantProvisioningTests
     }
 
     [Fact]
+    public async Task GetTeamAddress_ForATakenTenantId_ReportsItExists()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+        await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
+
+        using var response = await client.GetAsync(
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/acme/address"
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        var root = JsonElement.Parse(body);
+        Assert.True(root.GetProperty("exists").GetBoolean());
+        Assert.Equal("https://acme.auth.test", root.GetProperty("issuer").GetString());
+    }
+
+    [Fact]
     public async Task GetAddress_ForTheRootTenantsAddress_ReportsItAsReserved()
     {
         using var factory = CreateFactory();
         using var client = await CreateAdministratorClientAsync(factory);
 
         using var response = await client.GetAsync(
-            $"/api/tenants/globex/address?issuer={Uri.EscapeDataString(RootIssuer)}"
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address?issuer={Uri.EscapeDataString(RootIssuer)}"
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -341,7 +364,7 @@ public class TenantProvisioningTests
         Assert.True(deleteResponse.StatusCode == HttpStatusCode.NoContent, deleteBody);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "initech",
@@ -364,7 +387,7 @@ public class TenantProvisioningTests
         await SaveTenantDirectlyAsync(factory, "acme", "https://login.acme.example");
 
         using var response = await client.GetAsync(
-            $"/api/tenants/globex/address?issuer={Uri.EscapeDataString("https://acme.auth.test")}"
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants/globex/address?issuer={Uri.EscapeDataString("https://acme.auth.test")}"
         );
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
@@ -401,6 +424,7 @@ public class TenantProvisioningTests
                 new PersistedTenant
                 {
                     TenantId = tenantId,
+                    TeamId = "platform",
                     ConcurrencyToken = string.Empty,
                     Issuer = issuer,
                     IsDisabled = false,

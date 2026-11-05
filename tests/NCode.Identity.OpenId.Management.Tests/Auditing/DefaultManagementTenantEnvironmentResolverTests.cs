@@ -45,6 +45,7 @@ public sealed class DefaultManagementTenantEnvironmentResolverTests : IDisposabl
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,
@@ -76,16 +77,16 @@ public sealed class DefaultManagementTenantEnvironmentResolverTests : IDisposabl
 
     private void SetupResolution(PersistedTenant tenant, string environmentType)
     {
-        var mockServerSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        var mockPlatformSettings = MockRepository.Create<IReadOnlySettingCollection>();
         var mockTenantSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(CancellationToken.None))
-            .ReturnsAsync(mockServerSettings.Object)
+            .Setup(x => x.ResolveTeamAsync("platform", CancellationToken.None))
+            .ReturnsAsync(mockPlatformSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.ResolveStored(
-                    mockServerSettings.Object,
+                    mockPlatformSettings.Object,
                     OpenIdSettingScopes.Tenant,
                     TenantId,
                     It.Is<JsonElement>(element =>

@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// Provides an implementation of <see cref="ICollectionDataSource{T}"/> for a collection of <see cref="Setting"/> instances
-/// that are loaded from the server's configured settings (<see cref="OpenIdServerOptions.Settings"/>) and the default
+/// that are loaded from the platform's configured settings (<see cref="OpenIdPlatformOptions.Settings"/>) and the default
 /// values from <see cref="ISettingDescriptorCollectionProvider"/>.
 /// </summary>
 /// <remarks>
@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// honored, the reload is rejected with an error log and the previously loaded settings remain in force.
 /// </para>
 /// <para>
-/// The server is the top of the settings cascade, so the security profiles its settings select are expanded through
+/// The platform is the top of the settings cascade, so the security profiles its settings select are expanded through
 /// <see cref="ISecurityProfileCatalog"/> exactly as a tenant's or a client's are, and they then bind every tenant and
 /// client below it. Its descriptor defaults, computed supported values and default-settings-provider values are a
 /// baseline beneath its configuration, so a selected profile's default replaces them but never a configured value.
@@ -68,7 +68,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         ILogger<RootSettingsCollectionDataSource> logger
     )
     {
-        ConfigurationSection = optionsAccessor.Value.Server.Settings;
+        ConfigurationSection = optionsAccessor.Value.Platform.Settings;
         AlgorithmCollectionProvider = algorithmCollectionProvider;
         SettingDescriptorCollectionProvider = settingDescriptorCollectionProvider;
         SettingCollectionFactory = settingCollectionFactory;
@@ -212,7 +212,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
     private IEnumerable<Setting> LoadCollection()
     {
         // The descriptor defaults, the computed supported values and the default-settings providers are the baseline
-        // beneath the server's configuration, so a selected security profile's default replaces them but never a
+        // beneath the platform's configuration, so a selected security profile's default replaces them but never a
         // configured value (ADR-1148).
         var baselineSettings = SettingCollectionFactory.Create();
         LoadDefaults(baselineSettings);
@@ -224,7 +224,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
         return SecurityProfileCatalog.Expand(
             configuredSettings,
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             baselineSettings
         );
     }
@@ -398,13 +398,13 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
         var errors = SettingConfigurationReader.Validate(
             configurationSection,
-            OpenIdSettingScopes.Server
+            OpenIdSettingScopes.Platform
         );
         if (errors.Count == 0)
             return true;
 
         var details = string.Join(" ", errors);
-        Logger.ServerSettingsReloadRejected(configurationSection.Path, details);
+        Logger.PlatformSettingsReloadRejected(configurationSection.Path, details);
         return false;
     }
 
@@ -416,7 +416,7 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
         foreach (
             var setting in SettingConfigurationReader.Read(
                 ConfigurationSection,
-                OpenIdSettingScopes.Server
+                OpenIdSettingScopes.Platform
             )
         )
         {

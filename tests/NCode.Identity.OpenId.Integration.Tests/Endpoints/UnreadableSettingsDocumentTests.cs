@@ -104,10 +104,10 @@ public class UnreadableSettingsDocumentTests
 
     #endregion
 
-    #region PatchServerSettings Tests
+    #region PatchPlatformSettings Tests
 
     [Fact]
-    public async Task PatchServerSettings_WhenAStoredClientDocumentCannotBeHonored_ReturnsNoContent()
+    public async Task PatchPlatformSettings_WhenAStoredClientDocumentCannotBeHonored_ReturnsNoContent()
     {
         using var factory = CreateFactory();
         using var administrator = await SeedUnreadableClientAsync(factory);
@@ -115,7 +115,7 @@ public class UnreadableSettingsDocumentTests
         // access_token_lifetime is a Min setting a client can register, so the change walks the clients.
         var (statusCode, body) = await PatchSettingAsync(
             administrator,
-            $"/api/servers/{OpenIdServerOptions.DefaultServerId}/settings",
+            "/api/platform/settings",
             OpenIdSettingNames.AccessTokenLifetime,
             "00:04:00"
         );

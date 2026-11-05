@@ -29,8 +29,8 @@ namespace NCode.Identity.Server;
 /// The handler is idempotent and inert unless a bootstrap client id and secret are configured, and it seeds exactly the
 /// one tenant <see cref="BootstrapAdminOptions.TenantId"/> names — never every tenant, which would hand a GlobalAdmin
 /// credential to each tenant created at runtime. The client is checked before it is stored, so a ceiling that excludes
-/// <c>client_secret_basic</c> stops the seed. An existing client is left as it is; the reconciliation of the server's
-/// settings reports it, as it reports every stored client, when the settings make it incoherent.
+/// <c>client_secret_basic</c> stops the seed. An existing client is left as it is; the reconciliation of the platform's
+/// settings, team by team, reports it, as it reports every stored client, when the settings make it incoherent.
 /// </summary>
 // See ADR-1044 (the bootstrap administrator), ADR-1166 (a seeder that names a tenant seeds exactly that tenant), and
 // ADR-1219 (an existing client is reported by the reconciliation).
@@ -97,6 +97,7 @@ internal sealed class BootstrapAdminSeedHandler(
             // to authenticate. Its form follows the method the client is registered for, which an operator may set to
             // another method than the seeded one (ADR-1391).
             var tokenEndpointAuthMethod = await ClientSecretIssuer.GetTokenEndpointAuthMethodAsync(
+                context.Tenant.TeamId,
                 tenantId,
                 context.Tenant.Settings.Value,
                 existing.ClientId,

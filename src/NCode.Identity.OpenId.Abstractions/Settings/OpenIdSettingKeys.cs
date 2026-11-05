@@ -578,6 +578,11 @@ public static class OpenIdSettingKeys
     public static SettingKey<string> EnvironmentName => new(OpenIdSettingNames.EnvironmentName);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'max_tenants' setting: the most tenants a team may hold.
+    /// </summary>
+    public static SettingKey<int> MaxTenants => new(OpenIdSettingNames.MaxTenants);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'deletion_protection' setting.
     /// </summary>
     public static SettingKey<bool> DeletionProtection => new(OpenIdSettingNames.DeletionProtection);

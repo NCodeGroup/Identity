@@ -16,8 +16,8 @@ namespace NCode.Identity.OpenId.Settings;
 /// Implementations are registered as a strategy collection and resolved through <see cref="ISecurityProfileCatalog"/>.
 /// </para>
 /// <para>
-/// A server, tenant, or client selects any number of profiles through the <c>security_profiles</c> setting, and the
-/// selections accumulate down the <c>server → tenant → client</c> cascade: a scope can add a profile but never remove
+/// A platform, team, tenant, or client selects any number of profiles through the <c>security_profiles</c> setting, and the
+/// selections accumulate down the <c>platform → team → tenant → client</c> cascade: a scope can add a profile but never remove
 /// one a scope above it selects, and every selected profile applies. Profiles therefore compose by conjunction, and a
 /// profile never declares how it ranks against another — selecting several profiles applies all of them, which is at
 /// least as strict as each.
@@ -42,13 +42,13 @@ public interface ISecurityProfile
     /// <summary>
     /// Contributes this profile's ceiling settings through the supplied <paramref name="ceiling"/> builder. The caller
     /// merges the result into the declaring scope's settings so the existing floor/ceiling merge lattice carries the
-    /// profile down the <c>server → tenant → client</c> cascade un-loosenably.
+    /// profile down the <c>platform → team → tenant → client</c> cascade un-loosenably.
     /// </summary>
     /// <remarks>
     /// A ceiling setting merges with a lattice operation — an intersected list, a minimum, a required flag — which the
     /// builder enforces, so the ceilings of several selected profiles bind every scope below the one that selects them
     /// regardless of the order in which they are applied, and no profile can loosen another. The profile chooses the
-    /// setting whose bound tightens the server: profiles whose ceilings contradict each other leave nothing permitted
+    /// setting whose bound tightens the platform: profiles whose ceilings contradict each other leave nothing permitted
     /// on that dimension, which fails closed. A profile that builds on another selects it here, through the
     /// <c>security_profiles</c> setting, and the catalog then applies that profile's ceilings and requirements too.
     /// </remarks>

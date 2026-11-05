@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Auditing;
+using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -201,8 +202,36 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
+    public ValueTask RecordTeamChangedAsync(
+        HttpContext httpContext,
+        string teamId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var auditEvent = new TeamChangedAuditEvent
+        {
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
+            TenantId = httpContext.GetOpenIdContext().Tenant.TenantId,
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
+            Outcome = AuditOutcome.Success,
+            ResourceId = teamId,
+            ChangeType = changeType,
+            ResourceValues = resourceValues,
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
     public async ValueTask RecordTenantChangedAsync(
         HttpContext httpContext,
+        string teamId,
         string tenantId,
         string changeType,
         JsonElement? resourceValues,
@@ -224,6 +253,7 @@ internal class DefaultManagementAuditRecorder(
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
+            TeamId = teamId,
             ResourceId = tenantId,
             ChangeType = changeType,
             ResourceValues = resourceValues,
@@ -266,52 +296,24 @@ internal class DefaultManagementAuditRecorder(
     }
 
     /// <inheritdoc />
-    public ValueTask RecordServerChangedAsync(
+    public ValueTask RecordPlatformChangedAsync(
         HttpContext httpContext,
-        string serverId,
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
     )
     {
         var now = TimeProvider.GetUtcNow();
-        var auditEvent = new ServerChangedAuditEvent
+        var auditEvent = new PlatformChangedAuditEvent
         {
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.Management,
+            TenantId = httpContext.GetOpenIdContext().Tenant.TenantId,
             Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
-            ResourceId = serverId,
-            ChangeType = changeType,
-            ResourceValues = resourceValues,
-        };
-
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
-    }
-
-    /// <inheritdoc />
-    public ValueTask RecordServerSecretChangedAsync(
-        HttpContext httpContext,
-        string serverId,
-        string secretId,
-        string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    )
-    {
-        var now = TimeProvider.GetUtcNow();
-        var auditEvent = new ServerSecretChangedAuditEvent
-        {
-            EventId = Guid.CreateVersion7(now),
-            EventTime = now,
-            EventSource = AuditEventSources.Management,
-            Actor = GetActor(httpContext),
-            Request = CreateRequest(httpContext),
-            Outcome = AuditOutcome.Success,
-            ServerId = serverId,
-            ResourceId = secretId,
+            ResourceId = OpenIdConstants.PlatformResourceId,
             ChangeType = changeType,
             ResourceValues = resourceValues,
         };
@@ -473,12 +475,21 @@ internal class DefaultManagementAuditRecorder(
             ? owner.OwnerId
             : null;
 
+        // A platform event is recorded in the control-plane tenant, as every platform event is.
+        var recordedTenantId = string.Equals(
+            owner.OwnerType,
+            SecretOwnerTypes.Platform,
+            StringComparison.OrdinalIgnoreCase
+        )
+            ? httpContext.GetOpenIdContext().Tenant.TenantId
+            : tenantId;
+
         var auditEvent = new MasterKeyAuditEvent
         {
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.Management,
-            TenantId = tenantId,
+            TenantId = recordedTenantId,
             TenantEnvironmentType = tenantId is null
                 ? null
                 : await TenantEnvironmentResolver.GetEnvironmentTypeAsync(

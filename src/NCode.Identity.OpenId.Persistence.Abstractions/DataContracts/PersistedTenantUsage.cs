@@ -24,6 +24,13 @@ public sealed class PersistedTenantUsage : ISupportTenantId
     public required string TenantId { get; init; }
 
     /// <summary>
+    /// Gets the identifier of the team the tenant belonged to when the usage was recorded. A deleted tenant's rows keep
+    /// billing to this team.
+    /// </summary>
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string TeamId { get; init; }
+
+    /// <summary>
     /// Gets the UTC calendar day the usage was counted on.
     /// </summary>
     public required DateOnly Day { get; init; }

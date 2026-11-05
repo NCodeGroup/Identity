@@ -181,22 +181,22 @@ The recorder states the actor explicitly for each event, so the actor does not d
 `session`, `tenant`, `tenant.secret` and `master_key` are shared by the protocol and the management planes (`AuditResourceTypes`).
 The management types are `ManagementResourceTypes`, and the local-account type is `AccountManagementResourceTypes`.
 
-| `resources[].type`       | Entity                                                                                                                                   |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `session`                | A user session, identified by its `sid`.                                                                                                 |
-| `master_key`             | A master key, identified by its key id, which protects the stored secrets of a tenant or of the server (`AuditResourceTypes.MasterKey`). |
-| `client`                 | An OpenID client.                                                                                                                        |
-| `client.secret`          | A secret belonging to a client.                                                                                                          |
-| `tenant`                 | An OpenID tenant.                                                                                                                        |
-| `tenant.secret`          | A secret belonging to a tenant.                                                                                                          |
-| `server`                 | An OpenID server.                                                                                                                        |
-| `server.secret`          | A secret belonging to a server.                                                                                                          |
-| `resource_server`        | A resource server (an API, in Auth0 terms).                                                                                              |
-| `resource_server.scope`  | A scope belonging to a resource server.                                                                                                  |
-| `resource_server.secret` | A secret belonging to a resource server.                                                                                                 |
-| `initial_access_token`   | An initial access token (RFC 7591) for dynamic client registration.                                                                      |
-| `principal`              | An end user's federated principal.                                                                                                       |
-| `local_account`          | A local account.                                                                                                                         |
+| `resources[].type`       | Entity                                                                                                                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `session`                | A user session, identified by its `sid`.                                                                                                                               |
+| `master_key`             | A master key, identified by its key id, which protects the stored secrets of a tenant or the data a host protects under the platform (`AuditResourceTypes.MasterKey`). |
+| `client`                 | An OpenID client.                                                                                                                                                      |
+| `client.secret`          | A secret belonging to a client.                                                                                                                                        |
+| `tenant`                 | An OpenID tenant.                                                                                                                                                      |
+| `tenant.secret`          | A secret belonging to a tenant.                                                                                                                                        |
+| `platform`               | The platform, the deployment root.                                                                                                                                     |
+| `team`                   | A team: a grouping of related tenants.                                                                                                                                 |
+| `resource_server`        | A resource server (an API, in Auth0 terms).                                                                                                                            |
+| `resource_server.scope`  | A scope belonging to a resource server.                                                                                                                                |
+| `resource_server.secret` | A secret belonging to a resource server.                                                                                                                               |
+| `initial_access_token`   | An initial access token (RFC 7591) for dynamic client registration.                                                                                                    |
+| `principal`              | An end user's federated principal.                                                                                                                                     |
+| `local_account`          | A local account.                                                                                                                                                       |
 
 ## Event catalog
 
@@ -278,16 +278,18 @@ resource-change event with the `administrator` actor instead.
 
 Every master key event is a `MasterKeyAuditEvent` with `event_category` `key` and the outcome `success`
 ([ADR-1407](decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
-It lists the `master_key` first and the owner second (`tenant` or `server`, with the owner's id), carries no key
+It lists the `master_key` first and the owner second (`tenant` or `platform`, with the owner's id), carries no key
 material, wrapped key or key check, and is published once the change has committed. An administrator's rekey through the
 management API has `event_source` `management`, the `administrator` actor and the request; the background pass has
 `event_source` `openid` and the `system` actor.
+A tenant's master key event is recorded in that tenant, and a platform master key event, from a rekey or from the
+background pass, is recorded in the control-plane tenant.
 A read of the encryption keys is not audited.
 
-| `event_name`           | Resources                       | `details.reason`                                                                                                                       |
-| ---------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `master_key.rotated`   | `master_key`, `tenant`/`server` | `requested`: an administrator rekeyed; `rotation_period_elapsed`: the active key outlived `SecretProtection:MasterKeys:RotationPeriod` |
-| `master_key.destroyed` | `master_key`, `tenant`/`server` | `unreferenced`: the retired key passed its grace and no stored value names it                                                          |
+| `event_name`           | Resources                         | `details.reason`                                                                                                                       |
+| ---------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `master_key.rotated`   | `master_key`, `tenant`/`platform` | `requested`: an administrator rekeyed; `rotation_period_elapsed`: the active key outlived `SecretProtection:MasterKeys:RotationPeriod` |
+| `master_key.destroyed` | `master_key`, `tenant`/`platform` | `unreferenced`: the retired key passed its grace and no stored value names it                                                          |
 
 Both events write `details.reason` (an open vocabulary, `MasterKeyChangeReasons`), `key_id`, `version` and
 `root_key_provider`. A rotation also writes `retired_key_id` and `retired_version` when it retired a key.
@@ -345,10 +347,10 @@ snapshot of the resource, never secret material.
 | ----------------------------------- | ----------------------------- |
 | `client`                            | none                          |
 | `client.secret`                     | `client`                      |
-| `tenant`                            | none                          |
+| `tenant`                            | `team`                        |
 | `tenant.secret`                     | `tenant`                      |
-| `server`                            | none                          |
-| `server.secret`                     | `server`                      |
+| `platform`                          | none                          |
+| `team`                              | none                          |
 | `resource_server`                   | none                          |
 | `resource_server.scope`             | `resource_server`             |
 | `resource_server.secret`            | `resource_server`             |

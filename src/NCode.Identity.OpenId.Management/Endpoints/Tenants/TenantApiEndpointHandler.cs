@@ -607,6 +607,19 @@ internal class TenantApiEndpointHandler(
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
+        var controlPlaneTenantId = openIdContext.Tenant.TenantId;
+
+        // The caller is authorized at the team's node, built from the route alone, before the team is read.
+        var authorizationError = await TenantValidator.AuthorizeCreateAsync(
+            httpContext.User,
+            controlPlaneTenantId,
+            teamId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
@@ -617,8 +630,6 @@ internal class TenantApiEndpointHandler(
         {
             return TypedResults.NotFound();
         }
-
-        var controlPlaneTenantId = openIdContext.Tenant.TenantId;
 
         // A tenant is named by its creator (ADR-1159); the validator checks the name with the rest of its address.
         var tenantId = request.TenantId;
@@ -658,11 +669,9 @@ internal class TenantApiEndpointHandler(
             },
         };
 
-        // Core preconditions (authorization + the tenant's address + uniqueness) are asserted by the validator
-        // (ADR-1014, ADR-1160).
+        // Core preconditions (the tenant's address + uniqueness) are asserted by the validator; the caller's authority
+        // was judged before the team was read (ADR-1014, ADR-1160).
         var error = await TenantValidator.ValidateCreateAsync(
-            httpContext.User,
-            controlPlaneTenantId,
             tenant,
             storeManager,
             cancellationToken
@@ -940,6 +949,16 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await TenantValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -982,10 +1001,9 @@ internal class TenantApiEndpointHandler(
                 cancellationToken
             );
 
-        // Core preconditions (authorization + If-Match + required fields + the tenant's address + issuer uniqueness)
-        // are asserted by the validator against the hydrated model (ADR-1014, ADR-1160).
+        // Core preconditions (If-Match + required fields + the tenant's address + issuer uniqueness) are asserted by the
+        // validator against the hydrated model (ADR-1014, ADR-1160).
         var error = await TenantValidator.ValidateUpdateAsync(
-            httpContext.User,
             tenant,
             model,
             ifMatch,
@@ -1039,6 +1057,16 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await TenantValidator.AuthorizeDeleteAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -1048,9 +1076,8 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Core preconditions (authorization + no-dependents) are asserted by the validator (ADR-1014).
+        // Core preconditions (no-dependents) are asserted by the validator (ADR-1014).
         var error = await TenantValidator.ValidateDeleteAsync(
-            httpContext.User,
             tenant,
             storeManager,
             cancellationToken

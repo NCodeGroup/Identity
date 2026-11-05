@@ -255,6 +255,43 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+    private void SetupTenantCreateAuthorization(ManagementError? error) =>
+        MockTenantValidator
+            .Setup(x =>
+                x.AuthorizeCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    ControlPlaneTenantId,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
+    private void SetupTenantUpdateAuthorization(ManagementError? error) =>
+        MockTenantValidator
+            .Setup(x =>
+                x.AuthorizeUpdateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
+    private void SetupTenantDeleteAuthorization(ManagementError? error) =>
+        MockTenantValidator
+            .Setup(x =>
+                x.AuthorizeDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
     private void SetupTenant(PersistedTenant? tenant) =>
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1106,13 +1143,15 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         return MockTeamSettings.Object;
     }
 
-    // A creation reads the team, then resolves its settings for the 'max_tenants' ceiling.
+    // A creation is authorized at the team's node, then reads the team and resolves its settings for the 'max_tenants'
+    // ceiling.
     private void SetupTeamForCreate(
         bool resolveSettings,
         int? maxTenants = null,
         long? tenantCount = null
     )
     {
+        SetupTenantCreateAuthorization(null);
         MockStoreManager
             .Setup(x => x.GetStore<ITeamStore>())
             .Returns(MockTeamStore.Object)
@@ -2370,6 +2409,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteTenantAsync_WhenPreconditionsPass_ReturnsNoContent()
     {
+        SetupTenantDeleteAuthorization(null);
         SetupTenantChangedAnnouncement();
         SetupTenantChangedAudit();
         SetupStore();
@@ -2380,7 +2420,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedTenant>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -2409,6 +2448,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteTenantAsync_WhenDeletionProtectionIsOn_ReturnsConflictAndKeepsTheTenant()
     {
+        SetupTenantDeleteAuthorization(null);
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -2417,7 +2457,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedTenant>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -2447,6 +2486,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteTenantAsync_WhenValidatorReportsConflict_ReturnsProblem()
     {
+        SetupTenantDeleteAuthorization(null);
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -2455,7 +2495,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedTenant>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -2481,6 +2520,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteTenantAsync_WhenNotFound_ReturnsNotFound()
     {
+        SetupTenantDeleteAuthorization(null);
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -2492,6 +2532,28 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.DeleteTenantAsync(httpContext, TenantId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task DeleteTenantAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheTenant()
+    {
+        SetupTenantDeleteAuthorization(
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Detail = "The caller is not authorized to delete this tenant.",
+            }
+        );
+
+        // Strict mocks: no IStoreManagerFactory.CreateAsync setup, so reading the tenant would fail the test.
+        var result = await Handler.DeleteTenantAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -2530,21 +2592,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    ControlPlaneTenantId,
                     It.IsAny<PersistedTenant>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Callback(
-                (
-                    ClaimsPrincipal _,
-                    string _,
-                    PersistedTenant tenant,
-                    IStoreManager _,
-                    CancellationToken _
-                ) => validated = tenant
+                (PersistedTenant tenant, IStoreManager _, CancellationToken _) => validated = tenant
             )
             .ReturnsAsync((ManagementError?)null)
             .Verifiable();
@@ -2589,6 +2643,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTenantAsync_WhenTheTeamIsMissing_ReturnsNotFound()
     {
+        SetupTenantCreateAuthorization(null);
         SetupStore();
         MockStoreManager
             .Setup(x => x.GetStore<ITeamStore>())
@@ -2608,6 +2663,29 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task CreateTenantAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheTeam()
+    {
+        SetupTenantCreateAuthorization(
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Detail = "The caller is not authorized to create this tenant.",
+            }
+        );
+
+        // Strict mocks: no IStoreManagerFactory.CreateAsync setup, so reading the team would fail the test.
+        var result = await Handler.CreateTenantAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateTenantRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -2771,8 +2849,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    ControlPlaneTenantId,
                     It.IsAny<PersistedTenant>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -2804,8 +2880,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    ControlPlaneTenantId,
                     It.IsAny<PersistedTenant>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()
@@ -2835,6 +2909,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     private PersistedTenant SetupUpdate(PersistedTenant tenant, Action<UpdateTenantRequest> capture)
     {
+        SetupTenantUpdateAuthorization(null);
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -2843,7 +2918,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockTenantValidator
             .Setup(x =>
                 x.ValidateUpdateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedTenant>(),
                     It.IsAny<UpdateTenantRequest>(),
                     It.IsAny<string?>(),
@@ -2853,7 +2927,6 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             )
             .Callback(
                 (
-                    ClaimsPrincipal _,
                     PersistedTenant _,
                     UpdateTenantRequest model,
                     string? _,
@@ -2939,6 +3012,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateTenantAsync_WhenNotFound_ReturnsNotFound()
     {
+        SetupTenantUpdateAuthorization(null);
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -2956,6 +3030,30 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task UpdateTenantAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheTenant()
+    {
+        SetupTenantUpdateAuthorization(
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Detail = "The caller is not authorized to update this tenant.",
+            }
+        );
+
+        // Strict mocks: no IStoreManagerFactory.CreateAsync setup, so reading the tenant would fail the test.
+        var result = await Handler.UpdateTenantAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new JsonPatchDocument<UpdateTenantRequest>(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion

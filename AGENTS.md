@@ -24,6 +24,9 @@ It holds until the first stable release.
 Production projects live under `src/`; test projects (the `*Tests` projects) live under `tests/`.
 Benchmark projects (the `*.Benchmarks` projects) live under `benchmarks/`; the build compiles them and nothing runs
 them ([ADR-1386](docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
+End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./build/dod.ps1` never runs them, and
+`./build/e2e.ps1` and the `End-to-end` CI check do
+([ADR-1419](docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
   packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the
@@ -315,7 +318,8 @@ pre-push gate** (the push protocol's final check): it runs only the test project
 base with `origin/main`, while still building the whole solution. The plain `./build/dod.ps1` is the full gate, which
 runs in the merge queue, on `main` and on the release lines; a pull request into `main` runs it with `-Affected`
 ([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
-available locally for a thorough clean Release check. Package versions are centrally managed in
+available locally for a thorough clean Release check. The end-to-end suites are not part of it: `./build/e2e.ps1` runs
+them and needs a running Docker engine. Package versions are centrally managed in
 [`Directory.Packages.props`](Directory.Packages.props); versioning is stamped in lockstep by Nerdbank.GitVersioning
 from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and
 [`GOVERNANCE.md`](GOVERNANCE.md) for ownership, versioning, and publishing. For a full conventions sweep, run the

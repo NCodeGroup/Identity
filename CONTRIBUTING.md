@@ -16,6 +16,7 @@ enforced quality bar.
 - Frontend / full-stack (Aspire F5): [NVS](https://github.com/jasongin/nvs); `build/frontend-install.ps1` adds the
   Node major pinned in `src/frontend/.node-version` and the pinned pnpm — see
   [`src/frontend/README.md`](src/frontend/README.md).
+- End-to-end suites only: a running Docker engine. `./build/e2e.ps1` installs the Playwright browsers.
 - Conformance harness only: Docker, Python 3, and hosts-file entries — see
   [`build/conformance/README.md`](build/conformance/README.md).
 
@@ -84,6 +85,29 @@ dotnet run -c Release --project benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks 
 # A quick smoke run of every benchmark (exits non-zero when one fails):
 dotnet run -c Release --project benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks -- --filter '*' --job Dry
 ```
+
+## End-to-end suites
+
+The `*.EndToEnd.Tests` projects under `tests/` run the backend-for-frontend (BFF) in real browsers and against an
+OpenID Provider that is not NCode. `NCode.Identity.Bff.EndToEnd.Tests` hosts the BFF on Kestrel over HTTPS and drives
+Chromium, Firefox and (off Windows) WebKit with Playwright for .NET. Its browser suite checks the session cookie's
+attributes, `SameSite` on cross-site navigation, CORS preflight denial and Fetch Metadata rejection. Its interop suite
+runs the BFF against Keycloak in a container and checks login, DPoP, refresh-token rotation, RP-initiated logout and
+back-channel logout. They need a running Docker engine.
+
+```pwsh
+# Run every end-to-end suite (installs the Playwright browsers and pulls the Keycloak image on the first run):
+./build/e2e.ps1
+# Run only the suites the branch's changes reach (against origin/main):
+./build/e2e.ps1 -Affected
+# Run the tests that match a dotnet test filter:
+./build/e2e.ps1 -Filter 'FullyQualifiedName~SessionCookieTests'
+```
+
+The `End-to-end` CI check runs `./build/e2e.ps1`: with `-Affected` on a pull request, and in full in the merge queue, on
+`main` and on the release lines. The Definition of Done and a bare `dotnet test NCode.Identity.slnx` differ: the
+Definition of Done never runs the suites, while a bare `dotnet test` runs them and so needs Docker
+([ADR-1419](docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 ## Coding standards
 

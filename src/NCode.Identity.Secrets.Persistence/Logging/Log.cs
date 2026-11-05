@@ -370,16 +370,16 @@ internal static partial class Log
     /// </summary>
     /// <param name="logger">The logger.</param>
     /// <param name="owner">The owner.</param>
-    /// <param name="failed">The number of master keys that could not be moved.</param>
+    /// <param name="remaining">The number of master keys that remain under the owner's root key.</param>
     [LoggerMessage(
         EventId = EventIds.OwnerRootKeyRemovalIncomplete,
         Level = LogLevel.Warning,
-        Message = "{Failed} master keys of owner '{Owner}' could not be moved from its root key; the removal is retried"
+        Message = "{Remaining} master keys of owner '{Owner}' remain under its root key; the removal is retried"
     )]
     internal static partial void OwnerRootKeyRemovalIncomplete(
         this ILogger logger,
         SecretOwner owner,
-        int failed
+        int remaining
     );
 
     /// <summary>

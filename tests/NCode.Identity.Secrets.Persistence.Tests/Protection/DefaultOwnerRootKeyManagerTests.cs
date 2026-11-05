@@ -402,7 +402,7 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
         var stored = Assert.Single(_stores.RootKeys);
         Assert.Equal(OwnerRootKeyStates.Removing, stored.State);
         Assert.Equal(_time.GetUtcNow(), stored.FailedWhen);
-        Assert.Contains("1 master keys could not be unwrapped", stored.Failure);
+        Assert.Equal("1 master keys remain under the owner root key", stored.Failure);
     }
 
     [Fact]
@@ -434,7 +434,7 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
         var stored = Assert.Single(_stores.RootKeys);
         Assert.Equal(OwnerRootKeyStates.Removing, stored.State);
         Assert.Equal(_time.GetUtcNow(), stored.FailedWhen);
-        Assert.Contains("1 master keys could not be unwrapped", stored.Failure);
+        Assert.Equal("1 master keys remain under the owner root key", stored.Failure);
     }
 
     #endregion

@@ -572,8 +572,7 @@ internal sealed class DefaultOwnerRootKeyManager(
         if (remaining > 0)
         {
             binding.FailedWhen = TimeProvider.GetUtcNow();
-            binding.Failure =
-                $"{remaining} master keys could not be unwrapped by the owner root key";
+            binding.Failure = $"{remaining} master keys remain under the owner root key";
             Logger.OwnerRootKeyRemovalIncomplete(key, remaining);
 
             try

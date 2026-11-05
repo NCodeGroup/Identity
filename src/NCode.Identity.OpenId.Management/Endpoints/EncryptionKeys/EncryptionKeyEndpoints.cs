@@ -132,8 +132,7 @@ internal static class EncryptionKeyEndpoints
         {
             change = await ownerRootKeyManager.SetAsync(
                 owner,
-                request.Provider,
-                request.KeyReference,
+                new OwnerRootKeyRequest(request.Provider, request.KeyReference, null),
                 cancellationToken
             );
         }

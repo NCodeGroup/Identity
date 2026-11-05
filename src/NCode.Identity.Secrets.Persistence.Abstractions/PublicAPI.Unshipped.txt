@@ -476,7 +476,17 @@ NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.Ow
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.Reason.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.GetAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo?>
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.RemoveAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRemoval!>
-NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.SetAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, string! keyWrapperName, string! keyReference, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyChange!>
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.SetAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyChange!>
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.AccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.AccessIdentity.init -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyReference.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyReference.init -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyWrapperName.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyWrapperName.init -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.OwnerRootKeyRequest(string! KeyWrapperName, string! KeyReference, string? AccessIdentity) -> void
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.GetAccessBinding(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner) -> string!
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.TryValidateAccessIdentity(string! keyWrapperName, string! accessIdentity, out string? failure) -> bool
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.TryValidateKeyReference(string! keyWrapperName, string! keyReference, out string? failure) -> bool
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.ValidateAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyValidation!>
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyChange

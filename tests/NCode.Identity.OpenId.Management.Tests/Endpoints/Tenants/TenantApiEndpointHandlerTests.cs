@@ -3485,6 +3485,12 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     private const string RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd";
 
+    private static readonly OwnerRootKeyRequest RootKeyRequest = new(
+        "aws-kms",
+        RootKeyReference,
+        null
+    );
+
     private void SetupAllowedKeyWrappers(params string[] names) =>
         MockOwnerRootKeyManager.SetupGet(x => x.AllowedKeyWrapperNames).Returns(names).Verifiable();
 
@@ -3598,9 +3604,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
         var rootKey = CreateRootKeyInfo();
         MockOwnerRootKeyManager
-            .Setup(x =>
-                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
-            )
+            .Setup(x => x.SetAsync(TenantOwner, RootKeyRequest, It.IsAny<CancellationToken>()))
             .Returns(
                 new ValueTask<OwnerRootKeyChange>(
                     new OwnerRootKeyChange(
@@ -3664,9 +3668,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns(true)
             .Verifiable();
         MockOwnerRootKeyManager
-            .Setup(x =>
-                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
-            )
+            .Setup(x => x.SetAsync(TenantOwner, RootKeyRequest, It.IsAny<CancellationToken>()))
             .Returns(
                 new ValueTask<OwnerRootKeyChange>(
                     new OwnerRootKeyChange(
@@ -3758,9 +3760,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
         var unavailable = CreateRootKeyInfo(OwnerRootKeyStates.Unavailable, "AccessDenied");
         MockOwnerRootKeyManager
-            .Setup(x =>
-                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
-            )
+            .Setup(x => x.SetAsync(TenantOwner, RootKeyRequest, It.IsAny<CancellationToken>()))
             .Throws(
                 new OwnerRootKeyProbeException(
                     TenantOwner,
@@ -3814,9 +3814,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns(true)
             .Verifiable();
         MockOwnerRootKeyManager
-            .Setup(x =>
-                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
-            )
+            .Setup(x => x.SetAsync(TenantOwner, RootKeyRequest, It.IsAny<CancellationToken>()))
             .Throws(new MasterKeyRotationTooSoonException(TenantOwner, TimeSpan.FromSeconds(90.2)))
             .Verifiable();
         var httpContext = CreateHttpContext(authenticated: true);
@@ -3846,9 +3844,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns(true)
             .Verifiable();
         MockOwnerRootKeyManager
-            .Setup(x =>
-                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
-            )
+            .Setup(x => x.SetAsync(TenantOwner, RootKeyRequest, It.IsAny<CancellationToken>()))
             .Throws(new StoreConcurrencyException())
             .Verifiable();
 
@@ -3945,9 +3941,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns(true)
             .Verifiable();
         MockOwnerRootKeyManager
-            .Setup(x =>
-                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
-            )
+            .Setup(x => x.SetAsync(TenantOwner, RootKeyRequest, It.IsAny<CancellationToken>()))
             .Throws(new OwnerRootKeyNotAllowedException(TenantOwner, RootKeyRefusal))
             .Verifiable();
 

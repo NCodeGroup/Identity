@@ -21,6 +21,7 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
     {
         modelBuilder.Entity<SecretEntity>().ToTable("Secrets");
         modelBuilder.Entity<MasterKeyEntity>().ToTable("MasterKeys");
+        modelBuilder.Entity<OwnerRootKeyEntity>().ToTable("OwnerRootKeys");
         modelBuilder.Entity<ServerEntity>().ToTable("Servers");
         modelBuilder.Entity<ServerSecretEntity>().ToTable("ServerSecrets");
         modelBuilder.Entity<TenantSecretEntity>().ToTable("TenantSecrets");

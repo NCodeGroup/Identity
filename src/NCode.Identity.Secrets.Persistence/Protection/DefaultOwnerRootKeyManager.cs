@@ -222,7 +222,7 @@ internal sealed class DefaultOwnerRootKeyManager(
             await NotifyAsync(key);
         }
 
-        var (remaining, rewrap) = await CompleteRemovalAsync(key, binding, cancellationToken);
+        var (remaining, rewrap) = await CompleteRemovalAsync(key, cancellationToken);
 
         return new OwnerRootKeyRemoval(remaining, removed, rewrap);
     }
@@ -241,11 +241,7 @@ internal sealed class DefaultOwnerRootKeyManager(
 
         if (IsState(binding, OwnerRootKeyStates.Removing))
         {
-            var (remaining, removalRewrap) = await CompleteRemovalAsync(
-                key,
-                binding,
-                cancellationToken
-            );
+            var (remaining, removalRewrap) = await CompleteRemovalAsync(key, cancellationToken);
             return new OwnerRootKeyValidation(remaining, null, null, removalRewrap);
         }
 
@@ -532,19 +528,24 @@ internal sealed class DefaultOwnerRootKeyManager(
     }
 
     // Moves every master key under the deployment's root key and deletes the binding once none remains under the key.
+    // The binding is read again after the move, because the store renews its concurrency token with every save.
     private async ValueTask<(
         OwnerRootKeyInfo? Remaining,
         MasterKeyRewrapResult Rewrap
-    )> CompleteRemovalAsync(
-        SecretOwner key,
-        PersistedOwnerRootKey binding,
-        CancellationToken cancellationToken
-    )
+    )> CompleteRemovalAsync(SecretOwner key, CancellationToken cancellationToken)
     {
         var rewrap = await Rewrapper.RewrapAsync(
             new MasterKeyRewrapRequest { Owner = key, NonconformingOnly = true },
             cancellationToken
         );
+
+        var (binding, _) = await ReadAsync(key, cancellationToken);
+        if (binding is null)
+            return (null, rewrap);
+
+        // The owner set a key again during the removal, so the binding is no longer being removed and stays.
+        if (!IsState(binding, OwnerRootKeyStates.Removing))
+            return (OwnerRootKeyInfo.From(binding), rewrap);
 
         if (rewrap.Failed > 0)
         {

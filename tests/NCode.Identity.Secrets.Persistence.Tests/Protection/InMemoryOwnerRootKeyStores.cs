@@ -144,8 +144,10 @@ public sealed class InMemoryOwnerRootKeyStores : IStoreManagerFactory
                 )
                     throw new StoreConcurrencyException("The root key changed.");
 
-                item.ConcurrencyToken = Guid.NewGuid().ToString("N");
-                owner._rootKeys[owner._rootKeys.IndexOf(stored)] = Copy(item);
+                // The store renews the token of the row, and the item keeps the token it was read with.
+                var renewed = Copy(item);
+                renewed.ConcurrencyToken = Guid.NewGuid().ToString("N");
+                owner._rootKeys[owner._rootKeys.IndexOf(stored)] = renewed;
             });
             return ValueTask.CompletedTask;
         }

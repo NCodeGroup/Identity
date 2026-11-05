@@ -111,6 +111,14 @@ public sealed class MasterKeyEntity : ISupportConcurrencyToken
     public required string RootKeyId { get; set; }
 
     /// <summary>
+    /// Gets or sets the reference of the owner root key that wrapped <see cref="RootWrappedKey"/>, or <c>null</c> when
+    /// the deployment's root key wrapped it.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(RootKeyIdMaxLength)]
+    public required string? RootKeyReference { get; set; }
+
+    /// <summary>
     /// Gets or sets the base64url encoded master key as wrapped by the root key provider.
     /// </summary>
     [Unicode(false)]

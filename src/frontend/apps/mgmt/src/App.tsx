@@ -181,9 +181,9 @@ export function App() {
           </Tabs>
           <Suspense fallback={surfaceFallback}>
             {route.surface === 'clients' ? (
-              <ClientsPage scope={scope} />
+              <ClientsPage tenantId={route.tenantId} />
             ) : route.surface === 'resource-servers' ? (
-              <ResourceServersPage scope={scope} />
+              <ResourceServersPage tenantId={route.tenantId} />
             ) : route.surface === 'grants' ? (
               <GrantsPage tenantId={route.tenantId} />
             ) : (

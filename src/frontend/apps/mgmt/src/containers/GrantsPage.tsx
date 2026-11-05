@@ -13,11 +13,7 @@ import {
   RevealInitialAccessTokenDialog,
   type InitialAccessTokenFormValues,
 } from '@ncode/ui';
-import {
-  tenantScope,
-  type CreatedInitialAccessTokenResource,
-  type GrantResource,
-} from '@ncode/api';
+import type { CreatedInitialAccessTokenResource, GrantResource } from '@ncode/api';
 import {
   apiErrorMessage,
   useCreateInitialAccessTokenMutation,
@@ -77,7 +73,7 @@ export function GrantsPage({ tenantId }: GrantsPageProps) {
 
   const [dialog, setDialog] = useState<DialogState>(closed);
   const { data: resourceServerData } = useListResourceServersQuery(
-    { scope: tenantScope(tenantId) },
+    { tenantId },
     { skip: dialog.kind !== 'mint' },
   );
   const resourceServers = (resourceServerData?.items ?? []).filter((r) => !r.isSystem);

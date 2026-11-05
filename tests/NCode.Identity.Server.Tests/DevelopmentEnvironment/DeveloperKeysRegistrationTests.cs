@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Tenants;
@@ -51,6 +52,18 @@ public sealed class DeveloperKeysRegistrationTests
             descriptor => descriptor.ServiceType == typeof(DeveloperMasterKeyReset)
         );
         Assert.True(IsProvisioningEnabled(services));
+    }
+
+    [Fact]
+    public void AddDeveloperKeyPruning_HealsThePlatformWhenTheHostStarts()
+    {
+        var (services, builder) = CreateBuilder();
+
+        builder.AddDeveloperKeyPruning();
+        builder.AddDeveloperKeyPruning();
+
+        var hostedService = Assert.Single(services, x => x.ServiceType == typeof(IHostedService));
+        Assert.Equal(typeof(DeveloperPlatformMasterKeyPruning), hostedService.ImplementationType);
     }
 
     #endregion

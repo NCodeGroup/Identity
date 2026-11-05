@@ -270,7 +270,7 @@ NCode.Identity.OpenId.Contexts.OpenIdContext.OpenIdContext() -> void
 NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.InvokeAsync(Microsoft.AspNetCore.Http.EndpointFilterInvocationContext! context, Microsoft.AspNetCore.Http.EndpointFilterDelegate! next) -> System.Threading.Tasks.ValueTask<object?>
-NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor) -> void
+NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor, NCode.Identity.OpenId.Environments.IOpenIdEnvironmentProvider! openIdEnvironmentProvider, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionTranslator!>! exceptionTranslators) -> void
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.CanFormat(NCode.Identity.OpenId.Messages.IOpenIdResponse! response) -> bool
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.MediaTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!

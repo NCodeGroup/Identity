@@ -118,6 +118,18 @@ public class TenantRootKeyTests
         );
         Assert.True(refused.Headers.RetryAfter?.Delta > TimeSpan.Zero);
 
+        // A protocol endpoint answers the tenant's outage with a retryable protocol error: the context cannot be
+        // created while the key is unavailable.
+        using var revocation = await PostRevokeAsync(client, clientId, secretMaterial);
+        var revocationBody = await revocation.Content.ReadAsStringAsync();
+        Assert.True(revocation.StatusCode == HttpStatusCode.ServiceUnavailable, revocationBody);
+        Assert.Equal(
+            "temporarily_unavailable",
+            JsonElement.Parse(revocationBody).GetProperty("error").GetString()
+        );
+        Assert.True(revocation.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+        Assert.True(revocation.Headers.CacheControl?.NoStore);
+
         // The tenant restores the key, and the next validation brings the tenant back.
         wrapper.Restore(KeyReference);
         using var restored = await administrator.PostAsync(
@@ -272,6 +284,33 @@ public class TenantRootKeyTests
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
+    private static Task<HttpResponseMessage> PostRevokeAsync(
+        HttpClient client,
+        string clientId,
+        string clientSecret
+    )
+    {
+        var content = new FormUrlEncodedContent(
+            new Dictionary<string, string>
+            {
+                ["client_id"] = clientId,
+                ["client_secret"] = clientSecret,
+                ["token"] = "not-a-real-token",
+            }
+        );
+        return PostAndDisposeAsync(client, $"/{TenantId}/oauth2/revoke", content);
+    }
+
+    private static async Task<HttpResponseMessage> PostAndDisposeAsync(
+        HttpClient client,
+        string path,
+        HttpContent content
+    )
+    {
+        using (content)
+            return await client.PostAsync(path, content);
+    }
+
     // Revokes an unknown token at the tenant's route: revocation is a no-op once the client authenticates, so the
     // response reports only whether the client was accepted.
     private static async Task<string?> AuthenticateClientAsync(
@@ -280,15 +319,7 @@ public class TenantRootKeyTests
         string clientSecret
     )
     {
-        using var content = new FormUrlEncodedContent(
-            new Dictionary<string, string>
-            {
-                ["client_id"] = clientId,
-                ["client_secret"] = clientSecret,
-                ["token"] = "not-a-real-token",
-            }
-        );
-        using var response = await client.PostAsync($"/{TenantId}/oauth2/revoke", content);
+        using var response = await PostRevokeAsync(client, clientId, clientSecret);
         if (response.StatusCode == HttpStatusCode.OK)
             return null;
 

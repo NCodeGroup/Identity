@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Logging;
 
@@ -128,5 +129,23 @@ internal static partial class Log
         string scopeName,
         string ownerId,
         string documentError
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyUnavailable,
+        Level = LogLevel.Warning,
+        Message = "The root key of owner '{Owner}' is unavailable, so a management request was answered 503"
+    )]
+    internal static partial void OwnerRootKeyUnavailable(this ILogger logger, SecretOwner owner);
+
+    [LoggerMessage(
+        EventId = EventIds.AuditPublishFailed,
+        Level = LogLevel.Warning,
+        Message = "The audit event '{EventType}' of a committed management change could not be published"
+    )]
+    internal static partial void AuditPublishFailed(
+        this ILogger logger,
+        Exception exception,
+        string eventType
     );
 }

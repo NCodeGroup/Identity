@@ -26,6 +26,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     private readonly ResourceServerStore _resourceServerStore;
     private readonly RoleAssignmentStore _roleAssignmentStore;
     private readonly MasterKeyStore _masterKeyStore;
+    private readonly OwnerRootKeyStore _ownerRootKeyStore;
 
     public TenantStoreLifecycleTests()
     {
@@ -51,6 +52,11 @@ public sealed class TenantStoreLifecycleTests : IDisposable
             _dbContext
         );
         _masterKeyStore = new MasterKeyStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _ownerRootKeyStore = new OwnerRootKeyStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext
+        );
     }
 
     public void Dispose()
@@ -288,6 +294,38 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         Assert.Equal(2, remainingKeyIds.Count);
         Assert.Contains(otherTenantKey.KeyId, remainingKeyIds);
         Assert.Contains(platformKey.KeyId, remainingKeyIds);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_TenantWithAnOwnerRootKey_RemovesItAndKeepsOthers()
+    {
+        await SeedTenantAsync();
+        foreach (var owner in new[] { TenantId.ToUpperInvariant(), "tenant-2" })
+        {
+            await _ownerRootKeyStore.AddAsync(
+                new PersistedOwnerRootKey
+                {
+                    OwnerType = SecretOwnerTypes.Tenant,
+                    OwnerId = owner,
+                    KeyWrapperName = "aws-kms",
+                    KeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
+                    State = OwnerRootKeyStates.Active,
+                    CreatedWhen = DateTimeOffset.UnixEpoch,
+                    StateChangedWhen = DateTimeOffset.UnixEpoch,
+                },
+                CancellationToken.None
+            );
+        }
+
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveAsync(TenantId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(removed);
+        var remaining = Assert.Single(await _dbContext.OwnerRootKeys.AsNoTracking().ToListAsync());
+        Assert.Equal("tenant-2", remaining.OwnerId);
     }
 
     [Fact]

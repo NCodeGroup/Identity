@@ -78,6 +78,17 @@ export {
   type EncryptionKeyTableProps,
 } from './components/EncryptionKeyTable.js';
 export {
+  EncryptionRootKeyCard,
+  type EncryptionRootKeyCardProps,
+  type EncryptionRootKeyRow,
+} from './components/EncryptionRootKeyCard.js';
+export {
+  EncryptionRootKeyFormDialog,
+  emptyEncryptionRootKeyFormValues,
+  type EncryptionRootKeyFormDialogProps,
+  type EncryptionRootKeyFormValues,
+} from './components/EncryptionRootKeyFormDialog.js';
+export {
   SecretFormDialog,
   emptySecretFormValues,
   type SecretFormDialogProps,

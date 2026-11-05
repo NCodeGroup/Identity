@@ -62,6 +62,9 @@ DELETE api/tenants/{tenantId}/secrets/{secretId}
 
 GET    api/tenants/{tenantId}/encryption-keys
 POST   api/tenants/{tenantId}/encryption-keys/rekey
+PUT    api/tenants/{tenantId}/encryption-keys/root-key
+DELETE api/tenants/{tenantId}/encryption-keys/root-key
+POST   api/tenants/{tenantId}/encryption-keys/root-key/validate
 
 */
 
@@ -79,6 +82,7 @@ internal class TenantApiEndpointHandler(
     ISecretPublicKeyConverter secretPublicKeyConverter,
     ISecretProtectorProvider secretProtectorProvider,
     IMasterKeyManager masterKeyManager,
+    IOwnerRootKeyManager ownerRootKeyManager,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -101,6 +105,7 @@ internal class TenantApiEndpointHandler(
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private IMasterKeyManager MasterKeyManager { get; } = masterKeyManager;
+    private IOwnerRootKeyManager OwnerRootKeyManager { get; } = ownerRootKeyManager;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
@@ -194,11 +199,32 @@ internal class TenantApiEndpointHandler(
 
         tenants
             .MapGet("/{tenantId}/encryption-keys", GetEncryptionKeysAsync)
-            .Produces<EncryptionKeysResource>();
+            .Produces<EncryptionKeysResource>()
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
         tenants
             .MapPost("/{tenantId}/encryption-keys/rekey", RekeyEncryptionKeysAsync)
             .Produces<EncryptionKeyRotationResource>()
             .ProducesProblem(StatusCodes.Status409Conflict);
+        tenants
+            .MapPut("/{tenantId}/encryption-keys/root-key", SetRootKeyAsync)
+            .Produces<EncryptionRootKeyChangeResource>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        tenants
+            .MapDelete("/{tenantId}/encryption-keys/root-key", RemoveRootKeyAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces<EncryptionRootKeyResource>(StatusCodes.Status202Accepted)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
+        tenants
+            .MapPost("/{tenantId}/encryption-keys/root-key/validate", ValidateRootKeyAsync)
+            .Produces<EncryptionRootKeyResource>()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
         tenants
             .MapGet("/{tenantId}/owners", ListOwnersAsync)
@@ -2042,9 +2068,14 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        // An owner that a registered policy refuses, such as the control-plane tenant, reports no root key providers.
+        // See ADR-1414.
+        var owner = SecretOwner.ForTenant(tenant.TenantId);
+
         return await EncryptionKeyEndpoints.GetAsync(
             MasterKeyManager,
-            SecretOwner.ForTenant(tenant.TenantId),
+            OwnerRootKeyManager.CanBringRootKey(owner, out _) ? OwnerRootKeyManager : null,
+            owner,
             cancellationToken
         );
     }
@@ -2086,6 +2117,145 @@ internal class TenantApiEndpointHandler(
 
         return await EncryptionKeyEndpoints.RekeyAsync(
             MasterKeyManager,
+            ManagementAuditRecorder,
+            httpContext,
+            SecretOwner.ForTenant(tenant.TenantId),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Sets or changes the root key of a tenant. The key is probed, the tenant's master key rotates onto it and every
+    /// retired master key is rewrapped under it, with no operator recovery copy.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="request">The key wrapper and the reference to the key.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The root key as stored, and the master keys of the rotation onto it.</response>
+    /// <response code="400">The key wrapper is not allowed, the key reference is malformed, or a registered policy refuses the tenant, as it does the control-plane tenant.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After).</response>
+    /// <response code="412">Another writer changed the root key first.</response>
+    /// <response code="422">The key could not wrap and unwrap a probe.</response>
+    [EndpointName("api/tenants/encryption-keys/root-key/set")]
+    internal virtual async ValueTask<IResult> SetRootKeyAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromBody] EncryptionRootKeyRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenant = await FindTenantAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            tenant,
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        // A registered policy decides which tenants can bring a root key; see ADR-1414.
+        var owner = SecretOwner.ForTenant(tenant.TenantId);
+        if (!OwnerRootKeyManager.CanBringRootKey(owner, out var notAllowed))
+        {
+            return EncryptionKeyEndpoints.RootKeyNotAllowed(notAllowed);
+        }
+
+        return await EncryptionKeyEndpoints.SetRootKeyAsync(
+            OwnerRootKeyManager,
+            ManagementAuditRecorder,
+            httpContext,
+            owner,
+            request,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Removes the root key of a tenant: its master keys move back under the deployment's root key.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="202">Master keys remain under the tenant's key; the removal is retried in the background.</response>
+    /// <response code="204">Every master key is under the deployment's root key.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    [EndpointName("api/tenants/encryption-keys/root-key/remove")]
+    internal virtual async ValueTask<IResult> RemoveRootKeyAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenant = await FindTenantAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            tenant,
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return await EncryptionKeyEndpoints.RemoveRootKeyAsync(
+            OwnerRootKeyManager,
+            ManagementAuditRecorder,
+            httpContext,
+            SecretOwner.ForTenant(tenant.TenantId),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Probes the root key of a tenant and answers with its state.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The root key and the result of the probe.</response>
+    /// <response code="404">The tenant does not exist or has no root key.</response>
+    [EndpointName("api/tenants/encryption-keys/root-key/validate")]
+    internal virtual async ValueTask<IResult> ValidateRootKeyAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenant = await FindTenantAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            tenant,
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return await EncryptionKeyEndpoints.ValidateRootKeyAsync(
+            OwnerRootKeyManager,
             ManagementAuditRecorder,
             httpContext,
             SecretOwner.ForTenant(tenant.TenantId),

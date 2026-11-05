@@ -108,6 +108,13 @@ secretProtection:
     publicKeyConfigMap: ""
     # true only to accept that losing the root key loses every stored secret.
     disabled: false
+  # Root keys that tenants bring (SecretProtection:OwnerRootKeys). Tune the validation intervals through extraEnv.
+  ownerRootKeys:
+    # The key wrappers a tenant may choose for its root key: aws-kms, azure-key-vault, google-cloud-kms. Empty means no
+    # tenant can bring a key. Each listed provider's workload credentials (awsKms.webIdentity,
+    # azureKeyVault.workloadIdentity, googleCloudKms.workloadIdentityFederation) are mounted into the pods, so the host
+    # can reach the tenant's key with the deployment's own identity.
+    providers: []
   # A one-off Job from the host image that rewraps every master key under the configured root key provider and
   # recovery public key (ADR-1408). Enable it for a release that changes the root key provider, the root key or the
   # recovery key pair, and disable it again once it has completed.

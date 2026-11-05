@@ -174,4 +174,65 @@ public class AzureKeyVaultKeyIdTests
     }
 
     #endregion
+
+    #region GetKeyIdWithoutVersion Tests
+
+    [Fact]
+    public void GetKeyIdWithoutVersion_KeyVersionId_DropsTheVersion()
+    {
+        var result = AzureKeyVaultKeyId.GetKeyIdWithoutVersion(KeyVersionId);
+
+        Assert.Equal(KeyId, result);
+    }
+
+    [Fact]
+    public void GetKeyIdWithoutVersion_KeyId_ReturnsItUnchanged()
+    {
+        var result = AzureKeyVaultKeyId.GetKeyIdWithoutVersion(KeyId);
+
+        Assert.Equal(KeyId, result);
+    }
+
+    #endregion
+
+    #region IsVersionOf Tests
+
+    [Fact]
+    public void IsVersionOf_ReferenceWithoutVersion_AcceptsAnyVersionOfTheKey()
+    {
+        var result = AzureKeyVaultKeyId.IsVersionOf(
+            KeyVersionId,
+            KeyId.ToUpperInvariant().Replace("HTTPS", "https")
+        );
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsVersionOf_ReferenceWithVersion_AcceptsOnlyThatVersion()
+    {
+        Assert.True(AzureKeyVaultKeyId.IsVersionOf(KeyVersionId, KeyVersionId));
+        Assert.False(
+            AzureKeyVaultKeyId.IsVersionOf(
+                KeyId + "/ffffffffffffffffffffffffffffffff",
+                KeyVersionId
+            )
+        );
+    }
+
+    [Fact]
+    public void IsVersionOf_VersionOfAnotherKey_ReturnsFalse()
+    {
+        var other = "https://contoso.vault.azure.net/keys/other/0123456789abcdef0123456789abcdef";
+
+        Assert.False(AzureKeyVaultKeyId.IsVersionOf(other, KeyId));
+    }
+
+    [Fact]
+    public void IsVersionOf_ResultWithoutVersion_ReturnsFalse()
+    {
+        Assert.False(AzureKeyVaultKeyId.IsVersionOf(KeyId, KeyId));
+    }
+
+    #endregion
 }

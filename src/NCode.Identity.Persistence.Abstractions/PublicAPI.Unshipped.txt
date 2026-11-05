@@ -9,4 +9,7 @@ NCode.Identity.Persistence.ISupportResource
 NCode.Identity.Persistence.ISupportResource.ResourceId.get -> string!
 NCode.Identity.Persistence.ISupportResource.ResourceType.get -> string!
 NCode.Identity.Persistence.MaxLengths
+NCode.Identity.Persistence.PostCommitWork
 NCode.Identity.Persistence.ResourceTypes
+static NCode.Identity.Persistence.PostCommitWork.RunAsync<TState>(System.TimeProvider! timeProvider, System.Func<TState, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! step, TState state) -> System.Threading.Tasks.ValueTask
+static NCode.Identity.Persistence.PostCommitWork.Timeout.get -> System.TimeSpan

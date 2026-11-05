@@ -229,6 +229,8 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
       if (url.endsWith('/api/platform/encryption-keys')) {
         return jsonResponse({
           recoveryConfigured: true,
+          rootKey: null,
+          rootKeyProviders: [],
           keys: [
             {
               keyId: 'k-1',
@@ -239,6 +241,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
               rootKeyProvider: 'local',
               rootKeyId: 'root-1',
               recoveryKeyId: null,
+              rootKeyReference: null,
             },
           ],
         });

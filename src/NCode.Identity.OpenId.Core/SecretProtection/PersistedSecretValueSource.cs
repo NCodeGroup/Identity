@@ -21,8 +21,7 @@ internal sealed class PersistedSecretValueSource(
 ) : PagedProtectedValueSource(storeManagerFactory, protectorProvider, logger)
 {
     /// <inheritdoc />
-    protected override bool Handles(SecretOwner owner) =>
-        string.Equals(owner.OwnerType, SecretOwnerTypes.Tenant, StringComparison.OrdinalIgnoreCase);
+    protected override bool Handles(SecretOwner owner) => owner.TenantId is not null;
 
     /// <inheritdoc />
     protected override ValueTask<PagedResult<PersistedProtectedValue>> GetPageAsync(

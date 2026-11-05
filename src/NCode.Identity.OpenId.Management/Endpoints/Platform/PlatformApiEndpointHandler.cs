@@ -229,8 +229,11 @@ internal class PlatformApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        // The platform's master keys are always wrapped by the deployment's root key, so it reports no root key and no
+        // root key providers. See ADR-1414.
         return await EncryptionKeyEndpoints.GetAsync(
             MasterKeyManager,
+            ownerRootKeyManager: null,
             SecretOwner.Platform,
             cancellationToken
         );

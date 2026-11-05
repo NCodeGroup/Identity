@@ -84,6 +84,9 @@ jobs:
           refuse --set secretProtection.rootKeyProvider=google-cloud-kms
           refuse --set secretProtection.rootKeyProvider=google-cloud-kms --set secretProtection.googleCloudKms.keyName=projects/p/locations/global/keyRings/r/cryptoKeys/k/cryptoKeyVersions/1
           refuse --set secretProtection.rootKeyProvider=google-cloud-kms --set secretProtection.googleCloudKms.keyName=projects/p/locations/global/keyRings/r/cryptoKeys/k --set secretProtection.googleCloudKms.workloadIdentityFederation.provider=not-a-provider
+          refuse --set 'secretProtection.ownerRootKeys.providers={azure-key-vault}' --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
+          refuse --set 'secretProtection.ownerRootKeys.providers={google-cloud-kms}' --set secretProtection.googleCloudKms.workloadIdentityFederation.provider=bad
+          refuse --set 'secretProtection.ownerRootKeys.providers={nope}'
           refuse --set secretProtection.recovery.publicKeyConfigMap=
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com

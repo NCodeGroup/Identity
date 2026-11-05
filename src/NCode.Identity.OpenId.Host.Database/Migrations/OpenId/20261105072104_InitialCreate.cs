@@ -74,6 +74,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     RetiredWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     RootKeyProvider = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     RootKeyId = table.Column<string>(type: "character varying(2048)", unicode: false, maxLength: 2048, nullable: false),
+                    RootKeyReference = table.Column<string>(type: "character varying(2048)", unicode: false, maxLength: 2048, nullable: true),
                     RootWrappedKey = table.Column<string>(type: "character varying(4096)", unicode: false, maxLength: 4096, nullable: false),
                     RecoveryKeyId = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
                     RecoveryWrappedKey = table.Column<string>(type: "character varying(4096)", unicode: false, maxLength: 4096, nullable: true),
@@ -83,6 +84,29 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_MasterKeys", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OwnerRootKeys",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false),
+                    OwnerType = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    OwnerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedOwnerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    KeyWrapperName = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
+                    KeyReference = table.Column<string>(type: "character varying(2048)", unicode: false, maxLength: 2048, nullable: false),
+                    State = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
+                    CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    StateChangedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    ValidatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    FailedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    Failure = table.Column<string>(type: "character varying(1024)", maxLength: 1024, nullable: true),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OwnerRootKeys", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -909,6 +933,22 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_OwnerRootKeys_OwnerType_NormalizedOwnerId",
+                table: "OwnerRootKeys",
+                columns: new[] { "OwnerType", "NormalizedOwnerId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OwnerRootKeys_State_FailedWhen",
+                table: "OwnerRootKeys",
+                columns: new[] { "State", "FailedWhen" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OwnerRootKeys_State_ValidatedWhen",
+                table: "OwnerRootKeys",
+                columns: new[] { "State", "ValidatedWhen" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Platform_Key",
                 table: "Platform",
                 column: "Key",
@@ -1100,6 +1140,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
             migrationBuilder.DropTable(
                 name: "MasterKeys");
+
+            migrationBuilder.DropTable(
+                name: "OwnerRootKeys");
 
             migrationBuilder.DropTable(
                 name: "Platform");

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Google.Cloud.Kms.V1;
@@ -16,8 +17,9 @@ using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 
 /// <summary>
-/// Provides an implementation of <see cref="IKeyWrapper"/> that wraps keys with a symmetric encryption key held
-/// in Google Cloud Key Management Service, so the root key never leaves the service.
+/// Provides an implementation of <see cref="IReferencedKeyWrapper"/> that wraps keys with a symmetric encryption key
+/// held in Google Cloud Key Management Service, so the root key never leaves the service. It wraps under the
+/// configured crypto key, or under the crypto key that the caller names.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,10 +27,10 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 /// key with any other context. The context holds identifiers only, never key material.
 /// </para>
 /// <para>
-/// Encryption names the configured crypto key, and the service encrypts with its primary version. The identifier of
-/// the root key is the resource name of the crypto key version that the service reports, which must be a version of
-/// the configured crypto key. Decryption names the crypto key that the recorded version belongs to, so a wrapped key
-/// is never decrypted under any other crypto key.
+/// Encryption names the configured or the named crypto key, and the service encrypts with its primary version. The
+/// identifier of the root key is the resource name of the crypto key version that the service reports, which must be a
+/// version of the crypto key that encryption named. Decryption names the crypto key that the recorded version belongs
+/// to, so a wrapped key is never decrypted under any other crypto key.
 /// </para>
 /// <para>
 /// Every request and response carries CRC32C checksums, so a value corrupted in transit is detected. A response that
@@ -40,11 +42,11 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 /// to reach the service is never mistaken for a wrong key.
 /// </para>
 /// </remarks>
-// See ADR-1260.
+// See ADR-1260 and ADR-1415.
 internal class GoogleCloudKmsKeyWrapper(
     IGoogleCloudKmsClientFactory clientFactory,
     IOptions<GoogleCloudKmsKeyWrapperOptions> options
-) : IKeyWrapper
+) : IReferencedKeyWrapper
 {
     private IGoogleCloudKmsClientFactory ClientFactory { get; } = clientFactory;
 
@@ -59,7 +61,7 @@ internal class GoogleCloudKmsKeyWrapper(
     /// </exception>
     /// <exception cref="IOException">
     /// Thrown when the service does not confirm the integrity of the request and response, or reports a crypto key
-    /// version that does not belong to the configured crypto key.
+    /// version that does not belong to the crypto key.
     /// </exception>
     public async ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
@@ -75,6 +77,56 @@ internal class GoogleCloudKmsKeyWrapper(
             );
         }
 
+        return await WrapUnderAsync(keyName, key, context, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public bool TryValidateKeyReference(
+        string keyReference,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (GoogleCloudKmsKeyName.IsCryptoKeyName(keyReference))
+        {
+            failure = null;
+            return true;
+        }
+
+        failure =
+            "must be the resource name of a Cloud KMS crypto key without a version, such as projects/my-project/locations/global/keyRings/tenants/cryptoKeys/tenant-root";
+        return false;
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="IOException">
+    /// Thrown when the service does not confirm the integrity of the request and response, or reports a crypto key
+    /// version that does not belong to the named crypto key.
+    /// </exception>
+    public async ValueTask<WrappedKey> WrapAsync(
+        string keyReference,
+        ReadOnlyMemory<byte> key,
+        ReadOnlyMemory<byte> context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!GoogleCloudKmsKeyName.IsCryptoKeyName(keyReference))
+        {
+            throw new ArgumentException(
+                "The key reference is not a Cloud KMS crypto key name.",
+                nameof(keyReference)
+            );
+        }
+
+        return await WrapUnderAsync(keyReference, key, context, cancellationToken);
+    }
+
+    private async ValueTask<WrappedKey> WrapUnderAsync(
+        string keyName,
+        ReadOnlyMemory<byte> key,
+        ReadOnlyMemory<byte> context,
+        CancellationToken cancellationToken
+    )
+    {
         // The call only reads the caller's buffers and they outlive it, so they are wrapped without a copy.
         var request = new EncryptRequest
         {
@@ -111,7 +163,7 @@ internal class GoogleCloudKmsKeyWrapper(
         )
         {
             throw new IOException(
-                $"Google Cloud KMS reported '{versionName}', which is not a version of the configured crypto key; the call can be retried."
+                $"Google Cloud KMS reported '{versionName}', which is not a version of the named crypto key; the call can be retried."
             );
         }
 

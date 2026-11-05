@@ -154,7 +154,7 @@ A severity the library does not define logs at Information.
 | `protocol`       | Protocol-level errors returned to a caller.                                                                                                          |
 | `management`     | Changes made through the management plane.                                                                                                           |
 | `data_access`    | The disclosure of an end user's personal data to a caller.                                                                                           |
-| `key`            | The lifecycle of keys: a tenant's key the server generates, activates, retires or removes on its own, and a master key that rotates or is destroyed. |
+| `key`            | The lifecycle of keys: a tenant's key the server generates, activates, retires or removes on its own, a master key that rotates or is destroyed, and the root key a tenant brings. |
 
 ### Event sources
 
@@ -172,19 +172,20 @@ The recorder states the actor explicitly for each event, so the actor does not d
 | --------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                                |
 | `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`.     |
-| `administrator` | The administrator's subject id, when known | Every management event, a rekey through the management API (`master_key.rotated`) included. The subject id is read with the server-default claim types, not the request tenant's setting. |
-| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*` and background `master_key.*` events, whose `details.reason` says why. No caller acted.         |
+| `administrator` | The administrator's subject id, when known | Every management event, a rekey through the management API (`master_key.rotated`) and a tenant's root key set, removed or validated through it (`root_key.*`) included. The subject id is read with the server-default claim types, not the request tenant's setting. |
+| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*`, background `master_key.*` and background `root_key.*` events, whose `details.reason` says why. No caller acted.         |
 | `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                     |
 
 ### Resource types
 
-`session`, `tenant`, `tenant.secret` and `master_key` are shared by the protocol and the management planes (`AuditResourceTypes`).
+`session`, `tenant`, `tenant.secret`, `master_key` and `root_key` are shared by the protocol and the management planes (`AuditResourceTypes`).
 The management types are `ManagementResourceTypes`, and the local-account type is `AccountManagementResourceTypes`.
 
 | `resources[].type`       | Entity                                                                                                                                                                 |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `session`                | A user session, identified by its `sid`.                                                                                                                               |
 | `master_key`             | A master key, identified by its key id, which protects the stored secrets of a tenant or the data a host protects under the platform (`AuditResourceTypes.MasterKey`). |
+| `root_key`               | The root key a tenant brings, identified by the reference the tenant gave, which wraps the tenant's master keys (`AuditResourceTypes.RootKey`).                        |
 | `client`                 | An OpenID client.                                                                                                                                                      |
 | `client.secret`          | A secret belonging to a client.                                                                                                                                        |
 | `tenant`                 | An OpenID tenant.                                                                                                                                                      |
@@ -288,11 +289,34 @@ A read of the encryption keys is not audited.
 
 | `event_name`           | Resources                         | `details.reason`                                                                                                                       |
 | ---------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `master_key.rotated`   | `master_key`, `tenant`/`platform` | `requested`: an administrator rekeyed; `rotation_period_elapsed`: the active key outlived `SecretProtection:MasterKeys:RotationPeriod` |
+| `master_key.rotated`   | `master_key`, `tenant`/`platform` | `requested`: an administrator rekeyed; `rotation_period_elapsed`: the active key outlived `SecretProtection:MasterKeys:RotationPeriod`; `root_key_changed`: the rotation moves a tenant onto the [root key it brings](#root-keys) |
 | `master_key.destroyed` | `master_key`, `tenant`/`platform` | `unreferenced`: the retired key passed its grace and no stored value names it                                                          |
 
 Both events write `details.reason` (an open vocabulary, `MasterKeyChangeReasons`), `key_id`, `version` and
-`root_key_provider`. A rotation also writes `retired_key_id` and `retired_version` when it retired a key.
+`root_key_provider`, and `root_key_reference` when a root key a tenant brings wraps the master key. A rotation also
+writes `retired_key_id` and `retired_version` when it retired a key.
+
+#### Root keys
+
+Every root key event is a `RootKeyAuditEvent` with `event_category` `key`
+([ADR-1414](decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)). It records a change to
+the root key a tenant brings, which wraps the tenant's master keys with no operator recovery copy. It lists the
+`root_key`, identified by the reference the tenant gave, first and the owner second (`tenant`, with the tenant's id),
+carries no key material, and is published once the change has committed. A change an administrator makes through the
+management API has `event_source` `management`, the `administrator` actor and the request; a change the background
+validation makes has `event_source` `openid` and the `system` actor. A read of the root key is not audited.
+
+| `event_name`         | Resources              | Outcome   | `details.reason`                                                                                                                                                      |
+| -------------------- | ---------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root_key.set`       | `root_key`, `tenant`   | `success` | `requested`: an administrator set or changed the key                                                                                                                  |
+| `root_key.removed`   | `root_key`, `tenant`   | `success` | `requested`: an administrator removed the key; the master keys move back under the deployment's root key, and the completion of the removal is logged, not audited      |
+| `root_key.unavailable` | `root_key`, `tenant` | `failure` | `validation_failed`: a probe through the key failed, so the tenant fails closed. The severity is `warning`                                                            |
+| `root_key.restored`  | `root_key`, `tenant`   | `success` | `validation_succeeded`: a probe through an `unavailable` key succeeded; `requested`: an administrator set the same key again and it succeeded                         |
+
+Every root key event writes `details.reason` (an open vocabulary, `RootKeyChangeReasons`), `provider` (the key wrapper
+name, such as `aws-kms`), `key_reference`, `state` (`active`, `unavailable` or `removing`, after the change) and
+`failure` (the description of the failed probe, when there is one). A rotation onto the key is recorded separately as
+`master_key.rotated` with the reason `root_key_changed`.
 
 ### BFF plane
 

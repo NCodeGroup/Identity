@@ -93,4 +93,30 @@ public sealed class MasterKeyAuditEventTests
         Assert.False(details.TryGetProperty("retired_key_id", out _));
         Assert.False(details.TryGetProperty("retired_version", out _));
     }
+
+    [Fact]
+    public void Serialize_UnderAnOwnerRootKey_WritesTheRootKeyReference()
+    {
+        var auditEvent = CreateEvent() with
+        {
+            Reason = MasterKeyChangeReasons.RootKeyChanged,
+            RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
+        };
+
+        var details = ParseRecord(auditEvent).GetProperty("details");
+
+        Assert.Equal("root_key_changed", details.GetProperty("reason").GetString());
+        Assert.Equal(
+            "arn:aws:kms:us-west-2:111122223333:key/abcd",
+            details.GetProperty("root_key_reference").GetString()
+        );
+    }
+
+    [Fact]
+    public void Serialize_UnderTheDeploymentRoot_OmitsTheRootKeyReference()
+    {
+        var details = ParseRecord(CreateEvent()).GetProperty("details");
+
+        Assert.False(details.TryGetProperty("root_key_reference", out _));
+    }
 }

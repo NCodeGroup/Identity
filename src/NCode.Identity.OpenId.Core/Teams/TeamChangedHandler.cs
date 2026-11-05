@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Logging;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence;
 using NCode.Identity.SharedState;
 using NCode.Mediator;
 using NCode.PropertyBag;

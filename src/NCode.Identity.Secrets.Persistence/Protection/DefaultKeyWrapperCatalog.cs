@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -15,19 +16,40 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <remarks>
 /// The constructor throws an <see cref="InvalidOperationException"/> when more than one registered provider has the
-/// same name, so an inconsistent registration fails when the catalog is composed rather than when a key is wrapped.
+/// same name, and when a provider that <see cref="OwnerRootKeyOptions.Providers"/> lists is not a registered
+/// <see cref="IReferencedKeyWrapper"/>, so an inconsistent registration or configuration fails when the catalog is
+/// composed rather than when a key is wrapped.
 /// </remarks>
-/// <param name="providers">The registered root key providers.</param>
-/// <param name="options">The options that select the provider for wrapping new keys.</param>
-// See ADR-1150 and ADR-1235.
-internal class DefaultKeyWrapperCatalog(
-    IEnumerable<IKeyWrapper> providers,
-    IOptions<SecretProtectionOptions> options
-) : IKeyWrapperCatalog
+// See ADR-1150, ADR-1235, ADR-1414 and ADR-1415.
+internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
 {
-    private FrozenDictionary<string, IKeyWrapper> ProvidersByName { get; } = IndexByName(providers);
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultKeyWrapperCatalog"/> class.
+    /// </summary>
+    /// <param name="providers">The registered root key providers.</param>
+    /// <param name="options">The options that select the provider for wrapping new keys.</param>
+    public DefaultKeyWrapperCatalog(
+        IEnumerable<IKeyWrapper> providers,
+        IOptions<SecretProtectionOptions> options
+    )
+    {
+        // The registrations are enumerated once, so a lazy sequence is not resolved twice.
+        var buffered = providers.ToArray();
 
-    private IOptions<SecretProtectionOptions> ProtectionOptions { get; } = options;
+        ProvidersByName = IndexByName(buffered);
+        ReferencedByName = buffered
+            .OfType<IReferencedKeyWrapper>()
+            .ToFrozenDictionary(wrapper => wrapper.Name, StringComparer.Ordinal);
+        ProtectionOptions = options;
+
+        ValidateOwnerRootKeyProviders(options.Value.OwnerRootKeys.Providers);
+    }
+
+    private FrozenDictionary<string, IKeyWrapper> ProvidersByName { get; }
+
+    private FrozenDictionary<string, IReferencedKeyWrapper> ReferencedByName { get; }
+
+    private IOptions<SecretProtectionOptions> ProtectionOptions { get; }
 
     /// <inheritdoc />
     public IKeyWrapper Get(string providerName)
@@ -38,6 +60,24 @@ internal class DefaultKeyWrapperCatalog(
         throw new InvalidOperationException(
             $"No root key provider is registered with the name '{providerName}'. "
                 + $"The registered providers are: {FormatNames(ProvidersByName.Keys)}."
+        );
+    }
+
+    /// <inheritdoc />
+    public bool TryGetReferenced(
+        string name,
+        [NotNullWhen(true)] out IReferencedKeyWrapper? wrapper
+    ) => ReferencedByName.TryGetValue(name, out wrapper);
+
+    /// <inheritdoc />
+    public IReferencedKeyWrapper GetReferenced(string name)
+    {
+        if (ReferencedByName.TryGetValue(name, out var wrapper))
+            return wrapper;
+
+        throw new InvalidOperationException(
+            $"No key wrapper that wraps under a key the caller names is registered with the name '{name}'. "
+                + $"The registered ones are: {FormatNames(ReferencedByName.Keys)}."
         );
     }
 
@@ -84,6 +124,42 @@ internal class DefaultKeyWrapperCatalog(
 
         return providersByName.ToFrozenDictionary(StringComparer.Ordinal);
     }
+
+    private void ValidateOwnerRootKeyProviders(string[]? ownerProviders)
+    {
+        if (ownerProviders is null || ownerProviders.Length == 0)
+            return;
+
+        var key =
+            $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.OwnerRootKeys)}:{nameof(OwnerRootKeyOptions.Providers)}";
+        var choices = FormatChoices(ReferencedByName.Keys);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var failures = new List<string>();
+
+        foreach (var provider in ownerProviders)
+        {
+            // Blank and repeated names are reported by the options validator.
+            if (string.IsNullOrWhiteSpace(provider) || !seen.Add(provider))
+                continue;
+
+            if (ReferencedByName.ContainsKey(provider))
+                continue;
+
+            var reason = ProvidersByName.ContainsKey(provider)
+                ? "is registered but does not wrap under a key the caller names"
+                : "is not registered";
+
+            failures.Add(
+                $"{key} names '{provider}', which {reason}. The key wrappers that an owner can choose are: {choices}."
+            );
+        }
+
+        if (failures.Count > 0)
+            throw new InvalidOperationException(string.Join(" ", failures));
+    }
+
+    private static string FormatChoices(IEnumerable<string> names) =>
+        names.Any() ? FormatNames(names) : "none";
 
     private static string FormatNames(IEnumerable<string> names) =>
         string.Join(", ", names.Order(StringComparer.Ordinal).Select(name => $"'{name}'"));

@@ -7,9 +7,9 @@
 
 |                    |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**         | Available. Grant payloads, private keys, client secrets and the Data Protection key ring are all covered, and master keys rotate, rekey and are destroyed once nothing names them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Status**         | Available. Grant payloads, private keys, client secrets and the Data Protection key ring are all covered, master keys rotate, rekey and are destroyed once nothing names them, and a tenant can wrap its master keys under a root key it controls.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Packages**       | `NCode.Identity.Secrets.Persistence(.Abstractions)`, plus one opt-in package per cloud: `.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **Key decisions**  | [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md) grant payloads · [ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md) secure buffers · [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) master key lifecycle · [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) offline rewrap |
+| **Key decisions**  | [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) key hierarchy · [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) cloud root keys · [ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md) grant payloads · [ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md) secure buffers · [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) master key lifecycle · [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) offline rewrap · [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) tenant root keys · [ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md) wrapping under a named key |
 | **Operator guide** | [Helm chart: Secret protection](../../charts/ncode-identity-host/README.md#secret-protection)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ## Contents
@@ -22,6 +22,7 @@
 - [Inside the database: the envelope](#inside-the-database-the-envelope)
 - [Inside the process: secure memory](#inside-the-process-secure-memory)
 - [The root of trust: root keys and KMS](#the-root-of-trust-root-keys-and-kms)
+- [Tenant root keys (bring your own key)](#tenant-root-keys-bring-your-own-key)
 - [Rotation, rekey and destroy](#rotation-rekey-and-destroy)
 - [Recovery](#recovery)
 - [Safe by default](#safe-by-default)
@@ -41,6 +42,7 @@
 | 6   | **Secret plaintext never sits on the garbage-collected heap.** It lives in pinned or stack memory and is zeroed when released. A secret is never a `string`. |
 | 7   | **Production refuses an unsafe setup.** It won't start with a throwaway key, a key in a config file, or no decision about recovery.                   |
 | 8   | **A master key rotates every year, and a retired one is destroyed once nothing names it.** Rotation rewraps a tenant's 32-byte data keys and never touches a payload; the platform's next version protects the Data Protection keys and host data created afterwards. |
+| 9   | **A tenant can hold the key to its own data.** Its master keys are wrapped only by a key in its own KMS, with no operator recovery copy, and revoking or destroying that key makes its data unreadable everywhere within an hour by default. |
 
 ## Why this matters
 
@@ -71,13 +73,16 @@ flowchart TB
     subgraph KMS["🔐 Key management service or HSM"]
         ROOT["<b>Root key</b><br/>one per deployment<br/>never leaves the KMS"]
     end
+    subgraph TKMS["🔐 One tenant's own KMS (optional)"]
+        TROOT["<b>Tenant root key</b><br/>controlled by the tenant<br/>no recovery copy"]
+    end
     subgraph OFFLINE["🗄️ Offline (optional, recommended)"]
         REC["<b>Recovery key</b><br/>RSA ≥ 3072, private half offline"]
     end
     subgraph DB["🛢️ Database: MasterKeys table"]
         MKS["<b>Platform master key</b><br/>AES-256, versioned"]
         MKA["<b>Tenant A master key</b>"]
-        MKB["<b>Tenant B master key</b>"]
+        MKB["<b>Tenant B master key</b><br/>wrapped by its own root key"]
     end
     subgraph MEM["⚙️ Derived in memory, never stored"]
         PK["<b>Purpose keys</b><br/>HKDF-SHA256(master key, purpose)"]
@@ -86,8 +91,9 @@ flowchart TB
         ENV["<b>nce1. envelopes</b><br/>random data key per value<br/>AES-256-GCM"]
     end
 
-    ROOT -- "wraps" --> MKS & MKA & MKB
-    REC -. "also wraps" .-> MKS & MKA & MKB
+    ROOT -- "wraps" --> MKS & MKA
+    REC -. "also wraps" .-> MKS & MKA
+    TROOT -- "wraps instead of the root key" --> MKB
     MKA -- "derives" --> PK
     PK -- "wraps the data key of each" --> ENV
 ```
@@ -95,7 +101,9 @@ flowchart TB
 1. The **root key** wraps master keys. It sits in AWS KMS, Azure Key Vault, Google Cloud KMS or a mounted key file,
    and the server only ever asks it to *wrap* or *unwrap* a key.
 2. Each **owner** (the platform, and every tenant) has its own 256-bit **master key**. It is stored in the database,
-   wrapped by the root key, and optionally wrapped a second time by an offline recovery key.
+   wrapped by the root key, and optionally wrapped a second time by an offline recovery key. A tenant can bring a root
+   key of its own that wraps its master key in place of the deployment's root key, with no recovery copy
+   ([Tenant root keys](#tenant-root-keys-bring-your-own-key)).
 3. **Purpose keys** are derived from a master key for each kind of data (`persisted-secret`, `grant-payload`,
    `data-protection-key-ring`, …). They are derived on demand and never stored.
 4. Every stored value gets a fresh random **data key** and is encrypted with AES-256-GCM. The data key is wrapped by
@@ -158,7 +166,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
   adds latency and a fee to every token. It is planned as an opt-in for signing keys
   ([#165](https://github.com/NCodeGroup/Identity/issues/165)).
 - **A platform key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
-  anyway, and it would block per-tenant root keys (bring your own key) later.
+  anyway, and it would stop a tenant from bringing its own root key.
 
 Full reasoning: [ADR-1235 § Options considered](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
 
@@ -287,6 +295,103 @@ keep unwrapping under their own version.
 > [ADR-1235](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) and
 > [ADR-1260](../decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md).
 
+## Tenant root keys (bring your own key)
+
+A tenant that must hold the key to its own data, such as a regulated customer, can name a root key it controls in its
+own KMS. The tenant's master keys are then wrapped by that key in place of the deployment's root key, with **no
+recovery copy** that the operator holds. Revoking, disabling or destroying the key makes every value written or
+rewrapped under it unreadable, in the database and in every backup
+([ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)).
+
+- **Providers.** A tenant chooses among the key wrappers listed in `SecretProtection:OwnerRootKeys:Providers`. The list
+  is empty by default, so no tenant can bring a key until the operator opts in: the server calls the tenant's KMS with
+  the deployment's own workload identity. A provider has to wrap under a key the caller names, which `aws-kms`,
+  `azure-key-vault` and `google-cloud-kms` do ([ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md));
+  `ephemeral`, `local` and the recovery wrapper hold a deployment secret, never a key a third party controls. A listed
+  provider that is not such a wrapper stops the host as it starts. The list governs setting a key only: a tenant bound
+  to a provider that leaves the list keeps its key, so its data stays readable.
+- **The key reference.** The tenant gives the key wrapper name and a reference its provider understands: a KMS key or
+  alias ARN for `aws-kms`, a crypto key name without a version for `google-cloud-kms`, and a key id with or without a
+  version for `azure-key-vault`. The tenant grants the deployment's identity only the permission to wrap and unwrap with
+  that key ([Helm chart: Tenant root keys](../../charts/ncode-identity-host/README.md#tenant-root-keys)). An Azure Key
+  Vault key reference names a host that ends with one of the suffixes in
+  `SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes`, compared without regard to case, so the
+  server never calls a host the tenant picked outside Key Vault and Managed HSM. The default suffixes are
+  `.vault.azure.net`, `.managedhsm.azure.net`, `.vault.azure.cn`, `.managedhsm.azure.cn`, `.vault.usgovcloudapi.net` and
+  `.managedhsm.usgovcloudapi.net`; configuring the list replaces them, and the deployment's own configured key is not
+  restricted.
+- **Who cannot bring a key.** Which owners can bring a key is decided by the registered `IOwnerRootKeyPolicy`
+  strategies: an owner that any of them refuses cannot, and setting a key on it answers `400` with the policy's reason.
+  The `platform` owner is refused, because its master keys protect the deployment's Data Protection key ring and the
+  host's own data. The
+  control-plane tenant is refused too: the management API authenticates every administrator against it
+  ([ADR-1191](../decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)), so a revoked
+  key would fail every management request, including the ones that restore it, and lock the administrators out. Their
+  keys stay under the deployment's root key. A consumer registers its own `IOwnerRootKeyPolicy` to refuse further
+  owners.
+- **Set or change.** The server probes the key, stores the tenant's binding as `active`, and rotates the tenant's master
+  key so that its successor is created under the tenant's key, then rewraps every retired master key under it and drops
+  its recovery copy. Rotation is what gives the tenant sole control: the earlier master key material exists in backups
+  wrapped by the deployment's root key and its recovery copy, so only material created under the tenant's key is out
+  of the operator's reach. The data keys under the retired master keys move to the new active key in the background,
+  as in [Rotation, rekey and destroy](#rotation-rekey-and-destroy). A change within twice
+  `SecretProtection:MasterKeys:RefreshInterval` of the tenant's last rotation is refused until the interval passes.
+- **Remove.** Removing the key moves the tenant's master keys back under the deployment's root key, with a recovery copy
+  when one is configured, and deletes the binding once every master key has moved. It does not rotate: the material was
+  only ever under the stronger key. A key that cannot unwrap a master key leaves the binding in `removing`, and the host
+  retries.
+- **The probe.** The server wraps 32 random bytes through the tenant's key under a context label of its own, unwraps
+  them, compares the two in constant time and zeroes both. It works through any provider and proves that the key
+  exists, is enabled, and that the deployment's identity holds both the encrypt and the decrypt permission. Any
+  failure, transient or definitive, fails closed.
+
+| State         | Meaning                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `active`      | The key wraps every master key of the tenant, and new ones.                                                      |
+| `unavailable` | The last probe failed. The tenant fails closed until a probe succeeds.                                           |
+| `removing`    | The key is being removed: new master keys are wrapped by the deployment's root key while the rest move back.     |
+
+A state the server does not know reads as `unavailable`. The management API and the console report the reference, the
+state, when the key was set, when its state changed, the last successful validation and the last failure, never key
+material.
+
+| Setting (`SecretProtection:OwnerRootKeys:`) | Default  | Meaning                                                                                                                                                                      |
+| ------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Providers`                                 | none     | The key wrappers a tenant may choose. Empty means no tenant can bring a key.                                                                                                 |
+| `ValidationInterval`                        | 1 hour   | How often an `active` key is probed, and how long a replica reuses master key material unwrapped under a tenant key before it unwraps it again. Between one minute and one day. |
+| `RetryInterval`                             | 1 minute | How often an `unavailable` or `removing` key is retried, and how long a replica refuses a tenant whose key failed before it tries again. Between one second and `ValidationInterval`. |
+
+**Failing closed.** One replica, under a lease, probes each key that comes due, and every state change reaches every
+replica through the tenant-change broadcast. A replica also unwraps a tenant-keyed master key again at least every
+`ValidationInterval`, with no cached material reused, so a revoked or destroyed key stops it within that interval even
+when no probe runs. A replica whose unwrap through the key fails logs the failure and refuses the tenant for
+`RetryInterval`; only a failed probe sets the stored state to `unavailable`. While a tenant's key is `unavailable`, the
+host reads and writes none of the tenant's secrets: the
+management API answers `503 Service Unavailable` with a `Retry-After` for that tenant, a protocol request answers as for
+any unhandled failure, the host logs the failure, and the audit trail records `root_key.unavailable` (see
+[Audit records](../audit-records.md#root-keys)). The next successful probe restores the key
+(`root_key.restored`), and the tenant is readable again. Development pruning never deletes a tenant-keyed owner's master
+keys.
+
+**Backups.** A backup taken before the key was set holds the earlier master keys under the deployment's root key and
+their recovery copies, so the values in it stay readable to whoever holds that backup and the deployment's root key
+until it expires. Every value written or rewrapped afterwards exists only under the tenant's key. Destroying the key
+loses every such value for good, and no operator can recover it.
+
+**The management API.** All three write routes use the `update:encryption_keys` scope; the read uses
+`read:encryption_keys`.
+
+| Route                                                                   | Does                                                                                                                                                                                 |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/tenants/{tenantId}/encryption-keys`                           | Reports the keys, the tenant's root key and the providers a tenant may choose.                                                                                                       |
+| `PUT /api/tenants/{tenantId}/encryption-keys/root-key`                  | Sets or changes the key from `provider` and `keyReference`. `200`; `400` for a field that is blank, not allowed, not registered or malformed, or for the control-plane tenant; `409` with `Retry-After` for a change too soon after a rotation; `412` when it loses a race; `422` when the probe fails. |
+| `DELETE /api/tenants/{tenantId}/encryption-keys/root-key`               | Removes the key. `204` once every master key is under the deployment's root key, also when no key was set; `202` with the key in `removing` while master keys remain under it.      |
+| `POST /api/tenants/{tenantId}/encryption-keys/root-key/validate`        | Probes the key on demand. `200` with the key; `404` when the tenant has no key.                                                                                                            |
+
+The console's encryption keys tab for a tenant shows the root key with its state and last failure, and offers "Set root
+key", "Validate" and a confirmed "Remove". An `unavailable` key shows an error alert, and a tenant with no provider to
+choose shows no set action. The key table names each master key's root key, or "Deployment".
+
 ## Rotation, rekey and destroy
 
 A master key does not live forever. Each owner's active master key **rotates** to a new version after
@@ -318,7 +423,7 @@ sequenceDiagram
 
 - **Rekey through the API.** `GET` and `POST /api/tenants/{tenantId}/encryption-keys[/rekey]` and
   `/api/platform/encryption-keys[/rekey]` report the keys and rotate them (Auth0's rekey shape). The response
-  names keys by id, version, state, instants, root key provider and recovery key id and carries no key material. A rekey
+  names keys by id, version, state, instants, root key provider, root key reference and recovery key id and carries no key material. A rekey
   within twice `RefreshInterval` of the owner's last rotation answers `409` with `Retry-After`, and one that loses a
   race to another rekey answers `412`, as every management write that loses a race does. The management console shows
   both.
@@ -335,7 +440,8 @@ sequenceDiagram
   names it, and always when the ring cannot be read. `SecretProtection:MasterKeys:DestroyRetired=false` keeps retired
   keys for good.
 - **Every change is audited.** `master_key.rotated` and `master_key.destroyed` are `key` events without material (see
-  [Audit records](../audit-records.md#master-keys)). A status read is not.
+  [Audit records](../audit-records.md#master-keys)). A status read is not. A tenant's root key changes are audited as
+  `root_key.*` events ([Audit records](../audit-records.md#root-keys)).
 
 | Setting (`SecretProtection:MasterKeys:`) | Default   | Meaning                                                              |
 | ---------------------------------------- | --------- | -------------------------------------------------------------------- |
@@ -354,6 +460,9 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
   Shamir tool. The server refuses a PEM that contains a private key.
 - **Or opt out explicitly.** `SecretProtection:Recovery:Disabled=true` records that losing the root key loses every
   stored secret. In Production, the server won't start until you've chosen one or the other.
+- **A tenant's own root key has no recovery copy.** A master key wrapped by a key the tenant brings
+  ([Tenant root keys](#tenant-root-keys-bring-your-own-key)) is never wrapped by the recovery key, whatever the recovery
+  settings say: the tenant's control is the point, so only the tenant's key can unwrap it.
 - **Data Protection key ring gate.** If the platform's master key can't decrypt a live key in the Data Protection key
   ring (for example after a partial restore), the host **stops** instead of silently signing everyone out. The error
   names each affected key, and one setting revokes them
@@ -362,7 +471,9 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
   provider and recovery public key, and `rewrap-recovery` replaces only the recovery copies. Run it once as a Job from
   the host image. When the root key is lost, `--recovery-private-key <file>` unwraps each key from its recovery copy. The
   private key is read from that file only, held in memory that is zeroed when the command ends, and never reaches a
-  serving process. `--dry-run` proves recovery without writing
+  serving process. `--dry-run` proves recovery without writing. A master key under a tenant's root key stays under it:
+  the command never wraps it under the deployment's root key and never adds a recovery copy, and a dry run still unwraps
+  it through the tenant's key
   ([ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md); [chart](../../charts/ncode-identity-host/README.md#rewrapping-master-keys)).
 
 ## Safe by default
@@ -420,7 +531,6 @@ We'd rather say what this doesn't do yet:
 | Coming next                                       | Issue                                                     |
 | ------------------------------------------------- | --------------------------------------------------------- |
 | More root key providers (OpenBao/Vault Transit, PKCS#11, Infisical) | [#173](https://github.com/NCodeGroup/Identity/issues/173) |
-| Per-tenant root keys (bring your own key)         | [#174](https://github.com/NCodeGroup/Identity/issues/174) |
 
 ## Further reading
 
@@ -432,6 +542,8 @@ We'd rather say what this doesn't do yet:
 - [ADR-1247](../decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md): a Data Protection key the server can't decrypt stops the host
 - [ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): a master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
 - [ADR-1408](../decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): an offline host command rewraps every master key under the configured root and recovery keys
+- [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): a tenant can wrap its master keys under a root key it controls
+- [ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md): a key wrapper can wrap under a key the caller names
 - [ADR-1116](../decisions/1116-memory-allocations-and-buffer-operations.md): spans, pooled writers and secure lifetimes
 - [ADR-1050](../decisions/1050-secret-material-revealed-once-on-create.md): secret material is revealed once, on create
 - [ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): a client secret that is only compared is stored as a one-way verifier
@@ -442,4 +554,6 @@ We'd rather say what this doesn't do yet:
 - [`DefaultSecretProtector`](../../src/NCode.Identity.Secrets.Persistence/Protection/DefaultSecretProtector.cs): protect and unprotect
 - [`DefaultMasterKeyRing`](../../src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRing.cs): master key loading and caching
 - [`IKeyWrapper`](../../src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IKeyWrapper.cs): the key wrapper contract that root key wrappers implement
+- [`IReferencedKeyWrapper`](../../src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IReferencedKeyWrapper.cs): a key wrapper that wraps under a key the caller names
+- [`IOwnerRootKeyManager`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/Protection/IOwnerRootKeyManager.cs): sets, removes and validates a tenant's root key
 - [`ProductionSafetyRegistration`](../../src/NCode.Identity.Server/ProductionSafety/ProductionSafetyRegistration.cs): the Production refusals

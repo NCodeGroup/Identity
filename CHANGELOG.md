@@ -3574,11 +3574,48 @@ describes the family as it is rather than its changes
   configured root key provider and recovery public key, and `secret-protection rewrap-recovery` replaces only the
   recovery copies, each unwrapping a key with the root key provider it names or, with `--recovery-private-key <file>`,
   from its recovery copy. `--owner <type:id>` limits the run to one owner and `--dry-run` verifies every key without
-  writing. An `--owner` with no master keys exits `1`. The recovery private key is read from the file only, held in memory that is zeroed when the command ends,
-  and never reaches a serving process. The Helm chart's `secretProtection.rewrapJob` runs the command as a Job, and
-  `IMasterKeyRewrapper` is its engine
+  writing. An `--owner` with no master keys exits `1`. A master key under a tenant's root key stays under it: the
+  command never wraps it under the deployment's root key and never adds a recovery copy to it, and a dry run still
+  unwraps it through the tenant's key. The recovery private key is read from the file only, held in memory that is
+  zeroed when the command ends, and never reaches a serving process. The Helm chart's `secretProtection.rewrapJob` runs
+  the command as a Job, and `IMasterKeyRewrapper` is its engine
   ([#172](https://github.com/NCodeGroup/Identity/issues/172),
   [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
+
+- **A tenant brings its own root key.** A tenant names a root key it controls, a key wrapper name (`aws-kms`,
+  `azure-key-vault` or `google-cloud-kms`) and a key reference (a KMS key or alias ARN, a crypto key name without a
+  version, or a key id), and its master keys are wrapped only by that key, with no operator recovery copy, in place of
+  the deployment's root key. `PUT`, `DELETE` and `POST .../validate` on
+  `/api/tenants/{tenantId}/encryption-keys/root-key` set or change, remove and validate it (scope
+  `update:encryption_keys`), and `GET .../encryption-keys` reports the root key and the providers a tenant may choose
+  (scope `read:encryption_keys`). A `PUT` answers `400` for a field that is blank, not allowed, not registered or
+  malformed, `409` with `Retry-After` within twice `SecretProtection:MasterKeys:RefreshInterval` of the tenant's last
+  rotation, `412` when it loses a race and `422` when the probe fails; a `DELETE` answers `204` once every master key
+  is under the deployment's root key and `202` while master keys remain under the tenant's key. The server validates a
+  key by wrapping 32 random bytes through it under a context label of its own, unwrapping them and comparing the two in
+  constant time, which proves that the key exists, is enabled and grants both the encrypt and the decrypt permission
+  through any provider. Setting or changing the key rotates the tenant's master key so that the successor is created
+  under it and rewraps every retired master key under it, because earlier material exists in backups under the
+  deployment's root key; removing it moves the master keys back under the deployment's root key without a rotation.
+  An Azure Key Vault key reference names a host under the deployment's Key Vault or Managed HSM host suffixes
+  (`SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes`, by default the public, China and US
+  government cloud domains). Which owners can bring a key is a registered `IOwnerRootKeyPolicy`: the `platform` owner and
+  the control-plane tenant, which the management API authenticates against, are refused, a consumer registers its own,
+  and a `PUT` for a refused owner answers `400`. A root key is `active`, `unavailable` or `removing`, and an
+  unknown state reads as `unavailable`. `SecretProtection:OwnerRootKeys:Providers` (empty by default, so no tenant can
+  bring a key), `ValidationInterval` (one hour, between one minute and one day) and `RetryInterval` (one minute,
+  between one second and the validation interval) tune it, and a listed provider that is not a registered referenced
+  key wrapper stops the host as it starts. The Helm chart's `secretProtection.ownerRootKeys.providers` lists the
+  providers and mounts a listed provider's workload credentials. The management console's tenant encryption keys tab
+  sets, validates and removes the key, shows its state and the master keys' root keys, and warns when it is
+  `unavailable`. `root_key.set`, `root_key.removed`, `root_key.unavailable` and `root_key.restored` are `key` audit
+  events without material, a rotation onto the key records `master_key.rotated` with the reason `root_key_changed`,
+  and a master key's `root_key_reference` detail names the key that wraps it. `IReferencedKeyWrapper` is a key wrapper
+  that wraps under a key the caller names, implemented by the AWS KMS, Google Cloud KMS and Azure Key Vault wrappers,
+  and `IOwnerRootKeyManager` sets, removes and validates a root key
+  ([#174](https://github.com/NCodeGroup/Identity/issues/174),
+  [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
+  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
 
 ### Security
 
@@ -5180,5 +5217,15 @@ describes the family as it is rather than its changes
   [#172](https://github.com/NCodeGroup/Identity/issues/172),
   [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
   [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
+- **A revoked tenant root key shreds the tenant's data and the server fails closed.** A master key under a root key the
+  tenant brings has no operator recovery copy, so revoking, disabling or destroying that key makes every value written
+  or rewrapped under it unreadable, in the database and in every backup. The key is re-validated every hour by default,
+  and a replica unwraps a tenant-keyed master key again at least that often, so a revocation takes effect within that
+  period on every replica. While the key is `unavailable` the server reads and writes none of the tenant's secrets: the
+  management API answers `503` with `Retry-After`, the host logs the failure, and `root_key.unavailable` is audited;
+  development pruning never deletes the master keys of such a tenant
+  ([#174](https://github.com/NCodeGroup/Identity/issues/174),
+  [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
+  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

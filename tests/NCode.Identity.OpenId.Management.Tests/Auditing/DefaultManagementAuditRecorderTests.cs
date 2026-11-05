@@ -5,10 +5,13 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -49,7 +52,8 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     // already stamped with one does not.
     private DefaultManagementAuditRecorder CreateRecorder(
         IEventPublisher eventPublisher,
-        bool resolvesTenantEnvironment = true
+        bool resolvesTenantEnvironment = true,
+        ILogger<DefaultManagementAuditRecorder>? logger = null
     )
     {
         var mockEnvironment = MockRepository.Create<OpenIdEnvironment>();
@@ -86,9 +90,79 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             eventPublisher,
             mockEnvironmentProvider.Object,
             mockTenantEnvironmentResolver.Object,
-            TimeProvider.System
+            TimeProvider.System,
+            logger ?? NullLogger<DefaultManagementAuditRecorder>.Instance
         );
     }
+
+    #region PublishAsync Tests
+
+    [Fact]
+    public async Task RecordGrantRevokedAsync_WhenThePublisherThrows_LogsItAndDoesNotThrow()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<GrantRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Throws(new InvalidOperationException("The publisher failed."))
+            .Verifiable();
+        var mockLogger = MockRepository.Create<ILogger<DefaultManagementAuditRecorder>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true);
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(id => id.Id == EventIds.AuditPublishFailed),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<InvalidOperationException>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()
+                )
+            )
+            .Verifiable();
+        var recorder = CreateRecorder(mockPublisher.Object, logger: mockLogger.Object);
+
+        await recorder.RecordGrantRevokedAsync(
+            CreateHttpContext("admin-1"),
+            "tenant-1",
+            "subject-1",
+            "client-1",
+            "authorization_code",
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task RecordGrantRevokedAsync_WhenTheRequestIsCancelled_PublishesOnATokenThatIsNotTheRequests()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        var publishToken = CancellationToken.None;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<GrantRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback((GrantRevokedAuditEvent _, CancellationToken token) => publishToken = token)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var recorder = CreateRecorder(mockPublisher.Object);
+        using var request = new CancellationTokenSource();
+        await request.CancelAsync();
+
+        await recorder.RecordGrantRevokedAsync(
+            CreateHttpContext("admin-1"),
+            "tenant-1",
+            "subject-1",
+            "client-1",
+            "authorization_code",
+            request.Token
+        );
+
+        Assert.NotEqual(request.Token, publishToken);
+        Assert.True(publishToken.CanBeCanceled);
+        Assert.False(publishToken.IsCancellationRequested);
+    }
+
+    #endregion
 
     #region RecordGrantRevokedAsync Tests
 
@@ -179,6 +253,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .RecordMasterKeyRotatedAsync(
                 CreateHttpContext("admin-1"),
                 rotation,
+                MasterKeyChangeReasons.Requested,
                 CancellationToken.None
             );
 
@@ -193,6 +268,104 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(rotation.ActiveKey.KeyId, captured.KeyId);
         Assert.Equal(rotation.RetiredKey?.KeyId, captured.RetiredKeyId);
         Assert.Equal(1, captured.RetiredVersion);
+        Assert.Equal(7, captured.EventId.Version);
+    }
+
+    [Fact]
+    public async Task RecordMasterKeyRotatedAsync_ARootKeyRotation_CarriesTheReasonAndTheRootKeyReference()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        MasterKeyAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<MasterKeyAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (MasterKeyAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var owner = SecretOwner.ForTenant("tenant-1");
+        var rotation = new MasterKeyRotation(
+            owner,
+            KeyInfo(owner, 2, retired: false) with
+            {
+                RootKeyReference = "kms://tenant-1/root",
+            },
+            null
+        );
+
+        await CreateRecorder(mockPublisher.Object)
+            .RecordMasterKeyRotatedAsync(
+                CreateHttpContext("admin-1"),
+                rotation,
+                MasterKeyChangeReasons.RootKeyChanged,
+                CancellationToken.None
+            );
+
+        Assert.NotNull(captured);
+        Assert.Equal("root_key_changed", captured.Reason);
+        Assert.Equal("kms://tenant-1/root", captured.RootKeyReference);
+    }
+
+    [Theory]
+    [InlineData(RootKeyChanges.Set, OwnerRootKeyStates.Active, "success", null)]
+    [InlineData(RootKeyChanges.Removed, OwnerRootKeyStates.Removing, "success", null)]
+    [InlineData(RootKeyChanges.Restored, OwnerRootKeyStates.Active, "success", null)]
+    [InlineData(
+        RootKeyChanges.Unavailable,
+        OwnerRootKeyStates.Unavailable,
+        "failure",
+        "AccessDenied"
+    )]
+    public async Task RecordRootKeyChangedAsync_ATenantChange_PublishesTheEventWithTheAdministratorAndEnvironment(
+        string change,
+        string state,
+        string expectedOutcome,
+        string? failure
+    )
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        RootKeyAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<RootKeyAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback((RootKeyAuditEvent auditEvent, CancellationToken _) => captured = auditEvent)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var rootKey = new OwnerRootKeyInfo(
+            SecretOwner.ForTenant("tenant-1"),
+            "aws-kms",
+            "kms://tenant-1/root",
+            state,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch,
+            null,
+            null,
+            failure
+        );
+
+        await CreateRecorder(mockPublisher.Object)
+            .RecordRootKeyChangedAsync(
+                CreateHttpContext("admin-1"),
+                rootKey,
+                change,
+                RootKeyChangeReasons.Requested,
+                CancellationToken.None
+            );
+
+        Assert.NotNull(captured);
+        Assert.Equal($"root_key.{change}", captured.EventName);
+        Assert.Equal(AuditEventSources.Management, captured.EventSource);
+        Assert.Equal(expectedOutcome, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
+        Assert.Equal("admin-1", captured.Actor.Id);
+        Assert.Equal("kms://tenant-1/root", captured.KeyReference);
+        Assert.Equal("aws-kms", captured.KeyWrapperName);
+        Assert.Equal(state, captured.State);
+        Assert.Equal(failure, captured.Failure);
         Assert.Equal(7, captured.EventId.Version);
     }
 
@@ -228,7 +401,12 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         );
 
         await CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false)
-            .RecordMasterKeyRotatedAsync(httpContext, rotation, CancellationToken.None);
+            .RecordMasterKeyRotatedAsync(
+                httpContext,
+                rotation,
+                MasterKeyChangeReasons.Requested,
+                CancellationToken.None
+            );
 
         Assert.NotNull(captured);
         Assert.Equal("master_key.rotated", captured.EventName);

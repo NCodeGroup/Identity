@@ -54,4 +54,11 @@ public sealed class EncryptionKeyResource
     /// Gets the identifier of the recovery key that also wraps the key, or <c>null</c> when no recovery copy exists.
     /// </summary>
     public string? RecoveryKeyId { get; init; }
+
+    /// <summary>
+    /// Gets the reference of the tenant root key that wraps the key, or <c>null</c> when the deployment's root key wraps
+    /// it.
+    /// </summary>
+    // See ADR-1414.
+    public string? RootKeyReference { get; init; }
 }

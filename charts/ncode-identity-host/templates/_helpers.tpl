@@ -129,6 +129,9 @@ applied. Rendered for its side effect only.
 {{- if not (regexMatch "^https://[A-Za-z0-9-]+([.][A-Za-z0-9-]+)+/keys/[A-Za-z0-9-]{1,127}(/[A-Za-z0-9]{32})?$" $azureKeyVault.keyId) }}
 {{- fail "secretProtection.azureKeyVault.keyId must be the identifier of a Key Vault or Managed HSM key, such as https://contoso.vault.azure.net/keys/ncode-identity-root." }}
 {{- end }}
+{{- end }}
+{{- if eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "azure-key-vault")) "true" }}
+{{- $azureKeyVault := .Values.secretProtection.azureKeyVault }}
 {{- if ne (empty $azureKeyVault.workloadIdentity.tenantId) (empty $azureKeyVault.workloadIdentity.clientId) }}
 {{- fail "secretProtection.azureKeyVault.workloadIdentity needs both tenantId and clientId, or neither." }}
 {{- end }}
@@ -138,6 +141,9 @@ applied. Rendered for its side effect only.
 {{- if not (regexMatch "^projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63}/cryptoKeys/[A-Za-z0-9_-]{1,63}$" $googleCloudKms.keyName) }}
 {{- fail "secretProtection.googleCloudKms.keyName must be the resource name of a Cloud KMS crypto key, such as projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root." }}
 {{- end }}
+{{- end }}
+{{- if eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "google-cloud-kms")) "true" }}
+{{- $googleCloudKms := .Values.secretProtection.googleCloudKms }}
 {{- if and $googleCloudKms.workloadIdentityFederation.provider (not (regexMatch "^projects/[0-9]+/locations/global/workloadIdentityPools/[a-z0-9-]+/providers/[a-z0-9-]+$" $googleCloudKms.workloadIdentityFederation.provider)) }}
 {{- fail "secretProtection.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." }}
 {{- end }}
@@ -217,15 +223,24 @@ tolerations:
 {{- end }}
 
 {{/*
+Whether the release uses the named key wrapper, as the root key provider or as a provider a tenant may bring a root key
+from (secretProtection.ownerRootKeys.providers), so that the pod carries that provider's workload credentials. Takes a
+dict with the chart context as root and the key wrapper name as name; renders "true" or nothing.
+*/}}
+{{- define "identity-host.usesKeyWrapper" -}}
+{{- if or (eq .root.Values.secretProtection.rootKeyProvider .name) (has .name .root.Values.secretProtection.ownerRootKeys.providers) }}true{{ end }}
+{{- end }}
+
+{{/*
 The external_account credential configuration that Google Application Default Credentials read: it exchanges the
 projected service-account token with Google STS, and impersonates a service account when one is named. Empty unless the
-release uses Google Cloud KMS through workload identity federation. The token path must match the volume
-deployment.yaml mounts.
+release uses Google Cloud KMS, for the root key or for a tenant's root key, through workload identity federation. The
+token path must match the volume deployment.yaml mounts.
 */}}
 {{- define "identity-host.googleCloudCredentialConfiguration" -}}
 {{- $googleCloudKms := .Values.secretProtection.googleCloudKms }}
 {{- $federation := $googleCloudKms.workloadIdentityFederation }}
-{{- if and (eq .Values.secretProtection.rootKeyProvider "google-cloud-kms") $federation.provider }}
+{{- if and (eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "google-cloud-kms")) "true") $federation.provider }}
 {{- $configuration := dict "type" "external_account" "audience" (printf "//iam.googleapis.com/%s" $federation.provider) "subject_token_type" "urn:ietf:params:oauth:token-type:jwt" "token_url" "https://sts.googleapis.com/v1/token" "credential_source" (dict "file" "/var/run/secrets/tokens/google/token" "format" (dict "type" "text")) }}
 {{- if $federation.serviceAccountEmail }}
 {{- $_ := set $configuration "service_account_impersonation_url" (printf "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken" $federation.serviceAccountEmail) }}
@@ -242,11 +257,11 @@ same configuration the pods it rewraps keys for read.
 {{- $valkey := include "identity-host.valkeyEnabled" . }}
 {{- $secretProtectionRoot := "/etc/ncode-identity/secret-protection" }}
 {{- $awsWebIdentityRoot := "/var/run/secrets/tokens/aws" }}
-{{- /* A pod that does not use AWS KMS never carries AWS credentials, whatever the web identity values say. */}}
-{{- $awsWebIdentity := and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.webIdentity.roleArn }}
+{{- /* A pod that uses AWS KMS neither for the root key nor for a tenant's root key never carries AWS credentials, whatever the web identity values say. */}}
+{{- $awsWebIdentity := and (eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "aws-kms")) "true") .Values.secretProtection.awsKms.webIdentity.roleArn }}
 {{- $azureWorkloadIdentityRoot := "/var/run/secrets/tokens/azure" }}
-{{- /* A pod that does not use Azure Key Vault never carries Azure credentials, whatever the workload identity values say. */}}
-{{- $azureWorkloadIdentity := and (eq .Values.secretProtection.rootKeyProvider "azure-key-vault") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
+{{- /* A pod that uses Azure Key Vault neither for the root key nor for a tenant's root key never carries Azure credentials, whatever the workload identity values say. */}}
+{{- $azureWorkloadIdentity := and (eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "azure-key-vault")) "true") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
 {{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
 {{- $googleCloudTokenRoot := "/var/run/secrets/tokens/google" }}
 - name: ASPNETCORE_ENVIRONMENT
@@ -335,6 +350,10 @@ same configuration the pods it rewraps keys for read.
 - name: GOOGLE_APPLICATION_CREDENTIALS
   value: {{ printf "%s/credential-configuration.json" $googleCloudTokenRoot }}
 {{- end }}
+{{- range $index, $provider := .Values.secretProtection.ownerRootKeys.providers }}
+- name: SecretProtection__OwnerRootKeys__Providers__{{ $index }}
+  value: {{ $provider | quote }}
+{{- end }}
 {{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
 - name: SecretProtection__Recovery__PublicKeyPath
   value: {{ printf "%s/recovery/recovery-public.pem" $secretProtectionRoot }}
@@ -354,11 +373,11 @@ The volume mounts of the host container, which the Deployment and the secret pro
 {{- define "identity-host.hostVolumeMounts" -}}
 {{- $secretProtectionRoot := "/etc/ncode-identity/secret-protection" }}
 {{- $awsWebIdentityRoot := "/var/run/secrets/tokens/aws" }}
-{{- /* A pod that does not use AWS KMS never carries AWS credentials, whatever the web identity values say. */}}
-{{- $awsWebIdentity := and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.webIdentity.roleArn }}
+{{- /* A pod that uses AWS KMS neither for the root key nor for a tenant's root key never carries AWS credentials, whatever the web identity values say. */}}
+{{- $awsWebIdentity := and (eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "aws-kms")) "true") .Values.secretProtection.awsKms.webIdentity.roleArn }}
 {{- $azureWorkloadIdentityRoot := "/var/run/secrets/tokens/azure" }}
-{{- /* A pod that does not use Azure Key Vault never carries Azure credentials, whatever the workload identity values say. */}}
-{{- $azureWorkloadIdentity := and (eq .Values.secretProtection.rootKeyProvider "azure-key-vault") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
+{{- /* A pod that uses Azure Key Vault neither for the root key nor for a tenant's root key never carries Azure credentials, whatever the workload identity values say. */}}
+{{- $azureWorkloadIdentity := and (eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "azure-key-vault")) "true") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
 {{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
 {{- $googleCloudTokenRoot := "/var/run/secrets/tokens/google" }}
 # The root filesystem is read-only; the runtime's diagnostics socket and temporary files go here.
@@ -403,10 +422,10 @@ The volume mounts of the host container, which the Deployment and the secret pro
 The volumes of the host pod, which the Deployment and the secret protection Job share.
 */}}
 {{- define "identity-host.hostVolumes" -}}
-{{- /* A pod that does not use AWS KMS never carries AWS credentials, whatever the web identity values say. */}}
-{{- $awsWebIdentity := and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.webIdentity.roleArn }}
-{{- /* A pod that does not use Azure Key Vault never carries Azure credentials, whatever the workload identity values say. */}}
-{{- $azureWorkloadIdentity := and (eq .Values.secretProtection.rootKeyProvider "azure-key-vault") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
+{{- /* A pod that uses AWS KMS neither for the root key nor for a tenant's root key never carries AWS credentials, whatever the web identity values say. */}}
+{{- $awsWebIdentity := and (eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "aws-kms")) "true") .Values.secretProtection.awsKms.webIdentity.roleArn }}
+{{- /* A pod that uses Azure Key Vault neither for the root key nor for a tenant's root key never carries Azure credentials, whatever the workload identity values say. */}}
+{{- $azureWorkloadIdentity := and (eq (include "identity-host.usesKeyWrapper" (dict "root" . "name" "azure-key-vault")) "true") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
 {{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
 - name: tmp
   emptyDir:

@@ -88,4 +88,54 @@ internal static class EventIds
     /// A rotation whose successor could not be stored could not re-activate the retired master key.
     /// </summary>
     public const int MasterKeyRotationRevertFailed = Base + 15;
+
+    /// <summary>
+    /// The master keys of an owner that brings a root key could not be loaded, so the owner fails closed.
+    /// </summary>
+    public const int OwnerRootKeyLoadFailed = Base + 16;
+
+    /// <summary>
+    /// A request for the master keys of an owner whose root key failed is refused without calling the key.
+    /// </summary>
+    public const int OwnerRootKeyRefused = Base + 17;
+
+    /// <summary>
+    /// An owner set or changed its root key.
+    /// </summary>
+    public const int OwnerRootKeySet = Base + 18;
+
+    /// <summary>
+    /// A probe of an owner root key failed.
+    /// </summary>
+    public const int OwnerRootKeyProbeFailed = Base + 19;
+
+    /// <summary>
+    /// The state of an owner root key changed.
+    /// </summary>
+    public const int OwnerRootKeyStateChanged = Base + 20;
+
+    /// <summary>
+    /// The removal of an owner root key left master keys that it still wraps.
+    /// </summary>
+    public const int OwnerRootKeyRemovalIncomplete = Base + 21;
+
+    /// <summary>
+    /// An owner root key is removed and no master key remains under it.
+    /// </summary>
+    public const int OwnerRootKeyRemoved = Base + 22;
+
+    /// <summary>
+    /// The rotation onto an owner root key is left to the validation service.
+    /// </summary>
+    public const int OwnerRootKeyRotationDeferred = Base + 23;
+
+    /// <summary>
+    /// An observer of owner root key changes failed.
+    /// </summary>
+    public const int OwnerRootKeyObserverFailed = Base + 24;
+
+    /// <summary>
+    /// The completion of a committed owner root key change is left to the validation service.
+    /// </summary>
+    public const int OwnerRootKeyCompletionDeferred = Base + 25;
 }

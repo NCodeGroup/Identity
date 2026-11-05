@@ -272,6 +272,24 @@
             }
           }
         },
+        "ownerRootKeys": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "providers": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "aws-kms",
+                  "azure-key-vault",
+                  "google-cloud-kms"
+                ]
+              }
+            }
+          }
+        },
         "rewrapJob": {
           "type": "object",
           "additionalProperties": false,

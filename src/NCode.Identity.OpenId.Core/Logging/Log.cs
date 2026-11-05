@@ -323,4 +323,36 @@ internal static partial class Log
         SecretOwner owner,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyValidationPassFailed,
+        Level = LogLevel.Warning,
+        Message = "The owner root key validation pass failed; it runs again at the next interval"
+    )]
+    internal static partial void OwnerRootKeyValidationPassFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyValidationOwnerFailed,
+        Level = LogLevel.Warning,
+        Message = "Validating the root key of '{Owner}' failed; the pass continues with the other owners"
+    )]
+    internal static partial void OwnerRootKeyValidationOwnerFailed(
+        this ILogger logger,
+        SecretOwner owner,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyAuditPublishFailed,
+        Level = LogLevel.Warning,
+        Message = "Publishing the audit event of the committed root key change of '{Owner}' failed; the change stands"
+    )]
+    internal static partial void OwnerRootKeyAuditPublishFailed(
+        this ILogger logger,
+        SecretOwner owner,
+        Exception exception
+    );
 }

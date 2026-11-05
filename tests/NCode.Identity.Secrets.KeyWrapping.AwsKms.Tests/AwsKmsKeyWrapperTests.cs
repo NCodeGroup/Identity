@@ -20,6 +20,9 @@ public class AwsKmsKeyWrapperTests : IDisposable
 
     private const string AliasArn = "arn:aws:kms:us-west-2:111122223333:alias/ncode-identity-root";
 
+    private const string AliasOtherRegion =
+        "arn:aws:kms:eu-central-1:111122223333:alias/tenant-root";
+
     private const string OtherRegionKeyArn =
         "arn:aws:kms:eu-central-1:111122223333:key/abcd1234-34cd-12ab-56ef-0987654321ba";
 
@@ -187,6 +190,112 @@ public class AwsKmsKeyWrapperTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             provider.WrapAsync(key, context, CancellationToken.None).AsTask()
         );
+    }
+
+    #endregion
+
+    #region Referenced Key Tests
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKey_SendsReferenceToTheClientOfItsRegion()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var ciphertext = RandomNumberGenerator.GetBytes(64);
+        SetupClient("eu-central-1");
+        SetupEncrypt(
+            new EncryptResponse
+            {
+                KeyId = OtherRegionKeyArn,
+                CiphertextBlob = CreateStream(ciphertext, bufferIsVisible: true),
+            },
+            CancellationToken.None
+        );
+        var provider = CreateProvider(KeyArn);
+
+        var wrappedKey = await provider.WrapAsync(
+            AliasOtherRegion,
+            key,
+            context,
+            CancellationToken.None
+        );
+
+        var request = Assert.IsType<CapturedRequest>(EncryptCall);
+        Assert.Equal(AliasOtherRegion, request.KeyId);
+        Assert.Equal(key, request.Data);
+        var contextEntry = Assert.Single(request.EncryptionContext);
+        Assert.Equal(ExpectedContextKey, contextEntry.Key);
+        Assert.Equal(Base64Url.EncodeToString(context), contextEntry.Value);
+        Assert.Equal(KeyWrapperNames.AwsKms, wrappedKey.WrapperName);
+        Assert.Equal(OtherRegionKeyArn, wrappedKey.KeyId);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyInvalid_ThrowsWithoutCallingTheClient()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var provider = CreateProvider(KeyArn);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider.WrapAsync("not-an-arn", key, context, CancellationToken.None).AsTask()
+        );
+
+        Assert.Equal("keyReference", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_KeyWrappedUnderReference_UnwrapsThroughItsKeyId()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var ciphertext = RandomNumberGenerator.GetBytes(64);
+        SetupClient("eu-central-1");
+        SetupEncrypt(
+            new EncryptResponse
+            {
+                KeyId = OtherRegionKeyArn,
+                CiphertextBlob = CreateStream(ciphertext, bufferIsVisible: true),
+            },
+            CancellationToken.None
+        );
+        SetupClient("eu-central-1");
+        SetupDecrypt(
+            new DecryptResponse { Plaintext = CreateStream(key, bufferIsVisible: false) },
+            CancellationToken.None
+        );
+        var provider = CreateProvider(keyArn: null);
+        var wrappedKey = await provider.WrapAsync(
+            OtherRegionKeyArn,
+            key,
+            context,
+            CancellationToken.None
+        );
+        var destination = new ArrayBufferWriter<byte>();
+
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
+
+        var request = Assert.IsType<CapturedRequest>(DecryptCall);
+        Assert.Equal(OtherRegionKeyArn, request.KeyId);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
+    }
+
+    [Theory]
+    [InlineData(KeyArn, true)]
+    [InlineData(AliasArn, true)]
+    [InlineData("not-an-arn", false)]
+    [InlineData("", false)]
+    [InlineData("arn:aws:s3:::bucket", false)]
+    public void TryValidateKeyReference_Reference_ReportsSyntax(string reference, bool expected)
+    {
+        var provider = CreateProvider(keyArn: null);
+
+        var valid = provider.TryValidateKeyReference(reference, out var failure);
+
+        Assert.Equal(expected, valid);
+        Assert.Equal(expected, failure is null);
+        if (!expected)
+            Assert.StartsWith("must be the ARN of a KMS key or alias", failure);
     }
 
     #endregion

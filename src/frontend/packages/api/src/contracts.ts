@@ -509,6 +509,33 @@ export type EncryptionKeyResource = {
   readonly rootKeyId: string;
   /** The identifier of the recovery key that also wraps the key, or `null` when no recovery copy exists. */
   readonly recoveryKeyId: string | null;
+  /**
+   * The reference of the tenant's own root key that wraps the key (ADR-1414), or `null` when the deployment's root key
+   * wraps it.
+   */
+  readonly rootKeyReference: string | null;
+};
+
+// See ADR-1414.
+/**
+ * Mirror of `EncryptionRootKeyResource` — the root key a tenant brings: the key wrapper that reaches it, the reference
+ * that names it and its last validation. It carries no key material.
+ */
+export type EncryptionRootKeyResource = {
+  /** The name of the key wrapper that reaches the key, such as `aws-kms`. */
+  readonly provider: string;
+  /** The reference that names the key at its provider, such as a KMS key ARN. */
+  readonly keyReference: string;
+  /** `active`, `unavailable` or `removing`; an unknown state counts as unavailable. */
+  readonly state: string;
+  readonly createdWhen: string;
+  readonly stateChangedWhen: string;
+  /** When the last validation succeeded, or `null` when none has. */
+  readonly validatedWhen: string | null;
+  /** When the last validation failed, or `null` when none has. */
+  readonly failedWhen: string | null;
+  /** Why the last validation failed, or `null` when it did not. */
+  readonly failure: string | null;
 };
 
 /** Mirror of `EncryptionKeysResource` — the master keys of an owner, newest version first. */
@@ -516,6 +543,10 @@ export type EncryptionKeysResource = {
   readonly keys: readonly EncryptionKeyResource[];
   /** Whether new keys are also wrapped under a recovery key. */
   readonly recoveryConfigured: boolean;
+  /** The root key the tenant brings, or `null` when the deployment's root key wraps its keys. */
+  readonly rootKey: EncryptionRootKeyResource | null;
+  /** The key wrapper names a tenant may choose a root key from; empty on the platform. */
+  readonly rootKeyProviders: readonly string[];
 };
 
 /** Mirror of `EncryptionKeyRotationResource` — the result of a rekey. */
@@ -523,4 +554,23 @@ export type EncryptionKeyRotationResource = {
   readonly activeKey: EncryptionKeyResource;
   /** The key the rekey retired, or `null` when the owner had no active key. */
   readonly retiredKey: EncryptionKeyResource | null;
+};
+
+/** Mirror of `EncryptionRootKeyRequest` — the root key a tenant sets. */
+export type EncryptionRootKeyRequest = {
+  readonly provider: string;
+  readonly keyReference: string;
+};
+
+/** Mirror of `EncryptionRootKeyChangeResource` — the result of setting a root key. */
+export type EncryptionRootKeyChangeResource = {
+  readonly rootKey: EncryptionRootKeyResource;
+  /** The key the root key change created, or `null` when it created none. */
+  readonly activeKey: EncryptionKeyResource | null;
+  /** The key the root key change retired, or `null` when it retired none. */
+  readonly retiredKey: EncryptionKeyResource | null;
+  /** How many master keys were rewrapped under the root key. */
+  readonly rewrappedKeys: number;
+  /** How many master keys could not be rewrapped yet. */
+  readonly failedKeys: number;
 };

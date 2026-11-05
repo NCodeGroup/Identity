@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -1582,6 +1583,8 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         AssertPlatformNodeRequest(captured, Operations.Read);
         var ok = Assert.IsType<Ok<EncryptionKeysResource>>(result);
         Assert.True(ok.Value?.RecoveryConfigured);
+        Assert.Null(ok.Value?.RootKey);
+        Assert.Empty(ok.Value?.RootKeyProviders ?? ["unexpected"]);
         Assert.Collection(
             ok.Value?.Keys ?? [],
             key =>
@@ -1651,6 +1654,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
                 x.RecordMasterKeyRotatedAsync(
                     It.IsAny<HttpContext>(),
                     rotation,
+                    MasterKeyChangeReasons.Requested,
                     It.IsAny<CancellationToken>()
                 )
             )

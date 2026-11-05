@@ -5,7 +5,8 @@
   key ring and the host's own data, its retired versions are destroyed once their grace has passed and no live ring key
   and no value that a registered protected-value source reports for the platform names them, the lease is
   `master-key-maintenance:platform`, and the platform's keys are reported and rekeyed under
-  `/api/platform/encryption-keys` with the `platform_encryption_keys` scope family)
+  `/api/platform/encryption-keys` with the `platform_encryption_keys` scope family; amended by
+  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): rotation wraps the successor under the owner's root key, the status reports it, and an owner-rooted cache entry is re-validated)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's

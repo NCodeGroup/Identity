@@ -5,6 +5,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
@@ -366,16 +367,38 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
-    /// Records that an administrator rekeyed the master key of a tenant or of the platform.
+    /// Records that an administrator rotated the master key of a tenant or of the platform, by a rekey or by setting a
+    /// tenant's root key.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
-    /// <param name="rotation">The rotation that the rekey performed.</param>
+    /// <param name="rotation">The rotation that was performed.</param>
+    /// <param name="reason">Why the key rotated: one of the values in <see cref="MasterKeyChangeReasons"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    // See ADR-1407.
+    // See ADR-1407 and ADR-1414.
     ValueTask RecordMasterKeyRotatedAsync(
         HttpContext httpContext,
         MasterKeyRotation rotation,
+        string reason,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records a change to the root key of a tenant: setting it, starting to remove it, its becoming unavailable or its
+    /// being restored.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="rootKey">The root key after the change.</param>
+    /// <param name="change">The change: one of the values in <see cref="RootKeyChanges"/>.</param>
+    /// <param name="reason">Why the key changed: one of the values in <see cref="RootKeyChangeReasons"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    // See ADR-1414.
+    ValueTask RecordRootKeyChangedAsync(
+        HttpContext httpContext,
+        OwnerRootKeyInfo rootKey,
+        string change,
+        string reason,
         CancellationToken cancellationToken
     );
 }

@@ -3,11 +3,14 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Management.Logging;
+using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
 
@@ -22,7 +25,8 @@ internal class DefaultManagementAuditRecorder(
     IEventPublisher eventPublisher,
     IOpenIdEnvironmentProvider environmentProvider,
     IManagementTenantEnvironmentResolver tenantEnvironmentResolver,
-    TimeProvider timeProvider
+    TimeProvider timeProvider,
+    ILogger<DefaultManagementAuditRecorder> logger
 ) : IManagementAuditRecorder
 {
     private IEventPublisher EventPublisher { get; } = eventPublisher;
@@ -30,6 +34,7 @@ internal class DefaultManagementAuditRecorder(
     private IManagementTenantEnvironmentResolver TenantEnvironmentResolver { get; } =
         tenantEnvironmentResolver;
     private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<DefaultManagementAuditRecorder> Logger { get; } = logger;
 
     /// <inheritdoc />
     public async ValueTask RecordGrantRevokedAsync(
@@ -61,7 +66,7 @@ internal class DefaultManagementAuditRecorder(
             GrantType = grantType,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -96,7 +101,7 @@ internal class DefaultManagementAuditRecorder(
             RevokedCount = revokedCount,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -129,7 +134,7 @@ internal class DefaultManagementAuditRecorder(
             RevokedCount = revokedCount,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -163,7 +168,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -198,7 +203,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -225,7 +230,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        return PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -259,7 +264,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -292,7 +297,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -318,7 +323,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        return PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -351,7 +356,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -386,7 +391,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -421,7 +426,7 @@ internal class DefaultManagementAuditRecorder(
             ResourceValues = resourceValues,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
     }
 
     /// <inheritdoc />
@@ -456,24 +461,19 @@ internal class DefaultManagementAuditRecorder(
             Request = CreateRequest(httpContext),
         };
 
-        await EventPublisher.PublishAsync(stamped, cancellationToken);
+        await PublishAsync(stamped);
     }
 
     public async ValueTask RecordMasterKeyRotatedAsync(
         HttpContext httpContext,
         MasterKeyRotation rotation,
+        string reason,
         CancellationToken cancellationToken
     )
     {
         var now = TimeProvider.GetUtcNow();
         var owner = rotation.Owner;
-        var tenantId = string.Equals(
-            owner.OwnerType,
-            SecretOwnerTypes.Tenant,
-            StringComparison.OrdinalIgnoreCase
-        )
-            ? owner.OwnerId
-            : null;
+        var tenantId = owner.TenantId;
 
         // A platform event is recorded in the control-plane tenant, as every platform event is.
         var recordedTenantId = string.Equals(
@@ -501,17 +501,74 @@ internal class DefaultManagementAuditRecorder(
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             Change = MasterKeyChanges.Rotated,
-            Reason = MasterKeyChangeReasons.Requested,
+            Reason = reason,
             OwnerType = owner.OwnerType,
             OwnerId = owner.OwnerId,
             KeyId = rotation.ActiveKey.KeyId,
             Version = rotation.ActiveKey.Version,
             RootKeyProvider = rotation.ActiveKey.RootKeyProvider,
+            RootKeyReference = rotation.ActiveKey.RootKeyReference,
             RetiredKeyId = rotation.RetiredKey?.KeyId,
             RetiredVersion = rotation.RetiredKey?.Version,
         };
 
-        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+        await PublishAsync(auditEvent);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RecordRootKeyChangedAsync(
+        HttpContext httpContext,
+        OwnerRootKeyInfo rootKey,
+        string change,
+        string reason,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var tenantId = rootKey.Owner.TenantId;
+
+        var auditEvent = RootKeyAuditEvents.Create(
+            rootKey,
+            change,
+            reason,
+            AuditEventSources.Management,
+            GetActor(httpContext),
+            now
+        );
+        auditEvent = auditEvent with
+        {
+            TenantEnvironmentType = tenantId is null
+                ? null
+                : await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                    httpContext,
+                    tenantId,
+                    cancellationToken
+                ),
+            Request = CreateRequest(httpContext),
+        };
+
+        await PublishAsync(auditEvent);
+    }
+
+    // The event is published once the change is committed, on a bounded token of its own, so the request's cancellation
+    // never drops the audit record. A failure, its timeout included, is logged and never turns a committed change into
+    // an error response.
+    private async ValueTask PublishAsync<TEvent>(TEvent auditEvent)
+        where TEvent : IEvent
+    {
+        try
+        {
+            await PostCommitWork.RunAsync(
+                TimeProvider,
+                (state, cancellationToken) =>
+                    state.EventPublisher.PublishAsync(state.AuditEvent, cancellationToken),
+                (EventPublisher, AuditEvent: auditEvent)
+            );
+        }
+        catch (Exception exception)
+        {
+            Logger.AuditPublishFailed(exception, auditEvent.GetType().Name);
+        }
     }
 
     private static AuditRequest CreateRequest(HttpContext httpContext) =>

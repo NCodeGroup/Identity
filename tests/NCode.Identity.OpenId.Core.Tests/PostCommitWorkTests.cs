@@ -3,6 +3,7 @@
 
 using System.Linq.Expressions;
 using Moq;
+using NCode.Identity.Persistence;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests;

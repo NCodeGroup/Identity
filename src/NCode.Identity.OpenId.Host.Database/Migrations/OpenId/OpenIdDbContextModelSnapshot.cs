@@ -784,6 +784,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("RootKeyReference")
+                        .HasMaxLength(2048)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(2048)");
+
                     b.Property<string>("RootWrappedKey")
                         .IsRequired()
                         .HasMaxLength(4096)
@@ -807,6 +812,82 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnique();
 
                     b.ToTable("MasterKeys", (string)null);
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.OwnerRootKeyEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("CreatedWhen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("FailedWhen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Failure")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("KeyReference")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("KeyWrapperName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("NormalizedOwnerId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("OwnerType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset>("StateChangedWhen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ValidatedWhen")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerType", "NormalizedOwnerId")
+                        .IsUnique();
+
+                    b.HasIndex("State", "FailedWhen");
+
+                    b.HasIndex("State", "ValidatedWhen");
+
+                    b.ToTable("OwnerRootKeys", (string)null);
                 });
 
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.PlatformEntity", b =>

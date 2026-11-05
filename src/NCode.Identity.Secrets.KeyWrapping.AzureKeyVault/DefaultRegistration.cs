@@ -47,10 +47,26 @@ public static class DefaultRegistration
             serviceCollection
                 .AddOptions<AzureKeyVaultKeyWrapperOptions>()
                 .Configure(options =>
-                    configuration
-                        .GetSection(AzureKeyVaultKeyWrapperOptions.DefaultSectionName)
-                        .BindStrictly(options)
-                )
+                {
+                    var section = configuration.GetSection(
+                        AzureKeyVaultKeyWrapperOptions.DefaultSectionName
+                    );
+
+                    // Binding an array adds the configured items to the ones it already holds, so a configured list
+                    // starts from an empty one and replaces the default suffixes.
+                    if (
+                        section
+                            .GetSection(
+                                nameof(AzureKeyVaultKeyWrapperOptions.ReferencedKeyHostSuffixes)
+                            )
+                            .Exists()
+                    )
+                    {
+                        options.ReferencedKeyHostSuffixes = [];
+                    }
+
+                    section.BindStrictly(options);
+                })
                 .ValidateOnStart();
 
             serviceCollection.TryAddEnumerable(

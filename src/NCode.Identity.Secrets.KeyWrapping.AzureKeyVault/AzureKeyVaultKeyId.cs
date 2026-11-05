@@ -41,4 +41,50 @@ internal static partial class AzureKeyVaultKeyId
     /// <returns><see langword="true"/> if the value is a key version identifier; otherwise, <see langword="false"/>.</returns>
     public static bool IsKeyVersionId([NotNullWhen(true)] string? value) =>
         value is not null && KeyVersionPattern().IsMatch(value);
+
+    /// <summary>
+    /// Determines whether the host of a key identifier ends with one of the suffixes, compared without regard to case.
+    /// </summary>
+    /// <param name="keyId">The identifier of a key, with or without a version.</param>
+    /// <param name="hostSuffixes">The host suffixes, each starting with a dot.</param>
+    /// <returns>
+    /// <see langword="true"/> if the identifier has a host that ends with a suffix; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool IsOnHostEndingWith(string keyId, IEnumerable<string> hostSuffixes)
+    {
+        if (!Uri.TryCreate(keyId, UriKind.Absolute, out var uri))
+            return false;
+
+        var host = uri.Host;
+        return hostSuffixes.Any(suffix =>
+            host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
+        );
+    }
+
+    /// <summary>
+    /// Gets the identifier of a key without its version: a key version identifier loses its last segment, and an
+    /// identifier without a version is returned as it is.
+    /// </summary>
+    /// <param name="keyId">The identifier of a key, with or without a version.</param>
+    /// <returns>The identifier of the key without a version.</returns>
+    public static string GetKeyIdWithoutVersion(string keyId) =>
+        IsKeyVersionId(keyId) ? keyId[..keyId.LastIndexOf('/')] : keyId;
+
+    /// <summary>
+    /// Determines whether a key version identifier is a version of the key that a reference names. A reference that
+    /// carries a version names that version only, and one that does not names every version of the key. The host and
+    /// the names are compared without regard to case.
+    /// </summary>
+    /// <param name="keyVersionId">The identifier of a key version.</param>
+    /// <param name="keyReference">The identifier of a key, with or without a version.</param>
+    /// <returns>
+    /// <see langword="true"/> if the version belongs to the referenced key; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool IsVersionOf(string keyVersionId, string keyReference) =>
+        IsKeyVersionId(keyVersionId)
+        && string.Equals(
+            IsKeyVersionId(keyReference) ? keyVersionId : GetKeyIdWithoutVersion(keyVersionId),
+            keyReference,
+            StringComparison.OrdinalIgnoreCase
+        );
 }

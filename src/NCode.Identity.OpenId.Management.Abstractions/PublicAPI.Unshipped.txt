@@ -824,7 +824,8 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.Managed
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ManagedBy.init -> void
 const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyStates.Active = "active" -> string!
 const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyStates.Retired = "retired" -> string!
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordMasterKeyRotatedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation! rotation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordMasterKeyRotatedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation! rotation, string! reason, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordRootKeyChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo! rootKey, string! change, string! reason, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.CreatedWhen.init -> void
@@ -856,3 +857,49 @@ NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RecoveryConfigured.get -> bool
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RecoveryConfigured.init -> void
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyStates
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.EncryptionRootKeyResource() -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.CreatedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.FailedWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.FailedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.Failure.get -> string?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.Failure.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.KeyReference.get -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.KeyReference.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.Provider.get -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.Provider.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.State.get -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.State.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.StateChangedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.StateChangedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.ValidatedWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.ValidatedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyRequest
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyRequest.EncryptionRootKeyRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyRequest.KeyReference.get -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyRequest.KeyReference.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyRequest.Provider.get -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyRequest.Provider.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.EncryptionRootKeyChangeResource() -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.ActiveKey.get -> NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.ActiveKey.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.FailedKeys.get -> int
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.FailedKeys.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.RetiredKey.get -> NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.RetiredKey.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.RewrappedKeys.get -> int
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.RewrappedKeys.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.RootKey.get -> NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyChangeResource.RootKey.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyStates
+const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyStates.Active = "active" -> string!
+const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyStates.Removing = "removing" -> string!
+const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyStates.Unavailable = "unavailable" -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RootKey.get -> NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RootKey.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RootKeyProviders.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RootKeyProviders.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyReference.get -> string?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyReference.init -> void

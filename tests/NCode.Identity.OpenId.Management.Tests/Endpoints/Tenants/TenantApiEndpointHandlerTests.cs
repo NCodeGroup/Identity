@@ -27,6 +27,7 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
@@ -56,6 +57,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
     private Mock<IMasterKeyManager> MockMasterKeyManager { get; }
+    private Mock<IOwnerRootKeyManager> MockOwnerRootKeyManager { get; }
     private Mock<ITenantValidator> MockTenantValidator { get; }
     private Mock<ITenantResolver> MockTenantResolver { get; }
     private Mock<ITenantProvisioner> MockTenantProvisioner { get; }
@@ -84,6 +86,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
         MockMasterKeyManager = MockRepository.Create<IMasterKeyManager>();
+        MockOwnerRootKeyManager = MockRepository.Create<IOwnerRootKeyManager>();
         MockTenantValidator = MockRepository.Create<ITenantValidator>();
         MockTenantResolver = MockRepository.Create<ITenantResolver>();
         MockTenantProvisioner = MockRepository.Create<ITenantProvisioner>();
@@ -113,6 +116,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockSecretPublicKeyConverter.Object,
             MockSecretProtectorProvider.Object,
             MockMasterKeyManager.Object,
+            MockOwnerRootKeyManager.Object,
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
@@ -3207,6 +3211,25 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #region Encryption Keys Tests
 
+    private const string RootKeyRefusal =
+        "The management API authenticates against the control-plane tenant, so a revoked root key would lock out the administrators who restore it. Its keys stay under the deployment's root key.";
+
+    // Only a request that reaches the root key rule asks the manager whether the tenant can bring a root key.
+    private void SetupCanBringRootKey() =>
+        MockOwnerRootKeyManager
+            .Setup(x => x.CanBringRootKey(TenantOwner, out It.Ref<string?>.IsAny))
+            .Returns(true)
+            .Verifiable();
+
+    private void SetupRootKeyRefused()
+    {
+        string? reason = RootKeyRefusal;
+        MockOwnerRootKeyManager
+            .Setup(x => x.CanBringRootKey(TenantOwner, out reason))
+            .Returns(false)
+            .Verifiable();
+    }
+
     private static MasterKeyInfo CreateKeyInfo(int version, bool retired) =>
         new(
             Guid.NewGuid(),
@@ -3228,6 +3251,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateTenant("tenant-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
         var active = CreateKeyInfo(2, retired: false);
         var retired = CreateKeyInfo(1, retired: true);
         MockMasterKeyManager
@@ -3253,6 +3278,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var ok = Assert.IsType<Ok<EncryptionKeysResource>>(result);
         Assert.True(ok.Value?.RecoveryConfigured);
+        Assert.Null(ok.Value?.RootKey);
+        Assert.Equal(["aws-kms"], ok.Value?.RootKeyProviders);
         Assert.Collection(
             ok.Value?.Keys ?? [],
             key =>
@@ -3335,6 +3362,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 x.RecordMasterKeyRotatedAsync(
                     It.IsAny<HttpContext>(),
                     rotation,
+                    MasterKeyChangeReasons.Requested,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -3447,6 +3475,787 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsNotType<Ok<EncryptionKeyRotationResource>>(result);
+    }
+
+    #endregion
+
+    #region Root Key Tests
+
+    private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant(TenantId);
+
+    private const string RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd";
+
+    private void SetupAllowedKeyWrappers(params string[] names) =>
+        MockOwnerRootKeyManager.SetupGet(x => x.AllowedKeyWrapperNames).Returns(names).Verifiable();
+
+    private void SetupUpdateAuthorization(AuthorizationResult result)
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
+                        r.Contains(Operations.Update)
+                    )
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    private void SetupAuthorizedTenant(bool forRead = false)
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        if (forRead)
+        {
+            SetupAuthorization(AuthorizationResult.Success());
+        }
+        else
+        {
+            SetupUpdateAuthorization(AuthorizationResult.Success());
+        }
+    }
+
+    private static OwnerRootKeyInfo CreateRootKeyInfo(
+        string state = OwnerRootKeyStates.Active,
+        string? failure = null
+    ) =>
+        new(
+            TenantOwner,
+            "aws-kms",
+            RootKeyReference,
+            state,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch.AddHours(1),
+            DateTimeOffset.UnixEpoch.AddHours(2),
+            failure is null ? null : DateTimeOffset.UnixEpoch.AddHours(3),
+            failure
+        );
+
+    private static EncryptionRootKeyRequest CreateRootKeyRequest(
+        string provider = "aws-kms",
+        string keyReference = RootKeyReference
+    ) => new() { Provider = provider, KeyReference = keyReference };
+
+    [Fact]
+    public async Task GetEncryptionKeysAsync_WithARootKey_ReportsItWithoutMaterial()
+    {
+        SetupAuthorizedTenant(forRead: true);
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms", "azure-key-vault");
+        MockMasterKeyManager
+            .Setup(x => x.GetStatusAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<MasterKeyStatus>(
+                    new MasterKeyStatus(TenantOwner, [], RecoveryConfigured: true)
+                    {
+                        RootKey = CreateRootKeyInfo(
+                            OwnerRootKeyStates.Unavailable,
+                            "AccessDenied: revoked"
+                        ),
+                    }
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.GetEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionKeysResource>>(result);
+        var rootKey = ok.Value?.RootKey;
+        Assert.Equal("aws-kms", rootKey?.Provider);
+        Assert.Equal(RootKeyReference, rootKey?.KeyReference);
+        Assert.Equal(EncryptionRootKeyStates.Unavailable, rootKey?.State);
+        Assert.Equal("AccessDenied: revoked", rootKey?.Failure);
+        Assert.Equal(["aws-kms", "azure-key-vault"], ok.Value?.RootKeyProviders);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_StoresTheKeyAndRecordsTheRootKeyAndTheRotation()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        var rotation = new MasterKeyRotation(
+            TenantOwner,
+            CreateKeyInfo(2, retired: false),
+            CreateKeyInfo(1, retired: true)
+        );
+        var rootKey = CreateRootKeyInfo();
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
+            )
+            .Returns(
+                new ValueTask<OwnerRootKeyChange>(
+                    new OwnerRootKeyChange(
+                        rootKey,
+                        RootKeyChanges.Set,
+                        rotation,
+                        new MasterKeyRewrapResult(2, 1, 0, 1)
+                    )
+                )
+            )
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordRootKeyChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    rootKey,
+                    RootKeyChanges.Set,
+                    RootKeyChangeReasons.Requested,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordMasterKeyRotatedAsync(
+                    It.IsAny<HttpContext>(),
+                    rotation,
+                    MasterKeyChangeReasons.RootKeyChanged,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionRootKeyChangeResource>>(result);
+        Assert.Equal(RootKeyReference, ok.Value?.RootKey.KeyReference);
+        Assert.Equal(2, ok.Value?.ActiveKey?.Version);
+        Assert.Equal(1, ok.Value?.RetiredKey?.Version);
+        Assert.Equal(1, ok.Value?.RewrappedKeys);
+        Assert.Equal(1, ok.Value?.FailedKeys);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_SameKeyWithNothingToChange_RecordsNothing()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
+            )
+            .Returns(
+                new ValueTask<OwnerRootKeyChange>(
+                    new OwnerRootKeyChange(
+                        CreateRootKeyInfo(),
+                        null,
+                        null,
+                        new MasterKeyRewrapResult(1, 0, 0, 0)
+                    )
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionRootKeyChangeResource>>(result);
+        Assert.Null(ok.Value?.ActiveKey);
+    }
+
+    [Theory]
+    [InlineData("", RootKeyReference, "provider", false)]
+    [InlineData("local", RootKeyReference, "provider", true)]
+    [InlineData("aws-kms", "", "keyReference", true)]
+    public async Task SetRootKeyAsync_InvalidField_ReturnsAValidationProblemNamingIt(
+        string provider,
+        string keyReference,
+        string field,
+        bool readsTheAllowedNames
+    )
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        // A blank provider is refused before the allowed names are read.
+        if (readsTheAllowedNames)
+        {
+            SetupAllowedKeyWrappers("aws-kms");
+        }
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(provider, keyReference),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Contains(field, problem.ProblemDetails.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_MalformedReference_ReturnsAValidationProblemWithTheWrapperPhrase()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        string? failure = "The key reference must be the ARN of a KMS key or alias.";
+        MockOwnerRootKeyManager
+            .Setup(x => x.TryValidateKeyReference("aws-kms", "nope", out failure))
+            .Returns(false)
+            .Verifiable();
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(keyReference: "nope"),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal([failure], problem.ProblemDetails.Errors["keyReference"]);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WhenTheProbeFails_ReturnsUnprocessableAndRecordsAnUnavailableKey()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        var unavailable = CreateRootKeyInfo(OwnerRootKeyStates.Unavailable, "AccessDenied");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
+            )
+            .Throws(
+                new OwnerRootKeyProbeException(
+                    TenantOwner,
+                    "aws-kms",
+                    RootKeyReference,
+                    "AccessDenied"
+                )
+                {
+                    UnavailableRootKey = unavailable,
+                }
+            )
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordRootKeyChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    unavailable,
+                    RootKeyChanges.Unavailable,
+                    RootKeyChangeReasons.ValidationFailed,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status422UnprocessableEntity, problem.StatusCode);
+        Assert.Equal(
+            "The key could not wrap and unwrap a probe through 'aws-kms': AccessDenied",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WhenTheLastRotationIsTooRecent_ReturnsConflictWithRetryAfter()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
+            )
+            .Throws(new MasterKeyRotationTooSoonException(TenantOwner, TimeSpan.FromSeconds(90.2)))
+            .Verifiable();
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.SetRootKeyAsync(
+            httpContext,
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal("91", httpContext.Response.Headers.RetryAfter.ToString());
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WhenAnotherWriterWonTheRace_ThrowsStoreConcurrencyExceptionForTheFilter()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
+            )
+            .Throws(new StoreConcurrencyException())
+            .Verifiable();
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await Handler.SetRootKeyAsync(
+                CreateHttpContext(authenticated: true),
+                TenantId,
+                CreateRootKeyRequest(),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WhenNotFound_ReturnsNotFound()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetEncryptionKeysAsync_ForARefusedTenant_ReportsNoRootKeyAndNoProviders()
+    {
+        SetupAuthorizedTenant(forRead: true);
+        SetupRootKeyRefused();
+        // The strict owner root key manager is never asked for its allowed providers.
+        MockMasterKeyManager
+            .Setup(x => x.GetStatusAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<MasterKeyStatus>(
+                    new MasterKeyStatus(
+                        TenantOwner,
+                        [CreateKeyInfo(1, retired: false)],
+                        RecoveryConfigured: true
+                    )
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.GetEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionKeysResource>>(result);
+        Assert.Null(ok.Value?.RootKey);
+        Assert.Empty(ok.Value?.RootKeyProviders ?? ["unexpected"]);
+        Assert.Single(ok.Value?.Keys ?? []);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_ForARefusedTenant_ReturnsBadRequestAndNeverSetsTheKey()
+    {
+        SetupAuthorizedTenant();
+        SetupRootKeyRefused();
+
+        // The strict owner root key manager has no other setups and the audit recorder none: any other call fails the test.
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal("The tenant cannot bring a root key.", problem.ProblemDetails.Title);
+        Assert.Equal(RootKeyRefusal, problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WhenAPolicyRefusesDuringTheSet_ReturnsBadRequestWithTheReason()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.SetAsync(TenantOwner, "aws-kms", RootKeyReference, It.IsAny<CancellationToken>())
+            )
+            .Throws(new OwnerRootKeyNotAllowedException(TenantOwner, RootKeyRefusal))
+            .Verifiable();
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal("The tenant cannot bring a root key.", problem.ProblemDetails.Title);
+        Assert.Equal(RootKeyRefusal, problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WithoutUpdatePermission_NeverReachesTheManager()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupUpdateAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveRootKeyAsync_WithoutUpdatePermission_NeverReachesTheManager()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupUpdateAuthorization(AuthorizationResult.Failed());
+
+        // The strict owner root key manager and audit recorder have no setups: any call fails the test.
+        var result = await Handler.RemoveRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateRootKeyAsync_WithoutUpdatePermission_NeverReachesTheManager()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupUpdateAuthorization(AuthorizationResult.Failed());
+
+        // The strict owner root key manager and audit recorder have no setups: any call fails the test.
+        var result = await Handler.ValidateRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveRootKeyAsync_WhenEveryKeyMovedBack_ReturnsNoContentAndRecordsTheRemoval()
+    {
+        SetupAuthorizedTenant();
+        var before = CreateRootKeyInfo();
+        MockOwnerRootKeyManager
+            .Setup(x => x.GetAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<OwnerRootKeyInfo?>(before))
+            .Verifiable();
+        MockOwnerRootKeyManager
+            .Setup(x => x.RemoveAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<OwnerRootKeyRemoval>(
+                    new OwnerRootKeyRemoval(null, true, new MasterKeyRewrapResult(2, 2, 0, 0))
+                )
+            )
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordRootKeyChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.Is<OwnerRootKeyInfo>(info => info.State == OwnerRootKeyStates.Removing),
+                    RootKeyChanges.Removed,
+                    RootKeyChangeReasons.Requested,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        var result = await Handler.RemoveRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task RemoveRootKeyAsync_WhenMasterKeysRemain_ReturnsAcceptedWithTheRemovingKey()
+    {
+        SetupAuthorizedTenant();
+        MockOwnerRootKeyManager
+            .Setup(x => x.GetAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<OwnerRootKeyInfo?>(CreateRootKeyInfo()))
+            .Verifiable();
+        MockOwnerRootKeyManager
+            .Setup(x => x.RemoveAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<OwnerRootKeyRemoval>(
+                    new OwnerRootKeyRemoval(
+                        CreateRootKeyInfo(OwnerRootKeyStates.Removing),
+                        true,
+                        new MasterKeyRewrapResult(2, 1, 0, 1)
+                    )
+                )
+            )
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordRootKeyChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<OwnerRootKeyInfo>(),
+                    RootKeyChanges.Removed,
+                    RootKeyChangeReasons.Requested,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        var result = await Handler.RemoveRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var accepted = Assert.IsType<Accepted<EncryptionRootKeyResource>>(result);
+        Assert.Equal(EncryptionRootKeyStates.Removing, accepted.Value?.State);
+    }
+
+    [Fact]
+    public async Task RemoveRootKeyAsync_WithoutARootKey_ReturnsNoContentAndRecordsNothing()
+    {
+        SetupAuthorizedTenant();
+        MockOwnerRootKeyManager
+            .Setup(x => x.GetAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<OwnerRootKeyInfo?>((OwnerRootKeyInfo?)null))
+            .Verifiable();
+        MockOwnerRootKeyManager
+            .Setup(x => x.RemoveAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<OwnerRootKeyRemoval>(
+                    new OwnerRootKeyRemoval(null, false, new MasterKeyRewrapResult(0, 0, 0, 0))
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.RemoveRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task ValidateRootKeyAsync_WhenTheKeyFails_RecordsTheUnavailableChange()
+    {
+        SetupAuthorizedTenant();
+        var unavailable = CreateRootKeyInfo(OwnerRootKeyStates.Unavailable, "AccessDenied");
+        MockOwnerRootKeyManager
+            .Setup(x => x.ValidateAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<OwnerRootKeyValidation>(
+                    new OwnerRootKeyValidation(
+                        unavailable,
+                        RootKeyChanges.Unavailable,
+                        null,
+                        new MasterKeyRewrapResult(0, 0, 0, 0)
+                    )
+                )
+            )
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordRootKeyChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    unavailable,
+                    RootKeyChanges.Unavailable,
+                    RootKeyChangeReasons.ValidationFailed,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        var result = await Handler.ValidateRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionRootKeyResource>>(result);
+        Assert.Equal(EncryptionRootKeyStates.Unavailable, ok.Value?.State);
+    }
+
+    [Fact]
+    public async Task ValidateRootKeyAsync_WhenTheKeyIsRestoredAndRotated_RecordsBothChanges()
+    {
+        SetupAuthorizedTenant();
+        var restored = CreateRootKeyInfo();
+        var rotation = new MasterKeyRotation(
+            TenantOwner,
+            CreateKeyInfo(2, retired: false),
+            CreateKeyInfo(1, retired: true)
+        );
+        MockOwnerRootKeyManager
+            .Setup(x => x.ValidateAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<OwnerRootKeyValidation>(
+                    new OwnerRootKeyValidation(
+                        restored,
+                        RootKeyChanges.Restored,
+                        rotation,
+                        new MasterKeyRewrapResult(1, 1, 0, 0)
+                    )
+                )
+            )
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordRootKeyChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    restored,
+                    RootKeyChanges.Restored,
+                    RootKeyChangeReasons.ValidationSucceeded,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordMasterKeyRotatedAsync(
+                    It.IsAny<HttpContext>(),
+                    rotation,
+                    MasterKeyChangeReasons.RootKeyChanged,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        var result = await Handler.ValidateRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<Ok<EncryptionRootKeyResource>>(result);
+    }
+
+    [Fact]
+    public async Task ValidateRootKeyAsync_WithoutARootKey_ReturnsNotFound()
+    {
+        SetupAuthorizedTenant();
+        MockOwnerRootKeyManager
+            .Setup(x => x.ValidateAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<OwnerRootKeyValidation>(
+                    new OwnerRootKeyValidation(
+                        null,
+                        null,
+                        null,
+                        new MasterKeyRewrapResult(0, 0, 0, 0)
+                    )
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.ValidateRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
     }
 
     #endregion

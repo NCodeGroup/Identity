@@ -672,6 +672,51 @@ public class SecretProtectionFormatTests
 
     #endregion
 
+    #region WriteProbeContext Tests
+
+    [Fact]
+    public void WriteProbeContext_KnownInput_UsesTheRootLayoutUnderItsOwnLabel()
+    {
+        var probeId = new Guid(KnownKeyId);
+        var owner = new SecretOwner("Tenant", "Acme-ONE");
+        var destination = new byte[SecretProtectionFormat.GetProbeContextSize(owner)];
+
+        var written = SecretProtectionFormat.WriteProbeContext(probeId, owner, destination);
+
+        byte[] expected =
+        [
+            .. "ncode-identity/secret-protection/v1/root-probe"u8,
+            0x00,
+            .. KnownKeyIdBytes,
+            .. LengthPrefixed("tenant"),
+            .. LengthPrefixed("acme-one"),
+        ];
+        Assert.Equal(destination.Length, written);
+        Assert.Equal(expected, destination);
+        Assert.NotEqual(CreateRootContext(probeId, owner), destination);
+    }
+
+    [Fact]
+    public void WriteProbeContext_DestinationTooSmall_Throws()
+    {
+        var owner = SecretOwner.ForTenant("tenant-1");
+        var size = SecretProtectionFormat.GetProbeContextSize(owner);
+
+        for (var length = 0; length < size; ++length)
+        {
+            var destinationLength = length;
+            Assert.Throws<ArgumentException>(() =>
+                SecretProtectionFormat.WriteProbeContext(
+                    Guid.NewGuid(),
+                    owner,
+                    new byte[destinationLength]
+                )
+            );
+        }
+    }
+
+    #endregion
+
     #region TryReadMasterKeyId Tests
 
     [Fact]

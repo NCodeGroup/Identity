@@ -100,7 +100,12 @@ public class MasterKeyFactoryTests : IDisposable
         ExpectGet(_provider);
         var factory = CreateFactory(_disabledRecovery);
 
-        var created = await factory.CreateAsync(Owner, version: 1, CancellationToken.None);
+        var created = await factory.CreateAsync(
+            Owner,
+            version: 1,
+            rootKey: null,
+            CancellationToken.None
+        );
         using var createdKey = created.Key;
         using var unwrapped = await factory.UnwrapAsync(created.Row, CancellationToken.None);
 
@@ -122,7 +127,12 @@ public class MasterKeyFactoryTests : IDisposable
         ExpectCreate();
         var factory = CreateFactory(_disabledRecovery);
 
-        var created = await factory.CreateAsync(Owner, version: 3, CancellationToken.None);
+        var created = await factory.CreateAsync(
+            Owner,
+            version: 3,
+            rootKey: null,
+            CancellationToken.None
+        );
         using var key = created.Key;
         var row = created.Row;
 
@@ -145,7 +155,12 @@ public class MasterKeyFactoryTests : IDisposable
         ExpectCreate();
         var factory = CreateFactory(recovery);
 
-        var created = await factory.CreateAsync(Owner, version: 1, CancellationToken.None);
+        var created = await factory.CreateAsync(
+            Owner,
+            version: 1,
+            rootKey: null,
+            CancellationToken.None
+        );
         using var key = created.Key;
         var row = created.Row;
         var context = CreateRootContext(row.KeyId, Owner);
@@ -186,7 +201,12 @@ public class MasterKeyFactoryTests : IDisposable
         ExpectCreate();
         var factory = CreateFactory(_disabledRecovery);
 
-        var created = await factory.CreateAsync(Owner, version: 1, CancellationToken.None);
+        var created = await factory.CreateAsync(
+            Owner,
+            version: 1,
+            rootKey: null,
+            CancellationToken.None
+        );
         using var key = created.Key;
 
         Assert.Null(created.Row.RecoveryKeyId);
@@ -202,7 +222,12 @@ public class MasterKeyFactoryTests : IDisposable
     {
         ExpectCreate();
         var factory = CreateFactory(_disabledRecovery);
-        var created = await factory.CreateAsync(Owner, version: 1, CancellationToken.None);
+        var created = await factory.CreateAsync(
+            Owner,
+            version: 1,
+            rootKey: null,
+            CancellationToken.None
+        );
         using var key = created.Key;
         var otherRow = CopyRow(created.Row, ownerId: "other-tenant");
 
@@ -244,7 +269,12 @@ public class MasterKeyFactoryTests : IDisposable
         ExpectCreate();
         ExpectGet(_provider);
         var factory = CreateFactory(_disabledRecovery);
-        var created = await factory.CreateAsync(Owner, version: 1, CancellationToken.None);
+        var created = await factory.CreateAsync(
+            Owner,
+            version: 1,
+            rootKey: null,
+            CancellationToken.None
+        );
         using var key = created.Key;
         var otherRow = CopyRow(created.Row, ownerId: "other-tenant");
 
@@ -259,7 +289,12 @@ public class MasterKeyFactoryTests : IDisposable
         ExpectCreate();
         ExpectGet(_provider);
         var factory = CreateFactory(_disabledRecovery);
-        var created = await factory.CreateAsync(Owner, version: 1, CancellationToken.None);
+        var created = await factory.CreateAsync(
+            Owner,
+            version: 1,
+            rootKey: null,
+            CancellationToken.None
+        );
         using var key = created.Key;
         var otherRow = CopyRow(created.Row, version: 2);
 
@@ -390,7 +425,12 @@ public class MasterKeyFactoryTests : IDisposable
         ExpectCreate();
         ExpectGet(_provider);
         var factory = CreateFactory(_disabledRecovery);
-        var created = await factory.CreateAsync(Owner, version: 1, CancellationToken.None);
+        var created = await factory.CreateAsync(
+            Owner,
+            version: 1,
+            rootKey: null,
+            CancellationToken.None
+        );
         using var key = created.Key;
         var otherRow = CopyRow(created.Row, keyCheck: keyCheck);
 
@@ -412,7 +452,7 @@ public class MasterKeyFactoryTests : IDisposable
         using var unwrapper = RecoveryKeyUnwrapper.FromPem(pair.ExportPkcs8PrivateKeyPem());
         ExpectCreate();
         var created = await CreateFactory(_disabledRecovery)
-            .CreateAsync(Owner.Normalize(), 1, CancellationToken.None);
+            .CreateAsync(Owner.Normalize(), 1, rootKey: null, CancellationToken.None);
         created.Key.Dispose();
 
         Assert.Throws<CryptographicException>(() =>
@@ -428,7 +468,7 @@ public class MasterKeyFactoryTests : IDisposable
         using var unwrapper = RecoveryKeyUnwrapper.FromPem(pair.ExportPkcs8PrivateKeyPem());
         ExpectCreate();
         var created = await CreateFactory(recovery)
-            .CreateAsync(Owner.Normalize(), 1, CancellationToken.None);
+            .CreateAsync(Owner.Normalize(), 1, rootKey: null, CancellationToken.None);
         created.Key.Dispose();
 
         using var key = MasterKeyFactory.UnwrapWithRecovery(created.Row, unwrapper);
@@ -438,18 +478,233 @@ public class MasterKeyFactoryTests : IDisposable
     }
 
     [Fact]
-    public async Task WrapUnderRecovery_WithoutARecoveryKey_ReturnsNull()
+    public async Task Wrap_WithoutARecoveryKey_ReturnsNoRecoveryCopy()
     {
         ExpectCreate();
         var created = await CreateFactory(_disabledRecovery)
-            .CreateAsync(Owner.Normalize(), 1, CancellationToken.None);
+            .CreateAsync(Owner.Normalize(), 1, rootKey: null, CancellationToken.None);
+        using var key = created.Key;
+        ExpectCreate();
+
+        var wraps = await CreateFactory(_disabledRecovery)
+            .WrapAsync(key, rootKey: null, CancellationToken.None);
+
+        Assert.Null(wraps.Recovery);
+        Assert.False(wraps.ClearsRecovery);
+        Assert.Null(wraps.RootKeyReference);
+        Assert.Equal(KeyWrapperNames.Ephemeral, wraps.Root.WrapperName);
+    }
+
+    [Fact]
+    public async Task Wrap_WithARecoveryKey_ReturnsARecoveryCopy()
+    {
+        using var pair = RSA.Create(3072);
+        using var recovery = RecoveryKeyWrapper.FromPem(pair.ExportSubjectPublicKeyInfoPem());
+        ExpectCreate();
+        var created = await CreateFactory(recovery)
+            .CreateAsync(Owner.Normalize(), 1, rootKey: null, CancellationToken.None);
+        using var key = created.Key;
+        ExpectCreate();
+
+        var wraps = await CreateFactory(recovery)
+            .WrapAsync(key, rootKey: null, CancellationToken.None);
+
+        Assert.NotNull(wraps.Recovery);
+        Assert.False(wraps.ClearsRecovery);
+    }
+
+    #endregion
+
+    #region Owner Root Key Tests
+
+    private static PersistedOwnerRootKey CreateRootKey(
+        string state = OwnerRootKeyStates.Active,
+        string reference = "kms://tenant-a/root"
+    ) =>
+        new()
+        {
+            OwnerType = Owner.OwnerType,
+            OwnerId = Owner.OwnerId,
+            KeyWrapperName = "fake-kms",
+            KeyReference = reference,
+            State = state,
+            CreatedWhen = Now,
+            StateChangedWhen = Now,
+        };
+
+    [Fact]
+    public async Task Create_ActiveOwnerRootKey_WrapsUnderItWithNoRecoveryCopy()
+    {
+        using var pair = RSA.Create(3072);
+        using var recovery = RecoveryKeyWrapper.FromPem(pair.ExportSubjectPublicKeyInfoPem());
+        var fake = new FakeReferencedKeyWrapper();
+        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        ExpectGetFake(fake);
+        var factory = CreateFactory(recovery);
+
+        var created = await factory.CreateAsync(
+            Owner.Normalize(),
+            version: 1,
+            CreateRootKey(),
+            CancellationToken.None
+        );
+        using var createdKey = created.Key;
+        using var unwrapped = await factory.UnwrapAsync(created.Row, CancellationToken.None);
+
+        Assert.Equal("fake-kms", created.Row.RootKeyProvider);
+        Assert.Equal("kms://tenant-a/root", created.Row.RootKeyReference);
+        Assert.Equal("kms://tenant-a/root/v1", created.Row.RootKeyId);
+        Assert.Null(created.Row.RecoveryKeyId);
+        Assert.Null(created.Row.RecoveryWrappedKey);
+        Assert.Equal(createdKey.Material.ToArray(), unwrapped.Material.ToArray());
+    }
+
+    [Theory]
+    [InlineData(OwnerRootKeyStates.Unavailable)]
+    [InlineData("unknown-state")]
+    public async Task Create_UnavailableOwnerRootKey_ThrowsBeforeAnyWrap(string state)
+    {
+        var factory = CreateFactory(_disabledRecovery);
+
+        var exception = await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await factory.CreateAsync(
+                Owner.Normalize(),
+                version: 1,
+                CreateRootKey(state),
+                CancellationToken.None
+            )
+        );
+
+        Assert.Equal(Owner.Normalize(), exception.Owner);
+        Assert.IsNotAssignableFrom<CryptographicException>(exception);
+    }
+
+    [Fact]
+    public async Task Create_RemovingOwnerRootKey_WrapsUnderTheDeploymentRoot()
+    {
+        ExpectCreate();
+        var factory = CreateFactory(_disabledRecovery);
+
+        var created = await factory.CreateAsync(
+            Owner.Normalize(),
+            version: 1,
+            CreateRootKey(OwnerRootKeyStates.Removing),
+            CancellationToken.None
+        );
         using var key = created.Key;
 
-        var wrapped = await CreateFactory(_disabledRecovery)
-            .WrapUnderRecoveryAsync(key, CancellationToken.None);
-
-        Assert.Null(wrapped);
+        Assert.Equal(KeyWrapperNames.Ephemeral, created.Row.RootKeyProvider);
+        Assert.Null(created.Row.RootKeyReference);
     }
+
+    [Fact]
+    public async Task Wrap_ActiveOwnerRootKey_ClearsTheRecoveryCopy()
+    {
+        var fake = new FakeReferencedKeyWrapper();
+        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        ExpectCreate();
+        var factory = CreateFactory(_disabledRecovery);
+        var created = await factory.CreateAsync(
+            Owner.Normalize(),
+            1,
+            rootKey: null,
+            CancellationToken.None
+        );
+        using var key = created.Key;
+
+        var wraps = await factory.WrapAsync(key, CreateRootKey(), CancellationToken.None);
+
+        Assert.True(wraps.ClearsRecovery);
+        Assert.Null(wraps.Recovery);
+        Assert.Equal("kms://tenant-a/root", wraps.RootKeyReference);
+        Assert.Equal("fake-kms", wraps.Root.WrapperName);
+    }
+
+    [Fact]
+    public async Task Wrap_UnavailableOwnerRootKey_Throws()
+    {
+        ExpectCreate();
+        var factory = CreateFactory(_disabledRecovery);
+        var created = await factory.CreateAsync(
+            Owner.Normalize(),
+            1,
+            rootKey: null,
+            CancellationToken.None
+        );
+        using var key = created.Key;
+
+        await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await factory.WrapAsync(
+                key,
+                CreateRootKey(OwnerRootKeyStates.Unavailable),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(OwnerRootKeyStates.Removing)]
+    public void Conforms_NoOwnerRootKeyOrOneBeingRemoved_RequiresTheDeploymentRoot(string? state)
+    {
+        var rootKey = state is null ? null : CreateRootKey(state);
+
+        Assert.True(MasterKeyFactory.Conforms(CreateRow(rootKeyReference: null), rootKey));
+        Assert.False(MasterKeyFactory.Conforms(CreateRow("kms://tenant-a/root"), rootKey));
+    }
+
+    [Fact]
+    public void Conforms_OwnerRootKey_RequiresItsWrapperItsReferenceAndNoRecoveryCopy()
+    {
+        var rootKey = CreateRootKey();
+
+        Assert.True(MasterKeyFactory.Conforms(CreateRow("kms://tenant-a/root"), rootKey));
+        Assert.False(MasterKeyFactory.Conforms(CreateRow(null), rootKey));
+        Assert.False(MasterKeyFactory.Conforms(CreateRow("kms://tenant-a/other"), rootKey));
+        Assert.False(
+            MasterKeyFactory.Conforms(
+                CreateRow("kms://tenant-a/root", provider: "other-kms"),
+                rootKey
+            )
+        );
+
+        var withRecovery = CreateRow("kms://tenant-a/root");
+        withRecovery.RecoveryKeyId = "recovery";
+        withRecovery.RecoveryWrappedKey = "wrapped";
+        Assert.False(MasterKeyFactory.Conforms(withRecovery, rootKey));
+    }
+
+    [Theory]
+    [InlineData(OwnerRootKeyStates.Active, true)]
+    [InlineData(OwnerRootKeyStates.Unavailable, true)]
+    [InlineData("unknown-state", true)]
+    [InlineData(OwnerRootKeyStates.Removing, false)]
+    public void IsOwnerRooted_ByState_IsFalseOnlyWhileRemoving(string state, bool expected)
+    {
+        Assert.Equal(expected, MasterKeyFactory.IsOwnerRooted(CreateRootKey(state)));
+        Assert.False(MasterKeyFactory.IsOwnerRooted(null));
+    }
+
+    private static PersistedMasterKey CreateRow(
+        string? rootKeyReference,
+        string provider = "fake-kms"
+    ) =>
+        new()
+        {
+            KeyId = Guid.NewGuid(),
+            OwnerType = Owner.OwnerType,
+            OwnerId = Owner.OwnerId,
+            Version = 1,
+            CreatedWhen = Now,
+            RootKeyProvider = provider,
+            RootKeyId = "id",
+            RootKeyReference = rootKeyReference,
+            RootWrappedKey = "wrapped",
+            KeyCheck = "check",
+        };
+
+    private void ExpectGetFake(IKeyWrapper provider) =>
+        _catalog.Setup(x => x.Get("fake-kms")).Returns(provider).Verifiable();
 
     #endregion
 }

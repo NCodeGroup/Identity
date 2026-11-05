@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.OpenId.Platform;
+using NCode.Identity.Persistence;
 using NCode.Identity.SharedState;
 using Xunit;
 

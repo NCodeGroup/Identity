@@ -78,6 +78,7 @@ public class SecretProtectionRegistrationTests : BaseTests
     [InlineData("secretprotection:ROOTKEYPROVIDER")]
     [InlineData("SecretProtection:recovery:Disabled")]
     [InlineData("SecretProtection:MASTERKEYS:DestroyRetired")]
+    [InlineData("SecretProtection:OWNERROOTKEYS:RetryInterval")]
     [InlineData("SecretProtection:ROOTKEYPROVIDERS:Local:KeyPath")]
     public void AddSecretProtection_KnownChildInAnyCase_DoesNotThrow(string key)
     {
@@ -133,6 +134,64 @@ public class SecretProtectionRegistrationTests : BaseTests
         Assert.Equal(TimeSpan.FromDays(7), keys.RetirementGrace);
         Assert.Equal(TimeSpan.FromHours(12), keys.MaintenanceInterval);
         Assert.False(keys.DestroyRetired);
+    }
+
+    [Fact]
+    public void AddSecretProtection_BindsOwnerRootKeys()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
+                ["SecretProtection:OwnerRootKeys:Providers:0"] = "aws-kms",
+                ["SecretProtection:OwnerRootKeys:Providers:1"] = "azure-key-vault",
+                ["SecretProtection:OwnerRootKeys:ValidationInterval"] = "02:00:00",
+                ["SecretProtection:OwnerRootKeys:RetryInterval"] = "00:00:30",
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var rootKeys = serviceProvider
+            .GetRequiredService<IOptions<SecretProtectionOptions>>()
+            .Value.OwnerRootKeys;
+
+        Assert.Equal(["aws-kms", "azure-key-vault"], rootKeys.Providers);
+        Assert.Equal(TimeSpan.FromHours(2), rootKeys.ValidationInterval);
+        Assert.Equal(TimeSpan.FromSeconds(30), rootKeys.RetryInterval);
+    }
+
+    [Fact]
+    public void AddSecretProtection_NoOwnerRootKeys_AllowsNoProviderAndDefaultsTheIntervals()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?> { ["SecretProtection:RootKeyProvider"] = "ephemeral" }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var rootKeys = serviceProvider
+            .GetRequiredService<IOptions<SecretProtectionOptions>>()
+            .Value.OwnerRootKeys;
+
+        Assert.Empty(rootKeys.Providers);
+        Assert.Equal(TimeSpan.FromHours(1), rootKeys.ValidationInterval);
+        Assert.Equal(TimeSpan.FromMinutes(1), rootKeys.RetryInterval);
+    }
+
+    [Fact]
+    public void AddSecretProtection_UnknownOwnerRootKeysChild_FailsStrictBinding()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
+                ["SecretProtection:OwnerRootKeys:Provider"] = "aws-kms",
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        Assert.ThrowsAny<Exception>(() =>
+            serviceProvider.GetRequiredService<IOptions<SecretProtectionOptions>>().Value
+        );
     }
 
     [Fact]

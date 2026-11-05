@@ -1663,7 +1663,9 @@ describe('managementApi encryption key requests', () => {
   it.each(encryptionKeyOwnerCases)(
     'listEncryptionKeys GETs the encryption keys of the $key owner',
     async ({ owner, path }) => {
-      const captured = mockFetch(jsonResponse({ keys: [], recoveryConfigured: true }));
+      const captured = mockFetch(
+        jsonResponse({ keys: [], recoveryConfigured: true, rootKey: null, rootKeyProviders: [] }),
+      );
       const store = createStore();
 
       await store.dispatch(managementApi.endpoints.listEncryptionKeys.initiate(owner));
@@ -1678,7 +1680,9 @@ describe('managementApi encryption key requests', () => {
     async ({ owner, path }) => {
       const otherOwner: EncryptionKeyOwner =
         owner.kind === 'platform' ? { kind: 'tenant', tenantId: 'other' } : { kind: 'platform' };
-      const captured = mockFetch(jsonResponse({ keys: [], recoveryConfigured: true }));
+      const captured = mockFetch(
+        jsonResponse({ keys: [], recoveryConfigured: true, rootKey: null, rootKeyProviders: [] }),
+      );
       const store = createStore();
       const subscriptions = [
         store.dispatch(managementApi.endpoints.listEncryptionKeys.initiate(owner)),
@@ -1697,6 +1701,104 @@ describe('managementApi encryption key requests', () => {
       for (const subscription of subscriptions) subscription.unsubscribe();
     },
   );
+});
+
+describe('managementApi tenant root key requests', () => {
+  const rootKey = {
+    provider: 'aws-kms',
+    keyReference: 'arn:aws:kms:us-east-1:111122223333:key/abc',
+    state: 'active',
+    createdWhen: '2026-10-01T09:00:00Z',
+    stateChangedWhen: '2026-10-01T09:00:00Z',
+    validatedWhen: '2026-10-01T10:00:00Z',
+    failedWhen: null,
+    failure: null,
+  };
+  const tenant: EncryptionKeyOwner = { kind: 'tenant', tenantId: 'acme' };
+  const otherTenant: EncryptionKeyOwner = { kind: 'tenant', tenantId: 'other' };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  /** Primes the keys of two tenants, runs the mutation and returns the requests it caused. */
+  async function runMutation(
+    response: Response,
+    dispatch: (store: ReturnType<typeof createStore>) => PromiseLike<unknown>,
+  ) {
+    const captured = mockFetch(response);
+    const store = createStore();
+    const subscriptions = [
+      store.dispatch(managementApi.endpoints.listEncryptionKeys.initiate(tenant)),
+      store.dispatch(managementApi.endpoints.listEncryptionKeys.initiate(otherTenant)),
+    ];
+    await Promise.all(subscriptions);
+    const before = captured.length;
+    await dispatch(store);
+    await settle(store);
+    for (const subscription of subscriptions) subscription.unsubscribe();
+    return { mutation: captured[before], refetched: captured.slice(before + 1) };
+  }
+
+  it('setTenantRootKey PUTs the root key and refetches only the tenant keys', async () => {
+    const body = { provider: 'aws-kms', keyReference: rootKey.keyReference };
+
+    const { mutation, refetched } = await runMutation(
+      jsonResponse({ rootKey, activeKey: null, retiredKey: null, rewrappedKeys: 2, failedKeys: 0 }),
+      (store) =>
+        store.dispatch(
+          managementApi.endpoints.setTenantRootKey.initiate({ tenantId: 'acme', body }),
+        ),
+    );
+
+    expect(mutation?.url).toBe('https://api.test/api/tenants/acme/encryption-keys/root-key');
+    expect(mutation?.method).toBe('PUT');
+    expect(JSON.parse(mutation?.body ?? '{}')).toEqual(body);
+    expect(refetched.map((request) => request.url)).toEqual([
+      'https://api.test/api/tenants/acme/encryption-keys',
+    ]);
+  });
+
+  it('removeTenantRootKey DELETEs the root key and resolves null on 204', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.removeTenantRootKey.initiate({ tenantId: 'acme' }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/encryption-keys/root-key');
+    expect(captured[0]?.method).toBe('DELETE');
+    expect(result).toMatchObject({ data: null });
+  });
+
+  it('removeTenantRootKey resolves the removing root key on 202 and refetches only the tenant keys', async () => {
+    const removing = { ...rootKey, state: 'removing' };
+
+    const { mutation, refetched } = await runMutation(jsonResponse(removing, 202), (store) =>
+      store.dispatch(managementApi.endpoints.removeTenantRootKey.initiate({ tenantId: 'acme' })),
+    );
+
+    expect(mutation?.method).toBe('DELETE');
+    expect(refetched.map((request) => request.url)).toEqual([
+      'https://api.test/api/tenants/acme/encryption-keys',
+    ]);
+  });
+
+  it('validateTenantRootKey POSTs the validation and refetches only the tenant keys', async () => {
+    const { mutation, refetched } = await runMutation(jsonResponse(rootKey), (store) =>
+      store.dispatch(managementApi.endpoints.validateTenantRootKey.initiate({ tenantId: 'acme' })),
+    );
+
+    expect(mutation?.url).toBe(
+      'https://api.test/api/tenants/acme/encryption-keys/root-key/validate',
+    );
+    expect(mutation?.method).toBe('POST');
+    expect(refetched.map((request) => request.url)).toEqual([
+      'https://api.test/api/tenants/acme/encryption-keys',
+    ]);
+  });
 });
 
 describe('managementApi owner-generic secrets and settings requests', () => {

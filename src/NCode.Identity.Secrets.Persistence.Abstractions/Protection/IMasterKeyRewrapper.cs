@@ -6,15 +6,19 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
-/// Rewraps persisted master keys under the configured root key provider and recovery public key. Each master key is
-/// unwrapped by the root key provider it names, or from its recovery copy with the recovery private key, and wrapped
-/// again; its material does not change, so no replica needs to reload anything.
+/// Rewraps persisted master keys under the root of their owner: the root key the owner brings, or else the configured
+/// root key provider and recovery public key. Each master key is unwrapped by the root key provider it names, or from
+/// its recovery copy with the recovery private key, and wrapped again; its material does not change, so no replica
+/// needs to reload anything.
 /// </summary>
 /// <remarks>
-/// This is the engine of the offline <c>secret-protection</c> command. Each master key is rewrapped in its own unit of
-/// work, a conflicting write is retried, and a repeated run is harmless.
+/// Two callers use this engine: the offline <c>secret-protection</c> command, and the owner root key manager, which
+/// conforms the master keys of an owner to its root key (<see cref="MasterKeyRewrapRequest.NonconformingOnly"/>). Each
+/// master key is rewrapped in its own unit of work, a conflicting write is retried, and a repeated run is harmless.
+/// A master key under an owner root key is never rewrapped under the deployment's root key or the recovery key, and it
+/// never gains a recovery copy.
 /// </remarks>
-// See ADR-1408.
+// See ADR-1408 and ADR-1414.
 [PublicAPI]
 public interface IMasterKeyRewrapper
 {

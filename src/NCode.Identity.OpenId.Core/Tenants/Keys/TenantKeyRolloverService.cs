@@ -11,6 +11,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.Persistence;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
 using NCode.Mediator;

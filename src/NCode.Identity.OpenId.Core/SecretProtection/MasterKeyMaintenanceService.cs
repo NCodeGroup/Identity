@@ -9,6 +9,7 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -271,6 +272,7 @@ internal sealed class MasterKeyMaintenanceService(
             KeyId = key.KeyId,
             Version = key.Version,
             RootKeyProvider = key.RootKeyProvider,
+            RootKeyReference = key.RootKeyReference,
             RetiredKeyId = retired?.KeyId,
             RetiredVersion = retired?.Version,
         };
@@ -279,14 +281,8 @@ internal sealed class MasterKeyMaintenanceService(
     // A tenant's event is recorded in that tenant, and a platform event, which no tenant owns, in the control-plane tenant.
     private string? GetTenantId(SecretOwner owner)
     {
-        if (
-            string.Equals(
-                owner.OwnerType,
-                SecretOwnerTypes.Tenant,
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-            return owner.OwnerId;
+        if (owner.TenantId is { } tenantId)
+            return tenantId;
 
         return string.Equals(
             owner.OwnerType,

@@ -41,6 +41,15 @@ public readonly record struct SecretOwner
     public string OwnerId { get; }
 
     /// <summary>
+    /// Gets the identifier of the tenant when the owner is a tenant, which is the owner identifier of an owner whose
+    /// type is <see cref="SecretOwnerTypes.Tenant"/> compared without regard to case; otherwise <see langword="null"/>.
+    /// </summary>
+    public string? TenantId =>
+        string.Equals(OwnerType, SecretOwnerTypes.Tenant, StringComparison.OrdinalIgnoreCase)
+            ? OwnerId
+            : null;
+
+    /// <summary>
     /// Contains the identifier of the platform owner.
     /// </summary>
     public const string PlatformOwnerId = "platform";

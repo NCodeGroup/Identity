@@ -57,6 +57,8 @@ describe('PlatformEncryptionKeysPage', () => {
       if (url.endsWith('/api/platform/encryption-keys')) {
         return jsonResponse({
           recoveryConfigured: false,
+          rootKey: null,
+          rootKeyProviders: [],
           keys: [
             {
               keyId: 'k-1',
@@ -67,6 +69,7 @@ describe('PlatformEncryptionKeysPage', () => {
               rootKeyProvider: 'local',
               rootKeyId: 'root-1',
               recoveryKeyId: null,
+              rootKeyReference: null,
             },
           ],
         });

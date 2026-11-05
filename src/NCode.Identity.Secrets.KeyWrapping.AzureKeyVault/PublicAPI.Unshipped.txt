@@ -7,3 +7,5 @@ NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options.AzureKeyVaultKeyWrapper
 NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions.AzureKeyVaultKeyWrapperOptions() -> void
 NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions.KeyId.get -> string?
 NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions.KeyId.set -> void
+NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions.ReferencedKeyHostSuffixes.get -> string![]!
+NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options.AzureKeyVaultKeyWrapperOptions.ReferencedKeyHostSuffixes.set -> void

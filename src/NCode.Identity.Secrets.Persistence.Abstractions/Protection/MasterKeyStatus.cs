@@ -12,10 +12,17 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="Owner">The owner whose stored secrets the master keys protect.</param>
 /// <param name="Keys">Every master key of the owner, newest version first.</param>
 /// <param name="RecoveryConfigured">Whether new master keys are also wrapped under a recovery key.</param>
-// See ADR-1407.
+// See ADR-1407 and ADR-1414.
 [PublicAPI]
 public sealed record MasterKeyStatus(
     SecretOwner Owner,
     ImmutableArray<MasterKeyInfo> Keys,
     bool RecoveryConfigured
-);
+)
+{
+    /// <summary>
+    /// Gets the root key the owner brings, or <see langword="null"/> when the deployment's root key wraps the owner's
+    /// master keys.
+    /// </summary>
+    public OwnerRootKeyInfo? RootKey { get; init; }
+}

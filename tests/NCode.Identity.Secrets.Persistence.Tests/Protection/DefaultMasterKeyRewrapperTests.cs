@@ -74,13 +74,20 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         var oldCatalog = _mocks.Create<IKeyWrapperCatalog>();
         oldCatalog.Setup(x => x.GetConfigured()).Returns(_oldProvider).Verifiable();
         var creator = new MasterKeyFactory(oldCatalog.Object, recoveryAtCreation, _time);
-        var created = await creator.CreateAsync(Owner, version, CancellationToken.None);
+        var created = await creator.CreateAsync(
+            Owner,
+            version,
+            rootKey: null,
+            CancellationToken.None
+        );
         created.Key.Dispose();
         created.Row.ConcurrencyToken = $"token-{version}";
         return created.Row;
     }
 
-    private (Mock<IMasterKeyStore> Store, Mock<IStoreManager> Manager) EnqueueStoreManager()
+    private (Mock<IMasterKeyStore> Store, Mock<IStoreManager> Manager) EnqueueStoreManager(
+        int maxRootKeyReads = 1
+    )
     {
         if (!_storeManagerFactorySetUp)
         {
@@ -95,9 +102,68 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         var manager = _mocks.Create<IStoreManager>();
         manager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
         manager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+
+        // A unit of work that lists or pages rows also reads the root key of each owner on them, which is the one that
+        // the test sets. A unit of work that only writes a row never touches this store, and one that is reused for
+        // several attempts reads it once per attempt.
+        var rootKeyStore = _mocks.Create<IOwnerRootKeyStore>();
+        rootKeyStore
+            .Setup(x => x.FindAsync(It.IsAny<SecretOwner>(), It.IsAny<CancellationToken>()))
+            .Returns(() => new ValueTask<PersistedOwnerRootKey?>(_ownerRootKey))
+            .Verifiable(Times.Between(0, maxRootKeyReads, Moq.Range.Inclusive));
+        manager
+            .Setup(x => x.GetStore<IOwnerRootKeyStore>())
+            .Returns(rootKeyStore.Object)
+            .Verifiable(Times.Between(0, maxRootKeyReads, Moq.Range.Inclusive));
+
         _storeManagers.Enqueue(manager.Object);
         return (store, manager);
     }
+
+    // The root key that the owner of the tests brings, or none.
+    private PersistedOwnerRootKey? _ownerRootKey;
+
+    private readonly FakeReferencedKeyWrapper _referenced = new();
+
+    private PersistedOwnerRootKey CreateOwnerRootKey(string state = OwnerRootKeyStates.Active) =>
+        new()
+        {
+            OwnerType = Owner.OwnerType,
+            OwnerId = Owner.OwnerId,
+            KeyWrapperName = _referenced.Name,
+            KeyReference = "kms://tenant-a/root",
+            State = state,
+            CreatedWhen = _time.GetUtcNow(),
+            StateChangedWhen = _time.GetUtcNow(),
+        };
+
+    // Creates a row wrapped under the owner root key, with no recovery copy.
+    private async Task<PersistedMasterKey> CreateOwnerRootedRowAsync(
+        int version = 1,
+        PersistedOwnerRootKey? rootKey = null
+    )
+    {
+        var creatorCatalog = _mocks.Create<IKeyWrapperCatalog>();
+        creatorCatalog
+            .Setup(x => x.GetReferenced(_referenced.Name))
+            .Returns(_referenced)
+            .Verifiable();
+        using var recovery = CreateRecovery(configured: true);
+        var created = await new MasterKeyFactory(
+            creatorCatalog.Object,
+            recovery,
+            _time
+        ).CreateAsync(Owner, version, rootKey ?? CreateOwnerRootKey(), CancellationToken.None);
+        created.Key.Dispose();
+        created.Row.ConcurrencyToken = $"token-{version}";
+        return created.Row;
+    }
+
+    private void SetupReferenced() =>
+        _catalog.Setup(x => x.GetReferenced(_referenced.Name)).Returns(_referenced).Verifiable();
+
+    private void SetupGetReferenced() =>
+        _catalog.Setup(x => x.Get(_referenced.Name)).Returns(_referenced).Verifiable();
 
     private void SetupList(params PersistedMasterKey[] rows)
     {
@@ -126,10 +192,12 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
         bool recoveryOnly = false,
         bool dryRun = false,
         SecretOwner? owner = null,
-        string? pem = null
+        string? pem = null,
+        bool nonconformingOnly = false
     ) =>
         new()
         {
+            NonconformingOnly = nonconformingOnly,
             RecoveryOnly = recoveryOnly,
             DryRun = dryRun,
             Owner = owner ?? Owner,
@@ -362,7 +430,7 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Throws(new StoreConcurrencyException())
             .Verifiable(Times.Exactly(3));
-        var (findStore, findManager) = EnqueueStoreManager();
+        var (findStore, findManager) = EnqueueStoreManager(maxRootKeyReads: 3);
         findStore
             .Setup(x =>
                 x.FindByKeyIdsAsync(
@@ -510,6 +578,293 @@ public class DefaultMasterKeyRewrapperTests : IDisposable
             );
 
         Assert.Equal(new MasterKeyRewrapResult(2, 2, 0, 0), result);
+    }
+
+    #endregion
+
+    #region Owner Root Key Tests
+
+    [Fact]
+    public async Task Rewrap_ADeploymentRootedRowOfABoundOwner_MovesUnderTheOwnerRootKeyAndLosesItsRecoveryCopy()
+    {
+        using var recoveryAtCreation = CreateRecovery(configured: true);
+        var row = await CreateRowAsync(recoveryAtCreation);
+        Assert.NotNull(row.RecoveryWrappedKey);
+        _ownerRootKey = CreateOwnerRootKey();
+        SetupOldProvider();
+        SetupReferenced();
+        SetupList(row);
+        SetupSave(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(nonconformingOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 1, 0, 0), result);
+        Assert.Equal(_referenced.Name, row.RootKeyProvider);
+        Assert.Equal("kms://tenant-a/root", row.RootKeyReference);
+        Assert.Null(row.RecoveryKeyId);
+        Assert.Null(row.RecoveryWrappedKey);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Rewrap_AConformingOwnerRootedRow_IsExaminedOnly(bool nonconformingOnly)
+    {
+        var row = await CreateOwnerRootedRowAsync();
+        var rootWrapped = row.RootWrappedKey;
+        _ownerRootKey = CreateOwnerRootKey();
+        SetupList(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(nonconformingOnly: nonconformingOnly), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 0), result);
+        Assert.Equal(rootWrapped, row.RootWrappedKey);
+        Assert.Equal(0, _referenced.UnwrapCount);
+    }
+
+    [Fact]
+    public async Task Rewrap_DryRunOfAConformingOwnerRootedRow_VerifiesItThroughTheOwnerRootKey()
+    {
+        var row = await CreateOwnerRootedRowAsync();
+        _ownerRootKey = CreateOwnerRootKey();
+        SetupGetReferenced();
+        SetupList(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(dryRun: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 1, 0), result);
+        Assert.Equal(1, _referenced.UnwrapCount);
+    }
+
+    [Fact]
+    public async Task Rewrap_AConflictThatFindsTheOwnerBoundToAnotherKey_LeavesTheRowUnderThatKeyWithoutARecoveryCopy()
+    {
+        var row = await CreateOwnerRootedRowAsync();
+        _ownerRootKey = CreateOwnerRootKey(OwnerRootKeyStates.Removing);
+        SetupGetReferenced();
+        SetupNewProvider();
+        SetupList(row);
+
+        // The save conflicts because another writer bound the owner to key B and moved the row under it.
+        var (saveStore, saveManager) = EnqueueStoreManager();
+        saveStore
+            .Setup(x => x.UpdateAsync(row, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        saveManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Callback(() =>
+            {
+                var keyB = CreateOwnerRootKey();
+                keyB.KeyReference = "kms://tenant-a/key-b";
+                _ownerRootKey = keyB;
+            })
+            .Throws(new StoreConcurrencyException())
+            .Verifiable();
+
+        var keyBBinding = CreateOwnerRootKey();
+        keyBBinding.KeyReference = "kms://tenant-a/key-b";
+        var current = await CreateOwnerRootedRowAsync(rootKey: keyBBinding);
+        var (findStore, _) = EnqueueStoreManager();
+        findStore
+            .Setup(x =>
+                x.FindByKeyIdsAsync(
+                    Owner,
+                    It.Is<IReadOnlyCollection<Guid>>(ids => ids.Contains(row.KeyId)),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>([current]))
+            .Verifiable();
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery).RewrapAsync(Request(), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 0), result);
+        Assert.Equal("kms://tenant-a/key-b", current.RootKeyReference);
+        Assert.Null(current.RecoveryKeyId);
+        Assert.Null(current.RecoveryWrappedKey);
+    }
+
+    [Fact]
+    public async Task Rewrap_ARowOfAnUnboundOwner_MovesUnderTheDeploymentRootWithARecoveryCopy()
+    {
+        var row = await CreateOwnerRootedRowAsync();
+        _ownerRootKey = null;
+        SetupGetReferenced();
+        SetupNewProvider();
+        SetupList(row);
+        SetupSave(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(nonconformingOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 1, 0, 0), result);
+        Assert.Equal(KeyWrapperNames.Ephemeral, row.RootKeyProvider);
+        Assert.Null(row.RootKeyReference);
+        Assert.Equal(recovery.RecoveryKeyId, row.RecoveryKeyId);
+        Assert.NotNull(row.RecoveryWrappedKey);
+    }
+
+    [Fact]
+    public async Task Rewrap_ARowOfAnOwnerWhoseRootKeyIsBeingRemoved_MovesUnderTheDeploymentRoot()
+    {
+        var row = await CreateOwnerRootedRowAsync();
+        _ownerRootKey = CreateOwnerRootKey(OwnerRootKeyStates.Removing);
+        SetupGetReferenced();
+        SetupNewProvider();
+        SetupList(row);
+        SetupSave(row);
+        using var recovery = CreateRecovery(configured: false);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(nonconformingOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 1, 0, 0), result);
+        Assert.Null(row.RootKeyReference);
+    }
+
+    [Fact]
+    public async Task Rewrap_WithTheRecoveryPrivateKey_UnwrapsAnOwnerRootedRowThroughItsOwnKey()
+    {
+        var row = await CreateOwnerRootedRowAsync();
+        _ownerRootKey = null;
+        SetupGetReferenced();
+        SetupNewProvider();
+        SetupList(row);
+        SetupSave(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(
+                Request(pem: RecoveryPair.ExportPkcs8PrivateKeyPem()),
+                CancellationToken.None
+            );
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 1, 0, 0), result);
+        Assert.Equal(1, _referenced.UnwrapCount);
+    }
+
+    [Fact]
+    public async Task Rewrap_RecoveryOnlyOnAnOwnerRootedRowWithARecoveryCopy_RemovesTheCopyAndKeepsTheRootWrap()
+    {
+        using var recoveryAtCreation = CreateRecovery(configured: true);
+        var row = await CreateOwnerRootedRowAsync();
+        row.RecoveryKeyId = recoveryAtCreation.RecoveryKeyId;
+        row.RecoveryWrappedKey = "copy";
+        var rootWrapped = row.RootWrappedKey;
+        _ownerRootKey = CreateOwnerRootKey();
+        SetupGetReferenced();
+        SetupList(row);
+        SetupSave(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(recoveryOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 1, 0, 0), result);
+        Assert.Null(row.RecoveryWrappedKey);
+        Assert.Null(row.RecoveryKeyId);
+        Assert.Equal(rootWrapped, row.RootWrappedKey);
+    }
+
+    [Fact]
+    public async Task Rewrap_RecoveryOnlyOnAnOwnerRootedRowWithoutARecoveryCopy_IsExaminedOnly()
+    {
+        var row = await CreateOwnerRootedRowAsync();
+        _ownerRootKey = CreateOwnerRootKey();
+        SetupList(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(recoveryOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 0), result);
+    }
+
+    [Fact]
+    public async Task Rewrap_RecoveryOnlyOnADeploymentRootedRowOfAnOwnerRootedOwner_KeepsTheRecoveryCopy()
+    {
+        using var recoveryAtCreation = CreateRecovery(configured: true);
+        var row = await CreateRowAsync(recoveryAtCreation);
+        row.RecoveryWrappedKey = "stale";
+        var rootWrapped = row.RootWrappedKey;
+        _ownerRootKey = CreateOwnerRootKey();
+        SetupOldProvider();
+        SetupList(row);
+        SetupSave(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(recoveryOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 1, 0, 0), result);
+        Assert.Null(row.RootKeyReference);
+        Assert.Equal(recovery.RecoveryKeyId, row.RecoveryKeyId);
+        Assert.NotNull(row.RecoveryWrappedKey);
+        Assert.NotEqual("stale", row.RecoveryWrappedKey);
+        Assert.Equal(rootWrapped, row.RootWrappedKey);
+    }
+
+    [Fact]
+    public async Task Rewrap_RecoveryOnlyOnADeploymentRootedRowWithoutARecoveryCopyOfAnOwnerRootedOwner_WritesTheRecoveryCopy()
+    {
+        using var recoveryAtCreation = CreateRecovery(configured: false);
+        var row = await CreateRowAsync(recoveryAtCreation);
+        Assert.Null(row.RecoveryWrappedKey);
+        Assert.Null(row.RecoveryKeyId);
+        var rootWrapped = row.RootWrappedKey;
+        _ownerRootKey = CreateOwnerRootKey();
+        SetupOldProvider();
+        SetupList(row);
+        SetupSave(row);
+        using var recovery = CreateRecovery(configured: true);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(recoveryOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 1, 0, 0), result);
+        Assert.Null(row.RootKeyReference);
+        Assert.Equal(recovery.RecoveryKeyId, row.RecoveryKeyId);
+        Assert.NotNull(row.RecoveryWrappedKey);
+        Assert.Equal(rootWrapped, row.RootWrappedKey);
+    }
+
+    [Fact]
+    public async Task Rewrap_NonconformingOnlyOfAConformingDeploymentRootedRow_UnwrapsNothing()
+    {
+        using var recovery = CreateRecovery(configured: false);
+        var row = await CreateRowAsync(recovery);
+        _ownerRootKey = null;
+        SetupList(row);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(nonconformingOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 0), result);
+    }
+
+    [Fact]
+    public async Task Rewrap_AnOwnerRootKeyThatIsUnavailable_CountsANonconformingRowFailed()
+    {
+        using var recoveryAtCreation = CreateRecovery(configured: false);
+        var row = await CreateRowAsync(recoveryAtCreation);
+        _ownerRootKey = CreateOwnerRootKey(OwnerRootKeyStates.Unavailable);
+        SetupOldProvider();
+        SetupList(row);
+        using var recovery = CreateRecovery(configured: false);
+
+        var result = await CreateRewrapper(recovery)
+            .RewrapAsync(Request(nonconformingOnly: true), CancellationToken.None);
+
+        Assert.Equal(new MasterKeyRewrapResult(1, 0, 0, 1), result);
     }
 
     #endregion

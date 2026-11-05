@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Persistence;
 using NCode.Identity.SharedState;
 using NCode.PropertyBag;
 using Xunit;

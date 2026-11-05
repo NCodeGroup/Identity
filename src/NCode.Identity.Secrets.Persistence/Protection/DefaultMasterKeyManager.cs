@@ -17,9 +17,11 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// A rotation creates the successor's key material through the root key provider before anything is written, so a
 /// failing root key leaves the owner untouched. The retire and the insert are two units of work, because one save would
 /// depend on the provider writing the update before the insert under the unique index of the active keys. A failed
-/// insert re-activates the retired row, and a successor that another replica stored first is adopted.
+/// insert re-activates the retired row, and a successor that another replica stored first is adopted. The successor of
+/// an owner that brings a root key is wrapped under that key, with no recovery copy, and a rotation of an owner whose
+/// root key is unavailable fails before anything is written.
 /// </remarks>
-// See ADR-1407.
+// See ADR-1407 and ADR-1414.
 internal sealed class DefaultMasterKeyManager(
     ISecretProtectorProvider protectorProvider,
     IStoreManagerFactory storeManagerFactory,
@@ -63,13 +65,16 @@ internal sealed class DefaultMasterKeyManager(
         CancellationToken cancellationToken
     )
     {
-        var rows = await ListAsync(owner, cancellationToken);
+        var (rows, rootKey) = await ListWithRootKeyAsync(owner, cancellationToken);
 
         return new MasterKeyStatus(
             owner,
             [.. rows.Select(MasterKeyInfo.From)],
             Recovery.IsConfigured
-        );
+        )
+        {
+            RootKey = rootKey is null ? null : OwnerRootKeyInfo.From(rootKey),
+        };
     }
 
     /// <inheritdoc />
@@ -80,17 +85,22 @@ internal sealed class DefaultMasterKeyManager(
     {
         var key = owner.Normalize();
 
-        var rows = await ListAsync(owner, cancellationToken);
+        var (rows, rootKey) = await ListWithRootKeyAsync(owner, cancellationToken);
         var active = rows.SingleOrDefault(row => row.RetiredWhen is null);
         var nextVersion = rows.Count == 0 ? 1 : rows.Max(row => row.Version) + 1;
 
         // A rotation before every replica has loaded the active key protects nothing and only adds a retired key to
         // rewrap and check.
-        var spacing = 2 * Options.Value.MasterKeys.RefreshInterval;
         var now = TimeProvider.GetUtcNow();
-        var lastRotation = rows.Max(row => row.RetiredWhen);
-        if (lastRotation is { } last && last + spacing > now)
-            throw new MasterKeyRotationTooSoonException(owner, last + spacing - now);
+        if (
+            MasterKeyRotationSpacing.GetRemaining(
+                rows,
+                Options.Value.MasterKeys.RefreshInterval,
+                now
+            ) is
+            { } remaining
+        )
+            throw new MasterKeyRotationTooSoonException(owner, remaining);
 
         if (active is null && rows.Count > 0)
         {
@@ -99,8 +109,9 @@ internal sealed class DefaultMasterKeyManager(
             );
         }
 
-        // The root key provider is called before anything is written, so its failure leaves the owner untouched.
-        var created = await Factory.CreateAsync(key, nextVersion, cancellationToken);
+        // The root key provider is called before anything is written, so its failure leaves the owner untouched. An
+        // owner root key that is unavailable fails the rotation here, before anything is written.
+        var created = await Factory.CreateAsync(key, nextVersion, rootKey, cancellationToken);
         try
         {
             var successor = created.Row;
@@ -334,6 +345,22 @@ internal sealed class DefaultMasterKeyManager(
         return await storeManager
             .GetStore<IMasterKeyStore>()
             .ListAsync(owner.Normalize(), cancellationToken);
+    }
+
+    // Reads the master keys of the owner and the root key it brings through one store manager.
+    private async ValueTask<(
+        IReadOnlyList<PersistedMasterKey> Rows,
+        PersistedOwnerRootKey? RootKey
+    )> ListWithRootKeyAsync(SecretOwner owner, CancellationToken cancellationToken)
+    {
+        var key = owner.Normalize();
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var rows = await storeManager.GetStore<IMasterKeyStore>().ListAsync(key, cancellationToken);
+        var rootKey = await storeManager
+            .GetStore<IOwnerRootKeyStore>()
+            .FindAsync(key, cancellationToken);
+
+        return (rows, rootKey);
     }
 
     // Calls every observer on a bounded token of its own and swallows each failure, since the change is committed.

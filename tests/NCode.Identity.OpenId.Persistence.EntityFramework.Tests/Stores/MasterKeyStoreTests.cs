@@ -65,6 +65,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             RetiredWhen = retired ? CreatedWhen.AddDays(30) : null,
             RootKeyProvider = KeyWrapperNames.Local,
             RootKeyId = $"root-key-{version}",
+            RootKeyReference = version % 2 == 0 ? $"kms://root-{version}" : null,
             RootWrappedKey = $"root-wrapped-key-{version}",
             RecoveryKeyId = $"recovery-key-{version}",
             RecoveryWrappedKey = $"recovery-wrapped-key-{version}",
@@ -150,6 +151,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         Assert.Null(actual.RetiredWhen);
         Assert.Equal(expected.RootKeyProvider, actual.RootKeyProvider);
         Assert.Equal(expected.RootKeyId, actual.RootKeyId);
+        Assert.Equal(expected.RootKeyReference, actual.RootKeyReference);
         Assert.Equal(expected.RootWrappedKey, actual.RootWrappedKey);
         Assert.Equal(expected.RecoveryKeyId, actual.RecoveryKeyId);
         Assert.Equal(expected.RecoveryWrappedKey, actual.RecoveryWrappedKey);

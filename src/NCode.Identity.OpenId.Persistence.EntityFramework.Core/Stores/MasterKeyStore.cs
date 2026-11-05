@@ -56,6 +56,7 @@ internal class MasterKeyStore(
             RetiredWhen = item.RetiredWhen?.ToUniversalTime(),
             RootKeyProvider = item.RootKeyProvider,
             RootKeyId = item.RootKeyId,
+            RootKeyReference = item.RootKeyReference,
             RootWrappedKey = item.RootWrappedKey,
             RecoveryKeyId = item.RecoveryKeyId,
             RecoveryWrappedKey = item.RecoveryWrappedKey,
@@ -95,6 +96,7 @@ internal class MasterKeyStore(
         entity.RetiredWhen = item.RetiredWhen?.ToUniversalTime();
         entity.RootKeyProvider = item.RootKeyProvider;
         entity.RootKeyId = item.RootKeyId;
+        entity.RootKeyReference = item.RootKeyReference;
         entity.RootWrappedKey = item.RootWrappedKey;
         entity.RecoveryKeyId = item.RecoveryKeyId;
         entity.RecoveryWrappedKey = item.RecoveryWrappedKey;
@@ -338,6 +340,7 @@ internal class MasterKeyStore(
             RetiredWhen = entity.RetiredWhen,
             RootKeyProvider = entity.RootKeyProvider,
             RootKeyId = entity.RootKeyId,
+            RootKeyReference = entity.RootKeyReference,
             RootWrappedKey = entity.RootWrappedKey,
             RecoveryKeyId = entity.RecoveryKeyId,
             RecoveryWrappedKey = entity.RecoveryWrappedKey,

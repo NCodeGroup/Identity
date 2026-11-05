@@ -17,7 +17,8 @@ public interface IPrincipalResolver
 {
     /// <summary>
     /// Resolves the stable principal identifier for an already-provisioned caller, without provisioning. Used by
-    /// read-only paths (such as authorization) where a caller that has never been seen simply has no authority.
+    /// read-only paths (such as authorization) where a caller that has never been seen simply has no authority. A caller
+    /// whose token names no subject, such as a client acting for itself, resolves to its client's principal.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request, whose tenant settings
     /// configure how the caller is resolved.</param>

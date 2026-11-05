@@ -93,6 +93,26 @@ public class CoseMac0Tests
         );
     }
 
+    [Fact]
+    public async Task EncodeMac0_AsymmetricKey_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateEcP256(
+            host.KeyFactory,
+            CoseTestKeys.EcP256X,
+            CoseTestKeys.EcP256Y,
+            CoseTestKeys.EcP256D
+        );
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeMac0(
+                Content,
+                new CoseCredentials(key, CoseAlgorithms.HmacSha256),
+                new CoseEncodingOptions()
+            )
+        );
+    }
+
     #endregion
 
     #region Verify Tests
@@ -176,6 +196,23 @@ public class CoseMac0Tests
 
         Assert.Equal(
             CoseFailureCodes.InvalidSignature,
+            FailureCode(() =>
+                host.Serializer.Verify(
+                    Hex(CoseVectors.V7Mac0),
+                    Parameters(CoseAlgorithmIdentifiers.HmacSha256, key)
+                )
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Verify_KeyShorterThanTheHash_ThrowsKeyNotFound()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey);
+
+        Assert.Equal(
+            CoseFailureCodes.KeyNotFound,
             FailureCode(() =>
                 host.Serializer.Verify(
                     Hex(CoseVectors.V7Mac0),

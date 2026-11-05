@@ -131,6 +131,28 @@ public class CoseInspectTests
         Assert.Equal(CoseFailureCodes.InvalidMessage, FailureCode(host, "D28540A04040" + "40"));
     }
 
+    [Theory]
+    [InlineData("D201", "not an array")]
+    [InlineData("D28401A0F640", "protected bucket not a byte string")]
+    [InlineData("D2844001F640", "unprotected bucket not a map")]
+    [InlineData("D8628440A0F601", "signatures not an array")]
+    [InlineData("D8628440A0F680", "signatures empty")]
+    [InlineData("D8628440A0F69FFF", "signatures of indefinite length")]
+    [InlineData("D8628440A0F68101", "signature not an array")]
+    [InlineData("D8628440A0F6818240A0", "signature of two elements")]
+    public async Task Inspect_MalformedStructure_ThrowsInvalidMessage(
+        string hex,
+        string description
+    )
+    {
+        await using var host = new CoseTestHost();
+
+        Assert.True(
+            CoseFailureCodes.InvalidMessage == FailureCode(host, hex),
+            $"The message with {description} is not refused as invalid."
+        );
+    }
+
     [Fact]
     public async Task Inspect_TrailingBytes_ThrowsInvalidMessage()
     {

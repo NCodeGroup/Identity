@@ -14,6 +14,9 @@ namespace NCode.Identity.Cose;
 [PublicAPI]
 public sealed class CoseValue
 {
+    // Every value holds exactly one well-formed CBOR item under the strict conformance mode: the factories write one,
+    // FromEncodedValue admits one only after a strict reader skips it whole, and TryGetArray splits such an item into
+    // its elements. A strict reader over it throws only for an integer beyond the range ReadInt64 returns.
     private CoseValue(ReadOnlyMemory<byte> encodedValue)
     {
         EncodedValue = encodedValue;
@@ -27,7 +30,7 @@ public sealed class CoseValue
     /// <summary>
     /// Gets a value indicating whether the item is a map.
     /// </summary>
-    public bool IsMap => TryPeek(out var state) && state == CborReaderState.StartMap;
+    public bool IsMap => NewReader().PeekState() == CborReaderState.StartMap;
 
     /// <summary>
     /// Creates a value from one encoded CBOR data item.
@@ -168,12 +171,7 @@ public sealed class CoseValue
             value = reader.ReadInt64();
             return true;
         }
-        catch (Exception exception)
-            when (exception
-                    is CborContentException
-                        or InvalidOperationException
-                        or OverflowException
-            )
+        catch (OverflowException)
         {
             value = 0;
             return false;
@@ -188,21 +186,12 @@ public sealed class CoseValue
     public bool TryGetTextString([NotNullWhen(true)] out string? value)
     {
         value = null;
-        try
-        {
-            var reader = NewReader();
-            if (reader.PeekState() != CborReaderState.TextString)
-                return false;
-
-            value = reader.ReadTextString();
-            return true;
-        }
-        catch (Exception exception)
-            when (exception is CborContentException or InvalidOperationException)
-        {
-            value = null;
+        var reader = NewReader();
+        if (reader.PeekState() != CborReaderState.TextString)
             return false;
-        }
+
+        value = reader.ReadTextString();
+        return true;
     }
 
     /// <summary>
@@ -213,21 +202,12 @@ public sealed class CoseValue
     public bool TryGetByteString(out ReadOnlyMemory<byte> value)
     {
         value = default;
-        try
-        {
-            var reader = NewReader();
-            if (reader.PeekState() != CborReaderState.ByteString)
-                return false;
-
-            value = reader.ReadByteString();
-            return true;
-        }
-        catch (Exception exception)
-            when (exception is CborContentException or InvalidOperationException)
-        {
-            value = default;
+        var reader = NewReader();
+        if (reader.PeekState() != CborReaderState.ByteString)
             return false;
-        }
+
+        value = reader.ReadByteString();
+        return true;
     }
 
     /// <summary>
@@ -238,28 +218,19 @@ public sealed class CoseValue
     public bool TryGetDouble(out double value)
     {
         value = 0;
-        try
-        {
-            var reader = NewReader();
-            if (
-                reader.PeekState()
-                is not (
-                    CborReaderState.HalfPrecisionFloat
-                    or CborReaderState.SinglePrecisionFloat
-                    or CborReaderState.DoublePrecisionFloat
-                )
+        var reader = NewReader();
+        if (
+            reader.PeekState()
+            is not (
+                CborReaderState.HalfPrecisionFloat
+                or CborReaderState.SinglePrecisionFloat
+                or CborReaderState.DoublePrecisionFloat
             )
-                return false;
-
-            value = reader.ReadDouble();
-            return true;
-        }
-        catch (Exception exception)
-            when (exception is CborContentException or InvalidOperationException)
-        {
-            value = 0;
+        )
             return false;
-        }
+
+        value = reader.ReadDouble();
+        return true;
     }
 
     /// <summary>
@@ -270,46 +241,22 @@ public sealed class CoseValue
     public bool TryGetArray([NotNullWhen(true)] out IReadOnlyList<CoseValue>? value)
     {
         value = null;
-        try
-        {
-            var reader = NewReader();
-            if (reader.PeekState() != CborReaderState.StartArray)
-                return false;
-
-            var length = reader.ReadStartArray();
-            if (length is null)
-                return false;
-
-            var elements = new List<CoseValue>(Math.Min(length.Value, reader.BytesRemaining));
-            for (var index = 0; index < length; index++)
-                elements.Add(new CoseValue(reader.ReadEncodedValue().ToArray()));
-
-            reader.ReadEndArray();
-            value = elements;
-            return true;
-        }
-        catch (Exception exception)
-            when (exception is CborContentException or InvalidOperationException)
-        {
-            value = null;
+        var reader = NewReader();
+        if (reader.PeekState() != CborReaderState.StartArray)
             return false;
-        }
+
+        var length = reader.ReadStartArray();
+        if (length is null)
+            return false;
+
+        var elements = new List<CoseValue>(Math.Min(length.Value, reader.BytesRemaining));
+        for (var index = 0; index < length; index++)
+            elements.Add(new CoseValue(reader.ReadEncodedValue().ToArray()));
+
+        reader.ReadEndArray();
+        value = elements;
+        return true;
     }
 
     private CborReader NewReader() => new(EncodedValue, CborConformanceMode.Strict);
-
-    private bool TryPeek(out CborReaderState state)
-    {
-        try
-        {
-            state = NewReader().PeekState();
-            return true;
-        }
-        catch (Exception exception)
-            when (exception is CborContentException or InvalidOperationException)
-        {
-            state = CborReaderState.Undefined;
-            return false;
-        }
-    }
 }

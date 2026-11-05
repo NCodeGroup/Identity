@@ -1,8 +1,12 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Security.Cryptography;
 using NCode.Identity.Cose.Algorithms;
+using NCode.Identity.Cose.Cbor;
+using NCode.Identity.Cose.Messages;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
@@ -48,7 +52,49 @@ public class CoseEncryptTests
         return (encoded, rsa);
     }
 
+    private static byte[] BodyWith(CoseLayerEntry recipient) =>
+        CoseMessageWriter.Encrypt(
+            CoseTags.Encrypt,
+            CborMapWriter.EncodeProtected(
+                new Dictionary<CoseLabel, CoseValue> { [1] = CoseValue.FromInt64(1) }
+            ),
+            new Dictionary<CoseLabel, CoseValue> { [5] = CoseValue.FromByteString(Hex(Iv)) },
+            new byte[32],
+            [recipient]
+        );
+
+    private static byte[] WrapA256Kw(CoseTestHost host, SecretKey kek, byte[] contentKey)
+    {
+        Assert.True(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.A256Kw, out var binding));
+        var writer = new ArrayBufferWriter<byte>();
+        ((KeyManagementAlgorithm)binding.JoseAlgorithm).WrapKey(
+            kek,
+            new Dictionary<string, object>(),
+            contentKey,
+            writer
+        );
+        return writer.WrittenSpan.ToArray();
+    }
+
     #region EncodeEncrypt Tests
+
+    [Fact]
+    public async Task EncodeEncrypt_DirectRecipientKeyOfAnotherSize_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey);
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeEncrypt(
+                Content,
+                new CoseRecipients(
+                    CoseAlgorithms.A128Gcm,
+                    [new CoseRecipient(new CoseCredentials(key, CoseAlgorithms.Direct))]
+                ),
+                new CoseEncodingOptions()
+            )
+        );
+    }
 
     [Fact]
     public async Task EncodeEncrypt_DirectRecipient_ProducesTheVectorBytesAndDecrypts()
@@ -285,6 +331,93 @@ public class CoseEncryptTests
                     Hex(CoseVectors.V12Encrypt),
                     Parameters([CoseAlgorithmIdentifiers.Direct], key)
                 )
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Decrypt_RecipientAlgorithmNotPermitted_ThrowsAlgorithmNotPermitted()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey, "aes");
+        var encoded = host.Serializer.EncodeEncrypt(
+            Content,
+            new CoseRecipients(
+                CoseAlgorithms.A128Gcm,
+                [new CoseRecipient(new CoseCredentials(key, CoseAlgorithms.A128Kw))]
+            ),
+            new CoseEncodingOptions()
+        );
+
+        Assert.Equal(
+            CoseFailureCodes.AlgorithmNotPermitted,
+            FailureCode(() =>
+                host.Serializer.Decrypt(encoded, Parameters([CoseAlgorithmIdentifiers.Direct], key))
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Decrypt_RecipientAlgorithmOfAnotherKind_ThrowsUnsupportedAlgorithm()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey);
+        var message = BodyWith(
+            new CoseLayerEntry(
+                [],
+                new Dictionary<CoseLabel, CoseValue> { [1] = CoseValue.FromInt64(1) },
+                []
+            )
+        );
+
+        Assert.Equal(
+            CoseFailureCodes.UnsupportedAlgorithm,
+            FailureCode(() => host.Serializer.Decrypt(message, Parameters([1], key)))
+        );
+    }
+
+    [Fact]
+    public async Task Decrypt_DirectRecipientWithCiphertext_ThrowsInvalidMessage()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey);
+        var message = BodyWith(
+            new CoseLayerEntry(
+                [],
+                new Dictionary<CoseLabel, CoseValue> { [1] = CoseValue.FromInt64(-6) },
+                [0x00]
+            )
+        );
+
+        Assert.Equal(
+            CoseFailureCodes.InvalidMessage,
+            FailureCode(() =>
+                host.Serializer.Decrypt(message, Parameters([CoseAlgorithmIdentifiers.Direct], key))
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Decrypt_UnwrappedKeyOfAnotherSize_ThrowsDecryptionFailed()
+    {
+        await using var host = new CoseTestHost();
+        var kek = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "kw");
+        var message = BodyWith(
+            new CoseLayerEntry(
+                [],
+                new Dictionary<CoseLabel, CoseValue>
+                {
+                    [1] = CoseValue.FromInt64(-5),
+                    [4] = CoseValue.FromByteString("kw"u8),
+                },
+                WrapA256Kw(host, kek, Hex(CoseTestKeys.HmacCwtKey))
+            )
+        );
+
+        Assert.Equal(
+            CoseFailureCodes.DecryptionFailed,
+            FailureCode(() =>
+                host.Serializer.Decrypt(message, Parameters([CoseAlgorithmIdentifiers.A256Kw], kek))
             )
         );
     }

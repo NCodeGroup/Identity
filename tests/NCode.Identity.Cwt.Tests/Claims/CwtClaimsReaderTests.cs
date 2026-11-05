@@ -65,6 +65,16 @@ public class CwtClaimsReaderTests
         Assert.Equal(Convert.FromHexString("A10102"), claims.ConfirmationKey?.ToArray());
     }
 
+    [Fact]
+    public async Task Read_ConfirmationWithoutACoseKey_HasNoConfirmationKey()
+    {
+        await using var host = new CwtTestHost();
+
+        var claims = Read(host, "A108A10201");
+
+        Assert.Null(claims.ConfirmationKey);
+    }
+
     [Theory]
     [InlineData("A10101", "iss as an integer")]
     [InlineData("A10380", "aud as an empty array")]
@@ -75,6 +85,9 @@ public class CwtClaimsReaderTests
     [InlineData("A10801", "cnf as an integer")]
     [InlineData("A108A101" + "01", "cnf key that is not a map")]
     [InlineData("A1046161", "exp as text")]
+    [InlineData("A1041B7FFFFFFFFFFFFFFF", "exp beyond the DateTimeOffset range")]
+    [InlineData("A108A1410101", "cnf with a byte-string label")]
+    [InlineData("A10201", "sub as an integer")]
     public async Task Read_ClaimOfTheWrongForm_ThrowsInvalidClaim(string hex, string description)
     {
         await using var host = new CwtTestHost();

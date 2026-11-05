@@ -369,15 +369,12 @@ internal partial class DefaultCoseSerializer
         ParsedCoseLayer layer,
         CoseAlgorithmBinding binding,
         CoseVerificationParameters parameters,
-        string use,
-        Func<SecretKey, bool>? extraFilter = null
+        string use
     ) =>
         SelectKeys(
             layer,
             binding.JoseAlgorithm.Code,
-            key =>
-                (binding.JoseAlgorithm is not KeyedAlgorithm keyed || keyed.IsKeyCompatible(key))
-                && (extraFilter is null || extraFilter(key)),
+            key => binding.JoseAlgorithm is not KeyedAlgorithm keyed || keyed.IsKeyCompatible(key),
             parameters.Keys,
             use,
             parameters.ClockSkew

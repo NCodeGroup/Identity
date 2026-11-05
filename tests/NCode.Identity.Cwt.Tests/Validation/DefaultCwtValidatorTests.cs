@@ -877,5 +877,192 @@ public class DefaultCwtValidatorTests
         }
     }
 
+    [Fact]
+    public async Task ValidateAsync_CanceledToken_Throws()
+    {
+        await using var host = new CwtTestHost(CwtVectors.RfcTime);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await host.Validator.ValidateAsync(
+                Hex(CwtVectors.SignedCwt),
+                Parameters(host),
+                new CancellationToken(canceled: true)
+            )
+        );
+    }
+
+    [Fact]
+    public async Task ValidateAsync_TruncatedTag_ReportsInvalidMessage()
+    {
+        await using var host = new CwtTestHost(CwtVectors.RfcTime);
+
+        var result = await Validate(host, Hex("D8"), Parameters(host));
+
+        Assert.Equal(CoseFailureCodes.InvalidMessage, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ResolverReturningNull_ReportsKeyNotFound()
+    {
+        await using var host = new CwtTestHost(CwtVectors.RfcTime);
+        var parameters = new CwtValidationParameters
+        {
+            ValidAlgorithms = [CoseAlgorithmIdentifiers.Es256],
+            ValidIssuers = [Issuer],
+            ValidAudiences = [Audience],
+            ResolveValidationKeysAsync = (_, _) =>
+                ValueTask.FromResult<IReadOnlyCollection<SecretKey>>(null!),
+        };
+
+        var result = await Validate(host, Hex(CwtVectors.SignedCwt), parameters);
+
+        Assert.Equal(CoseFailureCodes.KeyNotFound, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_IntegerTokenType_ReportsInvalidTokenType()
+    {
+        await using var host = new CwtTestHost();
+        var claims = host.Serializer.EncodeMap(
+            new Dictionary<CoseLabel, CoseValue>
+            {
+                [CwtClaimKeys.Issuer] = CoseValue.FromTextString(Issuer),
+                [CwtClaimKeys.Audience] = CoseValue.FromTextString(Audience),
+                [CwtClaimKeys.ExpirationTime] = NumericDate(
+                    CwtTestHost.StartTime + TimeSpan.FromHours(1)
+                ),
+            }
+        );
+        var token = host.Serializer.EncodeSign1(
+            claims,
+            new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
+            new CoseEncodingOptions
+            {
+                ProtectedHeaders = new Dictionary<CoseLabel, CoseValue>
+                {
+                    [CoseHeaderLabels.Type] = CoseValue.FromInt64(61),
+                },
+            }
+        );
+
+        var result = await Validate(host, token, ExpectingType(host, "application/example+cwt"));
+
+        Assert.Equal(CwtValidationFailureCodes.InvalidTokenType, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_TokenWithoutIssuer_ReportsInvalidIssuer()
+    {
+        await using var host = new CwtTestHost();
+        var token = SignClaims(
+            host,
+            new Dictionary<CoseLabel, CoseValue>
+            {
+                [CwtClaimKeys.Audience] = CoseValue.FromTextString(Audience),
+                [CwtClaimKeys.ExpirationTime] = NumericDate(
+                    CwtTestHost.StartTime + TimeSpan.FromHours(1)
+                ),
+            }
+        );
+
+        var result = await Validate(host, token, Parameters(host));
+
+        Assert.Equal(CwtValidationFailureCodes.InvalidIssuer, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_OtherAudience_ReportsInvalidAudience()
+    {
+        await using var host = new CwtTestHost();
+        var issuance = Issuance(host, CwtTestHost.StartTime);
+        var token = host.Issuer.Issue(
+            new CwtIssuanceParameters
+            {
+                Credentials = issuance.Credentials,
+                Issuer = Issuer,
+                Audiences = ["coap://other.example.com"],
+                ExpiresAt = issuance.ExpiresAt,
+            }
+        );
+
+        var result = await Validate(host, token, Parameters(host));
+
+        Assert.Equal(CwtValidationFailureCodes.InvalidAudience, result.FailureCode);
+    }
+
+    [Theory]
+    [InlineData(10, true, null)]
+    [InlineData(60, false, CwtValidationFailureCodes.InvalidLifetime)]
+    public async Task ValidateAsync_MaxLifetimeWithoutAStart_IsMeasuredFromTheLatestStart(
+        int expiresInMinutes,
+        bool expectedValid,
+        string? expectedCode
+    )
+    {
+        await using var host = new CwtTestHost();
+        var token = SignClaims(
+            host,
+            new Dictionary<CoseLabel, CoseValue>
+            {
+                [CwtClaimKeys.Issuer] = CoseValue.FromTextString(Issuer),
+                [CwtClaimKeys.Audience] = CoseValue.FromTextString(Audience),
+                [CwtClaimKeys.ExpirationTime] = NumericDate(
+                    CwtTestHost.StartTime + TimeSpan.FromMinutes(expiresInMinutes)
+                ),
+            }
+        );
+
+        var result = await Validate(
+            host,
+            token,
+            Lifetime(host, maxLifetime: TimeSpan.FromMinutes(30))
+        );
+
+        Assert.Equal(expectedValid, result.IsValid);
+        Assert.Equal(expectedCode, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_EncryptedWithRecipients_IsValidWithDecryptionKeys()
+    {
+        await using var host = new CwtTestHost();
+        var key = host.Aes("enc");
+        var issuance = Issuance(host, CwtTestHost.StartTime);
+        var token = host.Issuer.Issue(
+            new CwtIssuanceParameters
+            {
+                Credentials = issuance.Credentials,
+                Issuer = Issuer,
+                Audiences = [Audience],
+                ExpiresAt = issuance.ExpiresAt,
+                EncryptionRecipients = new CoseRecipients(
+                    CoseAlgorithms.A128Gcm,
+                    [new CoseRecipient(new CoseCredentials(key, CoseAlgorithms.A128Kw))]
+                ),
+            }
+        );
+
+        var result = await Validate(
+            host,
+            token,
+            Parameters(
+                host,
+                p => new CwtValidationParameters
+                {
+                    ValidAlgorithms = p.ValidAlgorithms,
+                    ValidIssuers = p.ValidIssuers,
+                    ValidAudiences = p.ValidAudiences,
+                    ValidationKeys = p.ValidationKeys,
+                    DecryptionKeys = [key],
+                    ValidContentEncryptionAlgorithms = [CoseAlgorithmIdentifiers.A128Gcm],
+                    ValidKeyDistributionAlgorithms = [CoseAlgorithmIdentifiers.A128Kw],
+                }
+            )
+        );
+
+        Assert.True(result.IsValid, result.FailureReason);
+        Assert.Equal(CoseMessageType.Encrypt, result.Decryption?.MessageType);
+    }
+
     #endregion
 }

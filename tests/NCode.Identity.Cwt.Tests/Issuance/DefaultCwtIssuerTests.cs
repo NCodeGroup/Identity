@@ -283,6 +283,20 @@ public class DefaultCwtIssuerTests
     }
 
     [Fact]
+    public async Task Issue_ExpirationAtTheIssuedAt_Throws()
+    {
+        await using var host = new CwtTestHost();
+        var parameters = new CwtIssuanceParameters
+        {
+            Credentials = new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
+            IssuedAt = CwtTestHost.StartTime,
+            ExpiresAt = CwtTestHost.StartTime,
+        };
+
+        Assert.Throws<ArgumentException>(() => host.Issuer.Issue(parameters));
+    }
+
+    [Fact]
     public async Task Issue_EncryptionAlgorithmAsCredentials_Throws()
     {
         await using var host = new CwtTestHost();

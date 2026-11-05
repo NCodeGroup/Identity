@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.Cose.Algorithms;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 
@@ -97,9 +98,111 @@ public class CoseEncrypt0Tests
         Assert.Equal(Content, decrypted.Content.ToArray());
     }
 
+    [Fact]
+    public async Task EncodeEncrypt0_SignatureAlgorithm_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey);
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeEncrypt0(
+                Content,
+                new CoseCredentials(key, CoseAlgorithms.Es256),
+                new CoseEncodingOptions()
+            )
+        );
+    }
+
+    [Fact]
+    public async Task EncodeEncrypt0_AsymmetricKey_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateEcP256(
+            host.KeyFactory,
+            CoseTestKeys.EcP256X,
+            CoseTestKeys.EcP256Y,
+            CoseTestKeys.EcP256D
+        );
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeEncrypt0(
+                Content,
+                new CoseCredentials(key, CoseAlgorithms.A128Gcm),
+                new CoseEncodingOptions()
+            )
+        );
+    }
+
     #endregion
 
     #region Decrypt Tests
+
+    [Fact]
+    public async Task Decrypt_NoValidAlgorithms_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey);
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.Decrypt(
+                Hex(CoseVectors.V11Encrypt0),
+                new CoseDecryptionParameters { ValidAlgorithms = [], Keys = [key] }
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Decrypt_NegativeClockSkew_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey);
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.Decrypt(
+                Hex(CoseVectors.V11Encrypt0),
+                new CoseDecryptionParameters
+                {
+                    ValidAlgorithms = [CoseAlgorithmIdentifiers.A128Gcm],
+                    Keys = [key],
+                    ClockSkew = TimeSpan.FromSeconds(-1),
+                }
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Decrypt_PaddedContentAlgorithm_ReturnsTheContent()
+    {
+        const int identifier = -65537;
+        await using var host = new CoseTestHost(
+            extraAlgorithms:
+            [
+                new CoseAlgorithm
+                {
+                    Identifier = identifier,
+                    Name = "A128CBC-HS256",
+                    Kind = CoseAlgorithmKind.ContentEncryption,
+                    JoseAlgorithmCode = AlgorithmCodes.AuthenticatedEncryption.Aes128CbcHmacSha256,
+                },
+            ]
+        );
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey);
+        var algorithm = host.Algorithms.TryGet(identifier, out var binding)
+            ? binding.Algorithm
+            : throw new InvalidOperationException();
+
+        var encoded = host.Serializer.EncodeEncrypt0(
+            Content,
+            new CoseCredentials(key, algorithm),
+            new CoseEncodingOptions()
+        );
+        var decrypted = host.Serializer.Decrypt(
+            encoded,
+            new CoseDecryptionParameters { ValidAlgorithms = [identifier], Keys = [key] }
+        );
+
+        Assert.Equal(Content, decrypted.Content.ToArray());
+    }
 
     [Fact]
     public async Task Decrypt_UnknownTag_ThrowsUnsupportedMessageType()

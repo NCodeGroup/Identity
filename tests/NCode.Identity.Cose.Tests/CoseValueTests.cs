@@ -70,6 +70,12 @@ public class CoseValueTests
         Assert.Equal("8261616162", Convert.ToHexString(value.EncodedValue.Span));
     }
 
+    [Fact]
+    public void FromTextStrings_NullElement_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => CoseValue.FromTextStrings(["a", null!]));
+    }
+
     #endregion
 
     #region FromEncodedValue Tests
@@ -153,6 +159,13 @@ public class CoseValueTests
         Assert.Equal(2, elements.Count);
         Assert.True(elements[1].TryGetInt64(out var second));
         Assert.Equal(2, second);
+    }
+
+    [Fact]
+    public void TryGetArray_IndefiniteArray_ReturnsFalse()
+    {
+        Assert.False(FromHex("9F01FF").TryGetArray(out var elements));
+        Assert.Null(elements);
     }
 
     #endregion

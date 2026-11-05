@@ -448,11 +448,8 @@ internal class DefaultCoseKeyConverter(
 
     // ReadKeyOperations admits only the eight registered operations: sign and verify are signature operations, and the
     // other six are encryption operations (RFC 9052 §7.1, RFC 7517 §4.3).
-    private static string? ResolveUse(string[]? keyOperations)
+    private static string ResolveUse(string[] keyOperations)
     {
-        if (keyOperations is null)
-            return null;
-
         if (keyOperations.Length == 0)
             throw InvalidKey("The key operations of the COSE_Key name no operation.");
 

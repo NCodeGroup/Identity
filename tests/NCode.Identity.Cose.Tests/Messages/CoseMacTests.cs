@@ -1,7 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using NCode.Identity.Cose.Algorithms;
+using NCode.Identity.Cose.Cbor;
+using NCode.Identity.Cose.Messages;
+using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Cose.Tests.Messages;
@@ -183,6 +187,42 @@ public class CoseMacTests
         await using var host = new CoseTestHost(options => options.MaxRecipients = 1);
 
         Assert.Throws<ArgumentException>(() => EncodeTwoKeyWrapRecipients(host));
+    }
+
+    [Fact]
+    public async Task EncodeMac_DirectRecipientKeyShorterThanTheHash_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey, "short");
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeMac(
+                Content,
+                new CoseRecipients(
+                    CoseAlgorithms.HmacSha256,
+                    [new CoseRecipient(new CoseCredentials(key, CoseAlgorithms.Direct))]
+                ),
+                new CoseEncodingOptions()
+            )
+        );
+    }
+
+    [Fact]
+    public async Task EncodeMac_RecipientAlgorithmNotKeyDistribution_Throws()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.AesKey, "aes");
+
+        Assert.Throws<ArgumentException>(() =>
+            host.Serializer.EncodeMac(
+                Content,
+                new CoseRecipients(
+                    CoseAlgorithms.HmacSha256,
+                    [new CoseRecipient(new CoseCredentials(key, CoseAlgorithms.A128Gcm))]
+                ),
+                new CoseEncodingOptions()
+            )
+        );
     }
 
     #endregion
@@ -369,6 +409,127 @@ public class CoseMacTests
                         [CoseAlgorithmIdentifiers.HmacSha256],
                         [CoseAlgorithmIdentifiers.A256Kw],
                         other
+                    )
+                )
+            )
+        );
+    }
+
+    private static byte[] MessageWithRecipient(string recipient) =>
+        Hex(
+            "D8618543A10105A054"
+                + CoseTestKeys.Content
+                + "5820"
+                + new string('0', 64)
+                + "81"
+                + recipient
+        );
+
+    [Fact]
+    public async Task Verify_RecipientWithoutAlgorithm_ThrowsInvalidHeader()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "our-secret");
+        var message = MessageWithRecipient("8340A040");
+
+        Assert.Equal(
+            CoseFailureCodes.InvalidHeader,
+            FailureCode(() =>
+                host.Serializer.Verify(
+                    message,
+                    Parameters(
+                        [CoseAlgorithmIdentifiers.HmacSha256],
+                        [CoseAlgorithmIdentifiers.Direct],
+                        key
+                    )
+                )
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Verify_RecipientAlgorithmOfAnotherKind_ThrowsUnsupportedAlgorithm()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "our-secret");
+        var message = MessageWithRecipient("8340A1010140");
+
+        Assert.Equal(
+            CoseFailureCodes.UnsupportedAlgorithm,
+            FailureCode(() =>
+                host.Serializer.Verify(
+                    message,
+                    Parameters([CoseAlgorithmIdentifiers.HmacSha256], [1], key)
+                )
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Verify_DirectRecipientWithCiphertext_ThrowsInvalidMessage()
+    {
+        await using var host = new CoseTestHost();
+        var key = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "our-secret");
+        var message = MessageWithRecipient("8340A20125044A6F75722D736563726574" + "4100");
+
+        Assert.Equal(
+            CoseFailureCodes.InvalidMessage,
+            FailureCode(() =>
+                host.Serializer.Verify(
+                    message,
+                    Parameters(
+                        [CoseAlgorithmIdentifiers.HmacSha256],
+                        [CoseAlgorithmIdentifiers.Direct],
+                        key
+                    )
+                )
+            )
+        );
+    }
+
+    [Fact]
+    public async Task Verify_KeyWrapRecipientWithAShortMacKey_ThrowsInvalidSignature()
+    {
+        await using var host = new CoseTestHost();
+        var kek = CoseTestKeys.CreateSymmetric(host.KeyFactory, CoseTestKeys.HmacKey, "kw");
+        Assert.True(host.Algorithms.TryGet(CoseAlgorithmIdentifiers.A256Kw, out var binding));
+        var wrapped = new ArrayBufferWriter<byte>();
+        ((KeyManagementAlgorithm)binding.JoseAlgorithm).WrapKey(
+            kek,
+            new Dictionary<string, object>(),
+            Hex(CoseTestKeys.AesKey),
+            wrapped
+        );
+        var message = CoseMessageWriter.Mac(
+            CoseTags.Mac,
+            CborMapWriter.EncodeProtected(
+                new Dictionary<CoseLabel, CoseValue> { [1] = CoseValue.FromInt64(5) }
+            ),
+            new Dictionary<CoseLabel, CoseValue>(),
+            Content,
+            new byte[32],
+            [
+                new CoseLayerEntry(
+                    [],
+                    new Dictionary<CoseLabel, CoseValue>
+                    {
+                        [1] = CoseValue.FromInt64(-5),
+                        [4] = CoseValue.FromByteString("kw"u8),
+                    },
+                    wrapped.WrittenSpan.ToArray()
+                ),
+            ]
+        );
+
+        Assert.Equal(
+            CoseFailureCodes.InvalidSignature,
+            FailureCode(() =>
+                host.Serializer.Verify(
+                    message,
+                    Parameters(
+                        [CoseAlgorithmIdentifiers.HmacSha256],
+                        [CoseAlgorithmIdentifiers.A256Kw],
+                        kek
                     )
                 )
             )

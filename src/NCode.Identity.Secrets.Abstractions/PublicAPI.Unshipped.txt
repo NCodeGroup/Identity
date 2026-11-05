@@ -189,6 +189,18 @@ NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.WrapAsync(System.ReadOnlyMemory<b
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.TryValidateKeyReference(string! keyReference, out string? failure) -> bool
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.WrapAsync(string! keyReference, System.ReadOnlyMemory<byte> key, System.ReadOnlyMemory<byte> context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.KeyWrapping.WrappedKey!>
+NCode.Identity.Secrets.KeyWrapping.KeyAccess
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.Binding.get -> string!
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.Binding.init -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.Identity.get -> string!
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.Identity.init -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.KeyAccess(string! Identity, string! Binding) -> void
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.Access.get -> NCode.Identity.Secrets.KeyWrapping.KeyAccess?
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.Access.init -> void
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.KeyReference.get -> string!
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.KeyReference.init -> void
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.ReferencedKey(string! KeyReference, NCode.Identity.Secrets.KeyWrapping.KeyAccess? Access) -> void
 NCode.Identity.Secrets.KeyWrapping.WrappedKey
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.Ciphertext.get -> string!
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.Ciphertext.init -> void

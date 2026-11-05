@@ -508,9 +508,11 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     [Fact]
     public void AllowedKeyWrapperNames_AreTheConfiguredProvidersInOrdinalOrder()
     {
+        var manager = CreateManager();
+
         _options.OwnerRootKeys.Providers = ["b-kms", "a-kms"];
 
-        Assert.Equal(["a-kms", "b-kms"], CreateManager().AllowedKeyWrapperNames);
+        Assert.Equal(["a-kms", "b-kms"], manager.AllowedKeyWrapperNames);
     }
 
     [Fact]

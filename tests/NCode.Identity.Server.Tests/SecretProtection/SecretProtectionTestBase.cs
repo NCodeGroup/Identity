@@ -69,8 +69,19 @@ public abstract class SecretProtectionTestBase : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+        // The owner has no root key of its own, so the ring creates its first master key under the configured provider.
+        var rootKeyStore = CreateStrictMock<IOwnerRootKeyStore>();
+        rootKeyStore
+            .Setup(x => x.FindAsync(owner, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<PersistedOwnerRootKey?>((PersistedOwnerRootKey?)null))
+            .Verifiable();
+
         var storeManager = CreateStrictMock<IStoreManager>();
         storeManager.Setup(x => x.GetStore<IMasterKeyStore>()).Returns(store.Object).Verifiable();
+        storeManager
+            .Setup(x => x.GetStore<IOwnerRootKeyStore>())
+            .Returns(rootKeyStore.Object)
+            .Verifiable();
         storeManager
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)

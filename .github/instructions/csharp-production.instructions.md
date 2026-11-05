@@ -27,6 +27,9 @@ than inlining the rationale.
 - 👁 **Async methods return `ValueTask`, end in `Async` and take the `CancellationToken` last** — template
   [Language and Async](csharp.instructions.md#language-and-async); a mediator handler whose contract returns `Task` is
   a framework boundary too.
+- 👁 **Every async method of ours takes a `CancellationToken`, even when none of its awaited calls takes one** — such
+  as one whose only asynchronous call is `IAuthorizationService.AuthorizeAsync`. The token is part of the method's
+  contract, so a call added later honors it; a root call site with no token in hand passes `CancellationToken.None`.
 - ✅ **No sync-over-async** — template [Language and Async](csharp.instructions.md#language-and-async);
   [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt) bans it in every project, tests included (`RS0030`).
 - 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate** — template

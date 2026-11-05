@@ -590,6 +590,8 @@ internal class DefaultClientRegistrationEndpointHandler(
             return bindingError;
         }
 
+        settingsJson = CarryLimits(client.Settings.Value, settingsJson);
+
         client.Settings.Value = settingsJson;
 
         await store.UpdateSettingsAsync(client.Settings, cancellationToken);
@@ -1454,6 +1456,30 @@ internal class DefaultClientRegistrationEndpointHandler(
     private JsonElement BuildSettingsJson(RegisterClientRequest request, ResolvedMetadata resolved)
     {
         var settings = BuildSettingsObject(request, resolved);
+        return JsonSerializer.SerializeToElement(settings);
+    }
+
+    /// <summary>
+    /// Keeps the limits the client's current settings document carries when a registration update replaces the
+    /// document: the metadata names no limit, and a limit is changed only by the authority above the client's tenant.
+    /// </summary>
+    // See ADR-1418.
+    private JsonElement CarryLimits(JsonElement current, JsonElement replacement)
+    {
+        var changedLimits = SettingSerializer.GetChangedLimits(current, replacement);
+        if (changedLimits.Count == 0)
+            return replacement;
+
+        var currentSettings = ToJsonObject(current);
+        var settings = ToJsonObject(replacement);
+        foreach (var name in changedLimits)
+        {
+            if (currentSettings[name] is { } currentValue)
+                settings[name] = currentValue.DeepClone();
+            else
+                settings.Remove(name);
+        }
+
         return JsonSerializer.SerializeToElement(settings);
     }
 

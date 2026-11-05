@@ -40,7 +40,6 @@ public static class DefaultRegistration
 
             serviceCollection.AddAuthorization();
             serviceCollection.AddAuthorizationHandler<GlobalAdminHandler>();
-            serviceCollection.AddAuthorizationHandler<TenantAdminHandler>();
             serviceCollection.AddAuthorizationHandler<OwnershipHandler>();
 
             // Enrich the OpenAPI document with descriptions for the management API's shared parameters.

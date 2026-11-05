@@ -13,6 +13,7 @@ using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Management;
+using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
@@ -104,6 +105,15 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
             ServiceDescriptor.Singleton<
                 ICommandHandler<GetAccessTokenPayloadClaimsCommand>,
                 BootstrapAdminAccessTokenClaimsHandler
+            >()
+        );
+
+        // The bootstrap administrator client's secret and authority come from host configuration, so the management
+        // API refuses every change to it (ADR-1417).
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IHostManagedClientPolicy,
+                BootstrapAdminHostManagedClientPolicy
             >()
         );
 

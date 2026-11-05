@@ -152,6 +152,8 @@ NCode.Identity.OpenId.Management.Authorization.TenantScopeResource
 NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantScopeResource() -> void
+NCode.Identity.OpenId.Management.Clients.IHostManagedClientPolicy
+NCode.Identity.OpenId.Management.Clients.IHostManagedClientPolicy.IsHostManaged(string! tenantId, string! clientId) -> bool
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.AddOwnerRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.PrincipalId.get -> string!
@@ -164,6 +166,8 @@ NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ConcurrencyTok
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ConcurrencyToken.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsHostManaged.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsHostManaged.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientSecretsResource

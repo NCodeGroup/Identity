@@ -66,6 +66,14 @@ PUT    api/tenants/{tenantId}/encryption-keys/root-key
 DELETE api/tenants/{tenantId}/encryption-keys/root-key
 POST   api/tenants/{tenantId}/encryption-keys/root-key/validate
 
+GET    api/tenants/{tenantId}/owners
+POST   api/tenants/{tenantId}/owners
+DELETE api/tenants/{tenantId}/owners/{principalId}
+
+GET    api/tenants/{tenantId}/admins
+POST   api/tenants/{tenantId}/admins
+DELETE api/tenants/{tenantId}/admins/{principalId}
+
 */
 
 /// <summary>
@@ -234,6 +242,16 @@ internal class TenantApiEndpointHandler(
             .Produces<OwnerResource>(StatusCodes.Status201Created);
         tenants
             .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
+            .Produces(StatusCodes.Status204NoContent);
+
+        tenants
+            .MapGet("/{tenantId}/admins", ListAdminsAsync)
+            .Produces<CollectionResource<OwnerResource>>();
+        tenants
+            .MapPost("/{tenantId}/admins", AddAdminAsync)
+            .Produces<OwnerResource>(StatusCodes.Status201Created);
+        tenants
+            .MapDelete("/{tenantId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
     }
 
@@ -1429,6 +1447,19 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
+        var changedLimits = SettingSerializer.GetChangedLimits(tenantSettings.Value, settingsValue);
+        var authorityAbove = GetTeamNode(httpContext, tenant.TeamId);
+        var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
+            httpContext,
+            changedLimits,
+            authorityAbove,
+            cancellationToken
+        );
+        if (limitRefusal is not null)
+        {
+            return limitRefusal;
+        }
+
         var coherenceErrors = await ValidateClientCoherenceAsync(
             tenant.TeamId,
             tenantId,
@@ -1997,6 +2028,152 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
     }
+
+    /// <summary>
+    /// Lists a tenant's administrators: the principals that manage the tenant and everything beneath it and create its
+    /// resources.
+    /// </summary>
+    /// <response code="200">The tenant's administrators.</response>
+    // See ADR-1417
+    [EndpointName("api/tenants/admins/list")]
+    internal virtual async ValueTask<IResult> ListAdminsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            GetTenantNode(tenantId),
+            Operations.Read
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        if (!await TenantExistsAsync(storeManager, tenantId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var admins = await ResourceOwnershipService.GetAssignmentsAsync(
+            storeManager,
+            ResourceNodeTypes.Tenant,
+            tenantId,
+            BuiltInRoles.TenantAdmin,
+            cancellationToken
+        );
+        return TypedResults.Json(
+            new CollectionResource<OwnerResource>
+            {
+                Items = admins.Select(ToOwnerResource).ToList(),
+                ContinuationToken = null,
+            }
+        );
+    }
+
+    /// <summary>
+    /// Adds an administrator to a tenant. Granting the role that creates a tenant's resources is creation authority, so
+    /// only a tenant, team or global administrator at the tenant or above can grant it.
+    /// </summary>
+    /// <response code="201">The administrator was added.</response>
+    // See ADR-1417
+    [EndpointName("api/tenants/admins/add")]
+    internal virtual async ValueTask<IResult> AddAdminAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromBody] AddOwnerRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            GetTenantNode(tenantId),
+            Operations.Create
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (string.IsNullOrEmpty(request.PrincipalId))
+        {
+            return TypedResults.Problem(
+                detail: "The 'principalId' is required.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        if (!await TenantExistsAsync(storeManager, tenantId, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var admin = await ResourceOwnershipService.AddAssignmentAsync(
+            storeManager,
+            tenantId,
+            ResourceNodeTypes.Tenant,
+            tenantId,
+            request.PrincipalId,
+            BuiltInRoles.TenantAdmin,
+            cancellationToken
+        );
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        return TypedResults.Created(
+            $"/tenants/{tenantId}/admins/{admin.PrincipalId}",
+            ToOwnerResource(admin)
+        );
+    }
+
+    /// <summary>
+    /// Removes an administrator from a tenant. Revoking the role that creates a tenant's resources is creation
+    /// authority, so only a tenant, team or global administrator at the tenant or above can revoke it.
+    /// </summary>
+    /// <response code="204">The administrator was removed.</response>
+    // See ADR-1417
+    [EndpointName("api/tenants/admins/remove")]
+    internal virtual async ValueTask<IResult> RemoveAdminAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            GetTenantNode(tenantId),
+            Operations.Create
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var removed = await ResourceOwnershipService.RemoveAssignmentAsync(
+            storeManager,
+            ResourceNodeTypes.Tenant,
+            tenantId,
+            principalId,
+            BuiltInRoles.TenantAdmin,
+            cancellationToken
+        );
+        if (!removed)
+        {
+            return TypedResults.NotFound();
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    // The tenant's authority node: its own id addresses the tenant node.
+    private static ResourceNode GetTenantNode(string tenantId) =>
+        ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
 
     // Announces a committed change to the tenant: this replica evicts it from the tenant cache, so the change takes effect
     // at once, and seeds it after a settings change, so a key its new settings require is provisioned (ADR-1169). The

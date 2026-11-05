@@ -12,11 +12,16 @@
 # (or an assignment at the platform node). A team's own get, settings, effective settings, usage,
 # owners and admins list need authority at the team node: an Owner or TeamAdmin assignment at it,
 # or at the platform. A team's own update (its display name and settings) needs the same
-# authority, while disabling or restoring it needs the platform node. Granting or revoking
+# authority, except a limit (max_tenants, a quota, an overage allowance or a rate limit),
+# which the authority above sets: the platform node for a team's settings, the team for a
+# tenant's, the tenant for a client's or a resource server's, while disabling or restoring it
+# needs the platform node. Granting or revoking
 # TeamAdmin needs create authority on the team. Creating a tenant and previewing a new tenant's
 # address need create authority on the team (TeamAdmin or GlobalAdmin). The per-tenant endpoints
-# need authority on that tenant: an assignment at it, its team or the platform, or a
-# TenantAdmin/GlobalAdmin token for the request's tenant. Obtain a token by exchanging the
+# need authority on that tenant: an assignment at it, its team or the platform, or
+# the bootstrap administrator's GlobalAdmin token. A TenantAdmin assignment at a tenant also
+# creates the tenant's clients and resource servers; granting or revoking it at the tenant's
+# admins endpoints needs create authority on the tenant. Obtain a token by exchanging the
 # configuration-seeded bootstrap administrator credential at the token endpoint (see ADR-1044).
 #
 # First-run bootstrap: the platform and the static-single tenant are provisioned LAZILY by the

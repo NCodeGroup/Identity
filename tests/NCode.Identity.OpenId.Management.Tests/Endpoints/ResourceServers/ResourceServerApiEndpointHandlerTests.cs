@@ -29,6 +29,7 @@ using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using SystemTextJsonPatch;
+using SystemTextJsonPatch.Operations;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.ResourceServers;
 
@@ -204,6 +205,26 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                 )
             )
             .Returns([])
+            .Verifiable();
+
+    private void SetupNoChangedLimits() => SetupChangedLimits([], new JsonObject());
+
+    private void SetupChangedLimits(IReadOnlyList<string> limits, JsonObject proposed) =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.GetChangedLimits(
+                    It.Is<JsonElement>(element =>
+                        JsonElement.DeepEquals(
+                            element,
+                            JsonSerializer.SerializeToElement(new JsonObject())
+                        )
+                    ),
+                    It.Is<JsonElement>(element =>
+                        JsonElement.DeepEquals(element, JsonSerializer.SerializeToElement(proposed))
+                    )
+                )
+            )
+            .Returns(limits)
             .Verifiable();
 
     private void SetupInvalidSettings() =>
@@ -679,6 +700,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     {
         SetupResourceServerChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockStore
@@ -731,6 +753,49 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         );
 
         AssertSettingsValidationProblem(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTenantRefuses_ReturnsForbiddenWithoutWriting()
+    {
+        SetupValidSettings();
+        SetupChangedLimits(["some_limit"], new JsonObject { ["some_limit"] = "10" });
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Tenant
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        // Strict mocks: no store-write setup, so continuing past the refusal would fail the test.
+        var patch = new JsonPatchDocument<JsonObject>();
+        patch.Operations.Add(
+            new Operation<JsonObject>("add", "/some_limit", from: null, value: "10")
+        );
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(),
+            ResourceServerId,
+            patch,
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+        Assert.Contains("'some_limit'", problem.ProblemDetails.Detail);
     }
 
     [Fact]

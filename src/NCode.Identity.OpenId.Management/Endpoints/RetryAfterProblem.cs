@@ -26,7 +26,8 @@ internal static class RetryAfterProblem
         ProblemDetails problem
     )
     {
-        var seconds = Math.Max(1L, (long)Math.Ceiling(wait.TotalSeconds));
+        var roundedUpSeconds = (long)Math.Ceiling(wait.TotalSeconds);
+        var seconds = Math.Max(1L, roundedUpSeconds);
 
         httpContext.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
         problem.Extensions[ManagementProblemMembers.RetryAfterSeconds] = seconds;

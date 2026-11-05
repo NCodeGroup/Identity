@@ -32,6 +32,9 @@ internal sealed class DeveloperPlatformMasterKeyPruning(
     ILogger<DeveloperPlatformMasterKeyPruning> logger
 ) : IHostedLifecycleService
 {
+    /// <summary>
+    /// The reason recorded when the platform's Data Protection keys are revoked.
+    /// </summary>
     internal const string RevocationReason =
         "developer key pruning replaced the platform's master keys, which cannot be unwrapped";
 
@@ -59,7 +62,8 @@ internal sealed class DeveloperPlatformMasterKeyPruning(
         catch (CryptographicException exception)
         {
             await MasterKeyReset.ResetAsync(SecretOwner.Platform, cancellationToken);
-            KeyManager.RevokeAllKeys(TimeProvider.GetUtcNow(), RevocationReason);
+            var now = TimeProvider.GetUtcNow();
+            KeyManager.RevokeAllKeys(now, RevocationReason);
             Logger.DeveloperPlatformMasterKeysReplaced(exception);
         }
     }

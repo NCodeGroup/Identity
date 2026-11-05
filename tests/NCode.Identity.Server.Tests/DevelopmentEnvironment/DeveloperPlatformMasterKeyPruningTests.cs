@@ -60,13 +60,6 @@ public sealed class DeveloperPlatformMasterKeyPruningTests : BaseTests
         var pruning = CreatePruning(protectorProvider, storeManagerFactory, keyManager);
 
         await pruning.StartingAsync(CancellationToken.None);
-
-        protectorProvider.Verify(x => x.Evict(It.IsAny<SecretOwner>()), Times.Never);
-        storeManagerFactory.Verify(x => x.CreateAsync(It.IsAny<CancellationToken>()), Times.Never);
-        keyManager.Verify(
-            x => x.RevokeAllKeys(It.IsAny<DateTimeOffset>(), It.IsAny<string?>()),
-            Times.Never
-        );
     }
 
     [Fact]

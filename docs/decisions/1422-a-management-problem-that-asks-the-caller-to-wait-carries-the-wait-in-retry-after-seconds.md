@@ -28,8 +28,9 @@ console shows it.**
    number, and returns the problem. A rekey too soon, a root key change too soon and an unavailable root key are all
    answered through it.
 2. **`ManagementProblemMembers` names the members.** The public constants `RetryAfterSeconds`, `OwnerType`, `OwnerId`,
-   `Provider`, `KeyReference`, `SettingsScope` and `DocumentError` are the names of the extension members the
-   management API writes, and every writer and test uses them.
+   `Provider`, `KeyReference`, `SettingsScope`, `DocumentError` and `AccessIdentity` (`accessIdentity`, the access
+   identity a root key change names) are the names of the extension members the management API writes, and every
+   writer and test uses them.
 3. **The rekey-too-soon detail is stable.** It reads "The last rotation of this master key has not reached every
    replica yet."; the wait is in the member, not in the prose.
 4. **The console appends the wait.** `apiErrorMessage` appends " Try again in N seconds." when the problem carries a

@@ -1,4 +1,5 @@
 export type {
+  CallerResource,
   ClientResource,
   CollectionResource,
   CreateClientRequest,
@@ -28,6 +29,7 @@ export type {
   ManagementCapabilitiesResource,
   PublicKeyResource,
   ResourceServerResource,
+  RoleAssignmentResource,
   ScopeResource,
   SecretResource,
   SecretsResource,

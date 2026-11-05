@@ -100,6 +100,26 @@ export type TeamResource = {
   readonly isDisabled: boolean;
 };
 
+/** Mirror of `RoleAssignmentResource`: one role a principal holds at one node of the resource tree. */
+export type RoleAssignmentResource = {
+  readonly assignmentId: string;
+  readonly principalId: string;
+  readonly roleName: string;
+  readonly resourceType: string;
+  readonly resourceId: string;
+  readonly tenantId: string;
+};
+
+/**
+ * Mirror of `CallerResource`: where the signed-in caller holds authority (ADR-1420). `principalId` is
+ * `null` when the caller resolves to no principal.
+ */
+export type CallerResource = {
+  readonly principalId: string | null;
+  readonly isPlatformAdministrator: boolean;
+  readonly assignments: readonly RoleAssignmentResource[];
+};
+
 /**
  * Mirror of `CreateTeamRequest`. The team id is chosen by its creator and cannot change. `settings` is
  * the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
@@ -131,6 +151,8 @@ export type ClientResource = {
   readonly concurrencyToken: string;
   readonly isDisabled: boolean;
   readonly resourceServerId: string | null;
+  /** The client's principal, which role assignments name to grant the client authority. */
+  readonly principalId: string;
 };
 
 /**

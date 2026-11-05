@@ -2789,8 +2789,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             retired ? DateTimeOffset.UnixEpoch.AddDays(1) : null,
             "local",
             "root-key",
-            "recovery-key",
-            null
+            "recovery-key"
         );
 
     [Fact]
@@ -2815,8 +2814,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     new MasterKeyStatus(
                         SecretOwner.ForTenant(TenantId),
                         [active, retired],
-                        RecoveryConfigured: true,
-                        RootKey: null
+                        RecoveryConfigured: true
                     )
                 )
             )
@@ -3104,12 +3102,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetStatusAsync(TenantOwner, It.IsAny<CancellationToken>()))
             .Returns(
                 new ValueTask<MasterKeyStatus>(
-                    new MasterKeyStatus(
-                        TenantOwner,
-                        [],
-                        RecoveryConfigured: true,
-                        CreateRootKeyInfo(OwnerRootKeyStates.Unavailable, "AccessDenied: revoked")
-                    )
+                    new MasterKeyStatus(TenantOwner, [], RecoveryConfigured: true)
+                    {
+                        RootKey = CreateRootKeyInfo(
+                            OwnerRootKeyStates.Unavailable,
+                            "AccessDenied: revoked"
+                        ),
+                    }
                 )
             )
             .Verifiable();
@@ -3316,9 +3315,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     TenantOwner,
                     "aws-kms",
                     RootKeyReference,
-                    "AccessDenied",
-                    unavailable
+                    "AccessDenied"
                 )
+                {
+                    UnavailableRootKey = unavailable,
+                }
             )
             .Verifiable();
         MockManagementAuditRecorder
@@ -3442,8 +3443,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     new MasterKeyStatus(
                         TenantOwner,
                         [CreateKeyInfo(1, retired: false)],
-                        RecoveryConfigured: true,
-                        RootKey: null
+                        RecoveryConfigured: true
                     )
                 )
             )

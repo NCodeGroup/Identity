@@ -19,8 +19,6 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="RootKeyId">The identifier of the root key that wraps the master key.</param>
 /// <param name="RecoveryKeyId">The identifier of the recovery key that also wraps the master key, or
 /// <see langword="null"/> when no recovery copy exists.</param>
-/// <param name="RootKeyReference">The reference of the owner root key that wraps the master key, or
-/// <see langword="null"/> when the deployment's root key wraps it.</param>
 // See ADR-1407 and ADR-1411.
 [PublicAPI]
 public sealed record MasterKeyInfo(
@@ -31,10 +29,15 @@ public sealed record MasterKeyInfo(
     DateTimeOffset? RetiredWhen,
     string RootKeyProvider,
     string RootKeyId,
-    string? RecoveryKeyId,
-    string? RootKeyReference
+    string? RecoveryKeyId
 )
 {
+    /// <summary>
+    /// Gets the reference of the owner root key that wraps the master key, or <see langword="null"/> when the
+    /// deployment's root key wraps it.
+    /// </summary>
+    public string? RootKeyReference { get; init; }
+
     /// <summary>
     /// Gets a value indicating whether the master key is active, which is the one that protects new values.
     /// </summary>
@@ -57,8 +60,10 @@ public sealed record MasterKeyInfo(
             masterKey.RetiredWhen,
             masterKey.RootKeyProvider,
             masterKey.RootKeyId,
-            masterKey.RecoveryKeyId,
-            masterKey.RootKeyReference
-        );
+            masterKey.RecoveryKeyId
+        )
+        {
+            RootKeyReference = masterKey.RootKeyReference,
+        };
     }
 }

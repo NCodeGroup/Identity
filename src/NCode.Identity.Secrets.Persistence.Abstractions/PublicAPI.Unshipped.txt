@@ -328,7 +328,7 @@ NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.CreatedWhen.init -> 
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.IsActive.get -> bool
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.KeyId.get -> System.Guid
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.KeyId.init -> void
-NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.MasterKeyInfo(System.Guid KeyId, NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, int Version, System.DateTimeOffset CreatedWhen, System.DateTimeOffset? RetiredWhen, string! RootKeyProvider, string! RootKeyId, string? RecoveryKeyId, string? RootKeyReference) -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.MasterKeyInfo(System.Guid KeyId, NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, int Version, System.DateTimeOffset CreatedWhen, System.DateTimeOffset? RetiredWhen, string! RootKeyProvider, string! RootKeyId, string? RecoveryKeyId) -> void
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.Owner.init -> void
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RecoveryKeyId.get -> string?
@@ -352,7 +352,7 @@ NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation.RetiredKey.init 
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.Keys.get -> System.Collections.Immutable.ImmutableArray<NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!>
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.Keys.init -> void
-NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.MasterKeyStatus(NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, System.Collections.Immutable.ImmutableArray<NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!> Keys, bool RecoveryConfigured, NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo? RootKey) -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.MasterKeyStatus(NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, System.Collections.Immutable.ImmutableArray<NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!> Keys, bool RecoveryConfigured) -> void
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.Owner.init -> void
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.RecoveryConfigured.get -> bool
@@ -504,8 +504,9 @@ NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyUnavailableException.O
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyUnavailableException.OwnerRootKeyUnavailableException(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Exception? innerException) -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyUnavailableException.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException
-NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.OwnerRootKeyProbeException(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, string! keyWrapperName, string! keyReference, string! failure, NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo? unavailableRootKey = null) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.OwnerRootKeyProbeException(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, string! keyWrapperName, string! keyReference, string! failure) -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.UnavailableRootKey.get -> NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo?
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.UnavailableRootKey.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.Failure.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.KeyReference.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.KeyWrapperName.get -> string!

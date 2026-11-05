@@ -2526,8 +2526,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             retired ? DateTimeOffset.UnixEpoch.AddDays(1) : null,
             "local",
             "root-key",
-            "recovery-key",
-            null
+            "recovery-key"
         );
 
     [Fact]
@@ -2550,8 +2549,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                     new MasterKeyStatus(
                         SecretOwner.ForServer(ServerId),
                         [active, retired],
-                        RecoveryConfigured: true,
-                        RootKey: null
+                        RecoveryConfigured: true
                     )
                 )
             )

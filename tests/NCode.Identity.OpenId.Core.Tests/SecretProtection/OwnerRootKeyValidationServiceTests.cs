@@ -254,7 +254,6 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             Now,
             "local",
             "root",
-            null,
             null
         );
         var active = new MasterKeyInfo(
@@ -265,9 +264,11 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             null,
             "aws-kms",
             "root",
-            null,
-            "arn:aws:kms:us-west-2:111122223333:key/abcd"
-        );
+            null
+        )
+        {
+            RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
+        };
         SetupValidate(
             TenantOwner,
             new OwnerRootKeyValidation(

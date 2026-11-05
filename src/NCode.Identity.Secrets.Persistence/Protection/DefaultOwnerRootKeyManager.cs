@@ -205,13 +205,10 @@ internal sealed class DefaultOwnerRootKeyManager(
                 );
             }
 
-            throw new OwnerRootKeyProbeException(
-                key,
-                keyWrapperName,
-                keyReference,
-                probeFailure,
-                unavailable
-            );
+            throw new OwnerRootKeyProbeException(key, keyWrapperName, keyReference, probeFailure)
+            {
+                UnavailableRootKey = unavailable,
+            };
         }
 
         var wasUnavailable = binding is not null && !IsUsable(binding);

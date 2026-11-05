@@ -163,9 +163,11 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
                 null,
                 "fake-kms",
                 "root",
-                null,
-                reference
-            ),
+                null
+            )
+            {
+                RootKeyReference = reference,
+            },
             null
         );
 

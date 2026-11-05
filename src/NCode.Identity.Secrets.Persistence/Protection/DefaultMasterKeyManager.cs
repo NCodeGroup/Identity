@@ -70,9 +70,11 @@ internal sealed class DefaultMasterKeyManager(
         return new MasterKeyStatus(
             owner,
             [.. rows.Select(MasterKeyInfo.From)],
-            Recovery.IsConfigured,
-            rootKey is null ? null : OwnerRootKeyInfo.From(rootKey)
-        );
+            Recovery.IsConfigured
+        )
+        {
+            RootKey = rootKey is null ? null : OwnerRootKeyInfo.From(rootKey),
+        };
     }
 
     /// <inheritdoc />

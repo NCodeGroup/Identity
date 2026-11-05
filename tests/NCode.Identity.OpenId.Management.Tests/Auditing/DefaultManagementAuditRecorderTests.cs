@@ -223,7 +223,6 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             retired ? DateTimeOffset.UnixEpoch.AddDays(1) : null,
             "local",
             "root-key",
-            null,
             null
         );
 

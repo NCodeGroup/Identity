@@ -19,14 +19,11 @@ public sealed class OwnerRootKeyProbeException : Exception
     /// <param name="keyWrapperName">The name of the key wrapper.</param>
     /// <param name="keyReference">The reference to the key.</param>
     /// <param name="failure">The description of the failure, which carries no key material.</param>
-    /// <param name="unavailableRootKey">The stored root key when the failure made it unavailable, otherwise
-    /// <see langword="null"/>.</param>
     public OwnerRootKeyProbeException(
         SecretOwner owner,
         string keyWrapperName,
         string keyReference,
-        string failure,
-        OwnerRootKeyInfo? unavailableRootKey = null
+        string failure
     )
         : base(
             $"The key '{keyReference}' of key wrapper '{keyWrapperName}' could not wrap and unwrap a probe for owner '{owner}': {failure}"
@@ -36,7 +33,6 @@ public sealed class OwnerRootKeyProbeException : Exception
         KeyWrapperName = keyWrapperName;
         KeyReference = keyReference;
         Failure = failure;
-        UnavailableRootKey = unavailableRootKey;
     }
 
     /// <summary>
@@ -63,5 +59,5 @@ public sealed class OwnerRootKeyProbeException : Exception
     /// Gets the stored root key when the failure of the key the owner already uses made it unavailable, which is a
     /// change the audit trail records, otherwise <see langword="null"/>.
     /// </summary>
-    public OwnerRootKeyInfo? UnavailableRootKey { get; }
+    public OwnerRootKeyInfo? UnavailableRootKey { get; init; }
 }

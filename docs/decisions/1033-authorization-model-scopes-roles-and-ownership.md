@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a team is an authority
-  node between the platform and its tenants, and `TeamAdmin` creates a team's tenants)
+  node between the platform and its tenants, and `TeamAdmin` creates a team's tenants; amended by
+  [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md): a client acting for itself
+  is a principal)
 - **Date:** 2026-10-01
 - **Deciders:** NCode Group
 

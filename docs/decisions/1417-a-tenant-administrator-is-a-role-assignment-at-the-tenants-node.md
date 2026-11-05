@@ -47,6 +47,10 @@ management authority except the bootstrap `GlobalAdmin`.**
    tenant's node manages the root tenant's clients (the management console's included), resource servers, settings,
    secrets and users. It never reaches the platform node or a team node, which carry the control-plane tenant's
    identifier only as their address.
+5. **A host-managed client is changed by no management caller.** A client whose credentials and authority come from
+   host configuration, the bootstrap administrator client, is named by a registered `IHostManagedClientPolicy`. The
+   management API answers `409` to every change to it after authorizing the caller, `GlobalAdmin` included, so
+   authority over the root tenant's clients never yields a `GlobalAdmin` token.
 
 ## Options considered
 
@@ -65,6 +69,8 @@ management authority except the bootstrap `GlobalAdmin`.**
 - A team's administrators grant a tenant's administrators, and a tenant's owners cannot.
 - The control-plane tenant's administrators never hold platform or team authority through the tenant they authenticate
   against.
+- A client whose credentials come from host configuration cannot be edited, re-keyed or deleted through the management
+  API, so no administrator of the root tenant obtains a `GlobalAdmin` token.
 
 ## References
 

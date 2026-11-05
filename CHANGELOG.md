@@ -3202,10 +3202,9 @@ describes the family as it is rather than its changes
   (or confidential clients' token requests) are served past the matching quota in a UTC day. Unset or `0` refuses at the
   quota; a set allowance is also the hard ceiling, past which the tenant is refused until midnight UTC. Like the quotas,
   a platform-scope allowance is every tenant's default and caps a tenant-scope one, and is a limit set from above. Each
-  request admitted past a quota is
-  recorded in the usage ledger under the meters `requests_overage` and `token_requests_overage`, which the usage report
-  and the admin UI's Usage tab show with the others, and is counted in `ncode.identity.rate_limiting.requests` with the
-  result `overage`
+  request admitted past a quota is recorded in the usage ledger under the meters `requests_overage` and
+  `token_requests_overage`, which the usage report and the admin UI's Usage tab show with the others, and is counted in
+  `ncode.identity.rate_limiting.requests` with the result `overage`
   ([ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md),
   [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
@@ -3651,7 +3650,8 @@ describes the family as it is rather than its changes
 
 - **Management authority comes from role assignments.** No role claim but the bootstrap administrator's `GlobalAdmin`
   confers authority; a tenant administrator reaches nothing above its tenant, so the control-plane tenant's
-  administrators never reach the platform or a team
+  administrators never reach the platform or a team. The host-managed bootstrap administrator client is changed by no
+  management caller, so authority over the root tenant's clients never yields a `GlobalAdmin` token
   ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
   [#556](https://github.com/NCodeGroup/Identity/issues/556)).
 

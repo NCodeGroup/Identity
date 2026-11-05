@@ -660,6 +660,68 @@ describe('managementApi team CRUD endpoints (platform scope)', () => {
   });
 });
 
+describe('managementApi caller queries', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('getCaller GETs the caller', async () => {
+    const captured = mockFetch(
+      jsonResponse({ principalId: 'p-1', isPlatformAdministrator: false, assignments: [] }),
+    );
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.getCaller.initiate());
+
+    expect(captured[0]?.url).toBe('https://api.test/api/me');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('listCallerTeams GETs the caller teams', async () => {
+    const captured = mockFetch(jsonResponse({ items: [] }));
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.listCallerTeams.initiate());
+
+    expect(captured[0]?.url).toBe('https://api.test/api/me/teams');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('listCallerTenants GETs the caller tenants', async () => {
+    const captured = mockFetch(jsonResponse({ items: [] }));
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.listCallerTenants.initiate());
+
+    expect(captured[0]?.url).toBe('https://api.test/api/me/tenants');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('createTeam refetches a subscribed getCaller', async () => {
+    const fetches = routeFetch((method) =>
+      method === 'GET'
+        ? jsonResponse({ principalId: 'p-1', isPlatformAdministrator: false, assignments: [] })
+        : jsonResponse({ teamId: 'new' }, 201),
+    );
+    const store = createStore();
+    await store.dispatch(managementApi.endpoints.getCaller.initiate());
+    expect(fetches.count('GET', '/api/me')).toBe(1);
+
+    await store.dispatch(
+      managementApi.endpoints.createTeam.initiate({
+        teamId: 'new',
+        displayName: 'New',
+        isDisabled: false,
+        settings: {},
+      }),
+    );
+    await settle(store);
+
+    expect(fetches.count('GET', '/api/me')).toBe(2);
+  });
+});
+
 describe('managementApi team usage', () => {
   afterEach(() => {
     vi.restoreAllMocks();

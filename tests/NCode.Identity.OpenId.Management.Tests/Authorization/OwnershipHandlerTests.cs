@@ -10,7 +10,6 @@ using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
@@ -96,7 +95,7 @@ public class OwnershipHandlerTests : IDisposable
     )
     {
         var factory = MockRepository.Create<IStoreManagerFactory>();
-        var resolver = MockRepository.Create<IPrincipalResolver>();
+        var resolver = MockRepository.Create<ICallerPrincipalResolver>();
         var accessor = MockRepository.Create<IHttpContextAccessor>();
         var ambient = MockRepository.Create<IAmbientTenantAccessor>();
         if (decides)
@@ -136,7 +135,7 @@ public class OwnershipHandlerTests : IDisposable
 
     private void SetupDecision(
         Mock<IStoreManagerFactory> factory,
-        Mock<IPrincipalResolver> resolver,
+        Mock<ICallerPrincipalResolver> resolver,
         Mock<IHttpContextAccessor> accessor,
         Mock<IAmbientTenantAccessor> ambient,
         PersistedRoleAssignment[] assignments,
@@ -160,7 +159,7 @@ public class OwnershipHandlerTests : IDisposable
         // The resolver maps the caller to a stable principal id; mirror the token's subject claim (ADR-1035).
         resolver
             .Setup(x =>
-                x.ResolvePrincipalIdOrDefaultAsync(
+                x.ResolveCallerPrincipalIdOrDefaultAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),

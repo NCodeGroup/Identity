@@ -1,11 +1,13 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
@@ -568,8 +570,21 @@ internal class DefaultManagementAuditRecorder(
     private static AuditRequest CreateRequest(HttpContext httpContext) =>
         AuditRequestFactory.Create(httpContext);
 
-    private AuditActor GetActor(HttpContext httpContext) =>
-        AuditActor.Administrator(GetActorId(httpContext));
+    private AuditActor GetActor(HttpContext httpContext)
+    {
+        var subjectId = GetActorId(httpContext);
+        if (!string.IsNullOrEmpty(subjectId))
+        {
+            return AuditActor.Administrator(subjectId);
+        }
+
+        // A client acting for itself is the actor of the changes it makes.
+        // See ADR-1419.
+        var clientId = httpContext.User.FindFirstValue(JoseClaimNames.Payload.ClientId);
+        return string.IsNullOrEmpty(clientId)
+            ? AuditActor.Administrator(subjectId)
+            : AuditActor.Client(clientId);
+    }
 
     // The actor is a self-issued/control-plane admin, so its subject is read with
     // OpenIdConstants.DefaultSubjectClaimTypes (ADR-1053) through the app-level environment — not the request tenant's

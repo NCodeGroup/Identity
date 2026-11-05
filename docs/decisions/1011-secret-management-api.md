@@ -7,7 +7,8 @@
   client deletion amended by [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md): a client is removed with its
   secrets, grants, and consents; the protection of stored secrets amended by
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master
-  key protects them, in place of a Data Protection key ring)
+  key protects them, in place of a Data Protection key ring; key material stays immutable while a rotation rewrites the
+  stored envelope of the same material, amended by [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md))
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)

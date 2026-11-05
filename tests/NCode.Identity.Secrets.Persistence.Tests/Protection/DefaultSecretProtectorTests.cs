@@ -382,4 +382,115 @@ public class DefaultSecretProtectorTests
     }
 
     #endregion
+
+    #region Rewrap Tests
+
+    private static (
+        DefaultSecretProtector Old,
+        DefaultSecretProtector Both,
+        Guid NewKeyId
+    ) CreateRotated(SecretOwner owner)
+    {
+        var oldId = Guid.NewGuid();
+        var newId = Guid.NewGuid();
+        var oldKey = MasterKey.Create(oldId, owner, 1, CreateMaterial());
+        var newKey = MasterKey.Create(newId, owner, 2, CreateMaterial());
+        var oldOnly = new DefaultSecretProtector(
+            owner,
+            oldKey,
+            new Dictionary<Guid, MasterKey> { [oldId] = oldKey }.ToFrozenDictionary()
+        );
+        var both = new DefaultSecretProtector(
+            owner,
+            newKey,
+            new Dictionary<Guid, MasterKey>
+            {
+                [oldId] = oldKey,
+                [newId] = newKey,
+            }.ToFrozenDictionary()
+        );
+        return (oldOnly, both, newId);
+    }
+
+    [Fact]
+    public void Rewrap_RetiredKey_MovesValueToActiveKey()
+    {
+        var (old, both, newKeyId) = CreateRotated(TenantOwner);
+        var plaintext = CreatePlaintext();
+        var original = old.ProtectToString(plaintext, Context);
+
+        var rewrapped = both.RewrapToString(original, Context);
+
+        Assert.True(SecretProtectionFormat.TryReadMasterKeyId(rewrapped, out var keyId));
+        Assert.Equal(newKeyId, keyId);
+        Assert.Equal(plaintext, Unprotect(both, rewrapped, Context));
+        Assert.NotEqual(original, rewrapped);
+    }
+
+    [Fact]
+    public void Rewrap_RetiredKey_KeepsPayloadUnchanged()
+    {
+        var (old, both, _) = CreateRotated(TenantOwner);
+        var original = old.ProtectToString(CreatePlaintext(), Context);
+
+        var rewrapped = both.RewrapToString(original, Context);
+
+        // The wrapped-key half of the header; the payload nonce, tag and ciphertext follow.
+        const int payloadOffset =
+            SecretProtectionFormat.KeyIdSizeBytes
+            + SecretProtectionFormat.NonceSizeBytes
+            + SecretProtectionFormat.DataKeySizeBytes
+            + SecretProtectionFormat.TagSizeBytes;
+
+        var before = Decode(original);
+        var after = Decode(rewrapped);
+        Assert.Equal(before.Length, after.Length);
+        Assert.Equal(before.AsSpan(payloadOffset), after.AsSpan(payloadOffset));
+        Assert.Equal(original.Length, rewrapped.Length);
+    }
+
+    [Fact]
+    public void Rewrap_ValueUnderActiveKey_CopiesUnchanged()
+    {
+        var protector = CreateProtector();
+        var original = protector.ProtectToString(CreatePlaintext(), Context);
+
+        var rewrapped = protector.RewrapToString(original, Context);
+
+        Assert.Equal(original, rewrapped);
+    }
+
+    [Fact]
+    public void Rewrap_OtherContext_Throws()
+    {
+        var (old, both, _) = CreateRotated(TenantOwner);
+        var original = old.ProtectToString(CreatePlaintext(), Context);
+
+        Assert.Throws<CryptographicException>(() =>
+            both.RewrapToString(
+                original,
+                new SecretProtectionContext(SecretProtectionPurposes.PersistedSecret, OtherItemId)
+            )
+        );
+    }
+
+    [Fact]
+    public void Rewrap_UnknownKey_Throws()
+    {
+        var (old, _, _) = CreateRotated(TenantOwner);
+        var other = CreateProtector();
+        var original = old.ProtectToString(CreatePlaintext(), Context);
+
+        Assert.Throws<CryptographicException>(() => other.RewrapToString(original, Context));
+    }
+
+    [Fact]
+    public void Rewrap_NotAnEnvelope_Throws()
+    {
+        var protector = CreateProtector();
+
+        Assert.Throws<CryptographicException>(() => protector.RewrapToString("plain", Context));
+    }
+
+    #endregion
 }

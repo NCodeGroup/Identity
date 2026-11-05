@@ -8,6 +8,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
@@ -470,6 +471,15 @@ internal class ServerStore(
                 $"The OpenId Server with ServerId='{serverId}' cannot be removed because it still has one or more secrets."
             );
         }
+
+        // A server's master keys belong to it through their owner, not a server column (ADR-1212).
+        var masterKeys = await DbContext
+            .MasterKeys.Where(entity =>
+                entity.OwnerType == SecretOwnerTypes.Server
+                && entity.NormalizedOwnerId == serverEntity.NormalizedServerId
+            )
+            .ToListAsync(cancellationToken);
+        DbContext.MasterKeys.RemoveRange(masterKeys);
 
         DbContext.Servers.Remove(serverEntity);
 

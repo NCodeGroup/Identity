@@ -36,6 +36,17 @@ public class SecretProtectorExtensionsTests
         )
             where TWriter : IBufferWriter<byte>, allows ref struct =>
             throw new NotSupportedException();
+
+        public void Rewrap<TWriter>(
+            ReadOnlySpan<char> protectedValue,
+            SecretProtectionContext context,
+            ref TWriter destination
+        )
+            where TWriter : IBufferWriter<char>, allows ref struct
+        {
+            output.CopyTo(destination.GetSpan(output.Length));
+            destination.Advance(output.Length);
+        }
     }
 
     #region ProtectToString Tests
@@ -66,6 +77,36 @@ public class SecretProtectorExtensionsTests
         ISecretProtector protector = null!;
 
         Assert.Throws<ArgumentNullException>(() => protector.ProtectToString([1, 2, 3], Context));
+    }
+
+    #endregion
+
+    #region RewrapToString Tests
+
+    [Fact]
+    public void RewrapToString_ProtectorFillsLength_ReturnsWrittenCharacters()
+    {
+        var protector = new FixedOutputProtector(protectedLength: 5, output: "vwxyz");
+
+        var result = protector.RewrapToString("abcde", Context);
+
+        Assert.Equal("vwxyz", result);
+    }
+
+    [Fact]
+    public void RewrapToString_ProtectorWritesFewerCharacters_Throws()
+    {
+        var protector = new FixedOutputProtector(protectedLength: 5, output: "abcd");
+
+        Assert.Throws<InvalidOperationException>(() => protector.RewrapToString("abcde", Context));
+    }
+
+    [Fact]
+    public void RewrapToString_NullProtector_Throws()
+    {
+        ISecretProtector protector = null!;
+
+        Assert.Throws<ArgumentNullException>(() => protector.RewrapToString("abcde", Context));
     }
 
     #endregion

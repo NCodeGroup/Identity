@@ -27,7 +27,8 @@ public class MasterKeyRingEntryTests
         using var masterKey = CreateMasterKey(keyId);
         var entry = new MasterKeyRingEntry(
             masterKey,
-            new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary()
+            new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
+            0
         );
 
         var result = entry.Contains(FrozenSet<Guid>.Empty);
@@ -48,7 +49,8 @@ public class MasterKeyRingEntryTests
             {
                 [activeKeyId] = activeKey,
                 [olderKeyId] = olderKey,
-            }.ToFrozenDictionary()
+            }.ToFrozenDictionary(),
+            0
         );
 
         var result = entry.Contains(new HashSet<Guid> { activeKeyId, olderKeyId });
@@ -63,12 +65,51 @@ public class MasterKeyRingEntryTests
         using var masterKey = CreateMasterKey(keyId);
         var entry = new MasterKeyRingEntry(
             masterKey,
-            new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary()
+            new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
+            0
         );
 
         var result = entry.Contains(new HashSet<Guid> { keyId, Guid.NewGuid() });
 
         Assert.False(result);
+    }
+
+    #endregion
+
+    #region IsStale Tests
+
+    [Fact]
+    public void IsStale_BeforeTheInterval_ReturnsFalse()
+    {
+        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        var keyId = Guid.NewGuid();
+        using var masterKey = CreateMasterKey(keyId);
+        var entry = new MasterKeyRingEntry(
+            masterKey,
+            new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
+            time.GetTimestamp()
+        );
+
+        time.Advance(TimeSpan.FromMinutes(4));
+
+        Assert.False(entry.IsStale(time, TimeSpan.FromMinutes(5)));
+    }
+
+    [Fact]
+    public void IsStale_AtTheInterval_ReturnsTrue()
+    {
+        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        var keyId = Guid.NewGuid();
+        using var masterKey = CreateMasterKey(keyId);
+        var entry = new MasterKeyRingEntry(
+            masterKey,
+            new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
+            time.GetTimestamp()
+        );
+
+        time.Advance(TimeSpan.FromMinutes(5));
+
+        Assert.True(entry.IsStale(time, TimeSpan.FromMinutes(5)));
     }
 
     #endregion

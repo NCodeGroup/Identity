@@ -80,6 +80,7 @@ internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoS
             // Tenant-plane families, seeded into every tenant.
             .. SettingsScopes(ManagementScopes.Families.TenantSettings, "tenant settings"),
             .. CrudScopes(ManagementScopes.Families.TenantSecrets, "tenant secrets"),
+            .. SettingsScopes(ManagementScopes.Families.EncryptionKeys, "encryption keys"),
             .. CrudScopes(ManagementScopes.Families.Clients, "clients"),
             .. CrudScopes(ManagementScopes.Families.ClientSecrets, "client secrets"),
             .. CrudScopes(ManagementScopes.Families.ResourceServers, "resource servers"),
@@ -109,6 +110,10 @@ internal sealed class ManagementResourceServerSeedHandler(ICryptoService cryptoS
                 .. CrudScopes(ManagementScopes.Families.Servers, "servers"),
                 .. SettingsScopes(ManagementScopes.Families.ServerSettings, "server settings"),
                 .. CrudScopes(ManagementScopes.Families.ServerSecrets, "server secrets"),
+                .. SettingsScopes(
+                    ManagementScopes.Families.ServerEncryptionKeys,
+                    "server encryption keys"
+                ),
                 .. CrudScopes(ManagementScopes.Families.Tenants, "tenants"),
             ]);
         }

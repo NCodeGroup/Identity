@@ -35,4 +35,9 @@ public sealed class SecretProtectionOptions
     /// Gets or sets the options for the offline recovery key that every master key is additionally wrapped under.
     /// </summary>
     public RecoveryKeyOptions Recovery { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the options for the lifecycle of master keys: rotation, refresh, retirement and destruction.
+    /// </summary>
+    public MasterKeyOptions MasterKeys { get; set; } = new();
 }

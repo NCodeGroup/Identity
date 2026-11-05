@@ -5,7 +5,8 @@ import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import type { ManagementOwner, ServerResource } from '@ncode/api';
+import type { ServerResource } from '@ncode/api';
+import { OwnerEncryptionKeysTab } from './OwnerEncryptionKeysTab.js';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 
@@ -14,16 +15,16 @@ export type ServerDetailPageProps = {
   readonly onBack: () => void;
 };
 
-type ServerSurface = 'secrets' | 'settings';
+type ServerSurface = 'secrets' | 'encryption-keys' | 'settings';
 
 /**
- * Container: drills into a single (global-scope) server to manage its secrets and settings, wiring the
- * owner-generic {@link OwnerSecretsTab}/{@link OwnerSettingsTab}. Owns only tab state; the parent
+ * Container: drills into a single (global-scope) server to manage its secrets, encryption keys and settings,
+ * wiring the owner-generic {@link OwnerSecretsTab}/{@link OwnerSettingsTab} and the {@link OwnerEncryptionKeysTab}. Owns only tab state; the parent
  * {@link import('./ServersPage.js').ServersPage} supplies the server and owns the drill-in selection.
  */
 export function ServerDetailPage({ server, onBack }: ServerDetailPageProps) {
   const [surface, setSurface] = useState<ServerSurface>('secrets');
-  const owner: ManagementOwner = { kind: 'server', serverId: server.serverId };
+  const owner = { kind: 'server', serverId: server.serverId } as const;
 
   return (
     <>
@@ -50,10 +51,17 @@ export function ServerDetailPage({ server, onBack }: ServerDetailPageProps) {
         sx={{ mb: 2 }}
       >
         <Tab value="secrets" label="Secrets" data-testid="server-tab-secrets" />
+        <Tab
+          value="encryption-keys"
+          label="Encryption keys"
+          data-testid="server-tab-encryption-keys"
+        />
         <Tab value="settings" label="Settings" data-testid="server-tab-settings" />
       </Tabs>
       {surface === 'secrets' ? (
         <OwnerSecretsTab owner={owner} ownerLabel="server" />
+      ) : surface === 'encryption-keys' ? (
+        <OwnerEncryptionKeysTab owner={owner} ownerLabel="server" />
       ) : (
         <OwnerSettingsTab owner={owner} />
       )}

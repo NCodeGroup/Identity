@@ -82,6 +82,17 @@ internal static class SecretProtectionFormat
     /// </summary>
     public const byte RolePayload = 2;
 
+    /// <summary>
+    /// The length in characters of the text that every protected value under one master key starts with: the
+    /// <see cref="Prefix"/> followed by the base64url encoding of the first 15 of the 16 bytes of the master key
+    /// identifier, which is a whole number of 4-character groups and so does not depend on the nonce that follows.
+    /// </summary>
+    public const int MasterKeyIdPrefixLength = 25;
+
+    // The bytes of the master key identifier that the prefix encodes: the MasterKeyIdPrefixLength characters after the
+    // Prefix are 20, five whole 4-character groups of base64url, which hold 15 bytes.
+    private const int MasterKeyIdPrefixByteCount = 15;
+
     // The header is read from the first 24 base64url characters, which are whole 4-character groups that decode to
     // 18 bytes and so cover the master key identifier.
     private const int KeyIdHeaderCharCount = 24;
@@ -330,6 +341,25 @@ internal static class SecretProtectionFormat
 
         masterKeyId = ReadMasterKeyId(header);
         return true;
+    }
+
+    /// <summary>
+    /// Gets the text that every protected value whose data key a master key wraps starts with.
+    /// </summary>
+    /// <param name="masterKeyId">The identifier of the master key.</param>
+    /// <returns>The text, which is <see cref="MasterKeyIdPrefixLength"/> characters long.</returns>
+    public static string GetMasterKeyIdPrefix(Guid masterKeyId)
+    {
+        Span<byte> bytes = stackalloc byte[KeyIdSizeBytes];
+        WriteMasterKeyId(masterKeyId, bytes);
+
+        Span<char> chars = stackalloc char[MasterKeyIdPrefixLength - Prefix.Length];
+        if (!Base64Url.TryEncode(bytes[..MasterKeyIdPrefixByteCount], chars, out _))
+        {
+            throw new InvalidOperationException("The master key identifier cannot be encoded.");
+        }
+
+        return string.Concat(Prefix, chars);
     }
 
     /// <summary>

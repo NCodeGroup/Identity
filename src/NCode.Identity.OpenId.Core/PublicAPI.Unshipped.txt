@@ -132,3 +132,5 @@ override NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.EventCategory.ge
 override NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.EventName.get -> string!
 override NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
 static NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEventNames.For(string! change) -> string!
+const NCode.Identity.OpenId.SecretProtection.MasterKeyBroadcast.ChannelName = "master-key-changed" -> string!
+NCode.Identity.OpenId.SecretProtection.MasterKeyBroadcast

@@ -55,6 +55,30 @@ public readonly record struct SecretOwner
     public static SecretOwner ForTenant(string tenantId) => new(SecretOwnerTypes.Tenant, tenantId);
 
     /// <summary>
+    /// Parses an owner from the text that <see cref="ToString"/> produces: the owner type and the owner identifier
+    /// separated by the first colon.
+    /// </summary>
+    /// <param name="value">The text to parse.</param>
+    /// <param name="owner">The parsed owner, when the method returns <see langword="true"/>.</param>
+    /// <returns><see langword="true"/> when both parts are present and not blank; otherwise <see langword="false"/>.</returns>
+    public static bool TryParse(string? value, out SecretOwner owner)
+    {
+        owner = default;
+
+        var separator = value?.IndexOf(':') ?? -1;
+        if (value is null || separator < 0)
+            return false;
+
+        var ownerType = value[..separator];
+        var ownerId = value[(separator + 1)..];
+        if (string.IsNullOrWhiteSpace(ownerType) || string.IsNullOrWhiteSpace(ownerId))
+            return false;
+
+        owner = new SecretOwner(ownerType, ownerId);
+        return true;
+    }
+
+    /// <summary>
     /// Creates a copy of this owner with both the owner type and the owner identifier converted to lower case using
     /// the invariant culture.
     /// </summary>

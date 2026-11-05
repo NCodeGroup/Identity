@@ -271,7 +271,7 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
         return ImportPublicKey(pem);
     }
 
-    private static string ComputeRecoveryKeyId(RSA publicKey)
+    internal static string ComputeRecoveryKeyId(RSA publicKey)
     {
         var capacity = ((publicKey.KeySize + 7) / 8 * 2) + SubjectPublicKeyInfoOverheadBytes;
         using var lease = BufferFactory.Rent(capacity, isSensitive: false, out Span<byte> buffer);

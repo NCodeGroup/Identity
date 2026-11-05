@@ -225,3 +225,19 @@ NCode.Identity.Server.TelemetryRegistration
 NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Server.TelemetryRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddOpenTelemetryMetrics(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 const NCode.Identity.Server.TelemetryRegistration.OtlpEndpointConfigurationKey = "OTEL_EXPORTER_OTLP_ENDPOINT" -> string!
+const NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.CommandName = "secret-protection" -> string!
+const NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.DryRunOption = "--dry-run" -> string!
+const NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.OwnerOption = "--owner" -> string!
+const NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RecoveryPrivateKeyOption = "--recovery-private-key" -> string!
+const NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RewrapRecoveryVerb = "rewrap-recovery" -> string!
+const NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RewrapVerb = "rewrap" -> string!
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.DryRun.get -> bool
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Error.get -> string?
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner?
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RecoveryPrivateKeyPath.get -> string?
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.RunAsync(System.IServiceProvider! services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Verb.get -> string!
+static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.GetHostArguments(string![]! args) -> string![]!
+static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Parse(System.Collections.Generic.IReadOnlyList<string!>! args) -> NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine?
+static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Usage.get -> string!

@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Server.Logging;
 
@@ -80,4 +81,77 @@ internal static partial class Log
         Message = "Revoked the Data Protection key '{KeyId}': {Reason}."
     )]
     internal static partial void KeyRingKeyRevoked(this ILogger logger, Guid keyId, string reason);
+
+    [LoggerMessage(
+        EventId = EventIds.KeyRingMasterKeyNotLoaded,
+        Level = LogLevel.Error,
+        Message = "The master key {MasterKeyId} that a Data Protection key names is missing or cannot be unwrapped; the key ring gate reports the keys it protects."
+    )]
+    internal static partial void KeyRingMasterKeyNotLoaded(
+        this ILogger logger,
+        Exception exception,
+        Guid masterKeyId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ServerSecretProtectorRefreshFailed,
+        Level = LogLevel.Warning,
+        Message = "Loading the server's secret protector again failed; the protector in use stays, and the next refresh tries again."
+    )]
+    internal static partial void ServerSecretProtectorRefreshFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionCommandConfigurationInvalid,
+        Level = LogLevel.Error,
+        Message = "The secret-protection command cannot run: the configuration is invalid."
+    )]
+    internal static partial void SecretProtectionCommandConfigurationInvalid(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionCommandFailed,
+        Level = LogLevel.Error,
+        Message = "The secret-protection command failed."
+    )]
+    internal static partial void SecretProtectionCommandFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionRecoveryKeyUnreadable,
+        Level = LogLevel.Error,
+        Message = "The recovery private key file '{Path}' cannot be read, or it is empty or too large."
+    )]
+    internal static partial void SecretProtectionRecoveryKeyUnreadable(
+        this ILogger logger,
+        string path,
+        Exception? exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionCommandOwnerHasNoMasterKeys,
+        Level = LogLevel.Error,
+        Message = "The owner '{Owner}' that --owner names has no master keys; nothing was rewrapped."
+    )]
+    internal static partial void SecretProtectionCommandOwnerHasNoMasterKeys(
+        this ILogger logger,
+        SecretOwner owner
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SecretProtectionCommandUsageInvalid,
+        Level = LogLevel.Error,
+        Message = "The secret-protection command line is invalid: {Error} {Usage}"
+    )]
+    internal static partial void SecretProtectionCommandUsageInvalid(
+        this ILogger logger,
+        string error,
+        string usage
+    );
 }

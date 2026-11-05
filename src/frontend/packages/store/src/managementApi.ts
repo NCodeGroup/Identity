@@ -23,6 +23,9 @@ import {
   type RotateSecretRequest,
   type CreateTenantRequest,
   type EffectiveSettingsResource,
+  type EncryptionKeyOwner,
+  type EncryptionKeyRotationResource,
+  type EncryptionKeysResource,
   type GrantResource,
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
@@ -63,7 +66,16 @@ const tenantTag = (tenantId: string, id: string): string =>
 export const managementApi = createApi({
   reducerPath: 'managementApi',
   baseQuery: dynamicBaseQuery,
-  tagTypes: ['Tenant', 'Server', 'Client', 'ResourceServer', 'Grant', 'Secret', 'Settings'],
+  tagTypes: [
+    'Tenant',
+    'Server',
+    'Client',
+    'ResourceServer',
+    'Grant',
+    'Secret',
+    'Settings',
+    'EncryptionKey',
+  ],
   endpoints: (build) => ({
     getCapabilities: build.query<ManagementCapabilitiesResource, void>({
       query: () => 'api/capabilities',
@@ -462,6 +474,22 @@ export const managementApi = createApi({
         { type: 'Secret', id: scopeTagId(ownerScope(owner), secretId) },
       ],
     }),
+    // The master keys of a tenant or of the server (ADR-1407). A rekey invalidates only its owner's keys.
+    listEncryptionKeys: build.query<EncryptionKeysResource, EncryptionKeyOwner>({
+      query: (owner) => `${ownerApiPath(owner)}/encryption-keys`,
+      providesTags: (_result, _error, owner) => [
+        { type: 'EncryptionKey' as const, id: ownerTagId(owner) },
+      ],
+    }),
+    rekeyEncryptionKeys: build.mutation<EncryptionKeyRotationResource, EncryptionKeyOwner>({
+      query: (owner) => ({
+        url: `${ownerApiPath(owner)}/encryption-keys/rekey`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, owner) => [
+        { type: 'EncryptionKey', id: ownerTagId(owner) },
+      ],
+    }),
     getSecretPublicKey: build.query<
       PublicKeyResource,
       { owner: ManagementOwner; secretId: string }
@@ -539,6 +567,8 @@ export const {
   useDeleteSecretMutation,
   useRotateSecretMutation,
   useLazyGetSecretPublicKeyQuery,
+  useListEncryptionKeysQuery,
+  useRekeyEncryptionKeysMutation,
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
   useUpdateSettingsMutation,

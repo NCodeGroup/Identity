@@ -17,6 +17,7 @@ using NCode.Identity.Secrets.KeyWrapping.AwsKms;
 using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 using NCode.Identity.Server;
+using NCode.Identity.Server.SecretProtection;
 using NCode.Identity.SharedState.Valkey;
 using NCode.Registration.AspNetCore;
 
@@ -24,8 +25,14 @@ using NCode.Registration.AspNetCore;
 // developer-only startup logic does NOT belong here — put it in the owning package as an extension
 // (dev helpers live in NCode.Identity.Server/DevelopmentEnvironment, e.g. AddDeveloperCors). If a step
 // needs an `if`, a `foreach`, a policy builder, or config parsing, move it to a package extension.
-// See csharp-production.instructions.md §4.
-var builder = WebApplication.CreateBuilder(args);
+// See csharp-production.instructions.md §4. The offline command's dispatch below is the one exception: only the entry
+// point can return its exit code.
+
+// OFFLINE COMMAND: 'secret-protection rewrap|rewrap-recovery' rewraps the master keys and exits without serving, for a
+// one-off Job that runs this image (ADR-1408). The host is built without the command's arguments, which a command-line
+// configuration provider would read as configuration.
+var secretProtectionCommand = SecretProtectionCommandLine.Parse(args);
+var builder = WebApplication.CreateBuilder(SecretProtectionCommandLine.GetHostArguments(args));
 
 var configuration = builder.Configuration;
 var hostEnvironment = builder.Environment;
@@ -166,6 +173,11 @@ else
 
 await using var app = builder.Build();
 
+// The command runs against the built services, never starts the hosted services or binds a port, and returns its exit
+// code. It is the one branch this file keeps, because only the entry point can return an exit code.
+if (secretProtectionCommand is not null)
+    return await secretProtectionCommand.RunAsync(app.Services, CancellationToken.None);
+
 // MUST be the first middleware: everything downstream that reads the scheme or host — the HTTPS redirect, request
 // logging's client IP, and the tenant's base address — has to observe the original request rather than the
 // proxy-to-application hop. A no-op unless 'ReverseProxy' names a trusted proxy.
@@ -221,3 +233,5 @@ app.MapHealthChecks(
     .WithName("health_ready_endpoint");
 
 await app.RunAsync();
+
+return 0;

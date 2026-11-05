@@ -145,16 +145,16 @@ A severity the library does not define logs at Information.
 
 ### Event categories
 
-| `event_category` | Covers                                                     |
-| ---------------- | ---------------------------------------------------------- |
-| `authentication` | The authentication of a client or a subject.               |
-| `authorization`  | The authorization of a request and the consent behind it.  |
-| `token`          | The issuance, refresh and revocation of tokens.            |
-| `session`        | The lifecycle of a user session.                           |
-| `protocol`       | Protocol-level errors returned to a caller.                |
-| `management`     | Changes made through the management plane.                 |
-| `data_access`    | The disclosure of an end user's personal data to a caller. |
-| `key`            | The lifecycle of a tenant's keys: a key the server generates, activates, retires or removes on its own. |
+| `event_category` | Covers                                                                                                                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authentication` | The authentication of a client or a subject.                                                                                                         |
+| `authorization`  | The authorization of a request and the consent behind it.                                                                                            |
+| `token`          | The issuance, refresh and revocation of tokens.                                                                                                      |
+| `session`        | The lifecycle of a user session.                                                                                                                     |
+| `protocol`       | Protocol-level errors returned to a caller.                                                                                                          |
+| `management`     | Changes made through the management plane.                                                                                                           |
+| `data_access`    | The disclosure of an end user's personal data to a caller.                                                                                           |
+| `key`            | The lifecycle of keys: a tenant's key the server generates, activates, retires or removes on its own, and a master key that rotates or is destroyed. |
 
 ### Event sources
 
@@ -168,34 +168,35 @@ A severity the library does not define logs at Information.
 
 The recorder states the actor explicitly for each event, so the actor does not depend on how a request authenticated.
 
-| `actor.type`    | `actor.id`                                 | Used by                                                                                                                                                                               |
-| --------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                            |
-| `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`. |
-| `administrator` | The administrator's subject id, when known | Every management event. The subject id is read with the server-default claim types, not the request tenant's setting.                                                                 |
-| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*` events, whose `details.reason` says why. No caller acted.                                 |
-| `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                 |
+| `actor.type`    | `actor.id`                                 | Used by                                                                                                                                                                                   |
+| --------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                                |
+| `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`.     |
+| `administrator` | The administrator's subject id, when known | Every management event, a rekey through the management API (`master_key.rotated`) included. The subject id is read with the server-default claim types, not the request tenant's setting. |
+| `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*` and background `master_key.*` events, whose `details.reason` says why. No caller acted.         |
+| `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                     |
 
 ### Resource types
 
-`session`, `tenant` and `tenant.secret` are shared by the protocol and the management planes (`AuditResourceTypes`).
+`session`, `tenant`, `tenant.secret` and `master_key` are shared by the protocol and the management planes (`AuditResourceTypes`).
 The management types are `ManagementResourceTypes`, and the local-account type is `AccountManagementResourceTypes`.
 
-| `resources[].type`       | Entity                                                              |
-| ------------------------ | ------------------------------------------------------------------- |
-| `session`                | A user session, identified by its `sid`.                            |
-| `client`                 | An OpenID client.                                                   |
-| `client.secret`          | A secret belonging to a client.                                     |
-| `tenant`                 | An OpenID tenant.                                                   |
-| `tenant.secret`          | A secret belonging to a tenant.                                     |
-| `server`                 | An OpenID server.                                                   |
-| `server.secret`          | A secret belonging to a server.                                     |
-| `resource_server`        | A resource server (an API, in Auth0 terms).                         |
-| `resource_server.scope`  | A scope belonging to a resource server.                             |
-| `resource_server.secret` | A secret belonging to a resource server.                            |
-| `initial_access_token`   | An initial access token (RFC 7591) for dynamic client registration. |
-| `principal`              | An end user's federated principal.                                  |
-| `local_account`          | A local account.                                                    |
+| `resources[].type`       | Entity                                                                                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `session`                | A user session, identified by its `sid`.                                                                                                 |
+| `master_key`             | A master key, identified by its key id, which protects the stored secrets of a tenant or of the server (`AuditResourceTypes.MasterKey`). |
+| `client`                 | An OpenID client.                                                                                                                        |
+| `client.secret`          | A secret belonging to a client.                                                                                                          |
+| `tenant`                 | An OpenID tenant.                                                                                                                        |
+| `tenant.secret`          | A secret belonging to a tenant.                                                                                                          |
+| `server`                 | An OpenID server.                                                                                                                        |
+| `server.secret`          | A secret belonging to a server.                                                                                                          |
+| `resource_server`        | A resource server (an API, in Auth0 terms).                                                                                              |
+| `resource_server.scope`  | A scope belonging to a resource server.                                                                                                  |
+| `resource_server.secret` | A secret belonging to a resource server.                                                                                                 |
+| `initial_access_token`   | An initial access token (RFC 7591) for dynamic client registration.                                                                      |
+| `principal`              | An end user's federated principal.                                                                                                       |
+| `local_account`          | A local account.                                                                                                                         |
 
 ## Event catalog
 
@@ -272,6 +273,24 @@ the instants `activates_when`, `retires_when` and `expires_when` (RFC 3339), as 
 key the rollover provisioned (`managed_by` is `tenant_key_rollover` on the stored secret) is the subject of these events;
 a key an operator creates, imports, updates or deletes through the management API is recorded as a `tenant.secret.*`
 resource-change event with the `administrator` actor instead.
+
+#### Master keys
+
+Every master key event is a `MasterKeyAuditEvent` with `event_category` `key` and the outcome `success`
+([ADR-1407](decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+It lists the `master_key` first and the owner second (`tenant` or `server`, with the owner's id), carries no key
+material, wrapped key or key check, and is published once the change has committed. An administrator's rekey through the
+management API has `event_source` `management`, the `administrator` actor and the request; the background pass has
+`event_source` `openid` and the `system` actor.
+A read of the encryption keys is not audited.
+
+| `event_name`           | Resources                       | `details.reason`                                                                                                                       |
+| ---------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `master_key.rotated`   | `master_key`, `tenant`/`server` | `requested`: an administrator rekeyed; `rotation_period_elapsed`: the active key outlived `SecretProtection:MasterKeys:RotationPeriod` |
+| `master_key.destroyed` | `master_key`, `tenant`/`server` | `unreferenced`: the retired key passed its grace and no stored value names it                                                          |
+
+Both events write `details.reason` (an open vocabulary, `MasterKeyChangeReasons`), `key_id`, `version` and
+`root_key_provider`. A rotation also writes `retired_key_id` and `retired_version` when it retired a key.
 
 ### BFF plane
 

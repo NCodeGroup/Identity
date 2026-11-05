@@ -367,7 +367,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Con
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.CreatedWhen.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.EncodedValue.get -> string!
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.EncodedValue.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.EncodedValue.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ExpiresWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Id.get -> long

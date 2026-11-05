@@ -3500,6 +3500,41 @@ describes the family as it is rather than its changes
   key, with no ambient server-side current pending request). Details in
   [`docs/conformance/external-suite.md`](docs/conformance/external-suite.md).
 
+- **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key
+  (the server's or a tenant's) rotates after `SecretProtection:MasterKeys:RotationPeriod` (365 days) in a daily pass that
+  one replica runs under a lease, or at once through `POST /api/tenants/{tenantId}/encryption-keys/rekey` and
+  `POST /api/servers/{serverId}/encryption-keys/rekey`; `GET .../encryption-keys` reports the keys by id, version,
+  state, instants, root key provider and recovery key id, and carries no key material. The scopes are
+  `read:encryption_keys` and `update:encryption_keys` for a tenant and `read:server_encryption_keys` and
+  `update:server_encryption_keys` for the server. A rekey within twice `RefreshInterval` of the owner's last rotation
+  answers `409` with `Retry-After`, and one that loses a race to another rekey answers `412`, as every management
+  write that loses a race does. A
+  rotation creates the successor's key material before it retires the active key, and a store failure re-activates the
+  retired key. Every
+  replica reloads an owner's keys within `SecretProtection:MasterKeys:RefreshInterval` (five minutes) without a KMS
+  call and drops a destroyed key, and a broadcast makes them reload at once. The data keys that a retired key wraps are
+  rewrapped under the active key by `ISecretProtector.Rewrap`, which copies the payload unchanged, for the stored
+  secrets of a tenant, its clients and its resource servers, the grant payloads of a tenant, and the server's. The
+  rewrap and the destruction check read each owner's values once, and only those under a retired key, and a value that
+  cannot be rewrapped is logged and keeps its key. A
+  retired key is destroyed after `RetirementGrace` (30 days) once no registered `IProtectedValueSource` reports a value
+  that names it, and the Data Protection key ring keeps the retired server key while a live ring key names it.
+  `IMasterKeyManager` reports, rotates, rewraps and destroys; `IMasterKeyChangeObserver` hears of each change;
+  `master_key.rotated` and `master_key.destroyed` are `key` audit events; and the management console shows the keys of a
+  tenant and of a server with a confirmed "Rekey" action
+  ([#171](https://github.com/NCodeGroup/Identity/issues/171),
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+
+- **The host image rewraps every master key offline.** `secret-protection rewrap` wraps every master key under the
+  configured root key provider and recovery public key, and `secret-protection rewrap-recovery` replaces only the
+  recovery copies, each unwrapping a key with the root key provider it names or, with `--recovery-private-key <file>`,
+  from its recovery copy. `--owner <type:id>` limits the run to one owner and `--dry-run` verifies every key without
+  writing. An `--owner` with no master keys exits `1`. The recovery private key is read from the file only, held in memory that is zeroed when the command ends,
+  and never reaches a serving process. The Helm chart's `secretProtection.rewrapJob` runs the command as a Job, and
+  `IMasterKeyRewrapper` is its engine
+  ([#172](https://github.com/NCodeGroup/Identity/issues/172),
+  [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
+
 ### Security
 
 - **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's, a
@@ -3813,8 +3848,8 @@ describes the family as it is rather than its changes
   master key (the server or the tenant), which is wrapped by a root key held by a root key provider (`ephemeral`,
   `local`, or a registered one) and, optionally, by an offline recovery RSA key. The public contracts are
   `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`, `SecretOwner` and
-  `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes its master
-  keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant or a server deletes
+  its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [#167](https://github.com/NCodeGroup/Identity/issues/167)).
 
 - **A database dump or backup reveals no secret material without the root key, and every host names its root key
@@ -5088,5 +5123,13 @@ describes the family as it is rather than its changes
   and VS Code's settings add none. A pull request from the cloud agent fails the check until its commits are re-authored
   with `git rebase origin/main --exec "git commit --amend --no-edit --reset-author"` and `git push --force-with-lease`
   ([ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md)).
+- **A master key is bounded in time and destroyed once nothing names it.** An owner's master key rotates every year, the
+  values it protected are rewrapped without their payloads being touched, a retired key is destroyed only after its grace
+  and when no stored secret, grant payload or live Data Protection key names it, and the recovery private key that can
+  unwrap every master key exists only inside the offline rewrap command
+  ([#171](https://github.com/NCodeGroup/Identity/issues/171),
+  [#172](https://github.com/NCodeGroup/Identity/issues/172),
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
+  [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

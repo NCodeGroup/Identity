@@ -44,6 +44,8 @@ export {
   useDeleteSecretMutation,
   useRotateSecretMutation,
   useLazyGetSecretPublicKeyQuery,
+  useListEncryptionKeysQuery,
+  useRekeyEncryptionKeysMutation,
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
   useUpdateSettingsMutation,

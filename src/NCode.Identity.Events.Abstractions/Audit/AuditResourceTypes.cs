@@ -32,4 +32,9 @@ public static class AuditResourceTypes
     /// A secret belonging to an OpenID tenant, shared by the protocol plane and the management plane.
     /// </summary>
     public const string TenantSecret = "tenant.secret";
+
+    /// <summary>
+    /// The resource type of a master key, which protects the stored secrets of a tenant or of the server.
+    /// </summary>
+    public const string MasterKey = "master_key";
 }

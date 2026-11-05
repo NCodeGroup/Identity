@@ -271,6 +271,40 @@
               "type": "boolean"
             }
           }
+        },
+        "rewrapJob": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "command": {
+              "type": "string",
+              "enum": [
+                "rewrap",
+                "rewrap-recovery"
+              ]
+            },
+            "owner": {
+              "type": "string",
+              "pattern": "^([^:\\s]+:\\S+)?$"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "recoveryPrivateKeySecret": {
+              "type": "string"
+            },
+            "backoffLimit": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "activeDeadlineSeconds": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
         }
       }
     },

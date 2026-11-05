@@ -33,12 +33,13 @@ public class TeamSettingDescriptorDataSourceTests : BaseTests
     }
 
     [Fact]
-    public void Collection_WhenEnumerated_AppliesToTeamsOnlyAndIsNotDiscoverable()
+    public void Collection_WhenEnumerated_AppliesToTeamsOnlyIsALimitAndIsNotDiscoverable()
     {
         var descriptor = Assert.Single(DataSource.Collection);
 
         Assert.Equal(OpenIdSettingNames.MaxTenants, descriptor.Name);
         Assert.Equal([OpenIdSettingScopes.Team], descriptor.AppliesTo.AsEnumerable());
+        Assert.True(descriptor.IsLimit);
         Assert.False(descriptor.IsDiscoverable);
     }
 

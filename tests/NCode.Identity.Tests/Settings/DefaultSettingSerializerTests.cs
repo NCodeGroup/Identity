@@ -467,4 +467,85 @@ public class DefaultSettingSerializerTests : BaseTests
     }
 
     #endregion
+
+    #region GetChangedLimits Tests
+
+    private DefaultSettingSerializer CreateLimitSerializer()
+    {
+        var mockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
+        mockProvider
+            .Setup(x => x.Collection)
+            .Returns(
+                new DefaultSettingDescriptorCollection([
+                    new SettingDescriptor<int>
+                    {
+                        Name = "l",
+                        AppliesTo = ["client"],
+                        IsLimit = true,
+                        OnMerge = SettingMerge.Min,
+                    },
+                    new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] },
+                ])
+            )
+            .Verifiable();
+        return new DefaultSettingSerializer(
+            mockProvider.Object,
+            CreateStrictMock<ISettingScopeCollectionProvider>().Object
+        );
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenOnlyAnotherSettingChanges_ReturnsEmpty()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(
+            Parse("""{"l":5,"a":"x"}"""),
+            Parse("""{"l":5,"a":"y"}""")
+        );
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenALimitChanges_NamesIt()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(Parse("""{"l":5}"""), Parse("""{"l":10}"""));
+
+        Assert.Equal(["l"], result);
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenALimitIsAdded_NamesIt()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(Parse("""{"a":"x"}"""), Parse("""{"l":5}"""));
+
+        Assert.Equal(["l"], result);
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenALimitIsRemoved_NamesIt()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(Parse("""{"l":5}"""), Parse("""{"a":"x"}"""));
+
+        Assert.Equal(["l"], result);
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenTheCurrentDocumentIsUndefined_NamesTheLimitsTheNewOneSets()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(default, Parse("""{"l":5,"a":"x"}"""));
+
+        Assert.Equal(["l"], result);
+    }
+
+    #endregion
 }

@@ -40,6 +40,15 @@ public abstract class SettingDescriptor
     public bool IsDiscoverable { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the setting is a limit: a bound set on a scope from above. A limit's value in a
+    /// scope's settings document is set by the authority over the entity above the one the document belongs to, so the
+    /// administrators of an entity never raise or remove the limits set on it. A limit merges with a meet
+    /// (<see cref="HasMeetMerge"/>), so the value set above bounds every scope beneath it.
+    /// </summary>
+    // See ADR-1418.
+    public bool IsLimit { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the default value is set.
     /// </summary>
     public abstract bool HasDefault { get; }

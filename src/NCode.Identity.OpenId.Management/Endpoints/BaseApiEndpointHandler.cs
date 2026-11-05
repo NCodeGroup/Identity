@@ -3,8 +3,10 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -156,6 +158,45 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             errorsBySetting,
             detail: detail,
             title: "The settings are invalid."
+        );
+    }
+
+    /// <summary>
+    /// Gets the refusal of a settings write that changes limits without <see cref="Operations.Update"/> authority at the
+    /// node above the one whose document carries them, or <c>null</c> when the write may proceed.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="changedLimits">The names of the limits the write adds, changes or removes.</param>
+    /// <param name="authorityAbove">The node above the one whose settings document carries the limits.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <c>403 Forbidden</c> result, or <c>null</c> when the write changes no limit or the caller may update <paramref name="authorityAbove"/>.</returns>
+    // See ADR-1418.
+    internal virtual async ValueTask<IResult?> GetLimitChangeRefusalOrDefaultAsync(
+        HttpContext httpContext,
+        IReadOnlyList<string> changedLimits,
+        ISupportTenantId authorityAbove,
+        CancellationToken cancellationToken
+    )
+    {
+        if (changedLimits.Count == 0)
+        {
+            return null;
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            authorityAbove,
+            Operations.Update
+        );
+        if (authorizationResult.Succeeded)
+        {
+            return null;
+        }
+
+        var names = string.Join(", ", changedLimits.Select(name => $"'{name}'"));
+        return TypedResults.Problem(
+            detail: $"The caller may not change the limits {names}: a limit is set by the administrators above the resource whose settings carry it.",
+            statusCode: StatusCodes.Status403Forbidden
         );
     }
 

@@ -236,6 +236,19 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .Returns([])
             .Verifiable();
 
+    private void SetupNoChangedLimits() => SetupChangedLimits([]);
+
+    private void SetupChangedLimits(IReadOnlyList<string> limits) =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.GetChangedLimits(
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, EmptyObject())),
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, FooObject()))
+                )
+            )
+            .Returns(limits)
+            .Verifiable();
+
     private void SetupInvalidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -315,6 +328,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
+
+    private static JsonElement FooObject() =>
+        JsonSerializer.SerializeToElement(new JsonObject { ["foo"] = "bar" });
 
     private static bool HasProperty(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
@@ -1078,6 +1094,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenNoSettingACoherenceRuleReadsChanges_SkipsTheTenantWalk()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         SetupTeamSettings(settings);
@@ -1111,6 +1128,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenARuleReadsAChangedSetting_PagesOnlyTheTeamsTenantsAndAnnouncesTheChange()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         SetupTeamSettings(settings);
@@ -1195,6 +1213,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenTheReplacedDocumentCannotBeHonored_WritesWithoutWalkingTheTenants()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         SetupTeamSettings(settings);
@@ -1241,6 +1260,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenThePlatformDocumentCannotBeHonored_ThrowsNamingThePlatform()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         SetupTeamSettings(settings);
@@ -1277,6 +1297,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenAClientWouldBecomeIncoherent_ReturnsValidationProblemWithoutWriting()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         SetupTeamSettings(settings);
@@ -1361,6 +1382,84 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             problem.ProblemDetails.Detail,
             StringComparison.Ordinal
         );
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenALimitChangesAndThePlatformRefuses_ReturnsForbiddenWithoutWriting()
+    {
+        SetupValidSettings();
+        SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
+        SetupStore();
+        SetupTeamSettings(CreateSettings("settings-ct"));
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Platform
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        // Strict mocks: no resolver or store-write setup, so continuing past the refusal would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+        Assert.Contains("'max_tenants'", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenALimitChangesAndThePlatformAuthorizes_Writes()
+    {
+        SetupValidSettings();
+        SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        SetupTeamSettings(settings);
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Platform
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+        var current = CreateSettingCollection();
+        var proposed = CreateSettingCollection();
+        SetupResolveTeam(current, proposed);
+        MockClientCoherenceValidator
+            .Setup(x => x.ReadsChangedSetting(current, proposed))
+            .Returns(false)
+            .Verifiable();
+        SetupSettingsWrite(settings);
+
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
     }
 
     [Fact]

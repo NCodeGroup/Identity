@@ -40,6 +40,7 @@ NCode.Identity.Settings.ISettingScopeCollection.TryGet(string! scopeName, out NC
 NCode.Identity.Settings.ISettingScopeCollectionProvider
 NCode.Identity.Settings.ISettingSerializer
 NCode.Identity.Settings.ISettingSerializer.DeserializeSettings(System.Text.Json.JsonElement settingsJson, string! scopeName, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Settings.Setting!>!
+NCode.Identity.Settings.ISettingSerializer.GetChangedLimits(System.Text.Json.JsonElement currentJson, System.Text.Json.JsonElement newJson) -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.Settings.ISettingSerializer.ValidateSettings(System.Text.Json.JsonElement settingsJson, string! scopeName, System.Text.Json.JsonSerializerOptions! jsonOptions) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Settings.SettingError>!
 NCode.Identity.Settings.Setting
 NCode.Identity.Settings.Setting.Descriptor.get -> NCode.Identity.Settings.SettingDescriptor!
@@ -56,6 +57,8 @@ NCode.Identity.Settings.SettingDescriptor.AppliesTo.get -> System.Collections.Im
 NCode.Identity.Settings.SettingDescriptor.AppliesTo.init -> void
 NCode.Identity.Settings.SettingDescriptor.IsDiscoverable.get -> bool
 NCode.Identity.Settings.SettingDescriptor.IsDiscoverable.init -> void
+NCode.Identity.Settings.SettingDescriptor.IsLimit.get -> bool
+NCode.Identity.Settings.SettingDescriptor.IsLimit.init -> void
 NCode.Identity.Settings.SettingDescriptor.Name.get -> string!
 NCode.Identity.Settings.SettingDescriptor.Name.init -> void
 NCode.Identity.Settings.SettingDescriptor.SettingDescriptor() -> void

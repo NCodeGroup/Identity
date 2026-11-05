@@ -66,6 +66,45 @@ internal class DefaultSettingSerializer(
         return errors;
     }
 
+    /// <inheritdoc />
+    // See ADR-1418.
+    public IReadOnlyList<string> GetChangedLimits(JsonElement currentJson, JsonElement newJson)
+    {
+        var current = ReadProperties(currentJson);
+        var replacement = ReadProperties(newJson);
+        var descriptors = SettingDescriptorCollectionProvider.Collection;
+
+        var names = new HashSet<string>(current.Keys, StringComparer.Ordinal);
+        names.UnionWith(replacement.Keys);
+
+        var changed = new List<string>();
+        foreach (var name in names)
+        {
+            if (!descriptors.TryGet(name, out var descriptor) || !descriptor.IsLimit)
+                continue;
+
+            var inCurrent = current.TryGetValue(name, out var currentValue);
+            var inReplacement = replacement.TryGetValue(name, out var newValue);
+            if (inCurrent != inReplacement || !JsonElement.DeepEquals(currentValue, newValue))
+                changed.Add(name);
+        }
+
+        changed.Sort(StringComparer.Ordinal);
+        return changed;
+    }
+
+    private static Dictionary<string, JsonElement> ReadProperties(JsonElement settingsJson)
+    {
+        var properties = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        if (settingsJson.ValueKind != JsonValueKind.Object)
+            return properties;
+
+        foreach (var jsonProperty in settingsJson.EnumerateObject())
+            properties[jsonProperty.Name] = jsonProperty.Value;
+
+        return properties;
+    }
+
     private void ReadSettings(
         JsonElement settingsJson,
         string scopeName,

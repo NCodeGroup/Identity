@@ -1024,6 +1024,23 @@ internal class ResourceServerApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
+        var changedLimits = SettingSerializer.GetChangedLimits(settings.Value, settingsValue);
+        var authorityAbove = ResourceNode.For(
+            settings.TenantId,
+            ResourceNodeTypes.Tenant,
+            settings.TenantId
+        );
+        var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
+            httpContext,
+            changedLimits,
+            authorityAbove,
+            cancellationToken
+        );
+        if (limitRefusal is not null)
+        {
+            return limitRefusal;
+        }
+
         settings.Value = settingsValue;
         await store.UpdateSettingsAsync(settings, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);

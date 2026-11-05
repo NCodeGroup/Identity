@@ -3189,19 +3189,25 @@ describes the family as it is rather than its changes
   and `quota_tenant_token_requests_per_day` (token requests from confidential clients, judged at the token endpoint
   after client authentication, so a caller that knows only a public `client_id` cannot spend it). A request over a quota
   is refused with `429 Too Many Requests`, `temporarily_unavailable`, and `Retry-After` until midnight UTC. Both are
-  unlimited when unset and merged with `Min`, so the platform's value caps every tenant. They are counted in the shared
-  `IExpiringCounterSet` and reported under the rate-limiting partitions `daily_requests` and `daily_token_requests`
-  ([ADR-1198](docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md)).
+  unlimited when unset and merged with `Min`, so the platform's value caps every tenant. They are limits: the platform
+  writes a plan tier's quotas on a team, and a team's administrators may set lower ones on its tenants. They are
+  counted in the shared `IExpiringCounterSet` and reported under the rate-limiting partitions `daily_requests` and
+  `daily_token_requests`
+  ([ADR-1198](docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
+  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **Billed overage past a daily quota.** A plan tier can admit requests past its daily quota and bill them:
   `quota_tenant_requests_overage_per_day` and `quota_tenant_token_requests_overage_per_day` set how many more requests
   (or confidential clients' token requests) are served past the matching quota in a UTC day. Unset or `0` refuses at the
   quota; a set allowance is also the hard ceiling, past which the tenant is refused until midnight UTC. Like the quotas,
-  a platform-scope allowance is every tenant's default and caps a tenant-scope one. Each request admitted past a quota is
-  recorded in the usage ledger under the meters `requests_overage` and `token_requests_overage`, which the usage report
-  and the admin UI's Usage tab show with the others, and is counted in `ncode.identity.rate_limiting.requests` with the
-  result `overage`
-  ([ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md)).
+  a platform-scope allowance is every tenant's default and caps a tenant-scope one, and is a limit set from above. Each
+  request admitted past a quota is recorded in the usage ledger under the meters `requests_overage` and
+  `token_requests_overage`, which the usage report and the admin UI's Usage tab show with the others, and is counted in
+  `ncode.identity.rate_limiting.requests` with the result `overage`
+  ([ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md),
+  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **Per-tenant usage ledger.** Every tenant's daily usage is recorded durably for billing and customer reports in the
   `TenantUsage` table, one row per tenant, UTC day, and meter: `requests` (requests admitted by the rate limits and the
@@ -3506,9 +3512,11 @@ describes the family as it is rather than its changes
 - **A team's settings cascade into its tenants.** The settings scopes are `platform`, `team`, `tenant`, `client` and
   `resource_server`; a team document carries every setting that applies beneath it, so the security profiles, ceilings
   and defaults a team selects bind its tenants, and a materialized tenant reads its document beneath its team's
-  effective settings. `max_tenants` applies to the team scope, merges with `Min` (the platform sets the ceiling and a
-  team can only lower it), and a creation that would exceed it answers `409`
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  effective settings. `max_tenants` applies to the team scope, merges with `Min` and is a limit the platform's
+  administrators set on a team, and a creation that would exceed it answers `409`
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **A team is an authority node.** Authority runs platform → team → tenant → leaf: a role assigned at a team reaches
   every tenant beneath it, the `TeamAdmin` role creates the team's tenants and manages everything beneath, `Owner` never
@@ -3517,6 +3525,19 @@ describes the family as it is rather than its changes
   assignment only when it belongs to the node's tenant, because client and resource-server identifiers
   are unique only within a tenant
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+
+- **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
+  `TenantAdmin` role at the tenant's node, which manages the tenant and everything beneath it and creates its clients,
+  resource servers and other resources; granting or revoking it is creation authority at the tenant
+  ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  [#556](https://github.com/NCodeGroup/Identity/issues/556)).
+
+- **A setting can be a limit set from above.** `SettingDescriptor.IsLimit` marks a limit, which merges with a meet; a
+  management write that adds, changes or removes a limit in a team's, tenant's, client's or resource server's settings
+  needs `Update` authority at the platform, the team or the tenant above it, or answers `403` naming the limits, and
+  `ISettingSerializer.GetChangedLimits` names them
+  ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
@@ -3638,6 +3659,19 @@ describes the family as it is rather than its changes
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
 
 ### Security
+
+- **Management authority comes from role assignments.** No role claim but the bootstrap administrator's `GlobalAdmin`
+  confers authority; a tenant administrator reaches nothing above its tenant, so the control-plane tenant's
+  administrators never reach the platform or a team. The host-managed bootstrap administrator client is changed by no
+  management caller, so authority over the root tenant's clients never yields a `GlobalAdmin` token
+  ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  [#556](https://github.com/NCodeGroup/Identity/issues/556)).
+
+- **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
+  authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a tenant's
+  the limits its team sets. A client's registration update keeps the limits its settings carry
+  ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's and a
   resource server's keys all carry an active window inside a validity window: a key that is not yet
@@ -5202,12 +5236,15 @@ describes the family as it is rather than its changes
 - **Per-tenant rate limits.** Three settings limit the requests per minute a tenant's protocol endpoints serve:
   `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address, an IPv6 address
   counted by its `/64`), and `rate_limit_client_per_minute` (one authenticated confidential client, set on the tenant or
-  the client). Each is unset (unlimited) by default and merges with `Min`, so a tenant or client can only lower the
-  limit above it. The limiter counts in the shared `IExpiringCounterSet` with a two-window sliding estimate, so the
-  limits hold across replicas that share Valkey. A refused request is answered `429 Too Many Requests` with
-  `temporarily_unavailable`, `Retry-After`, and `Cache-Control: no-store`, and is neither handled nor audited
+  the client). Each is unset (unlimited) by default and merges with `Min`, and each is a limit, set by the
+  administrators above the tenant or client whose settings carry it. The limiter counts in the shared
+  `IExpiringCounterSet` with a two-window sliding estimate, so the limits hold across replicas that share Valkey.
+  A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and
+  `Cache-Control: no-store`, and is neither handled nor audited
   ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-  [#84](https://github.com/NCodeGroup/Identity/issues/84)).
+  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [#84](https://github.com/NCodeGroup/Identity/issues/84),
+  [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **Anonymous discovery and JSON Web Key Set requests cannot spend a tenant's daily request quota.** The two endpoints
   are not metered: they count only against the per-minute rate limits and are not recorded as `requests` usage, so no

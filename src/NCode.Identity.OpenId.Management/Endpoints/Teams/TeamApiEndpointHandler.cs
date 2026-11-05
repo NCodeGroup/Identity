@@ -693,6 +693,19 @@ internal class TeamApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
+        var changedLimits = SettingSerializer.GetChangedLimits(teamSettings.Value, settingsValue);
+        var authorityAbove = GetPlatformNode(httpContext);
+        var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
+            httpContext,
+            changedLimits,
+            authorityAbove,
+            cancellationToken
+        );
+        if (limitRefusal is not null)
+        {
+            return limitRefusal;
+        }
+
         // The platform is resolved outside the replaced document's catch, so a platform document that cannot be honored
         // fails the write naming the platform (ADR-1245).
         var platformSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(

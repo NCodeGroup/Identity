@@ -861,6 +861,123 @@ public class TeamManagementTests
 
     #endregion
 
+    #region Caller Tests
+
+    [Fact]
+    public async Task GetCaller_AsTheBootstrapAdministrator_HoldsPlatformAuthority()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.GetAsync("/api/me");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        Assert.True(JsonElement.Parse(body).GetProperty("isPlatformAdministrator").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetCaller_AsATeamAdmin_ReportsItsTeamOnly()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        using var caller = await teamAdmin.GetAsync("/api/me");
+        var callerBody = await caller.Content.ReadAsStringAsync();
+        Assert.True(caller.StatusCode == HttpStatusCode.OK, callerBody);
+        var callerJson = JsonElement.Parse(callerBody);
+        Assert.False(callerJson.GetProperty("isPlatformAdministrator").GetBoolean());
+        Assert.Contains(
+            callerJson.GetProperty("assignments").EnumerateArray(),
+            assignment =>
+                assignment.GetProperty("roleName").GetString() == BuiltInRoles.TeamAdmin
+                && assignment.GetProperty("resourceType").GetString() == "team"
+                && assignment.GetProperty("resourceId").GetString() == "acme"
+        );
+
+        using var teams = await teamAdmin.GetAsync("/api/me/teams");
+        var teamsBody = await teams.Content.ReadAsStringAsync();
+        Assert.True(teams.StatusCode == HttpStatusCode.OK, teamsBody);
+        Assert.Equal(
+            ["acme"],
+            JsonElement
+                .Parse(teamsBody)
+                .GetProperty("items")
+                .EnumerateArray()
+                .Select(team => team.GetProperty("teamId").GetString())
+                .ToList()
+        );
+
+        using var allTeams = await teamAdmin.GetAsync("/api/teams");
+        Assert.Equal(HttpStatusCode.Forbidden, allTeams.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetCallerTenants_AsATenantOwner_ListsTheTenantAndNoTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        var principalId = await SeedConsoleUserAsync(factory);
+        using var grant = await administrator.PostAsJsonAsync(
+            "/api/tenants/acme-dev/owners",
+            new { principalId }
+        );
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, grantBody);
+        using var owner = await factory.CreateManagementUserClientAsync(
+            ConsoleClientId,
+            ConsoleRedirectUri,
+            UserName,
+            Password,
+            "openid read:clients"
+        );
+
+        using var tenants = await owner.GetAsync("/api/me/tenants");
+        var tenantsBody = await tenants.Content.ReadAsStringAsync();
+        Assert.True(tenants.StatusCode == HttpStatusCode.OK, tenantsBody);
+        Assert.Equal(
+            ["acme-dev"],
+            JsonElement
+                .Parse(tenantsBody)
+                .GetProperty("items")
+                .EnumerateArray()
+                .Select(tenant => tenant.GetProperty("tenantId").GetString())
+                .ToList()
+        );
+
+        using var teams = await owner.GetAsync("/api/me/teams");
+        var teamsBody = await teams.Content.ReadAsStringAsync();
+        Assert.True(teams.StatusCode == HttpStatusCode.OK, teamsBody);
+        Assert.Empty(JsonElement.Parse(teamsBody).GetProperty("items").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task GetCaller_AsAMachineClient_ReportsItsPrincipal()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
+        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+
+        using var response = await machine.GetAsync("/api/me");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        Assert.Equal(principalId, JsonElement.Parse(body).GetProperty("principalId").GetString());
+    }
+
+    #endregion
+
     #region PatchTeamSettings Tests
 
     [Fact]

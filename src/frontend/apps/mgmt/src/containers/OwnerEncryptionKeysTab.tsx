@@ -138,7 +138,7 @@ function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySec
       <ConfirmDialog
         open={removing}
         title="Remove root key"
-        message="Wrap the encryption keys of this tenant under the deployment's root key again and forget this root key? The keys are rewrapped in the background, and the root key is removed once none remains under it."
+        message="The keys are rewrapped under the deployment's root key. Any that cannot be unwrapped yet are retried in the background, and the root key is removed once none remains under it."
         confirmLabel="Remove"
         isBusy={isRemoving}
         error={removeError}
@@ -191,7 +191,7 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
           Rekey
         </Button>
       </Stack>
-      {data?.rootKey ? (
+      {data?.rootKey && data.rootKey.state !== 'removing' ? (
         <Alert severity="info" data-testid="encryption-keys-root-key-only">
           This {ownerLabel}&apos;s keys are wrapped only by its own root key. Revoking or destroying
           that key makes its data unreadable, and no operator can recover it.

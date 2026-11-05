@@ -494,6 +494,34 @@ describe('OwnerEncryptionKeysTab root key', () => {
     await waitFor(() => expect(screen.queryByTestId('confirm-accept')).not.toBeInTheDocument());
   });
 
+  it('omits the root-key-only alert and shows the recovery warning while the root key is removing', async () => {
+    installFetch(() =>
+      jsonResponse({
+        keys: [activeKey, retiredKey],
+        recoveryConfigured: false,
+        rootKey: { ...rootKey, state: 'removing' },
+        rootKeyProviders: providers,
+      }),
+    );
+
+    renderTab(tenant, 'tenant');
+
+    expect(await screen.findByTestId('encryption-keys-no-recovery')).toBeInTheDocument();
+    expect(screen.getByTestId('root-key-state')).toHaveTextContent('removing');
+    expect(screen.queryByTestId('encryption-keys-root-key-only')).not.toBeInTheDocument();
+  });
+
+  it('explains in the remove dialog how the keys are rewrapped and retried', async () => {
+    installFetch(() => jsonResponse(withRootKey));
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-remove'));
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent(
+      "The keys are rewrapped under the deployment's root key. Any that cannot be unwrapped yet are retried in the background, and the root key is removed once none remains under it.",
+    );
+  });
+
   it('does not remove the root key when the confirmation is cancelled', async () => {
     const calls = installFetch(() => jsonResponse(withRootKey));
 

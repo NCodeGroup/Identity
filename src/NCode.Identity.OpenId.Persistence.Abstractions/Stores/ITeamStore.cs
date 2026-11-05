@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 /// <summary>
 /// Provides an abstraction for a store which persists <see cref="PersistedTeam"/> instances.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public interface ITeamStore : IStore<PersistedTeam>
 {

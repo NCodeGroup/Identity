@@ -6,7 +6,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// <summary>
 /// Asks the <see cref="TeamSettingsReconciliationService"/> to reconcile teams' effective settings in the background.
 /// </summary>
-// See ADR-1219 and ADR-1403.
+// See ADR-1219 and ADR-1411.
 internal interface ITeamSettingsReconciliationTrigger
 {
     /// <summary>

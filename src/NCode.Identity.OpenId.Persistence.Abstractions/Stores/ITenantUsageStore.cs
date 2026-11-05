@@ -64,7 +64,7 @@ public interface ITenantUsageStore : IStore
     /// <param name="lastDay">The last UTC calendar day to list.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the usage.</returns>
-    // See ADR-1403.
+    // See ADR-1411.
     ValueTask<IReadOnlyList<PersistedTenantUsage>> ListByTeamAsync(
         string teamId,
         DateOnly firstDay,

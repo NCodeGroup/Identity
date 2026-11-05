@@ -1,4 +1,4 @@
-# 1404. Settings are reconciled per team
+# 1412. Settings are reconciled per team
 
 - **Status:** Accepted (supersedes decisions 4 and 5 of
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) and amends
@@ -8,13 +8,13 @@
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md))
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)
+- **Refines:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)
 
 ## Context
 
 A tenant's effective settings come from a cascade of host configuration, the platform, the team, the tenant and the
 client or resource server
-([ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)). A change to a
+([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)). A change to a
 setting that a default handler acts on, such as the algorithms a tenant's keys use or the rules a client must satisfy,
 has to reach the keys and clients that the change affects, on every replica, once
 ([ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)).
@@ -75,7 +75,7 @@ were last reconciled against.**
 
 ## References
 
-- [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform and the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform and the
   team
 - [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — settings converge through
   one reconciliation

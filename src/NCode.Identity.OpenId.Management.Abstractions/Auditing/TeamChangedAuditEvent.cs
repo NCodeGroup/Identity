@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// An audit event raised when an administrator creates, updates, or deletes a team, or updates its settings. The
 /// specific transition is carried by <see cref="ResourceChangeAuditEvent.ChangeType"/>.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public sealed record TeamChangedAuditEvent : ResourceChangeAuditEvent
 {

@@ -3004,7 +3004,7 @@ describes the family as it is rather than its changes
   logs every stored client the settings make incoherent, each handling `ReconcileTeamSettingsCommand` for the team's
   tenants only; `PersistedTeam.ReconciledSettings` and `ReconciledSettingsFingerprint` record what was reconciled, so a
   pass a restart interrupted runs again and a start that changes nothing runs none
-  ([ADR-1404](docs/decisions/1404-settings-are-reconciled-per-team.md),
+  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
   [ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1234](docs/decisions/1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
 
@@ -3336,8 +3336,8 @@ describes the family as it is rather than its changes
   (`OpenId:Platform:Settings`) and one persisted settings document, read and written through `GET`/`PATCH
   /api/platform/settings` and previewed through `GET /api/platform/effective-settings`, are the root of every team's and
   tenant's settings; its authority node is `(platform, platform)`, and its master key protects the Data Protection key
-  ring ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1405](docs/decisions/1405-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
+  ring ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1413](docs/decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
 
 - **A team groups a customer's related tenants.** `POST /api/teams` creates a team named by its creator (the tenant-id
   form) with a display name, an `isDisabled` flag and a settings document; `GET`/`PATCH`/`DELETE /api/teams/{teamId}`,
@@ -3345,14 +3345,14 @@ describes the family as it is rather than its changes
   tenant belongs to exactly one team and never moves: `POST /api/teams/{teamId}/tenants` creates a tenant under its team
   and `GET /api/teams/{teamId}/tenants` lists them, `TenantResource` carries `teamId`, and the platform's own team
   (`TenantResolution:Root:TeamId`, default `platform`) holds the root tenant and every tenant a strategy creates
-  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
 - **A team's settings cascade into its tenants.** The settings scopes are `platform`, `team`, `tenant`, `client` and
   `resource_server`; a team document carries every setting that applies beneath it, so the security profiles, ceilings
   and defaults a team selects bind its tenants, and a materialized tenant reads its document beneath its team's
   effective settings. `max_tenants` applies to the team scope, merges with `Min` (the platform sets the ceiling and a
   team can only lower it), and a creation that would exceed it answers `409`
-  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
 - **A team is an authority node.** Authority runs platform → team → tenant → leaf: a role assigned at a team reaches
   every tenant beneath it, the `TeamAdmin` role creates the team's tenants and manages everything beneath, `Owner` never
@@ -3360,14 +3360,14 @@ describes the family as it is rather than its changes
   globally unique, retired identifiers and match an assignment on type and identifier, and any other node counts an
   assignment only when it belongs to the node's tenant, because client and resource-server identifiers
   are unique only within a tenant
-  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
   one team when its own change, under the lease `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
   (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants. A
   team change evicts the team and its tenants on every replica over the `team-changed` channel
-  ([ADR-1404](docs/decisions/1404-settings-are-reconciled-per-team.md)).
+  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md)).
 
 - **Disabling a team suspends its tenants, and a team with tenants cannot be deleted.** A tenant of a disabled team
   answers `404` on the protocol surface and on the management routes that act through its OpenID runtime (sessions,
@@ -3375,23 +3375,23 @@ describes the family as it is rather than its changes
   `DELETE /api/teams/{teamId}` answers `409` while the team has tenants, a deleted team's id is never reissued, and the
   platform's own team can be neither disabled nor deleted. Creating, deleting, disabling and restoring a team, and
   `GET /api/teams` and `GET /api/tenants`, need `GlobalAdmin` or an assignment at the platform node
-  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
 - **Usage is queryable per team.** Every usage row carries the team the tenant belonged to, so a deleted tenant's final
   days still bill to its team, and `GET /api/teams/{teamId}/usage?from=&to=` lists each tenant's counts per day and
-  meter ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  meter ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
 
 - **Team and platform changes are audited in the control-plane tenant.** `TeamChangedAuditEvent` (`team`) and
   `PlatformChangedAuditEvent` (`platform`) are recorded under the control-plane tenant, and a tenant's audit event names
   its team as a parent resource
-  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
 - **The management console manages teams and the platform's settings.** The platform scope has a Teams surface
   (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete) and a Settings surface; a team scope has its
   tenants, settings and usage (`TeamUsageTable`); the console routes `/teams`, `/settings`,
   `/teams/{teamId}/{tenants|settings|usage}` and `/tenants/{tenantId}/…`
-  ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
 
 ### Security

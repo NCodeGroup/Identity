@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by
   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md): ResolveStored
   names a stored document that cannot be honored; amended by
-  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the resolver also
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the resolver also
   resolves the platform and team scopes)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group

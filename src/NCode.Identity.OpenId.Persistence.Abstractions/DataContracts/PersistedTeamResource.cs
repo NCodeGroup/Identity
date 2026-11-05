@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// <summary>
 /// Common interface for all persisted team resources.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public interface ISupportPersistedTeamResource
     : ISupportResource,

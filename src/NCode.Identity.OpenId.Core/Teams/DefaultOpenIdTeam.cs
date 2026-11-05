@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// <summary>
 /// Provides a default implementation of the <see cref="OpenIdTeam"/> abstraction.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal class DefaultOpenIdTeam(
     string teamId,
     string displayName,

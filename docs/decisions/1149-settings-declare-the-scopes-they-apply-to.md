@@ -8,7 +8,7 @@
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
-  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): settings can declare
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): settings can declare
   the platform and team scopes)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group

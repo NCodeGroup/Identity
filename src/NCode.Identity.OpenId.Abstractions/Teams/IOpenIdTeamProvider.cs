@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// <summary>
 /// Provides the materialized <see cref="OpenIdTeam"/> for a team identifier, shared through the team cache.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public interface IOpenIdTeamProvider
 {

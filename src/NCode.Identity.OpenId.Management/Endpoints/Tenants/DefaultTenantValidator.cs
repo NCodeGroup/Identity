@@ -35,7 +35,7 @@ internal class DefaultTenantValidator(
         CancellationToken cancellationToken
     )
     {
-        // Creating a tenant is authority at its team's node (ADR-1403).
+        // Creating a tenant is authority at its team's node (ADR-1411).
         var error = await AuthorizeAsync(
             user,
             ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, tenant.TeamId),

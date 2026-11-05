@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Teams;
 /// Represents the REST resource for a team's <b>effective</b> (merged) settings: the platform baseline, the team's
 /// persisted overrides, and descriptor defaults, resolved through the settings merge pipeline.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class TeamEffectiveSettingsResource : ISupportTeamId

@@ -60,7 +60,7 @@ DELETE api/teams/{teamId}/admins/{principalId}
 /// Provides the API endpoints for managing a team: a customer's grouping of related tenants. A team is an authority
 /// node beneath the platform, and every team node carries the control-plane tenant as its tenant.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal class TeamApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,

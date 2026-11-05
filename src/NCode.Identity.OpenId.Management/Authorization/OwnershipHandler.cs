@@ -58,13 +58,13 @@ internal class OwnershipHandler(
             return;
         }
 
-        // Creating a resource is authority at the parent node, which is the node passed here (ADR-1034, ADR-1403).
+        // Creating a resource is authority at the parent node, which is the node passed here (ADR-1034, ADR-1411).
         var isCreate =
             requirement is OperationAuthorizationRequirement operation
             && string.Equals(operation.Name, Operations.Create.Name, StringComparison.Ordinal);
 
         // The principal and the node chain are read in the request's tenant scope.
-        // See ADR-1403
+        // See ADR-1411
         using var controlPlaneScope = AmbientTenantAccessor.BeginScope(
             openIdContext.Tenant.TenantId
         );
@@ -103,7 +103,7 @@ internal class OwnershipHandler(
 
             // An ancestor (platform, team or tenant) matches on type and identifier. Any other node's identifier is
             // unique only within its tenant, so an assignment at it counts only when it belongs to the node's tenant.
-            // See ADR-1403
+            // See ADR-1411
             var normalizedResourceId = Normalize(assignment.ResourceId);
             var isAncestor = ancestorNodes.Contains(
                 (assignment.ResourceType, normalizedResourceId)
@@ -120,7 +120,7 @@ internal class OwnershipHandler(
         }
     }
 
-    // See ADR-1403
+    // See ADR-1411
     private static async ValueTask<
         HashSet<(string ResourceType, string NormalizedResourceId)>
     > GetAncestorNodesAsync(

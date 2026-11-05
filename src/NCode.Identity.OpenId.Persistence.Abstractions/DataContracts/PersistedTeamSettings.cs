@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// <summary>
 /// Contains the JSON settings for an OpenID Team instance.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class PersistedTeamSettings : PersistedTeamResource<JsonElement>

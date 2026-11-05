@@ -15,6 +15,6 @@ namespace NCode.Identity.OpenId.Teams;
 /// <param name="TeamId">The identifier of the team that changed.</param>
 /// <param name="SettingsChanged"><see langword="true"/> when the team's settings document changed; otherwise,
 /// <see langword="false"/>.</param>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public readonly record struct TeamChangedCommand(string TeamId, bool SettingsChanged) : ICommand;

@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId;
 /// Contains the options that are used to configure how a team is materialized (settings refresh and caching) and how
 /// often a replica reconciles a team's settings.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public sealed class OpenIdTeamOptions
 {

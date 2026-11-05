@@ -11,7 +11,7 @@
   provider contract is the shared `IKeyWrapper`, and the adapters are `NCode.Identity.Secrets.KeyWrapping.<Vendor>`; amended by
   [ADR-1370](1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md): no root key
   provider is a default, and `ephemeral` is an explicit development opt-in; amended by
-  [ADR-1405](1405-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md): the platform's master key
+  [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md): the platform's master key
   protects the Data Protection key ring and the host's own data, and no stored secret)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group

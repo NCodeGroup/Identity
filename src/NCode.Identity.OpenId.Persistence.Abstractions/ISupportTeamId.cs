@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Persistence;
 /// <summary>
 /// Indicates that an instance supports the <see cref="TeamId"/> property.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public interface ISupportTeamId
 {

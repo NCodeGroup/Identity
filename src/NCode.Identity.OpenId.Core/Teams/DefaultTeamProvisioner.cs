@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Provides the default implementation of <see cref="ITeamProvisioner"/>. It reads the team and, when it is missing,
 /// adds it with empty settings; a write that loses to a concurrent creator returns the team that creator wrote.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal sealed class DefaultTeamProvisioner(IStoreManagerFactory storeManagerFactory)
     : ITeamProvisioner
 {

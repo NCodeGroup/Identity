@@ -146,7 +146,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
     }
 
     /// <inheritdoc />
-    // See ADR-1403.
+    // See ADR-1411.
     public async ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
         string teamId,
         CancellationToken cancellationToken
@@ -172,7 +172,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
     }
 
     /// <inheritdoc />
-    // See ADR-1403.
+    // See ADR-1411.
     public async ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
         string teamId,
         JsonElement settings,

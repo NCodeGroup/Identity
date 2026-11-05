@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// the change included. The message is the team identifier. Evicting is idempotent, so a repeated message is harmless. A
 /// replica that may have missed an announcement evicts every cached team and every cached tenant.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal sealed class TeamChangeBroadcastHandler(
     IOpenIdTeamCache teamCache,
     IOpenIdTenantCache tenantCache,

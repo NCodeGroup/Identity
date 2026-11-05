@@ -48,7 +48,7 @@ internal sealed class DefaultTenantProvisioner(
         CancellationToken cancellationToken
     )
     {
-        // The tenant's team exists before the tenant, so the tenant's foreign key to it holds (ADR-1403).
+        // The tenant's team exists before the tenant, so the tenant's foreign key to it holds (ADR-1411).
         await TeamProvisioner.EnsureCreatedAsync(
             teamId,
             string.Equals(teamId, RootOptions.TeamId, StringComparison.Ordinal)

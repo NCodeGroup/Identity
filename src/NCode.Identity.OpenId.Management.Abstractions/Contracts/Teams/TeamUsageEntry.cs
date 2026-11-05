@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Teams;
 /// Represents the usage of one meter by one of a team's tenants on one UTC calendar day, an entry of
 /// <see cref="TeamUsageResource.Entries"/>.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class TeamUsageEntry

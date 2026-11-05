@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Provides the default implementation of the <see cref="IOpenIdTeamFactory"/> abstraction. A team's settings layer
 /// its document, read at the team scope, over the platform's settings, and refresh periodically from the store.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal class DefaultOpenIdTeamFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IStoreManagerFactory storeManagerFactory,

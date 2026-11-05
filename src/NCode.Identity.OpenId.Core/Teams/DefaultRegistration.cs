@@ -48,7 +48,7 @@ internal static class DefaultRegistration
             );
 
             // A team change evicts the team and its tenants from this replica's caches and announces the change, and the
-            // announcement evicts them from every other replica's (ADR-1403).
+            // announcement evicts them from every other replica's (ADR-1411).
             builder.ServiceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<TeamChangedCommand>,

@@ -315,7 +315,7 @@ than inlining the rationale.
   it. A pass that brings tenants or clients in line with their team's settings is a handler of
   `ReconcileTeamSettingsCommand`, which `TeamSettingsReconciliationService` sends per team and one replica runs in the
   background whenever the team's effective settings change
-  ([ADR-1404](../../docs/decisions/1404-settings-are-reconciled-per-team.md));
+  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md));
   never put such a pass on the in-process job dispatcher, whose bounded workers it would hold.
 - 👁 **State derived from settings converges by reconciliation, not by replaying an event.** A background pass reads the
   current state and repairs what differs, so a pass that a restart interrupted is run again and nothing depends on a
@@ -531,7 +531,7 @@ than inlining the rationale.
   replica starts and, when that fails because the database may still be migrating, the replica's first request does.
   An integration test that needs a persisted platform document sets `HostApplicationFactory.PersistedPlatformSettings`,
   which `PersistedPlatformSeedService` writes in `StartingAsync`, before any hosted service starts
-  ([ADR-1404](../../docs/decisions/1404-settings-are-reconciled-per-team.md)).
+  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md)).
 - 👁 **A start check that needs the platform's protector is a hosted service after the warmup.** `ValidateOnStart` and
   every startup validator run before any hosted service starts, so before `PlatformSecretProtectorWarmup` loads the
   protector; `AddSecretProtection` inserts the warmup first and `DataProtectionKeyRingGate` second, both ahead of Data

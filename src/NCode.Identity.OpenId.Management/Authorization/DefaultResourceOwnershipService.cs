@@ -38,7 +38,7 @@ internal class DefaultResourceOwnershipService(
     {
         // Resolve (and provision on first sight) the stable principal id for the creator (ADR-1035). Principals and
         // their federated identities live in the control-plane tenant, whatever tenant the request is scoped to.
-        // See ADR-1403
+        // See ADR-1411
         string principalId;
         using (AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId))
         {
@@ -148,7 +148,7 @@ internal class DefaultResourceOwnershipService(
         return OwnerRemovalResult.Removed;
     }
 
-    // See ADR-1403
+    // See ADR-1411
     /// <inheritdoc />
     public async ValueTask<IReadOnlyList<PersistedRoleAssignment>> GetAssignmentsAsync(
         IStoreManager storeManager,
@@ -167,7 +167,7 @@ internal class DefaultResourceOwnershipService(
         return assignments.Where(assignment => HasRole(assignment, roleName)).ToList();
     }
 
-    // See ADR-1403
+    // See ADR-1411
     /// <inheritdoc />
     public async ValueTask<PersistedRoleAssignment> AddAssignmentAsync(
         IStoreManager storeManager,
@@ -211,7 +211,7 @@ internal class DefaultResourceOwnershipService(
         return created;
     }
 
-    // See ADR-1403
+    // See ADR-1411
     /// <inheritdoc />
     public async ValueTask<bool> RemoveAssignmentAsync(
         IStoreManager storeManager,

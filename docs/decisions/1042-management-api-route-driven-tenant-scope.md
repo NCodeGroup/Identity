@@ -1,7 +1,7 @@
 # 1042. The management API is plane-aware; tenant-bound resources nest under the tenant and drive the ambient scope from the route
 
 - **Status:** Accepted (amended by
-  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): tenants are created and
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): tenants are created and
   listed under `/api/teams/{teamId}/tenants`, and the platform and a team are addressed above the tenant scope)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group

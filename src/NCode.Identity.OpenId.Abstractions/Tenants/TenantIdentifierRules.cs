@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Contains the rule for the form of a tenant identifier: 1 to 63 lowercase letters, digits or hyphens that starts and
 /// ends with a letter or digit. A team's identifier follows the same form.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public static partial class TenantIdentifierRules
 {

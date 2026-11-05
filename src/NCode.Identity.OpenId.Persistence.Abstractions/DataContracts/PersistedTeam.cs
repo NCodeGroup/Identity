@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// production tenants, for billing and administration. A team's settings sit between the platform's and its tenants'
 /// in the settings cascade.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class PersistedTeam : BasePersistedTeamResource

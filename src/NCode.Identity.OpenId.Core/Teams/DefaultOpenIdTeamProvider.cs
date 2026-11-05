@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Provides the default implementation of the <see cref="IOpenIdTeamProvider"/> abstraction: it probes the team
 /// cache and materializes a missing team from the store through the <see cref="IOpenIdTeamFactory"/>.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal class DefaultOpenIdTeamProvider(
     IStoreManagerFactory storeManagerFactory,
     IOpenIdTeamCache teamCache,

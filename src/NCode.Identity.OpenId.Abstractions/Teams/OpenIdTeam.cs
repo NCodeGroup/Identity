@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Represents a team: the grouping of related tenants beneath the platform, whose effective settings are its tenants'
 /// parent.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public abstract class OpenIdTeam : IAsyncDisposable
 {

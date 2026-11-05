@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// Represents an entity framework data contract for the identifier of a deleted team. A team identifier is never
 /// reissued, so a new team cannot take the name a deleted team was known by.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [Index(nameof(NormalizedTeamId), IsUnique = true)]
 public sealed class RetiredTeamEntity
 {

@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// while the row is unchanged. A lease that is held, a pass that fails, and a record that loses a race with a change
 /// to the row leave the settings unreconciled, so the caller tries again.
 /// </summary>
-// See ADR-1219 and ADR-1403.
+// See ADR-1219 and ADR-1411.
 internal sealed class DefaultTeamSettingsReconciler(
     IStoreManagerFactory storeManagerFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,

@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Teams;
 /// <summary>
 /// Represents the request to create a team, a grouping of related tenants.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class CreateTeamRequest

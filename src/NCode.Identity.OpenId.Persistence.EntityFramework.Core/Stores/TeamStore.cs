@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 /// Provides a default implementation of <see cref="ITeamStore"/> that uses Entity Framework Core for persistence.
 /// A team is removed only when it owns no tenant, and a removed team's identifier is never reissued.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal class TeamStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,

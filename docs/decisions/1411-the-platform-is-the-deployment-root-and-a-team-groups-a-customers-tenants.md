@@ -1,4 +1,4 @@
-# 1403. The platform is the deployment root and a team groups a customer's tenants
+# 1411. The platform is the deployment root and a team groups a customer's tenants
 
 - **Status:** Accepted (amends [ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
   [ADR-1011](1011-secret-management-api.md),

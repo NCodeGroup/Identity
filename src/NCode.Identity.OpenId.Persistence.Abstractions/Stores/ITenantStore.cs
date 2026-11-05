@@ -54,7 +54,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
     /// <see cref="PersistedTenant"/> instances and the cursor for the next page.</returns>
-    // See ADR-1403.
+    // See ADR-1411.
     ValueTask<PagedResult<PersistedTenant>> GetPageAsync(
         string teamId,
         PageRequest page,
@@ -74,7 +74,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
     /// <see cref="PersistedTenantSettings"/> instances and the cursor for the next page.</returns>
-    // See ADR-1403.
+    // See ADR-1411.
     ValueTask<PagedResult<PersistedTenantSettings>> GetSettingsPageAsync(
         string teamId,
         PageRequest page,
@@ -88,7 +88,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
     /// tenants in the team.</returns>
-    // See ADR-1403.
+    // See ADR-1411.
     ValueTask<long> CountAsync(string teamId, CancellationToken cancellationToken);
 
     /// <summary>

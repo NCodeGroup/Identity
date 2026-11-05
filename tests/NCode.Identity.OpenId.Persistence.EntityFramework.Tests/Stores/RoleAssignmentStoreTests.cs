@@ -169,7 +169,7 @@ public sealed class RoleAssignmentStoreTests : IDisposable
         Assert.All(forPrincipal, assignment => Assert.Equal(Subject, assignment.PrincipalId));
     }
 
-    // See ADR-1403
+    // See ADR-1411
     [Fact]
     public async Task GetByPrincipalAsync_ReadsAssignmentsOfEveryTenant()
     {

@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// Represents an entity framework data contract for a team, the group of tenants that share one set of team-level
 /// settings. The complimentary DTO for this entity is <see cref="PersistedTeam"/>.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [Index(nameof(NormalizedTeamId), IsUnique = true)]
 public sealed class TeamEntity : ISupportConcurrencyToken
 {

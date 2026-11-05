@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Teams;
 /// Represents the mutable metadata of a team that a JSON Patch document may modify. Settings are managed through
 /// their own endpoints.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class UpdateTeamRequest

@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// with an absolute lifetime to cache <see cref="OpenIdTeam"/> instances. Each team is cached for at most
 /// <see cref="OpenIdTeamOptions.TeamCacheLifetime"/>, or until <see cref="ClearAsync"/> evicts every cached team.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal class DefaultOpenIdTeamCache(
     IOptions<OpenIdOptions> optionsAccessor,
     IMemoryCache memoryCache

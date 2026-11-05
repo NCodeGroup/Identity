@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// when it starts and whenever the platform's settings change, and a request for one team is repeated by its next
 /// change.
 /// </summary>
-// See ADR-1219 and ADR-1403.
+// See ADR-1219 and ADR-1411.
 internal sealed class DefaultTeamSettingsReconciliationTrigger(Channel<string?> channel)
     : ITeamSettingsReconciliationTrigger
 {

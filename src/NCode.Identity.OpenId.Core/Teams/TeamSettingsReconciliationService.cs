@@ -25,7 +25,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// because another replica holds its lease or the pass failed, is attempted again when the
 /// <see cref="OpenIdTeamOptions.ReconciliationLeaseDuration"/> has passed. The service never throws on stop.
 /// </summary>
-// See ADR-1219 and ADR-1403.
+// See ADR-1219 and ADR-1411.
 internal sealed class TeamSettingsReconciliationService(
     IMaterializedPlatformRegistry materializedPlatformRegistry,
     IOpenIdPlatformProvider platformProvider,

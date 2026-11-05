@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// failed or timed-out announcement is logged and never fails the committed change: a replica that missed it picks the
 /// change up through its polls.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal sealed class TeamChangedHandler(
     IOpenIdTeamCache teamCache,
     IOpenIdTenantCache tenantCache,

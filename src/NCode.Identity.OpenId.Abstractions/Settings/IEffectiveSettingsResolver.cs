@@ -113,7 +113,7 @@ public interface IEffectiveSettingsResolver
     /// <exception cref="KeyNotFoundException">The team does not exist.</exception>
     /// <exception cref="UnreadableSettingsException">A committed document cannot be honored; the exception names the
     /// scope and the owner.</exception>
-    // See ADR-1403.
+    // See ADR-1411.
     ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
         string teamId,
         CancellationToken cancellationToken
@@ -129,7 +129,7 @@ public interface IEffectiveSettingsResolver
     /// <returns>The effective settings of the team if <paramref name="settings"/> were committed.</returns>
     /// <exception cref="JsonException">The document cannot be honored, including a <c>security_profiles</c> value that
     /// names no registered profile.</exception>
-    // See ADR-1403.
+    // See ADR-1411.
     ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
         string teamId,
         JsonElement settings,

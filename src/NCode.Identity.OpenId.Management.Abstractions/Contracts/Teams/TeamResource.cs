@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Teams;
 /// <summary>
 /// Represents the REST resource for a <see cref="PersistedTeam"/> instance, a grouping of related tenants.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class TeamResource : ISupportTeamId, ISupportConcurrencyToken

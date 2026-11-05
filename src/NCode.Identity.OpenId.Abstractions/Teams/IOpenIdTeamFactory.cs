@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// <summary>
 /// Provides the ability to create <see cref="OpenIdTeam"/> instances from persisted teams.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public interface IOpenIdTeamFactory
 {

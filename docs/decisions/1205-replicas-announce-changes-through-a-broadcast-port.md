@@ -4,7 +4,7 @@
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md): a handler learns of
   messages it may have missed, and a server settings change is announced too; and by
   [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md): the eviction, the refresh
-  and the announcement run on their own bounded token; amended by [ADR-1404](1404-settings-are-reconciled-per-team.md):
+  and the announcement run on their own bounded token; amended by [ADR-1412](1412-settings-are-reconciled-per-team.md):
   the `team-changed` channel announces a team change, and `platform-settings-changed` a platform settings change, to
   every replica)
 - **Date:** 2026-10-22

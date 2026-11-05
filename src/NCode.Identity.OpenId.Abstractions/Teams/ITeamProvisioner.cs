@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Brings teams into existence on demand, so a tenant a strategy creates always has a team to belong to. It is
 /// idempotent: concurrent callers converge on one team.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public interface ITeamProvisioner
 {

@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
-  creates the schema this record names; amended by [ADR-1404](1404-settings-are-reconciled-per-team.md): a
+  creates the schema this record names; amended by [ADR-1412](1412-settings-are-reconciled-per-team.md): a
   reconciliation reaches only the tenants of the teams its change affects)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group

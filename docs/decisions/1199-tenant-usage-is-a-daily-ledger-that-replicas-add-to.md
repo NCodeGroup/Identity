@@ -7,7 +7,7 @@
   is bound from `OpenId:TenantUsage` and validated when the host starts;
   [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): rate-limit descriptors
   carry the usage meters, recorded once the request completes; amended by
-  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): every usage row carries
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): every usage row carries
   the tenant's team)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group

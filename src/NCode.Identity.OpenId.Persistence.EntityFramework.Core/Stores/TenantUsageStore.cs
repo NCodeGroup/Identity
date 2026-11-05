@@ -165,7 +165,7 @@ internal sealed class TenantUsageStore(
     }
 
     /// <inheritdoc />
-    // See ADR-1403.
+    // See ADR-1411.
     public async ValueTask<IReadOnlyList<PersistedTenantUsage>> ListByTeamAsync(
         string teamId,
         DateOnly firstDay,

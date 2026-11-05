@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.Teams;
 /// Represents the REST resource for the usage of a team's tenants on a range of UTC calendar days, read from the
 /// durable daily ledger the platform bills a plan by.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class TeamUsageResource

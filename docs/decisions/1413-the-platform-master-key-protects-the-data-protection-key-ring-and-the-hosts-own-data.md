@@ -1,10 +1,10 @@
-# 1405. The platform master key protects the Data Protection key ring and the host's own data
+# 1413. The platform master key protects the Data Protection key ring and the host's own data
 
 - **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
   and [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md))
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)
+- **Refines:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)
 
 ## Context
 
@@ -15,7 +15,7 @@ key ring that a host persists is protected by a master key too, and a host whose
 ([ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).
 
 The deployment has one root, the platform
-([ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)), which is
+([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)), which is
 configuration and holds no stored secret. A team groups tenants and holds settings only. The question is which owners
 have a master key and what each protects.
 
@@ -53,7 +53,7 @@ application data a host protects under the platform, and no stored secret of the
 
 ## References
 
-- [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform and the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform and the
   team
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — key hierarchy under
   an external root key

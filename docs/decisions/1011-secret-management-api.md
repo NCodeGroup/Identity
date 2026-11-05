@@ -8,7 +8,7 @@
   and consents; the protection of stored secrets amended by
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master key
   protects them, in place of a Data Protection key ring; amended by
-  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
   settings under `/api/platform`)
 - **Date:** 2026-09-29

@@ -230,7 +230,7 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
-    // See ADR-1403.
+    // See ADR-1411.
     public async ValueTask<PagedResult<PersistedTenant>> GetPageAsync(
         string teamId,
         PageRequest page,
@@ -259,7 +259,7 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
-    // See ADR-1403.
+    // See ADR-1411.
     public async ValueTask<PagedResult<PersistedTenantSettings>> GetSettingsPageAsync(
         string teamId,
         PageRequest page,
@@ -312,7 +312,7 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
-    // See ADR-1403.
+    // See ADR-1411.
     public async ValueTask<long> CountAsync(string teamId, CancellationToken cancellationToken)
     {
         var normalizedTeamId = Normalize(teamId);

@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 /// Validates the intrinsic core preconditions for team management operations. Register a custom implementation to
 /// replace or extend the default validation.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public interface ITeamValidator
 {

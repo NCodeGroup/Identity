@@ -1,7 +1,7 @@
 # 1034. Persisted resource-scoped role assignments and ownership
 
 - **Status:** Accepted (amended by
-  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): role assignments at the
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): role assignments at the
   platform and team nodes reach every tenant beneath them and are read across tenants)
 - **Date:** 2026-10-01
 - **Deciders:** NCode Group

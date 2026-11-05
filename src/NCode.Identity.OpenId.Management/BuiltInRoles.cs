@@ -17,7 +17,7 @@ public static class BuiltInRoles
     /// The role name for team administrators who have full authority over a team and everything beneath it, including
     /// creating its tenants.
     /// </summary>
-    // See ADR-1403
+    // See ADR-1411
     public const string TeamAdmin = "TeamAdmin";
 
     /// <summary>

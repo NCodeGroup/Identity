@@ -99,7 +99,7 @@ public interface IResourceOwnershipService
         CancellationToken cancellationToken
     );
 
-    // See ADR-1403
+    // See ADR-1411
     /// <summary>
     /// Gets the assignments of the specified role at the resource node.
     /// </summary>
@@ -118,7 +118,7 @@ public interface IResourceOwnershipService
         CancellationToken cancellationToken
     );
 
-    // See ADR-1403
+    // See ADR-1411
     /// <summary>
     /// Grants the specified principal a role at the resource node, enlisted in the supplied unit of work. The
     /// operation is idempotent: when the principal already holds the role at the node, the existing assignment is
@@ -143,7 +143,7 @@ public interface IResourceOwnershipService
         CancellationToken cancellationToken
     );
 
-    // See ADR-1403
+    // See ADR-1411
     /// <summary>
     /// Removes the specified principal's assignment of a role from the resource node, enlisted in the supplied unit
     /// of work.

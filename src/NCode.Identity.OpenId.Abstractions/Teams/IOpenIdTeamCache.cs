@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// <summary>
 /// Provides an abstraction for caching <see cref="OpenIdTeam"/> instances.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 [PublicAPI]
 public interface IOpenIdTeamCache
 {

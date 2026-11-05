@@ -21,7 +21,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 /// platform's own team can be neither disabled nor deleted. Disabling or restoring a team is also authorized at the
 /// platform node, so only the platform suspends and restores a team.
 /// </summary>
-// See ADR-1403
+// See ADR-1411
 internal class DefaultTeamValidator(
     IAuthorizationService authorizationService,
     IOptions<TenantResolutionOptions> tenantResolutionOptions

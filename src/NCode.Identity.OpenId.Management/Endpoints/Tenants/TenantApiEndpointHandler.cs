@@ -614,7 +614,7 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // A team holds at most its 'max_tenants' tenants; unset means unlimited (ADR-1403).
+        // A team holds at most its 'max_tenants' tenants; unset means unlimited (ADR-1411).
         var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
             teamId,
             cancellationToken

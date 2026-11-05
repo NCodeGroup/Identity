@@ -24,7 +24,7 @@ public static class ResourceNodeTypes
     /// <summary>
     /// A team node. A role assigned here applies across the team and every tenant beneath it.
     /// </summary>
-    // See ADR-1403
+    // See ADR-1411
     public const string Team = OpenIdResourceTypes.Team;
 
     /// <summary>

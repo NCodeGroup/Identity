@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by
   [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
   audit record carries `tenant_environment_type` in its `"1.0"` schema; amended by
-  [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a team's settings
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a team's settings
   document selects the environment type its tenants inherit)
 - **Date:** 2026-10-28
 - **Deciders:** NCode Group

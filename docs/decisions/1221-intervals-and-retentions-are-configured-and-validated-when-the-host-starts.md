@@ -10,7 +10,7 @@
   [ADR-1303](1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md):
   `OpenId:AuditRecords`, whose `FlushInterval` and `PruneInterval` are timer periods; and by
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): `OpenId:OutboundHttp`;
-  amended by [ADR-1403](1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the team's
+  amended by [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the team's
   refresh, cache and reconciliation-lease intervals are configured under `OpenId:Team` and validated at startup)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group

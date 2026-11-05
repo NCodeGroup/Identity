@@ -1,6 +1,6 @@
 # 1351. A committed change is applied and announced on its own bounded token
 
-- **Status:** Accepted (amended by [ADR-1404](1404-settings-are-reconciled-per-team.md): a team change is applied and
+- **Status:** Accepted (amended by [ADR-1412](1412-settings-are-reconciled-per-team.md): a team change is applied and
   announced on its own bounded token through `TeamChangedCommand`)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group

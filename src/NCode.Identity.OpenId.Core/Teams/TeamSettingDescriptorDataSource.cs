@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Provides an additive <see cref="SettingDescriptor"/> data source for the team settings: <c>max_tenants</c>, the
 /// most tenants a team may hold. It is a team setting that is not advertised in discovery.
 /// </summary>
-// See ADR-1403.
+// See ADR-1411.
 internal class TeamSettingDescriptorDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<SettingDescriptor>
 {

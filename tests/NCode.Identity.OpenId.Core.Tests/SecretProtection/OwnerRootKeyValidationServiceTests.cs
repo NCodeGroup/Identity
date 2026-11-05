@@ -284,10 +284,8 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
         var auditEvent = Assert.IsType<MasterKeyAuditEvent>(Assert.Single(_published));
         Assert.Equal("master_key.rotated", auditEvent.EventName);
         Assert.Equal(MasterKeyChangeReasons.RootKeyChanged, auditEvent.Reason);
-        Assert.Equal(active.KeyId, auditEvent.KeyId);
-        Assert.Equal(retired.KeyId, auditEvent.RetiredKeyId);
-        Assert.Equal(active.RootKeyReference, auditEvent.RootKeyReference);
-        Assert.Equal(active.RootKeyAccessIdentity, auditEvent.RootKeyAccessIdentity);
+        Assert.Equal(active, auditEvent.Key);
+        Assert.Equal(retired, auditEvent.RetiredKey);
     }
 
     [Fact]

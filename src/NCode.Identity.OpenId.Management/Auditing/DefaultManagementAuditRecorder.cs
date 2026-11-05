@@ -502,15 +502,8 @@ internal class DefaultManagementAuditRecorder(
             Outcome = AuditOutcome.Success,
             Change = MasterKeyChanges.Rotated,
             Reason = reason,
-            OwnerType = owner.OwnerType,
-            OwnerId = owner.OwnerId,
-            KeyId = rotation.ActiveKey.KeyId,
-            Version = rotation.ActiveKey.Version,
-            RootKeyProvider = rotation.ActiveKey.RootKeyProvider,
-            RootKeyReference = rotation.ActiveKey.RootKeyReference,
-            RootKeyAccessIdentity = rotation.ActiveKey.RootKeyAccessIdentity,
-            RetiredKeyId = rotation.RetiredKey?.KeyId,
-            RetiredVersion = rotation.RetiredKey?.Version,
+            Key = rotation.ActiveKey,
+            RetiredKey = rotation.RetiredKey,
         };
 
         await PublishAsync(auditEvent);

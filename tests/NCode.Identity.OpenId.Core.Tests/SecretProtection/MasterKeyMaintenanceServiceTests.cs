@@ -274,8 +274,8 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         Assert.Equal(AuditActor.System, tenantEvent.Actor);
         Assert.Equal(AuditEventSources.OpenId, tenantEvent.EventSource);
         Assert.Equal("acme", tenantEvent.TenantId);
-        Assert.Equal(tenantRotation.ActiveKey.KeyId, tenantEvent.KeyId);
-        Assert.Equal(tenantRotation.RetiredKey?.KeyId, tenantEvent.RetiredKeyId);
+        Assert.Equal(tenantRotation.ActiveKey, tenantEvent.Key);
+        Assert.Equal(tenantRotation.RetiredKey, tenantEvent.RetiredKey);
         Assert.Equal(ControlPlaneTenantId, _published[1].TenantId);
     }
 
@@ -301,8 +301,8 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         await _service.RunAsync(CancellationToken.None);
 
         var auditEvent = Assert.Single(_published);
-        Assert.Equal(rootKeyReference, auditEvent.RootKeyReference);
-        Assert.Equal("local", auditEvent.RootKeyProvider);
+        Assert.Equal(rootKeyReference, auditEvent.Key.RootKeyReference);
+        Assert.Equal("local", auditEvent.Key.RootKeyProvider);
     }
 
     [Fact]
@@ -327,7 +327,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         await _service.RunAsync(CancellationToken.None);
 
         var auditEvent = Assert.Single(_published);
-        Assert.Equal(accessIdentity, auditEvent.RootKeyAccessIdentity);
+        Assert.Equal(accessIdentity, auditEvent.Key.RootKeyAccessIdentity);
     }
 
     [Fact]
@@ -361,8 +361,8 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         var auditEvent = Assert.Single(_published);
         Assert.Equal("master_key.destroyed", auditEvent.EventName);
         Assert.Equal(MasterKeyChangeReasons.Unreferenced, auditEvent.Reason);
-        Assert.Equal(destroyed.KeyId, auditEvent.KeyId);
-        Assert.Null(auditEvent.RetiredKeyId);
+        Assert.Equal(destroyed, auditEvent.Key);
+        Assert.Null(auditEvent.RetiredKey);
     }
 
     [Fact]
@@ -382,7 +382,7 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
         var auditEvent = Assert.Single(_published);
         Assert.Equal("master_key.destroyed", auditEvent.EventName);
         Assert.Equal(ControlPlaneTenantId, auditEvent.TenantId);
-        Assert.Equal(SecretOwnerTypes.Platform, auditEvent.OwnerType);
+        Assert.Equal(SecretOwnerTypes.Platform, auditEvent.Key.Owner.OwnerType);
     }
 
     [Fact]

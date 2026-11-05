@@ -267,15 +267,8 @@ internal sealed class MasterKeyMaintenanceService(
             Outcome = AuditOutcome.Success,
             Change = change,
             Reason = reason,
-            OwnerType = owner.OwnerType,
-            OwnerId = owner.OwnerId,
-            KeyId = key.KeyId,
-            Version = key.Version,
-            RootKeyProvider = key.RootKeyProvider,
-            RootKeyReference = key.RootKeyReference,
-            RootKeyAccessIdentity = key.RootKeyAccessIdentity,
-            RetiredKeyId = retired?.KeyId,
-            RetiredVersion = retired?.Version,
+            Key = key,
+            RetiredKey = retired,
         };
     }
 

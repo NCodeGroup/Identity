@@ -202,15 +202,8 @@ internal sealed class OwnerRootKeyValidationService(
                     Outcome = AuditOutcome.Success,
                     Change = MasterKeyChanges.Rotated,
                     Reason = MasterKeyChangeReasons.RootKeyChanged,
-                    OwnerType = rotation.Owner.OwnerType,
-                    OwnerId = rotation.Owner.OwnerId,
-                    KeyId = rotation.ActiveKey.KeyId,
-                    Version = rotation.ActiveKey.Version,
-                    RootKeyProvider = rotation.ActiveKey.RootKeyProvider,
-                    RootKeyReference = rotation.ActiveKey.RootKeyReference,
-                    RootKeyAccessIdentity = rotation.ActiveKey.RootKeyAccessIdentity,
-                    RetiredKeyId = rotation.RetiredKey?.KeyId,
-                    RetiredVersion = rotation.RetiredKey?.Version,
+                    Key = rotation.ActiveKey,
+                    RetiredKey = rotation.RetiredKey,
                 }
             );
         }

@@ -4,6 +4,7 @@
 using System.Text.Json;
 using JetBrains.Annotations;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.Secrets.Persistence.Auditing;
 
@@ -27,54 +28,17 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
     public required string Reason { get; init; }
 
     /// <summary>
-    /// Gets the kind of owner of the master key, such as <c>tenant</c> or <c>platform</c>.
+    /// Gets the master key that the change concerns: the new active key of a rotation, or the destroyed key. Its owner
+    /// is the owner that the change protects.
     /// </summary>
-    public required string OwnerType { get; init; }
+    // See ADR-1414 and ADR-1429.
+    public required MasterKeyInfo Key { get; init; }
 
     /// <summary>
-    /// Gets the identifier of the owner of the master key within its kind.
+    /// Gets the master key that a rotation retired, or <c>null</c> when the owner had no active key or the event
+    /// records a destruction.
     /// </summary>
-    public required string OwnerId { get; init; }
-
-    /// <summary>
-    /// Gets the identifier of the master key: the new active key of a rotation, or the destroyed key.
-    /// </summary>
-    public required Guid KeyId { get; init; }
-
-    /// <summary>
-    /// Gets the version of the master key.
-    /// </summary>
-    public required int Version { get; init; }
-
-    /// <summary>
-    /// Gets the name of the root key provider that wraps the master key.
-    /// </summary>
-    public required string RootKeyProvider { get; init; }
-
-    /// <summary>
-    /// Gets the reference of the owner root key that wraps the master key, or <c>null</c> when the deployment's root key
-    /// wraps it.
-    /// </summary>
-    // See ADR-1414.
-    public string? RootKeyReference { get; init; }
-
-    /// <summary>
-    /// Gets the identity the owner root key that wraps the master key is reached through, or <c>null</c> for the
-    /// deployment's own identity.
-    /// </summary>
-    // See ADR-1429.
-    public string? RootKeyAccessIdentity { get; init; }
-
-    /// <summary>
-    /// Gets the identifier of the master key that a rotation retired, or <c>null</c> when the owner had no active
-    /// key or the event records a destruction.
-    /// </summary>
-    public Guid? RetiredKeyId { get; init; }
-
-    /// <summary>
-    /// Gets the version of the master key that a rotation retired, or <c>null</c> when <see cref="RetiredKeyId"/> is.
-    /// </summary>
-    public int? RetiredVersion { get; init; }
+    public MasterKeyInfo? RetiredKey { get; init; }
 
     /// <inheritdoc />
     public override string EventName => MasterKeyAuditEventNames.For(Change);
@@ -88,8 +52,8 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
     /// </remarks>
     public override IReadOnlyList<AuditResource> Resources =>
         [
-            new AuditResource(AuditResourceTypes.MasterKey, KeyId.ToString("D")),
-            new AuditResource(OwnerType, OwnerId),
+            new AuditResource(AuditResourceTypes.MasterKey, Key.KeyId.ToString("D")),
+            new AuditResource(Key.Owner.OwnerType, Key.Owner.OwnerId),
         ];
 
     /// <inheritdoc />
@@ -104,17 +68,17 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
         ArgumentNullException.ThrowIfNull(writer);
 
         writer.WriteString("reason", Reason);
-        writer.WriteString("key_id", KeyId);
-        writer.WriteNumber("version", Version);
-        writer.WriteString("root_key_provider", RootKeyProvider);
-        if (RootKeyReference is { } rootKeyReference)
+        writer.WriteString("key_id", Key.KeyId);
+        writer.WriteNumber("version", Key.Version);
+        writer.WriteString("root_key_provider", Key.RootKeyProvider);
+        if (Key.RootKeyReference is { } rootKeyReference)
             writer.WriteString("root_key_reference", rootKeyReference);
-        if (RootKeyAccessIdentity is { } rootKeyAccessIdentity)
+        if (Key.RootKeyAccessIdentity is { } rootKeyAccessIdentity)
             writer.WriteString("root_key_access_identity", rootKeyAccessIdentity);
-        if (RetiredKeyId is { } retiredKeyId)
-            writer.WriteString("retired_key_id", retiredKeyId);
-
-        if (RetiredVersion is { } retiredVersion)
-            writer.WriteNumber("retired_version", retiredVersion);
+        if (RetiredKey is { } retiredKey)
+        {
+            writer.WriteString("retired_key_id", retiredKey.KeyId);
+            writer.WriteNumber("retired_version", retiredKey.Version);
+        }
     }
 }

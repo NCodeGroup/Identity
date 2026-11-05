@@ -14,6 +14,18 @@ public sealed class MasterKeyAuditEventTests
     private static readonly Guid KeyId = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private static readonly Guid RetiredKeyId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 
+    private static MasterKeyInfo CreateKey(Guid keyId, int version) =>
+        new(
+            keyId,
+            SecretOwner.ForTenant("acme"),
+            version,
+            Now.AddDays(-30),
+            null,
+            "local",
+            "root",
+            null
+        );
+
     private static MasterKeyAuditEvent CreateEvent(
         string change = MasterKeyChanges.Rotated,
         Guid? retiredKeyId = null,
@@ -29,13 +41,8 @@ public sealed class MasterKeyAuditEventTests
             Outcome = AuditOutcome.Success,
             Change = change,
             Reason = MasterKeyChangeReasons.RotationPeriodElapsed,
-            OwnerType = SecretOwnerTypes.Tenant,
-            OwnerId = "acme",
-            KeyId = KeyId,
-            Version = 2,
-            RootKeyProvider = "local",
-            RetiredKeyId = retiredKeyId,
-            RetiredVersion = retiredVersion,
+            Key = CreateKey(KeyId, 2),
+            RetiredKey = retiredKeyId is { } id ? CreateKey(id, retiredVersion ?? 1) : null,
         };
 
     private static JsonElement ParseRecord(IAuditEvent auditEvent)
@@ -100,7 +107,10 @@ public sealed class MasterKeyAuditEventTests
         var auditEvent = CreateEvent() with
         {
             Reason = MasterKeyChangeReasons.RootKeyChanged,
-            RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
+            Key = CreateKey(KeyId, 2) with
+            {
+                RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
+            },
         };
 
         var details = ParseRecord(auditEvent).GetProperty("details");
@@ -125,8 +135,11 @@ public sealed class MasterKeyAuditEventTests
     {
         var auditEvent = CreateEvent() with
         {
-            RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
-            RootKeyAccessIdentity = "arn:aws:iam::111122223333:role/acme-access",
+            Key = CreateKey(KeyId, 2) with
+            {
+                RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
+                RootKeyAccessIdentity = "arn:aws:iam::111122223333:role/acme-access",
+            },
         };
 
         var details = ParseRecord(auditEvent).GetProperty("details");

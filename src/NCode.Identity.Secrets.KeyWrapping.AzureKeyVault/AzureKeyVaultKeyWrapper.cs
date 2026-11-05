@@ -17,7 +17,8 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 /// <summary>
 /// Provides an implementation of <see cref="IReferencedKeyWrapper"/> that wraps keys with an RSA key held in Azure Key
 /// Vault or Managed HSM, so the root key never leaves the service. It wraps under the configured key, or under the key
-/// that the caller names.
+/// that the caller names, reaching a named key through the Microsoft Entra directory that the holder of the key names
+/// when the caller names one.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -41,7 +42,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 /// key.
 /// </para>
 /// </remarks>
-// See ADR-1260 and ADR-1415.
+// See ADR-1260, ADR-1415 and ADR-1429.
 internal class AzureKeyVaultKeyWrapper(
     IAzureKeyVaultClientFactory clientFactory,
     IOptions<AzureKeyVaultKeyWrapperOptions> options
@@ -78,7 +79,7 @@ internal class AzureKeyVaultKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(keyId, key, cancellationToken);
+        return await WrapUnderAsync(keyId, access: null, key, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -110,6 +111,42 @@ internal class AzureKeyVaultKeyWrapper(
         return true;
     }
 
+    /// <summary>
+    /// Validates the syntax of an access identity: the identifier of the Microsoft Entra directory (tenant) that tokens
+    /// for the key are requested from.
+    /// </summary>
+    /// <param name="accessIdentity">The access identity to validate.</param>
+    /// <param name="failure">
+    /// When this method returns <see langword="false"/>, a description of what the access identity must be, phrased to
+    /// follow the name of the value (for example, "must be …"); otherwise, <see langword="null"/>.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if the access identity is a Microsoft Entra tenant ID; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the key reference validation."
+    )]
+    public bool TryValidateAccessIdentity(
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (IsDirectoryId(accessIdentity))
+        {
+            failure = null;
+            return true;
+        }
+
+        failure = "must be a Microsoft Entra tenant ID, a GUID";
+        return false;
+    }
+
+    private static bool IsDirectoryId(string? value) =>
+        Guid.TryParseExact(value, "D", out var id) && id != Guid.Empty;
+
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
     /// Thrown when the service reports a key that is not a version of the named key, or that is shorter than 3072 bits.
@@ -126,13 +163,65 @@ internal class AzureKeyVaultKeyWrapper(
             throw new ArgumentException($"The key reference {failure}.", nameof(keyReference));
         }
 
-        return await WrapUnderAsync(keyReference, key, cancellationToken);
+        return await WrapUnderAsync(keyReference, access: null, key, cancellationToken);
+    }
+
+    /// <summary>
+    /// Wraps a key under the Key Vault key that the referenced key names, reaching it through the Microsoft Entra
+    /// directory that the access of the referenced key names, if any.
+    /// </summary>
+    /// <param name="referencedKey">
+    /// The key identifier, and the optional directory that tokens for the key are requested from.
+    /// </param>
+    /// <param name="key">The key to wrap.</param>
+    /// <param name="context">The context that binds the wrapped key.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The wrapped key.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when the key reference of <paramref name="referencedKey"/> is not a valid Key Vault key identifier, or
+    /// its access identity is set and is not a Microsoft Entra tenant ID.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the service reports a key that is not a version of the named key, or that is shorter than 3072 bits.
+    /// </exception>
+    public async ValueTask<WrappedKey> WrapAsync(
+        ReferencedKey referencedKey,
+        ReadOnlyMemory<byte> key,
+        ReadOnlyMemory<byte> context,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(referencedKey);
+
+        if (!TryValidateKeyReference(referencedKey.KeyReference, out var failure))
+        {
+            throw new ArgumentException($"The key reference {failure}.", nameof(referencedKey));
+        }
+
+        if (
+            referencedKey.Access is { } access
+            && !TryValidateAccessIdentity(access.Identity, out var accessFailure)
+        )
+        {
+            throw new ArgumentException(
+                $"The access identity {accessFailure}.",
+                nameof(referencedKey)
+            );
+        }
+
+        return await WrapUnderAsync(
+            referencedKey.KeyReference,
+            referencedKey.Access,
+            key,
+            cancellationToken
+        );
     }
 
     // Key Vault's RSA-OAEP takes no associated data, so the context is not sent, and the key-check value of the master
     // key binds the wrapped key to its owner.
     private async ValueTask<WrappedKey> WrapUnderAsync(
         string keyId,
+        KeyAccess? access,
         ReadOnlyMemory<byte> key,
         CancellationToken cancellationToken
     )
@@ -145,7 +234,7 @@ internal class AzureKeyVaultKeyWrapper(
             // The SDK demands an array of exactly the key's length. Key Vault's RSA-OAEP takes no associated data, so
             // the context is not sent, and the key-check value of the master key binds it to its owner.
             key.CopyTo(plaintext);
-            var client = ClientFactory.GetClient(keyId);
+            var client = ClientFactory.GetClient(keyId, access);
             result = await client.WrapKeyAsync(
                 KeyWrapAlgorithm.RsaOaep256,
                 plaintext,
@@ -194,9 +283,45 @@ internal class AzureKeyVaultKeyWrapper(
     /// Thrown when the wrapped key does not name a Key Vault key version, is empty or not valid base64url text, or was
     /// rejected by the service with an HTTP 400 response.
     /// </exception>
-    public async ValueTask UnwrapAsync(
+    public ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
         ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    ) => UnwrapCoreAsync(wrappedKey, access: null, destination, cancellationToken);
+
+    /// <summary>
+    /// Unwraps a key that was wrapped under a Key Vault key, reaching the key through the Microsoft Entra directory
+    /// that the access names.
+    /// </summary>
+    /// <param name="wrappedKey">The wrapped key to unwrap.</param>
+    /// <param name="access">The Microsoft Entra directory that tokens for the key are requested from.</param>
+    /// <param name="context">The context that binds the wrapped key.</param>
+    /// <param name="destination">The writer that receives the unwrapped key.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="wrappedKey"/> or <paramref name="access"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the wrapped key does not name a Key Vault key version, is empty or not valid base64url text, or was
+    /// rejected by the service with an HTTP 400 response.
+    /// </exception>
+    public ValueTask UnwrapAsync(
+        WrappedKey wrappedKey,
+        KeyAccess access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        return UnwrapCoreAsync(wrappedKey, access, destination, cancellationToken);
+    }
+
+    private async ValueTask UnwrapCoreAsync(
+        WrappedKey wrappedKey,
+        KeyAccess? access,
         IBufferWriter<byte> destination,
         CancellationToken cancellationToken
     )
@@ -215,7 +340,7 @@ internal class AzureKeyVaultKeyWrapper(
         var text = wrappedKey.Ciphertext;
         var ciphertext = new byte[WrappedKeyCiphertext.GetByteCount(text)];
         WrappedKeyCiphertext.Decode(text, ciphertext);
-        var client = ClientFactory.GetClient(keyId);
+        var client = ClientFactory.GetClient(keyId, access);
 
         UnwrapResult result;
         try

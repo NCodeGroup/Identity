@@ -27,6 +27,10 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
 
     private const string TenantKeyVersionId = TenantKeyId + "/fedcba9876543210fedcba9876543210";
 
+    private const string DirectoryId = "11111111-2222-3333-4444-555555555555";
+
+    private static readonly KeyAccess Access = new(DirectoryId, "tenant:acme");
+
     private Mock<IAzureKeyVaultClientFactory> ClientFactory { get; } = new(MockBehavior.Strict);
 
     private Mock<CryptographyClient> Client { get; } = new(MockBehavior.Strict);
@@ -61,8 +65,8 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
     private static WrapResult CreateWrapResult(string keyId, byte[] encryptedKey) =>
         CryptographyModelFactory.WrapResult(keyId, encryptedKey, KeyWrapAlgorithm.RsaOaep256);
 
-    private void SetupClient(string keyId) =>
-        ClientFactory.Setup(x => x.GetClient(keyId)).Returns(Client.Object).Verifiable();
+    private void SetupClient(string keyId, KeyAccess? access = null) =>
+        ClientFactory.Setup(x => x.GetClient(keyId, access)).Returns(Client.Object).Verifiable();
 
     // The provider zeroes the array it sends once the call returns, so the test keeps a copy of what was sent along with
     // the array itself.
@@ -417,6 +421,158 @@ public class AzureKeyVaultKeyWrapperTests : IDisposable
         var wrappedKey = await provider.WrapAsync(key, context, CancellationToken.None);
 
         Assert.Equal(internalKeyVersionId, wrappedKey.KeyId);
+    }
+
+    #endregion
+
+    #region Access Tests
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithAccess_ReceivesAccessFromTheClientFactory()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var encryptedKey = RandomNumberGenerator.GetBytes(384);
+        SetupClient(TenantKeyId, Access);
+        SetupWrapKey(CreateWrapResult(TenantKeyVersionId, encryptedKey), CancellationToken.None);
+        var provider = CreateProvider(keyId: null);
+
+        var wrappedKey = await provider.WrapAsync(
+            new ReferencedKey(TenantKeyId, Access),
+            key,
+            context,
+            CancellationToken.None
+        );
+
+        Assert.Equal(key, SentKey);
+        Assert.Equal(TenantKeyVersionId, wrappedKey.KeyId);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithoutAccess_ReceivesNoAccessFromTheClientFactory()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var encryptedKey = RandomNumberGenerator.GetBytes(384);
+        SetupClient(TenantKeyId, access: null);
+        SetupWrapKey(CreateWrapResult(TenantKeyVersionId, encryptedKey), CancellationToken.None);
+        var provider = CreateProvider(keyId: null);
+
+        var wrappedKey = await provider.WrapAsync(
+            new ReferencedKey(TenantKeyId, Access: null),
+            key,
+            context,
+            CancellationToken.None
+        );
+
+        Assert.Equal(TenantKeyVersionId, wrappedKey.KeyId);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithInvalidReference_Throws()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var provider = CreateProvider(KeyId);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider
+                .WrapAsync(
+                    new ReferencedKey("not-a-key", Access),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Equal("referencedKey", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithInvalidDirectoryId_Throws()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var provider = CreateProvider(KeyId);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider
+                .WrapAsync(
+                    new ReferencedKey(TenantKeyId, new KeyAccess("not-a-directory", "tenant:acme")),
+                    key,
+                    context,
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Equal("referencedKey", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccess_ReceivesAccessFromTheClientFactory()
+    {
+        var plaintext = RandomNumberGenerator.GetBytes(32);
+        var ciphertext = RandomNumberGenerator.GetBytes(384);
+        var context = "root-context"u8.ToArray();
+        var wrappedKey = CreateWrappedKey(TenantKeyVersionId, ciphertext);
+        var destination = new ArrayBufferWriter<byte>();
+        SetupClient(TenantKeyVersionId, Access);
+        SetupUnwrapKey(
+            CreateUnwrapResult(TenantKeyVersionId, plaintext.ToArray()),
+            CancellationToken.None
+        );
+        var provider = CreateProvider(keyId: null);
+
+        await provider.UnwrapAsync(
+            wrappedKey,
+            Access,
+            context,
+            destination,
+            CancellationToken.None
+        );
+
+        Assert.Equal(ciphertext, SentCiphertext);
+        Assert.Equal(plaintext, destination.WrittenSpan.ToArray());
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithNullAccess_Throws()
+    {
+        var wrappedKey = CreateWrappedKey(KeyVersionId, RandomNumberGenerator.GetBytes(384));
+        var provider = CreateProvider(keyId: null);
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            provider
+                .UnwrapAsync(
+                    wrappedKey,
+                    null!,
+                    "root-context"u8.ToArray(),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+    }
+
+    [Theory]
+    [InlineData(DirectoryId, true)]
+    [InlineData("00000000-0000-0000-0000-000000000000", false)]
+    [InlineData("{11111111-2222-3333-4444-555555555555}", false)]
+    [InlineData("11111111222233334444555555555555", false)]
+    [InlineData("not-a-directory", false)]
+    [InlineData("", false)]
+    public void TryValidateAccessIdentity_Identity_ReportsSyntax(string identity, bool expected)
+    {
+        var provider = CreateProvider(keyId: null);
+
+        var valid = provider.TryValidateAccessIdentity(identity, out var failure);
+
+        Assert.Equal(expected, valid);
+        Assert.Equal(expected, failure is null);
+        if (!expected)
+            Assert.Equal("must be a Microsoft Entra tenant ID, a GUID", failure);
     }
 
     #endregion

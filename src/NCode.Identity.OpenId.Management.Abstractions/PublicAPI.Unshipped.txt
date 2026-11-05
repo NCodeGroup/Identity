@@ -1024,3 +1024,55 @@ NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteCodes
 const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteCodes.CredentialRequired = "credential_required" -> string!
 const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteCodes.EnvironmentSettingUnset = "environment_setting_unset" -> string!
 const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteCodes.HostManaged = "host_managed" -> string!
+NCode.Identity.OpenId.Management.Promotions.ITenantPromotionContributor
+NCode.Identity.OpenId.Management.Promotions.ITenantPromotionContributor.Order.get -> int
+NCode.Identity.OpenId.Management.Promotions.ITenantPromotionContributor.PlanAsync(NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Promotions.ITenantPromotionContributor.ApplyAsync(NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders
+const NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders.TenantSettings = 100 -> int
+const NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders.ResourceServers = 200 -> int
+const NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders.Clients = 300 -> int
+const NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders.ClientGrants = 400 -> int
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.TenantPromotionLimitChange() -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.AuthorityAbove.get -> NCode.Identity.OpenId.Persistence.ISupportTenantId!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.AuthorityAbove.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.SettingNames.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.SettingNames.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TenantPromotionContext() -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.SourceTenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.SourceTenant.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenant.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TeamNode.get -> NCode.Identity.OpenId.Persistence.ISupportTenantId!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TeamNode.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenantNode.get -> NCode.Identity.OpenId.Persistence.ISupportTenantId!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenantNode.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.StoreManager.get -> NCode.Persistence.Stores.IStoreManager!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.StoreManager.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AmbientTenantAccessor.get -> NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AmbientTenantAccessor.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.JsonSerializerOptions.get -> System.Text.Json.JsonSerializerOptions!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.JsonSerializerOptions.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.EnvironmentSettings.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.EnvironmentSettings.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenantSettings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenantSettings.set -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.Changes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.Notes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.Errors.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AuditEvents.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.ResourceChangeAuditEvent!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.ChangedLimits.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.RequiredCreateAuthorities.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.ISupportTenantId!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.BeginSourceScope() -> System.IDisposable!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.BeginTargetScope() -> System.IDisposable!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.GetEnvironmentSettingsOrDefault(string! resourceType, string! resourceId) -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddChange(NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource! change) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddNote(NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource! note) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddError(NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource! error) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddAuditEvent(NCode.Identity.Events.Audit.ResourceChangeAuditEvent! auditEvent) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddChangedLimits(NCode.Identity.OpenId.Persistence.ISupportTenantId! authorityAbove, System.Collections.Generic.IReadOnlyList<string!>! settingNames) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddRequiredCreateAuthority(NCode.Identity.OpenId.Persistence.ISupportTenantId! node) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.MapIdentifier(string! resourceType, string! sourceId, string! targetId) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TryGetTargetIdentifier(string! resourceType, string! sourceId, out string? targetId) -> bool

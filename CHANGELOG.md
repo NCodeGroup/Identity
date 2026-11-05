@@ -3718,6 +3718,10 @@ describes the family as it is rather than its changes
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
+- **A unit of work resolves a tracked row only in its ambient tenant.** A store's lookup that the change tracker answers
+  applies the same tenant scope as the query filter, so a row tracked for one tenant is never returned in another
+  tenant's scope ([#565](https://github.com/NCodeGroup/Identity/issues/565)).
+
 - **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's and a
   resource server's keys all carry an active window inside a validity window: a key that is not yet
   active or has retired signs and encrypts nothing, and an expired key verifies and decrypts nothing, is not published

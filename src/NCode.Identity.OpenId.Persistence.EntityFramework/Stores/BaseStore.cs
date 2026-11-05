@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 using IdGen;
 using JetBrains.Annotations;
+using NCode.Identity.OpenId.Persistence.EntityFramework.Entities;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
@@ -97,15 +98,34 @@ public abstract class BaseStore<TItem, TEntity> : IStore
     );
 
     /// <summary>
-    /// Returns an already-tracked entity matching the predicate without querying the database. EF identity
+    /// Returns an already-tracked entity matching the predicate without querying the database. The lookup applies
+    /// the tenant scope the tenant-scoping query filter applies, so it answers exactly what the query would: a
+    /// tracked tenant-child entity of another tenant is not returned while an ambient tenant is set. EF identity
     /// resolution would return this same tracked instance from a query anyway, so a <c>Local</c>-first lookup
     /// avoids a redundant round-trip when the entity was already loaded in the current unit of work.
     /// </summary>
     /// <param name="predicate">The predicate to match against the tracked (local) entities.</param>
-    /// <returns>The tracked entity if one matches; otherwise <c>null</c>.</returns>
+    /// <returns>The tracked entity if one matches in the ambient tenant; otherwise <c>null</c>.</returns>
     protected TEntity? GetLocalOrDefault(Expression<Func<TEntity, bool>> predicate)
     {
-        return DbContext.Set<TEntity>().Local.FirstOrDefault(predicate.Compile());
+        var compiled = predicate.Compile();
+        var ambientTenantId = DbContext.NormalizedAmbientTenantId;
+        return DbContext
+            .Set<TEntity>()
+            .Local.FirstOrDefault(entity =>
+                compiled(entity) && IsInAmbientTenant(entity, ambientTenantId)
+            );
+    }
+
+    private static bool IsInAmbientTenant(TEntity entity, string? ambientTenantId)
+    {
+        return ambientTenantId is null
+            || entity is not ISupportTenantEntity tenantEntity
+            || string.Equals(
+                tenantEntity.NormalizedTenantId,
+                ambientTenantId,
+                StringComparison.Ordinal
+            );
     }
 
     /// <summary>

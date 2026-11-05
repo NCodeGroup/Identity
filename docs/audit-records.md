@@ -297,7 +297,7 @@ writes `retired_key_id` and `retired_version` when it retired a key.
 #### Root keys
 
 Every root key event is a `RootKeyAuditEvent` with `event_category` `key`
-([ADR-1411](decisions/1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)). It records a change to
+([ADR-1414](decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)). It records a change to
 the root key a tenant brings, which wraps the tenant's master keys with no operator recovery copy. It lists the
 `root_key`, identified by the reference the tenant gave, first and the owner second (`tenant`, with the tenant's id),
 carries no key material, and is published once the change has committed. A change an administrator makes through the

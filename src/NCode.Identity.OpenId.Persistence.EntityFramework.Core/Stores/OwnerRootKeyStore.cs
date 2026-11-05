@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 /// This store does not save changes. The caller's store manager commits them, which is where a second root key for the
 /// same owner is rejected by the unique index.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 internal class OwnerRootKeyStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,

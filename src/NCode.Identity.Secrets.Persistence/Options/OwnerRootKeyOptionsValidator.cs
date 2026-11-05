@@ -13,7 +13,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 /// provider is a registered key wrapper that wraps under a key the caller names, because resolving the key wrappers
 /// from this validator would close a dependency cycle through the options of the key wrapper adapters.
 /// </summary>
-// See ADR-1221 (intervals and retentions are configured and validated when the host starts) and ADR-1411.
+// See ADR-1221 (intervals and retentions are configured and validated when the host starts) and ADR-1414.
 internal sealed class OwnerRootKeyOptionsValidator : IValidateOptions<SecretProtectionOptions>
 {
     internal static readonly TimeSpan MinimumValidationInterval = TimeSpan.FromMinutes(1);

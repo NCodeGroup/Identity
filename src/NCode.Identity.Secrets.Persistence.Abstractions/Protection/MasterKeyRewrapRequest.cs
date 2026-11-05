@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <summary>
 /// Describes a rewrap of the persisted master keys.
 /// </summary>
-// See ADR-1408 and ADR-1411.
+// See ADR-1408 and ADR-1414.
 [PublicAPI]
 public sealed class MasterKeyRewrapRequest
 {

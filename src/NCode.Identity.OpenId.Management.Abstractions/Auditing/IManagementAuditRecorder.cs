@@ -377,7 +377,7 @@ public interface IManagementAuditRecorder
     /// <param name="reason">Why the key rotated: one of the values in <see cref="MasterKeyChangeReasons"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    // See ADR-1407 and ADR-1411.
+    // See ADR-1407 and ADR-1414.
     ValueTask RecordMasterKeyRotatedAsync(
         HttpContext httpContext,
         MasterKeyRotation rotation,
@@ -395,7 +395,7 @@ public interface IManagementAuditRecorder
     /// <param name="reason">Why the key changed: one of the values in <see cref="RootKeyChangeReasons"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    // See ADR-1411.
+    // See ADR-1414.
     ValueTask RecordRootKeyChangedAsync(
         HttpContext httpContext,
         OwnerRootKeyInfo rootKey,

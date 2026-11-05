@@ -9,7 +9,7 @@ namespace NCode.Identity.Secrets.Persistence.Auditing;
 /// Contains the names of the audit events that record the changes to an owner root key. They follow the catalog's
 /// <c>&lt;resource&gt;.&lt;change&gt;</c> convention.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public static class RootKeyAuditEventNames
 {

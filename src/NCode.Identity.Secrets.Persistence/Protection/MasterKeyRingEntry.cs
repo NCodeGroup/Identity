@@ -16,7 +16,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// unwrapped again every validation interval.</param>
 /// <param name="UnwrappedTimestamp">The <see cref="TimeProvider.GetTimestamp"/> value of the moment the oldest
 /// material of the entry came from its root key provider.</param>
-// See ADR-1235, ADR-1407 and ADR-1411.
+// See ADR-1235, ADR-1407 and ADR-1414.
 internal sealed record MasterKeyRingEntry(
     MasterKey Active,
     FrozenDictionary<Guid, MasterKey> Keys,

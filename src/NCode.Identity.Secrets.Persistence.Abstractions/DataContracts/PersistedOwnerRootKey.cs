@@ -19,7 +19,7 @@ namespace NCode.Identity.Secrets.Persistence.DataContracts;
 /// An owner has at most one owner root key. The record is not part of the settings of the owner: it is set by an
 /// operation that probes the key, rotates the owner's master key and rewraps the owner's master keys.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class PersistedOwnerRootKey : ISupportConcurrencyToken

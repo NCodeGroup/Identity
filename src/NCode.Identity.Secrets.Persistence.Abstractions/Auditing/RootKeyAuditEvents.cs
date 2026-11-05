@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.Persistence.Auditing;
 /// Creates the <see cref="RootKeyAuditEvent"/> that every writer of the audit trail builds for a change to an owner
 /// root key, so the writers agree on the event's shape.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public static class RootKeyAuditEvents
 {

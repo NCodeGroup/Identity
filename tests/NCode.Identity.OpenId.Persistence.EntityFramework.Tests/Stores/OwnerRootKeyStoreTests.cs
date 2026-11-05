@@ -12,7 +12,7 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
 // Uses SQLite because the EF InMemory provider does not enforce unique indexes or concurrency tokens, which keep two
-// replicas from storing two root keys for one owner (ADR-1411).
+// replicas from storing two root keys for one owner (ADR-1414).
 public sealed class OwnerRootKeyStoreTests : IDisposable
 {
     private static readonly DateTimeOffset Now = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);

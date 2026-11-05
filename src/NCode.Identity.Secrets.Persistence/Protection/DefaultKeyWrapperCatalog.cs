@@ -20,7 +20,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <see cref="IReferencedKeyWrapper"/>, so an inconsistent registration or configuration fails when the catalog is
 /// composed rather than when a key is wrapped.
 /// </remarks>
-// See ADR-1150, ADR-1235, ADR-1411 and ADR-1412.
+// See ADR-1150, ADR-1235, ADR-1414 and ADR-1415.
 internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
 {
     /// <summary>

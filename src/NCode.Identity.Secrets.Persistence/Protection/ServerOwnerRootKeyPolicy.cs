@@ -9,7 +9,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// Refuses the <c>server</c> owner, whose master keys protect the deployment's own Data Protection key ring and are
 /// therefore always wrapped by the deployment's root key.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 internal sealed class ServerOwnerRootKeyPolicy : IOwnerRootKeyPolicy
 {
     /// <inheritdoc />

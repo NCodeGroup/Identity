@@ -19,7 +19,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// without rotating. Every registered <see cref="IOwnerRootKeyChangeObserver"/> learns of a state change after it is
 /// committed.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public interface IOwnerRootKeyManager
 {

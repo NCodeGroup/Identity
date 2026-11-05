@@ -19,7 +19,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="RootKeyId">The identifier of the root key that wraps the master key.</param>
 /// <param name="RecoveryKeyId">The identifier of the recovery key that also wraps the master key, or
 /// <see langword="null"/> when no recovery copy exists.</param>
-// See ADR-1407 and ADR-1411.
+// See ADR-1407 and ADR-1414.
 [PublicAPI]
 public sealed record MasterKeyInfo(
     Guid KeyId,

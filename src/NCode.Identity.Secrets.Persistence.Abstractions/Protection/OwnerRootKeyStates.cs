@@ -9,7 +9,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// Contains the known states of an owner root key. The set is open, and a state that the code does not know is treated
 /// as <see cref="Unavailable"/>, so that the owner fails closed.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public static class OwnerRootKeyStates
 {

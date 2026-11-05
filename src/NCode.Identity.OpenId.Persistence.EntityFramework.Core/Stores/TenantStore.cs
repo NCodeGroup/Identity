@@ -644,7 +644,7 @@ internal class TenantStore(
             .ToListAsync(cancellationToken);
         DbContext.MasterKeys.RemoveRange(masterKeys);
 
-        // The root key a tenant brought wraps those master keys, so it goes with them (ADR-1411).
+        // The root key a tenant brought wraps those master keys, so it goes with them (ADR-1414).
         var ownerRootKeys = await DbContext
             .OwnerRootKeys.Where(entity =>
                 entity.OwnerType == SecretOwnerTypes.Tenant

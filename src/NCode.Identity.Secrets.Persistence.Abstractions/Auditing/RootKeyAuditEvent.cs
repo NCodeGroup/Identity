@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.Persistence.Auditing;
 /// and its being restored. The event names the key's wrapper and reference and the owner, and never carries key
 /// material.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public sealed record RootKeyAuditEvent : AuditEvent, ISupportAuditDetails
 {

@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.Persistence.Auditing;
 /// key. The event names the key, its owner and its version, and never carries key material, wrapped keys or key
 /// checks.
 /// </summary>
-// See ADR-1407 and ADR-1411.
+// See ADR-1407 and ADR-1414.
 [PublicAPI]
 public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
 {
@@ -55,7 +55,7 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
     /// Gets the reference of the owner root key that wraps the master key, or <c>null</c> when the deployment's root key
     /// wraps it.
     /// </summary>
-    // See ADR-1411.
+    // See ADR-1414.
     public string? RootKeyReference { get; init; }
 
     /// <summary>

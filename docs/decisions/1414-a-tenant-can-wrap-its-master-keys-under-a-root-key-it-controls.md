@@ -1,4 +1,4 @@
-# 1411. A tenant can wrap its master keys under a root key it controls
+# 1414. A tenant can wrap its master keys under a root key it controls
 
 - **Status:** Accepted
 - **Date:** 2026-11-05
@@ -40,7 +40,7 @@ to take effect within a bounded period across replicas without a KMS call per re
    policy (`ServerOwnerRootKeyPolicy`, `ControlPlaneTenantRootKeyPolicy`), and a consumer refuses further owners by registering
    its own `IOwnerRootKeyPolicy`. The code says "owner root key"; the
    management API, the console and the docs say "tenant root key".
-2. **The provider is any registered referenced key wrapper** ([ADR-1412](1412-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)),
+2. **The provider is any registered referenced key wrapper** ([ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)),
    and the operator opts in per provider with `SecretProtection:OwnerRootKeys:Providers`, which is empty by default,
    because the server calls the tenant's KMS with the deployment's own identity. `ValidationInterval` (default one hour,
    between one minute and one day) and `RetryInterval` (default one minute, between one second and `ValidationInterval`)
@@ -134,7 +134,7 @@ to take effect within a bounded period across replicas without a KMS call per re
   [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md),
-  [ADR-1412](1412-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
+  [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)
 - `src/NCode.Identity.Secrets.Persistence/Protection/DefaultOwnerRootKeyManager.cs`,

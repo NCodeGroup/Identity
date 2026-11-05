@@ -13,7 +13,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// It deliberately does not derive from <see cref="System.Security.Cryptography.CryptographicException"/>: a failure to
 /// reach or use the owner's key never means that a master key is wrong, so development pruning never deletes it.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public sealed class OwnerRootKeyUnavailableException : Exception
 {

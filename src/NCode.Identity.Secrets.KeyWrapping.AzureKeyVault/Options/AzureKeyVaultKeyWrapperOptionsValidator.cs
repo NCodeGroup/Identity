@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 /// Vault root key provider is the one selected, and the host suffixes of a referenced key are validated as well when
 /// owners may choose the provider for their root key.
 /// </summary>
-// See ADR-1260, ADR-1412 and ADR-1137 (configuration is validated at startup).
+// See ADR-1260, ADR-1415 and ADR-1137 (configuration is validated at startup).
 internal class AzureKeyVaultKeyWrapperOptionsValidator(
     IOptions<SecretProtectionOptions> protectionOptions
 ) : IValidateOptions<AzureKeyVaultKeyWrapperOptions>

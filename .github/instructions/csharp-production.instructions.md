@@ -540,7 +540,7 @@ than inlining the rationale.
   closes a dependency cycle that stops every host that registers an adapter. The validators check the options' own
   shape; a check against the registered wrappers runs in `DefaultKeyWrapperCatalog` as it is composed, which the server
   does as it starts. An adapter's registration test composes it with `ValidateOnBuild` to keep the graph acyclic
-  ([ADR-1411](../../docs/decisions/1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)).
+  ([ADR-1414](../../docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)).
 - 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set** — template
   [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state). A replay guard (a `jti`) or a
   server-issued nonce is an atomic add-if-absent on the shared-state port (`NCode.Identity.SharedState.Abstractions`),

@@ -14,7 +14,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// governs the setting of a root key only: an owner that already has one keeps it. Register an implementation as a
 /// collection to refuse further owners.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public interface IOwnerRootKeyPolicy
 {

@@ -493,7 +493,7 @@ export const managementApi = createApi({
         { type: 'EncryptionKey', id: ownerTagId(owner) },
       ],
     }),
-    // The root key a tenant brings (ADR-1411). Setting, validating or removing it changes only that tenant's keys.
+    // The root key a tenant brings (ADR-1414). Setting, validating or removing it changes only that tenant's keys.
     setTenantRootKey: build.mutation<
       EncryptionRootKeyChangeResource,
       { tenantId: string; body: EncryptionRootKeyRequest }

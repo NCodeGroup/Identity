@@ -30,6 +30,6 @@ public static class MasterKeyChangeReasons
     /// <summary>
     /// The owner set or changed its root key, so the master key rotated onto it.
     /// </summary>
-    // See ADR-1411.
+    // See ADR-1414.
     public const string RootKeyChanged = "root_key_changed";
 }

@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// A registered <see cref="IOwnerRootKeyPolicy"/> refused the owner. <see cref="Exception.Message"/> is the reason that
 /// the policy gave.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public sealed class OwnerRootKeyNotAllowedException : InvalidOperationException
 {

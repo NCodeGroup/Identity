@@ -1,4 +1,4 @@
-# 1412. A key wrapper can wrap under a key the caller names
+# 1415. A key wrapper can wrap under a key the caller names
 
 - **Status:** Accepted
 - **Date:** 2026-11-05
@@ -11,7 +11,7 @@
 ## Context
 
 A key wrapper is bound to the one key its options name. A tenant root key
-([ADR-1411](1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)) needs the same provider to wrap
+([ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)) needs the same provider to wrap
 under a key chosen at run time, while unwrapping already addresses a key through `WrappedKey.KeyId` alone, independent of
 configuration.
 
@@ -62,7 +62,7 @@ configuration.
 
 - [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
   [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
-  [ADR-1411](1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)
+  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)
 - `src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IReferencedKeyWrapper.cs`,
   `src/NCode.Identity.Secrets.KeyWrapping.AwsKms/AwsKmsKeyWrapper.cs`,
   `src/NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms/GoogleCloudKmsKeyWrapper.cs`,

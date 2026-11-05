@@ -14,7 +14,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <see cref="Auditing.RootKeyChanges"/>, or <see langword="null"/> when the state did not change.</param>
 /// <param name="Rotation">The rotation that moved the owner onto the key, or <see langword="null"/>.</param>
 /// <param name="Rewrap">The outcome of rewrapping the owner's master keys.</param>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public sealed record OwnerRootKeyValidation(
     OwnerRootKeyInfo? RootKey,

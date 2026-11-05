@@ -27,13 +27,13 @@ public sealed class EncryptionKeysResource
     /// <summary>
     /// Gets the root key the tenant brings, or <c>null</c> when the deployment's root key wraps the tenant's keys.
     /// </summary>
-    // See ADR-1411.
+    // See ADR-1414.
     public EncryptionRootKeyResource? RootKey { get; init; }
 
     /// <summary>
     /// Gets the names of the key wrappers that a tenant may choose for its root key. It is empty when the deployment
     /// lets no tenant bring a key, and for the server.
     /// </summary>
-    // See ADR-1411.
+    // See ADR-1414.
     public required List<string> RootKeyProviders { get; init; }
 }

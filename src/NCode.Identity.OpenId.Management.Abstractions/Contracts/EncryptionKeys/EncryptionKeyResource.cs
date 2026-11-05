@@ -59,6 +59,6 @@ public sealed class EncryptionKeyResource
     /// Gets the reference of the tenant root key that wraps the key, or <c>null</c> when the deployment's root key wraps
     /// it.
     /// </summary>
-    // See ADR-1411.
+    // See ADR-1414.
     public string? RootKeyReference { get; init; }
 }

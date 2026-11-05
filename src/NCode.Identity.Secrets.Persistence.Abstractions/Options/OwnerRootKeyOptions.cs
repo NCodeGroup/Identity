@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 /// service of an owner with the deployment's own identity, so the operator opts in to each key wrapper that an owner
 /// may choose.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public sealed class OwnerRootKeyOptions
 {

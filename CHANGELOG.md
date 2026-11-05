@@ -3569,8 +3569,8 @@ describes the family as it is rather than its changes
   that wraps under a key the caller names, implemented by the AWS KMS, Google Cloud KMS and Azure Key Vault wrappers,
   and `IOwnerRootKeyManager` sets, removes and validates a root key
   ([#174](https://github.com/NCodeGroup/Identity/issues/174),
-  [ADR-1411](docs/decisions/1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1412](docs/decisions/1412-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
+  [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
+  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
 
 ### Security
 
@@ -5176,7 +5176,7 @@ describes the family as it is rather than its changes
   management API answers `503` with `Retry-After`, the host logs the failure, and `root_key.unavailable` is audited;
   development pruning never deletes the master keys of such a tenant
   ([#174](https://github.com/NCodeGroup/Identity/issues/174),
-  [ADR-1411](docs/decisions/1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1412](docs/decisions/1412-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
+  [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
+  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

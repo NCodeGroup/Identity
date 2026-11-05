@@ -21,7 +21,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// an owner that brings a root key is wrapped under that key, with no recovery copy, and a rotation of an owner whose
 /// root key is unavailable fails before anything is written.
 /// </remarks>
-// See ADR-1407 and ADR-1411.
+// See ADR-1407 and ADR-1414.
 internal sealed class DefaultMasterKeyManager(
     ISecretProtectorProvider protectorProvider,
     IStoreManagerFactory storeManagerFactory,

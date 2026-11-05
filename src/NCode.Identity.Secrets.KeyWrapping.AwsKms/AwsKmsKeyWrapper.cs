@@ -37,7 +37,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms;
 /// key, propagates unchanged, so that a failure to reach the service is never mistaken for a wrong key.
 /// </para>
 /// </remarks>
-// See ADR-1235 and ADR-1412.
+// See ADR-1235 and ADR-1415.
 internal class AwsKmsKeyWrapper(
     IAwsKmsClientFactory clientFactory,
     IOptions<AwsKmsKeyWrapperOptions> options

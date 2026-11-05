@@ -1,7 +1,7 @@
 # 1407. A master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): rotation wraps the successor under the owner's root key, the status reports it, and an owner-rooted cache entry is re-validated)
+  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): rotation wraps the successor under the owner's root key, the status reports it, and an owner-rooted cache entry is re-validated)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's

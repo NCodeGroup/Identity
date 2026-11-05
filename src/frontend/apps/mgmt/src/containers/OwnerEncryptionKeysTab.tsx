@@ -56,7 +56,7 @@ type TenantRootKeySectionProps = {
 };
 
 /**
- * The root key a tenant brings (ADR-1411): "Set root key" in a dialog that shows the server's error, "Validate" and a
+ * The root key a tenant brings (ADR-1414): "Set root key" in a dialog that shows the server's error, "Validate" and a
  * confirmed "Remove". The API returns no key material, and neither does this view.
  */
 function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySectionProps) {
@@ -153,7 +153,7 @@ function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySec
  * Container: the master keys of a tenant or of the server (ADR-1407) with a "Rekey" action. A rekey retires the active
  * key and starts the next version, whose values are then rewrapped in the background, so it is confirmed first. The
  * API returns no key material, and neither does this view. A rekey that loses a race to another rekey shows the
- * server's explanation in the dialog. A tenant also manages the root key it brings (ADR-1411); a server never does.
+ * server's explanation in the dialog. A tenant also manages the root key it brings (ADR-1414); a server never does.
  */
 export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKeysTabProps) {
   const { data, isLoading, error } = useListEncryptionKeysQuery(owner);

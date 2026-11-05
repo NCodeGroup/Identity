@@ -18,7 +18,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// A master key under an owner root key is never rewrapped under the deployment's root key or the recovery key, and it
 /// never gains a recovery copy.
 /// </remarks>
-// See ADR-1408 and ADR-1411.
+// See ADR-1408 and ADR-1414.
 [PublicAPI]
 public interface IMasterKeyRewrapper
 {

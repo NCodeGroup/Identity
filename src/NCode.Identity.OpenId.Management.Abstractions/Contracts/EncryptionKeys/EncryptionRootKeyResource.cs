@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 /// Represents the REST resource that describes the root key a tenant brings: which key it is and the state of its last
 /// validation. It carries no key material.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class EncryptionRootKeyResource

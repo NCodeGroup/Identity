@@ -45,6 +45,6 @@ public sealed class SecretProtectionOptions
     /// Gets or sets the options for the root keys that owners bring: which key wrappers an owner may choose and how
     /// often its key is validated.
     /// </summary>
-    // See ADR-1411.
+    // See ADR-1414.
     public OwnerRootKeyOptions OwnerRootKeys { get; set; } = new();
 }

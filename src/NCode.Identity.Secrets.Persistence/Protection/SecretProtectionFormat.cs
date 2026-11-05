@@ -289,7 +289,7 @@ internal static class SecretProtectionFormat
     /// </summary>
     /// <param name="owner">The owner whose root key is probed.</param>
     /// <returns>The size of the context in bytes.</returns>
-    // See ADR-1411.
+    // See ADR-1414.
     public static int GetProbeContextSize(SecretOwner owner) =>
         GetOwnerBoundSize(RootProbeContextLabel, owner);
 
@@ -306,7 +306,7 @@ internal static class SecretProtectionFormat
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="destination"/> is too small to hold the context.
     /// </exception>
-    // See ADR-1411.
+    // See ADR-1414.
     public static int WriteProbeContext(Guid probeId, SecretOwner owner, Span<byte> destination) =>
         WriteOwnerBound(RootProbeContextLabel, probeId, owner, destination);
 

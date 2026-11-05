@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// addition to the key encryption key that the wrapper is configured with. Unwrapping needs nothing more than
 /// <see cref="IKeyWrapper.UnwrapAsync"/>, because <see cref="WrappedKey.KeyId"/> identifies the exact key.
 /// </summary>
-// See ADR-1412.
+// See ADR-1415.
 [PublicAPI]
 public interface IReferencedKeyWrapper : IKeyWrapper
 {

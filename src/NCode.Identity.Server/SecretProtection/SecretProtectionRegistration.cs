@@ -21,7 +21,7 @@ namespace NCode.Identity.Server.SecretProtection;
 /// </summary>
 // See ADR-1235.
 // See ADR-1370.
-// See ADR-1411.
+// See ADR-1414.
 internal static class SecretProtectionRegistration
 {
     private const string RootKeyProvidersSubsection = "RootKeyProviders";

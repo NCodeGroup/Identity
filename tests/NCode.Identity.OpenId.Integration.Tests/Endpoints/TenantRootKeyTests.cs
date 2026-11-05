@@ -21,7 +21,7 @@ using Xunit;
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
 // A tenant brings a root key: its master keys are wrapped under the key and no other copy exists, a revoked key makes
-// the tenant fail closed, and a restored or removed key brings the tenant back (ADR-1411).
+// the tenant fail closed, and a restored or removed key brings the tenant back (ADR-1414).
 public class TenantRootKeyTests
 {
     private const string BootstrapClientId = "it-bootstrap-admin";

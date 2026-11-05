@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 /// Contains the states that a tenant root key reports. The set is open: a client treats a state it does not know as
 /// unavailable.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public static class EncryptionRootKeyStates
 {

@@ -39,7 +39,7 @@ export const emptyEncryptionRootKeyFormValues: EncryptionRootKeyFormValues = {
 };
 
 /**
- * Stateless root key form rendered in a dialog (ADR-1411): the provider the tenant chooses from the allowed ones and the
+ * Stateless root key form rendered in a dialog (ADR-1414): the provider the tenant chooses from the allowed ones and the
  * key reference. The field state is local because it is intrinsic to the controlled inputs (it reseeds on the rising
  * edge of `open`), so the component still renders in isolation under Storybook/RTL. The server validates the key by
  * wrapping and unwrapping a probe through it, and its error is shown in the dialog; persistence and that error handling

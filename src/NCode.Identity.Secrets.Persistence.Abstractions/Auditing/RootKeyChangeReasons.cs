@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.Persistence.Auditing;
 /// <summary>
 /// Contains the reasons that the audit trail gives for a change to an owner root key. The set is open.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public static class RootKeyChangeReasons
 {

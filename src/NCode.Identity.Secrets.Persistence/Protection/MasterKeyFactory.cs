@@ -30,7 +30,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="catalog">The catalog that resolves the root key provider that wraps and unwraps master keys.</param>
 /// <param name="recovery">The wrapper that wraps a new master key under the offline recovery public key.</param>
 /// <param name="timeProvider">The time provider that supplies the creation time of a new master key.</param>
-// See ADR-1235 and ADR-1411.
+// See ADR-1235 and ADR-1414.
 internal class MasterKeyFactory(
     IKeyWrapperCatalog catalog,
     IRecoveryKeyWrapper recovery,
@@ -213,7 +213,7 @@ internal class MasterKeyFactory(
     /// <exception cref="OwnerRootKeyUnavailableException">
     /// Thrown before anything is wrapped when the owner root key is unavailable.
     /// </exception>
-    // See ADR-1408 and ADR-1411.
+    // See ADR-1408 and ADR-1414.
     public async ValueTask<MasterKeyWraps> WrapAsync(
         MasterKey masterKey,
         PersistedOwnerRootKey? rootKey,

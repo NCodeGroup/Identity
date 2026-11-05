@@ -31,7 +31,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// leaves neither unannounced nor unfinished; a completion that fails is logged and left to the validation.
 /// </para>
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 internal sealed class DefaultOwnerRootKeyManager(
     IKeyWrapperCatalog catalog,
     IStoreManagerFactory storeManagerFactory,

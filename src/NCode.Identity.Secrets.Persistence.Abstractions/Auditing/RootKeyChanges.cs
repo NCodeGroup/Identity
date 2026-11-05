@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.Persistence.Auditing;
 /// <summary>
 /// Contains the names of the changes to an owner root key that the audit trail records. The set is open.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public static class RootKeyChanges
 {

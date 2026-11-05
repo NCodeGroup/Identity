@@ -14,7 +14,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="Rotation">The rotation that moved the owner onto the key, or <see langword="null"/> when none was
 /// needed or it is deferred to the validation service.</param>
 /// <param name="Rewrap">The outcome of rewrapping the owner's master keys under the key.</param>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public sealed record OwnerRootKeyChange(
     OwnerRootKeyInfo RootKey,

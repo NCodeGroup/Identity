@@ -13,7 +13,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// The owner root key manager calls every registered observer after its commit, on its own bounded cancellation token
 /// rather than the caller's, and logs and swallows each failure: a failing observer never fails or undoes the change.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public interface IOwnerRootKeyChangeObserver
 {

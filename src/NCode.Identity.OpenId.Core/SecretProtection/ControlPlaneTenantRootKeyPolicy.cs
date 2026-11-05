@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.SecretProtection;
 /// key on that tenant would fail every management request, including the ones that restore it, so its master keys always
 /// stay under the deployment's root key.
 /// </summary>
-// See ADR-1191 and ADR-1411.
+// See ADR-1191 and ADR-1414.
 internal sealed class ControlPlaneTenantRootKeyPolicy(ITenantResolver tenantResolver)
     : IOwnerRootKeyPolicy
 {

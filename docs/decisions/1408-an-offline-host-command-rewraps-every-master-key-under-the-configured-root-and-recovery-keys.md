@@ -1,7 +1,7 @@
 # 1408. An offline host command rewraps every master key under the configured root and recovery keys
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): a row under an owner root key is wrapped only under that key and never gains a recovery copy)
+  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): a row under an owner root key is wrapped only under that key and never gains a recovery copy)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's

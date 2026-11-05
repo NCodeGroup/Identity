@@ -54,7 +54,7 @@ function Field({ label, value, testId }: FieldProps) {
 }
 
 /**
- * Stateless card for the root key a tenant brings (ADR-1411): the provider, the key reference, its state, when it was
+ * Stateless card for the root key a tenant brings (ADR-1414): the provider, the key reference, its state, when it was
  * created and last validated, and why the last validation failed. It shows no key material, because the API returns
  * none. With no root key it says the deployment's root key wraps the tenant's keys, and offers "Set root key" only when
  * a provider is available. Holds no state and does no fetching.

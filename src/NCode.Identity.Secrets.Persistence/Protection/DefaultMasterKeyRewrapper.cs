@@ -20,7 +20,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// key gets a recovery copy when a recovery public key is configured, and when none is, the existing recovery copy is
 /// left as it is, because a recovery path is never removed silently.
 /// </remarks>
-// See ADR-1408 and ADR-1411.
+// See ADR-1408 and ADR-1414.
 internal sealed class DefaultMasterKeyRewrapper(
     MasterKeyFactory factory,
     IStoreManagerFactory storeManagerFactory,

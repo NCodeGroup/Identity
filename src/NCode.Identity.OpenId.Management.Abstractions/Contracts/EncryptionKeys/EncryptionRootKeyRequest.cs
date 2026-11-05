@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 /// <summary>
 /// Represents the request body that sets or changes the root key of a tenant.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class EncryptionRootKeyRequest

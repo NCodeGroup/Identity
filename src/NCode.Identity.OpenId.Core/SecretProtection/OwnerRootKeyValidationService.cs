@@ -32,7 +32,7 @@ namespace NCode.Identity.OpenId.SecretProtection;
 /// the owner everywhere. The ring of each replica also unwraps the owner's master keys again every validation interval,
 /// so a replica that missed the announcement still stops.
 /// </remarks>
-// See ADR-1351 (an effect that follows a committed change runs on its own bounded token) and ADR-1411.
+// See ADR-1351 (an effect that follows a committed change runs on its own bounded token) and ADR-1414.
 internal sealed class OwnerRootKeyValidationService(
     IMaterializedServerAccessor materializedServerAccessor,
     IOwnerRootKeyManager ownerRootKeyManager,

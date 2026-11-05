@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// This entity is intentionally not tenant-scoped, like <see cref="MasterKeyEntity"/>: the store always filters by
 /// owner explicitly. It holds the name of the key and the state of its last validation, never key material.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 [Index(nameof(OwnerType), nameof(NormalizedOwnerId), IsUnique = true)]
 public sealed class OwnerRootKeyEntity : ISupportConcurrencyToken
 {

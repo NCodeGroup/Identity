@@ -350,7 +350,7 @@ credentials itself, leave `provider` empty: the chart then sets only the key nam
 
 A tenant can wrap its own master keys under a root key it controls and can revoke, with no recovery copy that the
 operator holds
-([ADR-1411](../../docs/decisions/1411-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)). The server
+([ADR-1414](../../docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)). The server
 reaches the tenant's key with the deployment's own workload identity, so the operator opts in per provider.
 `secretProtection.ownerRootKeys.providers` lists the key wrappers a tenant may choose from `aws-kms`, `azure-key-vault`
 and `google-cloud-kms`, and is empty by default, which means no tenant can bring a key. The chart renders it as

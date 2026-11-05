@@ -53,7 +53,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="options">The options whose master key refresh interval bounds how long an entry is used.</param>
 /// <param name="timeProvider">The clock that ages the cached entries.</param>
 /// <param name="logger">The logger.</param>
-// See ADR-1235 and ADR-1411.
+// See ADR-1235 and ADR-1414.
 internal class DefaultMasterKeyRing(
     MasterKeyFactory factory,
     IStoreManagerFactory storeManagerFactory,

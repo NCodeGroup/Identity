@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
 /// Provides the status and rekey operations that the tenant and server endpoint handlers share, once they have found
 /// the owner and authorized the caller: the same master key lifecycle serves both.
 /// </summary>
-// See ADR-1407 and ADR-1411.
+// See ADR-1407 and ADR-1414.
 internal static class EncryptionKeyEndpoints
 {
     /// <summary>

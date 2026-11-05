@@ -15,7 +15,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <see cref="IStore{T}.UpdateAsync"/> throws a <see cref="StoreConcurrencyException"/> when the concurrency token
 /// does not match, and an <see cref="InvalidOperationException"/> when the row is gone.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public interface IOwnerRootKeyStore : IStore<PersistedOwnerRootKey>
 {

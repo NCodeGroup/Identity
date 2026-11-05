@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <summary>
 /// The exception that is thrown when a key that an owner names fails its probe: the key cannot wrap and unwrap a value.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public sealed class OwnerRootKeyProbeException : Exception
 {

@@ -18,7 +18,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="ValidatedWhen">The instant of the last successful probe, or <see langword="null"/>.</param>
 /// <param name="FailedWhen">The instant of the last failed probe or completion, or <see langword="null"/>.</param>
 /// <param name="Failure">The description of the last failure, or <see langword="null"/>.</param>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 public sealed record OwnerRootKeyInfo(
     SecretOwner Owner,

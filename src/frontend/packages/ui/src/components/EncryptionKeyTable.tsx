@@ -26,7 +26,7 @@ export type EncryptionKeyTableProps = {
 
 /**
  * Stateless table of an owner's master keys (ADR-1407): version, state, when each was created and retired, the root key
- * provider that wraps it, the root key reference ("Deployment" when the deployment's root key wraps it, ADR-1411), and
+ * provider that wraps it, the root key reference ("Deployment" when the deployment's root key wraps it, ADR-1414), and
  * whether a recovery copy exists. It shows no key material, because the API returns none.
  * Holds no state and does no fetching.
  */

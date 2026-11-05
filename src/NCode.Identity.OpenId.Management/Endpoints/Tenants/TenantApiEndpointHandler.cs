@@ -1817,7 +1817,7 @@ internal class TenantApiEndpointHandler(
         }
 
         // An owner that a registered policy refuses, such as the control-plane tenant, reports no root key providers.
-        // See ADR-1411.
+        // See ADR-1414.
         var owner = SecretOwner.ForTenant(tenant.TenantId);
 
         return await EncryptionKeyEndpoints.GetAsync(
@@ -1911,7 +1911,7 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        // A registered policy decides which tenants can bring a root key; see ADR-1411.
+        // A registered policy decides which tenants can bring a root key; see ADR-1414.
         var owner = SecretOwner.ForTenant(tenant.TenantId);
         if (!OwnerRootKeyManager.CanBringRootKey(owner, out var notAllowed))
         {

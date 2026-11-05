@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// of a tenant whose root key is unavailable is answered <c>503 Service Unavailable</c> with a <c>Retry-After</c> of the
 /// retry interval, because the tenant's data cannot be read until the key is restored and validated again.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 internal sealed class OwnerRootKeyUnavailableEndpointFilter(
     IOptions<SecretProtectionOptions> options,
     ILogger<OwnerRootKeyUnavailableEndpointFilter> logger

@@ -18,7 +18,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// can never be presented as a wrapped master key. Both the probe value and the unwrapped value are zeroed. Any failure
 /// of the key wrapper, transient or definitive, is a failure of the probe, so the owner fails closed.
 /// </remarks>
-// See ADR-1411.
+// See ADR-1414.
 internal static class OwnerRootKeyProbe
 {
     private const int ProbeSizeBytes = 32;

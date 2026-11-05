@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 /// Represents the REST resource returned when a tenant sets or changes its root key: the key as stored, the master keys
 /// of the rotation onto it, and how many master keys were rewrapped under it.
 /// </summary>
-// See ADR-1411.
+// See ADR-1414.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class EncryptionRootKeyChangeResource

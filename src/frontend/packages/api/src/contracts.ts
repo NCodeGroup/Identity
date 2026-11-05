@@ -482,13 +482,13 @@ export type EncryptionKeyResource = {
   /** The identifier of the recovery key that also wraps the key, or `null` when no recovery copy exists. */
   readonly recoveryKeyId: string | null;
   /**
-   * The reference of the tenant's own root key that wraps the key (ADR-1411), or `null` when the deployment's root key
+   * The reference of the tenant's own root key that wraps the key (ADR-1414), or `null` when the deployment's root key
    * wraps it.
    */
   readonly rootKeyReference: string | null;
 };
 
-// See ADR-1411.
+// See ADR-1414.
 /**
  * Mirror of `EncryptionRootKeyResource` — the root key a tenant brings: the key wrapper that reaches it, the reference
  * that names it and its last validation. It carries no key material.

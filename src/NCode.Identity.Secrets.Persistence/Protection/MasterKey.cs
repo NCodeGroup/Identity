@@ -30,7 +30,11 @@ internal sealed class MasterKey : IDisposable
 
     private IDisposable MaterialLease { get; }
 
-    private Memory<byte> MaterialMemory { get; }
+    /// <summary>
+    /// Gets the key material of the master key as memory, for the key wrappers that take memory. The memory belongs to
+    /// the master key and is zeroed when it is disposed, so a caller must not keep it.
+    /// </summary>
+    internal ReadOnlyMemory<byte> MaterialMemory { get; }
 
     /// <summary>
     /// Gets the identifier of the master key, which is written to every value that the master key protects.

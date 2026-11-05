@@ -69,8 +69,9 @@ internal class MasterKeyStore(
     }
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the master key is not in the store or when it was modified since the item was read.
+    /// <exception cref="InvalidOperationException">Thrown when the master key is not in the store.</exception>
+    /// <exception cref="StoreConcurrencyException">
+    /// Thrown when the master key was modified since the item was read.
     /// </exception>
     public async ValueTask UpdateAsync(PersistedMasterKey item, CancellationToken cancellationToken)
     {
@@ -86,7 +87,7 @@ internal class MasterKeyStore(
             !string.Equals(item.ConcurrencyToken, entity.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            throw new InvalidOperationException(
+            throw new StoreConcurrencyException(
                 $"The master key with identifier '{item.KeyId}' has been modified by another process. Please reload and try again."
             );
         }
@@ -187,6 +188,94 @@ internal class MasterKeyStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedMasterKey>> GetPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    ) => await GetPageAsync(DbContext.MasterKeys.AsNoTracking(), page, cancellationToken);
+
+    /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedMasterKey>> GetActivePageAsync(
+        DateTimeOffset createdBefore,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var instant = createdBefore.ToUniversalTime();
+
+        return await GetPageAsync(
+            DbContext
+                .MasterKeys.AsNoTracking()
+                .Where(entity => entity.RetiredWhen == null && entity.CreatedWhen < instant),
+            page,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PagedResult<SecretOwner>> GetRetiredOwnerPageAsync(
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var query = DbContext.MasterKeys.AsNoTracking().Where(entity => entity.RetiredWhen != null);
+
+        var afterId = KeysetCursor.Decode(page.Cursor);
+        if (afterId is not null)
+            query = query.Where(entity => entity.Id > afterId.Value);
+
+        // Only the row identifier and the owner leave the database, never a wrapped key, a key check or a token.
+        var rows = await query
+            .OrderBy(entity => entity.Id)
+            .Take(page.Limit + 1)
+            .Select(entity => new
+            {
+                entity.Id,
+                entity.OwnerType,
+                entity.OwnerId,
+            })
+            .ToListAsync(cancellationToken);
+
+        var hasMore = rows.Count > page.Limit;
+        var count = hasMore ? page.Limit : rows.Count;
+
+        return new PagedResult<SecretOwner>
+        {
+            Items = rows.Take(count)
+                .Select(row => new SecretOwner(row.OwnerType, row.OwnerId))
+                .Distinct()
+                .ToList(),
+            NextCursor = hasMore ? KeysetCursor.Encode(rows[count - 1].Id) : null,
+        };
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> RemoveAsync(
+        PersistedMasterKey item,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await DbContext
+            .MasterKeys.Where(entity => entity.KeyId == item.KeyId)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (entity is null)
+            return false;
+
+        if (
+            !string.Equals(item.ConcurrencyToken, entity.ConcurrencyToken, StringComparison.Ordinal)
+        )
+        {
+            throw new StoreConcurrencyException(
+                $"The master key with identifier '{item.KeyId}' has been modified by another process. Please reload and try again."
+            );
+        }
+
+        DbContext.MasterKeys.Remove(entity);
+
+        return true;
+    }
+
+    /// <inheritdoc />
     public async ValueTask<int> RemoveAllAsync(
         SecretOwner owner,
         CancellationToken cancellationToken
@@ -204,6 +293,33 @@ internal class MasterKeyStore(
         DbContext.MasterKeys.RemoveRange(entities);
 
         return entities.Count;
+    }
+
+    // Reads one keyset page of the rows, ordered by row identifier. A full page fetches one extra row to signal that
+    // another page exists, and a malformed cursor starts at the beginning.
+    private static async ValueTask<PagedResult<PersistedMasterKey>> GetPageAsync(
+        IQueryable<MasterKeyEntity> query,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var afterId = KeysetCursor.Decode(page.Cursor);
+        if (afterId is not null)
+            query = query.Where(entity => entity.Id > afterId.Value);
+
+        var entities = await query
+            .OrderBy(entity => entity.Id)
+            .Take(page.Limit + 1)
+            .ToListAsync(cancellationToken);
+
+        var hasMore = entities.Count > page.Limit;
+        var count = hasMore ? page.Limit : entities.Count;
+
+        return new PagedResult<PersistedMasterKey>
+        {
+            Items = entities.Take(count).Select(MapToPersistedMasterKey).ToList(),
+            NextCursor = hasMore ? KeysetCursor.Encode(entities[count - 1].Id) : null,
+        };
     }
 
     /// <summary>

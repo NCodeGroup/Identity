@@ -219,4 +219,39 @@ describe('ServerDetailPage', () => {
       );
     });
   });
+
+  it('shows the server encryption keys on the encryption keys tab', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse(capabilities);
+      }
+      if (url.endsWith('/api/servers/root/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      if (url.endsWith('/api/servers/root/encryption-keys')) {
+        return jsonResponse({
+          recoveryConfigured: false,
+          keys: [
+            {
+              keyId: 'k-1',
+              version: 1,
+              state: 'active',
+              createdWhen: '2026-10-01T09:00:00Z',
+              retiredWhen: null,
+              rootKeyProvider: 'local',
+              rootKeyId: 'root-1',
+              recoveryKeyId: null,
+            },
+          ],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(screen.getByTestId('server-tab-encryption-keys'));
+
+    expect(await screen.findByTestId('encryption-key-row-k-1')).toBeInTheDocument();
+    expect(screen.getByTestId('encryption-keys-no-recovery')).toBeInTheDocument();
+  });
 });

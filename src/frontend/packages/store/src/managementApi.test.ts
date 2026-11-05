@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { CreateSecretRequest, CreatedSecretResource, ManagementOwner } from '@ncode/api';
+import type {
+  CreateSecretRequest,
+  CreatedSecretResource,
+  EncryptionKeyOwner,
+  ManagementOwner,
+} from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { createAppStore, type AppStore } from './store.js';
 import { managementApi } from './managementApi.js';
@@ -1464,6 +1469,58 @@ const ownerCases: readonly OwnerCase[] = [
     path: '/api/resource-servers/rs-1',
   },
 ];
+
+const encryptionKeyOwnerCases = ownerCases.filter(
+  (c): c is OwnerCase & { readonly owner: EncryptionKeyOwner } =>
+    c.owner.kind === 'server' || c.owner.kind === 'tenant',
+);
+
+describe('managementApi encryption key requests', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it.each(encryptionKeyOwnerCases)(
+    'listEncryptionKeys GETs the encryption keys of the $key owner',
+    async ({ owner, path }) => {
+      const captured = mockFetch(jsonResponse({ keys: [], recoveryConfigured: true }));
+      const store = createStore();
+
+      await store.dispatch(managementApi.endpoints.listEncryptionKeys.initiate(owner));
+
+      expect(captured[0]?.url).toBe(`https://api.test${path}/encryption-keys`);
+      expect(captured[0]?.method).toBe('GET');
+    },
+  );
+
+  it.each(encryptionKeyOwnerCases)(
+    'rekeyEncryptionKeys POSTs the rekey of the $key owner and refetches only its keys',
+    async ({ owner, path }) => {
+      const otherOwner: EncryptionKeyOwner =
+        owner.kind === 'server'
+          ? { kind: 'tenant', tenantId: 'other' }
+          : { kind: 'server', serverId: 'other' };
+      const captured = mockFetch(jsonResponse({ keys: [], recoveryConfigured: true }));
+      const store = createStore();
+      const subscriptions = [
+        store.dispatch(managementApi.endpoints.listEncryptionKeys.initiate(owner)),
+        store.dispatch(managementApi.endpoints.listEncryptionKeys.initiate(otherOwner)),
+      ];
+      await Promise.all(subscriptions);
+      const before = captured.length;
+
+      await store.dispatch(managementApi.endpoints.rekeyEncryptionKeys.initiate(owner));
+      await settle(store);
+
+      expect(captured[before]?.url).toBe(`https://api.test${path}/encryption-keys/rekey`);
+      expect(captured[before]?.method).toBe('POST');
+      const refetched = captured.slice(before + 1).map((request) => request.url);
+      expect(refetched).toEqual([`https://api.test${path}/encryption-keys`]);
+      for (const subscription of subscriptions) subscription.unsubscribe();
+    },
+  );
+});
 
 describe('managementApi owner-generic secrets and settings requests', () => {
   afterEach(() => {

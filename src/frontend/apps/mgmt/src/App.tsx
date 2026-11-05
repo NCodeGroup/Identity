@@ -40,7 +40,7 @@ const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surf
  * Stateful shell. The address bar owns the navigation state (ADR-1174): the route names the active
  * management scope (the global vs tenant security boundary) and, within it, the active surface. In the
  * global scope that is tenants vs the server (a system-level settings/secret owner); within a tenant it
- * is clients, resource servers, grants, or one of the tenant's own surfaces: secrets, settings, or usage
+ * is clients, resource servers, grants, or one of the tenant's own surfaces: secrets, encryption keys, settings, or usage
  * (ADR-1255). All data fetching lives in the child containers; this component only maps the route to a
  * surface and tab changes to navigation.
  */
@@ -115,6 +115,11 @@ export function App() {
             />
             <Tab value="grants" label="Grants" data-testid="tenant-tab-grants" />
             <Tab value="secrets" label="Secrets" data-testid="tenant-tab-secrets" />
+            <Tab
+              value="encryption-keys"
+              label="Encryption keys"
+              data-testid="tenant-tab-encryption-keys"
+            />
             <Tab value="settings" label="Settings" data-testid="tenant-tab-settings" />
             <Tab value="usage" label="Usage" data-testid="tenant-tab-usage" />
           </Tabs>

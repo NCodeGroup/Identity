@@ -68,6 +68,11 @@ export { ConfirmDialog, type ConfirmDialogProps } from './components/ConfirmDial
 export { SignInScreen, type SignInScreenProps } from './components/SignInScreen.js';
 export { SecretTable, type SecretRow, type SecretTableProps } from './components/SecretTable.js';
 export {
+  EncryptionKeyTable,
+  type EncryptionKeyRow,
+  type EncryptionKeyTableProps,
+} from './components/EncryptionKeyTable.js';
+export {
   SecretFormDialog,
   emptySecretFormValues,
   type SecretFormDialogProps,

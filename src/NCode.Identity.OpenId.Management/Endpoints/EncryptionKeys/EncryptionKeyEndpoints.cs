@@ -1,0 +1,103 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using System.Globalization;
+using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
+using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Persistence.Stores;
+
+namespace NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
+
+/// <summary>
+/// Provides the status and rekey operations that the tenant and server endpoint handlers share, once they have found
+/// the owner and authorized the caller: the same master key lifecycle serves both.
+/// </summary>
+// See ADR-1407.
+internal static class EncryptionKeyEndpoints
+{
+    /// <summary>
+    /// The detail of the problem that a rekey within twice the refresh interval of the last rotation answers with.
+    /// </summary>
+    internal const string RekeyTooSoonDetail =
+        "The last rotation of this master key has not reached every replica yet; retry after the time in Retry-After.";
+
+    /// <summary>
+    /// Answers with the master keys of the owner.
+    /// </summary>
+    public static async ValueTask<IResult> GetAsync(
+        IMasterKeyManager masterKeyManager,
+        SecretOwner owner,
+        CancellationToken cancellationToken
+    )
+    {
+        var status = await masterKeyManager.GetStatusAsync(owner, cancellationToken);
+
+        return TypedResults.Ok(
+            new EncryptionKeysResource
+            {
+                Keys = [.. status.Keys.Select(ToResource)],
+                RecoveryConfigured = status.RecoveryConfigured,
+            }
+        );
+    }
+
+    /// <summary>
+    /// Rotates the master key of the owner and answers with the new active key and the retired one. A rekey within
+    /// twice the refresh interval of the owner's last rotation answers <c>409 Conflict</c> with a <c>Retry-After</c>
+    /// header; one that loses a race to another rekey throws <see cref="StoreConcurrencyException"/>, which the
+    /// management route group answers <c>412</c>.
+    /// </summary>
+    // See ADR-1214.
+    public static async ValueTask<IResult> RekeyAsync(
+        IMasterKeyManager masterKeyManager,
+        IManagementAuditRecorder auditRecorder,
+        HttpContext httpContext,
+        SecretOwner owner,
+        CancellationToken cancellationToken
+    )
+    {
+        MasterKeyRotation rotation;
+        try
+        {
+            rotation = await masterKeyManager.RotateAsync(owner, cancellationToken);
+        }
+        catch (MasterKeyRotationTooSoonException exception)
+        {
+            httpContext.Response.Headers.RetryAfter = Math.Max(
+                    1,
+                    (long)Math.Ceiling(exception.RetryAfter.TotalSeconds)
+                )
+                .ToString(CultureInfo.InvariantCulture);
+
+            return TypedResults.Problem(
+                detail: RekeyTooSoonDetail,
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await auditRecorder.RecordMasterKeyRotatedAsync(httpContext, rotation, cancellationToken);
+
+        return TypedResults.Ok(
+            new EncryptionKeyRotationResource
+            {
+                ActiveKey = ToResource(rotation.ActiveKey),
+                RetiredKey = rotation.RetiredKey is null ? null : ToResource(rotation.RetiredKey),
+            }
+        );
+    }
+
+    private static EncryptionKeyResource ToResource(MasterKeyInfo key) =>
+        new()
+        {
+            KeyId = key.KeyId,
+            Version = key.Version,
+            State = key.IsActive ? EncryptionKeyStates.Active : EncryptionKeyStates.Retired,
+            CreatedWhen = key.CreatedWhen,
+            RetiredWhen = key.RetiredWhen,
+            RootKeyProvider = key.RootKeyProvider,
+            RootKeyId = key.RootKeyId,
+            RecoveryKeyId = key.RecoveryKeyId,
+        };
+}

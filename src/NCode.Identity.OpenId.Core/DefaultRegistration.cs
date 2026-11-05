@@ -8,6 +8,7 @@ using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.SecretProtection;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
@@ -41,6 +42,7 @@ public static class DefaultRegistration
                 .AddContextServices()
                 .AddServerServices()
                 .AddSettingServices()
+                .AddSecretProtectionServices()
                 .AddTenantResolutionServices()
                 .AddPrincipalResolutionServices();
 

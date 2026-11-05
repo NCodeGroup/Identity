@@ -10,9 +10,24 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <param name="Active">The master key that protects new values.</param>
 /// <param name="Keys">Every master key of the owner by its identifier, including the active master key.</param>
-// See ADR-1235.
-internal sealed record MasterKeyRingEntry(MasterKey Active, FrozenDictionary<Guid, MasterKey> Keys)
+/// <param name="LoadedTimestamp">The <see cref="TimeProvider.GetTimestamp"/> value of the moment the entry was
+/// loaded.</param>
+// See ADR-1235 and ADR-1407.
+internal sealed record MasterKeyRingEntry(
+    MasterKey Active,
+    FrozenDictionary<Guid, MasterKey> Keys,
+    long LoadedTimestamp
+)
 {
+    /// <summary>
+    /// Determines whether the entry was loaded longer ago than a refresh interval, so that it has to be read again.
+    /// </summary>
+    /// <param name="timeProvider">The clock that produced <see cref="LoadedTimestamp"/>.</param>
+    /// <param name="refreshInterval">How long an entry may be used.</param>
+    /// <returns><see langword="true"/> when the entry is older than <paramref name="refreshInterval"/>.</returns>
+    public bool IsStale(TimeProvider timeProvider, TimeSpan refreshInterval) =>
+        timeProvider.GetElapsedTime(LoadedTimestamp) >= refreshInterval;
+
     /// <summary>
     /// Determines whether every specified master key is cached.
     /// </summary>

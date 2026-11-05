@@ -108,6 +108,23 @@ secretProtection:
     publicKeyConfigMap: ""
     # true only to accept that losing the root key loses every stored secret.
     disabled: false
+  # A one-off Job from the host image that rewraps every master key under the configured root key provider and
+  # recovery public key (ADR-1408). Enable it for a release that changes the root key provider, the root key or the
+  # recovery key pair, and disable it again once it has completed.
+  rewrapJob:
+    enabled: false
+    # 'rewrap' wraps every master key under the root key provider and the recovery public key; 'rewrap-recovery'
+    # replaces only the recovery copies and needs recovery.publicKeyConfigMap.
+    command: rewrap
+    # Limits the run to one owner, such as tenant:acme or server:default; empty rewraps every owner.
+    owner: ""
+    # true only verifies that every master key can be unwrapped, and writes nothing.
+    dryRun: false
+    # Secret holding the recovery private key under the key 'recovery-private.pem'. It is mounted into this Job only.
+    # Set it when the master keys must be unwrapped from their recovery copies, because the root key is lost.
+    recoveryPrivateKeySecret: ""
+    backoffLimit: 0
+    activeDeadlineSeconds: 3600
 
 service:
   type: ClusterIP

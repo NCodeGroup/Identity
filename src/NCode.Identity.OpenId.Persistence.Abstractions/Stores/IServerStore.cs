@@ -150,7 +150,8 @@ public interface IServerStore : IStore<PersistedServer>
 
     /// <summary>
     /// Removes an OpenId Server from the store. The removal is rejected while the server still has dependent
-    /// child resources (any secrets); those dependents must be removed first.
+    /// child resources (any secrets); those dependents must be removed first. The master keys that the server owns are
+    /// removed with it.
     /// </summary>
     /// <param name="serverId">The identifier of the OpenId Server to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

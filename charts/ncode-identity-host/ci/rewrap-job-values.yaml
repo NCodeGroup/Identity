@@ -1,0 +1,21 @@
+# A production release that also runs the secret protection Job, which rewraps the master keys under the AWS KMS root
+# key and unwraps them from their recovery copies with the recovery private key.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: aws-kms
+  awsKms:
+    keyArn: arn:aws:kms:us-west-2:111122223333:alias/ncode-identity-root
+    webIdentity:
+      roleArn: arn:aws:iam::111122223333:role/ncode-identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key
+  rewrapJob:
+    enabled: true
+    command: rewrap
+    recoveryPrivateKeySecret: identity-recovery-private-key

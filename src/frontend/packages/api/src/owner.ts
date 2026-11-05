@@ -20,6 +20,9 @@ export type ManagementOwner =
 /** The client variant of {@link ManagementOwner}; only a client's secrets rotate in one call. */
 export type ClientOwner = Extract<ManagementOwner, { readonly kind: 'client' }>;
 
+/** The owners that have master keys to report and rekey: a server or a tenant. */
+export type EncryptionKeyOwner = Extract<ManagementOwner, { readonly kind: 'server' | 'tenant' }>;
+
 /** The scope an owner is administered in: servers are global, a tenant is its own scope. */
 export function ownerScope(owner: ManagementOwner): ManagementScope {
   switch (owner.kind) {

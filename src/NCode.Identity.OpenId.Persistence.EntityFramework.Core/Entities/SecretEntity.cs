@@ -139,11 +139,12 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets the base64url encoded value of the key material.
+    /// Gets or sets the base64url encoded value of the key material. The material is immutable; a rewrap replaces
+    /// the envelope that protects it.
     /// </summary>
     [Unicode(false)]
     [MaxLength(SecretMaxLengths.EncodedValue)]
-    public required string EncodedValue { get; init; }
+    public required string EncodedValue { get; set; }
 
     /// <summary>
     /// Gets the base64url-encoded <c>SubjectPublicKeyInfo</c> DER of the public half of a private asymmetric key, or

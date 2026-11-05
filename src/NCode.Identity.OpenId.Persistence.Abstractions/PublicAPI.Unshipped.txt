@@ -508,3 +508,18 @@ NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.StartTime.init -> voi
 NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.TenantId.get -> string!
 NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter.TenantId.init -> void
 NCode.Identity.OpenId.Persistence.Stores.IAuditRecordStore.GetPageAsync(NCode.Identity.OpenId.Persistence.Stores.AuditRecordFilter filter, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedAuditRecord!>!>
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.ItemId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.ItemId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.PersistedProtectedValue() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.ProtectedValue.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.ProtectedValue.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.RecordId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue.RecordId.init -> void
+NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetProtectedPayloadPageAsync(string! tenantId, System.Collections.Generic.IReadOnlyCollection<string!>! payloadPrefixes, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue!>!>
+NCode.Identity.OpenId.Persistence.Stores.IGrantStore.UpdateProtectedPayloadAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore
+NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore.GetPageAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IReadOnlyCollection<string!>! valuePrefixes, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue!>!>
+NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore.UpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>

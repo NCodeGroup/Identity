@@ -163,23 +163,134 @@ internal class MasterKeyFactory(
             .Get(row.RootKeyProvider)
             .UnwrapAsync(wrappedKey, context, destination, cancellationToken);
 
-        if (destination.Length != SecretProtectionFormat.MasterKeySizeBytes)
+        using var material = destination.GetSpanLease(isSensitive: true);
+
+        return CreateVerifiedKey(material.Span, row, owner);
+    }
+
+    /// <summary>
+    /// Unwraps a persisted master key from its recovery copy with the recovery private key, and verifies the key the
+    /// way <see cref="UnwrapAsync"/> does.
+    /// </summary>
+    /// <param name="row">The persisted master key to unwrap; it must carry a recovery copy.</param>
+    /// <param name="unwrapper">The unwrapper that holds the recovery private key.</param>
+    /// <returns>The master key, which the caller owns and must dispose.</returns>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the row has no recovery copy under the unwrapper's key, when the copy cannot be unwrapped, or when
+    /// the unwrapped key does not match the size or the key-check value of the row.
+    /// </exception>
+    // See ADR-1408.
+    public static MasterKey UnwrapWithRecovery(
+        PersistedMasterKey row,
+        RecoveryKeyUnwrapper unwrapper
+    )
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        ArgumentNullException.ThrowIfNull(unwrapper);
+
+        var owner = row.Owner;
+        if (
+            row.RecoveryWrappedKey is null
+            || !string.Equals(row.RecoveryKeyId, unwrapper.RecoveryKeyId, StringComparison.Ordinal)
+        )
+        {
+            throw new CryptographicException(
+                $"The master key '{row.KeyId}' of owner '{owner}' has no recovery copy under the recovery key '{unwrapper.RecoveryKeyId}'."
+            );
+        }
+
+        using var destination = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: true,
+            SecretProtectionFormat.MasterKeySizeBytes
+        );
+        unwrapper.Unwrap(row.RecoveryWrappedKey, destination);
+
+        using var material = destination.GetSpanLease(isSensitive: true);
+
+        return CreateVerifiedKey(material.Span, row, owner);
+    }
+
+    /// <summary>
+    /// Wraps a master key under the configured root key provider, bound to its identifier and owner.
+    /// </summary>
+    /// <param name="masterKey">The master key to wrap.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The wrapped key, with the name of the provider and the identifier of the root key.</returns>
+    // See ADR-1408.
+    public async ValueTask<WrappedKey> WrapUnderRootAsync(
+        MasterKey masterKey,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(masterKey);
+
+        var contextSize = SecretProtectionFormat.GetRootContextSize(masterKey.Owner);
+        using var contextLease = BufferFactory.Rent(
+            contextSize,
+            isSensitive: false,
+            out Memory<byte> contextBuffer
+        );
+        var contextWritten = SecretProtectionFormat.WriteRootContext(
+            masterKey.KeyId,
+            masterKey.Owner,
+            contextBuffer.Span
+        );
+
+        return await Catalog
+            .GetConfigured()
+            .WrapAsync(
+                masterKey.MaterialMemory,
+                contextBuffer[..contextWritten],
+                cancellationToken
+            );
+    }
+
+    /// <summary>
+    /// Wraps a master key under the recovery public key.
+    /// </summary>
+    /// <param name="masterKey">The master key to wrap.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The wrapped key, or <see langword="null"/> when no recovery key is configured.</returns>
+    // See ADR-1408.
+    public async ValueTask<WrappedKey?> WrapUnderRecoveryAsync(
+        MasterKey masterKey,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(masterKey);
+
+        if (!Recovery.IsConfigured)
+            return null;
+
+        return await Recovery.WrapAsync(
+            masterKey.MaterialMemory,
+            ReadOnlyMemory<byte>.Empty,
+            cancellationToken
+        );
+    }
+
+    // Verifies the size and the key-check value of an unwrapped key and builds the master key from it.
+    private static MasterKey CreateVerifiedKey(
+        ReadOnlySpan<byte> material,
+        PersistedMasterKey row,
+        SecretOwner owner
+    )
+    {
+        if (material.Length != SecretProtectionFormat.MasterKeySizeBytes)
         {
             throw new CryptographicException(
                 $"The master key '{row.KeyId}' of owner '{owner}' does not have the size of a master key."
             );
         }
 
-        using var material = destination.GetSpanLease(isSensitive: true);
-
-        if (!IsKeyCheckValid(material.Span, row, owner))
+        if (!IsKeyCheckValid(material, row, owner))
         {
             throw new CryptographicException(
                 $"The master key '{row.KeyId}' of owner '{owner}' does not match its key-check value."
             );
         }
 
-        return MasterKey.Create(row.KeyId, owner, row.Version, material.Span);
+        return MasterKey.Create(row.KeyId, owner, row.Version, material);
     }
 
     // Computes the key-check value of the master key as the string that the row persists.

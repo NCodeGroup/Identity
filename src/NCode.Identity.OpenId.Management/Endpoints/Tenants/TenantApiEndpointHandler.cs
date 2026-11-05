@@ -17,9 +17,11 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
+using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
+using NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -53,6 +55,9 @@ GET    api/tenants/{tenantId}/secrets/{secretId}/public-key
 PUT    api/tenants/{tenantId}/secrets/{secretId}
 DELETE api/tenants/{tenantId}/secrets/{secretId}
 
+GET    api/tenants/{tenantId}/encryption-keys
+POST   api/tenants/{tenantId}/encryption-keys/rekey
+
 */
 
 /// <summary>
@@ -68,6 +73,7 @@ internal class TenantApiEndpointHandler(
     IClientKeyImporter keyImporter,
     ISecretPublicKeyConverter secretPublicKeyConverter,
     ISecretProtectorProvider secretProtectorProvider,
+    IMasterKeyManager masterKeyManager,
     TimeProvider timeProvider,
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
@@ -89,6 +95,7 @@ internal class TenantApiEndpointHandler(
     private IClientKeyImporter KeyImporter { get; } = keyImporter;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
+    private IMasterKeyManager MasterKeyManager { get; } = masterKeyManager;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
 
@@ -170,6 +177,14 @@ internal class TenantApiEndpointHandler(
         tenants
             .MapDelete("/{tenantId}/secrets/{secretId}", DeleteSecretAsync)
             .Produces(StatusCodes.Status204NoContent);
+
+        tenants
+            .MapGet("/{tenantId}/encryption-keys", GetEncryptionKeysAsync)
+            .Produces<EncryptionKeysResource>();
+        tenants
+            .MapPost("/{tenantId}/encryption-keys/rekey", RekeyEncryptionKeysAsync)
+            .Produces<EncryptionKeyRotationResource>()
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         tenants
             .MapGet("/{tenantId}/owners", ListOwnersAsync)
@@ -1742,4 +1757,98 @@ internal class TenantApiEndpointHandler(
 
     // An empty issuer means the tenant has none; storing it as empty would put it under the issuer's unique index.
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
+
+    /// <summary>
+    /// Lists the master keys of a tenant, newest version first. The response carries no key material.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The tenant's encryption keys.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    [EndpointName("api/tenants/encryption-keys/get")]
+    internal virtual async ValueTask<IResult> GetEncryptionKeysAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenant = await FindTenantAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            tenant,
+            Operations.Read
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return await EncryptionKeyEndpoints.GetAsync(
+            MasterKeyManager,
+            SecretOwner.ForTenant(tenant.TenantId),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Rekeys a tenant: retires its active master key and creates the next version, whose values are then rewrapped in
+    /// the background.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The new active key and the key that it retired.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After).</response>
+    /// <response code="412">Another rekey of the same master key committed first.</response>
+    [EndpointName("api/tenants/encryption-keys/rekey")]
+    internal virtual async ValueTask<IResult> RekeyEncryptionKeysAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenant = await FindTenantAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            tenant,
+            Operations.Update
+        );
+
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return await EncryptionKeyEndpoints.RekeyAsync(
+            MasterKeyManager,
+            ManagementAuditRecorder,
+            httpContext,
+            SecretOwner.ForTenant(tenant.TenantId),
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<PersistedTenant?> FindTenantAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        return await storeManager
+            .GetStore<ITenantStore>()
+            .GetOrDefaultAsync(tenantId, cancellationToken);
+    }
 }

@@ -62,6 +62,10 @@ public static class DefaultRegistration
         /// <item><description>The factory that creates and unwraps master keys.</description></item>
         /// <item><description><see cref="ISecretProtectorProvider"/> - Provides secret protectors backed by
         /// the cached, persisted master key ring.</description></item>
+        /// <item><description><see cref="IMasterKeyManager"/> - Rotates master keys, rewraps the values that retired
+        /// keys protect and destroys retired keys that nothing names.</description></item>
+        /// <item><description><see cref="IMasterKeyRewrapper"/> - Rewraps persisted master keys under the configured
+        /// root key provider and recovery public key.</description></item>
         /// <item><description>Options for <see cref="SecretProtectionOptions"/> and
         /// <see cref="LocalKeyWrapperOptions"/>, which are bound to configuration elsewhere, and for
         /// <see cref="SharedSecretVerifierOptions"/>, <see cref="Pbkdf2SecretVerifierOptions"/> and
@@ -130,6 +134,14 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IRecoveryKeyWrapper, RecoveryKeyWrapper>();
             serviceCollection.TryAddSingleton<MasterKeyFactory>();
             serviceCollection.TryAddSingleton<ISecretProtectorProvider, DefaultMasterKeyRing>();
+            serviceCollection.TryAddSingleton<IMasterKeyManager, DefaultMasterKeyManager>();
+            serviceCollection.TryAddSingleton<IMasterKeyRewrapper, DefaultMasterKeyRewrapper>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<SecretProtectionOptions>,
+                    MasterKeyOptionsValidator
+                >()
+            );
             serviceCollection.AddOptions<SecretProtectionOptions>();
             serviceCollection.AddOptions<LocalKeyWrapperOptions>();
             serviceCollection.AddOptions<SharedSecretVerifierOptions>().ValidateOnStart();

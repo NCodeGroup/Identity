@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Logging;
 
@@ -210,4 +211,89 @@ internal static partial class Log
         Message = "Evicting the cached tenants after the server's settings changed failed; each tenant applies the change when its cache entry expires"
     )]
     internal static partial void TenantCacheClearFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.ProtectedValuePageConflict,
+        Level = LogLevel.Debug,
+        Message = "Another writer changed a page of the protected values of '{Owner}' while it was rewrapped; reading the page again (attempt {Attempt})"
+    )]
+    internal static partial void ProtectedValuePageConflict(
+        this ILogger logger,
+        SecretOwner owner,
+        int attempt
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ProtectedValueRewrapFailed,
+        Level = LogLevel.Warning,
+        Message = "The protected value of record '{RecordId}' of '{Owner}' cannot be rewrapped; it keeps its master key"
+    )]
+    internal static partial void ProtectedValueRewrapFailed(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner,
+        string recordId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ProtectedValuePageAbandoned,
+        Level = LogLevel.Warning,
+        Message = "A page of the protected values of '{Owner}' changed on each of {Attempts} attempts; its values are left for the next pass"
+    )]
+    internal static partial void ProtectedValuePageAbandoned(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner,
+        int attempts
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ProtectedValuePageUnreadable,
+        Level = LogLevel.Warning,
+        Message = "A master key that a page of the protected values of '{Owner}' names cannot be loaded; its values are left for the next pass"
+    )]
+    internal static partial void ProtectedValuePageUnreadable(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.MasterKeyMaintenancePassFailed,
+        Level = LogLevel.Warning,
+        Message = "The master key maintenance pass failed; it runs again at the next interval"
+    )]
+    internal static partial void MasterKeyMaintenancePassFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.MasterKeyMaintenanceOwnerFailed,
+        Level = LogLevel.Warning,
+        Message = "The master key maintenance of '{Owner}' failed; the pass continues with the other owners"
+    )]
+    internal static partial void MasterKeyMaintenanceOwnerFailed(
+        this ILogger logger,
+        SecretOwner owner,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.MasterKeyRotationLostRace,
+        Level = LogLevel.Debug,
+        Message = "Another writer rotated the master key of '{Owner}' first; the maintenance pass leaves it to that rotation"
+    )]
+    internal static partial void MasterKeyRotationLostRace(this ILogger logger, SecretOwner owner);
+
+    [LoggerMessage(
+        EventId = EventIds.MasterKeyAuditPublishFailed,
+        Level = LogLevel.Warning,
+        Message = "Publishing the audit event of the committed master key change of '{Owner}' failed; the change stands"
+    )]
+    internal static partial void MasterKeyAuditPublishFailed(
+        this ILogger logger,
+        SecretOwner owner,
+        Exception exception
+    );
 }

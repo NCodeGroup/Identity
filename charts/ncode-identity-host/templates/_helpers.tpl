@@ -14,6 +14,15 @@ The name of the migration Job. The fully qualified name is shortened first so th
 {{- end }}
 
 {{/*
+The name of the secret protection Job, which carries the release revision so each upgrade can run its own. The fully
+qualified name is shortened first so the name, with its suffix, fits the 63-character label value Kubernetes copies it
+into (batch.kubernetes.io/job-name).
+*/}}
+{{- define "identity-host.secretProtectionJobName" -}}
+{{- printf "%s-secret-protection-%d" (include "identity-host.fullname" . | trunc 38 | trimSuffix "-") (int .Release.Revision) }}
+{{- end }}
+
+{{/*
 The fully qualified name of the release's resources.
 */}}
 {{- define "identity-host.fullname" -}}
@@ -133,6 +142,11 @@ applied. Rendered for its side effect only.
 {{- fail "secretProtection.googleCloudKms.workloadIdentityFederation.provider must be the resource name of a workload identity pool provider, such as projects/123456789012/locations/global/workloadIdentityPools/ncode-identity/providers/cluster." }}
 {{- end }}
 {{- end }}
+{{- if .Values.secretProtection.rewrapJob.enabled }}
+{{- if and (eq .Values.secretProtection.rewrapJob.command "rewrap-recovery") (not .Values.secretProtection.recovery.publicKeyConfigMap) }}
+{{- fail "secretProtection.rewrapJob.command rewrap-recovery replaces the recovery copies, so secretProtection.recovery.publicKeyConfigMap must name the recovery public key ConfigMap." }}
+{{- end }}
+{{- end }}
 {{- if not .Values.secretProtection.rootKeyProvider }}
 {{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms, or ephemeral outside Production." }}
 {{- end }}
@@ -217,5 +231,240 @@ deployment.yaml mounts.
 {{- $_ := set $configuration "service_account_impersonation_url" (printf "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken" $federation.serviceAccountEmail) }}
 {{- end }}
 {{- $configuration | toPrettyJson }}
+{{- end }}
+{{- end }}
+
+{{/*
+The environment of the host container, which the Deployment and the secret protection Job share, so a Job reads the
+same configuration the pods it rewraps keys for read.
+*/}}
+{{- define "identity-host.hostEnv" -}}
+{{- $valkey := include "identity-host.valkeyEnabled" . }}
+{{- $secretProtectionRoot := "/etc/ncode-identity/secret-protection" }}
+{{- $awsWebIdentityRoot := "/var/run/secrets/tokens/aws" }}
+{{- /* A pod that does not use AWS KMS never carries AWS credentials, whatever the web identity values say. */}}
+{{- $awsWebIdentity := and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.webIdentity.roleArn }}
+{{- $azureWorkloadIdentityRoot := "/var/run/secrets/tokens/azure" }}
+{{- /* A pod that does not use Azure Key Vault never carries Azure credentials, whatever the workload identity values say. */}}
+{{- $azureWorkloadIdentity := and (eq .Values.secretProtection.rootKeyProvider "azure-key-vault") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
+{{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
+{{- $googleCloudTokenRoot := "/var/run/secrets/tokens/google" }}
+- name: ASPNETCORE_ENVIRONMENT
+  value: {{ .Values.environment | quote }}
+- name: AllowedHosts
+  value: {{ join ";" .Values.allowedHosts | quote }}
+- name: OpenId__TenantResolution__StrategyCode
+  value: {{ .Values.tenantResolution.strategyCode | quote }}
+{{- with .Values.tenantResolution.staticSingle.issuer }}
+- name: OpenId__TenantResolution__StaticSingle__Issuer
+  value: {{ . | quote }}
+{{- end }}
+{{- range $index, $network := .Values.reverseProxy.knownNetworks }}
+- name: ReverseProxy__KnownNetworks__{{ $index }}
+  value: {{ $network | quote }}
+{{- end }}
+{{- range $index, $proxy := .Values.reverseProxy.knownProxies }}
+- name: ReverseProxy__KnownProxies__{{ $index }}
+  value: {{ $proxy | quote }}
+{{- end }}
+- name: ReverseProxy__ForwardLimit
+  value: {{ .Values.reverseProxy.forwardLimit | quote }}
+- name: ConnectionStrings__openiddb
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.database.existingSecret }}
+      key: {{ .Values.database.connectionStringKey }}
+{{- if $valkey }}
+- name: ConnectionStrings__valkey
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.valkey.existingSecret }}
+      key: {{ .Values.valkey.connectionStringKey }}
+{{- end }}
+{{- with .Values.secretProtection.rootKeyProvider }}
+- name: SecretProtection__RootKeyProvider
+  value: {{ . | quote }}
+{{- end }}
+{{- if .Values.secretProtection.local.keySecret }}
+- name: SecretProtection__RootKeyProviders__Local__KeyPath
+  value: {{ printf "%s/root-key/key" $secretProtectionRoot }}
+{{- end }}
+{{- range $index, $secret := .Values.secretProtection.local.previousKeySecrets }}
+- name: SecretProtection__RootKeyProviders__Local__PreviousKeyPaths__{{ $index }}
+  value: {{ printf "%s/previous-%d/key" $secretProtectionRoot $index }}
+{{- end }}
+{{- if eq .Values.secretProtection.rootKeyProvider "aws-kms" }}
+- name: SecretProtection__RootKeyProviders__AwsKms__KeyArn
+  value: {{ .Values.secretProtection.awsKms.keyArn | quote }}
+# The SDK reads the region from the environment; the key's ARN names it.
+- name: AWS_REGION
+  value: {{ index (splitList ":" .Values.secretProtection.awsKms.keyArn) 3 | quote }}
+{{- end }}
+{{- if $awsWebIdentity }}
+# The SDK exchanges the projected token for short-lived credentials of this role.
+- name: AWS_ROLE_ARN
+  value: {{ .Values.secretProtection.awsKms.webIdentity.roleArn | quote }}
+- name: AWS_WEB_IDENTITY_TOKEN_FILE
+  value: {{ printf "%s/token" $awsWebIdentityRoot }}
+- name: AWS_ROLE_SESSION_NAME
+  value: {{ include "identity-host.fullname" . | quote }}
+{{- end }}
+{{- if eq .Values.secretProtection.rootKeyProvider "azure-key-vault" }}
+- name: SecretProtection__RootKeyProviders__AzureKeyVault__KeyId
+  value: {{ .Values.secretProtection.azureKeyVault.keyId | quote }}
+{{- end }}
+{{- if $azureWorkloadIdentity }}
+# Azure.Identity exchanges the projected token for an Entra token of this identity, and tries no other
+# credential.
+- name: AZURE_TENANT_ID
+  value: {{ .Values.secretProtection.azureKeyVault.workloadIdentity.tenantId | quote }}
+- name: AZURE_CLIENT_ID
+  value: {{ .Values.secretProtection.azureKeyVault.workloadIdentity.clientId | quote }}
+- name: AZURE_FEDERATED_TOKEN_FILE
+  value: {{ printf "%s/token" $azureWorkloadIdentityRoot }}
+- name: AZURE_TOKEN_CREDENTIALS
+  value: WorkloadIdentityCredential
+{{- end }}
+{{- if eq .Values.secretProtection.rootKeyProvider "google-cloud-kms" }}
+- name: SecretProtection__RootKeyProviders__GoogleCloudKms__KeyName
+  value: {{ .Values.secretProtection.googleCloudKms.keyName | quote }}
+{{- end }}
+{{- if $googleCloudCredentials }}
+# Application Default Credentials read this configuration, which exchanges the projected token with Google
+# STS.
+- name: GOOGLE_APPLICATION_CREDENTIALS
+  value: {{ printf "%s/credential-configuration.json" $googleCloudTokenRoot }}
+{{- end }}
+{{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
+- name: SecretProtection__Recovery__PublicKeyPath
+  value: {{ printf "%s/recovery/recovery-public.pem" $secretProtectionRoot }}
+{{- end }}
+{{- if .Values.secretProtection.recovery.disabled }}
+- name: SecretProtection__Recovery__Disabled
+  value: "true"
+{{- end }}
+{{- with .Values.extraEnv }}
+{{- toYaml . | nindent 0 }}
+{{- end }}
+{{- end }}
+
+{{/*
+The volume mounts of the host container, which the Deployment and the secret protection Job share.
+*/}}
+{{- define "identity-host.hostVolumeMounts" -}}
+{{- $secretProtectionRoot := "/etc/ncode-identity/secret-protection" }}
+{{- $awsWebIdentityRoot := "/var/run/secrets/tokens/aws" }}
+{{- /* A pod that does not use AWS KMS never carries AWS credentials, whatever the web identity values say. */}}
+{{- $awsWebIdentity := and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.webIdentity.roleArn }}
+{{- $azureWorkloadIdentityRoot := "/var/run/secrets/tokens/azure" }}
+{{- /* A pod that does not use Azure Key Vault never carries Azure credentials, whatever the workload identity values say. */}}
+{{- $azureWorkloadIdentity := and (eq .Values.secretProtection.rootKeyProvider "azure-key-vault") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
+{{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
+{{- $googleCloudTokenRoot := "/var/run/secrets/tokens/google" }}
+# The root filesystem is read-only; the runtime's diagnostics socket and temporary files go here.
+- name: tmp
+  mountPath: /tmp
+{{- if .Values.secretProtection.local.keySecret }}
+- name: secret-protection-root-key
+  mountPath: {{ printf "%s/root-key" $secretProtectionRoot }}
+  readOnly: true
+{{- end }}
+{{- range $index, $secret := .Values.secretProtection.local.previousKeySecrets }}
+- name: secret-protection-previous-{{ $index }}
+  mountPath: {{ printf "%s/previous-%d" $secretProtectionRoot $index }}
+  readOnly: true
+{{- end }}
+{{- if $awsWebIdentity }}
+- name: aws-web-identity
+  mountPath: {{ $awsWebIdentityRoot }}
+  readOnly: true
+{{- end }}
+{{- if $azureWorkloadIdentity }}
+- name: azure-workload-identity
+  mountPath: {{ $azureWorkloadIdentityRoot }}
+  readOnly: true
+{{- end }}
+{{- if $googleCloudCredentials }}
+- name: google-cloud-credentials
+  mountPath: {{ $googleCloudTokenRoot }}
+  readOnly: true
+{{- end }}
+{{- if .Values.secretProtection.recovery.publicKeyConfigMap }}
+- name: secret-protection-recovery
+  mountPath: {{ printf "%s/recovery" $secretProtectionRoot }}
+  readOnly: true
+{{- end }}
+{{- with .Values.extraVolumeMounts }}
+{{- toYaml . | nindent 0 }}
+{{- end }}
+{{- end }}
+
+{{/*
+The volumes of the host pod, which the Deployment and the secret protection Job share.
+*/}}
+{{- define "identity-host.hostVolumes" -}}
+{{- /* A pod that does not use AWS KMS never carries AWS credentials, whatever the web identity values say. */}}
+{{- $awsWebIdentity := and (eq .Values.secretProtection.rootKeyProvider "aws-kms") .Values.secretProtection.awsKms.webIdentity.roleArn }}
+{{- /* A pod that does not use Azure Key Vault never carries Azure credentials, whatever the workload identity values say. */}}
+{{- $azureWorkloadIdentity := and (eq .Values.secretProtection.rootKeyProvider "azure-key-vault") .Values.secretProtection.azureKeyVault.workloadIdentity.clientId }}
+{{- $googleCloudCredentials := include "identity-host.googleCloudCredentialConfiguration" . }}
+- name: tmp
+  emptyDir:
+    sizeLimit: 256Mi
+{{- with .Values.secretProtection.local.keySecret }}
+- name: secret-protection-root-key
+  secret:
+    secretName: {{ . }}
+    defaultMode: 0440
+{{- end }}
+{{- range $index, $secret := .Values.secretProtection.local.previousKeySecrets }}
+- name: secret-protection-previous-{{ $index }}
+  secret:
+    secretName: {{ $secret }}
+    defaultMode: 0440
+{{- end }}
+{{- if $awsWebIdentity }}
+# The pod does not mount the default service account token, so this one is projected explicitly, for AWS only.
+- name: aws-web-identity
+  projected:
+    sources:
+      - serviceAccountToken:
+          audience: {{ .Values.secretProtection.awsKms.webIdentity.audience | quote }}
+          expirationSeconds: {{ .Values.secretProtection.awsKms.webIdentity.tokenExpirationSeconds }}
+          path: token
+{{- end }}
+{{- if $azureWorkloadIdentity }}
+# The pod does not mount the default service account token, so this one is projected explicitly, for Azure only.
+- name: azure-workload-identity
+  projected:
+    sources:
+      - serviceAccountToken:
+          audience: {{ .Values.secretProtection.azureKeyVault.workloadIdentity.audience | quote }}
+          expirationSeconds: {{ .Values.secretProtection.azureKeyVault.workloadIdentity.tokenExpirationSeconds }}
+          path: token
+{{- end }}
+{{- if $googleCloudCredentials }}
+# The token and the configuration that exchanges it, projected together, for Google Cloud only.
+- name: google-cloud-credentials
+  projected:
+    sources:
+      - serviceAccountToken:
+          audience: {{ printf "https://iam.googleapis.com/%s" .Values.secretProtection.googleCloudKms.workloadIdentityFederation.provider | quote }}
+          expirationSeconds: {{ .Values.secretProtection.googleCloudKms.workloadIdentityFederation.tokenExpirationSeconds }}
+          path: token
+      - configMap:
+          name: {{ include "identity-host.fullname" . }}-google-cloud
+          items:
+            - key: credential-configuration.json
+              path: credential-configuration.json
+{{- end }}
+{{- with .Values.secretProtection.recovery.publicKeyConfigMap }}
+- name: secret-protection-recovery
+  configMap:
+    name: {{ . }}
+    defaultMode: 0440
+{{- end }}
+{{- with .Values.extraVolumes }}
+{{- toYaml . | nindent 0 }}
 {{- end }}
 {{- end }}

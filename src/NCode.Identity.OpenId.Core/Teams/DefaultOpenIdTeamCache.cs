@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -12,7 +13,8 @@ namespace NCode.Identity.OpenId.Teams;
 /// <summary>
 /// Provides a default implementation of the <see cref="IOpenIdTeamCache"/> abstraction that uses <see cref="IMemoryCache"/>
 /// with an absolute lifetime to cache <see cref="OpenIdTeam"/> instances. Each team is cached for at most
-/// <see cref="OpenIdTeamOptions.TeamCacheLifetime"/>, or until <see cref="ClearAsync"/> evicts every cached team.
+/// <see cref="OpenIdTeamOptions.TeamCacheLifetime"/>, or until <see cref="ClearAsync"/> evicts every cached team. An index
+/// of the cached teams' <see cref="TeamRevision"/> values answers <see cref="GetRevisionsAsync"/> without scanning the cache.
 /// </summary>
 // See ADR-1411
 internal class DefaultOpenIdTeamCache(
@@ -30,17 +32,29 @@ internal class DefaultOpenIdTeamCache(
     // Cancelled by ClearAsync, so every entry cached before the call expires.
     private CancellationTokenSource Generation { get; set; } = new();
 
+    // The revision of each cached team (compared without regard to case, as the cache keys them), so GetRevisionsAsync
+    // lists the cached teams without scanning the cache. Each value holds the token of the cache entry that registered
+    // it, so an eviction callback removes only its own entry.
+    private ConcurrentDictionary<
+        string,
+        (object Entry, TeamRevision Revision)
+    > CachedRevisions { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     // Team identifiers compare without regard to case, so the key is the lowercase identifier.
     private static string GetCacheKey(string teamId) =>
         $"NCode.Identity.OpenId.Teams.DefaultOpenIdTeamCache:{teamId.ToLowerInvariant()}";
 
-    private static void EvictionCallback(
-        object key,
-        object? value,
-        EvictionReason reason,
-        object? state
-    )
+    private void EvictionCallback(object key, object? value, EvictionReason reason, object? state)
     {
+        // The index entry is removed only while it still holds this cache entry, so a late callback of a removed or
+        // expired entry never deletes its live replacement.
+        if (state is ValueTuple<string, ValueTuple<object, TeamRevision>>(var teamId, var cached))
+        {
+            CachedRevisions.TryRemove(
+                new KeyValuePair<string, (object Entry, TeamRevision Revision)>(teamId, cached)
+            );
+        }
+
         if (value is not IAsyncDisposable asyncDisposable)
             return;
 
@@ -81,24 +95,31 @@ internal class DefaultOpenIdTeamCache(
     {
         var key = GetCacheKey(teamId);
         var newLease = team.AddReference();
+        var entry = new object();
+        var revision = new TeamRevision(teamId, team.Value.ConcurrencyToken);
 
-        CancellationToken generation;
+        // The generation token, the index write and the cache write share one lock, so two concurrent calls for the
+        // same team leave the index holding the entry the cache holds, and a replaced entry's callback never removes
+        // the survivor's index entry. The eviction callback does not take the lock.
         lock (Gate)
         {
-            generation = Generation.Token;
-        }
-
-        var entryOptions = new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = Lifetime,
-            ExpirationTokens = { new CancellationChangeToken(generation) },
-            PostEvictionCallbacks =
+            var entryOptions = new MemoryCacheEntryOptions
             {
-                new PostEvictionCallbackRegistration { EvictionCallback = EvictionCallback },
-            },
-        };
+                AbsoluteExpirationRelativeToNow = Lifetime,
+                ExpirationTokens = { new CancellationChangeToken(Generation.Token) },
+                PostEvictionCallbacks =
+                {
+                    new PostEvictionCallbackRegistration
+                    {
+                        EvictionCallback = EvictionCallback,
+                        State = (teamId, (entry, revision)),
+                    },
+                },
+            };
 
-        MemoryCache.Set(key, newLease, entryOptions);
+            CachedRevisions[teamId] = (entry, revision);
+            MemoryCache.Set(key, newLease, entryOptions);
+        }
 
         return ValueTask.CompletedTask;
     }
@@ -131,6 +152,19 @@ internal class DefaultOpenIdTeamCache(
         previous.Dispose();
 
         return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public ValueTask<IReadOnlyCollection<TeamRevision>> GetRevisionsAsync(
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        IReadOnlyCollection<TeamRevision> revisions =
+        [
+            .. CachedRevisions.Values.Select(x => x.Revision),
+        ];
+        return ValueTask.FromResult(revisions);
     }
 
     /// <inheritdoc />

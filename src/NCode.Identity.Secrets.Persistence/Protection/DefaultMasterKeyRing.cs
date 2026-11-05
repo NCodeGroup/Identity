@@ -31,6 +31,14 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// whose rows no longer exist, so a replica that missed a rotation or a destruction catches up without a broadcast.
 /// </para>
 /// <para>
+/// An owner that brings a root key is served only while the key works. A cached entry that holds master keys under the
+/// owner's root key is unwrapped again, without reusing any cached material, every
+/// <see cref="OwnerRootKeyOptions.ValidationInterval"/>, so a key that the owner revoked or destroyed stops this replica
+/// within that interval. A load that fails for such an owner removes the entry and refuses the owner for
+/// <see cref="OwnerRootKeyOptions.RetryInterval"/> with an <see cref="OwnerRootKeyUnavailableException"/>, without
+/// calling the store or the key.
+/// </para>
+/// <para>
 /// The ring owns the unwrapped master keys that it caches and zeroes them when it is disposed. Evicting an owner does
 /// not zero its master keys because a protector that was handed out earlier may still be using them. An owner that is
 /// evicted while its master keys load is not cached.
@@ -42,7 +50,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="options">The options whose master key refresh interval bounds how long an entry is used.</param>
 /// <param name="timeProvider">The clock that ages the cached entries.</param>
 /// <param name="logger">The logger.</param>
-// See ADR-1235.
+// See ADR-1235 and ADR-1411.
 internal class DefaultMasterKeyRing(
     MasterKeyFactory factory,
     IStoreManagerFactory storeManagerFactory,
@@ -75,6 +83,10 @@ internal class DefaultMasterKeyRing(
     private ConcurrentDictionary<SecretOwner, SemaphoreSlim> Gates { get; } =
         new(SecretOwnerComparer.Instance);
 
+    // The timestamp of the last failed load of each owner that brings a root key.
+    private ConcurrentDictionary<SecretOwner, long> Failures { get; } =
+        new(SecretOwnerComparer.Instance);
+
     /// <inheritdoc />
     public async ValueTask<ISecretProtector> GetProtectorAsync(
         SecretOwner owner,
@@ -89,11 +101,16 @@ internal class DefaultMasterKeyRing(
 
         var requiredKeyIds = GetRequiredKeyIds(protectedValues);
         var refreshInterval = Options.Value.MasterKeys.RefreshInterval;
+        var rootKeys = Options.Value.OwnerRootKeys;
+
+        // An owner whose root key failed is refused until its retry interval passes, without a store or key call.
+        ThrowIfRefused(owner, rootKeys.RetryInterval);
 
         // The dictionaries ignore case, so a cached owner is found without normalizing the owner.
         if (
             Entries.TryGetValue(owner, out var cached)
             && !cached.IsStale(TimeProvider, refreshInterval)
+            && !cached.NeedsValidation(TimeProvider, rootKeys.ValidationInterval)
             && cached.Contains(requiredKeyIds)
         )
             return CreateProtector(owner, cached);
@@ -108,14 +125,49 @@ internal class DefaultMasterKeyRing(
             var evictionsBefore = Volatile.Read(ref _evictionCount);
 
             // Another caller may have loaded the master keys while this caller waited for the gate.
+            ThrowIfRefused(owner, rootKeys.RetryInterval);
             if (
                 Entries.TryGetValue(key, out cached)
                 && !cached.IsStale(TimeProvider, refreshInterval)
+                && !cached.NeedsValidation(TimeProvider, rootKeys.ValidationInterval)
                 && cached.Contains(requiredKeyIds)
             )
                 return CreateProtector(owner, cached);
 
-            var entry = await LoadEntryAsync(key, cached, requiredKeyIds, cancellationToken);
+            var load = new LoadState(cached?.IsOwnerRooted ?? false);
+            MasterKeyRingEntry entry;
+            try
+            {
+                entry = await LoadEntryAsync(
+                    key,
+                    cached,
+                    requiredKeyIds,
+                    rootKeys.ValidationInterval,
+                    load,
+                    cancellationToken
+                );
+            }
+            catch (Exception exception)
+                when (load.IsOwnerRooted
+                    && !(
+                        exception is OperationCanceledException
+                        && cancellationToken.IsCancellationRequested
+                    )
+                )
+            {
+                // Whatever the failure was, the owner cannot be served through its root key: it fails closed, and
+                // the cached material of the owner is dropped.
+                Entries.TryRemove(key, out _);
+                Failures[key] = TimeProvider.GetTimestamp();
+                Logger.OwnerRootKeyLoadFailed(exception, key);
+
+                if (exception is OwnerRootKeyUnavailableException)
+                    throw;
+
+                throw new OwnerRootKeyUnavailableException(key, exception);
+            }
+
+            Failures.TryRemove(key, out _);
             Entries[key] = entry;
 
             // An eviction that ran during the load removed nothing that this load published, so the entry is retracted
@@ -148,6 +200,7 @@ internal class DefaultMasterKeyRing(
         // The count changes before the entry is removed, so a load that publishes afterwards sees the change.
         Interlocked.Increment(ref _evictionCount);
         Entries.TryRemove(owner, out _);
+        Failures.TryRemove(owner, out _);
     }
 
     /// <inheritdoc />
@@ -156,6 +209,7 @@ internal class DefaultMasterKeyRing(
         // The count changes before the entries are removed, so a load that publishes afterwards sees the change.
         Interlocked.Increment(ref _evictionCount);
         Entries.Clear();
+        Failures.Clear();
     }
 
     /// <summary>
@@ -191,6 +245,24 @@ internal class DefaultMasterKeyRing(
                 nameof(owner)
             );
         }
+    }
+
+    // Tracks whether the load involves an owner root key, which makes a failure of the load a failure of that key.
+    private sealed class LoadState(bool isOwnerRooted)
+    {
+        public bool IsOwnerRooted { get; set; } = isOwnerRooted;
+    }
+
+    private void ThrowIfRefused(SecretOwner owner, TimeSpan retryInterval)
+    {
+        if (Failures.IsEmpty || !Failures.TryGetValue(owner, out var failedTimestamp))
+            return;
+
+        if (TimeProvider.GetElapsedTime(failedTimestamp) >= retryInterval)
+            return;
+
+        Logger.OwnerRootKeyRefused(owner);
+        throw new OwnerRootKeyUnavailableException(owner);
     }
 
     private static DefaultSecretProtector CreateProtector(
@@ -229,11 +301,19 @@ internal class DefaultMasterKeyRing(
         SecretOwner key,
         MasterKeyRingEntry? cached,
         IReadOnlySet<Guid> requiredKeyIds,
+        TimeSpan validationInterval,
+        LoadState load,
         CancellationToken cancellationToken
     )
     {
-        // The cached master keys are reused by their identifiers, so only the rows that are not cached are unwrapped.
+        // The cached master keys are read again by their identifiers. Their material is reused, so only the rows that
+        // are not cached are unwrapped, unless the entry holds material under an owner root key that has to be
+        // validated: then every key is unwrapped again.
         var cachedKeys = cached?.Keys ?? FrozenDictionary<Guid, MasterKey>.Empty;
+        var reusable =
+            cached is not null && !cached.NeedsValidation(TimeProvider, validationInterval)
+                ? cachedKeys
+                : FrozenDictionary<Guid, MasterKey>.Empty;
 
         // The master keys that this load created or unwrapped, which are zeroed again if the load fails. At most the
         // active master key and each required master key are unwrapped.
@@ -245,6 +325,7 @@ internal class DefaultMasterKeyRing(
                 key,
                 cachedKeys,
                 requiredKeyIds,
+                load,
                 cancellationToken
             );
 
@@ -253,10 +334,14 @@ internal class DefaultMasterKeyRing(
 
             // A cached key whose row is gone was destroyed, so it is not carried into the new entry.
             var keys = new Dictionary<Guid, MasterKey>(rows.Count + 1);
+            var reused = false;
             foreach (var row in rows)
             {
-                if (cachedKeys.TryGetValue(row.KeyId, out var cachedKey))
+                if (reusable.TryGetValue(row.KeyId, out var cachedKey))
+                {
                     keys[row.KeyId] = cachedKey;
+                    reused = true;
+                }
             }
 
             foreach (var cachedKeyId in cachedKeys.Keys)
@@ -266,8 +351,10 @@ internal class DefaultMasterKeyRing(
             }
 
             var active = createdKey;
-            if (active is null && !cachedKeys.TryGetValue(activeRow.KeyId, out active))
+            if (active is null && !reusable.TryGetValue(activeRow.KeyId, out active))
                 active = await UnwrapRowAsync(key, activeRow, loaded, cancellationToken);
+            else if (createdKey is null)
+                reused = true;
 
             keys[activeRow.KeyId] = active;
 
@@ -279,10 +366,21 @@ internal class DefaultMasterKeyRing(
 
             ThrowIfMissing(key, keys, requiredKeyIds);
 
+            var now = TimeProvider.GetTimestamp();
+            var isOwnerRooted =
+                activeRow.RootKeyReference is not null
+                || rows.Any(row => row.RootKeyReference is not null);
+
+            // Reused material keeps the moment it was unwrapped, so it is validated on schedule however often the
+            // entry is refreshed.
+            var unwrappedTimestamp = reused && cached is not null ? cached.UnwrappedTimestamp : now;
+
             return new MasterKeyRingEntry(
                 active,
                 keys.ToFrozenDictionary(),
-                TimeProvider.GetTimestamp()
+                now,
+                isOwnerRooted,
+                unwrappedTimestamp
             );
         }
         catch
@@ -337,6 +435,7 @@ internal class DefaultMasterKeyRing(
         SecretOwner key,
         FrozenDictionary<Guid, MasterKey> cachedKeys,
         IReadOnlySet<Guid> requiredKeyIds,
+        LoadState load,
         CancellationToken cancellationToken
     )
     {
@@ -373,6 +472,36 @@ internal class DefaultMasterKeyRing(
             ? []
             : await store.FindByKeyIdsAsync(key, queryKeyIds, cancellationToken);
 
+        // A row under an owner root key makes this load a load through that key.
+        var rowsUnderOwnerRootKey =
+            activeRow?.RootKeyReference is not null
+            || rows.Any(row => row.RootKeyReference is not null);
+        if (rowsUnderOwnerRootKey)
+            load.IsOwnerRooted = true;
+
+        // The owner's root key matters when a key is created, and when a row that is read sits under it.
+        PersistedOwnerRootKey? rootKey = null;
+        if (activeRow is null || rowsUnderOwnerRootKey)
+        {
+            rootKey = await storeManager
+                .GetStore<IOwnerRootKeyStore>()
+                .FindAsync(key, cancellationToken);
+
+            if (MasterKeyFactory.IsOwnerRooted(rootKey))
+                load.IsOwnerRooted = true;
+
+            // A key that failed its last probe, or whose state is unknown, fails the owner closed.
+            if (
+                MasterKeyFactory.IsOwnerRooted(rootKey)
+                && !string.Equals(
+                    rootKey.State,
+                    OwnerRootKeyStates.Active,
+                    StringComparison.Ordinal
+                )
+            )
+                throw new OwnerRootKeyUnavailableException(key);
+        }
+
         if (activeRow is not null)
             return (activeRow, null, rows);
 
@@ -380,8 +509,12 @@ internal class DefaultMasterKeyRing(
             key,
             storeManager,
             store,
+            rootKey,
             cancellationToken
         );
+
+        if (createdRow.RootKeyReference is not null)
+            load.IsOwnerRooted = true;
 
         return (createdRow, createdKey, rows);
     }
@@ -391,11 +524,12 @@ internal class DefaultMasterKeyRing(
         SecretOwner key,
         IStoreManager storeManager,
         IMasterKeyStore store,
+        PersistedOwnerRootKey? rootKey,
         CancellationToken cancellationToken
     )
     {
         var version = await store.GetLatestVersionAsync(key, cancellationToken) + 1;
-        var created = await Factory.CreateAsync(key, version, cancellationToken);
+        var created = await Factory.CreateAsync(key, version, rootKey, cancellationToken);
         try
         {
             await store.AddAsync(created.Row, cancellationToken);

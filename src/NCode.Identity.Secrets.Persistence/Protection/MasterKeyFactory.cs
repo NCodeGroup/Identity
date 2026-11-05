@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using NCode.Buffers;
 using NCode.Encoders;
@@ -15,9 +16,11 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </summary>
 /// <remarks>
 /// <para>
-/// A new master key is 32 random bytes that are wrapped by the configured root key provider, bound to the identifier
-/// and the owner of the master key, and, when a recovery key is configured, also wrapped under the recovery public
-/// key. The row records a key-check value that binds the identifier, the owner and the version to the key material.
+/// A new master key is 32 random bytes that are wrapped by the root of its owner, bound to the identifier and the
+/// owner of the master key. The root of an owner is the root key the owner brings, when it has an active one, and
+/// otherwise the configured root key provider, with a recovery copy under the recovery public key when one is
+/// configured. A master key under an owner root key has no recovery copy. The row records a key-check value that binds
+/// the identifier, the owner and the version to the key material.
 /// </para>
 /// <para>
 /// Every temporary copy of the key material is zeroed before a method returns, and no exception message contains key
@@ -27,7 +30,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="catalog">The catalog that resolves the root key provider that wraps and unwraps master keys.</param>
 /// <param name="recovery">The wrapper that wraps a new master key under the offline recovery public key.</param>
 /// <param name="timeProvider">The time provider that supplies the creation time of a new master key.</param>
-// See ADR-1235.
+// See ADR-1235 and ADR-1411.
 internal class MasterKeyFactory(
     IKeyWrapperCatalog catalog,
     IRecoveryKeyWrapper recovery,
@@ -45,13 +48,17 @@ internal class MasterKeyFactory(
     /// </summary>
     /// <param name="owner">The owner of the master key.</param>
     /// <param name="version">The version of the master key within its owner.</param>
+    /// <param name="rootKey">The root key the owner brings, or <see langword="null"/> when it has none.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>
     /// The row to persist, which has no retirement time, and the active master key. The caller owns the master key and
     /// must dispose it.
     /// </returns>
+    /// <exception cref="OwnerRootKeyUnavailableException">
+    /// Thrown before anything is wrapped when the owner root key is unavailable.
+    /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// Thrown when the configured root key provider is not registered.
+    /// Thrown when the root key provider that wraps the key is not registered.
     /// </exception>
     /// <exception cref="CryptographicException">
     /// Thrown when the key cannot be wrapped by the root key provider or by the recovery key.
@@ -59,6 +66,7 @@ internal class MasterKeyFactory(
     public async ValueTask<CreatedMasterKey> CreateAsync(
         SecretOwner owner,
         int version,
+        PersistedOwnerRootKey? rootKey,
         CancellationToken cancellationToken
     )
     {
@@ -71,24 +79,7 @@ internal class MasterKeyFactory(
         );
         RandomNumberGenerator.Fill(material.Span);
 
-        var contextSize = SecretProtectionFormat.GetRootContextSize(owner);
-        using var contextLease = BufferFactory.Rent(
-            contextSize,
-            isSensitive: false,
-            out Memory<byte> contextBuffer
-        );
-        var contextWritten = SecretProtectionFormat.WriteRootContext(
-            keyId,
-            owner,
-            contextBuffer.Span
-        );
-        var context = contextBuffer[..contextWritten];
-
-        var wrapped = await Catalog.GetConfigured().WrapAsync(material, context, cancellationToken);
-
-        var recoveryWrapped = Recovery.IsConfigured
-            ? await Recovery.WrapAsync(material, ReadOnlyMemory<byte>.Empty, cancellationToken)
-            : null;
+        var wraps = await WrapMaterialAsync(keyId, owner, material, rootKey, cancellationToken);
 
         var row = new PersistedMasterKey
         {
@@ -97,11 +88,12 @@ internal class MasterKeyFactory(
             OwnerId = owner.OwnerId,
             Version = version,
             CreatedWhen = TimeProvider.GetUtcNow(),
-            RootKeyProvider = wrapped.WrapperName,
-            RootKeyId = wrapped.KeyId,
-            RootWrappedKey = wrapped.Ciphertext,
-            RecoveryKeyId = recoveryWrapped?.KeyId,
-            RecoveryWrappedKey = recoveryWrapped?.Ciphertext,
+            RootKeyProvider = wraps.Root.WrapperName,
+            RootKeyId = wraps.Root.KeyId,
+            RootKeyReference = wraps.RootKeyReference,
+            RootWrappedKey = wraps.Root.Ciphertext,
+            RecoveryKeyId = wraps.Recovery?.KeyId,
+            RecoveryWrappedKey = wraps.Recovery?.Ciphertext,
             KeyCheck = CreateKeyCheck(material.Span, keyId, owner, version),
         };
 
@@ -211,42 +203,37 @@ internal class MasterKeyFactory(
     }
 
     /// <summary>
-    /// Wraps a master key under the configured root key provider, bound to its identifier and owner.
+    /// Wraps a master key under the root of its owner, bound to its identifier and owner: the root key the owner
+    /// brings when it is active, and otherwise the configured root key provider and the recovery public key.
     /// </summary>
     /// <param name="masterKey">The master key to wrap.</param>
+    /// <param name="rootKey">The root key the owner brings, or <see langword="null"/> when it has none.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns>The wrapped key, with the name of the provider and the identifier of the root key.</returns>
-    // See ADR-1408.
-    public async ValueTask<WrappedKey> WrapUnderRootAsync(
+    /// <returns>The wraps, with the name of the provider and the identifier of the root key.</returns>
+    /// <exception cref="OwnerRootKeyUnavailableException">
+    /// Thrown before anything is wrapped when the owner root key is unavailable.
+    /// </exception>
+    // See ADR-1408 and ADR-1411.
+    public async ValueTask<MasterKeyWraps> WrapAsync(
         MasterKey masterKey,
+        PersistedOwnerRootKey? rootKey,
         CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(masterKey);
 
-        var contextSize = SecretProtectionFormat.GetRootContextSize(masterKey.Owner);
-        using var contextLease = BufferFactory.Rent(
-            contextSize,
-            isSensitive: false,
-            out Memory<byte> contextBuffer
-        );
-        var contextWritten = SecretProtectionFormat.WriteRootContext(
+        return await WrapMaterialAsync(
             masterKey.KeyId,
             masterKey.Owner,
-            contextBuffer.Span
+            masterKey.MaterialMemory,
+            rootKey,
+            cancellationToken
         );
-
-        return await Catalog
-            .GetConfigured()
-            .WrapAsync(
-                masterKey.MaterialMemory,
-                contextBuffer[..contextWritten],
-                cancellationToken
-            );
     }
 
     /// <summary>
-    /// Wraps a master key under the recovery public key.
+    /// Wraps a master key under the recovery public key alone, for a run that replaces only the recovery copies of
+    /// master keys that the deployment's root key wraps.
     /// </summary>
     /// <param name="masterKey">The master key to wrap.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -266,6 +253,101 @@ internal class MasterKeyFactory(
             masterKey.MaterialMemory,
             ReadOnlyMemory<byte>.Empty,
             cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Determines whether an owner root key wraps the master keys of its owner: it exists and is not being removed.
+    /// </summary>
+    /// <param name="rootKey">The root key the owner brings, or <see langword="null"/> when it has none.</param>
+    /// <returns><see langword="true"/> when the master keys of the owner belong under the root key.</returns>
+    public static bool IsOwnerRooted([NotNullWhen(true)] PersistedOwnerRootKey? rootKey) =>
+        rootKey is not null
+        && !string.Equals(rootKey.State, OwnerRootKeyStates.Removing, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Determines whether a persisted master key is wrapped under the root of its owner. With an owner root key that is
+    /// the key itself and no recovery copy; without one, or while it is being removed, it is the deployment's root key.
+    /// </summary>
+    /// <param name="row">The persisted master key.</param>
+    /// <param name="rootKey">The root key the owner brings, or <see langword="null"/> when it has none.</param>
+    /// <returns><see langword="true"/> when the master key conforms to the root of its owner.</returns>
+    public static bool Conforms(PersistedMasterKey row, PersistedOwnerRootKey? rootKey)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        if (!IsOwnerRooted(rootKey))
+            return row.RootKeyReference is null;
+
+        return string.Equals(row.RootKeyProvider, rootKey.KeyWrapperName, StringComparison.Ordinal)
+            && string.Equals(row.RootKeyReference, rootKey.KeyReference, StringComparison.Ordinal)
+            && row.RecoveryKeyId is null
+            && row.RecoveryWrappedKey is null;
+    }
+
+    // Wraps the material under the root of its owner: the active owner root key, with no recovery copy, or else the
+    // configured root key provider, with a recovery copy when a recovery public key is configured.
+    private async ValueTask<MasterKeyWraps> WrapMaterialAsync(
+        Guid keyId,
+        SecretOwner owner,
+        ReadOnlyMemory<byte> material,
+        PersistedOwnerRootKey? rootKey,
+        CancellationToken cancellationToken
+    )
+    {
+        var ownerRoot = IsOwnerRooted(rootKey) ? rootKey : null;
+
+        // An unavailable or unknown state fails closed before any wrap is attempted.
+        if (
+            ownerRoot is not null
+            && !string.Equals(ownerRoot.State, OwnerRootKeyStates.Active, StringComparison.Ordinal)
+        )
+        {
+            throw new OwnerRootKeyUnavailableException(owner);
+        }
+
+        var contextSize = SecretProtectionFormat.GetRootContextSize(owner);
+        using var contextLease = BufferFactory.Rent(
+            contextSize,
+            isSensitive: false,
+            out Memory<byte> contextBuffer
+        );
+        var contextWritten = SecretProtectionFormat.WriteRootContext(
+            keyId,
+            owner,
+            contextBuffer.Span
+        );
+        var context = contextBuffer[..contextWritten];
+
+        if (ownerRoot is not null)
+        {
+            var referenced = Catalog.GetReferenced(ownerRoot.KeyWrapperName);
+            var wrappedUnderOwnerRoot = await referenced.WrapAsync(
+                ownerRoot.KeyReference,
+                material,
+                context,
+                cancellationToken
+            );
+
+            return new MasterKeyWraps(
+                wrappedUnderOwnerRoot,
+                ownerRoot.KeyReference,
+                Recovery: null,
+                ClearsRecovery: true
+            );
+        }
+
+        var wrapped = await Catalog.GetConfigured().WrapAsync(material, context, cancellationToken);
+
+        var recoveryWrapped = Recovery.IsConfigured
+            ? await Recovery.WrapAsync(material, ReadOnlyMemory<byte>.Empty, cancellationToken)
+            : null;
+
+        return new MasterKeyWraps(
+            wrapped,
+            RootKeyReference: null,
+            recoveryWrapped,
+            ClearsRecovery: false
         );
     }
 

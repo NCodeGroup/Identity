@@ -102,6 +102,27 @@ public class DefaultMasterKeyRingTests : IDisposable
         return (store, manager);
     }
 
+    // Gives the store manager an owner root key store whose read of the specified normalized owner returns the
+    // specified root key. The ring reads it only when it creates a key or reads a row under an owner root key.
+    private void SetupRootKey(
+        Mock<IStoreManager> manager,
+        PersistedOwnerRootKey? rootKey,
+        SecretOwner? normalizedOwner = null
+    )
+    {
+        var rootKeyStore = _mocks.Create<IOwnerRootKeyStore>();
+        rootKeyStore
+            .Setup(x =>
+                x.FindAsync(normalizedOwner ?? NormalizedOwner, It.IsAny<CancellationToken>())
+            )
+            .Returns(new ValueTask<PersistedOwnerRootKey?>(rootKey))
+            .Verifiable();
+        manager
+            .Setup(x => x.GetStore<IOwnerRootKeyStore>())
+            .Returns(rootKeyStore.Object)
+            .Verifiable();
+    }
+
     private static void SetupFindActive(Mock<IMasterKeyStore> store, PersistedMasterKey? row) =>
         store
             .Setup(x => x.FindActiveAsync(NormalizedOwner, It.IsAny<CancellationToken>()))
@@ -169,6 +190,7 @@ public class DefaultMasterKeyRingTests : IDisposable
     {
         var (store, manager) = EnqueueStoreManager();
         SetupFindActive(store, null);
+        SetupRootKey(manager, null);
         SetupGetLatestVersion(store, latestVersion);
 
         var added = new List<PersistedMasterKey>();
@@ -190,6 +212,7 @@ public class DefaultMasterKeyRingTests : IDisposable
     {
         var (store, manager) = EnqueueStoreManager();
         SetupFindActive(store, null);
+        SetupRootKey(manager, null);
         SetupGetLatestVersion(store, 0);
 
         store
@@ -213,6 +236,7 @@ public class DefaultMasterKeyRingTests : IDisposable
         var created = await _factory.CreateAsync(
             normalizedOwner ?? NormalizedOwner,
             version,
+            rootKey: null,
             CancellationToken.None
         );
         created.Key.Dispose();
@@ -719,6 +743,261 @@ public class DefaultMasterKeyRingTests : IDisposable
         var after = await ring.GetProtectorAsync(Owner, [protectedValue], CancellationToken.None);
 
         Assert.Equal("secret"u8.ToArray(), Unprotect(after, protectedValue));
+    }
+
+    #endregion
+
+    #region Owner Root Key Tests
+
+    private const string RootKeyReference = "kms://tenant-a/root";
+
+    private readonly FakeReferencedKeyWrapper _referenced = new();
+
+    private MasterKeyFactory CreateOwnerRootFactory()
+    {
+        var catalog = new DefaultKeyWrapperCatalog(
+            [_provider, _referenced],
+            Microsoft.Extensions.Options.Options.Create(
+                new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Ephemeral }
+            )
+        );
+        return new MasterKeyFactory(catalog, _recovery, _time);
+    }
+
+    private DefaultMasterKeyRing CreateOwnerRootRing(MasterKeyFactory factory) =>
+        new(
+            factory,
+            _storeManagerFactory.Object,
+            _recovery,
+            Microsoft.Extensions.Options.Options.Create(new SecretProtectionOptions()),
+            _time,
+            NullLogger<DefaultMasterKeyRing>.Instance
+        );
+
+    private PersistedOwnerRootKey CreateRootKey(string state = OwnerRootKeyStates.Active) =>
+        new()
+        {
+            OwnerType = NormalizedOwner.OwnerType,
+            OwnerId = NormalizedOwner.OwnerId,
+            KeyWrapperName = _referenced.Name,
+            KeyReference = RootKeyReference,
+            State = state,
+            CreatedWhen = _time.GetUtcNow(),
+            StateChangedWhen = _time.GetUtcNow(),
+        };
+
+    private async Task<PersistedMasterKey> CreateOwnerRootedRowAsync(MasterKeyFactory factory)
+    {
+        var created = await factory.CreateAsync(
+            NormalizedOwner,
+            version: 1,
+            CreateRootKey(),
+            CancellationToken.None
+        );
+        created.Key.Dispose();
+        return created.Row;
+    }
+
+    // Queues a store manager that reads the active row and the owner's root key.
+    private void ExpectLoad(PersistedMasterKey activeRow, PersistedOwnerRootKey? rootKey)
+    {
+        var (store, manager) = EnqueueStoreManager();
+        SetupFindActive(store, activeRow);
+        SetupRootKey(manager, rootKey);
+    }
+
+    [Fact]
+    public async Task GetProtector_NoKeysAndAnActiveOwnerRootKey_CreatesTheKeyUnderItWithoutARecoveryCopy()
+    {
+        var factory = CreateOwnerRootFactory();
+        var (store, manager) = EnqueueStoreManager();
+        SetupFindActive(store, null);
+        SetupRootKey(manager, CreateRootKey());
+        SetupGetLatestVersion(store, 0);
+        var added = new List<PersistedMasterKey>();
+        store
+            .Setup(x => x.AddAsync(It.IsAny<PersistedMasterKey>(), It.IsAny<CancellationToken>()))
+            .Callback<PersistedMasterKey, CancellationToken>((row, _) => added.Add(row))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        manager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        using var ring = CreateOwnerRootRing(factory);
+
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+
+        var row = Assert.Single(added);
+        Assert.Equal(_referenced.Name, row.RootKeyProvider);
+        Assert.Equal(RootKeyReference, row.RootKeyReference);
+        Assert.Null(row.RecoveryWrappedKey);
+    }
+
+    [Fact]
+    public async Task GetProtector_OwnerRootedEntry_IsReusedWithinTheValidationIntervalAndUnwrappedAgainAfterIt()
+    {
+        var factory = CreateOwnerRootFactory();
+        var row = await CreateOwnerRootedRowAsync(factory);
+        var rootKey = CreateRootKey();
+        ExpectLoad(row, rootKey);
+        using var ring = CreateOwnerRootRing(factory);
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+        Assert.Equal(1, _referenced.UnwrapCount);
+
+        // A refresh after the refresh interval reads the rows but reuses the material, so nothing is unwrapped.
+        _time.Advance(TimeSpan.FromMinutes(6));
+        ExpectLoad(row, rootKey);
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+        Assert.Equal(1, _referenced.UnwrapCount);
+
+        // The material is as old as the validation interval, so every key is unwrapped again.
+        _time.Advance(TimeSpan.FromMinutes(54));
+        ExpectLoad(row, rootKey);
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+        Assert.Equal(2, _referenced.UnwrapCount);
+    }
+
+    [Fact]
+    public async Task GetProtector_DeploymentRootedEntry_IsNeverValidatedBeforeItsRefresh()
+    {
+        ExpectCreate();
+        using var ring = CreateRing();
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+
+        // Past the validation interval of an owner root key but within the refresh interval, no store is read.
+        _time.Advance(TimeSpan.FromMinutes(4));
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData(OwnerRootKeyStates.Unavailable)]
+    [InlineData("unknown-state")]
+    public async Task GetProtector_OwnerRootKeyNotActive_ThrowsAndRefusesTheOwnerUntilTheRetryInterval(
+        string state
+    )
+    {
+        var factory = CreateOwnerRootFactory();
+        var row = await CreateOwnerRootedRowAsync(factory);
+        ExpectLoad(row, CreateRootKey(state));
+        using var ring = CreateOwnerRootRing(factory);
+
+        var exception = await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+        Assert.Equal(NormalizedOwner, exception.Owner);
+
+        // No store manager is queued, so a read of the store fails the test.
+        _time.Advance(TimeSpan.FromSeconds(59));
+        await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+
+        // After the retry interval the ring tries again and serves the restored key.
+        _time.Advance(TimeSpan.FromSeconds(2));
+        ExpectLoad(row, CreateRootKey());
+        var protector = await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+        Assert.Equal(row.KeyId, ReadKeyId(protector.ProtectToString("secret"u8, Context)));
+    }
+
+    [Fact]
+    public async Task GetProtector_OwnerRootedKeyFailsToUnwrap_ThrowsUnavailableWrappingTheFailure()
+    {
+        var factory = CreateOwnerRootFactory();
+        var row = await CreateOwnerRootedRowAsync(factory);
+        _referenced.Revoke(RootKeyReference);
+        ExpectLoad(row, CreateRootKey());
+        using var ring = CreateOwnerRootRing(factory);
+
+        var exception = await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+
+        Assert.IsType<InvalidOperationException>(exception.InnerException);
+        Assert.IsNotAssignableFrom<CryptographicException>(exception);
+    }
+
+    [Fact]
+    public async Task GetProtector_ARevokedKeyAfterTheValidationInterval_FailsClosedEvenWhenTheStateIsActive()
+    {
+        var factory = CreateOwnerRootFactory();
+        var row = await CreateOwnerRootedRowAsync(factory);
+        ExpectLoad(row, CreateRootKey());
+        using var ring = CreateOwnerRootRing(factory);
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+
+        _referenced.Revoke(RootKeyReference);
+        _time.Advance(TimeSpan.FromHours(1));
+        ExpectLoad(row, CreateRootKey());
+
+        await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task Evict_AfterAFailure_ClearsTheRefusal()
+    {
+        var factory = CreateOwnerRootFactory();
+        var row = await CreateOwnerRootedRowAsync(factory);
+        ExpectLoad(row, CreateRootKey(OwnerRootKeyStates.Unavailable));
+        using var ring = CreateOwnerRootRing(factory);
+        await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+
+        ring.Evict(Owner);
+        ExpectLoad(row, CreateRootKey());
+
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task EvictAll_AfterAFailure_ClearsTheRefusal()
+    {
+        var factory = CreateOwnerRootFactory();
+        var row = await CreateOwnerRootedRowAsync(factory);
+        ExpectLoad(row, CreateRootKey(OwnerRootKeyStates.Unavailable));
+        using var ring = CreateOwnerRootRing(factory);
+        await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+
+        ring.EvictAll();
+        ExpectLoad(row, CreateRootKey());
+
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task GetProtector_DeploymentRootedUnwrapFailure_PropagatesUnchanged()
+    {
+        var wrongProvider = new EphemeralKeyWrapper();
+        var catalog = new DefaultKeyWrapperCatalog(
+            [wrongProvider],
+            Microsoft.Extensions.Options.Options.Create(
+                new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Ephemeral }
+            )
+        );
+        var otherFactory = new MasterKeyFactory(catalog, _recovery, TimeProvider.System);
+        var created = await otherFactory.CreateAsync(
+            NormalizedOwner,
+            1,
+            rootKey: null,
+            CancellationToken.None
+        );
+        created.Key.Dispose();
+
+        // The ring's own ephemeral provider is another instance, so it cannot unwrap the row.
+        var (store, _) = EnqueueStoreManager();
+        SetupFindActive(store, created.Row);
+        using var ring = CreateRing();
+
+        await Assert.ThrowsAsync<CryptographicException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+
+        wrongProvider.Dispose();
     }
 
     #endregion

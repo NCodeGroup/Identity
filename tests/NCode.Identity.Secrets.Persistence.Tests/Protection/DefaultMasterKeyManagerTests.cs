@@ -109,13 +109,26 @@ public class DefaultMasterKeyManagerTests : IDisposable
             ConcurrencyToken = "token",
         };
 
-    private void SetupList(params PersistedMasterKey[] rows)
+    // Queues a unit of work that lists the rows. A rotation and a status read also read the owner's root key, which is
+    // none here; the other operations do not read it, so its setup is not verified.
+    private void SetupList(params PersistedMasterKey[] rows) => SetupListWithRootKey(null, rows);
+
+    private void SetupListWithRootKey(
+        PersistedOwnerRootKey? rootKey,
+        params PersistedMasterKey[] rows
+    )
     {
-        var (store, _) = EnqueueStoreManager();
+        var (store, manager) = EnqueueStoreManager();
         store
             .Setup(x => x.ListAsync(NormalizedOwner, It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<IReadOnlyList<PersistedMasterKey>>(rows))
             .Verifiable();
+
+        var rootKeyStore = _mocks.Create<IOwnerRootKeyStore>();
+        rootKeyStore
+            .Setup(x => x.FindAsync(NormalizedOwner, It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<PersistedOwnerRootKey?>(rootKey));
+        manager.Setup(x => x.GetStore<IOwnerRootKeyStore>()).Returns(rootKeyStore.Object);
     }
 
     private void SetupObserverRotated()
@@ -275,9 +288,87 @@ public class DefaultMasterKeyManagerTests : IDisposable
         );
     }
 
+    [Fact]
+    public async Task GetStatus_WithAnOwnerRootKey_CarriesItWithoutMaterial()
+    {
+        var active = CreateRow(1, _time.GetUtcNow().AddDays(-1));
+        active.RootKeyReference = "kms://tenant-a/root";
+        SetupListWithRootKey(CreateOwnerRootKey(), active);
+        _recovery.SetupGet(x => x.IsConfigured).Returns(true).Verifiable();
+
+        var status = await CreateManager().GetStatusAsync(Owner, CancellationToken.None);
+
+        Assert.Equal("kms://tenant-a/root", status.RootKey?.KeyReference);
+        Assert.Equal(OwnerRootKeyStates.Active, status.RootKey?.State);
+        Assert.Equal("kms://tenant-a/root", Assert.Single(status.Keys).RootKeyReference);
+    }
+
     #endregion
 
     #region RotateAsync Tests
+
+    private PersistedOwnerRootKey CreateOwnerRootKey(string state = OwnerRootKeyStates.Active) =>
+        new()
+        {
+            OwnerType = NormalizedOwner.OwnerType,
+            OwnerId = NormalizedOwner.OwnerId,
+            KeyWrapperName = "fake-kms",
+            KeyReference = "kms://tenant-a/root",
+            State = state,
+            CreatedWhen = _time.GetUtcNow(),
+            StateChangedWhen = _time.GetUtcNow(),
+        };
+
+    [Fact]
+    public async Task Rotate_OfAnOwnerWithAnActiveRootKey_WrapsTheSuccessorUnderItWithoutARecoveryCopy()
+    {
+        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        var fake = new FakeReferencedKeyWrapper();
+        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        _recovery.SetupGet(x => x.IsConfigured).Returns(true);
+        SetupListWithRootKey(CreateOwnerRootKey(), active);
+        SetupRetire(active);
+        var (added, _) = SetupInsert();
+        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        SetupObserverRotated();
+
+        var rotation = await CreateManager().RotateAsync(Owner, CancellationToken.None);
+
+        var successor = Assert.Single(added);
+        Assert.Equal("fake-kms", successor.RootKeyProvider);
+        Assert.Equal("kms://tenant-a/root", successor.RootKeyReference);
+        Assert.Null(successor.RecoveryWrappedKey);
+        Assert.Equal("kms://tenant-a/root", rotation.ActiveKey.RootKeyReference);
+        Assert.Equal(1, fake.WrapCount);
+    }
+
+    [Fact]
+    public async Task Rotate_OfAnOwnerWhoseRootKeyIsUnavailable_ThrowsAndWritesNothing()
+    {
+        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        SetupListWithRootKey(CreateOwnerRootKey(OwnerRootKeyStates.Unavailable), active);
+
+        await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await CreateManager().RotateAsync(Owner, CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task Rotate_OfAnOwnerWhoseRootKeyIsBeingRemoved_WrapsTheSuccessorUnderTheDeploymentRoot()
+    {
+        var active = CreateRow(1, _time.GetUtcNow().AddDays(-400));
+        SetupRootKey();
+        SetupRecoveryNotConfigured();
+        SetupListWithRootKey(CreateOwnerRootKey(OwnerRootKeyStates.Removing), active);
+        SetupRetire(active);
+        var (added, _) = SetupInsert();
+        _provider.Setup(x => x.Evict(Owner)).Verifiable(Times.Once());
+        SetupObserverRotated();
+
+        await CreateManager().RotateAsync(Owner, CancellationToken.None);
+
+        Assert.Null(Assert.Single(added).RootKeyReference);
+    }
 
     [Fact]
     public async Task Rotate_RetiresTheActiveRowAndStoresTheNextVersion()

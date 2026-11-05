@@ -28,7 +28,9 @@ public class MasterKeyRingEntryTests
         var entry = new MasterKeyRingEntry(
             masterKey,
             new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
-            0
+            0,
+            IsOwnerRooted: false,
+            UnwrappedTimestamp: 0
         );
 
         var result = entry.Contains(FrozenSet<Guid>.Empty);
@@ -50,7 +52,9 @@ public class MasterKeyRingEntryTests
                 [activeKeyId] = activeKey,
                 [olderKeyId] = olderKey,
             }.ToFrozenDictionary(),
-            0
+            0,
+            IsOwnerRooted: false,
+            UnwrappedTimestamp: 0
         );
 
         var result = entry.Contains(new HashSet<Guid> { activeKeyId, olderKeyId });
@@ -66,7 +70,9 @@ public class MasterKeyRingEntryTests
         var entry = new MasterKeyRingEntry(
             masterKey,
             new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
-            0
+            0,
+            IsOwnerRooted: false,
+            UnwrappedTimestamp: 0
         );
 
         var result = entry.Contains(new HashSet<Guid> { keyId, Guid.NewGuid() });
@@ -87,7 +93,9 @@ public class MasterKeyRingEntryTests
         var entry = new MasterKeyRingEntry(
             masterKey,
             new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
-            time.GetTimestamp()
+            time.GetTimestamp(),
+            IsOwnerRooted: false,
+            UnwrappedTimestamp: 0
         );
 
         time.Advance(TimeSpan.FromMinutes(4));
@@ -104,12 +112,45 @@ public class MasterKeyRingEntryTests
         var entry = new MasterKeyRingEntry(
             masterKey,
             new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
-            time.GetTimestamp()
+            time.GetTimestamp(),
+            IsOwnerRooted: false,
+            UnwrappedTimestamp: 0
         );
 
         time.Advance(TimeSpan.FromMinutes(5));
 
         Assert.True(entry.IsStale(time, TimeSpan.FromMinutes(5)));
+    }
+
+    #endregion
+
+    #region NeedsValidation Tests
+
+    [Theory]
+    [InlineData(false, 120, false)]
+    [InlineData(true, 59, false)]
+    [InlineData(true, 60, true)]
+    public void NeedsValidation_ByOwnerRootAndAge_ReportsWhetherTheMaterialIsOld(
+        bool isOwnerRooted,
+        int secondsSinceUnwrapped,
+        bool expected
+    )
+    {
+        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        var keyId = Guid.NewGuid();
+        using var masterKey = CreateMasterKey(keyId);
+        var unwrapped = time.GetTimestamp();
+        var entry = new MasterKeyRingEntry(
+            masterKey,
+            new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary(),
+            unwrapped,
+            isOwnerRooted,
+            unwrapped
+        );
+
+        time.Advance(TimeSpan.FromSeconds(secondsSinceUnwrapped));
+
+        Assert.Equal(expected, entry.NeedsValidation(time, TimeSpan.FromSeconds(60)));
     }
 
     #endregion

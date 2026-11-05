@@ -104,6 +104,9 @@ internal static class SecretProtectionFormat
     private static ReadOnlySpan<byte> RootContextLabel =>
         "ncode-identity/secret-protection/v1/root"u8;
 
+    private static ReadOnlySpan<byte> RootProbeContextLabel =>
+        "ncode-identity/secret-protection/v1/root-probe"u8;
+
     private static ReadOnlySpan<byte> KeyCheckLabel =>
         "ncode-identity/secret-protection/v1/key-check"u8;
 
@@ -280,6 +283,32 @@ internal static class SecretProtectionFormat
         SecretOwner owner,
         Span<byte> destination
     ) => WriteOwnerBound(RootContextLabel, masterKeyId, owner, destination);
+
+    /// <summary>
+    /// Gets the number of bytes that <see cref="WriteProbeContext"/> writes for an owner.
+    /// </summary>
+    /// <param name="owner">The owner whose root key is probed.</param>
+    /// <returns>The size of the context in bytes.</returns>
+    // See ADR-1411.
+    public static int GetProbeContextSize(SecretOwner owner) =>
+        GetOwnerBoundSize(RootProbeContextLabel, owner);
+
+    /// <summary>
+    /// Writes the context that binds a probe value to the probe and the owner. It has the layout of the root context
+    /// under its own label, so a probe ciphertext can never be presented as a wrapped master key.
+    /// </summary>
+    /// <param name="probeId">The identifier of the probe.</param>
+    /// <param name="owner">The owner whose root key is probed.</param>
+    /// <param name="destination">
+    /// The buffer that receives the context, which must hold at least <see cref="GetProbeContextSize"/> bytes.
+    /// </param>
+    /// <returns>The number of bytes written to <paramref name="destination"/>.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="destination"/> is too small to hold the context.
+    /// </exception>
+    // See ADR-1411.
+    public static int WriteProbeContext(Guid probeId, SecretOwner owner, Span<byte> destination) =>
+        WriteOwnerBound(RootProbeContextLabel, probeId, owner, destination);
 
     /// <summary>
     /// Attempts to read the identifier of the master key from a protected value without decrypting anything.

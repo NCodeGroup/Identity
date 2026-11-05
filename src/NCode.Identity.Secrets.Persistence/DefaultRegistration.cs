@@ -142,6 +142,12 @@ public static class DefaultRegistration
                     MasterKeyOptionsValidator
                 >()
             );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<SecretProtectionOptions>,
+                    OwnerRootKeyOptionsValidator
+                >()
+            );
             serviceCollection.AddOptions<SecretProtectionOptions>();
             serviceCollection.AddOptions<LocalKeyWrapperOptions>();
             serviceCollection.AddOptions<SharedSecretVerifierOptions>().ValidateOnStart();

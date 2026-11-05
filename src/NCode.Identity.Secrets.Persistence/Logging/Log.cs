@@ -278,4 +278,153 @@ internal static partial class Log
         Exception exception,
         SecretOwner owner
     );
+
+    /// <summary>
+    /// Logs that the master keys of an owner that brings a root key could not be loaded.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The failure.</param>
+    /// <param name="owner">The owner whose root key failed.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyLoadFailed,
+        Level = LogLevel.Error,
+        Message = "The master keys of '{Owner}' could not be loaded through the root key it brings; the owner fails closed"
+    )]
+    internal static partial void OwnerRootKeyLoadFailed(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner
+    );
+
+    /// <summary>
+    /// Logs that a request for the master keys of an owner is refused because its root key failed recently.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="owner">The owner whose root key failed.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyRefused,
+        Level = LogLevel.Debug,
+        Message = "The master keys of '{Owner}' are refused until its root key is tried again"
+    )]
+    internal static partial void OwnerRootKeyRefused(this ILogger logger, SecretOwner owner);
+
+    /// <summary>
+    /// Logs that an owner set or changed its root key.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="owner">The owner.</param>
+    /// <param name="keyWrapperName">The name of the key wrapper.</param>
+    /// <param name="keyReference">The reference to the key.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeySet,
+        Level = LogLevel.Information,
+        Message = "Owner '{Owner}' set its root key to '{KeyReference}' of key wrapper '{KeyWrapperName}'"
+    )]
+    internal static partial void OwnerRootKeySet(
+        this ILogger logger,
+        SecretOwner owner,
+        string keyWrapperName,
+        string keyReference
+    );
+
+    /// <summary>
+    /// Logs that a probe of an owner root key failed.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="owner">The owner.</param>
+    /// <param name="keyWrapperName">The name of the key wrapper.</param>
+    /// <param name="keyReference">The reference to the key.</param>
+    /// <param name="failure">The description of the failure.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyProbeFailed,
+        Level = LogLevel.Warning,
+        Message = "The root key '{KeyReference}' of key wrapper '{KeyWrapperName}' of owner '{Owner}' failed its probe: {Failure}"
+    )]
+    internal static partial void OwnerRootKeyProbeFailed(
+        this ILogger logger,
+        SecretOwner owner,
+        string keyWrapperName,
+        string keyReference,
+        string failure
+    );
+
+    /// <summary>
+    /// Logs that the state of an owner root key changed.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="owner">The owner.</param>
+    /// <param name="state">The new state.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyStateChanged,
+        Level = LogLevel.Warning,
+        Message = "The root key of owner '{Owner}' is {State}"
+    )]
+    internal static partial void OwnerRootKeyStateChanged(
+        this ILogger logger,
+        SecretOwner owner,
+        string state
+    );
+
+    /// <summary>
+    /// Logs that removing an owner root key left master keys under it.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="owner">The owner.</param>
+    /// <param name="failed">The number of master keys that could not be moved.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyRemovalIncomplete,
+        Level = LogLevel.Warning,
+        Message = "{Failed} master keys of owner '{Owner}' could not be moved from its root key; the removal is retried"
+    )]
+    internal static partial void OwnerRootKeyRemovalIncomplete(
+        this ILogger logger,
+        SecretOwner owner,
+        int failed
+    );
+
+    /// <summary>
+    /// Logs that an owner root key is removed.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="owner">The owner.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyRemoved,
+        Level = LogLevel.Information,
+        Message = "The root key of owner '{Owner}' is removed and its master keys are under the deployment's root key"
+    )]
+    internal static partial void OwnerRootKeyRemoved(this ILogger logger, SecretOwner owner);
+
+    /// <summary>
+    /// Logs that the rotation onto an owner root key is left to the validation service.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The reason the rotation is deferred.</param>
+    /// <param name="owner">The owner.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyRotationDeferred,
+        Level = LogLevel.Warning,
+        Message = "The rotation of owner '{Owner}' onto its root key is deferred to the validation service"
+    )]
+    internal static partial void OwnerRootKeyRotationDeferred(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner
+    );
+
+    /// <summary>
+    /// Logs that an observer of owner root key changes failed.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The failure.</param>
+    /// <param name="owner">The owner whose root key changed.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyObserverFailed,
+        Level = LogLevel.Warning,
+        Message = "An observer of the root key change of '{Owner}' failed"
+    )]
+    internal static partial void OwnerRootKeyObserverFailed(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner
+    );
 }

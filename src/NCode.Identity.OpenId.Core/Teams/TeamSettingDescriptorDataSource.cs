@@ -13,6 +13,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// most tenants a team may hold. It is a team setting that is not advertised in discovery.
 /// </summary>
 // See ADR-1411.
+// See ADR-1418.
 internal class TeamSettingDescriptorDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<SettingDescriptor>
 {
@@ -26,8 +27,8 @@ internal class TeamSettingDescriptorDataSource(INullChangeToken nullChangeToken)
     {
         get
         {
-            // max_tenants: the most tenants a team may hold. Unset means unlimited. Min: the platform sets the
-            // ceiling and a team can only lower it.
+            // max_tenants: the most tenants a team may hold. Unset means unlimited. A limit: the platform's
+            // administrators set it on a team, and Min keeps the platform's ceiling.
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.MaxTenants,
@@ -35,6 +36,7 @@ internal class TeamSettingDescriptorDataSource(INullChangeToken nullChangeToken)
                 Rule = SettingRules.AtLeast(0),
 
                 IsDiscoverable = false,
+                IsLimit = true,
                 OnMerge = SettingMerge.Min,
             };
         }

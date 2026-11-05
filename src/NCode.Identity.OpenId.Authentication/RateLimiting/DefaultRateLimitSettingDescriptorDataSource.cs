@@ -12,9 +12,12 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// <summary>
 /// Provides an additive <see cref="SettingDescriptor"/> data source for the rate-limit settings, composed with the base
 /// descriptor catalog from the core slice. Each limit counts requests per minute, has no default (unset means
-/// unlimited), and merges as a ceiling: a narrower scope may lower its parent's limit but never raise it.
+/// unlimited), and merges as a ceiling: a narrower scope may lower its parent's limit but never raise it. Each is a
+/// limit: the administrators above the scope whose document carries it set it, so a tenant or a client never raises its
+/// own.
 /// </summary>
 // See ADR-1196.
+// See ADR-1418.
 internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<SettingDescriptor>
 {
@@ -40,6 +43,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
                 Name = OpenIdSettingNames.RateLimitTenantPerMinute,
                 AppliesTo = Tenants,
                 Rule = SettingRules.AtLeast(1),
+                IsLimit = true,
                 OnMerge = SettingMerge.Min,
             };
 
@@ -51,6 +55,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
                 Name = OpenIdSettingNames.RateLimitAddressPerMinute,
                 AppliesTo = Tenants,
                 Rule = SettingRules.AtLeast(1),
+                IsLimit = true,
                 OnMerge = SettingMerge.Min,
             };
 
@@ -61,16 +66,19 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
                 Name = OpenIdSettingNames.RateLimitClientPerMinute,
                 AppliesTo = TenantsAndClients,
                 Rule = SettingRules.AtLeast(1),
+                IsLimit = true,
                 OnMerge = SettingMerge.Min,
             };
 
             // quota_tenant_requests_per_day: the most requests the tenant's protocol endpoints serve in one UTC calendar
-            // day; a plan tier writes it on the tenant, beneath the platform's ceiling (ADR-1198).
+            // day; the platform writes a plan tier's quota on a team, and the team's administrators may set lower ones on its
+            // tenants (ADR-1198, ADR-1418).
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.QuotaTenantRequestsPerDay,
                 AppliesTo = Tenants,
                 Rule = SettingRules.AtLeast(1),
+                IsLimit = true,
                 OnMerge = SettingMerge.Min,
             };
 
@@ -81,6 +89,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
                 Name = OpenIdSettingNames.QuotaTenantTokenRequestsPerDay,
                 AppliesTo = Tenants,
                 Rule = SettingRules.AtLeast(1),
+                IsLimit = true,
                 OnMerge = SettingMerge.Min,
             };
 
@@ -92,6 +101,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
                 Name = OpenIdSettingNames.QuotaTenantRequestsOveragePerDay,
                 AppliesTo = Tenants,
                 Rule = SettingRules.AtLeast(0),
+                IsLimit = true,
                 OnMerge = SettingMerge.Min,
             };
 
@@ -102,6 +112,7 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
                 Name = OpenIdSettingNames.QuotaTenantTokenRequestsOveragePerDay,
                 AppliesTo = Tenants,
                 Rule = SettingRules.AtLeast(0),
+                IsLimit = true,
                 OnMerge = SettingMerge.Min,
             };
         }

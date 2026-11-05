@@ -1,6 +1,8 @@
 # 1207. Client-authentication methods are named by registered descriptors
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md):
+  `DefaultOpenIdPlatformFactory` reads `IOptions<OpenIdOptions>.Value` on use, never in a constructor)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 

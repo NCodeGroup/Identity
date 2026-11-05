@@ -4,7 +4,9 @@
   [ADR-1038](1038-setting-merge-lattice-duals.md); amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
-  migration rewrites stored data)
+  migration rewrites stored data; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform's
+  settings, the root of the settings cascade, are configured under `OpenId:Platform:Settings`)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

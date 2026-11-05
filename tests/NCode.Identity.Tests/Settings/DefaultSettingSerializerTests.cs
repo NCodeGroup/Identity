@@ -9,8 +9,8 @@ public class DefaultSettingSerializerTests : BaseTests
 {
     private static DefaultSettingScopeCollection Scopes { get; } =
         new([
-            new SettingScopeDescriptor { Name = "server" },
-            new SettingScopeDescriptor { Name = "tenant", ParentName = "server" },
+            new SettingScopeDescriptor { Name = "root" },
+            new SettingScopeDescriptor { Name = "tenant", ParentName = "root" },
             new SettingScopeDescriptor { Name = "client", ParentName = "tenant" },
             new SettingScopeDescriptor { Name = "resource_server", ParentName = "tenant" },
         ]);
@@ -383,7 +383,7 @@ public class DefaultSettingSerializerTests : BaseTests
     }
 
     [Theory]
-    [InlineData("server")]
+    [InlineData("root")]
     [InlineData("tenant")]
     [InlineData("client")]
     public void ValidateSettings_WhenTheSettingAppliesWithinTheScope_ReturnsNoErrors(

@@ -21,8 +21,8 @@ public sealed class OpenIdPlatformOptions
 
     /// <summary>
     /// Gets or sets the configuration section that holds the platform's settings, keyed by setting name (for example
-    /// <c>grant_types_supported</c>). These are the root of the settings hierarchy that every tenant and client
-    /// inherits from.
+    /// <c>grant_types_supported</c>). These are the root of the settings cascade that every team, tenant, client and
+    /// resource server inherits from.
     /// </summary>
     /// <remarks>
     /// The section is carried as-is rather than bound to a fixed shape: each child is a setting typed by its registered

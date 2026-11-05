@@ -246,6 +246,16 @@ internal class TeamApiEndpointHandler(
         var openIdContext = httpContext.GetOpenIdContext();
         var controlPlaneTenantId = openIdContext.Tenant.TenantId;
 
+        var authorizationError = await TeamValidator.AuthorizeCreateAsync(
+            httpContext.User,
+            controlPlaneTenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
 
@@ -264,13 +274,7 @@ internal class TeamApiEndpointHandler(
             },
         };
 
-        var error = await TeamValidator.ValidateCreateAsync(
-            httpContext.User,
-            controlPlaneTenantId,
-            team,
-            storeManager,
-            cancellationToken
-        );
+        var error = await TeamValidator.ValidateCreateAsync(team, storeManager, cancellationToken);
         if (error is not null)
         {
             return ToErrorResult(error);
@@ -425,6 +429,17 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await TeamValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            GetControlPlaneTenantId(httpContext),
+            teamId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
 
@@ -506,6 +521,17 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await TeamValidator.AuthorizeDeleteAsync(
+            httpContext.User,
+            GetControlPlaneTenantId(httpContext),
+            teamId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
 
@@ -515,13 +541,7 @@ internal class TeamApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var error = await TeamValidator.ValidateDeleteAsync(
-            httpContext.User,
-            GetControlPlaneTenantId(httpContext),
-            team,
-            storeManager,
-            cancellationToken
-        );
+        var error = await TeamValidator.ValidateDeleteAsync(team, storeManager, cancellationToken);
         if (error is not null)
         {
             return ToErrorResult(error);

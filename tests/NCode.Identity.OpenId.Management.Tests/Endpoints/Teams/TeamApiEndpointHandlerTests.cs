@@ -543,12 +543,22 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             Settings = EmptyObject(),
         };
 
+    private void SetupCreateAuthorization(ManagementError? error) =>
+        MockTeamValidator
+            .Setup(x =>
+                x.AuthorizeCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    ControlPlaneTenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
     private void SetupCreateValidation(ManagementError? error) =>
         MockTeamValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    ControlPlaneTenantId,
                     It.IsAny<PersistedTeam>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -560,6 +570,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTeamAsync_WhenValid_SeedsTheOwnerAndAdminAssignmentsAndReturnsCreated()
     {
+        SetupCreateAuthorization(null);
         SetupStore();
         SetupCreateValidation(null);
         SetupValidSettings();
@@ -632,6 +643,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTeamAsync_WhenTheCreatorHasNoSubject_GrantsNoTeamAdmin()
     {
+        SetupCreateAuthorization(null);
         SetupStore();
         SetupCreateValidation(null);
         SetupValidSettings();
@@ -682,6 +694,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateTeamAsync_WhenTheValidatorRefuses_ReturnsItsError()
     {
+        SetupCreateAuthorization(null);
         SetupStore();
         SetupCreateValidation(
             new ManagementError
@@ -702,8 +715,30 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateTeamAsync_WhenUnauthorized_ReturnsTheErrorWithoutOpeningTheStore()
+    {
+        SetupCreateAuthorization(
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Detail = "The caller is not authorized to create this team.",
+            }
+        );
+
+        var result = await Handler.CreateTeamAsync(
+            CreateHttpContext(authenticated: true),
+            CreateCreateRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateTeamAsync_WhenTheSettingsCannotBeHonored_ReturnsValidationProblem()
     {
+        SetupCreateAuthorization(null);
         SetupStore();
         SetupCreateValidation(null);
         SetupInvalidSettings();
@@ -720,6 +755,19 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     #endregion
 
     #region UpdateTeamAsync Tests
+
+    private void SetupUpdateAuthorization(ManagementError? error) =>
+        MockTeamValidator
+            .Setup(x =>
+                x.AuthorizeUpdateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    ControlPlaneTenantId,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
 
     private void SetupUpdateValidation(ManagementError? error, string? ifMatch = null) =>
         MockTeamValidator
@@ -738,8 +786,32 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
     [Fact]
+    public async Task UpdateTeamAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheTeam()
+    {
+        SetupUpdateAuthorization(
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Detail = "The caller is not authorized to update this team.",
+            }
+        );
+
+        var result = await Handler.UpdateTeamAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateDisablePatch(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task UpdateTeamAsync_WhenDisabling_WritesTheTeamAndAnnouncesTheChange()
     {
+        SetupUpdateAuthorization(null);
         SetupStore();
         var team = CreateTeam();
         SetupTeam(team);
@@ -768,6 +840,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateTeamAsync_WhenTheIfMatchTokenIsStale_ReturnsPreconditionFailed()
     {
+        SetupUpdateAuthorization(null);
         SetupStore();
         SetupTeam(CreateTeam());
         SetupUpdateValidation(
@@ -794,6 +867,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateTeamAsync_WhenNotFound_ReturnsNotFound()
     {
+        SetupUpdateAuthorization(null);
         SetupStore();
         SetupTeam(null);
 
@@ -811,6 +885,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateTeamAsync_WhenThePatchCannotBeApplied_ReturnsBadRequest()
     {
+        SetupUpdateAuthorization(null);
         SetupStore();
         SetupTeam(CreateTeam());
         var patch = new JsonPatchDocument<UpdateTeamRequest>();
@@ -834,12 +909,23 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
 
     #region DeleteTeamAsync Tests
 
+    private void SetupDeleteAuthorization(ManagementError? error) =>
+        MockTeamValidator
+            .Setup(x =>
+                x.AuthorizeDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    ControlPlaneTenantId,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
     private void SetupDeleteValidation(ManagementError? error) =>
         MockTeamValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    ControlPlaneTenantId,
                     It.IsAny<PersistedTeam>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -849,8 +935,30 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .Verifiable();
 
     [Fact]
+    public async Task DeleteTeamAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheTeam()
+    {
+        SetupDeleteAuthorization(
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Detail = "The caller is not authorized to delete this team.",
+            }
+        );
+
+        var result = await Handler.DeleteTeamAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task DeleteTeamAsync_WhenValid_RemovesTheTeamAndAnnouncesTheChange()
     {
+        SetupDeleteAuthorization(null);
         SetupStore();
         SetupTeam(CreateTeam());
         SetupDeleteValidation(null);
@@ -874,6 +982,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteTeamAsync_WhenTheValidatorRefuses_ReturnsConflictWithoutRemoving()
     {
+        SetupDeleteAuthorization(null);
         SetupStore();
         SetupTeam(CreateTeam());
         SetupDeleteValidation(
@@ -897,6 +1006,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteTeamAsync_WhenNotFound_ReturnsNotFound()
     {
+        SetupDeleteAuthorization(null);
         SetupStore();
         SetupTeam(null);
 

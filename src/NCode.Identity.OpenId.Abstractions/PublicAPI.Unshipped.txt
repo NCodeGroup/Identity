@@ -390,6 +390,8 @@ NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OnUnhandledExceptio
 NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OnUnhandledExceptionCommand(NCode.Identity.OpenId.Environments.OpenIdEnvironment! OpenIdEnvironment, Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Mediator.IMediator! Mediator, System.Runtime.ExceptionServices.ExceptionDispatchInfo! ExceptionDispatchInfo, NCode.Mediator.Middleware.CommandExceptionHandlerState! ExceptionState) -> void
 NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OpenIdEnvironment.get -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
 NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OpenIdEnvironment.init -> void
+NCode.Identity.OpenId.Exceptions.IOpenIdExceptionTranslator
+NCode.Identity.OpenId.Exceptions.IOpenIdExceptionTranslator.TryTranslate(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Exception! exception, out NCode.Identity.OpenId.Messages.IOpenIdError? error) -> bool
 NCode.Identity.OpenId.Exceptions.OpenIdException
 NCode.Identity.OpenId.Exceptions.OpenIdException.Error.get -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error) -> void

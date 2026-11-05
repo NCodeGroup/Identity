@@ -61,6 +61,8 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.IsDisabled.get -> bool
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.IsDisabled.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.PersistedClient() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.PrincipalId.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.PrincipalId.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.ResourceServerId.get -> string?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.ResourceServerId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient.Secrets.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedClientSecrets!

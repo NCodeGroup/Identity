@@ -154,6 +154,7 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
             .Select(index => new TeamRevision($"team-{index}", "t1"))
             .ToList();
         SetupRevisions(revisions, []);
+        var batchSizes = new List<int>();
 
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
@@ -171,33 +172,19 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
+            .Callback(
+                (IReadOnlyCollection<string> ids, CancellationToken _) => batchSizes.Add(ids.Count)
+            )
             .ReturnsAsync(
                 (IReadOnlyCollection<string> ids, CancellationToken _) =>
                     (IReadOnlyDictionary<string, string>)
                         ids.ToDictionary(id => id, _ => "t1", StringComparer.OrdinalIgnoreCase)
             )
-            .Verifiable(Times.Exactly(2));
+            .Verifiable();
 
         await Handler.HandleMissedMessagesAsync(CancellationToken.None);
 
-        MockTeamStore.Verify(
-            x =>
-                x.GetConcurrencyTokensAsync(
-                    It.Is<IReadOnlyCollection<string>>(ids =>
-                        ids.Count == TeamChangeBroadcastHandler.TeamBatchSize
-                    ),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
-        MockTeamStore.Verify(
-            x =>
-                x.GetConcurrencyTokensAsync(
-                    It.Is<IReadOnlyCollection<string>>(ids => ids.Count == 1),
-                    It.IsAny<CancellationToken>()
-                ),
-            Times.Once
-        );
+        Assert.Equal([TeamChangeBroadcastHandler.TeamBatchSize, 1], batchSizes);
     }
 
     [Fact]
@@ -228,6 +215,26 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
             .ThrowsAsync(new InvalidOperationException("The clear failed."))
             .Verifiable();
         SetupClear(MockTenantCache);
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task HandleMissedMessagesAsync_WhenTheTokensCannotBeReadAndBothClearsFail_LogsAndCompletes()
+    {
+        SetupRevisions([new TeamRevision("acme", "a1")], []);
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The store is unavailable."))
+            .Verifiable();
+        MockTeamCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The team clear failed."))
+            .Verifiable();
+        MockTenantCache
+            .Setup(x => x.ClearAsync(It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("The tenant clear failed."))
+            .Verifiable();
 
         await Handler.HandleMissedMessagesAsync(CancellationToken.None);
     }

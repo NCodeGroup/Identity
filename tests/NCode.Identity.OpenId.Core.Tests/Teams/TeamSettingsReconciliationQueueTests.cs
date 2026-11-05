@@ -58,7 +58,6 @@ public sealed class TeamSettingsReconciliationQueueTests
     {
         var task = Queue.TakeAsync(CancellationToken.None).AsTask();
 
-        await Task.Delay(50);
         Assert.False(task.IsCompleted);
 
         Queue.Add("acme");

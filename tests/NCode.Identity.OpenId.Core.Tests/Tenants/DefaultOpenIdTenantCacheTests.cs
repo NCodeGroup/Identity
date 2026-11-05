@@ -38,11 +38,11 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
     )
     {
         var mockTeam = new Mock<OpenIdTeam>(MockBehavior.Strict);
-        mockTeam.SetupGet(x => x.ConcurrencyToken).Returns(teamConcurrencyToken);
+        mockTeam.SetupGet(x => x.ConcurrencyToken).Returns(teamConcurrencyToken).Verifiable();
 
         var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Strict);
-        mockTenant.SetupGet(x => x.TeamId).Returns(teamId);
-        mockTenant.SetupGet(x => x.Team).Returns(mockTeam.Object);
+        mockTenant.SetupGet(x => x.TeamId).Returns(teamId).Verifiable();
+        mockTenant.SetupGet(x => x.Team).Returns(mockTeam.Object).Verifiable();
         mockTenant
             .Protected()
             .Setup<ValueTask>("DisposeAsyncCore")

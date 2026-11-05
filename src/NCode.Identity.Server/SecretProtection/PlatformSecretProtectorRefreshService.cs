@@ -10,25 +10,25 @@ using NCode.Identity.Server.Logging;
 namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
-/// Loads the server's secret protector again every <see cref="MasterKeyOptions.RefreshInterval"/>, so that the holder
+/// Loads the platform's secret protector again every <see cref="MasterKeyOptions.RefreshInterval"/>, so that the holder
 /// that encrypts new Data Protection keys follows a rotation and drops a destroyed key even when a broadcast was lost.
 /// A refresh that fails is logged, the holder keeps its protector, and the next interval tries again.
 /// </summary>
 // See ADR-1407.
-internal class ServerSecretProtectorRefreshService(
-    ServerSecretProtectorLoader loader,
+internal class PlatformSecretProtectorRefreshService(
+    PlatformSecretProtectorLoader loader,
     IOptions<SecretProtectionOptions> protectionOptions,
     TimeProvider timeProvider,
-    ILogger<ServerSecretProtectorRefreshService> logger
+    ILogger<PlatformSecretProtectorRefreshService> logger
 ) : BackgroundService
 {
-    private ServerSecretProtectorLoader Loader { get; } = loader;
+    private PlatformSecretProtectorLoader Loader { get; } = loader;
 
     private IOptions<SecretProtectionOptions> ProtectionOptions { get; } = protectionOptions;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
 
-    private ILogger<ServerSecretProtectorRefreshService> Logger { get; } = logger;
+    private ILogger<PlatformSecretProtectorRefreshService> Logger { get; } = logger;
 
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -51,7 +51,7 @@ internal class ServerSecretProtectorRefreshService(
     }
 
     /// <summary>
-    /// Loads the server's protector once, logging a failure instead of throwing it.
+    /// Loads the platform's protector once, logging a failure instead of throwing it.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
@@ -63,7 +63,7 @@ internal class ServerSecretProtectorRefreshService(
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
-            Logger.ServerSecretProtectorRefreshFailed(exception);
+            Logger.PlatformSecretProtectorRefreshFailed(exception);
         }
     }
 }

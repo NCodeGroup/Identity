@@ -8,18 +8,18 @@ using NCode.Identity.SharedState;
 namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
-/// Reloads the server's secret protector at once when another replica announces that the server's master key changed,
+/// Reloads the platform's secret protector at once when another replica announces that the platform's master key changed,
 /// and after missed announcements, instead of waiting for the next refresh. The general handler of the channel evicts
 /// the owner's keys from the ring; this one also publishes the new protector to the holder that encrypts the Data
 /// Protection key ring.
 /// </summary>
 // See ADR-1407.
-internal sealed class ServerMasterKeyChangeBroadcastHandler(
-    ServerSecretProtectorLoader loader,
+internal sealed class PlatformMasterKeyChangeBroadcastHandler(
+    PlatformSecretProtectorLoader loader,
     ISecretProtectorProvider provider
 ) : IReplicaBroadcastHandler
 {
-    private ServerSecretProtectorLoader Loader { get; } = loader;
+    private PlatformSecretProtectorLoader Loader { get; } = loader;
 
     private ISecretProtectorProvider Provider { get; } = provider;
 

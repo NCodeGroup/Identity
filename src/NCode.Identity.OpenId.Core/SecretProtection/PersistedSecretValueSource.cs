@@ -11,7 +11,7 @@ namespace NCode.Identity.OpenId.SecretProtection;
 
 /// <summary>
 /// Finds the stored secrets that master keys protect: for a tenant owner, the secrets of the tenant, of its clients and
-/// of its resource servers; for the server owner, the secrets of the server.
+/// of its resource servers. Any other owner, the platform included, holds none.
 /// </summary>
 // See ADR-1407.
 internal sealed class PersistedSecretValueSource(
@@ -22,12 +22,7 @@ internal sealed class PersistedSecretValueSource(
 {
     /// <inheritdoc />
     protected override bool Handles(SecretOwner owner) =>
-        string.Equals(owner.OwnerType, SecretOwnerTypes.Tenant, StringComparison.OrdinalIgnoreCase)
-        || string.Equals(
-            owner.OwnerType,
-            SecretOwnerTypes.Server,
-            StringComparison.OrdinalIgnoreCase
-        );
+        string.Equals(owner.OwnerType, SecretOwnerTypes.Tenant, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     protected override ValueTask<PagedResult<PersistedProtectedValue>> GetPageAsync(

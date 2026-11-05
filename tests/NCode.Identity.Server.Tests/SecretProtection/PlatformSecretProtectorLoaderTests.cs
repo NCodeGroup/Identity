@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.SecretProtection;
@@ -15,11 +14,10 @@ using Xunit;
 
 namespace NCode.Identity.Server.Tests;
 
-public class ServerSecretProtectorLoaderTests : BaseTests
+public class PlatformSecretProtectorLoaderTests : BaseTests
 {
-    private const string ServerId = "server-a";
     private static readonly DateTimeOffset Now = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
-    private static readonly SecretOwner Owner = SecretOwner.ForServer(ServerId);
+    private static readonly SecretOwner Owner = SecretOwner.Platform;
 
     private static readonly Guid ActiveKey = Guid.NewGuid();
     private static readonly Guid RetiredLiveKey = Guid.NewGuid();
@@ -36,9 +34,9 @@ public class ServerSecretProtectorLoaderTests : BaseTests
             )
         );
 
-    private ServerSecretProtectorLoader CreateLoader(
+    private PlatformSecretProtectorLoader CreateLoader(
         FakeRingProvider provider,
-        ServerSecretProtectorHolder holder,
+        PlatformSecretProtectorHolder holder,
         params XElement[] ringKeys
     )
     {
@@ -54,27 +52,24 @@ public class ServerSecretProtectorLoaderTests : BaseTests
         );
     }
 
-    private static ServerSecretProtectorLoader CreateLoader(
+    private static PlatformSecretProtectorLoader CreateLoader(
         FakeRingProvider provider,
-        ServerSecretProtectorHolder holder,
+        PlatformSecretProtectorHolder holder,
         DataProtectionKeyRingReader reader
     ) =>
         new(
             provider,
             reader,
-            Options.Create(
-                new OpenIdOptions { Server = new OpenIdServerOptions { ServerId = ServerId } }
-            ),
             Options.Create(new SecretProtectionOptions()),
             new FakeTimeProvider(Now),
             holder,
-            NullLogger<ServerSecretProtectorLoader>.Instance
+            NullLogger<PlatformSecretProtectorLoader>.Instance
         );
 
-    private static ServerSecretProtectorLoader CreateLoaderWithoutRing() =>
+    private static PlatformSecretProtectorLoader CreateLoaderWithoutRing() =>
         CreateLoader(
             new FakeRingProvider(),
-            new ServerSecretProtectorHolder(),
+            new PlatformSecretProtectorHolder(),
             new DataProtectionKeyRingReader(Options.Create(new KeyManagementOptions()))
         );
 
@@ -84,7 +79,7 @@ public class ServerSecretProtectorLoaderTests : BaseTests
     public async Task LoadAsync_ALiveRingKeyNamesARetiredKey_LoadsIt()
     {
         var provider = new FakeRingProvider(ActiveKey, RetiredLiveKey);
-        var holder = new ServerSecretProtectorHolder();
+        var holder = new PlatformSecretProtectorHolder();
         var loader = CreateLoader(
             provider,
             holder,
@@ -107,7 +102,7 @@ public class ServerSecretProtectorLoaderTests : BaseTests
     public async Task LoadAsync_ARingKeyExpiredPastTheGrace_IsIgnored()
     {
         var provider = new FakeRingProvider(ActiveKey);
-        var holder = new ServerSecretProtectorHolder();
+        var holder = new PlatformSecretProtectorHolder();
         var loader = CreateLoader(provider, holder, RingKey(RetiredExpiredKey, Now.AddDays(-31)));
 
         await loader.LoadAsync(CancellationToken.None);
@@ -121,7 +116,7 @@ public class ServerSecretProtectorLoaderTests : BaseTests
     public async Task LoadAsync_AMasterKeyThatDoesNotLoad_IsSkippedSoTheGateStillSeesItsRingKey()
     {
         var provider = new FakeRingProvider(ActiveKey);
-        var holder = new ServerSecretProtectorHolder();
+        var holder = new PlatformSecretProtectorHolder();
         var loader = CreateLoader(
             provider,
             holder,
@@ -140,7 +135,7 @@ public class ServerSecretProtectorLoaderTests : BaseTests
     #region Owner Tests
 
     [Fact]
-    public void Owner_WithAConfiguredServerId_IsThatServer()
+    public void Owner_IsThePlatform()
     {
         Assert.Equal(Owner, CreateLoaderWithoutRing().Owner);
     }
@@ -150,27 +145,28 @@ public class ServerSecretProtectorLoaderTests : BaseTests
     #region IsOwner Tests
 
     [Fact]
-    public void IsOwner_TheConfiguredServer_ReturnsTrue()
+    public void IsOwner_ThePlatform_ReturnsTrue()
     {
         Assert.True(CreateLoaderWithoutRing().IsOwner(Owner));
     }
 
     [Fact]
-    public void IsOwner_TheServerInAnotherCase_ReturnsTrue()
+    public void IsOwner_ThePlatformInAnotherCase_ReturnsTrue()
     {
-        Assert.True(CreateLoaderWithoutRing().IsOwner(SecretOwner.ForServer("SERVER-A")));
+        var owner = new SecretOwner(
+            SecretOwnerTypes.Platform.ToUpperInvariant(),
+            SecretOwner.PlatformOwnerId.ToUpperInvariant()
+        );
+
+        Assert.True(CreateLoaderWithoutRing().IsOwner(owner));
     }
 
     [Fact]
-    public void IsOwner_ATenantWithTheServersId_ReturnsFalse()
+    public void IsOwner_ATenantWithThePlatformsId_ReturnsFalse()
     {
-        Assert.False(CreateLoaderWithoutRing().IsOwner(SecretOwner.ForTenant(ServerId)));
-    }
-
-    [Fact]
-    public void IsOwner_AnotherServer_ReturnsFalse()
-    {
-        Assert.False(CreateLoaderWithoutRing().IsOwner(SecretOwner.ForServer("server-b")));
+        Assert.False(
+            CreateLoaderWithoutRing().IsOwner(SecretOwner.ForTenant(SecretOwner.PlatformOwnerId))
+        );
     }
 
     #endregion

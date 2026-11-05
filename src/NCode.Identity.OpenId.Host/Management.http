@@ -200,10 +200,10 @@ Accept: application/json
 POST {{host}}/api/tenants/{{tenantId}}/encryption-keys/rekey
 Accept: application/json
 
-### List the server's master keys (read:server_encryption_keys, central-admin)
-GET {{host}}/api/servers/REPLACE_WITH_ServerId/encryption-keys
+### List the platform's master keys (read:platform_encryption_keys, central-admin)
+GET {{host}}/api/platform/encryption-keys
 Accept: application/json
 
-### Rekey the server (update:server_encryption_keys, central-admin)
-POST {{host}}/api/servers/REPLACE_WITH_ServerId/encryption-keys/rekey
+### Rekey the platform (update:platform_encryption_keys, central-admin)
+POST {{host}}/api/platform/encryption-keys/rekey
 Accept: application/json

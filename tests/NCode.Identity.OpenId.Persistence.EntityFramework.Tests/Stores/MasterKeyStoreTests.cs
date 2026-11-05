@@ -323,7 +323,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1),
-            CreateMasterKey(SecretOwnerTypes.Server, ServerId, 1),
+            CreateMasterKey(SecretOwnerTypes.Platform, SecretOwner.PlatformOwnerId, 1),
         };
         await AddAsync(keys);
 
@@ -385,7 +385,12 @@ public sealed class MasterKeyStoreTests : IDisposable
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 3),
             CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1, retired: true),
-            CreateMasterKey(SecretOwnerTypes.Server, "server-one", 1, retired: true)
+            CreateMasterKey(
+                SecretOwnerTypes.Platform,
+                SecretOwner.PlatformOwnerId,
+                1,
+                retired: true
+            )
         );
 
         var owners = await ReadRetiredOwnersAsync(limit: 1);
@@ -395,7 +400,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             [
                 SecretOwner.ForTenant(TenantOneId),
                 SecretOwner.ForTenant(TenantTwoId),
-                SecretOwner.ForServer("server-one"),
+                SecretOwner.Platform,
             ],
             owners.Distinct()
         );

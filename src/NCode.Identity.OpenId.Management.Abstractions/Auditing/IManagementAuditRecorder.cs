@@ -366,7 +366,7 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
-    /// Records that an administrator rekeyed the master key of a tenant or of the server.
+    /// Records that an administrator rekeyed the master key of a tenant or of the platform.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
     /// <param name="rotation">The rotation that the rekey performed.</param>

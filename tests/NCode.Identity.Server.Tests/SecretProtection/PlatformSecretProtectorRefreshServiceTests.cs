@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.Logging;
 using NCode.Identity.Server.SecretProtection;
@@ -14,7 +13,7 @@ using Xunit;
 
 namespace NCode.Identity.Server.Tests;
 
-public class ServerSecretProtectorRefreshServiceTests : BaseTests
+public class PlatformSecretProtectorRefreshServiceTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2027, 6, 1, 0, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan Wait = TimeSpan.FromSeconds(10);
@@ -52,18 +51,18 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
     }
 
     private sealed record Fixture(
-        ServerSecretProtectorRefreshService Service,
+        PlatformSecretProtectorRefreshService Service,
         FakeRingProvider Provider,
-        ServerSecretProtectorHolder Holder,
+        PlatformSecretProtectorHolder Holder,
         FakeTimeProvider Time,
-        CapturingLogger<ServerSecretProtectorRefreshService> Logger,
+        CapturingLogger<PlatformSecretProtectorRefreshService> Logger,
         TimeSpan Interval
     );
 
     private Fixture CreateFixture(bool loads = true)
     {
         var provider = new FakeRingProvider();
-        var holder = new ServerSecretProtectorHolder();
+        var holder = new PlatformSecretProtectorHolder();
         var time = new FakeTimeProvider(Now);
         var options = Options.Create(new SecretProtectionOptions());
 
@@ -76,20 +75,17 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
             keyManagement.XmlRepository = repository.Object;
         }
 
-        var loader = new ServerSecretProtectorLoader(
+        var loader = new PlatformSecretProtectorLoader(
             provider,
             new DataProtectionKeyRingReader(Options.Create(keyManagement)),
-            Options.Create(
-                new OpenIdOptions { Server = new OpenIdServerOptions { ServerId = "server-a" } }
-            ),
             options,
             time,
             holder,
-            CreateLooseMock<ILogger<ServerSecretProtectorLoader>>().Object
+            CreateLooseMock<ILogger<PlatformSecretProtectorLoader>>().Object
         );
 
-        var logger = new CapturingLogger<ServerSecretProtectorRefreshService>();
-        var service = new ServerSecretProtectorRefreshService(loader, options, time, logger);
+        var logger = new CapturingLogger<PlatformSecretProtectorRefreshService>();
+        var service = new PlatformSecretProtectorRefreshService(loader, options, time, logger);
 
         return new Fixture(
             service,
@@ -164,7 +160,9 @@ public class ServerSecretProtectorRefreshServiceTests : BaseTests
         Assert.True(await TickUntilLoadAsync(fixture));
         Assert.True(
             await UntilAsync(() =>
-                fixture.Logger.Events.Any(e => e.Id == EventIds.ServerSecretProtectorRefreshFailed)
+                fixture.Logger.Events.Any(e =>
+                    e.Id == EventIds.PlatformSecretProtectorRefreshFailed
+                )
             )
         );
         Assert.All(fixture.Logger.Events, e => Assert.Equal(LogLevel.Warning, e.Level));

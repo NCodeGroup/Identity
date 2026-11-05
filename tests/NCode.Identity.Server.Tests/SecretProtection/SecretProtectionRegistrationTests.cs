@@ -53,7 +53,7 @@ public class SecretProtectionRegistrationTests : BaseTests
 
     private static bool IsRefreshService(ServiceDescriptor descriptor) =>
         descriptor.ServiceType == typeof(IHostedService)
-        && descriptor.ImplementationType == typeof(ServerSecretProtectorRefreshService);
+        && descriptor.ImplementationType == typeof(PlatformSecretProtectorRefreshService);
 
     #region AddSecretProtection Tests
 

@@ -5,38 +5,33 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
-using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.Persistence.Options;
+using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.SecretProtection;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
 
-public class ServerMasterKeyChangeBroadcastHandlerTests : BaseTests
+public class PlatformMasterKeyChangeBroadcastHandlerTests : BaseTests
 {
-    private const string ServerId = "server-a";
-
     private (
-        ServerMasterKeyChangeBroadcastHandler Handler,
+        PlatformMasterKeyChangeBroadcastHandler Handler,
         FakeRingProvider Provider,
-        ServerSecretProtectorHolder Holder
+        PlatformSecretProtectorHolder Holder
     ) Create()
     {
         var provider = new FakeRingProvider();
-        var holder = new ServerSecretProtectorHolder();
-        var loader = new ServerSecretProtectorLoader(
+        var holder = new PlatformSecretProtectorHolder();
+        var loader = new PlatformSecretProtectorLoader(
             provider,
             new DataProtectionKeyRingReader(Options.Create(new KeyManagementOptions())),
-            Options.Create(
-                new OpenIdOptions { Server = new OpenIdServerOptions { ServerId = ServerId } }
-            ),
             Options.Create(new SecretProtectionOptions()),
             new FakeTimeProvider(),
             holder,
-            CreateLooseMock<ILogger<ServerSecretProtectorLoader>>().Object
+            CreateLooseMock<ILogger<PlatformSecretProtectorLoader>>().Object
         );
 
-        return (new ServerMasterKeyChangeBroadcastHandler(loader, provider), provider, holder);
+        return (new PlatformMasterKeyChangeBroadcastHandler(loader, provider), provider, holder);
     }
 
     #region Channel Tests
@@ -52,11 +47,11 @@ public class ServerMasterKeyChangeBroadcastHandlerTests : BaseTests
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_ThisServersOwner_EvictsAndReloadsTheHolder()
+    public async Task HandleAsync_ThePlatformsOwner_EvictsAndReloadsTheHolder()
     {
         var (handler, provider, holder) = Create();
 
-        await handler.HandleAsync($"server:{ServerId}", CancellationToken.None);
+        await handler.HandleAsync(SecretOwner.Platform.ToString(), CancellationToken.None);
 
         Assert.Single(provider.Evicted);
         Assert.NotNull(holder.Protector);
@@ -64,7 +59,7 @@ public class ServerMasterKeyChangeBroadcastHandlerTests : BaseTests
 
     [Theory]
     [InlineData("tenant:acme")]
-    [InlineData("server:other")]
+    [InlineData("tenant:platform")]
     [InlineData("garbage")]
     public async Task HandleAsync_AnotherOwner_DoesNothing(string message)
     {

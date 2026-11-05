@@ -879,7 +879,7 @@ public static class OpenIdSettingNames
 
     /// <summary>
     /// Contains the name of <c>token_endpoint_auth_methods_supported</c> setting: the client-authentication methods the
-    /// the platform, a team, a tenant, or a security profile permits. It is a ceiling over a client's registered
+    /// platform, a team, a tenant, or a security profile permits. It is a ceiling over a client's registered
     /// <c>token_endpoint_auth_method</c>: a client whose registered method it excludes cannot authenticate.
     /// </summary>
     public const string TokenEndpointAuthMethodsSupported = OpenIdProtocol

@@ -106,7 +106,7 @@ public class SecretOwnerTests
 
     [Theory]
     [InlineData("tenant:tenant-1", "tenant", "tenant-1")]
-    [InlineData("server:a:b", "server", "a:b")]
+    [InlineData("platform:a:b", "platform", "a:b")]
     public void TryParse_ValidText_ReturnsOwner(string text, string ownerType, string ownerId)
     {
         Assert.True(SecretOwner.TryParse(text, out var owner));

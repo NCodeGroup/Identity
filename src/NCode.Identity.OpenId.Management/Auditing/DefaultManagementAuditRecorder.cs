@@ -475,12 +475,21 @@ internal class DefaultManagementAuditRecorder(
             ? owner.OwnerId
             : null;
 
+        // A platform event is recorded in the control-plane tenant, as every platform event is.
+        var recordedTenantId = string.Equals(
+            owner.OwnerType,
+            SecretOwnerTypes.Platform,
+            StringComparison.OrdinalIgnoreCase
+        )
+            ? httpContext.GetOpenIdContext().Tenant.TenantId
+            : tenantId;
+
         var auditEvent = new MasterKeyAuditEvent
         {
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.Management,
-            TenantId = tenantId,
+            TenantId = recordedTenantId,
             TenantEnvironmentType = tenantId is null
                 ? null
                 : await TenantEnvironmentResolver.GetEnvironmentTypeAsync(

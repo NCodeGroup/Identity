@@ -4,7 +4,6 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.Logging;
@@ -12,7 +11,7 @@ using NCode.Identity.Server.Logging;
 namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
-/// Loads the server's secret protector into the holder: the protector of the server's active master key, which also
+/// Loads the platform's secret protector into the holder: the protector of the platform's active master key, which also
 /// holds every retired master key that a live key of the Data Protection key ring names. The key ring encrypts new keys
 /// under the active key and is never re-encrypted, so a retired key stays loaded as long as a live ring key needs it.
 /// </summary>
@@ -21,52 +20,51 @@ namespace NCode.Identity.Server.SecretProtection;
 /// gate still finds that ring key undecryptable and reports or revokes it.
 /// </remarks>
 // See ADR-1407 and ADR-1247.
-internal class ServerSecretProtectorLoader(
+internal class PlatformSecretProtectorLoader(
     ISecretProtectorProvider provider,
     DataProtectionKeyRingReader keyRingReader,
-    IOptions<OpenIdOptions> openIdOptions,
     IOptions<SecretProtectionOptions> protectionOptions,
     TimeProvider timeProvider,
-    ServerSecretProtectorHolder holder,
-    ILogger<ServerSecretProtectorLoader> logger
+    PlatformSecretProtectorHolder holder,
+    ILogger<PlatformSecretProtectorLoader> logger
 )
 {
     private ISecretProtectorProvider Provider { get; } = provider;
 
     private DataProtectionKeyRingReader KeyRingReader { get; } = keyRingReader;
 
-    // Read on use: Value runs the OpenIdOptions validators, which construct the client-authentication handlers, which depend on the server factory.
-    private IOptions<OpenIdOptions> OpenIdOptionsAccessor { get; } = openIdOptions;
-
     private IOptions<SecretProtectionOptions> ProtectionOptionsAccessor { get; } =
         protectionOptions;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
 
-    private ServerSecretProtectorHolder Holder { get; } = holder;
+    private PlatformSecretProtectorHolder Holder { get; } = holder;
 
-    private ILogger<ServerSecretProtectorLoader> Logger { get; } = logger;
+    private ILogger<PlatformSecretProtectorLoader> Logger { get; } = logger;
 
     /// <summary>
-    /// Gets the owner of the server's master keys.
+    /// Gets the owner of the platform's master keys.
     /// </summary>
-    public SecretOwner Owner => SecretOwner.ForServer(GetServerId());
+    public SecretOwner Owner { get; } = SecretOwner.Platform;
 
     /// <summary>
-    /// Determines whether an owner is the server's, matching without regard to case as the key ring does.
+    /// Determines whether an owner is the platform's, matching without regard to case as the key ring does.
     /// </summary>
     /// <param name="owner">The owner to check.</param>
-    /// <returns><see langword="true"/> when the owner is the server's.</returns>
+    /// <returns><see langword="true"/> when the owner is the platform's.</returns>
     public bool IsOwner(SecretOwner owner)
     {
-        var server = Owner;
+        var platform = Owner;
 
-        return string.Equals(owner.OwnerType, server.OwnerType, StringComparison.OrdinalIgnoreCase)
-            && string.Equals(owner.OwnerId, server.OwnerId, StringComparison.OrdinalIgnoreCase);
+        return string.Equals(
+                owner.OwnerType,
+                platform.OwnerType,
+                StringComparison.OrdinalIgnoreCase
+            ) && string.Equals(owner.OwnerId, platform.OwnerId, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
-    /// Loads the server's protector and publishes it to the holder.
+    /// Loads the platform's protector and publishes it to the holder.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
@@ -119,17 +117,5 @@ internal class ServerSecretProtectorLoader(
         }
 
         return loadable;
-    }
-
-    private string GetServerId()
-    {
-        var serverId = OpenIdOptionsAccessor.Value.Server.ServerId;
-
-        if (string.IsNullOrEmpty(serverId))
-        {
-            serverId = OpenIdServerOptions.DefaultServerId;
-        }
-
-        return serverId;
     }
 }

@@ -234,7 +234,7 @@ public class UserInfoEndpointTests
                     configuration.AddInMemoryCollection(
                         new Dictionary<string, string?>
                         {
-                            ["OpenId:Server:Settings:audit_userinfo_access"] = "true",
+                            ["OpenId:Platform:Settings:audit_userinfo_access"] = "true",
                         }
                     )
             );

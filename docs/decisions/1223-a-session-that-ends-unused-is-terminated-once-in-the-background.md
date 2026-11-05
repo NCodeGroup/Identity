@@ -12,7 +12,10 @@
   session it cannot terminate, so the tenant's other sessions are terminated;
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
-  creates the schema this record names)
+  creates the schema this record names; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): background work in
+  another package waits for the platform through `IMaterializedPlatformAccessor.GetPlatformAsync` in
+  `NCode.Identity.OpenId.Platform`, which a replica materializes when it starts)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

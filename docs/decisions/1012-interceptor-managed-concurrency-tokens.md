@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md): a lost race surfaces as
-  `StoreConcurrencyException`)
+  `StoreConcurrencyException`; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform and team
+  rows, `PlatformEntity` and `TeamEntity`, carry the row-level `ConcurrencyToken`)
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 

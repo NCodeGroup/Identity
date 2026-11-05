@@ -30,7 +30,9 @@
   [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) and
   [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md); amended by
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): a tenant administrator is a
-  `TenantAdmin` assignment at the tenant's node)
+  `TenantAdmin` assignment at the tenant's node; amended by
+  [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md): a limit is set by the
+  authority above the scope whose document carries it)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)

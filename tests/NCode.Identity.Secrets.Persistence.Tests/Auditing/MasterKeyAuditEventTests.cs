@@ -119,4 +119,33 @@ public sealed class MasterKeyAuditEventTests
 
         Assert.False(details.TryGetProperty("root_key_reference", out _));
     }
+
+    [Fact]
+    public void Serialize_ThroughAnAccessIdentity_WritesTheRootKeyAccessIdentityAfterTheReference()
+    {
+        var auditEvent = CreateEvent() with
+        {
+            RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
+            RootKeyAccessIdentity = "arn:aws:iam::111122223333:role/acme-access",
+        };
+
+        var details = ParseRecord(auditEvent).GetProperty("details");
+
+        Assert.Equal(
+            "arn:aws:iam::111122223333:role/acme-access",
+            details.GetProperty("root_key_access_identity").GetString()
+        );
+        Assert.Equal(
+            """{"reason":"rotation_period_elapsed","key_id":"11111111-1111-1111-1111-111111111111","version":2,"root_key_provider":"local","root_key_reference":"arn:aws:kms:us-west-2:111122223333:key/abcd","root_key_access_identity":"arn:aws:iam::111122223333:role/acme-access"}""",
+            details.GetRawText()
+        );
+    }
+
+    [Fact]
+    public void Serialize_UnderTheDeploymentIdentity_OmitsTheRootKeyAccessIdentity()
+    {
+        var details = ParseRecord(CreateEvent()).GetProperty("details");
+
+        Assert.False(details.TryGetProperty("root_key_access_identity", out _));
+    }
 }

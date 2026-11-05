@@ -508,6 +508,7 @@ internal class DefaultManagementAuditRecorder(
             Version = rotation.ActiveKey.Version,
             RootKeyProvider = rotation.ActiveKey.RootKeyProvider,
             RootKeyReference = rotation.ActiveKey.RootKeyReference,
+            RootKeyAccessIdentity = rotation.ActiveKey.RootKeyAccessIdentity,
             RetiredKeyId = rotation.RetiredKey?.KeyId,
             RetiredVersion = rotation.RetiredKey?.Version,
         };

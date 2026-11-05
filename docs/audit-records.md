@@ -293,7 +293,8 @@ A read of the encryption keys is not audited.
 | `master_key.destroyed` | `master_key`, `tenant`/`platform` | `unreferenced`: the retired key passed its grace and no stored value names it                                                          |
 
 Both events write `details.reason` (an open vocabulary, `MasterKeyChangeReasons`), `key_id`, `version` and
-`root_key_provider`, and `root_key_reference` when a root key a tenant brings wraps the master key. A rotation also
+`root_key_provider`, and `root_key_reference` when a root key a tenant brings wraps the master key, and
+`root_key_access_identity` when the tenant's key is reached through an identity it grants. A rotation also
 writes `retired_key_id` and `retired_version` when it retired a key.
 
 #### Root keys

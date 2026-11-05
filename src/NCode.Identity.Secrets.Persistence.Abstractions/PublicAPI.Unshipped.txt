@@ -565,6 +565,8 @@ const NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames.Set = "
 const NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames.Unavailable = "root_key.unavailable" -> string!
 static NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames.For(string! change) -> string!
 const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChangeReasons.RootKeyChanged = "root_key_changed" -> string!
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyAccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyAccessIdentity.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyReference.get -> string?
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyReference.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent

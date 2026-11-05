@@ -59,6 +59,13 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
     public string? RootKeyReference { get; init; }
 
     /// <summary>
+    /// Gets the identity the owner root key that wraps the master key is reached through, or <c>null</c> for the
+    /// deployment's own identity.
+    /// </summary>
+    // See ADR-1429.
+    public string? RootKeyAccessIdentity { get; init; }
+
+    /// <summary>
     /// Gets the identifier of the master key that a rotation retired, or <c>null</c> when the owner had no active
     /// key or the event records a destruction.
     /// </summary>
@@ -88,8 +95,9 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
     /// <inheritdoc />
     /// <remarks>
     /// Writes the <c>reason</c>, the key's <c>key_id</c>, <c>version</c> and <c>root_key_provider</c>, the
-    /// <c>root_key_reference</c> when an owner root key wraps the master key, and for a
-    /// rotation that retired a key the <c>retired_key_id</c> and <c>retired_version</c>.
+    /// <c>root_key_reference</c> when an owner root key wraps the master key, the <c>root_key_access_identity</c> when
+    /// that key is reached through an identity, and for a rotation that retired a key the <c>retired_key_id</c> and
+    /// <c>retired_version</c>.
     /// </remarks>
     public void WriteAuditDetails(Utf8JsonWriter writer)
     {
@@ -101,6 +109,8 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
         writer.WriteString("root_key_provider", RootKeyProvider);
         if (RootKeyReference is { } rootKeyReference)
             writer.WriteString("root_key_reference", rootKeyReference);
+        if (RootKeyAccessIdentity is { } rootKeyAccessIdentity)
+            writer.WriteString("root_key_access_identity", rootKeyAccessIdentity);
         if (RetiredKeyId is { } retiredKeyId)
             writer.WriteString("retired_key_id", retiredKeyId);
 

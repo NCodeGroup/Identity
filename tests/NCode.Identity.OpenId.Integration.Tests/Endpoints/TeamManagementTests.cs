@@ -379,6 +379,65 @@ public class TeamManagementTests
         return (clientId, material);
     }
 
+    // Creates a client in the control-plane tenant that authenticates with HTTP Basic and returns its credentials and
+    // the principal that its tokens resolve to.
+    private static async Task<(
+        string ClientId,
+        string ClientSecret,
+        string PrincipalId
+    )> CreateMachineClientAsync(HttpClient administrator)
+    {
+        using var created = await administrator.PostAsJsonAsync(
+            $"/api/tenants/{RootTenantId}/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretBasic,
+                },
+            }
+        );
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+        var createdClient = JsonElement.Parse(createdBody);
+        var clientId = createdClient.GetProperty("clientId").GetString();
+        Assert.NotNull(clientId);
+        var principalId = createdClient.GetProperty("principalId").GetString();
+        Assert.NotNull(principalId);
+
+        using var secret = await administrator.PostAsJsonAsync(
+            $"/api/tenants/{RootTenantId}/clients/{clientId}/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var secretBody = await secret.Content.ReadAsStringAsync();
+        Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
+        var material = JsonElement.Parse(secretBody).GetProperty("secretMaterial").GetString();
+        Assert.NotNull(material);
+        return (clientId, material, principalId);
+    }
+
+    private static async Task GrantTeamAdminAsync(
+        HttpClient administrator,
+        string teamId,
+        string principalId
+    )
+    {
+        using var grant = await administrator.PostAsJsonAsync(
+            $"/api/teams/{teamId}/admins",
+            new { principalId }
+        );
+        var body = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
+    }
+
     private static async Task<HttpStatusCode> RequestClientCredentialsTokenAsync(
         HostApplicationFactory factory,
         string tenantId,
@@ -727,6 +786,77 @@ public class TeamManagementTests
             HttpStatusCode.OK,
             await RequestClientCredentialsTokenAsync(factory, "acme-dev", clientId, clientSecret)
         );
+    }
+
+    #endregion
+
+    #region Machine Client Tests
+
+    [Fact]
+    public async Task MachineClient_GrantedTeamAdmin_CreatesTenantsUnderItsTeamOnly()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
+        await GrantTeamAdminAsync(administrator, "acme", principalId);
+        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+
+        await CreateTenantAsync(machine, "acme", "acme-dev");
+
+        using var forbidden = await PostTenantAsync(machine, "globex", "globex-dev");
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+
+        using var owners = await machine.GetAsync("/api/tenants/acme-dev/owners");
+        var ownersBody = await owners.Content.ReadAsStringAsync();
+        Assert.True(owners.StatusCode == HttpStatusCode.OK, ownersBody);
+        Assert.Contains(
+            JsonElement.Parse(ownersBody).GetProperty("items").EnumerateArray(),
+            owner => owner.GetProperty("principalId").GetString() == principalId
+        );
+    }
+
+    [Fact]
+    public async Task MachineClient_WithoutAnAssignment_CannotCreateATenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        var (clientId, clientSecret, _) = await CreateMachineClientAsync(administrator);
+        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+
+        using var response = await PostTenantAsync(machine, "acme", "acme-dev");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task MachineClient_WhenDisabled_LosesItsAuthority()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(administrator);
+        await GrantTeamAdminAsync(administrator, "acme", principalId);
+        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+
+        await PatchAsync(
+            administrator,
+            $"/api/tenants/{RootTenantId}/clients/{clientId}",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/isDisabled",
+                    value = true,
+                },
+            }
+        );
+
+        using var response = await PostTenantAsync(machine, "acme", "acme-dev");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     #endregion

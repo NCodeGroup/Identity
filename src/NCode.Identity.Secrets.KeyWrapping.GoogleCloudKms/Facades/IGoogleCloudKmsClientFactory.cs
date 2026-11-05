@@ -28,7 +28,15 @@ internal interface IGoogleCloudKmsClientFactory
     );
 
     /// <summary>
-    /// Removes the client for the specified access, so the next call with the same access creates a client again.
+    /// Confirms that a call through the client for the specified access has succeeded, so the client is kept and
+    /// <see cref="Release"/> no longer removes it.
+    /// </summary>
+    /// <param name="access">The access whose client is confirmed. Nothing happens when it has no client.</param>
+    void Confirm(KeyAccess access);
+
+    /// <summary>
+    /// Removes the client for the specified access when no call through it has succeeded, so the next call with the
+    /// same access creates a client again. A confirmed client is kept.
     /// </summary>
     /// <param name="access">The access whose client is removed. Nothing happens when it has no client.</param>
     void Release(KeyAccess access);

@@ -189,9 +189,14 @@ internal class GoogleCloudKmsKeyWrapper(
         catch (Exception exception)
             when (access is not null && exception is not OperationCanceledException)
         {
-            // An identity that fails must leave no client cached.
+            // An access that has never worked must leave no client cached.
             ClientFactory.Release(access);
             throw;
+        }
+
+        if (access is not null)
+        {
+            ClientFactory.Confirm(access);
         }
 
         if (
@@ -328,9 +333,14 @@ internal class GoogleCloudKmsKeyWrapper(
         catch (Exception exception)
             when (access is not null && exception is not OperationCanceledException)
         {
-            // An identity that fails must leave no client cached.
+            // An access that has never worked must leave no client cached.
             ClientFactory.Release(access);
             throw;
+        }
+
+        if (access is not null)
+        {
+            ClientFactory.Confirm(access);
         }
 
         CopyPlaintext(response, destination);

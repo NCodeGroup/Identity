@@ -151,6 +151,9 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
     private void SetupRelease(KeyAccess access) =>
         ClientFactory.Setup(x => x.Release(access)).Verifiable();
 
+    private void SetupConfirm(KeyAccess access) =>
+        ClientFactory.Setup(x => x.Confirm(access)).Verifiable();
+
     #region WrapAsync Tests
 
     [Fact]
@@ -376,6 +379,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
             CreateEncryptResponse(TenantCryptoKeyName + "/cryptoKeyVersions/7", ciphertext),
             CancellationToken.None
         );
+        SetupConfirm(Access);
         var provider = CreateProvider(keyName: null);
 
         var wrappedKey = await provider.WrapAsync(
@@ -468,6 +472,7 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         var destination = new ArrayBufferWriter<byte>();
         SetupClient(CancellationToken.None, Access);
         SetupDecrypt(CreateDecryptResponse(plaintext), CancellationToken.None);
+        SetupConfirm(Access);
         var provider = CreateProvider(keyName: null);
 
         await provider.UnwrapAsync(
@@ -526,6 +531,54 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
     #endregion
 
     #region Release Tests
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithAccessSucceeds_ConfirmsTheClientAndReleasesNothing()
+    {
+        SetupClient(CancellationToken.None, Access);
+        SetupEncrypt(
+            CreateEncryptResponse(
+                TenantCryptoKeyName + "/cryptoKeyVersions/7",
+                RandomNumberGenerator.GetBytes(64)
+            ),
+            CancellationToken.None
+        );
+        SetupConfirm(Access);
+        var provider = CreateProvider(keyName: null);
+
+        await provider.WrapAsync(
+            new ReferencedKey(TenantCryptoKeyName, Access),
+            RandomNumberGenerator.GetBytes(32),
+            "root-context"u8.ToArray(),
+            CancellationToken.None
+        );
+
+        ClientFactory.Verify(x => x.Confirm(Access), Times.Once);
+        ClientFactory.Verify(x => x.Release(It.IsAny<KeyAccess>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessSucceeds_ConfirmsTheClientAndReleasesNothing()
+    {
+        SetupClient(CancellationToken.None, Access);
+        SetupDecrypt(
+            CreateDecryptResponse(RandomNumberGenerator.GetBytes(32)),
+            CancellationToken.None
+        );
+        SetupConfirm(Access);
+        var provider = CreateProvider(keyName: null);
+
+        await provider.UnwrapAsync(
+            CreateWrappedKey(CryptoKeyVersionName, RandomNumberGenerator.GetBytes(64)),
+            Access,
+            "root-context"u8.ToArray(),
+            new ArrayBufferWriter<byte>(),
+            CancellationToken.None
+        );
+
+        ClientFactory.Verify(x => x.Confirm(Access), Times.Once);
+        ClientFactory.Verify(x => x.Release(It.IsAny<KeyAccess>()), Times.Never);
+    }
 
     [Fact]
     public async Task WrapAsync_ReferencedKeyWithAccessFails_ReleasesTheClient()

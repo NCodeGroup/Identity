@@ -24,8 +24,10 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
 /// A service account that the holder of the key grants through an identity gets its own client, whose credential
 /// impersonates the service account with the Application Default Credentials as the source, so the service account
 /// must grant the source the Service Account Token Creator role. The SDK refreshes the impersonated tokens. A failure
-/// to create the client is not cached either, and a client that the wrapper releases after a failed call is removed,
-/// so the next call creates it again.
+/// to create the client is not cached either. A client is confirmed after its first successful call and is then kept
+/// for the lifetime of the factory; a client whose calls have not succeeded is removed when the wrapper releases it
+/// after a failed call, so the next call creates it again, while a failure of a confirmed service account (a throttle,
+/// for example) leaves its client in use.
 /// </para>
 /// </remarks>
 // See ADR-1260 and ADR-1429.
@@ -36,7 +38,7 @@ internal sealed class DefaultGoogleCloudKmsClientFactory : IGoogleCloudKmsClient
 {
     private KeyManagementServiceClient? _client;
 
-    private ConcurrentDictionary<string, KeyManagementServiceClient> ImpersonatedClients { get; } =
+    private ConcurrentDictionary<string, ClientEntry> ImpersonatedClients { get; } =
         new(StringComparer.Ordinal);
 
     /// <inheritdoc />
@@ -66,9 +68,9 @@ internal sealed class DefaultGoogleCloudKmsClientFactory : IGoogleCloudKmsClient
         CancellationToken cancellationToken
     )
     {
-        if (ImpersonatedClients.TryGetValue(access.Identity, out var client))
+        if (ImpersonatedClients.TryGetValue(access.Identity, out var entry))
         {
-            return client;
+            return entry.Client;
         }
 
         var source = await GoogleCredential.GetApplicationDefaultAsync(cancellationToken);
@@ -85,7 +87,18 @@ internal sealed class DefaultGoogleCloudKmsClientFactory : IGoogleCloudKmsClient
         {
             GoogleCredential = credential,
         }.BuildAsync(cancellationToken);
-        return ImpersonatedClients.GetOrAdd(access.Identity, created);
+        return ImpersonatedClients.GetOrAdd(access.Identity, new ClientEntry(created)).Client;
+    }
+
+    /// <inheritdoc />
+    public void Confirm(KeyAccess access)
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        if (ImpersonatedClients.TryGetValue(access.Identity, out var entry))
+        {
+            entry.Confirm();
+        }
     }
 
     /// <inheritdoc />
@@ -93,7 +106,30 @@ internal sealed class DefaultGoogleCloudKmsClientFactory : IGoogleCloudKmsClient
     {
         ArgumentNullException.ThrowIfNull(access);
 
-        // A released client has its own channel, which nothing else references, so it is reclaimed with its channel.
-        ImpersonatedClients.TryRemove(access.Identity, out _);
+        if (!ImpersonatedClients.TryGetValue(access.Identity, out var entry) || entry.IsConfirmed)
+        {
+            return;
+        }
+
+        // Removes exactly the entry that was read, so an entry that another caller has since added stays cached. A
+        // released client has its own channel, which nothing else references, so it is reclaimed with its channel.
+        ImpersonatedClients.TryRemove(
+            new KeyValuePair<string, ClientEntry>(access.Identity, entry)
+        );
+    }
+
+    /// <summary>
+    /// A client for an impersonated service account and whether a call through it has succeeded.
+    /// </summary>
+    private sealed class ClientEntry(KeyManagementServiceClient client)
+    {
+        // Read and written with Volatile, because the entry is shared by concurrent calls.
+        private bool _confirmed;
+
+        public KeyManagementServiceClient Client { get; } = client;
+
+        public bool IsConfirmed => Volatile.Read(ref _confirmed);
+
+        public void Confirm() => Volatile.Write(ref _confirmed, true);
     }
 }

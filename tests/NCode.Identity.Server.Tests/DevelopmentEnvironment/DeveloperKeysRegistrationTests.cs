@@ -46,6 +46,10 @@ public sealed class DeveloperKeysRegistrationTests
             descriptor => descriptor.ServiceType == typeof(ICommandHandler<SeedTenantCommand>)
         );
         Assert.Equal(typeof(DeveloperSecretPruningSeedHandler), handler.ImplementationType);
+        Assert.Single(
+            services,
+            descriptor => descriptor.ServiceType == typeof(DeveloperMasterKeyReset)
+        );
         Assert.True(IsProvisioningEnabled(services));
     }
 

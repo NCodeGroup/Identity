@@ -10,7 +10,6 @@ using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Mediator;
-using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Server.DevelopmentEnvironment;
 
@@ -29,14 +28,14 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 internal sealed class DeveloperSecretPruningSeedHandler(
     ISecretSerializer secretSerializer,
     ISecretProtectorProvider secretProtectorProvider,
-    IStoreManagerFactory storeManagerFactory
+    DeveloperMasterKeyReset masterKeyReset
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
 
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private DeveloperMasterKeyReset MasterKeyReset { get; } = masterKeyReset;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.High;
@@ -102,17 +101,7 @@ internal sealed class DeveloperSecretPruningSeedHandler(
         }
         catch (CryptographicException)
         {
-            // A separate, committed unit of work: the key ring reloads through its own store manager, which would not
-            // see a deletion that is still uncommitted in the unit of work of the seed.
-            await using var keyStoreManager = await StoreManagerFactory.CreateAsync(
-                cancellationToken
-            );
-            await keyStoreManager
-                .GetStore<IMasterKeyStore>()
-                .RemoveAllAsync(owner, cancellationToken);
-            await keyStoreManager.SaveChangesAsync(cancellationToken);
-
-            SecretProtectorProvider.Evict(owner);
+            await MasterKeyReset.ResetAsync(owner, cancellationToken);
 
             foreach (var persistedSecret in tenant.Secrets.Value)
             {

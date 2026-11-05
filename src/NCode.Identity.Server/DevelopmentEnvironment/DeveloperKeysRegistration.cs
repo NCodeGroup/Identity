@@ -50,6 +50,8 @@ public static class DeveloperKeysRegistration
                 >()
             );
 
+            serviceCollection.TryAddSingleton<DeveloperMasterKeyReset>();
+
             return builder;
         }
     }

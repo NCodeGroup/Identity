@@ -67,7 +67,8 @@ public static class DefaultRegistration
         /// <item><description><see cref="IMasterKeyRewrapper"/> - Rewraps persisted master keys under the root of their
         /// owner: its own root key, or the configured root key provider and recovery public key.</description></item>
         /// <item><description><see cref="IOwnerRootKeyManager"/> - Sets, validates and removes the root key that an owner
-        /// brings, which wraps the owner's master keys in place of the deployment's root key.</description></item>
+        /// brings, which wraps the owner's master keys in place of the deployment's root key. Each
+        /// <see cref="IOwnerRootKeyPolicy"/> decides which owners can bring one; the server owner cannot.</description></item>
         /// <item><description>Options for <see cref="SecretProtectionOptions"/> and
         /// <see cref="LocalKeyWrapperOptions"/>, which are bound to configuration elsewhere, and for
         /// <see cref="SharedSecretVerifierOptions"/>, <see cref="Pbkdf2SecretVerifierOptions"/> and
@@ -139,6 +140,9 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IMasterKeyManager, DefaultMasterKeyManager>();
             serviceCollection.TryAddSingleton<IMasterKeyRewrapper, DefaultMasterKeyRewrapper>();
             serviceCollection.TryAddSingleton<IOwnerRootKeyManager, DefaultOwnerRootKeyManager>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IOwnerRootKeyPolicy, ServerOwnerRootKeyPolicy>()
+            );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<SecretProtectionOptions>,

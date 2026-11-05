@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
@@ -28,6 +29,7 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     private readonly Mock<IMasterKeyRewrapper> _rewrapper;
     private readonly Mock<IOwnerRootKeyChangeObserver> _observer;
     private readonly List<Mock> _verifiables = [];
+    private readonly List<IOwnerRootKeyPolicy> _policies = [new ServerOwnerRootKeyPolicy()];
     private readonly FakeReferencedKeyWrapper _kms = new();
     private readonly InMemoryOwnerRootKeyStores _stores = new();
     private readonly FakeTimeProvider _time = new(
@@ -67,6 +69,7 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
             _protectors.Object,
             _masterKeys.Object,
             _rewrapper.Object,
+            _policies,
             [_observer.Object],
             Microsoft.Extensions.Options.Options.Create(_options),
             _time,
@@ -429,17 +432,50 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task Set_ServerOwner_Throws()
+    public async Task Set_ServerOwner_ThrowsNotAllowedAndCallsNoWrapper()
     {
-        await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await CreateManager()
-                .SetAsync(
-                    SecretOwner.ForServer("Server-1"),
-                    "fake-kms",
-                    Reference,
-                    CancellationToken.None
-                )
+        var server = SecretOwner.ForServer("Server-1");
+
+        var exception = await Assert.ThrowsAsync<OwnerRootKeyNotAllowedException>(async () =>
+            await CreateManager().SetAsync(server, "fake-kms", Reference, CancellationToken.None)
         );
+
+        Assert.Equal(server.Normalize(), exception.Owner);
+        Assert.Contains("Data Protection key ring", exception.Reason);
+        Assert.Equal(exception.Reason, exception.Message);
+        Assert.Empty(_stores.RootKeys);
+        Assert.Equal(0, _stores.SaveCount);
+        Assert.Equal(0, _kms.WrapCount);
+    }
+
+    [Fact]
+    public async Task Set_OwnerRefusedByAnyRegisteredPolicy_ThrowsNotAllowedBeforeAnyProbe()
+    {
+        _policies.Add(new RefusingPolicy("tenant-a", "Not this tenant."));
+
+        var exception = await Assert.ThrowsAsync<OwnerRootKeyNotAllowedException>(async () =>
+            await CreateManager().SetAsync(Owner, "fake-kms", Reference, CancellationToken.None)
+        );
+
+        Assert.Equal("Not this tenant.", exception.Reason);
+        Assert.Empty(_stores.RootKeys);
+        Assert.Equal(0, _kms.WrapCount);
+    }
+
+    [Fact]
+    public async Task Set_ReferenceLongerThanItsColumn_ThrowsBeforeTheProbe()
+    {
+        var reference = "kms://" + new string('a', PersistedOwnerRootKey.MaxKeyReferenceLength - 5);
+        Assert.Equal(PersistedOwnerRootKey.MaxKeyReferenceLength + 1, reference.Length);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await CreateManager().SetAsync(Owner, "fake-kms", reference, CancellationToken.None)
+        );
+
+        Assert.Equal("keyReference", exception.ParamName);
+        Assert.Contains("at most 2048 characters", exception.Message);
+        Assert.Empty(_stores.RootKeys);
+        Assert.Equal(0, _kms.WrapCount);
     }
 
     #endregion
@@ -682,12 +718,13 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task Validate_ServerOwner_Throws()
+    public async Task Validate_ServerOwner_ReturnsNothing()
     {
-        await Assert.ThrowsAsync<ArgumentException>(async () =>
-            await CreateManager()
-                .ValidateAsync(SecretOwner.ForServer("server-1"), CancellationToken.None)
-        );
+        var validation = await CreateManager()
+            .ValidateAsync(SecretOwner.ForServer("server-1"), CancellationToken.None);
+
+        Assert.Null(validation.RootKey);
+        Assert.Null(validation.Change);
     }
 
     #endregion
@@ -724,6 +761,44 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     [Fact]
+    public void CanBringRootKey_AnOwnerNoPolicyRefuses_IsAllowed()
+    {
+        Assert.True(CreateManager().CanBringRootKey(Owner, out var reason));
+        Assert.Null(reason);
+    }
+
+    [Fact]
+    public void CanBringRootKey_TheServerOwner_ReportsTheServerPolicyReason()
+    {
+        Assert.False(
+            CreateManager().CanBringRootKey(SecretOwner.ForServer("Server-1"), out var reason)
+        );
+        Assert.Equal(
+            "The server's master keys protect the deployment's own Data Protection key ring, so they are always wrapped by the deployment's root key.",
+            reason
+        );
+    }
+
+    [Fact]
+    public void CanBringRootKey_SeveralPoliciesRefuse_ReportsTheFirstReason()
+    {
+        _policies.Add(new RefusingPolicy("tenant-a", "First."));
+        _policies.Add(new RefusingPolicy("tenant-a", "Second."));
+
+        Assert.False(CreateManager().CanBringRootKey(Owner, out var reason));
+        Assert.Equal("First.", reason);
+    }
+
+    [Fact]
+    public void CanBringRootKey_ThePolicySeesTheNormalizedOwner()
+    {
+        _policies.Add(new RefusingPolicy("tenant-a", "Normalized."));
+
+        Assert.False(CreateManager().CanBringRootKey(Owner, out var reason));
+        Assert.Equal("Normalized.", reason);
+    }
+
+    [Fact]
     public async Task Get_ReturnsTheRootKeyWithoutMaterial()
     {
         _stores.Seed(CreateRootKey());
@@ -737,4 +812,20 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     #endregion
+
+    // A policy that refuses the one owner id it names, compared on the normalized id the manager hands it.
+    private sealed class RefusingPolicy(string ownerId, string refusal) : IOwnerRootKeyPolicy
+    {
+        public bool CanBringRootKey(SecretOwner owner, [NotNullWhen(false)] out string? reason)
+        {
+            if (string.Equals(owner.OwnerId, ownerId, StringComparison.Ordinal))
+            {
+                reason = refusal;
+                return false;
+            }
+
+            reason = null;
+            return true;
+        }
+    }
 }

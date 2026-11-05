@@ -38,6 +38,7 @@ internal sealed class DefaultOwnerRootKeyManager(
     ISecretProtectorProvider protectorProvider,
     IMasterKeyManager masterKeyManager,
     IMasterKeyRewrapper rewrapper,
+    IEnumerable<IOwnerRootKeyPolicy> policies,
     IEnumerable<IOwnerRootKeyChangeObserver> observers,
     IOptions<SecretProtectionOptions> options,
     TimeProvider timeProvider,
@@ -56,6 +57,8 @@ internal sealed class DefaultOwnerRootKeyManager(
 
     private IMasterKeyRewrapper Rewrapper { get; } = rewrapper;
 
+    private IOwnerRootKeyPolicy[] Policies { get; } = [.. policies];
+
     private IReadOnlyList<IOwnerRootKeyChangeObserver> Observers { get; } = [.. observers];
 
     private IOptions<SecretProtectionOptions> Options { get; } = options;
@@ -67,6 +70,21 @@ internal sealed class DefaultOwnerRootKeyManager(
     /// <inheritdoc />
     public IReadOnlyList<string> AllowedKeyWrapperNames =>
         [.. Options.Value.OwnerRootKeys.Providers.Order(StringComparer.Ordinal)];
+
+    /// <inheritdoc />
+    public bool CanBringRootKey(SecretOwner owner, [NotNullWhen(false)] out string? reason)
+    {
+        var key = Normalize(owner);
+
+        foreach (var policy in Policies)
+        {
+            if (!policy.CanBringRootKey(key, out reason))
+                return false;
+        }
+
+        reason = null;
+        return true;
+    }
 
     /// <inheritdoc />
     public bool TryValidateKeyReference(
@@ -89,6 +107,13 @@ internal sealed class DefaultOwnerRootKeyManager(
         {
             failure =
                 $"The key wrapper '{keyWrapperName}' does not wrap under a key that the owner names.";
+            return false;
+        }
+
+        if (keyReference.Length > PersistedOwnerRootKey.MaxKeyReferenceLength)
+        {
+            failure =
+                $"The key reference must be at most {PersistedOwnerRootKey.MaxKeyReferenceLength} characters.";
             return false;
         }
 
@@ -127,6 +152,9 @@ internal sealed class DefaultOwnerRootKeyManager(
     )
     {
         var key = Normalize(owner);
+
+        if (!CanBringRootKey(key, out var notAllowed))
+            throw new OwnerRootKeyNotAllowedException(key, notAllowed);
 
         if (!TryValidateKeyReference(keyWrapperName, keyReference, out var failure))
             throw new ArgumentException(failure, nameof(keyReference));
@@ -346,20 +374,6 @@ internal sealed class DefaultOwnerRootKeyManager(
         {
             throw new ArgumentException(
                 "The owner is the default value of SecretOwner, which identifies no owner.",
-                nameof(owner)
-            );
-        }
-
-        if (
-            string.Equals(
-                owner.OwnerType,
-                SecretOwnerTypes.Server,
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            throw new ArgumentException(
-                "The master keys of the server are wrapped by the deployment's root key, so the server cannot bring a root key.",
                 nameof(owner)
             );
         }

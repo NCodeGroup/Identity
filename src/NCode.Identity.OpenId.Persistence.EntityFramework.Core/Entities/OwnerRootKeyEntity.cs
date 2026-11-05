@@ -32,11 +32,6 @@ public sealed class OwnerRootKeyEntity : ISupportConcurrencyToken
     private const int NameMaxLength = 100;
 
     /// <summary>
-    /// Specifies the maximum length of <see cref="KeyReference"/>.
-    /// </summary>
-    private const int KeyReferenceMaxLength = 2048;
-
-    /// <summary>
     /// Gets the surrogate identifier for this entity.
     /// </summary>
     [Key]
@@ -76,7 +71,7 @@ public sealed class OwnerRootKeyEntity : ISupportConcurrencyToken
     /// Gets or sets the reference to the root key that the owner gave.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(KeyReferenceMaxLength)]
+    [MaxLength(PersistedOwnerRootKey.MaxKeyReferenceLength)]
     public required string KeyReference { get; set; }
 
     /// <summary>

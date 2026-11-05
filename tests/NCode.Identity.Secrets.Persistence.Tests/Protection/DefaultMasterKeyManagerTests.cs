@@ -110,7 +110,7 @@ public class DefaultMasterKeyManagerTests : IDisposable
         };
 
     // Queues a unit of work that lists the rows. A rotation and a status read also read the owner's root key, which is
-    // none here; the other operations do not read it, so its setup is not verified.
+    // none here; the other operations do not read it, so its setups may go unused.
     private void SetupList(params PersistedMasterKey[] rows) => SetupListWithRootKey(null, rows);
 
     private void SetupListWithRootKey(
@@ -127,8 +127,12 @@ public class DefaultMasterKeyManagerTests : IDisposable
         var rootKeyStore = _mocks.Create<IOwnerRootKeyStore>();
         rootKeyStore
             .Setup(x => x.FindAsync(NormalizedOwner, It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask<PersistedOwnerRootKey?>(rootKey));
-        manager.Setup(x => x.GetStore<IOwnerRootKeyStore>()).Returns(rootKeyStore.Object);
+            .Returns(new ValueTask<PersistedOwnerRootKey?>(rootKey))
+            .Verifiable(Times.AtMostOnce());
+        manager
+            .Setup(x => x.GetStore<IOwnerRootKeyStore>())
+            .Returns(rootKeyStore.Object)
+            .Verifiable(Times.AtMostOnce());
     }
 
     private void SetupObserverRotated()

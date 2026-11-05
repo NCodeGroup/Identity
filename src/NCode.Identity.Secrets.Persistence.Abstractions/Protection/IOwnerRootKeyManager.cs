@@ -12,8 +12,9 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// While an owner has a root key, its master keys are wrapped under that key with no recovery copy.
 /// </summary>
 /// <remarks>
-/// Every method refuses the <c>server</c> owner with an <see cref="ArgumentException"/>, because the master keys of the
-/// server are always wrapped by the deployment's root key. Setting or changing the key rotates the owner's master key
+/// Which owners can bring a root key is decided by the registered <see cref="IOwnerRootKeyPolicy"/> implementations,
+/// which govern <see cref="SetAsync"/> only: the master keys of the <c>server</c> owner, for example, are always wrapped
+/// by the deployment's root key, so it cannot bring one. Setting or changing the key rotates the owner's master key
 /// and rewraps the retired ones under the key; removing it moves the master keys back under the deployment's root key
 /// without rotating. Every registered <see cref="IOwnerRootKeyChangeObserver"/> learns of a state change after it is
 /// committed.
@@ -29,7 +30,22 @@ public interface IOwnerRootKeyManager
     IReadOnlyList<string> AllowedKeyWrapperNames { get; }
 
     /// <summary>
-    /// Checks that a key wrapper may be chosen and that it accepts the syntax of a key reference.
+    /// Checks whether an owner can bring a root key, which every registered <see cref="IOwnerRootKeyPolicy"/> has to
+    /// allow.
+    /// </summary>
+    /// <param name="owner">The owner to check.</param>
+    /// <param name="reason">
+    /// When this method returns <see langword="false"/>, the reason that the first refusing policy gave; otherwise
+    /// <see langword="null"/>.
+    /// </param>
+    /// <returns><see langword="true"/> when the owner can bring a root key; otherwise, <see langword="false"/>.</returns>
+    /// <exception cref="ArgumentException">Thrown when the owner is the default value of <see cref="SecretOwner"/>.</exception>
+    bool CanBringRootKey(SecretOwner owner, [NotNullWhen(false)] out string? reason);
+
+    /// <summary>
+    /// Checks that a key wrapper may be chosen and that it accepts the syntax of a key reference, which is at most
+    /// <see cref="NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxKeyReferenceLength"/>
+    /// characters.
     /// </summary>
     /// <param name="keyWrapperName">The name of the key wrapper.</param>
     /// <param name="keyReference">The reference to the key.</param>
@@ -62,8 +78,12 @@ public interface IOwnerRootKeyManager
     /// <param name="keyReference">The reference to the key.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the result.</returns>
+    /// <exception cref="OwnerRootKeyNotAllowedException">
+    /// Thrown before anything is probed or written when a registered <see cref="IOwnerRootKeyPolicy"/> refuses the
+    /// owner.
+    /// </exception>
     /// <exception cref="ArgumentException">
-    /// Thrown when the owner is the server, or the key wrapper is not allowed or rejects the reference.
+    /// Thrown when the key wrapper is not allowed or rejects the reference, or the reference is too long.
     /// </exception>
     /// <exception cref="OwnerRootKeyProbeException">Thrown when the key fails its probe.</exception>
     /// <exception cref="MasterKeyRotationTooSoonException">
@@ -85,7 +105,6 @@ public interface IOwnerRootKeyManager
     /// <param name="owner">The owner whose root key is removed.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the result.</returns>
-    /// <exception cref="ArgumentException">Thrown when the owner is the server.</exception>
     ValueTask<OwnerRootKeyRemoval> RemoveAsync(
         SecretOwner owner,
         CancellationToken cancellationToken
@@ -100,7 +119,6 @@ public interface IOwnerRootKeyManager
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the result, whose
     /// root key is <see langword="null"/> when the owner has none.</returns>
-    /// <exception cref="ArgumentException">Thrown when the owner is the server.</exception>
     ValueTask<OwnerRootKeyValidation> ValidateAsync(
         SecretOwner owner,
         CancellationToken cancellationToken

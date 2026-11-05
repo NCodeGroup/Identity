@@ -30,6 +30,11 @@ public sealed class PersistedOwnerRootKey : ISupportConcurrencyToken
     public const int MaxFailureLength = 1024;
 
     /// <summary>
+    /// The maximum length of <see cref="KeyReference"/>.
+    /// </summary>
+    public const int MaxKeyReferenceLength = 2048;
+
+    /// <summary>
     /// Gets the kind of owner of the root key, such as one of the values in <see cref="SecretOwnerTypes"/>.
     /// </summary>
     public required string OwnerType { get; init; }

@@ -395,6 +395,7 @@ NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.RetryAfter.get -> System.TimeSpan
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey
 const NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxFailureLength = 1024 -> int
+const NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxKeyReferenceLength = 2048 -> int
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.ConcurrencyToken.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.ConcurrencyToken.set -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.CreatedWhen.get -> System.DateTimeOffset
@@ -454,6 +455,16 @@ NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyChangeObserver
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyChangeObserver.ChangedAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.AllowedKeyWrapperNames.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.CanBringRootKey(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, out string? reason) -> bool
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyPolicy
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyPolicy.CanBringRootKey(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, out string? reason) -> bool
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.OwnerRootKeyNotAllowedException() -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.OwnerRootKeyNotAllowedException(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, string! reason) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.OwnerRootKeyNotAllowedException(string! message) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.OwnerRootKeyNotAllowedException(string! message, System.Exception! innerException) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.Reason.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.GetAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo?>
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.RemoveAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRemoval!>
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.SetAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, string! keyWrapperName, string! keyReference, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyChange!>

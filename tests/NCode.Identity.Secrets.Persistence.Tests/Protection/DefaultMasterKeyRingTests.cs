@@ -918,6 +918,37 @@ public class DefaultMasterKeyRingTests : IDisposable
     }
 
     [Fact]
+    public async Task GetProtector_OwnerRootedAndARequiredKeyIdHasNoRow_ThrowsOnlyForThatCallAndKeepsTheEntry()
+    {
+        var factory = CreateOwnerRootFactory();
+        var row = await CreateOwnerRootedRowAsync(factory);
+        var unknownKeyId = Guid.NewGuid();
+        var (store, manager) = EnqueueStoreManager();
+        SetupFindActive(store, row);
+        SetupFindByKeyId(store, unknownKeyId);
+        SetupRootKey(manager, CreateRootKey());
+        using var ring = CreateOwnerRootRing(factory);
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(async () =>
+            await ring.GetProtectorAsync(
+                Owner,
+                [CreateEnvelopeFor(unknownKeyId)],
+                CancellationToken.None
+            )
+        );
+
+        Assert.Contains(unknownKeyId.ToString(), exception.Message);
+        Assert.Equal(1, _referenced.UnwrapCount);
+
+        // No refusal is recorded and the entry stays cached: no store manager is queued, so a store read or another
+        // unwrap fails the test.
+        var protector = await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+
+        Assert.Equal(row.KeyId, ReadKeyId(protector.ProtectToString("secret"u8, Context)));
+        Assert.Equal(1, _referenced.UnwrapCount);
+    }
+
+    [Fact]
     public async Task GetProtector_ARevokedKeyAfterTheValidationInterval_FailsClosedEvenWhenTheStateIsActive()
     {
         var factory = CreateOwnerRootFactory();

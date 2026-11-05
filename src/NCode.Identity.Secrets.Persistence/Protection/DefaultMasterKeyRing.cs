@@ -176,6 +176,10 @@ internal class DefaultMasterKeyRing(
             if (Volatile.Read(ref _evictionCount) != evictionsBefore)
                 Entries.TryRemove(new KeyValuePair<SecretOwner, MasterKeyRingEntry>(key, entry));
 
+            // A protected value that names a master key the owner has no row for fails only this call. It is not a
+            // failure of the load, so the entry stays cached and no refusal is recorded for an owner-rooted owner.
+            ThrowIfMissing(key, entry.Keys, requiredKeyIds);
+
             return CreateProtector(owner, entry);
         }
         finally
@@ -364,8 +368,6 @@ internal class DefaultMasterKeyRing(
                     keys[row.KeyId] = await UnwrapRowAsync(key, row, loaded, cancellationToken);
             }
 
-            ThrowIfMissing(key, keys, requiredKeyIds);
-
             var now = TimeProvider.GetTimestamp();
             var isOwnerRooted =
                 activeRow.RootKeyReference is not null
@@ -412,7 +414,7 @@ internal class DefaultMasterKeyRing(
 
     private static void ThrowIfMissing(
         SecretOwner key,
-        Dictionary<Guid, MasterKey> keys,
+        FrozenDictionary<Guid, MasterKey> keys,
         IReadOnlySet<Guid> requiredKeyIds
     )
     {

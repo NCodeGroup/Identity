@@ -312,6 +312,14 @@ NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.SessionRevocationResult() -> void
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.Revoked.get -> long
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.Revoked.init -> void
+NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource
+NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.Assignments.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource!>!
+NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.Assignments.init -> void
+NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.CallerResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.IsPlatformAdministrator.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.IsPlatformAdministrator.init -> void
+NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.PrincipalId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.OwnerResource
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.init -> void
@@ -320,6 +328,20 @@ NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.get -> stri
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.get -> string!
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.AssignmentId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.AssignmentId.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.PrincipalId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.PrincipalId.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.ResourceId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.ResourceId.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.ResourceType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.ResourceType.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleAssignmentResource() -> void
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.init -> void

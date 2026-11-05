@@ -276,6 +276,11 @@ public static partial class OpenIdConstants
         /// Contains the OpenAPI tag applied to the platform <c>capabilities</c> discovery endpoint.
         /// </summary>
         public const string Capabilities = "Capabilities";
+
+        /// <summary>
+        /// Contains the OpenAPI tag applied to the caller management endpoints (<c>api/me</c>).
+        /// </summary>
+        public const string Caller = "Caller";
     }
 
     /// <summary>

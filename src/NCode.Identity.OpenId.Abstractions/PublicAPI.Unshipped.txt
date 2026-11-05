@@ -68,6 +68,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.CheckSession = "/oauth
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.EndSession = "/oauth2/end_session" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Registration = "/oauth2/register" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.PushedAuthorizationRequest = "/oauth2/par" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Caller = "Caller" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ClientGrants = "ClientGrants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Capabilities = "Capabilities" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Clients = "Clients" -> string!

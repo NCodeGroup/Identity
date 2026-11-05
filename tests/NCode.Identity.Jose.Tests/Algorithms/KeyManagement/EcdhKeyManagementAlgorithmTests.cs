@@ -30,6 +30,7 @@ public class EcdhKeyManagementAlgorithmTests : BaseTests
             CurveName = "brainpoolP256r1",
             CurveSizeBits = 256,
             Curve = ECCurve.NamedCurves.brainpoolP256r1,
+            Domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.brainpoolP256r1),
         };
 
     private ServiceProvider ServiceProvider { get; }

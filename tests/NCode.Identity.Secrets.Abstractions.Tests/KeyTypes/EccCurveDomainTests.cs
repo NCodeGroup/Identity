@@ -77,4 +77,40 @@ public class EccCurveDomainTests
     }
 
     #endregion
+
+    #region FromCurve Tests
+
+    [Theory]
+    [InlineData("P-256")]
+    [InlineData("P-384")]
+    [InlineData("P-521")]
+    public void FromCurve_WhenNistCurve_EqualsTheSpecificationDomain(string curveName)
+    {
+        var specification = curveName switch
+        {
+            "P-256" => EccCurveSpecification.P256,
+            "P-384" => EccCurveSpecification.P384,
+            "P-521" => EccCurveSpecification.P521,
+            _ => throw new ArgumentOutOfRangeException(nameof(curveName), curveName, null),
+        };
+
+        var domain = EccCurveDomain.FromCurve(specification.Curve);
+
+        Assert.Equal(specification.Domain.Prime, domain.Prime);
+        Assert.Equal(specification.Domain.A, domain.A);
+        Assert.Equal(specification.Domain.B, domain.B);
+    }
+
+    [Fact]
+    public void FromCurve_WhenBrainpoolP256r1_ContainsAnExportedPoint()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.brainpoolP256r1);
+        var point = ecdsa.ExportParameters(false).Q;
+
+        var domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.brainpoolP256r1);
+
+        Assert.True(domain.ContainsPoint(point.X, point.Y));
+    }
+
+    #endregion
 }

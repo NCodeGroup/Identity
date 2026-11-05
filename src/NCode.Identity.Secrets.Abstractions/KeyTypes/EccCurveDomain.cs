@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Numerics;
+using System.Security.Cryptography;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.Secrets.KeyTypes;
@@ -29,6 +30,42 @@ public sealed class EccCurveDomain
             A = ParseHex(a),
             B = ParseHex(b),
         };
+    }
+
+    /// <summary>
+    /// Reads the domain of a curve that the platform's cryptography supports, such as <c>brainpoolP256r1</c>.
+    /// </summary>
+    /// <param name="curve">The curve to read the domain of.</param>
+    /// <returns>The curve domain.</returns>
+    /// <exception cref="CryptographicException">
+    /// The platform does not support the curve; the platform's own exception is thrown, such as
+    /// <see cref="PlatformNotSupportedException"/>.
+    /// </exception>
+    public static EccCurveDomain FromCurve(ECCurve curve)
+    {
+        if (curve.IsPrime)
+        {
+            return FromBytes(curve.Prime, curve.A, curve.B);
+        }
+
+        using var ecdsa = ECDsa.Create(curve);
+        var explicitCurve = ecdsa.ExportExplicitParameters(false).Curve;
+        return FromBytes(explicitCurve.Prime, explicitCurve.A, explicitCurve.B);
+    }
+
+    private static EccCurveDomain FromBytes(byte[]? prime, byte[]? a, byte[]? b)
+    {
+        return new EccCurveDomain
+        {
+            Prime = ParseBytes(prime),
+            A = ParseBytes(a),
+            B = ParseBytes(b),
+        };
+    }
+
+    private static BigInteger ParseBytes(byte[]? value)
+    {
+        return new BigInteger(value ?? [], isUnsigned: true, isBigEndian: true);
     }
 
     private static BigInteger ParseHex(string value)

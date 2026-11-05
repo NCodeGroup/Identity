@@ -262,3 +262,6 @@ NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FieldSizeBytes.get -> int
 NCode.Identity.Secrets.KeyTypes.EccCurveDomain.Prime.get -> System.Numerics.BigInteger
 NCode.Identity.Secrets.KeyTypes.EccCurveDomain.Prime.init -> void
 static NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FromHex(string! prime, string! a, string! b) -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!
+static NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FromCurve(System.Security.Cryptography.ECCurve curve) -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.Domain.get -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.Domain.init -> void

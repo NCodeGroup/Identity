@@ -68,6 +68,11 @@ public class MasterKeyRotationTests
         );
         Assert.Equal(HttpStatusCode.Conflict, tooSoon.StatusCode);
         Assert.True(tooSoon.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+        var tooSoonProblem = JsonElement.Parse(await tooSoon.Content.ReadAsStringAsync());
+        Assert.Equal(
+            (long)tooSoon.Headers.RetryAfter!.Delta!.Value.TotalSeconds,
+            tooSoonProblem.GetProperty("retryAfterSeconds").GetInt64()
+        );
 
         // The status never carries material.
         var after = await GetKeysAsync(administrator, TenantApiPath);

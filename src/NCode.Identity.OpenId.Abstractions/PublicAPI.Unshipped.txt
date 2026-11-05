@@ -31,6 +31,7 @@ abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Issuer.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.MtlsEndpointAliasAuthority.get -> string?
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SecretsProvider.get -> NCode.Identity.Secrets.Collections.ISecretKeyCollectionProvider!
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Team.get -> NCode.Identity.OpenId.Teams.OpenIdTeam!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TeamId.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.TenantId.get -> string!

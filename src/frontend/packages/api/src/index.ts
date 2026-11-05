@@ -70,7 +70,6 @@ export {
   isPlatformScope,
   LIST_TAG,
   PLATFORM_SCOPE,
-  scopeApiPrefix,
   scopeKey,
   scopeTagId,
   teamScope,

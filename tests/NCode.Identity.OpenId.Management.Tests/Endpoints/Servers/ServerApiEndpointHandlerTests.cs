@@ -2548,7 +2548,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                     new MasterKeyStatus(
                         SecretOwner.ForServer(ServerId),
                         [active, retired],
-                        RecoveryConfigured: true
+                        RecoveryConfigured: true,
+                        RootKey: null
                     )
                 )
             )

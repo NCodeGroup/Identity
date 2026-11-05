@@ -8,7 +8,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <summary>
 /// Describes a rewrap of the persisted master keys.
 /// </summary>
-// See ADR-1408.
+// See ADR-1408 and ADR-1411.
 [PublicAPI]
 public sealed class MasterKeyRewrapRequest
 {
@@ -28,6 +28,13 @@ public sealed class MasterKeyRewrapRequest
     /// nothing.
     /// </summary>
     public bool DryRun { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the rewrap leaves a master key that already conforms to the root of its owner
+    /// as it is, without unwrapping it. A master key conforms when it is wrapped under the owner's root key, or, for an
+    /// owner without one, under the deployment's root key.
+    /// </summary>
+    public bool NonconformingOnly { get; init; }
 
     /// <summary>
     /// Gets the PEM text of the recovery private key that unwraps the master keys from their recovery copies, or an

@@ -69,6 +69,13 @@ public sealed class PersistedMasterKey : ISupportConcurrencyToken
     public required string RootKeyId { get; set; }
 
     /// <summary>
+    /// Gets or sets the reference of the owner root key that wrapped <see cref="RootWrappedKey"/>, or <c>null</c> when
+    /// the deployment's root key wraps it. A master key under an owner root key has no recovery copy.
+    /// </summary>
+    // See ADR-1411.
+    public string? RootKeyReference { get; set; }
+
+    /// <summary>
     /// Gets or sets the master key as wrapped by the root key provider, encoded as base64url.
     /// </summary>
     public required string RootWrappedKey { get; set; }

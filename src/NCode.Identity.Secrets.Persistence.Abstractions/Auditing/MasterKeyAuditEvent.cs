@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.Persistence.Auditing;
 /// key. The event names the key, its owner and its version, and never carries key material, wrapped keys or key
 /// checks.
 /// </summary>
-// See ADR-1407.
+// See ADR-1407 and ADR-1411.
 [PublicAPI]
 public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
 {
@@ -52,6 +52,13 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
     public required string RootKeyProvider { get; init; }
 
     /// <summary>
+    /// Gets the reference of the owner root key that wraps the master key, or <c>null</c> when the deployment's root key
+    /// wraps it.
+    /// </summary>
+    // See ADR-1411.
+    public string? RootKeyReference { get; init; }
+
+    /// <summary>
     /// Gets the identifier of the master key that a rotation retired, or <c>null</c> when the owner had no active
     /// key or the event records a destruction.
     /// </summary>
@@ -80,7 +87,8 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
 
     /// <inheritdoc />
     /// <remarks>
-    /// Writes the <c>reason</c>, the key's <c>key_id</c>, <c>version</c> and <c>root_key_provider</c>, and for a
+    /// Writes the <c>reason</c>, the key's <c>key_id</c>, <c>version</c> and <c>root_key_provider</c>, the
+    /// <c>root_key_reference</c> when an owner root key wraps the master key, and for a
     /// rotation that retired a key the <c>retired_key_id</c> and <c>retired_version</c>.
     /// </remarks>
     public void WriteAuditDetails(Utf8JsonWriter writer)
@@ -91,6 +99,8 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
         writer.WriteString("key_id", KeyId);
         writer.WriteNumber("version", Version);
         writer.WriteString("root_key_provider", RootKeyProvider);
+        if (RootKeyReference is { } rootKeyReference)
+            writer.WriteString("root_key_reference", rootKeyReference);
         if (RetiredKeyId is { } retiredKeyId)
             writer.WriteString("retired_key_id", retiredKeyId);
 

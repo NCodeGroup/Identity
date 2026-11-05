@@ -68,7 +68,8 @@ internal sealed class DefaultMasterKeyManager(
         return new MasterKeyStatus(
             owner,
             [.. rows.Select(MasterKeyInfo.From)],
-            Recovery.IsConfigured
+            Recovery.IsConfigured,
+            RootKey: null
         );
     }
 

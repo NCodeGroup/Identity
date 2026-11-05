@@ -26,4 +26,10 @@ public static class MasterKeyChangeReasons
     /// The retired key passed its grace and no protected value names it, so the maintenance pass destroyed it.
     /// </summary>
     public const string Unreferenced = "unreferenced";
+
+    /// <summary>
+    /// The owner set or changed its root key, so the master key rotated onto it.
+    /// </summary>
+    // See ADR-1411.
+    public const string RootKeyChanged = "root_key_changed";
 }

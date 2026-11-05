@@ -2789,7 +2789,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     new MasterKeyStatus(
                         SecretOwner.ForTenant(TenantId),
                         [active, retired],
-                        RecoveryConfigured: true
+                        RecoveryConfigured: true,
+                        RootKey: null
                     )
                 )
             )

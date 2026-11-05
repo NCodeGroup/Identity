@@ -202,3 +202,4 @@ const NCode.Identity.Events.Audit.AuditEventCategories.Key = "key" -> string!
 const NCode.Identity.Events.Audit.AuditResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.Events.Audit.AuditResourceTypes.TenantSecret = "tenant.secret" -> string!
 const NCode.Identity.Events.Audit.AuditResourceTypes.MasterKey = "master_key" -> string!
+const NCode.Identity.Events.Audit.AuditResourceTypes.RootKey = "root_key" -> string!

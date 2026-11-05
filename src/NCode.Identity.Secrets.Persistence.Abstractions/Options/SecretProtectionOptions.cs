@@ -40,4 +40,11 @@ public sealed class SecretProtectionOptions
     /// Gets or sets the options for the lifecycle of master keys: rotation, refresh, retirement and destruction.
     /// </summary>
     public MasterKeyOptions MasterKeys { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the options for the root keys that owners bring: which key wrappers an owner may choose and how
+    /// often its key is validated.
+    /// </summary>
+    // See ADR-1411.
+    public OwnerRootKeyOptions OwnerRootKeys { get; set; } = new();
 }

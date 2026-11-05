@@ -11,6 +11,43 @@ public class DefaultSettingDescriptorCollectionTests
             new SettingDescriptor<int> { Name = "b", AppliesTo = ["client"] },
         ]);
 
+    #region Constructor Tests
+
+    [Fact]
+    public void Constructor_WhenALimitHasNoMeetMerge_Throws()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new DefaultSettingDescriptorCollection([
+                new SettingDescriptor<int>
+                {
+                    Name = "l",
+                    AppliesTo = ["client"],
+                    IsLimit = true,
+                },
+            ])
+        );
+
+        Assert.Contains("'l'", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_WhenALimitMergesWithMin_Succeeds()
+    {
+        var collection = new DefaultSettingDescriptorCollection([
+            new SettingDescriptor<int>
+            {
+                Name = "l",
+                AppliesTo = ["client"],
+                IsLimit = true,
+                OnMerge = SettingMerge.Min,
+            },
+        ]);
+
+        Assert.Single(collection);
+    }
+
+    #endregion
+
     #region Count / Enumeration Tests
 
     [Fact]

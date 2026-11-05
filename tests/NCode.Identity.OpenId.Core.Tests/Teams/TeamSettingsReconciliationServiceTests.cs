@@ -234,6 +234,46 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenManyTeamsAreTriggeredDuringAPass_ReconcilesEveryTriggeredTeam()
+    {
+        const int TriggeredTeamCount = 100;
+        string[] triggered =
+        [
+            .. Enumerable.Range(0, TriggeredTeamCount).Select(i => $"team-{i:D3}"),
+        ];
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reconciled = Channel.CreateUnbounded<string>();
+        MockReconciler
+            .Setup(x => x.ReconcileAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(
+                (string teamId, CancellationToken _) =>
+                    ReconcileAfterReleaseAsync(teamId, started, release, reconciled.Writer)
+            )
+            .Verifiable();
+        SetupPlatform();
+        SetupTeams(TeamId);
+
+        await Service.StartAsync(CancellationToken.None);
+        await started.Task.WaitAsync(Deadline);
+        foreach (var teamId in triggered)
+        {
+            Trigger.Trigger(teamId);
+        }
+
+        release.TrySetResult();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        while (!seen.IsSupersetOf(triggered))
+        {
+            seen.Add(await reconciled.Reader.ReadAsync().AsTask().WaitAsync(Deadline));
+        }
+
+        await Service.StopAsync(CancellationToken.None);
+
+        Assert.True(seen.IsSupersetOf(triggered));
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WhenTheReconciliationFails_TriesAgainAfterTheLease()
     {
         SetupPlatform();
@@ -290,6 +330,24 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     {
         await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
         throw new InvalidOperationException("The wait for the platform ended without a platform.");
+    }
+
+    // The reconciliation of the team TeamId blocks until the release, so a test triggers teams during a pass.
+    private static async ValueTask<bool> ReconcileAfterReleaseAsync(
+        string teamId,
+        TaskCompletionSource started,
+        TaskCompletionSource release,
+        ChannelWriter<string> reconciled
+    )
+    {
+        if (teamId == TeamId)
+        {
+            started.TrySetResult();
+            await release.Task;
+        }
+
+        await reconciled.WriteAsync(teamId);
+        return true;
     }
 
     // Replaces the source before it cancels the old one, so the producer never hands out a cancelled token again.

@@ -34,6 +34,11 @@ public sealed class ClientResource : ISupportClientId, ISupportTenantId, ISuppor
     /// </summary>
     public required bool IsHostManaged { get; init; }
 
+    /// <summary>
+    /// Gets the identifier of the client's principal, which role assignments name to grant the client authority.
+    /// </summary>
+    public required string PrincipalId { get; init; }
+
     /// <inheritdoc cref="PersistedClient.ResourceServerId"/>
     public string? ResourceServerId { get; init; }
 }

@@ -17,6 +17,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedClient"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
+[Index(nameof(TenantId), nameof(NormalizedPrincipalId), IsUnique = true)]
 public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
@@ -52,6 +53,22 @@ public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToke
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
     public required string NormalizedClientId { get; init; }
+
+    /// <summary>
+    /// Gets the server-generated opaque identifier of the client's principal, the principal that a token the client
+    /// obtains for itself resolves to and that role assignments name.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.PrincipalId)]
+    public required string PrincipalId { get; init; }
+
+    /// <summary>
+    /// Gets the normalized value of <see cref="PrincipalId"/> so that lookups can be sargable for DBMS engines that
+    /// don't support case-insensitive indices.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.PrincipalId)]
+    public required string NormalizedPrincipalId { get; init; }
 
     //
 

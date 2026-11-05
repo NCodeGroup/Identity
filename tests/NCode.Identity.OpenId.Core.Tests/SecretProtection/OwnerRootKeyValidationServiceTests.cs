@@ -267,6 +267,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
         )
         {
             RootKeyReference = "arn:aws:kms:us-west-2:111122223333:key/abcd",
+            RootKeyAccessIdentity = "arn:aws:iam::111122223333:role/tenant-key-access",
         };
         SetupValidate(
             TenantOwner,
@@ -283,9 +284,8 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
         var auditEvent = Assert.IsType<MasterKeyAuditEvent>(Assert.Single(_published));
         Assert.Equal("master_key.rotated", auditEvent.EventName);
         Assert.Equal(MasterKeyChangeReasons.RootKeyChanged, auditEvent.Reason);
-        Assert.Equal(active.KeyId, auditEvent.KeyId);
-        Assert.Equal(retired.KeyId, auditEvent.RetiredKeyId);
-        Assert.Equal(active.RootKeyReference, auditEvent.RootKeyReference);
+        Assert.Equal(active, auditEvent.Key);
+        Assert.Equal(retired, auditEvent.RetiredKey);
     }
 
     [Fact]

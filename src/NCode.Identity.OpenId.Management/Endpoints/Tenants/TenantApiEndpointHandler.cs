@@ -261,7 +261,7 @@ internal class TenantApiEndpointHandler(
     /// </summary>
     /// <param name="tenant">The <see cref="PersistedTenant"/> to map.</param>
     /// <returns>The mapped <see cref="TenantResource"/>.</returns>
-    internal virtual TenantResource ToTenantResource(PersistedTenant tenant) =>
+    internal static TenantResource ToTenantResource(PersistedTenant tenant) =>
         ToTenantResource(tenant, environment: null);
 
     /// <summary>
@@ -271,7 +271,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="environment">The tenant's effective environment, or <see langword="null"/> when it cannot be
     /// determined.</param>
     /// <returns>The mapped <see cref="TenantResource"/>.</returns>
-    internal virtual TenantResource ToTenantResource(
+    internal static TenantResource ToTenantResource(
         PersistedTenant tenant,
         TenantEnvironmentResource? environment
     ) =>

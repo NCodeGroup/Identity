@@ -52,6 +52,7 @@ internal class OwnerRootKeyStore(
             NormalizedOwnerId = item.OwnerId.ToLowerInvariant(),
             KeyWrapperName = item.KeyWrapperName,
             KeyReference = item.KeyReference,
+            AccessIdentity = item.AccessIdentity,
             State = item.State,
             CreatedWhen = item.CreatedWhen.ToUniversalTime(),
             StateChangedWhen = item.StateChangedWhen.ToUniversalTime(),
@@ -100,6 +101,7 @@ internal class OwnerRootKeyStore(
 
         entity.KeyWrapperName = item.KeyWrapperName;
         entity.KeyReference = item.KeyReference;
+        entity.AccessIdentity = item.AccessIdentity;
         entity.State = item.State;
         entity.CreatedWhen = item.CreatedWhen.ToUniversalTime();
         entity.StateChangedWhen = item.StateChangedWhen.ToUniversalTime();
@@ -214,6 +216,7 @@ internal class OwnerRootKeyStore(
             OwnerId = entity.OwnerId,
             KeyWrapperName = entity.KeyWrapperName,
             KeyReference = entity.KeyReference,
+            AccessIdentity = entity.AccessIdentity,
             State = entity.State,
             CreatedWhen = entity.CreatedWhen,
             StateChangedWhen = entity.StateChangedWhen,

@@ -243,6 +243,7 @@ internal class ClientApiEndpointHandler(
             ClientId = client.ClientId,
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
+            PrincipalId = client.PrincipalId,
             IsHostManaged = IsHostManaged(client.TenantId, client.ClientId),
             ResourceServerId = client.ResourceServerId,
         };
@@ -832,9 +833,15 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        if (IsHostManaged(client.TenantId, client.ClientId))
+        var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+            httpContext,
+            storeManager,
+            client,
+            cancellationToken
+        );
+        if (changeRefusal is not null)
         {
-            return HostManagedClientRefused();
+            return changeRefusal;
         }
 
         client.IsDisabled = model.IsDisabled;
@@ -890,9 +897,15 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        if (IsHostManaged(client.TenantId, client.ClientId))
+        var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+            httpContext,
+            storeManager,
+            client,
+            cancellationToken
+        );
+        if (changeRefusal is not null)
         {
-            return HostManagedClientRefused();
+            return changeRefusal;
         }
 
         var resourceValues = ToResourceValues(ToClientResource(client));
@@ -1043,9 +1056,15 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        if (IsHostManaged(client.TenantId, client.ClientId))
+        var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+            httpContext,
+            storeManager,
+            client,
+            cancellationToken
+        );
+        if (changeRefusal is not null)
         {
-            return HostManagedClientRefused();
+            return changeRefusal;
         }
 
         if (
@@ -1308,9 +1327,15 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        if (IsHostManaged(client.TenantId, client.ClientId))
+        var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+            httpContext,
+            storeManager,
+            client,
+            cancellationToken
+        );
+        if (changeRefusal is not null)
         {
-            return HostManagedClientRefused();
+            return changeRefusal;
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -1482,9 +1507,15 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        if (IsHostManaged(client.TenantId, client.ClientId))
+        var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+            httpContext,
+            storeManager,
+            client,
+            cancellationToken
+        );
+        if (changeRefusal is not null)
         {
-            return HostManagedClientRefused();
+            return changeRefusal;
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -1695,9 +1726,21 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        if (IsHostManaged(clientSecret.TenantId, clientId))
+        var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
+        if (client is null)
         {
-            return HostManagedClientRefused();
+            return TypedResults.NotFound();
+        }
+
+        var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+            httpContext,
+            storeManager,
+            client,
+            cancellationToken
+        );
+        if (changeRefusal is not null)
+        {
+            return changeRefusal;
         }
 
         if (
@@ -1772,9 +1815,21 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        if (IsHostManaged(clientSecret.TenantId, clientId))
+        var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
+        if (client is null)
         {
-            return HostManagedClientRefused();
+            return TypedResults.NotFound();
+        }
+
+        var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+            httpContext,
+            storeManager,
+            client,
+            cancellationToken
+        );
+        if (changeRefusal is not null)
+        {
+            return changeRefusal;
         }
 
         var secretValues = ToResourceValues(ToSecretResource(clientSecret.Value));
@@ -1858,9 +1913,15 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        if (IsHostManaged(client.TenantId, client.ClientId))
+        var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+            httpContext,
+            storeManager,
+            client,
+            cancellationToken
+        );
+        if (changeRefusal is not null)
         {
-            return HostManagedClientRefused();
+            return changeRefusal;
         }
 
         if (
@@ -2052,9 +2113,30 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (IsHostManaged(tenantId, clientId))
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
         {
-            return await RefuseHostManagedOwnerChangeAsync(httpContext, tenantId, clientId);
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
+        if (client is not null)
+        {
+            var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            );
+            if (changeRefusal is not null)
+            {
+                return changeRefusal;
+            }
         }
 
         return await ProcessAddOwnerAsync(
@@ -2082,9 +2164,30 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (IsHostManaged(tenantId, clientId))
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
         {
-            return await RefuseHostManagedOwnerChangeAsync(httpContext, tenantId, clientId);
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
+        if (client is not null)
+        {
+            var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            );
+            if (changeRefusal is not null)
+            {
+                return changeRefusal;
+            }
         }
 
         return await ProcessRemoveOwnerAsync(
@@ -2097,24 +2200,98 @@ internal class ClientApiEndpointHandler(
         );
     }
 
-    // The owner endpoints authorize inside the shared owner processing, so a host-managed client's owner change is
-    // authorized here, as the shared processing would, before it is refused.
-    private async ValueTask<IResult> RefuseHostManagedOwnerChangeAsync(
+    /// <summary>
+    /// Gets the refusal of a change to a client: the <c>409 Conflict</c> for a client the host configures, else the
+    /// <c>403 Forbidden</c> when the caller lacks the authority to grant a role the client's principal holds, else
+    /// <c>null</c> when the change may proceed.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> that reads the client's role assignments.</param>
+    /// <param name="client">The client the request changes.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The refusal result, or <c>null</c> when the change may proceed.</returns>
+    // See ADR-1417 and ADR-1419.
+    private async ValueTask<IResult?> GetClientChangeRefusalOrDefaultAsync(
         HttpContext httpContext,
-        string tenantId,
-        string clientId
+        IStoreManager storeManager,
+        PersistedClient client,
+        CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
-            Operations.Update
-        );
+        if (IsHostManaged(client.TenantId, client.ClientId))
+        {
+            return HostManagedClientRefused();
+        }
 
-        return authorizationResult.Succeeded
-            ? HostManagedClientRefused()
-            : AuthorizationFailed(httpContext);
+        if (
+            !await HoldsAuthorityOverClientRolesAsync(
+                httpContext,
+                storeManager,
+                client,
+                cancellationToken
+            )
+        )
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        return null;
     }
+
+    /// <summary>
+    /// Determines whether the caller may grant every role the client's principal holds, which custody of the client's
+    /// credentials needs.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> that reads the client's role assignments.</param>
+    /// <param name="client">The client whose principal's role assignments are checked.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns><c>true</c> when the caller holds <see cref="Operations.Create"/> at every node where the client's principal holds an assignment; otherwise, <c>false</c>.</returns>
+    // Custody of a client's credentials needs the authority to grant what the client holds (ADR-1419).
+    private async ValueTask<bool> HoldsAuthorityOverClientRolesAsync(
+        HttpContext httpContext,
+        IStoreManager storeManager,
+        PersistedClient client,
+        CancellationToken cancellationToken
+    )
+    {
+        var assignments = await storeManager
+            .GetStore<IRoleAssignmentStore>()
+            .GetByPrincipalAsync(client.PrincipalId, cancellationToken);
+
+        foreach (var assignment in assignments)
+        {
+            var authorizationResult = await AuthorizationService.AuthorizeAsync(
+                httpContext.User,
+                ResourceNode.For(
+                    assignment.TenantId,
+                    assignment.ResourceType,
+                    assignment.ResourceId
+                ),
+                Operations.Create
+            );
+
+            if (!authorizationResult.Succeeded)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Loads a client, the one lookup behind every request that changes a client through one of its secrets or owners.
+    /// </summary>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> that reads the client.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The client, or <c>null</c> when it does not exist.</returns>
+    private static async ValueTask<PersistedClient?> GetClientOrDefaultAsync(
+        IStoreManager storeManager,
+        string clientId,
+        CancellationToken cancellationToken
+    ) => await storeManager.GetStore<IClientStore>().GetOrDefaultAsync(clientId, cancellationToken);
 
     private static async ValueTask<bool> ClientExistsAsync(
         IStoreManager storeManager,

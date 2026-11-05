@@ -61,4 +61,11 @@ public sealed class EncryptionKeyResource
     /// </summary>
     // See ADR-1414.
     public string? RootKeyReference { get; init; }
+
+    /// <summary>
+    /// Gets the identity that the server takes on to reach the tenant root key that wraps the key, or <c>null</c> when
+    /// the deployment's own identity reaches it.
+    /// </summary>
+    // See ADR-1429.
+    public string? RootKeyAccessIdentity { get; init; }
 }

@@ -660,6 +660,68 @@ describe('managementApi team CRUD endpoints (platform scope)', () => {
   });
 });
 
+describe('managementApi caller queries', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('getCaller GETs the caller', async () => {
+    const captured = mockFetch(
+      jsonResponse({ principalId: 'p-1', isPlatformAdministrator: false, assignments: [] }),
+    );
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.getCaller.initiate());
+
+    expect(captured[0]?.url).toBe('https://api.test/api/me');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('listCallerTeams GETs the caller teams', async () => {
+    const captured = mockFetch(jsonResponse({ items: [] }));
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.listCallerTeams.initiate());
+
+    expect(captured[0]?.url).toBe('https://api.test/api/me/teams');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('listCallerTenants GETs the caller tenants', async () => {
+    const captured = mockFetch(jsonResponse({ items: [] }));
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.listCallerTenants.initiate());
+
+    expect(captured[0]?.url).toBe('https://api.test/api/me/tenants');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('createTeam refetches a subscribed getCaller', async () => {
+    const fetches = routeFetch((method) =>
+      method === 'GET'
+        ? jsonResponse({ principalId: 'p-1', isPlatformAdministrator: false, assignments: [] })
+        : jsonResponse({ teamId: 'new' }, 201),
+    );
+    const store = createStore();
+    await store.dispatch(managementApi.endpoints.getCaller.initiate());
+    expect(fetches.count('GET', '/api/me')).toBe(1);
+
+    await store.dispatch(
+      managementApi.endpoints.createTeam.initiate({
+        teamId: 'new',
+        displayName: 'New',
+        isDisabled: false,
+        settings: {},
+      }),
+    );
+    await settle(store);
+
+    expect(fetches.count('GET', '/api/me')).toBe(2);
+  });
+});
+
 describe('managementApi team usage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -1664,7 +1726,13 @@ describe('managementApi encryption key requests', () => {
     'listEncryptionKeys GETs the encryption keys of the $key owner',
     async ({ owner, path }) => {
       const captured = mockFetch(
-        jsonResponse({ keys: [], recoveryConfigured: true, rootKey: null, rootKeyProviders: [] }),
+        jsonResponse({
+          keys: [],
+          recoveryConfigured: true,
+          rootKey: null,
+          rootKeyProviders: [],
+          rootKeyAccessBinding: null,
+        }),
       );
       const store = createStore();
 
@@ -1681,7 +1749,13 @@ describe('managementApi encryption key requests', () => {
       const otherOwner: EncryptionKeyOwner =
         owner.kind === 'platform' ? { kind: 'tenant', tenantId: 'other' } : { kind: 'platform' };
       const captured = mockFetch(
-        jsonResponse({ keys: [], recoveryConfigured: true, rootKey: null, rootKeyProviders: [] }),
+        jsonResponse({
+          keys: [],
+          recoveryConfigured: true,
+          rootKey: null,
+          rootKeyProviders: [],
+          rootKeyAccessBinding: null,
+        }),
       );
       const store = createStore();
       const subscriptions = [
@@ -1707,6 +1781,7 @@ describe('managementApi tenant root key requests', () => {
   const rootKey = {
     provider: 'aws-kms',
     keyReference: 'arn:aws:kms:us-east-1:111122223333:key/abc',
+    accessIdentity: 'arn:aws:iam::111122223333:role/ncode-identity',
     state: 'active',
     createdWhen: '2026-10-01T09:00:00Z',
     stateChangedWhen: '2026-10-01T09:00:00Z',
@@ -1742,7 +1817,11 @@ describe('managementApi tenant root key requests', () => {
   }
 
   it('setTenantRootKey PUTs the root key and refetches only the tenant keys', async () => {
-    const body = { provider: 'aws-kms', keyReference: rootKey.keyReference };
+    const body = {
+      provider: 'aws-kms',
+      keyReference: rootKey.keyReference,
+      accessIdentity: rootKey.accessIdentity,
+    };
 
     const { mutation, refetched } = await runMutation(
       jsonResponse({ rootKey, activeKey: null, retiredKey: null, rewrappedKeys: 2, failedKeys: 0 }),

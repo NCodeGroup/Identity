@@ -75,6 +75,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     RootKeyProvider = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     RootKeyId = table.Column<string>(type: "character varying(2048)", unicode: false, maxLength: 2048, nullable: false),
                     RootKeyReference = table.Column<string>(type: "character varying(2048)", unicode: false, maxLength: 2048, nullable: true),
+                    RootKeyAccessIdentity = table.Column<string>(type: "character varying(1024)", unicode: false, maxLength: 1024, nullable: true),
                     RootWrappedKey = table.Column<string>(type: "character varying(4096)", unicode: false, maxLength: 4096, nullable: false),
                     RecoveryKeyId = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: true),
                     RecoveryWrappedKey = table.Column<string>(type: "character varying(4096)", unicode: false, maxLength: 4096, nullable: true),
@@ -96,6 +97,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     NormalizedOwnerId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     KeyWrapperName = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     KeyReference = table.Column<string>(type: "character varying(2048)", unicode: false, maxLength: 2048, nullable: false),
+                    AccessIdentity = table.Column<string>(type: "character varying(1024)", unicode: false, maxLength: 1024, nullable: true),
                     State = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     CreatedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     StateChangedWhen = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
@@ -472,6 +474,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     NormalizedTenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     ClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     NormalizedClientId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    PrincipalId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    NormalizedPrincipalId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SecretsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
@@ -777,6 +781,12 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "IX_Clients_TenantId_NormalizedClientId",
                 table: "Clients",
                 columns: new[] { "TenantId", "NormalizedClientId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Clients_TenantId_NormalizedPrincipalId",
+                table: "Clients",
+                columns: new[] { "TenantId", "NormalizedPrincipalId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(

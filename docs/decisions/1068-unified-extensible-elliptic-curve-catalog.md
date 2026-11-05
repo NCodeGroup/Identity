@@ -1,6 +1,8 @@
 # 1068. Unified, extensible elliptic-curve catalog
 
-- **Status:** Accepted
+- **Status:** Accepted (refined by
+  [ADR-1427](1427-an-imported-elliptic-curve-point-is-checked-against-its-curve-before-the-platform-imports-it.md): a
+  curve specification carries its domain, and an imported point is checked against it)
 - **Date:** 2026-10-11
 - **Deciders:** NCode.Identity maintainers
 

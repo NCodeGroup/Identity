@@ -39,6 +39,12 @@ public sealed record MasterKeyInfo(
     public string? RootKeyReference { get; init; }
 
     /// <summary>
+    /// Gets the identity the root key that wraps the master key is reached through, or <see langword="null"/> for the
+    /// deployment's own identity.
+    /// </summary>
+    public string? RootKeyAccessIdentity { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the master key is active, which is the one that protects new values.
     /// </summary>
     public bool IsActive => RetiredWhen is null;
@@ -64,6 +70,7 @@ public sealed record MasterKeyInfo(
         )
         {
             RootKeyReference = masterKey.RootKeyReference,
+            RootKeyAccessIdentity = masterKey.RootKeyAccessIdentity,
         };
     }
 }

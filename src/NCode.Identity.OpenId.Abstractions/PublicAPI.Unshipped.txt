@@ -69,6 +69,7 @@ const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.CheckSession = "/oauth
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.EndSession = "/oauth2/end_session" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.Registration = "/oauth2/register" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointPaths.PushedAuthorizationRequest = "/oauth2/par" -> string!
+const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Caller = "Caller" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.ClientGrants = "ClientGrants" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Capabilities = "Capabilities" -> string!
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Clients = "Clients" -> string!
@@ -271,7 +272,7 @@ NCode.Identity.OpenId.Contexts.OpenIdContext.OpenIdContext() -> void
 NCode.Identity.OpenId.Contexts.OpenIdContextHttpContextExtensions
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter
 NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.InvokeAsync(Microsoft.AspNetCore.Http.EndpointFilterInvocationContext! context, Microsoft.AspNetCore.Http.EndpointFilterDelegate! next) -> System.Threading.Tasks.ValueTask<object?>
-NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor) -> void
+NCode.Identity.OpenId.Contexts.OpenIdEnvironmentEndpointFilter.OpenIdEnvironmentEndpointFilter(NCode.Identity.OpenId.Contexts.IOpenIdContextFactory! openIdContextFactory, NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor! ambientTenantAccessor, NCode.Identity.OpenId.Environments.IOpenIdEnvironmentProvider! openIdEnvironmentProvider, System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionTranslator!>! exceptionTranslators) -> void
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.CanFormat(NCode.Identity.OpenId.Messages.IOpenIdResponse! response) -> bool
 NCode.Identity.OpenId.Results.IOpenIdResponseFormatter.MediaTypes.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -391,12 +392,17 @@ NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OnUnhandledExceptio
 NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OnUnhandledExceptionCommand(NCode.Identity.OpenId.Environments.OpenIdEnvironment! OpenIdEnvironment, Microsoft.AspNetCore.Http.HttpContext! HttpContext, NCode.Mediator.IMediator! Mediator, System.Runtime.ExceptionServices.ExceptionDispatchInfo! ExceptionDispatchInfo, NCode.Mediator.Middleware.CommandExceptionHandlerState! ExceptionState) -> void
 NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OpenIdEnvironment.get -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
 NCode.Identity.OpenId.Exceptions.OnUnhandledExceptionCommand.OpenIdEnvironment.init -> void
+NCode.Identity.OpenId.Exceptions.IOpenIdExceptionTranslator
+NCode.Identity.OpenId.Exceptions.IOpenIdExceptionTranslator.TryTranslate(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Exception! exception, out NCode.Identity.OpenId.Messages.IOpenIdError? error) -> bool
 NCode.Identity.OpenId.Exceptions.OpenIdException
 NCode.Identity.OpenId.Exceptions.OpenIdException.Error.get -> NCode.Identity.OpenId.Messages.IOpenIdError!
 NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error) -> void
 NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error, string? message) -> void
 NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error, string? message, System.Exception? innerException) -> void
 NCode.Identity.OpenId.Exceptions.OpenIdException.OpenIdException(NCode.Identity.OpenId.Messages.IOpenIdError! error, System.Exception? innerException) -> void
+NCode.Identity.OpenId.Exceptions.OpenIdExceptionTranslatorExtensions
+NCode.Identity.OpenId.Exceptions.OpenIdExceptionTranslatorExtensions.extension(System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionTranslator!>!)
+NCode.Identity.OpenId.Exceptions.OpenIdExceptionTranslatorExtensions.extension(System.Collections.Generic.IEnumerable<NCode.Identity.OpenId.Exceptions.IOpenIdExceptionTranslator!>!).TryTranslate(NCode.Identity.OpenId.Environments.OpenIdEnvironment! openIdEnvironment, System.Exception! exception, out NCode.Identity.OpenId.Messages.IOpenIdError? error) -> bool
 NCode.Identity.OpenId.Messages.IBaseOpenIdMessage
 NCode.Identity.OpenId.Messages.IBaseOpenIdMessage.OpenIdEnvironment.get -> NCode.Identity.OpenId.Environments.OpenIdEnvironment!
 NCode.Identity.OpenId.Messages.IBaseOpenIdMessage.Parameters.get -> NCode.Identity.OpenId.Messages.Parameters.IParameterCollection!

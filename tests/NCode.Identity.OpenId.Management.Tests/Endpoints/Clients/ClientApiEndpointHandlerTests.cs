@@ -51,6 +51,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
+    private Mock<IRoleAssignmentStore> MockRoleAssignmentStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
     private Mock<IClientKeyImporter> MockClientKeyImporter { get; }
@@ -86,6 +87,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
+        MockRoleAssignmentStore = MockRepository.Create<IRoleAssignmentStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
         MockClientKeyImporter = MockRepository.Create<IClientKeyImporter>();
@@ -252,6 +254,87 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
+
+    // Only a request that changes a client's credentials, settings or owners looks up the roles the client holds.
+    private void SetupClientRoleAssignments(params PersistedRoleAssignment[] assignments)
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(MockRoleAssignmentStore.Object)
+            .Verifiable();
+
+        MockRoleAssignmentStore
+            .Setup(x => x.GetByPrincipalAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(assignments)
+            .Verifiable();
+    }
+
+    // Only a request that changes one of a client's secrets, which the store reads by secret, reads the client too.
+    private void SetupClientLookup() =>
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+
+    // The authorization of the client itself, which the caller's own authority over the client decides.
+    private void SetupClientAuthorization(AuthorizationResult result) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource => resource is PersistedClient),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    // The authorization of the client's node, which the caller's own authority to update the client decides.
+    private void SetupClientNodeAuthorization(AuthorizationResult result) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Client
+                        && ((ResourceNode)resource).ResourceId == ClientId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    // The authorization of a node the client's principal holds a role at, which the caller's authority to grant decides.
+    private void SetupRoleNodeAuthorization(AuthorizationResult result) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == "team-1"
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    private static PersistedRoleAssignment CreateTeamAssignment() =>
+        new()
+        {
+            TenantId = TenantId,
+            AssignmentId = "assignment-1",
+            PrincipalId = "client-principal",
+            RoleName = "TeamAdmin",
+            ResourceType = ResourceNodeTypes.Team,
+            ResourceId = "team-1",
+            ConcurrencyToken = "assignment-ct",
+        };
 
     // The host configures the client, so a handler built with the policy refuses every change to it.
     private ClientApiEndpointHandler CreateHostManagedHandler()
@@ -538,6 +621,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             new Operation<JsonObject>("add", $"/{name}", from: null, value: value)
         );
         return patch;
+    }
+
+    #endregion
+
+    #region ToClientResource Tests
+
+    [Fact]
+    public void ToClientResource_MapsTheClientsPrincipalId()
+    {
+        var client = CreateClient("ct-1");
+        client.PrincipalId = "principal-1";
+
+        var resource = Handler.ToClientResource(client);
+
+        Assert.Equal("principal-1", resource.PrincipalId);
+        Assert.Equal(ClientId, resource.ClientId);
     }
 
     #endregion
@@ -1379,6 +1478,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupClientRoleAssignments();
         SetupClientChangedAudit();
         SetupValidSettings();
         SetupNoChangedLimits("name", "value");
@@ -1437,6 +1537,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
+        SetupClientRoleAssignments();
         SetupInvalidSettings();
         SetupStore();
         MockClientStore
@@ -1462,6 +1563,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenARegisteredAlgorithmIsNotPermitted_ReturnsValidationProblem()
     {
+        SetupClientRoleAssignments();
         SetupValidSettings();
         SetupNoChangedLimits(OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256");
         SetupStore();
@@ -1517,6 +1619,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithPublicKeys_ReturnsConflict()
     {
+        SetupClientRoleAssignments();
         SetupValidSettings();
         SetupNoChangedLimits(OpenIdSettingNames.JwksUri, "https://client.example/jwks");
         SetupStore();
@@ -1546,6 +1649,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithOnlySharedSecrets_ReturnsNoContent()
     {
+        SetupClientRoleAssignments();
         SetupClientChangedAudit();
         SetupValidSettings();
         SetupNoChangedLimits(OpenIdSettingNames.JwksUri, "https://client.example/jwks");
@@ -1672,6 +1776,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenNoSharedSecretCanServeTheMethod_RevealsTheIssuedSecretOnce()
     {
+        SetupClientRoleAssignments();
         // The settings register a method none of the client's secrets can serve, so the issuer issues one, which this
         // response reveals once, as dynamic client registration does. See ADR-1391.
         var verifier = CreatePersistedSecret("verifier-1");
@@ -1730,6 +1835,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheIssuerConvertsASecret_StoresTheConversionAndRevealsNothing()
     {
+        SetupClientRoleAssignments();
         var reversible = CreatePersistedSecret("reversible-1");
         var converted = CreatePersistedSecret("converted-1");
         SetupClientChangedAudit();
@@ -1779,6 +1885,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheCallerMayNotCreateTheIssuedSecret_ReturnsForbiddenWithoutWriting()
     {
+        SetupClientRoleAssignments();
         // Issuing a secret is creating one, which needs the authority creating a secret needs.
         var issued = CreatePersistedSecret("issued-1");
         SetupValidSettings();
@@ -1839,6 +1946,38 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutWriting()
+    {
+        SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupStore();
+        SetupClientLookup();
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource => resource is PersistedClientSettings),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+        SetupRoleNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            ClientId,
+            CreateAddPatch("name", "value"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTenantRefuses_ReturnsForbiddenWithoutWriting()
     {
         SetupValidSettings();
@@ -1853,6 +1992,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .ReturnsAsync(CreateClient("client-ct"))
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
+        SetupClientRoleAssignments();
         MockAuthorizationService
             .Setup(x =>
                 x.AuthorizeAsync(
@@ -2115,6 +2255,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenAuthorized_GeneratesAndReturnsCreated()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
         SetupStore();
@@ -2166,8 +2307,79 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateSecretAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutWriting()
+    {
+        SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupStore();
+        SetupClientLookup();
+        SetupClientAuthorization(AuthorizationResult.Success());
+        SetupRoleNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no validation, generation, AddSecretAsync or SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenTheCallerCanGrantEveryRoleTheClientHolds_CreatesTheSecret()
+    {
+        SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
+        SetupStore();
+        SetupClientLookup();
+        SetupClientAuthorization(AuthorizationResult.Success());
+        SetupRoleNodeAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+        SetupRegisteredAuthenticationMethod(usesClientSecretAsKey: false);
+
+        var protector = SetupGenerateSecretProtector();
+        var generated = CreatePersistedSecret();
+        MockClientSecretIssuer
+            .Setup(x =>
+                x.GenerateClientSecret(
+                    protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                    It.IsAny<SharedSecretRequest>()
+                )
+            )
+            .Returns(
+                new GeneratedSecret { Secret = generated, SecretMaterial = "revealed-material" }
+            )
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, generated, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<CreatedSecretResource>>(result);
+    }
+
+    [Fact]
     public async Task CreateSecretAsync_WhenTheClientUsesItsSecretAsAKey_IssuesTheSecretForItsMethod()
     {
+        SetupClientRoleAssignments();
         // The secret is issued for the client's effective method, client_secret_jwt here, which the client-secret
         // issuer stores so the server can read it back. See ADR-1391.
         SetupSecretCreateValidation();
@@ -2217,6 +2429,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenAsymmetric_DoesNotRevealMaterial()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
         SetupStore();
@@ -2261,6 +2474,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenValidationResolvesTheCurve_GeneratesTheKeyOnIt()
     {
+        SetupClientRoleAssignments();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
@@ -2348,6 +2562,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenValidationFails_ReturnsBadRequest()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupStore();
         MockClientStore
@@ -2387,6 +2602,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenASharedSecretNamesAnActivationOrARetirement_ReturnsBadRequest()
     {
+        SetupClientRoleAssignments();
         // A shared secret is active for its whole validity, so an instant it cannot honor is refused rather than
         // dropped: the issuer is strict with no setup, so nothing is generated.
         SetupSecretCreateValidation();
@@ -2423,6 +2639,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenSharedSecretIsBelowTheMinimumEntropy_ReturnsBadRequest()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupStore();
         MockClientStore
@@ -2470,6 +2687,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndKeyIsAsymmetric_ReturnsConflict()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupStore();
         MockClientStore
@@ -2495,6 +2713,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task CreateSecretAsync_WhenClientPublishesJwksUriAndSecretIsShared_ReturnsCreated()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
         SetupStore();
@@ -2617,6 +2836,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task ImportSecretAsync_WhenKeyIsImported_ReturnsCreated()
     {
+        SetupClientRoleAssignments();
         SetupClientSecretChangedAudit();
         SetupImportClient(CreateClient("client-ct"));
         var imported = CreatePublicKeySecret("secret-2", "client-kid");
@@ -2647,6 +2867,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task ImportSecretAsync_WhenClientPublishesJwksUri_ReturnsConflict()
     {
+        SetupClientRoleAssignments();
         SetupImportClient(CreateClient("client-ct", JwksUriSettings()));
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -2666,6 +2887,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task ImportSecretAsync_WhenKeyIsRefused_ReturnsBadRequestWithTheReason()
     {
+        SetupClientRoleAssignments();
         SetupImportClient(CreateClient("client-ct"));
         SetupResourceId("secret-2");
         PersistedSecret? importedSecret = null;
@@ -2699,6 +2921,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         string? registeredKeyId
     )
     {
+        SetupClientRoleAssignments();
         // A registered key without its own kid is selected by its secret identifier.
         var registered = CreatePublicKeySecret(registeredKeyId ?? "client-kid", registeredKeyId);
         SetupImportClient(CreateClient("client-ct", EmptyObject(), registered));
@@ -2978,6 +3201,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupClientLookup();
+        SetupClientRoleAssignments();
         SetupSecretUpdateValidation();
         SetupClientSecretChangedAudit();
         SetupStore();
@@ -3026,6 +3251,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         string? algorithm
     )
     {
+        SetupClientLookup();
+        SetupClientRoleAssignments();
         SetupSecretUpdateValidation();
         SetupStore();
         MockClientStore
@@ -3061,6 +3288,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSecretAsync_WhenKeyHasAKid_KeepsIt()
     {
+        SetupClientLookup();
+        SetupClientRoleAssignments();
         SetupSecretUpdateValidation();
         SetupClientSecretChangedAudit();
         SetupStore();
@@ -3119,6 +3348,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
+        SetupClientLookup();
+        SetupClientRoleAssignments();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
@@ -3175,6 +3406,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task DeleteSecretAsync_AuthorizesAgainstTenantScopedResource()
     {
+        SetupClientLookup();
+        SetupClientRoleAssignments();
         SetupClientSecretChangedAudit();
         SetupStore();
         MockClientStore
@@ -3216,6 +3449,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenAuthorized_AddsTheReplacementAndKeepsTheRotatedSecret()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
         SetupStore();
@@ -3345,6 +3579,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenTheClientUsesItsSecretAsAKey_IssuesTheReplacementForItsMethod()
     {
+        SetupClientRoleAssignments();
         // The replacement's form follows the method the client is registered for when it is rotated. See ADR-1391.
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
@@ -3396,6 +3631,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenRotatedExpiresWhenIsEarlier_ShortensTheRotatedSecretsExpiry()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
         var grace = DateTimeOffset.UnixEpoch.AddMonths(1);
@@ -3432,6 +3668,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenRotatedExpiresWhenPrecedesTheSecretsCreation_StopsItAtItsCreation()
     {
+        SetupClientRoleAssignments();
         // A value in the past stops the rotated secret at once; its creation is the earliest instant its lifecycle
         // can hold, and its active window collapses with its expiry so the instants stay in order.
         SetupSecretCreateValidation();
@@ -3458,6 +3695,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenRotatedExpiresWhenIsLater_KeepsTheRotatedSecretsExpiry()
     {
+        SetupClientRoleAssignments();
         SetupSecretCreateValidation();
         SetupClientSecretChangedAudit();
         var httpContext = await RotateWithGraceAsync(DateTimeOffset.UnixEpoch.AddYears(5));
@@ -3698,6 +3936,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenIfMatchDiffers_ReturnsPreconditionFailed()
     {
+        SetupClientRoleAssignments();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -3724,6 +3963,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task RotateSecretAsync_WhenSecretIsAKey_ReturnsBadRequest()
     {
+        SetupClientRoleAssignments();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -3751,11 +3991,106 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
+    #region AddOwnerAsync Tests
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutAddingTheOwner()
+    {
+        SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupStore();
+        SetupClientLookup();
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupRoleNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no ResourceOwnershipService setup, so an owner change would fail the test.
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddOwnerRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenTheCallerIsNotAuthorizedAtTheClient_ReturnsForbiddenBeforeReadingTheClient()
+    {
+        SetupClientNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store manager factory setup, so reading the client would fail the test.
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddOwnerRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupClientLookup();
+        var handler = CreateHostManagedHandler();
+
+        // Strict mocks: no ownership setup, so continuing past the refusal would fail the test.
+        var result = await handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddOwnerRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region RemoveOwnerAsync Tests
+
+    [Fact]
+    public async Task RemoveOwnerAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutRemovingTheOwner()
+    {
+        SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupStore();
+        SetupClientLookup();
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupRoleNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no ResourceOwnershipService setup, so an owner change would fail the test.
+        var result = await Handler.RemoveOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
     #region DeleteClientAsync Tests
 
     [Fact]
     public async Task DeleteClientAsync_WhenPreconditionsPass_ReturnsNoContent()
     {
+        SetupClientRoleAssignments();
         SetupClientChangedAudit();
         SetupStore();
         MockClientStore
@@ -3864,29 +4199,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var result = await handler.DeleteClientAsync(
             CreateHttpContext(authenticated: true),
             ClientId,
-            CancellationToken.None
-        );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
-    }
-
-    #endregion
-
-    #region AddOwnerAsync Tests
-
-    [Fact]
-    public async Task AddOwnerAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-        var handler = CreateHostManagedHandler();
-
-        // Strict mocks: no store or ownership setup, so continuing past the refusal would fail the test.
-        var result = await handler.AddOwnerAsync(
-            CreateHttpContext(authenticated: true),
-            TenantId,
-            ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
             CancellationToken.None
         );
 

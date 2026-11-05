@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PLATFORM_SCOPE, teamScope, tenantScope } from '@ncode/api';
 import {
   DEFAULT_ROUTE,
+  HOME_ROUTE,
   parseRoute,
   platformRoute,
   PLATFORM_SURFACES,
@@ -15,6 +16,10 @@ import {
 } from './routes.js';
 
 describe('routePath', () => {
+  it('formats the caller home as /home', () => {
+    expect(routePath(HOME_ROUTE)).toBe('/home');
+  });
+
   it('formats the platform surfaces without a scope segment', () => {
     expect(routePath(platformRoute('teams'))).toBe('/teams');
     expect(routePath(platformRoute('settings'))).toBe('/settings');
@@ -87,6 +92,10 @@ describe('parseRoute', () => {
     );
   });
 
+  it('parses /home as the caller home', () => {
+    expect(parseRoute('/home')).toEqual(HOME_ROUTE);
+  });
+
   it('decodes a percent-encoded team id', () => {
     expect(parseRoute('/teams/a%2Fb%20c/usage')).toEqual(teamRoute('a/b c', 'usage'));
   });
@@ -144,7 +153,7 @@ describe('resolveRoute', () => {
   });
 
   it('falls back to the default route for a path that names none', () => {
-    expect(resolveRoute('/nowhere')).toEqual({ route: DEFAULT_ROUTE, path: '/teams' });
+    expect(resolveRoute('/nowhere')).toEqual({ route: DEFAULT_ROUTE, path: '/home' });
   });
 });
 

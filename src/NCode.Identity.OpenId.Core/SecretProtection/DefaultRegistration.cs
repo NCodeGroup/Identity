@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Dispatch;
+using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.SharedState;
 using NCode.Registration;
@@ -63,6 +64,13 @@ internal static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IOwnerRootKeyPolicy, ControlPlaneTenantRootKeyPolicy>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IOpenIdExceptionTranslator,
+                    OwnerRootKeyUnavailableExceptionTranslator
+                >()
             );
 
             serviceCollection.AddHostedService<MasterKeyMaintenanceService>();

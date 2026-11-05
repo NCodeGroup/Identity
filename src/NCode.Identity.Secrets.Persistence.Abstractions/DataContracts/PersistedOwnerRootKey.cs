@@ -35,6 +35,11 @@ public sealed class PersistedOwnerRootKey : ISupportConcurrencyToken
     public const int MaxKeyReferenceLength = 2048;
 
     /// <summary>
+    /// The maximum length of <see cref="AccessIdentity"/>.
+    /// </summary>
+    public const int MaxAccessIdentityLength = 1024;
+
+    /// <summary>
     /// Gets the kind of owner of the root key, such as one of the values in <see cref="SecretOwnerTypes"/>.
     /// </summary>
     public required string OwnerType { get; init; }
@@ -55,6 +60,14 @@ public sealed class PersistedOwnerRootKey : ISupportConcurrencyToken
     /// Gets or sets the reference to the root key that the owner gave, such as the ARN of an AWS KMS key.
     /// </summary>
     public required string KeyReference { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identity the server takes on to reach the owner's root key, such as an IAM role ARN, a Google
+    /// Cloud service account email or a Microsoft Entra tenant ID, or <c>null</c> when the deployment's own identity
+    /// reaches it.
+    /// </summary>
+    [MaxLength(MaxAccessIdentityLength)]
+    public string? AccessIdentity { get; set; }
 
     /// <summary>
     /// Gets or sets the state of the root key: one of the values in <see cref="OwnerRootKeyStates"/>.

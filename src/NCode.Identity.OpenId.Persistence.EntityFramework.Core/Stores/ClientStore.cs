@@ -4,6 +4,7 @@
 using System.Linq.Expressions;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -18,7 +19,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 internal class ClientStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
-    OpenIdDbContext openIdDbContext
+    OpenIdDbContext openIdDbContext,
+    ICryptoService cryptoService
 ) : CoreBaseStoreWithResourceId<PersistedClient, ClientEntity>, IClientStore
 {
     /// <inheritdoc />
@@ -29,6 +31,8 @@ internal class ClientStore(
 
     /// <inheritdoc />
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
+
+    private ICryptoService CryptoService { get; } = cryptoService;
 
     /// <summary>
     /// Maps a <see cref="ClientEntity"/> to a <see cref="PersistedClientSettings"/> instance.
@@ -86,6 +90,7 @@ internal class ClientStore(
             ClientId = client.ClientId,
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
+            PrincipalId = client.PrincipalId,
             ResourceServerId = client.ResourceServer?.ResourceServerId,
             Settings = await MapSettingsAsync(client, cancellationToken),
             Secrets = await MapSecretsAsync(client, cancellationToken),
@@ -262,6 +267,9 @@ internal class ClientStore(
         persistedClient.Settings.ConcurrencyToken = NextConcurrencyToken();
         persistedClient.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
+        // The store generates the client's principal identifier, so no caller chooses the principal its tokens resolve to.
+        persistedClient.PrincipalId = CryptoService.GenerateResourceId();
+
         var secrets = new List<ClientSecretEntity>(persistedClient.Secrets.Value.Count);
 
         var clientEntity = new ClientEntity
@@ -271,6 +279,8 @@ internal class ClientStore(
             NormalizedTenantId = tenantEntity.NormalizedTenantId,
             ClientId = persistedClient.ClientId,
             NormalizedClientId = Normalize(persistedClient.ClientId),
+            PrincipalId = persistedClient.PrincipalId,
+            NormalizedPrincipalId = Normalize(persistedClient.PrincipalId),
             ConcurrencyToken = persistedClient.ConcurrencyToken,
             SettingsConcurrencyToken = persistedClient.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedClient.Secrets.ConcurrencyToken,
@@ -546,7 +556,7 @@ internal class ClientStore(
             return false;
         }
 
-        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, the grants issued to it, and the role assignments at its resource node, whose resource type is the client's. See ADR-1212.
+        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, the grants issued to it, the role assignments at its resource node, whose resource type is the client's, and every role assignment its principal holds, in any tenant. See ADR-1212 and ADR-1419.
         DbContext.ClientSecrets.RemoveRange(clientEntity.Secrets);
         DbContext.Secrets.RemoveRange(
             clientEntity.Secrets.Select(clientSecret => clientSecret.Secret)
@@ -555,6 +565,7 @@ internal class ClientStore(
         var clientKey = clientEntity.Id;
         var tenantKey = clientEntity.TenantId;
         var normalizedClientId = clientEntity.NormalizedClientId;
+        var normalizedPrincipalId = clientEntity.NormalizedPrincipalId;
 
         DbContext.ClientGrants.RemoveRange(
             await DbContext
@@ -578,9 +589,12 @@ internal class ClientStore(
             await DbContext
                 .RoleAssignments.IgnoreQueryFilters()
                 .Where(entity =>
-                    entity.TenantId == tenantKey
-                    && entity.ResourceType == OpenIdResourceTypes.Client
-                    && entity.NormalizedResourceId == normalizedClientId
+                    (
+                        entity.TenantId == tenantKey
+                        && entity.ResourceType == OpenIdResourceTypes.Client
+                        && entity.NormalizedResourceId == normalizedClientId
+                    )
+                    || entity.NormalizedPrincipalId == normalizedPrincipalId
                 )
                 .ToListAsync(cancellationToken)
         );

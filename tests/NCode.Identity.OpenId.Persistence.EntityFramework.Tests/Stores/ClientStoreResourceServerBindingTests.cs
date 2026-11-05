@@ -40,7 +40,12 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
             idGenerator,
             _dbContext
         );
-        _store = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _store = new ClientStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext,
+            TestCryptoServices.CreateResourceIdGenerator()
+        );
     }
 
     public void Dispose()

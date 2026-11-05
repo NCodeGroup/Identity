@@ -100,6 +100,26 @@ export type TeamResource = {
   readonly isDisabled: boolean;
 };
 
+/** Mirror of `RoleAssignmentResource`: one role a principal holds at one node of the resource tree. */
+export type RoleAssignmentResource = {
+  readonly assignmentId: string;
+  readonly principalId: string;
+  readonly roleName: string;
+  readonly resourceType: string;
+  readonly resourceId: string;
+  readonly tenantId: string;
+};
+
+/**
+ * Mirror of `CallerResource`: where the signed-in caller holds authority (ADR-1420). `principalId` is
+ * `null` when the caller resolves to no principal.
+ */
+export type CallerResource = {
+  readonly principalId: string | null;
+  readonly isPlatformAdministrator: boolean;
+  readonly assignments: readonly RoleAssignmentResource[];
+};
+
 /**
  * Mirror of `CreateTeamRequest`. The team id is chosen by its creator and cannot change. `settings` is
  * the initial JSON settings object (empty by default; settings have their own PATCH endpoint).
@@ -131,6 +151,8 @@ export type ClientResource = {
   readonly concurrencyToken: string;
   readonly isDisabled: boolean;
   readonly resourceServerId: string | null;
+  /** The client's principal, which role assignments name to grant the client authority. */
+  readonly principalId: string;
 };
 
 /**
@@ -514,6 +536,11 @@ export type EncryptionKeyResource = {
    * wraps it.
    */
   readonly rootKeyReference: string | null;
+  /**
+   * The identity the server reaches the tenant's own root key through (ADR-1414), or `null` when it reaches the key
+   * through the deployment's own identity or the deployment's root key wraps the key.
+   */
+  readonly rootKeyAccessIdentity: string | null;
 };
 
 // See ADR-1414.
@@ -526,6 +553,11 @@ export type EncryptionRootKeyResource = {
   readonly provider: string;
   /** The reference that names the key at its provider, such as a KMS key ARN. */
   readonly keyReference: string;
+  /**
+   * The identity the server reaches the key through, such as an IAM role ARN, a service account email or a Microsoft
+   * Entra tenant ID, or `null` when it reaches the key through the deployment's own identity.
+   */
+  readonly accessIdentity: string | null;
   /** `active`, `unavailable` or `removing`; an unknown state counts as unavailable. */
   readonly state: string;
   readonly createdWhen: string;
@@ -547,6 +579,11 @@ export type EncryptionKeysResource = {
   readonly rootKey: EncryptionRootKeyResource | null;
   /** The key wrapper names a tenant may choose a root key from; empty on the platform. */
   readonly rootKeyProviders: readonly string[];
+  /**
+   * The value an identity the tenant grants can require of the server, such as the external ID of an AWS role's trust
+   * policy; `null` when the owner cannot bring a key.
+   */
+  readonly rootKeyAccessBinding: string | null;
 };
 
 /** Mirror of `EncryptionKeyRotationResource` — the result of a rekey. */
@@ -560,6 +597,11 @@ export type EncryptionKeyRotationResource = {
 export type EncryptionRootKeyRequest = {
   readonly provider: string;
   readonly keyReference: string;
+  /**
+   * The identity the server takes on to reach the key, such as an IAM role ARN, a service account email or a Microsoft
+   * Entra tenant ID; omitted, the deployment's own identity reaches it.
+   */
+  readonly accessIdentity?: string | null;
 };
 
 /** Mirror of `EncryptionRootKeyChangeResource` — the result of setting a root key. */

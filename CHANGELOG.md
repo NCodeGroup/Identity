@@ -1959,6 +1959,31 @@ describes the family as it is rather than its changes
   types; the built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
+- **A client acting for itself is a principal.** Every client has a principal (`PersistedClient.PrincipalId`,
+  `ClientResource.principalId`) that its store generates when the client is added — 128 random bits, Base64Url — and
+  that no caller chooses. A token a client obtains for itself, which names no subject, resolves to that principal in
+  the tenant that authenticated it, so a machine client of the control-plane tenant holds role assignments as a person
+  does: `TeamAdmin` through `POST /api/teams/{teamId}/admins` and `Owner` through the `…/owners` endpoints. It becomes
+  the owner of what it creates, its management changes are audited with the `client` actor, a disabled client holds
+  no authority, and deleting a client removes the assignments it holds
+  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)).
+
+- **The management API tells a caller where it holds authority.** `GET /api/me` returns the caller's principal
+  (`CallerResource.principalId`), whether it holds authority at the platform node (`isPlatformAdministrator`) and its
+  role assignments (`RoleAssignmentResource`); `GET /api/me/teams` and `GET /api/me/tenants` list the teams and
+  tenants it holds a role at. Every request is authorized per resource from the caller's role assignments, so one
+  token serves every team and tenant the caller administers and names none of them
+  ([#566](https://github.com/NCodeGroup/Identity/issues/566),
+  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+
+- **The management console opens on the caller's home.** `/home` lists the platform for a caller with platform
+  authority and the teams and tenants the caller holds a role at, and opens the only one at once when there is one.
+  A team administrator signs in with the same token as a platform administrator and works within its teams; a
+  platform route sends a caller without platform authority home, and a scope's back control leads home when the
+  caller holds no role at the scope above it ([#566](https://github.com/NCodeGroup/Identity/issues/566),
+  [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md)).
+
 - **Collection endpoints page through management resources by keyset.** A collection `GET`, such as `GET api/teams`,
   `GET api/tenants` or `GET api/tenants/{tenantId}/clients`, returns a page of resources (`CollectionResource<T>`, with
   `items` and `continuationToken`) using keyset (cursor) pagination (`?limit=` clamped to 100, `?cursor=` an opaque
@@ -2204,8 +2229,9 @@ describes the family as it is rather than its changes
   token as `id_token_hint`; the auth store keeps the ID token across silent renewals for this, and `buildEndSessionUrl`
   builds the logout URL.
 
-- **The management console's address bar is its navigation state.** The console routes by scope and surface:
-  `/teams`, `/settings` and `/encryption-keys` in the platform scope, `/teams/{teamId}/tenants`, `…/settings` and
+- **The management console's address bar is its navigation state.** The console routes to the caller's home,
+  `/home`, and by scope and surface: `/teams`, `/settings` and `/encryption-keys` in the platform scope,
+  `/teams/{teamId}/tenants`, `…/settings` and
   `…/usage` within a team, and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`, `…/secrets`,
   `…/encryption-keys`, `…/settings` and `…/usage` within a tenant, each tenant surface with its own tab. A view can be
   bookmarked, shared and reloaded, back and forward move between surfaces and scopes, and a deep link that lands on the sign-in screen returns
@@ -3628,37 +3654,51 @@ describes the family as it is rather than its changes
 - **A tenant brings its own root key.** A tenant names a root key it controls, a key wrapper name (`aws-kms`,
   `azure-key-vault` or `google-cloud-kms`) and a key reference (a KMS key or alias ARN, a crypto key name without a
   version, or a key id), and its master keys are wrapped only by that key, with no operator recovery copy, in place of
-  the deployment's root key. `PUT`, `DELETE` and `POST .../validate` on
-  `/api/tenants/{tenantId}/encryption-keys/root-key` set or change, remove and validate it (scope
-  `update:encryption_keys`), and `GET .../encryption-keys` reports the root key and the providers a tenant may choose
-  (scope `read:encryption_keys`). A `PUT` answers `400` for a field that is blank, not allowed, not registered or
-  malformed, `409` with `Retry-After` within twice `SecretProtection:MasterKeys:RefreshInterval` of the tenant's last
-  rotation, `412` when it loses a race and `422` when the probe fails; a `DELETE` answers `204` once every master key
-  is under the deployment's root key and `202` while master keys remain under the tenant's key. The server validates a
-  key by wrapping 32 random bytes through it under a context label of its own, unwrapping them and comparing the two in
-  constant time, which proves that the key exists, is enabled and grants both the encrypt and the decrypt permission
-  through any provider. Setting or changing the key rotates the tenant's master key so that the successor is created
-  under it and rewraps every retired master key under it, because earlier material exists in backups under the
-  deployment's root key; removing it moves the master keys back under the deployment's root key without a rotation.
-  An Azure Key Vault key reference names a host under the deployment's Key Vault or Managed HSM host suffixes
+  the deployment's root key. A tenant whose key cannot grant the deployment's own identity also names an access identity
+  it controls — an IAM role ARN that the server assumes with the external ID the encryption keys resource reports as
+  `rootKeyAccessBinding` (such as `tenant:acme`), a service account email it impersonates, or a Microsoft Entra tenant
+  ID it requests tokens for — and the server reaches the key through that identity with no stored secret; every master
+  key records the identity that reaches it (`rootKeyAccessIdentity`, and the `root_key_access_identity` detail of
+  `master_key.*` audit events), and changing only the identity rewraps the master keys without a rotation.
+  `KeyAccessClientCache<TClient>` keeps a client for an access identity once a call through it succeeds and drops one
+  that never worked. `PUT`, `DELETE` and `POST .../validate` on
+  `/api/tenants/{tenantId}/encryption-keys/root-key` set or change, remove and
+  validate it (scope `update:encryption_keys`), and `GET .../encryption-keys` reports the root key and the providers a
+  tenant may choose (scope `read:encryption_keys`). A `PUT` answers `400` for a field that is blank, not allowed, not
+  registered or malformed, `409` with `Retry-After` within twice `SecretProtection:MasterKeys:RefreshInterval` of the
+  tenant's last rotation, `412` when it loses a race and `422` when the probe fails; a `DELETE` answers `204` once every
+  master key is under the deployment's root key and `202` while master keys remain under the tenant's key. The server
+  validates a key by wrapping 32 random bytes through it under a context label of its own, unwrapping them and comparing
+  the two in constant time, which proves that the key exists, is enabled and grants both the encrypt and the decrypt
+  permission through any provider. Setting or changing the key rotates the tenant's master key so that the successor is
+  created under it and rewraps every retired master key under it, because earlier material exists in backups under the
+  deployment's root key; removing it moves the master keys back under the deployment's root key without a rotation. An
+  Azure Key Vault key reference names a host under the deployment's Key Vault or Managed HSM host suffixes
   (`SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes`, by default the public, China and US
-  government cloud domains). Which owners can bring a key is a registered `IOwnerRootKeyPolicy`: the `platform` owner and
-  the control-plane tenant, which the management API authenticates against, are refused, a consumer registers its own,
-  and a `PUT` for a refused owner answers `400`. A root key is `active`, `unavailable` or `removing`, and an
+  government cloud domains). Which owners can bring a key is a registered `IOwnerRootKeyPolicy`: the `platform` owner
+  and the control-plane tenant, which the management API authenticates against, are refused, a consumer registers its
+  own, and a `PUT` for a refused owner answers `400`. A root key is `active`, `unavailable` or `removing`, and an
   unknown state reads as `unavailable`. `SecretProtection:OwnerRootKeys:Providers` (empty by default, so no tenant can
-  bring a key), `ValidationInterval` (one hour, between one minute and one day) and `RetryInterval` (one minute,
-  between one second and the validation interval) tune it, and a listed provider that is not a registered referenced
-  key wrapper stops the host as it starts. The Helm chart's `secretProtection.ownerRootKeys.providers` lists the
-  providers and mounts a listed provider's workload credentials. The management console's tenant encryption keys tab
-  sets, validates and removes the key, shows its state and the master keys' root keys, and warns when it is
-  `unavailable`. `root_key.set`, `root_key.removed`, `root_key.unavailable` and `root_key.restored` are `key` audit
-  events without material, a rotation onto the key records `master_key.rotated` with the reason `root_key_changed`,
-  and a master key's `root_key_reference` detail names the key that wraps it. `IReferencedKeyWrapper` is a key wrapper
-  that wraps under a key the caller names, implemented by the AWS KMS, Google Cloud KMS and Azure Key Vault wrappers,
-  and `IOwnerRootKeyManager` sets, removes and validates a root key
-  ([#174](https://github.com/NCodeGroup/Identity/issues/174),
+  bring a key), `ValidationInterval` (one hour, between one minute and one day) and `RetryInterval` (one minute, between
+  one second and the validation interval) tune it, and a listed provider that is not a registered referenced key wrapper
+  stops the host as it starts. The Helm chart's `secretProtection.ownerRootKeys.providers` lists the providers and
+  mounts a listed provider's workload credentials. The management console's tenant encryption keys tab sets, validates
+  and removes the key, shows its state and the master keys' root keys, and warns when it is `unavailable`.
+  `root_key.set`, `root_key.removed`, `root_key.unavailable` and `root_key.restored` are `key` audit events without
+  material, a rotation onto the key records `master_key.rotated` with the reason `root_key_changed`, and a master key's
+  `root_key_reference` detail names the key that wraps it. `IReferencedKeyWrapper` is a key wrapper that wraps under a
+  key the caller names, implemented by the AWS KMS, Google Cloud KMS and Azure Key Vault wrappers, and
+  `IOwnerRootKeyManager` sets, removes and validates a root key
+  ([#174](https://github.com/NCodeGroup/Identity/issues/174), [#574](https://github.com/NCodeGroup/Identity/issues/574),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
+  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
+  [ADR-1429](docs/decisions/1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md)).
+
+- **A package maps the exceptions it owns to protocol errors.** `IOpenIdExceptionTranslator` implementations, registered
+  as a collection, turn an exception into the error a protocol endpoint answers with; the endpoint filters and the
+  authorization endpoint consult them, and an exception none answers is `server_error`
+  ([#573](https://github.com/NCodeGroup/Identity/issues/573),
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
 
 ### Security
 
@@ -5281,10 +5321,26 @@ describes the family as it is rather than its changes
   or rewrapped under it unreadable, in the database and in every backup. The key is re-validated every hour by default,
   and a replica unwraps a tenant-keyed master key again at least that often, so a revocation takes effect within that
   period on every replica. While the key is `unavailable` the server reads and writes none of the tenant's secrets: the
-  management API answers `503` with `Retry-After`, the host logs the failure, and `root_key.unavailable` is audited;
-  development pruning never deletes the master keys of such a tenant
+  management API answers `503` with `Retry-After`, a protocol endpoint answers `temporarily_unavailable` with `503`,
+  `Retry-After` and `Cache-Control: no-store`, and the authorization endpoint returns it to the client's redirect URI,
+  the host logs the failure, and `root_key.unavailable` is audited; development pruning never deletes the master keys of
+  such a tenant
   ([#174](https://github.com/NCodeGroup/Identity/issues/174),
+  [#573](https://github.com/NCodeGroup/Identity/issues/573),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
+  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
+- **An imported elliptic-curve public key is checked against its curve.** A JWK's `x` and `y` must each be the curve's
+  field length, below its prime and satisfy its curve equation before the platform imports the point, so an off-curve or
+  invalid-curve point is rejected with the same error on every platform
+  ([#575](https://github.com/NCodeGroup/Identity/issues/575),
+  [ADR-1427](docs/decisions/1427-an-imported-elliptic-curve-point-is-checked-against-its-curve-before-the-platform-imports-it.md)).
+
+- **Managing a client's credentials needs the authority its roles carry.** Updating, deleting, configuring or changing
+  the owners or secrets of a client whose principal holds role assignments also needs the authority to grant each of
+  them, so a caller who manages the control-plane tenant's clients cannot mint a secret for a client that administers
+  a team it does not
+  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

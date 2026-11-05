@@ -1,4 +1,4 @@
-# End-to-end — the BFF in real browsers and against a containerized OpenID Provider (ADR-1419).
+# End-to-end — the BFF in real browsers and against a containerized OpenID Provider (ADR-1430).
 #
 # This workflow runs the SAME entrypoint developers run (build/e2e.ps1), with no CI-only variant: the script is the
 # single source of truth for how the tests/*.EndToEnd.Tests suites run, so a green run here and a green run locally mean

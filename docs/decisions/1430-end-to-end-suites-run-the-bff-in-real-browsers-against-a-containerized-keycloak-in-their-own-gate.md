@@ -1,4 +1,4 @@
-# 1419. End-to-end suites run the BFF in real browsers against a containerized Keycloak in their own gate
+# 1430. End-to-end suites run the BFF in real browsers against a containerized Keycloak in their own gate
 
 - **Status:** Accepted (amends [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md))
 - **Date:** 2026-11-05
@@ -88,7 +88,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
     cannot observe a refusal in every browser.
 
 13. **The login requests `offline_access` only when the deployment lists it.** The interop suite runs the BFF as
-    [ADR-1420](1420-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md) describes, so Keycloak's
+    [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md) describes, so Keycloak's
     logout at the OP reaches the BFF as a back-channel logout token.
 
 ## Options considered
@@ -125,7 +125,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 - [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
   [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md),
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
-  [ADR-1420](1420-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md),
+  [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md),
   [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)
 - Issues [#418](https://github.com/NCodeGroup/Identity/issues/418) and
   [#419](https://github.com/NCodeGroup/Identity/issues/419)

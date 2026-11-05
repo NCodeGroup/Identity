@@ -1,7 +1,7 @@
 # 1294. A BFF client is registered with explicit metadata, not a bff security profile
 
 - **Status:** Accepted (amended by
-  [ADR-1420](1420-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md): the client registers the
+  [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md): the client registers the
   `offline_access` scope only when its BFF lists it in `Bff:Scopes`)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group

@@ -283,7 +283,7 @@ packages, so a BFF in front of a non-NCode OP pulls in no server code: the clien
 - `scope` is `openid` plus the configured `Bff:Scopes`, each once. It includes `offline_access` only when `Bff:Scopes`
   lists it, for an OP that issues a refresh token for that scope alone: an offline grant outlives the OP's login
   session, so an OP such as Keycloak ends that session without a back-channel logout to the BFF
-  ([ADR-1420](decisions/1420-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
+  ([ADR-1431](decisions/1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
 - `resource` lists the RFC 8707 resource indicators for the frontend's APIs.
 - `dpop_jkt` is sent when DPoP is in use.
 - The request goes through **PAR** whenever the OP advertises `pushed_authorization_request_endpoint`. PAR is mandatory
@@ -1128,7 +1128,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 - **Browser end-to-end.** Playwright for .NET in Chromium, Firefox and WebKit checks the cookie attributes, `SameSite`
   on cross-site navigation and form posts, CORS preflight denial, and Fetch Metadata rejection of what CORS admits.
   Both end-to-end suites run in the `End-to-end` CI check through `./build/e2e.ps1`, never in the Definition of Done
-  ([ADR-1419](decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+  ([ADR-1430](decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 ---
 

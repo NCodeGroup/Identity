@@ -1,4 +1,4 @@
-# 1420. The BFF requests offline access only when its deployment lists it
+# 1431. The BFF requests offline access only when its deployment lists it
 
 - **Status:** Accepted (amends
   [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) and

@@ -2441,7 +2441,7 @@ describes the family as it is rather than its changes
   [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
   [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
-  [ADR-1420](docs/decisions/1420-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
+  [ADR-1431](docs/decisions/1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
 
 - **A BFF is composed in one call.** The `NCode.Identity.Bff.Server` package is the BFF's composition root:
   `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,
@@ -2518,7 +2518,7 @@ describes the family as it is rather than its changes
   rotation, RP-initiated logout and back-channel logout, all from Keycloak's discovery metadata alone.
   `./build/dod.ps1` never runs these `*.EndToEnd.Tests` suites
   ([#418](https://github.com/NCodeGroup/Identity/issues/418), [#419](https://github.com/NCodeGroup/Identity/issues/419),
-  [ADR-1419](docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+  [ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 - **Entity Framework persistence is a reusable framework plus domain slices.** The framework package
   `NCode.Identity.OpenId.Persistence.EntityFramework` provides a `DbSet`-less `OpenIdDbContext` that slices plug into

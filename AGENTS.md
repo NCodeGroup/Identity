@@ -26,7 +26,7 @@ Benchmark projects (the `*.Benchmarks` projects) live under `benchmarks/`; the b
 them ([ADR-1386](docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
 End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./build/dod.ps1` never runs them, and
 `./build/e2e.ps1` and the `End-to-end` CI check do
-([ADR-1419](docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+([ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
   packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the

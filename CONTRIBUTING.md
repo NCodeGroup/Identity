@@ -107,7 +107,7 @@ back-channel logout. They need a running Docker engine.
 The `End-to-end` CI check runs `./build/e2e.ps1`: with `-Affected` on a pull request, and in full in the merge queue, on
 `main` and on the release lines. The Definition of Done and a bare `dotnet test NCode.Identity.slnx` differ: the
 Definition of Done never runs the suites, while a bare `dotnet test` runs them and so needs Docker
-([ADR-1419](docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+([ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 ## Coding standards
 

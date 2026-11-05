@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -8,8 +8,9 @@ import {
   useListCallerTeamsQuery,
   useListCallerTenantsQuery,
 } from '@ncode/store';
-import { toCallerAccess, soleDestination } from '../access.js';
+import { soleDestination } from '../access.js';
 import { platformRoute, teamRoute, tenantRoute, type ConsoleRoute } from '../routes.js';
+import { useCallerAccess } from '../useCallerAccess.js';
 
 export type HomePageProps = {
   /** Opens a route; `replace` swaps the home entry in the history instead of adding one. */
@@ -31,10 +32,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
   const tenants = tenantsQuery.data?.items;
   const callerData = caller.data;
 
-  const access = useMemo(
-    () => (callerData && teams && tenants ? toCallerAccess(callerData, teams, tenants) : undefined),
-    [callerData, teams, tenants],
-  );
+  const access = useCallerAccess(true);
 
   useEffect(() => {
     if (!access) {

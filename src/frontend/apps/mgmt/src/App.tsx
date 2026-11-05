@@ -1,18 +1,11 @@
-import { Fragment, lazy, Suspense, useEffect, useMemo } from 'react';
+import { Fragment, lazy, Suspense, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import {
-  signedOut,
-  useAppDispatch,
-  useAppSelector,
-  useGetCallerQuery,
-  useGetTenantQuery,
-  useListCallerTeamsQuery,
-  useListCallerTenantsQuery,
-} from '@ncode/store';
+import { signedOut, useAppDispatch, useAppSelector, useGetTenantQuery } from '@ncode/store';
 import { AppLayout } from './components/AppLayout.js';
-import { permittedRoute, teamExit, tenantExit, toCallerAccess } from './access.js';
+import { permittedRoute, teamExit, tenantExit } from './access.js';
+import { useCallerAccess } from './useCallerAccess.js';
 import { endSessionUrlFromRuntime } from './auth.js';
 import { useConsoleRoute, navigateTo } from './navigation.js';
 import {
@@ -85,19 +78,7 @@ export function App() {
 
   // The caller's access is unknown until all three queries answer; until then the guard and back controls keep
   // their defaults.
-  const caller = useGetCallerQuery(undefined, { skip: !isSignedIn });
-  const callerTeams = useListCallerTeamsQuery(undefined, { skip: !isSignedIn });
-  const callerTenants = useListCallerTenantsQuery(undefined, { skip: !isSignedIn });
-  const callerData = caller.data;
-  const callerTeamItems = callerTeams.data?.items;
-  const callerTenantItems = callerTenants.data?.items;
-  const access = useMemo(
-    () =>
-      callerData && callerTeamItems && callerTenantItems
-        ? toCallerAccess(callerData, callerTeamItems, callerTenantItems)
-        : undefined,
-    [callerData, callerTeamItems, callerTenantItems],
-  );
+  const access = useCallerAccess(isSignedIn);
 
   useEffect(() => {
     const permitted = permittedRoute(route, access);

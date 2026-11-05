@@ -32,9 +32,9 @@ before it can manage them.
    administrator, the caller's teams and the caller's tenants. When exactly one destination exists, the console opens
    it and replaces the history entry. A Home control in the header returns to `/home`. Once the caller's access is
    known and the caller lacks platform authority, a platform route is replaced by `/home`. A team's back control leads
-   Home. A tenant's back control leads to its team when the caller is a platform administrator or holds a role at that
-   team, and Home otherwise. While the caller's access is unknown, the back controls lead where the route's parent
-   leads.
+   to the platform's team list for a platform administrator and Home for any other caller. A tenant's back control
+   leads to its team when the caller is a platform administrator or holds a role at that team, and Home otherwise.
+   While the caller's access is unknown, the back controls lead where the route's parent leads.
 4. **Home is not a management scope.** Each entry on the page opens its own scope
    ([ADR-1064](1064-frontend-presentation-platform.md)), and the page holds no settings, secrets or usage of its own.
 

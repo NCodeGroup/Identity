@@ -37,8 +37,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITeamStore> MockTeamStore { get; }
-    private Channel<string?> Triggers { get; } =
-        DefaultTeamSettingsReconciliationTrigger.CreateChannel();
+    private TeamSettingsReconciliationQueue Queue { get; } = new();
     private DefaultTeamSettingsReconciliationTrigger Trigger { get; }
     private Mock<OpenIdPlatform> MockPlatform { get; }
     private Mock<IReadOnlySettingCollectionProvider> MockSettingsProvider { get; }
@@ -73,7 +72,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockStoreManager = CreateStrictMock<IStoreManager>();
         MockTeamStore = CreateStrictMock<ITeamStore>();
-        Trigger = new DefaultTeamSettingsReconciliationTrigger(Triggers);
+        Trigger = new DefaultTeamSettingsReconciliationTrigger(Queue);
 
         Service = new TeamSettingsReconciliationService(
             MockRegistry.Object,
@@ -81,8 +80,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             MockEnvironmentProvider.Object,
             MockStoreManagerFactory.Object,
             MockReconciler.Object,
-            Trigger,
-            Triggers,
+            Queue,
             Options.Create(OpenIdOptions),
             TimeProvider.System,
             CreateLooseMock<ILogger<TeamSettingsReconciliationService>>().Object
@@ -154,12 +152,20 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_WhenATeamIsTriggered_ReconcilesOnlyThatTeam()
     {
-        // The pass over every team finds no team, so the only team reconciled is the one that is triggered.
+        // The pass over every team lists no team; a team triggered after that pass has taken its request is
+        // reconciled on its own.
         SetupPlatform();
         SetupTeams();
+        var listed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        MockTeamStore
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
+            .Callback(() => listed.TrySetResult())
+            .ReturnsAsync(new PagedResult<PersistedTeam> { Items = [], NextCursor = null })
+            .Verifiable();
         SetupReconciler(_ => ValueTask.FromResult(true));
 
         await Service.StartAsync(CancellationToken.None);
+        await listed.Task.WaitAsync(Deadline);
         Trigger.Trigger(OtherTeamId);
         await Calls[0].Task.WaitAsync(Deadline);
         await Service.StopAsync(CancellationToken.None);
@@ -205,8 +211,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             MockEnvironmentProvider.Object,
             MockStoreManagerFactory.Object,
             MockReconciler.Object,
-            Trigger,
-            Triggers,
+            Queue,
             Options.Create(OpenIdOptions),
             timeProvider,
             CreateLooseMock<ILogger<TeamSettingsReconciliationService>>().Object

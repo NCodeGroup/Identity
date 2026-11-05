@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -23,7 +22,8 @@ namespace NCode.Identity.OpenId.Teams;
 /// or a poll that saw a change), and one team whenever an <see cref="ITeamSettingsReconciliationTrigger"/> names it.
 /// The recorded fingerprint makes a team that changed nothing cost one read. A reconciliation that is unsettled,
 /// because another replica holds its lease or the pass failed, is attempted again when the
-/// <see cref="OpenIdTeamOptions.ReconciliationLeaseDuration"/> has passed. The service never throws on stop.
+/// <see cref="OpenIdTeamOptions.ReconciliationLeaseDuration"/> has passed. Requests that arrive during a pass coalesce
+/// and none is lost. The service never throws on stop.
 /// </summary>
 // See ADR-1219 and ADR-1411.
 internal sealed class TeamSettingsReconciliationService(
@@ -32,8 +32,7 @@ internal sealed class TeamSettingsReconciliationService(
     IOpenIdEnvironmentProvider environmentProvider,
     IStoreManagerFactory storeManagerFactory,
     ITeamSettingsReconciler teamSettingsReconciler,
-    ITeamSettingsReconciliationTrigger trigger,
-    Channel<string?> triggers,
+    TeamSettingsReconciliationQueue queue,
     IOptions<OpenIdOptions> optionsAccessor,
     TimeProvider timeProvider,
     ILogger<TeamSettingsReconciliationService> logger
@@ -51,8 +50,7 @@ internal sealed class TeamSettingsReconciliationService(
     private IOpenIdEnvironmentProvider EnvironmentProvider { get; } = environmentProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ITeamSettingsReconciler TeamSettingsReconciler { get; } = teamSettingsReconciler;
-    private ITeamSettingsReconciliationTrigger Trigger { get; } = trigger;
-    private Channel<string?> Triggers { get; } = triggers;
+    private TeamSettingsReconciliationQueue Queue { get; } = queue;
     private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<TeamSettingsReconciliationService> Logger { get; } = logger;
@@ -79,16 +77,16 @@ internal sealed class TeamSettingsReconciliationService(
             // each can change every team's effective settings.
             using var registration = ChangeToken.OnChange(
                 platform.SettingsProvider.GetChangeToken,
-                () => Trigger.Trigger(null)
+                () => Queue.Add(null)
             );
-            Trigger.Trigger(null);
+            Queue.Add(null);
 
             while (!stoppingToken.IsCancellationRequested)
             {
-                var (triggered, teamId) = await WaitForTriggerAsync(stoppingToken);
+                var (triggered, request) = await WaitForTriggerAsync(stoppingToken);
                 if (triggered)
                 {
-                    await ReconcileTriggeredAsync(teamId, stoppingToken);
+                    await ReconcileTriggeredAsync(request, stoppingToken);
                     UpdateRetryDeadline();
                 }
 
@@ -118,12 +116,12 @@ internal sealed class TeamSettingsReconciliationService(
         }
     }
 
-    private async Task<(bool Triggered, string? TeamId)> WaitForTriggerAsync(
+    private async Task<(bool Triggered, TeamSettingsReconciliationRequest Request)> WaitForTriggerAsync(
         CancellationToken stoppingToken
     )
     {
         if (Unsettled.Count == 0 && !EveryTeamUnsettled)
-            return (true, await Triggers.Reader.ReadAsync(stoppingToken));
+            return (true, await Queue.TakeAsync(stoppingToken));
 
         // An unsettled reconciliation is attempted again when the lease another replica may hold has expired, which is
         // the retry deadline; the wait for a trigger ends there.
@@ -139,21 +137,27 @@ internal sealed class TeamSettingsReconciliationService(
         );
         try
         {
-            return (true, await Triggers.Reader.ReadAsync(wait.Token));
+            return (true, await Queue.TakeAsync(wait.Token));
         }
         catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
         {
             // The lease expired.
-            return (false, null);
+            return (false, default);
         }
     }
 
-    private async Task ReconcileTriggeredAsync(string? teamId, CancellationToken stoppingToken)
+    private async Task ReconcileTriggeredAsync(
+        TeamSettingsReconciliationRequest request,
+        CancellationToken stoppingToken
+    )
     {
-        if (teamId is null)
+        if (request.EveryTeam)
             await ReconcileEveryTeamAsync(stoppingToken);
         else
-            await ReconcileTeamAsync(teamId, stoppingToken);
+        {
+            foreach (var teamId in request.TeamIds)
+                await ReconcileTeamAsync(teamId, stoppingToken);
+        }
     }
 
     private async Task RetryAsync(CancellationToken stoppingToken)

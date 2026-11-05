@@ -10,8 +10,8 @@ namespace NCode.Identity.OpenId.Teams;
 internal interface ITeamSettingsReconciliationTrigger
 {
     /// <summary>
-    /// Requests a reconciliation. Requests that arrive while the service is busy queue up to a bound, and the oldest is
-    /// dropped beyond it.
+    /// Requests a reconciliation. Requests that arrive while the service is busy coalesce: every requested team is
+    /// reconciled once, and a request for every team covers each team.
     /// </summary>
     /// <param name="teamId">The identifier of the team to reconcile, or <c>null</c> to reconcile every team.</param>
     void Trigger(string? teamId);

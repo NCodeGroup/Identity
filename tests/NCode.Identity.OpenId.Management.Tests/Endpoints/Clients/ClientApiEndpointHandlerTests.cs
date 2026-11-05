@@ -20,6 +20,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -67,6 +68,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
+    private Mock<IHostManagedClientPolicy> MockHostManagedClientPolicy { get; }
     private ServiceProvider ServiceProvider { get; }
     private ClientApiEndpointHandler Handler { get; }
 
@@ -103,8 +105,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
+        MockHostManagedClientPolicy = MockRepository.Create<IHostManagedClientPolicy>();
 
-        Handler = new ClientApiEndpointHandler(
+        Handler = CreateHandler();
+    }
+
+    // The default handler has no host-managed client policy, so no client is host-managed.
+    private ClientApiEndpointHandler CreateHandler(
+        params IHostManagedClientPolicy[] hostManagedClientPolicies
+    ) =>
+        new(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockClientValidator.Object,
@@ -124,9 +134,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockClientSecretIssuer.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
+            hostManagedClientPolicies,
             NullLogger<ClientApiEndpointHandler>.Instance
         );
-    }
 
     // Only a request that updates a secret validates the update.
     private void SetupSecretUpdateValidation()
@@ -241,6 +251,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
 
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
+
+    // The host configures the client, so a handler built with the policy refuses every change to it.
+    private ClientApiEndpointHandler CreateHostManagedHandler()
+    {
+        MockHostManagedClientPolicy
+            .Setup(x => x.IsHostManaged(TenantId, ClientId))
+            .Returns(true)
+            .Verifiable();
+        return CreateHandler(MockHostManagedClientPolicy.Object);
     }
 
     private void SetupAuthorization(AuthorizationResult result)
@@ -1041,6 +1061,28 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.IsType<NotFound>(result);
     }
 
+    [Fact]
+    public async Task GetClientAsync_WhenTheClientIsHostManaged_ReturnsIsHostManaged()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        var handler = CreateHostManagedHandler();
+
+        var result = await handler.GetClientAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<ClientResource>>(result);
+        Assert.True(json.Value?.IsHostManaged);
+    }
+
     #endregion
 
     #region GetSettingsAsync Tests
@@ -1827,6 +1869,55 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Contains("'rate_limit_client_per_minute'", problem.ProblemDetails.Detail);
     }
 
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        var handler = CreateHostManagedHandler();
+
+        // Strict mocks: no validation or store-write setup, so continuing past the refusal would fail the test.
+        var result = await handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            ClientId,
+            CreateAddPatch("name", "value"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenTheCallerIsUnauthorizedForAHostManagedClient_ReturnsForbidden()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: the policy has no setup, so consulting it before the authorization would fail the test.
+        var handler = CreateHandler(MockHostManagedClientPolicy.Object);
+
+        var result = await handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            ClientId,
+            CreateAddPatch("name", "value"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
     #endregion
 
     #region NameTokenEndpointAuthMethod Tests
@@ -2435,6 +2526,30 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<Created<CreatedSecretResource>>(result);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        var handler = CreateHostManagedHandler();
+
+        // Strict mocks: no validation or generation setup, so continuing past the refusal would fail the test.
+        var result = await handler.CreateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
     #endregion
@@ -3710,6 +3825,61 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var result = await Handler.DeleteClientAsync(httpContext, ClientId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task DeleteClientAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
+    {
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        MockClientValidator
+            .Setup(x =>
+                x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedClient>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        var handler = CreateHostManagedHandler();
+
+        // Strict mocks: no store-write or audit setup, so continuing past the refusal would fail the test.
+        var result = await handler.DeleteClientAsync(
+            CreateHttpContext(authenticated: true),
+            ClientId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region AddOwnerAsync Tests
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        var handler = CreateHostManagedHandler();
+
+        // Strict mocks: no store or ownership setup, so continuing past the refusal would fail the test.
+        var result = await handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddOwnerRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
     #endregion

@@ -28,6 +28,12 @@ public sealed class ClientResource : ISupportClientId, ISupportTenantId, ISuppor
     /// <inheritdoc cref="PersistedClient.IsDisabled"/>
     public required bool IsDisabled { get; init; }
 
+    /// <summary>
+    /// Gets a value indicating whether the host configures this client, in which case the management API refuses
+    /// every change to it.
+    /// </summary>
+    public required bool IsHostManaged { get; init; }
+
     /// <inheritdoc cref="PersistedClient.ResourceServerId"/>
     public string? ResourceServerId { get; init; }
 }

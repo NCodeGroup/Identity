@@ -48,7 +48,12 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
 
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _clientStore = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _clientStore = new ClientStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext,
+            TestCryptoServices.CreateResourceIdGenerator()
+        );
         _resourceServerStore = new ResourceServerStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,

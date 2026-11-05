@@ -21,6 +21,7 @@ const client: ClientResource = {
   concurrencyToken: 'c1',
   isDisabled: false,
   resourceServerId: null,
+  principalId: 'principal-web',
 };
 
 function renderPage(overrides: Partial<ClientResource> = {}, onBack = vi.fn()) {

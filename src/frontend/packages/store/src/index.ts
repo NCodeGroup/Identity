@@ -13,6 +13,9 @@ export { apiErrorMessage, type ApiError } from './apiError.js';
 export {
   managementApi,
   useGetCapabilitiesQuery,
+  useGetCallerQuery,
+  useListCallerTeamsQuery,
+  useListCallerTenantsQuery,
   useGetTenantQuery,
   useGetTenantAddressQuery,
   useGetNewTenantAddressQuery,

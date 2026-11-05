@@ -8,6 +8,7 @@ import { App } from './App.js';
 // module cache, so a test waits for the surface's data and render rather than a cold transform of its chunk.
 import './containers/ClientsPage.js';
 import './containers/GrantsPage.js';
+import './containers/HomePage.js';
 import './containers/ResourceServersPage.js';
 import './containers/PlatformSettingsPage.js';
 import './containers/TeamDetailPage.js';
@@ -69,8 +70,55 @@ const acmeTenant = {
 
 const acmeDevTenant = { ...acmeTenant, tenantId: 'acme-dev', displayName: 'Acme dev' };
 
-/** Serves the directory the console browses to reach a tenant: the teams, a team's tenants and one tenant. */
-function directoryResponse(url: string): Promise<Response> | undefined {
+const globexTeam = { ...acmeTeam, teamId: 'globex', displayName: 'Globex team' };
+
+/** What the caller's own resource and its teams and tenants answer. */
+type CallerFixture = {
+  readonly isPlatformAdministrator: boolean;
+  readonly teams: readonly unknown[];
+  readonly tenants: readonly unknown[];
+};
+
+/** A platform administrator that holds no role of its own. */
+const platformAdministrator: CallerFixture = {
+  isPlatformAdministrator: true,
+  teams: [],
+  tenants: [],
+};
+
+/** Serves the caller's access: `/api/me`, `/api/me/teams` and `/api/me/tenants`. */
+function callerResponse(
+  url: string,
+  caller: CallerFixture = platformAdministrator,
+): Promise<Response> | undefined {
+  if (url.endsWith('/api/me/teams')) {
+    return jsonResponse({ items: caller.teams });
+  }
+  if (url.endsWith('/api/me/tenants')) {
+    return jsonResponse({ items: caller.tenants });
+  }
+  if (url.endsWith('/api/me')) {
+    return jsonResponse({
+      principalId: 'admin-principal',
+      isPlatformAdministrator: caller.isPlatformAdministrator,
+      assignments: [],
+    });
+  }
+  return undefined;
+}
+
+/**
+ * Serves the caller's access and the directory the console browses to reach a tenant: the teams, a team's tenants
+ * and one tenant.
+ */
+function directoryResponse(
+  url: string,
+  caller: CallerFixture = platformAdministrator,
+): Promise<Response> | undefined {
+  const access = callerResponse(url, caller);
+  if (access) {
+    return access;
+  }
   if (url.endsWith('/api/teams/acme/tenants')) {
     return jsonResponse({ items: [acmeTenant, acmeDevTenant] });
   }
@@ -577,6 +625,94 @@ describe('App (routing)', () => {
   });
 });
 
+describe('App (caller access)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState(null, '', '/');
+  });
+
+  function stubCaller(caller: CallerFixture) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/acme/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        const directory = directoryResponse(url, caller);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+  }
+
+  const teamAdministrator: CallerFixture = {
+    isPlatformAdministrator: false,
+    teams: [acmeTeam],
+    tenants: [],
+  };
+
+  it("opens a team administrator's only team from the bare origin", async () => {
+    stubCaller(teamAdministrator);
+
+    renderApp();
+
+    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams/acme/tenants');
+  });
+
+  it('sends a caller without platform authority from a platform route to its home', async () => {
+    stubCaller({
+      isPlatformAdministrator: false,
+      teams: [acmeTeam, globexTeam],
+      tenants: [],
+    });
+    window.history.replaceState(null, '', '/teams');
+
+    renderApp();
+
+    expect(await screen.findByTestId('team-row-globex')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/home');
+    expect(screen.queryByTestId('exit-scope')).not.toBeInTheDocument();
+  });
+
+  it("leads a team administrator's team back to its home", async () => {
+    stubCaller(teamAdministrator);
+    window.history.replaceState(null, '', '/teams/acme/tenants');
+
+    renderApp();
+
+    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Home'));
+  });
+
+  it("leads a tenant-only caller's tenant back to its home", async () => {
+    stubCaller({ isPlatformAdministrator: false, teams: [], tenants: [acmeTenant] });
+    window.history.replaceState(null, '', '/tenants/acme/clients');
+
+    renderApp();
+
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Home'));
+  });
+
+  it('returns to the home from a scope with the Home control', async () => {
+    stubCaller({ isPlatformAdministrator: true, teams: [acmeTeam], tenants: [] });
+    window.history.replaceState(null, '', '/teams/acme/tenants');
+
+    renderApp();
+    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('go-home'));
+
+    expect(await screen.findByTestId('home-open-platform')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/home');
+    expect(screen.queryByTestId('go-home')).not.toBeInTheDocument();
+  });
+});
+
 describe('App (sign-out)', () => {
   const originalLocation = window.location;
 
@@ -589,6 +725,10 @@ describe('App (sign-out)', () => {
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url =
         input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+      const caller = callerResponse(url);
+      if (caller) {
+        return caller;
+      }
       if (url.endsWith('/api/teams')) {
         return jsonResponse({ items: [] });
       }
@@ -601,8 +741,8 @@ describe('App (sign-out)', () => {
       configurable: true,
       value: {
         origin: 'https://ui.test',
-        href: 'https://ui.test/tenants',
-        pathname: '/tenants',
+        href: 'https://ui.test/teams',
+        pathname: '/teams',
         assign: assignMock,
       },
     });
@@ -648,6 +788,10 @@ describe('App (sign-out)', () => {
       'fetch',
       vi.fn((input: RequestInfo | URL) => {
         const url = (input as Request).url;
+        const caller = callerResponse(url);
+        if (caller) {
+          return caller;
+        }
         if (url.endsWith('/api/teams')) {
           return jsonResponse({ items: [] });
         }
@@ -659,8 +803,8 @@ describe('App (sign-out)', () => {
       configurable: true,
       value: {
         origin: 'https://ui.test',
-        href: 'https://ui.test/tenants',
-        pathname: '/tenants',
+        href: 'https://ui.test/teams',
+        pathname: '/teams',
         assign,
       },
     });

@@ -212,6 +212,43 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(7, captured.EventId.Version);
     }
 
+    [Fact]
+    public async Task RecordGrantRevokedAsync_WhenAClientActsForItself_RecordsTheClientActor()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        GrantRevokedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<GrantRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (GrantRevokedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = CreateRecorder(mockPublisher.Object);
+
+        var httpContext = CreateHttpContext("admin-1");
+        httpContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim("client_id", "client-1")])
+        );
+
+        await recorder.RecordGrantRevokedAsync(
+            httpContext,
+            "tenant-1",
+            "subject-1",
+            "client-1",
+            "authorization_code",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal(AuditActorTypes.Client, captured.Actor.Type);
+        Assert.Equal("client-1", captured.Actor.Id);
+    }
+
     #endregion
 
     #region RecordMasterKeyRotatedAsync Tests

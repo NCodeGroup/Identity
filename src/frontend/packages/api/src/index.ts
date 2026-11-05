@@ -1,4 +1,5 @@
 export type {
+  CallerResource,
   ClientResource,
   CollectionResource,
   CreateClientRequest,
@@ -29,6 +30,7 @@ export type {
   ManagementProblem,
   PublicKeyResource,
   ResourceServerResource,
+  RoleAssignmentResource,
   ScopeResource,
   SecretResource,
   SecretsResource,

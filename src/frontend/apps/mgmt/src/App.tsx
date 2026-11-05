@@ -1,12 +1,15 @@
-import { Fragment, lazy, Suspense } from 'react';
+import { Fragment, lazy, Suspense, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import { signedOut, useAppDispatch, useAppSelector, useGetTenantQuery } from '@ncode/store';
 import { AppLayout } from './components/AppLayout.js';
+import { permittedRoute, teamExit, tenantExit } from './access.js';
+import { useCallerAccess } from './useCallerAccess.js';
 import { endSessionUrlFromRuntime } from './auth.js';
 import { useConsoleRoute, navigateTo } from './navigation.js';
 import {
+  HOME_ROUTE,
   platformRoute,
   routeScope,
   teamRoute,
@@ -17,6 +20,9 @@ import {
 } from './routes.js';
 
 // Each surface's container is its own chunk, loaded when the surface is first visited (ADR-1175).
+const HomePage = lazy(() =>
+  import('./containers/HomePage.js').then((m) => ({ default: m.HomePage })),
+);
 const TeamsPage = lazy(() =>
   import('./containers/TeamsPage.js').then((m) => ({ default: m.TeamsPage })),
 );
@@ -49,8 +55,11 @@ const TenantDetailPage = lazy(() =>
 const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surface-loading" />;
 
 /**
- * Stateful shell. The address bar owns the navigation state (ADR-1174): the route names the active
- * management scope (the platform, team or tenant security boundary) and, within it, the active surface. In the
+ * Stateful shell. The address bar owns the navigation state (ADR-1174): the route is the caller's home or names the
+ * active management scope (the platform, team or tenant security boundary) and, within it, the active surface. The
+ * home lists the places the caller holds authority (ADR-1420); once that access is known, a caller without platform
+ * authority is sent home from a platform route, and the team and tenant back controls lead to a place the caller can
+ * open. In the
  * platform scope that is the teams, the platform's settings or its encryption keys; within a team it is the
  * team's tenants, settings or usage; within a tenant it is clients, resource servers, grants, or one of the
  * tenant's own surfaces: secrets, encryption keys, settings, or usage (ADR-1255). All data fetching lives in the
@@ -65,13 +74,24 @@ export function App() {
   const isSignedIn = useAppSelector((state) => state.auth.accessToken !== null);
 
   const route = useConsoleRoute();
-  const scope = routeScope(route);
+  const scope = route.kind === 'home' ? undefined : routeScope(route);
+
+  // The caller's access is unknown until all three queries answer; until then the guard and back controls keep
+  // their defaults.
+  const access = useCallerAccess(isSignedIn);
+
+  useEffect(() => {
+    const permitted = permittedRoute(route, access);
+    if (permitted !== route) {
+      navigateTo(permitted, { replace: true });
+    }
+  }, [route, access]);
 
   const openTenant = (tenantId: string) => navigateTo(tenantRoute(tenantId));
   const openTeam = (teamId: string) => navigateTo(teamRoute(teamId));
 
-  // A tenant's enclosing scope is its team; until the tenant loads, the exit returns to the platform. Only the
-  // current tenant's data counts, so a previously viewed tenant's team never labels the exit.
+  // A tenant's enclosing scope is its team; until the tenant loads, the exit leads where a team's exit leads. Only
+  // the current tenant's data counts, so a previously viewed tenant's team never labels the exit.
   const tenantId = route.kind === 'tenant' ? route.tenantId : undefined;
   const { currentData: tenant } = useGetTenantQuery(tenantId ?? '', {
     skip: tenantId === undefined,
@@ -88,26 +108,30 @@ export function App() {
     }
   };
 
+  const teamBack = teamExit(access);
+  const tenantBack = tenantExit(access, tenant?.teamId);
+
   return (
     <AppLayout
       title="Management"
-      scopeKind={scope.kind}
-      {...(scope.kind === 'team' ? { scopeLabel: scope.teamId } : {})}
-      {...(scope.kind === 'tenant' ? { scopeLabel: scope.tenantId } : {})}
+      {...(scope ? { scopeKind: scope.kind } : {})}
+      {...(scope?.kind === 'team' ? { scopeLabel: scope.teamId } : {})}
+      {...(scope?.kind === 'tenant' ? { scopeLabel: scope.tenantId } : {})}
+      {...(route.kind !== 'home' ? { onHome: () => navigateTo(HOME_ROUTE) } : {})}
       {...(route.kind === 'team'
-        ? { onExitScope: () => navigateTo(platformRoute('teams')), exitLabel: 'Platform' }
+        ? { onExitScope: () => navigateTo(teamBack.route), exitLabel: teamBack.label }
         : {})}
       {...(route.kind === 'tenant'
-        ? {
-            onExitScope: () =>
-              navigateTo(tenant ? teamRoute(tenant.teamId, 'tenants') : platformRoute('teams')),
-            exitLabel: tenant ? 'Team' : 'Platform',
-          }
+        ? { onExitScope: () => navigateTo(tenantBack.route), exitLabel: tenantBack.label }
         : {})}
       {...(isSignedIn && subject ? { subject } : {})}
       {...(isSignedIn ? { onSignOut: handleSignOut } : {})}
     >
-      {route.kind === 'platform' ? (
+      {route.kind === 'home' ? (
+        <Suspense fallback={surfaceFallback}>
+          <HomePage onNavigate={navigateTo} />
+        </Suspense>
+      ) : route.kind === 'platform' ? (
         <>
           <Tabs
             value={route.surface}

@@ -134,6 +134,28 @@ internal class TeamStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<PersistedTeam>> GetManyAsync(
+        IReadOnlyCollection<string> teamIds,
+        CancellationToken cancellationToken
+    )
+    {
+        List<string?> normalizedTeamIds = [.. teamIds.Select(Normalize)];
+        var entities = await DbContext
+            .Teams.AsNoTracking()
+            .Where(team => normalizedTeamIds.Contains(team.NormalizedTeamId))
+            .OrderBy(team => team.Id)
+            .ToListAsync(cancellationToken);
+
+        var teams = new List<PersistedTeam>(entities.Count);
+        foreach (var entity in entities)
+        {
+            teams.Add(await MapFromEntityAsync(entity, cancellationToken));
+        }
+
+        return teams;
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PersistedTeamSettings> GetSettingsAsync(
         string teamId,
         CancellationToken cancellationToken

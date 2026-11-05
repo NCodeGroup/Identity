@@ -10,6 +10,7 @@ import {
   replacePatch,
   scopeTagId,
   teamScope,
+  type CallerResource,
   type ClientOwner,
   type ClientResource,
   type CollectionResource,
@@ -63,6 +64,9 @@ const teamTag = (teamId: string, id: string): string => scopeTagId(teamScope(tea
 const tenantTag = (tenantId: string, id: string): string =>
   scopeTagId({ kind: 'tenant', tenantId }, id);
 
+// The caller's own access spans scopes, so each mutation that can change where it holds a role invalidates it.
+const callerTag = 'me';
+
 /**
  * The RTK Query client for the Management REST API. Co-located with the store (one RTK module
  * boundary) so its middleware/reducer types reconcile with `configureStore`. Every cache-tag id is
@@ -82,10 +86,23 @@ export const managementApi = createApi({
     'Secret',
     'Settings',
     'EncryptionKey',
+    'Caller',
   ],
   endpoints: (build) => ({
     getCapabilities: build.query<ManagementCapabilitiesResource, void>({
       query: () => 'api/capabilities',
+    }),
+    getCaller: build.query<CallerResource, void>({
+      query: () => 'api/me',
+      providesTags: [{ type: 'Caller', id: callerTag }],
+    }),
+    listCallerTeams: build.query<CollectionResource<TeamResource>, void>({
+      query: () => 'api/me/teams',
+      providesTags: [{ type: 'Caller', id: callerTag }],
+    }),
+    listCallerTenants: build.query<CollectionResource<TenantResource>, void>({
+      query: () => 'api/me/tenants',
+      providesTags: [{ type: 'Caller', id: callerTag }],
     }),
     listTeams: build.query<CollectionResource<TeamResource>, void>({
       query: () => 'api/teams',
@@ -103,7 +120,10 @@ export const managementApi = createApi({
     }),
     createTeam: build.mutation<TeamResource, CreateTeamRequest>({
       query: (body) => ({ url: 'api/teams', method: 'POST', body }),
-      invalidatesTags: [{ type: 'Team', id: platformTag(LIST_TAG) }],
+      invalidatesTags: [
+        { type: 'Team', id: platformTag(LIST_TAG) },
+        { type: 'Caller', id: callerTag },
+      ],
     }),
     updateTeam: build.mutation<
       void,
@@ -118,6 +138,7 @@ export const managementApi = createApi({
       invalidatesTags: (_result, _error, { teamId }) => [
         { type: 'Team', id: platformTag(LIST_TAG) },
         { type: 'Team', id: platformTag(teamId) },
+        { type: 'Caller', id: callerTag },
       ],
     }),
     deleteTeam: build.mutation<void, { teamId: string }>({
@@ -128,6 +149,7 @@ export const managementApi = createApi({
       invalidatesTags: (_result, _error, { teamId }) => [
         { type: 'Team', id: platformTag(LIST_TAG) },
         { type: 'Team', id: platformTag(teamId) },
+        { type: 'Caller', id: callerTag },
       ],
     }),
     // The usage ledger of a team's tenants grows with every flush of the server (ADR-1199), so nothing is cached once
@@ -221,6 +243,7 @@ export const managementApi = createApi({
       }),
       invalidatesTags: (_result, _error, { teamId }) => [
         { type: 'Tenant', id: teamTag(teamId, LIST_TAG) },
+        { type: 'Caller', id: callerTag },
       ],
     }),
     updateTenant: build.mutation<
@@ -236,6 +259,7 @@ export const managementApi = createApi({
       invalidatesTags: (_result, _error, { teamId, tenantId }) => [
         { type: 'Tenant', id: teamTag(teamId, LIST_TAG) },
         { type: 'Tenant', id: platformTag(tenantId) },
+        { type: 'Caller', id: callerTag },
       ],
     }),
     deleteTenant: build.mutation<void, { teamId: string; tenantId: string }>({
@@ -246,6 +270,7 @@ export const managementApi = createApi({
       invalidatesTags: (_result, _error, { teamId, tenantId }) => [
         { type: 'Tenant', id: teamTag(teamId, LIST_TAG) },
         { type: 'Tenant', id: platformTag(tenantId) },
+        { type: 'Caller', id: callerTag },
       ],
     }),
     createClient: build.mutation<ClientResource, { tenantId: string; body: CreateClientRequest }>({
@@ -617,6 +642,9 @@ export const managementApi = createApi({
 
 export const {
   useGetCapabilitiesQuery,
+  useGetCallerQuery,
+  useListCallerTeamsQuery,
+  useListCallerTenantsQuery,
   useListTenantsQuery,
   useGetTenantQuery,
   useGetTenantAddressQuery,

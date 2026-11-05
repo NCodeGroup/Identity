@@ -50,6 +50,19 @@ public interface ITeamStore : IStore<PersistedTeam>
     );
 
     /// <summary>
+    /// Gets the <see cref="PersistedTeam"/> instances with the specified identifiers in one read, ordered by their
+    /// identifier; an identifier that has no team is skipped.
+    /// </summary>
+    /// <param name="teamIds">The identifiers of the teams to get.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedTeam"/> instances that exist.</returns>
+    ValueTask<IReadOnlyList<PersistedTeam>> GetManyAsync(
+        IReadOnlyCollection<string> teamIds,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets the <see cref="PersistedTeamSettings"/> instance from the store with the specified identifier.
     /// </summary>
     /// <param name="teamId">The identifier of the OpenId Team.</param>

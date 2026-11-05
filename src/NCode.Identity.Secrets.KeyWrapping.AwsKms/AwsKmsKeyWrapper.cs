@@ -74,7 +74,12 @@ internal class AwsKmsKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(keyArn, access: null, key, context, cancellationToken);
+        return await WrapUnderAsync(
+            new ReferencedKey(keyArn, Access: null),
+            key,
+            context,
+            cancellationToken
+        );
     }
 
     /// <inheritdoc />
@@ -144,23 +149,18 @@ internal class AwsKmsKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(
-            referencedKey.KeyReference,
-            referencedKey.Access,
-            key,
-            context,
-            cancellationToken
-        );
+        return await WrapUnderAsync(referencedKey, key, context, cancellationToken);
     }
 
     private async ValueTask<WrappedKey> WrapUnderAsync(
-        string keyArn,
-        KeyAccess? access,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
+        var keyArn = referencedKey.KeyReference;
+
         // The SDK demands a stream, so the key is copied into a sensitive rental that the stream reads from; the
         // rental is zeroed when it is disposed.
         using var plaintextLease = BufferFactory.Rent(
@@ -180,25 +180,13 @@ internal class AwsKmsKeyWrapper(
         };
 
         var region = AwsKmsKeyArn.GetRegion(keyArn);
-        var client = ClientFactory.GetClient(region, access);
 
-        EncryptResponse response;
-        try
-        {
-            response = await client.EncryptAsync(request, cancellationToken);
-        }
-        catch (Exception exception)
-            when (access is not null && exception is not OperationCanceledException)
-        {
-            // An access that has never worked must leave no client cached.
-            ClientFactory.Release(region, access);
-            throw;
-        }
-
-        if (access is not null)
-        {
-            ClientFactory.Confirm(region, access);
-        }
+        var response = await ClientFactory.ExecuteAsync(
+            region,
+            referencedKey.Access,
+            (client, token) => new ValueTask<EncryptResponse>(client.EncryptAsync(request, token)),
+            cancellationToken
+        );
 
         return new WrappedKey
         {
@@ -289,21 +277,20 @@ internal class AwsKmsKeyWrapper(
         };
 
         var region = AwsKmsKeyArn.GetRegion(keyId);
-        var client = ClientFactory.GetClient(region, access);
 
         DecryptResponse response;
         try
         {
-            response = await client.DecryptAsync(request, cancellationToken);
+            response = await ClientFactory.ExecuteAsync(
+                region,
+                access,
+                (client, token) =>
+                    new ValueTask<DecryptResponse>(client.DecryptAsync(request, token)),
+                cancellationToken
+            );
         }
         catch (Exception exception)
         {
-            // An access that has never worked must leave no client cached.
-            if (access is not null && exception is not OperationCanceledException)
-            {
-                ClientFactory.Release(region, access);
-            }
-
             // Only a ciphertext or key that the service rejects is a cryptographic failure. Anything else
             // propagates unchanged. An outage must not look like a wrong key: callers delete keys on
             // CryptographicException in Development.
@@ -316,11 +303,6 @@ internal class AwsKmsKeyWrapper(
             }
 
             throw;
-        }
-
-        if (access is not null)
-        {
-            ClientFactory.Confirm(region, access);
         }
 
         CopyPlaintext(response.Plaintext, destination);

@@ -59,6 +59,7 @@ public static class DefaultRegistration
                 >()
             );
 
+            serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<IAwsKmsClientFactory, DefaultAwsKmsClientFactory>();
 
             serviceCollection.TryAddEnumerable(

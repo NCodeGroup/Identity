@@ -386,3 +386,23 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   invokes handlers through reflection, so a dispatched test job fails with `ValueTask.FromException`.
 - 👁 **Change configuration at runtime through the host's `IConfigurationRoot`** — template
   [Integration Tests](csharp-tests.instructions.md#integration-tests) (`TenantKeyProvisioningTests`).
+
+## End-to-end tests
+
+- 👁 **A suite is a `*.EndToEnd.Tests` project, which only `./build/e2e.ps1` and the `End-to-end` check run.**
+  `./build/dod.ps1` never runs it
+  ([ADR-1419](../../docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+- 👁 **An end-to-end suite is not hermetic by design.** Every host stays on loopback over the run's throwaway
+  certificate, the container reaches the host only through `TestcontainersSettings.ExposeHostPortsAsync`, and
+  credentials are generated per run
+  ([ADR-1419](../../docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+- 👁 **One collection fixture serves all tests, and each test gets a fresh browser context**
+  ([ADR-1419](../../docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+- 👁 **Browser theories run over `BrowserNames.All`:** Chromium and Firefox on every OS, and WebKit except on Windows,
+  because Playwright's Windows WebKit port does not use Safari's cookie stack and mishandles `SameSite` and `Secure`
+  ([ADR-1419](../../docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+- 👁 **Assert server-side counters as well as browser outcomes, and read an API response through `fetch` in the
+  page.** Firefox shows a JSON response in a viewer, so a navigation to it reads nothing
+  ([ADR-1419](../../docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+- 👁 **`localhost` and `127.0.0.1` are different sites;** a port never changes a site
+  ([ADR-1419](../../docs/decisions/1419-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).

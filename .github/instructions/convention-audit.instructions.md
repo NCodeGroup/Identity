@@ -18,7 +18,7 @@ Then verify **tested-or-excluded** (§7): every non-`[ExcludeFromCodeCoverage]` 
 
 ```pwsh
 Remove-Item -Recurse -Force ./TestResults -ErrorAction SilentlyContinue
-dotnet test NCode.Identity.slnx -c Debug --collect:"XPlat Code Coverage" --results-directory ./TestResults --nologo | Out-Null
+foreach ($project in (./build/test-projects.ps1).Tests) { dotnet test $project -c Debug --collect:"XPlat Code Coverage" --results-directory ./TestResults --nologo | Out-Null }
 $seen = @{}
 Get-ChildItem ./TestResults -Recurse -Filter coverage.cobertura.xml | ForEach-Object {
     [xml]$x = Get-Content $_.FullName

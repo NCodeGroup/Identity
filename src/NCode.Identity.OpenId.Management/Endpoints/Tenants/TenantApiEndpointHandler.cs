@@ -1537,18 +1537,18 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-
-        var tenantSecrets = await store.GetSecretsOrDefaultAsync(tenantId, cancellationToken);
-
-        var node = GetTenantNode(tenantId);
         return await ProcessGetAsync(
             httpContext,
-            tenantSecrets,
-            node,
+            GetTenantNode(tenantId),
             Operations.Read,
-            ToTenantSecretsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITenantStore>();
+                return await store.GetSecretsOrDefaultAsync(tenantId, token);
+            },
+            ToTenantSecretsResource,
+            cancellationToken
         );
     }
 
@@ -1568,6 +1568,18 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Create,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -1575,17 +1587,6 @@ internal class TenantApiEndpointHandler(
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -1681,6 +1682,18 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Create,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -1688,17 +1701,6 @@ internal class TenantApiEndpointHandler(
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
@@ -1793,19 +1795,19 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-
-        var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
-        var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
-
-        var node = GetTenantNode(tenantId);
         return await ProcessGetAsync(
             httpContext,
-            scoped,
-            node,
+            GetTenantNode(tenantId),
             Operations.Read,
-            x => ToSecretResource(x.Value)
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITenantStore>();
+                var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, token);
+                return TenantOwnedResource.ForOrDefault(tenantId, secret);
+            },
+            x => ToSecretResource(x.Value),
+            cancellationToken
         );
     }
 
@@ -1825,25 +1827,20 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-
-        var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, cancellationToken);
-        if (secret is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var scoped = TenantOwnedResource.ForOrDefault(tenantId, secret);
-
-        var node = GetTenantNode(tenantId);
         return await ProcessGetAsync(
             httpContext,
-            scoped,
-            node,
+            GetTenantNode(tenantId),
             Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITenantStore>();
+                var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, token);
+                return TenantOwnedResource.ForOrDefault(tenantId, secret);
+            },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            x => SecretPublicKeyConverter.Convert(x.Value),
+            cancellationToken
         );
     }
 
@@ -1867,6 +1864,18 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -1874,17 +1883,6 @@ internal class TenantApiEndpointHandler(
         if (secret is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(tenantId, secret),
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         if (
@@ -1941,6 +1939,18 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Delete,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -1948,17 +1958,6 @@ internal class TenantApiEndpointHandler(
         if (secret is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(tenantId, secret),
-            Operations.Delete
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var secretValues = ToResourceValues(ToSecretResource(secret));
@@ -2251,21 +2250,22 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Read,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Read
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         // An owner that a registered policy refuses, such as the control-plane tenant, reports no root key providers.
@@ -2298,21 +2298,22 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         return await EncryptionKeyEndpoints.RekeyAsync(
@@ -2346,21 +2347,22 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         // A registered policy decides which tenants can bring a root key; see ADR-1414.
@@ -2396,21 +2398,22 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         return await EncryptionKeyEndpoints.RemoveRootKeyAsync(
@@ -2437,21 +2440,22 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         var tenant = await FindTenantAsync(tenantId, cancellationToken);
         if (tenant is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            tenant,
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         return await EncryptionKeyEndpoints.ValidateRootKeyAsync(

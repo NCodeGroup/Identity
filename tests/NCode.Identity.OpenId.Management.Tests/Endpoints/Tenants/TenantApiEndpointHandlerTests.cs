@@ -1818,12 +1818,29 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSecretsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedTenantSecrets?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
         var result = await Handler.GetSecretsAsync(httpContext, TenantId, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSecretsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSecretsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -2024,6 +2041,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -2035,6 +2053,46 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.ImportSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new ImportSecretRequest
+            {
+                SecretType = SecretTypes.Rsa,
+                Format = "jwk",
+                KeyMaterial = """{"kty":"RSA","n":"AQAB","e":"AQAB"}""",
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -2192,6 +2250,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync((PersistedSecret?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -2206,15 +2265,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbidWithoutProtector()
+    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
     {
-        SetupStore();
-        MockTenantStore
-            .Setup(x =>
-                x.GetSecretOrDefaultAsync(TenantId, "secret-1", It.IsAny<CancellationToken>())
-            )
-            .ReturnsAsync(CreatePersistedSecret())
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -2421,6 +2473,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync((PersistedSecret?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -2458,7 +2511,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteSecretAsync_AuthorizesAgainstTenantScopedResource()
+    public async Task DeleteSecretAsync_AuthorizesAgainstTheTenantNode()
     {
         SetupTenantChangedAnnouncement();
         SetupTenantSecretChangedAudit();
@@ -2490,9 +2543,63 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
-        var scoped = Assert.IsType<TenantOwnedResource<PersistedSecret>>(capturedResource);
-        Assert.Equal(TenantId, scoped.TenantId);
-        Assert.Equal("secret-1", scoped.Value.SecretId);
+        var node = Assert.IsType<ResourceNode>(capturedResource);
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Tenant, node.ResourceType);
+        Assert.Equal(TenantId, node.ResourceId);
+    }
+
+    [Fact]
+    public async Task GetSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.UpdateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "secret-1",
+            UpdateSecretRequest(),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.DeleteSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -3664,6 +3771,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.GetEncryptionKeysAsync(
             CreateHttpContext(authenticated: true),
@@ -3675,13 +3783,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEncryptionKeysAsync_WhenNotAuthorized_DoesNotReadTheStatus()
+    public async Task GetEncryptionKeysAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
     {
-        SetupStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant("tenant-ct"))
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.GetEncryptionKeysAsync(
@@ -3690,7 +3793,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsNotType<Ok<EncryptionKeysResource>>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -3804,6 +3908,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
+        SetupUpdateAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.RekeyEncryptionKeysAsync(
             CreateHttpContext(authenticated: true),
@@ -3815,14 +3920,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task RekeyEncryptionKeysAsync_WhenNotAuthorized_NeverRotates()
+    public async Task RekeyEncryptionKeysAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
     {
-        SetupStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant("tenant-ct"))
-            .Verifiable();
-        SetupAuthorization(AuthorizationResult.Failed());
+        SetupUpdateAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.RekeyEncryptionKeysAsync(
             CreateHttpContext(authenticated: true),
@@ -3830,7 +3930,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsNotType<Ok<EncryptionKeyRotationResource>>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -4372,6 +4473,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedTenant?)null)
             .Verifiable();
+        SetupUpdateAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.SetRootKeyAsync(
             CreateHttpContext(authenticated: true),
@@ -4465,13 +4567,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task SetRootKeyAsync_WithoutUpdatePermission_NeverReachesTheManager()
+    public async Task SetRootKeyAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
     {
-        SetupStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant("tenant-ct"))
-            .Verifiable();
         SetupUpdateAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.SetRootKeyAsync(
@@ -4486,13 +4583,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task RemoveRootKeyAsync_WithoutUpdatePermission_NeverReachesTheManager()
+    public async Task RemoveRootKeyAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
     {
-        SetupStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant("tenant-ct"))
-            .Verifiable();
         SetupUpdateAuthorization(AuthorizationResult.Failed());
 
         // The strict owner root key manager and audit recorder have no setups: any call fails the test.
@@ -4507,13 +4599,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateRootKeyAsync_WithoutUpdatePermission_NeverReachesTheManager()
+    public async Task ValidateRootKeyAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
     {
-        SetupStore();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTenant("tenant-ct"))
-            .Verifiable();
         SetupUpdateAuthorization(AuthorizationResult.Failed());
 
         // The strict owner root key manager and audit recorder have no setups: any call fails the test.

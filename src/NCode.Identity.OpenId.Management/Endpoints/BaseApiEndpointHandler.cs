@@ -170,6 +170,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="authorityAbove">The node above the one whose settings document carries the limits.</param>
     /// <returns>The <c>403 Forbidden</c> result, or <c>null</c> when the write changes no limit or the caller may update <paramref name="authorityAbove"/>.</returns>
     // See ADR-1418.
+    // No CancellationToken: IAuthorizationService.AuthorizeAsync, its only asynchronous call, takes none.
     internal virtual async ValueTask<IResult?> GetLimitChangeRefusalOrDefaultAsync(
         HttpContext httpContext,
         IReadOnlyList<string> changedLimits,

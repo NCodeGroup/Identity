@@ -143,17 +143,36 @@ internal class PrincipalApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var principal = await SaveBlockStateAsync(principalId, isBlocked: true, cancellationToken);
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<IFederatedPrincipalStore>();
+
+        var principal = await store.GetOrDefaultAsync(principalId, cancellationToken);
         if (principal is null)
         {
             return TypedResults.NotFound();
         }
 
+        // The tenant's context is created before the block is written: a tenant that is not served (disabled, or of a
+        // disabled team) refuses the request here, before anything is committed or audited.
+        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
+        await using var tenantContext = await OpenIdContextFactory.CreateForTenantAsync(
+            httpContext,
+            tenantId,
+            mediator,
+            cancellationToken
+        );
+
+        if (!principal.IsBlocked)
+        {
+            principal.IsBlocked = true;
+            await store.UpdateAsync(principal, cancellationToken);
+            await storeManager.SaveChangesAsync(cancellationToken);
+        }
+
         // A blocked principal's sessions end, which revokes its grants and notifies its relying parties. The change is
         // committed, so a client disconnect does not cancel the termination. See ADR-1226.
         await TerminateSessionsAsync(
-            httpContext,
-            tenantId,
+            tenantContext,
             principal.PrincipalId,
             SessionTerminationReasons.UserBlocked,
             CancellationToken.None
@@ -223,26 +242,14 @@ internal class PrincipalApiEndpointHandler(
         return principal;
     }
 
-    // Materializes a context for the addressed tenant so session termination runs the seam (grant revocation,
-    // back-channel logout, auditing) in that tenant's security domain rather than the request's resolved tenant.
+    // Session termination runs the seam (grant revocation, back-channel logout, auditing) in the context of the
+    // addressed tenant's security domain rather than the request's resolved tenant.
     private async ValueTask TerminateSessionsAsync(
-        HttpContext httpContext,
-        string tenantId,
+        OpenIdContext tenantContext,
         string principalId,
         string reason,
         CancellationToken cancellationToken
-    )
-    {
-        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
-        await using var tenantContext = await OpenIdContextFactory.CreateForTenantAsync(
-            httpContext,
-            tenantId,
-            mediator,
-            cancellationToken
-        );
-
-        await SessionService.RevokeAllAsync(tenantContext, principalId, reason, cancellationToken);
-    }
+    ) => await SessionService.RevokeAllAsync(tenantContext, principalId, reason, cancellationToken);
 
     private ValueTask RecordPrincipalChangedAsync(
         HttpContext httpContext,

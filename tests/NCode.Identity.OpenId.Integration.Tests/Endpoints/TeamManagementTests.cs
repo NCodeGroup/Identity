@@ -892,6 +892,65 @@ public class TeamManagementTests
             Assert.Equal(HttpStatusCode.NoContent, revokedAgain.StatusCode);
     }
 
+    [Fact]
+    public async Task DisableTeam_RefusesRuntimeWritesOnItsTenants()
+    {
+        using var factory = CreateFactory();
+        using var client = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(client, "wonka", new { });
+        await CreateTenantAsync(client, "wonka", "wonka-dev");
+
+        string accountPath;
+        using (
+            var created = await client.PostAsJsonAsync(
+                "/api/tenants/wonka-dev/local-accounts",
+                new { userName = "wonka-user", password = "wonka-user-password-1" }
+            )
+        )
+        {
+            var createdBody = await created.Content.ReadAsStringAsync();
+            Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+            var localAccountId = JsonElement
+                .Parse(createdBody)
+                .GetProperty("localAccountId")
+                .GetString();
+            accountPath = $"/api/tenants/wonka-dev/local-accounts/{localAccountId}";
+        }
+
+        await SetTeamDisabledAsync(client, "wonka", isDisabled: true);
+
+        // A route that acts through the tenant's OpenID runtime materializes it before it writes, so a tenant that is
+        // not served refuses the request and nothing is committed.
+        using (var disabled = await client.PostAsync($"{accountPath}/disable", content: null))
+            Assert.Equal(HttpStatusCode.NotFound, disabled.StatusCode);
+
+        using (
+            var reset = await client.PostAsJsonAsync(
+                $"{accountPath}/password",
+                new { password = "wonka-user-password-2" }
+            )
+        )
+            Assert.Equal(HttpStatusCode.NotFound, reset.StatusCode);
+
+        await SetTeamDisabledAsync(client, "wonka", isDisabled: false);
+
+        using (var account = await client.GetAsync(accountPath))
+        {
+            var accountBody = await account.Content.ReadAsStringAsync();
+            Assert.True(account.StatusCode == HttpStatusCode.OK, accountBody);
+            Assert.True(
+                JsonElement.Parse(accountBody).GetProperty("isEnabled").GetBoolean(),
+                accountBody
+            );
+        }
+
+        using (var disabledAgain = await client.PostAsync($"{accountPath}/disable", content: null))
+        {
+            var disabledBody = await disabledAgain.Content.ReadAsStringAsync();
+            Assert.True(disabledAgain.StatusCode == HttpStatusCode.NoContent, disabledBody);
+        }
+    }
+
     #endregion
 
     #region CreateTenant Tests

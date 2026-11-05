@@ -407,9 +407,14 @@ internal class LocalAccountApiEndpointHandler(
         if (identity is not null)
         {
             // The principal's sessions end before the deletion commits, while they can still be listed to notify their relying parties. See ADR-1224.
-            await TerminateSessionsAsync(
+            // The tenant's context comes first, so a tenant that is not served refuses the request before anything is written.
+            await using var tenantContext = await CreateTenantContextAsync(
                 httpContext,
                 tenantId,
+                cancellationToken
+            );
+            await TerminateSessionsAsync(
+                tenantContext,
                 identity.PrincipalId,
                 SessionTerminationReasons.AccountDeleted,
                 cancellationToken
@@ -487,17 +492,23 @@ internal class LocalAccountApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
+        // A disabled account's sessions end, so the tenant's context is created before the account is written: a tenant
+        // that is not served refuses the request here, before anything is committed or audited. Enabling an account ends
+        // no session and needs no context.
+        await using var tenantContext = isEnabled
+            ? null
+            : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
+
         account.IsEnabled = isEnabled;
         await store.UpdateAsync(account, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        if (!isEnabled)
+        if (tenantContext is not null)
         {
             // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying
             // parties. The change is committed, so a client disconnect does not cancel the termination. See ADR-1224.
             await TerminateAccountSessionsAsync(
-                httpContext,
-                tenantId,
+                tenantContext,
                 storeManager,
                 localAccountId,
                 SessionTerminationReasons.AccountDisabled,
@@ -552,6 +563,14 @@ internal class LocalAccountApiEndpointHandler(
             return ToErrorResult(passwordError);
         }
 
+        // The tenant's context is created before the password is written: a tenant that is not served refuses the
+        // request here, before anything is committed or audited.
+        await using var tenantContext = await CreateTenantContextAsync(
+            httpContext,
+            tenantId,
+            cancellationToken
+        );
+
         await WithPasswordBytesAsync(
             request.Password,
             (bytes, ct) => store.SetPasswordAsync(localAccountId, bytes, ct),
@@ -563,8 +582,7 @@ internal class LocalAccountApiEndpointHandler(
         // compromised account stop at once. The change is committed, so a client disconnect does not cancel the
         // termination. See ADR-1226.
         await TerminateAccountSessionsAsync(
-            httpContext,
-            tenantId,
+            tenantContext,
             storeManager,
             localAccountId,
             SessionTerminationReasons.PasswordReset,
@@ -786,30 +804,33 @@ internal class LocalAccountApiEndpointHandler(
     }
 
     // Materializes a context for the addressed tenant so session termination runs the seam (grant revocation,
-    // back-channel logout, auditing) in that tenant's security domain rather than the request's resolved tenant.
-    private async ValueTask TerminateSessionsAsync(
+    // back-channel logout, auditing) in that tenant's security domain rather than the request's resolved tenant. A
+    // tenant that is not served refuses here, so a route creates the context before its first write.
+    private ValueTask<OpenIdContext> CreateTenantContextAsync(
         HttpContext httpContext,
         string tenantId,
-        string principalId,
-        string reason,
         CancellationToken cancellationToken
     )
     {
         var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
-        await using var tenantContext = await OpenIdContextFactory.CreateForTenantAsync(
+        return OpenIdContextFactory.CreateForTenantAsync(
             httpContext,
             tenantId,
             mediator,
             cancellationToken
         );
-
-        await SessionService.RevokeAllAsync(tenantContext, principalId, reason, cancellationToken);
     }
+
+    private async ValueTask TerminateSessionsAsync(
+        OpenIdContext tenantContext,
+        string principalId,
+        string reason,
+        CancellationToken cancellationToken
+    ) => await SessionService.RevokeAllAsync(tenantContext, principalId, reason, cancellationToken);
 
     // Terminates every session of the principal behind the account's self-issued identity, if the account has one.
     private async ValueTask TerminateAccountSessionsAsync(
-        HttpContext httpContext,
-        string tenantId,
+        OpenIdContext tenantContext,
         IStoreManager storeManager,
         string localAccountId,
         string reason,
@@ -829,8 +850,7 @@ internal class LocalAccountApiEndpointHandler(
         }
 
         await TerminateSessionsAsync(
-            httpContext,
-            tenantId,
+            tenantContext,
             identity.PrincipalId,
             reason,
             cancellationToken

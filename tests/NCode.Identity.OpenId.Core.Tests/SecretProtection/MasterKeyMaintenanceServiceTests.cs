@@ -269,6 +269,32 @@ public sealed class MasterKeyMaintenanceServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task RunAsync_ARotatedKeyWithARootKeyReference_AuditsTheReference()
+    {
+        SetupStore();
+        SetupPublisher();
+        SetupLease(true);
+        SetupActivePage(Row(TenantOwner, 1, false));
+        SetupRetired();
+        const string rootKeyReference = "owner-root-key-reference";
+        var rotation = new MasterKeyRotation(
+            TenantOwner,
+            Info(TenantOwner, 2, false) with
+            {
+                RootKeyReference = rootKeyReference,
+            },
+            Info(TenantOwner, 1, true)
+        );
+        SetupRotate(TenantOwner, rotation);
+
+        await _service.RunAsync(ServerId, CancellationToken.None);
+
+        var auditEvent = Assert.Single(_published);
+        Assert.Equal(rootKeyReference, auditEvent.RootKeyReference);
+        Assert.Equal("local", auditEvent.RootKeyProvider);
+    }
+
+    [Fact]
     public async Task RunAsync_WhenTheLeaseIsTaken_DoesNothing()
     {
         SetupLease(false);

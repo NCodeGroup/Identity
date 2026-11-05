@@ -24,8 +24,17 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 /// <para>
 /// A role that the holder of the key grants through an identity gets its own client, whose credentials come from STS
 /// AssumeRole with the binding as the external ID. The credentials of the role are cached and refreshed by the SDK,
-/// and the credentials that call AssumeRole come from the default chain. A role whose calls fail is released, which
-/// disposes its client and credentials, so that a request for a role that does not work leaves nothing cached.
+/// and the credentials that call AssumeRole come from the default chain. A client for a role is confirmed after its
+/// first successful call and is then kept until the factory is disposed; a client whose calls have not succeeded is
+/// released when a call fails, so that a request for a role that does not work leaves nothing cached, while a failure
+/// of a confirmed role (a throttle, for example) leaves its client and credentials in use.
+/// </para>
+/// <para>
+/// Entries are created with <see cref="LazyThreadSafetyMode.PublicationOnly"/>, so a failure to create a client, such
+/// as a default credential chain that cannot be resolved, is not cached. Callers that race to create the same entry
+/// can each build a client, and only the client that is stored is kept: the others are never stored, so
+/// <see cref="Dispose"/> cannot dispose them. A released client is not disposed either. Only the stored clients and
+/// their credentials are disposed by <see cref="Dispose"/>.
 /// </para>
 /// </remarks>
 // See ADR-1235.
@@ -47,13 +56,15 @@ internal sealed class DefaultAwsKmsClientFactory : IAwsKmsClientFactory, IDispos
             return Clients
                 .GetOrAdd(
                     region,
-                    static name => new Lazy<ClientEntry>(() =>
-                        new ClientEntry(
-                            new AmazonKeyManagementServiceClient(
-                                RegionEndpoint.GetBySystemName(name)
+                    static name => new Lazy<ClientEntry>(
+                        () =>
+                            new ClientEntry(
+                                new AmazonKeyManagementServiceClient(
+                                    RegionEndpoint.GetBySystemName(name)
+                                ),
+                                credentials: null
                             ),
-                            credentials: null
-                        )
+                        LazyThreadSafetyMode.PublicationOnly
                     )
                 )
                 .Value.Client;
@@ -63,8 +74,9 @@ internal sealed class DefaultAwsKmsClientFactory : IAwsKmsClientFactory, IDispos
             .GetOrAdd(
                 GetAccessKey(region, access),
                 static (_, state) =>
-                    new Lazy<ClientEntry>(() =>
-                        CreateAssumedRoleClient(state.Region, state.Access)
+                    new Lazy<ClientEntry>(
+                        () => CreateAssumedRoleClient(state.Region, state.Access),
+                        LazyThreadSafetyMode.PublicationOnly
                     ),
                 (Region: region, Access: access)
             )
@@ -72,14 +84,34 @@ internal sealed class DefaultAwsKmsClientFactory : IAwsKmsClientFactory, IDispos
     }
 
     /// <inheritdoc />
+    public void Confirm(string region, KeyAccess access)
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        if (Clients.TryGetValue(GetAccessKey(region, access), out var lazy) && lazy.IsValueCreated)
+        {
+            lazy.Value.Confirm();
+        }
+    }
+
+    /// <inheritdoc />
     public void Release(string region, KeyAccess access)
     {
         ArgumentNullException.ThrowIfNull(access);
 
-        if (Clients.TryRemove(GetAccessKey(region, access), out var entry) && entry.IsValueCreated)
+        var key = GetAccessKey(region, access);
+        if (!Clients.TryGetValue(key, out var lazy))
         {
-            entry.Value.Dispose();
+            return;
         }
+
+        if (lazy.IsValueCreated && lazy.Value.IsConfirmed)
+        {
+            return;
+        }
+
+        // Removes exactly the entry that was read, so an entry that another caller has since added stays cached.
+        Clients.TryRemove(new KeyValuePair<string, Lazy<ClientEntry>>(key, lazy));
     }
 
     private static string GetAccessKey(string region, KeyAccess access) =>
@@ -120,16 +152,24 @@ internal sealed class DefaultAwsKmsClientFactory : IAwsKmsClientFactory, IDispos
     }
 
     /// <summary>
-    /// A client with the credentials that were created for it, if any, so that both are disposed together.
+    /// A client with the credentials that were created for it, if any, so that both are disposed together, and whether a
+    /// call through the client has succeeded.
     /// </summary>
     private sealed class ClientEntry(
         AmazonKeyManagementServiceClient client,
         AssumeRoleAWSCredentials? credentials
     ) : IDisposable
     {
+        // Read and written with Volatile, because the entry is shared by concurrent calls.
+        private bool _confirmed;
+
         public AmazonKeyManagementServiceClient Client { get; } = client;
 
         private AssumeRoleAWSCredentials? Credentials { get; } = credentials;
+
+        public bool IsConfirmed => Volatile.Read(ref _confirmed);
+
+        public void Confirm() => Volatile.Write(ref _confirmed, true);
 
         public void Dispose()
         {

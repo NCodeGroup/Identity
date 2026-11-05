@@ -131,6 +131,9 @@ public class AwsKmsKeyWrapperTests : IDisposable
     private void SetupRelease(string region, KeyAccess access) =>
         ClientFactory.Setup(x => x.Release(region, access)).Verifiable();
 
+    private void SetupConfirm(string region, KeyAccess access) =>
+        ClientFactory.Setup(x => x.Confirm(region, access)).Verifiable();
+
     #region WrapAsync Tests
 
     [Theory]
@@ -337,6 +340,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
             },
             CancellationToken.None
         );
+        SetupConfirm("eu-central-1", Access);
         var provider = CreateProvider(keyArn: null);
 
         var wrappedKey = await provider.WrapAsync(
@@ -433,6 +437,7 @@ public class AwsKmsKeyWrapperTests : IDisposable
             new DecryptResponse { Plaintext = CreateStream(plaintext, bufferIsVisible: false) },
             CancellationToken.None
         );
+        SetupConfirm("eu-central-1", Access);
         var provider = CreateProvider(keyArn: null);
 
         await provider.UnwrapAsync(
@@ -488,6 +493,70 @@ public class AwsKmsKeyWrapperTests : IDisposable
     #endregion
 
     #region Release Tests
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyWithAccessSucceeds_ConfirmsTheClientAndReleasesNothing()
+    {
+        SetupClient("eu-central-1", Access);
+        SetupEncrypt(
+            new EncryptResponse
+            {
+                KeyId = OtherRegionKeyArn,
+                CiphertextBlob = CreateStream(
+                    RandomNumberGenerator.GetBytes(64),
+                    bufferIsVisible: true
+                ),
+            },
+            CancellationToken.None
+        );
+        SetupConfirm("eu-central-1", Access);
+        var provider = CreateProvider(keyArn: null);
+
+        await provider.WrapAsync(
+            new ReferencedKey(AliasOtherRegion, Access),
+            RandomNumberGenerator.GetBytes(32),
+            "root-context"u8.ToArray(),
+            CancellationToken.None
+        );
+
+        ClientFactory.Verify(x => x.Confirm("eu-central-1", Access), Times.Once);
+        ClientFactory.Verify(
+            x => x.Release(It.IsAny<string>(), It.IsAny<KeyAccess>()),
+            Times.Never
+        );
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_WithAccessSucceeds_ConfirmsTheClientAndReleasesNothing()
+    {
+        SetupClient("eu-central-1", Access);
+        SetupDecrypt(
+            new DecryptResponse
+            {
+                Plaintext = CreateStream(
+                    RandomNumberGenerator.GetBytes(32),
+                    bufferIsVisible: false
+                ),
+            },
+            CancellationToken.None
+        );
+        SetupConfirm("eu-central-1", Access);
+        var provider = CreateProvider(keyArn: null);
+
+        await provider.UnwrapAsync(
+            CreateWrappedKey(OtherRegionKeyArn, RandomNumberGenerator.GetBytes(64)),
+            Access,
+            "root-context"u8.ToArray(),
+            new ArrayBufferWriter<byte>(),
+            CancellationToken.None
+        );
+
+        ClientFactory.Verify(x => x.Confirm("eu-central-1", Access), Times.Once);
+        ClientFactory.Verify(
+            x => x.Release(It.IsAny<string>(), It.IsAny<KeyAccess>()),
+            Times.Never
+        );
+    }
 
     [Fact]
     public async Task WrapAsync_ReferencedKeyWithAccessFails_ReleasesTheClient()

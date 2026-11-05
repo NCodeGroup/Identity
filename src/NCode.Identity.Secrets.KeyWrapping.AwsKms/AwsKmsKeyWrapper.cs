@@ -190,9 +190,14 @@ internal class AwsKmsKeyWrapper(
         catch (Exception exception)
             when (access is not null && exception is not OperationCanceledException)
         {
-            // An identity that fails must leave no client cached.
+            // An access that has never worked must leave no client cached.
             ClientFactory.Release(region, access);
             throw;
+        }
+
+        if (access is not null)
+        {
+            ClientFactory.Confirm(region, access);
         }
 
         return new WrappedKey
@@ -293,7 +298,7 @@ internal class AwsKmsKeyWrapper(
         }
         catch (Exception exception)
         {
-            // An identity that fails must leave no client cached.
+            // An access that has never worked must leave no client cached.
             if (access is not null && exception is not OperationCanceledException)
             {
                 ClientFactory.Release(region, access);
@@ -311,6 +316,11 @@ internal class AwsKmsKeyWrapper(
             }
 
             throw;
+        }
+
+        if (access is not null)
+        {
+            ClientFactory.Confirm(region, access);
         }
 
         CopyPlaintext(response.Plaintext, destination);

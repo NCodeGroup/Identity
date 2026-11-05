@@ -25,8 +25,18 @@ internal interface IAwsKmsClientFactory
     IAmazonKeyManagementService GetClient(string region, KeyAccess? access);
 
     /// <summary>
-    /// Removes the client for the specified region and access, and disposes it with its credentials, so that an access
-    /// whose calls fail leaves nothing cached. Does nothing when no such client exists.
+    /// Marks the client for the specified region and access as confirmed, because a call through it succeeded. A
+    /// confirmed client is kept until the factory is disposed, and <see cref="Release"/> leaves it cached. Does nothing
+    /// when no such client exists.
+    /// </summary>
+    /// <param name="region">The system name of the AWS region, such as <c>us-west-2</c>.</param>
+    /// <param name="access">The IAM role and external ID that the client to confirm was created for.</param>
+    void Confirm(string region, KeyAccess access);
+
+    /// <summary>
+    /// Removes the client for the specified region and access from the cache when no call through it has succeeded, so
+    /// that an access that never worked leaves nothing cached. A confirmed client stays cached, and a removed client is
+    /// not disposed. Does nothing when no such client exists.
     /// </summary>
     /// <param name="region">The system name of the AWS region, such as <c>us-west-2</c>.</param>
     /// <param name="access">The IAM role and external ID that the client to release was created for.</param>

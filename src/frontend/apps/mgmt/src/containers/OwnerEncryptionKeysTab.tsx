@@ -155,7 +155,8 @@ function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySec
  * the background. The platform's next version protects the Data Protection keys and host data created afterwards,
  * existing Data Protection keys keep naming the old version until they expire, and the old key is destroyed once
  * nothing names it. The API returns no key material, and neither does this view. A rekey that loses a race to another
- * rekey shows the server's explanation in the dialog. A tenant also manages the root key it brings (ADR-1414);
+ * rekey shows the server's explanation in the dialog. A rekey too soon after the last rotation shows how long to wait.
+ * A tenant also manages the root key it brings (ADR-1414);
  * the platform never does.
  */
 export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKeysTabProps) {

@@ -249,6 +249,31 @@ describe('OwnerEncryptionKeysTab', () => {
       'changed by another request',
     );
   });
+
+  it('shows how long to wait when a rekey comes too soon', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/encryption-keys/rekey') && method === 'POST') {
+        return jsonResponse(
+          {
+            title: 'Conflict',
+            status: 409,
+            detail: 'The last rotation of this master key has not reached every replica yet.',
+            retryAfterSeconds: 240,
+          },
+          409,
+        );
+      }
+      return jsonResponse(keys);
+    });
+
+    renderTab({ kind: 'platform' }, 'platform');
+    await screen.findByTestId('encryption-key-row-k-2');
+
+    fireEvent.click(screen.getByTestId('encryption-keys-rekey'));
+    fireEvent.click(await screen.findByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('confirm-error')).toHaveTextContent('Try again in 4 minutes.');
+  });
 });
 
 describe('OwnerEncryptionKeysTab root key', () => {
@@ -395,6 +420,31 @@ describe('OwnerEncryptionKeysTab root key', () => {
 
     expect(await screen.findByTestId('root-key-form-error')).toHaveTextContent('access denied');
     expect(screen.getByTestId('root-key-form-submit')).toBeInTheDocument();
+  });
+
+  it('shows how long to wait when a root key change comes too soon', async () => {
+    installFetch((url, method) =>
+      url === rootKeyUrl && method === 'PUT'
+        ? jsonResponse(
+            {
+              title: 'Conflict',
+              status: 409,
+              detail: 'The last rotation of this master key has not reached every replica yet.',
+              retryAfterSeconds: 45,
+            },
+            409,
+          )
+        : jsonResponse(withoutRootKey),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+    fireEvent.change(screen.getByTestId('root-key-form-reference'), { target: { value: 'arn' } });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    expect(await screen.findByTestId('root-key-form-error')).toHaveTextContent(
+      'Try again in 45 seconds.',
+    );
   });
 
   it('shows the validation messages of a rejected field in the dialog', async () => {

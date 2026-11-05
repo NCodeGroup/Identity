@@ -3253,6 +3253,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupCanBringRootKey();
         SetupAllowedKeyWrappers("aws-kms");
+        SetupAccessBinding();
         var active = CreateKeyInfo(2, retired: false);
         var retired = CreateKeyInfo(1, retired: true);
         MockMasterKeyManager
@@ -3546,8 +3547,159 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     private static EncryptionRootKeyRequest CreateRootKeyRequest(
         string provider = "aws-kms",
-        string keyReference = RootKeyReference
-    ) => new() { Provider = provider, KeyReference = keyReference };
+        string keyReference = RootKeyReference,
+        string? accessIdentity = null
+    ) =>
+        new()
+        {
+            Provider = provider,
+            KeyReference = keyReference,
+            AccessIdentity = accessIdentity,
+        };
+
+    private void SetupAccessBinding(string binding = "tenant:tenant-id") =>
+        MockOwnerRootKeyManager
+            .Setup(x => x.GetAccessBinding(TenantOwner))
+            .Returns(binding)
+            .Verifiable();
+
+    [Fact]
+    public async Task GetEncryptionKeysAsync_WhenTheTenantMayBringAKey_ReportsTheAccessBinding()
+    {
+        SetupAuthorizedTenant(forRead: true);
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        SetupAccessBinding("tenant:acme");
+        MockMasterKeyManager
+            .Setup(x => x.GetStatusAsync(TenantOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<MasterKeyStatus>(
+                    new MasterKeyStatus(TenantOwner, [], RecoveryConfigured: false)
+                    {
+                        RootKey = CreateRootKeyInfo() with
+                        {
+                            AccessIdentity = "arn:aws:iam::1:role/r",
+                        },
+                    }
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.GetEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionKeysResource>>(result);
+        Assert.Equal("tenant:acme", ok.Value?.RootKeyAccessBinding);
+        Assert.Equal("arn:aws:iam::1:role/r", ok.Value?.RootKey?.AccessIdentity);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WithAnAccessIdentity_PassesItToTheManager()
+    {
+        const string accessIdentity = "arn:aws:iam::111122223333:role/tenant-kms";
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateAccessIdentity("aws-kms", accessIdentity, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        var rootKey = CreateRootKeyInfo() with { AccessIdentity = accessIdentity };
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.SetAsync(
+                    TenantOwner,
+                    new OwnerRootKeyRequest("aws-kms", RootKeyReference, accessIdentity),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                new ValueTask<OwnerRootKeyChange>(
+                    new OwnerRootKeyChange(
+                        rootKey,
+                        null,
+                        null,
+                        new MasterKeyRewrapResult(1, 0, 0, 0)
+                    )
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(accessIdentity: accessIdentity),
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionRootKeyChangeResource>>(result);
+        Assert.Equal(accessIdentity, ok.Value?.RootKey.AccessIdentity);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WithAnInvalidAccessIdentity_ReturnsAValidationProblemNamingIt()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+        string? failure = "The access identity must be the ARN of an IAM role.";
+        MockOwnerRootKeyManager
+            .Setup(x => x.TryValidateAccessIdentity("aws-kms", "nope", out failure))
+            .Returns(false)
+            .Verifiable();
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(accessIdentity: "nope"),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal([failure], problem.ProblemDetails.Errors["accessIdentity"]);
+    }
+
+    [Fact]
+    public async Task SetRootKeyAsync_WithABlankAccessIdentity_ReturnsAValidationProblemNamingIt()
+    {
+        SetupAuthorizedTenant();
+        SetupCanBringRootKey();
+        SetupAllowedKeyWrappers("aws-kms");
+        MockOwnerRootKeyManager
+            .Setup(x =>
+                x.TryValidateKeyReference("aws-kms", RootKeyReference, out It.Ref<string?>.IsAny)
+            )
+            .Returns(true)
+            .Verifiable();
+
+        var result = await Handler.SetRootKeyAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateRootKeyRequest(accessIdentity: " "),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Contains("accessIdentity", problem.ProblemDetails.Errors.Keys);
+    }
 
     [Fact]
     public async Task GetEncryptionKeysAsync_WithARootKey_ReportsItWithoutMaterial()
@@ -3555,6 +3707,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupAuthorizedTenant(forRead: true);
         SetupCanBringRootKey();
         SetupAllowedKeyWrappers("aws-kms", "azure-key-vault");
+        SetupAccessBinding();
         MockMasterKeyManager
             .Setup(x => x.GetStatusAsync(TenantOwner, It.IsAny<CancellationToken>()))
             .Returns(

@@ -61,6 +61,7 @@ internal static class EncryptionKeyEndpoints
                 RecoveryConfigured = status.RecoveryConfigured,
                 RootKey = status.RootKey is null ? null : ToResource(status.RootKey),
                 RootKeyProviders = [.. ownerRootKeyManager?.AllowedKeyWrapperNames ?? []],
+                RootKeyAccessBinding = ownerRootKeyManager?.GetAccessBinding(owner),
             }
         );
     }
@@ -132,7 +133,11 @@ internal static class EncryptionKeyEndpoints
         {
             change = await ownerRootKeyManager.SetAsync(
                 owner,
-                new OwnerRootKeyRequest(request.Provider, request.KeyReference, null),
+                new OwnerRootKeyRequest(
+                    request.Provider,
+                    request.KeyReference,
+                    request.AccessIdentity
+                ),
                 cancellationToken
             );
         }
@@ -165,6 +170,7 @@ internal static class EncryptionKeyEndpoints
                 {
                     ["provider"] = request.Provider,
                     ["keyReference"] = request.KeyReference,
+                    ["accessIdentity"] = request.AccessIdentity,
                 }
             );
         }
@@ -319,6 +325,28 @@ internal static class EncryptionKeyEndpoints
             errors["keyReference"] = [failure];
         }
 
+        if (request.AccessIdentity is { } accessIdentity)
+        {
+            if (string.IsNullOrWhiteSpace(accessIdentity))
+            {
+                errors["accessIdentity"] =
+                [
+                    "The access identity must not be blank; omit it to reach the key with the deployment's identity.",
+                ];
+            }
+            else if (
+                !errors.ContainsKey("provider")
+                && !ownerRootKeyManager.TryValidateAccessIdentity(
+                    provider,
+                    accessIdentity,
+                    out var accessFailure
+                )
+            )
+            {
+                errors["accessIdentity"] = [accessFailure];
+            }
+        }
+
         return errors;
     }
 
@@ -344,6 +372,7 @@ internal static class EncryptionKeyEndpoints
         {
             Provider = rootKey.KeyWrapperName,
             KeyReference = rootKey.KeyReference,
+            AccessIdentity = rootKey.AccessIdentity,
             State = rootKey.State,
             CreatedWhen = rootKey.CreatedWhen,
             StateChangedWhen = rootKey.StateChangedWhen,
@@ -364,5 +393,6 @@ internal static class EncryptionKeyEndpoints
             RootKeyId = key.RootKeyId,
             RecoveryKeyId = key.RecoveryKeyId,
             RootKeyReference = key.RootKeyReference,
+            RootKeyAccessIdentity = key.RootKeyAccessIdentity,
         };
 }

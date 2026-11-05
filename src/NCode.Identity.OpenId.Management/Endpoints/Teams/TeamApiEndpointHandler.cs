@@ -165,6 +165,14 @@ internal class TeamApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent);
     }
 
+    // The platform's authority node, addressed from the control-plane tenant the request runs under.
+    private static ResourceNode GetPlatformNode(HttpContext httpContext) =>
+        ResourceNode.For(
+            GetControlPlaneTenantId(httpContext),
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId
+        );
+
     // The team's authority node, addressed from the control-plane tenant the request runs under.
     private static ResourceNode GetTeamNode(HttpContext httpContext, string teamId) =>
         ResourceNode.For(GetControlPlaneTenantId(httpContext), ResourceNodeTypes.Team, teamId);
@@ -351,10 +359,11 @@ internal class TeamApiEndpointHandler(
     {
         var effectiveLimit = NormalizeLimit(limit);
 
-        // Team administration is central-admin; a null authorization resource restricts this to global admins.
+        // Listing teams is platform authority: a global admin or an assignment at the platform node lists them, and
+        // nothing beneath the platform does.
         return await ProcessListAsync(
             httpContext,
-            authorizationResource: null,
+            GetPlatformNode(httpContext),
             async () =>
             {
                 await using var storeManager = await StoreManagerFactory.CreateAsync(

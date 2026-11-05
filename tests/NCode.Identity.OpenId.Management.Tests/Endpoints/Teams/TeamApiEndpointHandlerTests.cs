@@ -448,10 +448,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     #region ListTeamsAsync Tests
 
     [Fact]
-    public async Task ListTeamsAsync_WhenAuthorized_ReturnsEachTeamWithoutAnAuthorizationResource()
+    public async Task ListTeamsAsync_WhenAuthorized_ReturnsEachTeam()
     {
-        object? authorizedResource = new object();
-        SetupAuthorizationCapture(resource => authorizedResource = resource);
+        SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockTeamStore
             .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
@@ -471,7 +470,31 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var team = Assert.Single(json.Value!.Items);
         Assert.Equal(TeamId, team.TeamId);
         Assert.Equal("next", json.Value.ContinuationToken);
-        Assert.Null(authorizedResource);
+    }
+
+    [Fact]
+    public async Task ListTeamsAsync_RequestsListOnThePlatformNode()
+    {
+        SetupStore();
+        MockTeamStore
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<PersistedTeam> { Items = [], NextCursor = null })
+            .Verifiable();
+        var captured = CaptureAuthorization();
+
+        await Handler.ListTeamsAsync(
+            CreateHttpContext(authenticated: true),
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        Assert.Same(Operations.List, Assert.Single(captured.Requirements));
+        var node = Assert.IsType<ResourceNode>(captured.Resource);
+        Assert.Equal(
+            (ControlPlaneTenantId, ResourceNodeTypes.Platform, OpenIdConstants.PlatformResourceId),
+            (node.TenantId, node.ResourceType, node.ResourceId)
+        );
     }
 
     [Fact]

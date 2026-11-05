@@ -13,6 +13,8 @@ using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
+using NCode.Identity.OpenId.Management;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -288,6 +290,36 @@ public class TeamManagementTests
         await storeManager.SaveChangesAsync(CancellationToken.None);
 
         return principalId;
+    }
+
+    // Grants the principal the role at the platform node, whose authority reaches every team and tenant.
+    private static async Task GrantPlatformRoleAsync(
+        HostApplicationFactory factory,
+        string principalId,
+        string roleName
+    )
+    {
+        using var scope = factory.Services.CreateScope();
+        await using var storeManager = await scope
+            .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
+            .CreateAsync(CancellationToken.None);
+
+        await storeManager
+            .GetStore<IRoleAssignmentStore>()
+            .AddAsync(
+                new PersistedRoleAssignment
+                {
+                    TenantId = RootTenantId,
+                    AssignmentId = Guid.NewGuid().ToString("N"),
+                    PrincipalId = principalId,
+                    RoleName = roleName,
+                    ResourceType = OpenIdResourceTypes.Platform,
+                    ResourceId = OpenIdResourceIds.Platform,
+                    ConcurrencyToken = string.Empty,
+                },
+                CancellationToken.None
+            );
+        await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
     private static async Task<HttpResponseMessage> SendPatchAsync(
@@ -611,6 +643,32 @@ public class TeamManagementTests
     }
 
     [Fact]
+    public async Task PlatformAssignment_ListsTeamsAndTenantsAcrossTeams()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        var principalId = await SeedConsoleUserAsync(factory);
+        await GrantPlatformRoleAsync(factory, principalId, BuiltInRoles.TeamAdmin);
+        using var user = await factory.CreateManagementUserClientAsync(
+            ConsoleClientId,
+            ConsoleRedirectUri,
+            UserName,
+            Password,
+            "openid read:clients"
+        );
+
+        using var teams = await user.GetAsync("/api/teams");
+        var teamsBody = await teams.Content.ReadAsStringAsync();
+        Assert.True(teams.StatusCode == HttpStatusCode.OK, teamsBody);
+
+        using var tenants = await user.GetAsync("/api/tenants");
+        var tenantsBody = await tenants.Content.ReadAsStringAsync();
+        Assert.True(tenants.StatusCode == HttpStatusCode.OK, tenantsBody);
+    }
+
+    [Fact]
     public async Task TeamAdmin_CannotReEnableATeamThePlatformDisabled()
     {
         using var factory = CreateFactory();
@@ -855,6 +913,23 @@ public class TeamManagementTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task TeamOwner_CannotDeleteTheTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+
+        using var forbidden = await owner.DeleteAsync("/api/teams/acme");
+        var forbiddenBody = await forbidden.Content.ReadAsStringAsync();
+        Assert.True(forbidden.StatusCode == HttpStatusCode.Forbidden, forbiddenBody);
+
+        using var deleted = await administrator.DeleteAsync("/api/teams/acme");
+        var deletedBody = await deleted.Content.ReadAsStringAsync();
+        Assert.True(deleted.StatusCode == HttpStatusCode.NoContent, deletedBody);
     }
 
     #endregion

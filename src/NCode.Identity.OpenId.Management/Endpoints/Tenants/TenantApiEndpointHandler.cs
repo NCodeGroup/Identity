@@ -405,10 +405,11 @@ internal class TenantApiEndpointHandler(
         // who may not list tenants.
         Func<PersistedTenant, TenantResource> toTenantResource = ToTenantResource;
 
-        // Tenant administration is central-admin; a null authorization resource restricts this to global admins.
+        // Listing tenants across teams is platform authority: a global admin or an assignment at the platform node
+        // lists them, and nothing beneath the platform does.
         return await ProcessListAsync(
             httpContext,
-            authorizationResource: null,
+            GetPlatformNode(httpContext),
             async () =>
             {
                 await using var storeManager = await StoreManagerFactory.CreateAsync(
@@ -473,6 +474,14 @@ internal class TenantApiEndpointHandler(
             tenant => toTenantResource(tenant)
         );
     }
+
+    // The platform's authority node, addressed from the control-plane tenant the request runs under.
+    private static ResourceNode GetPlatformNode(HttpContext httpContext) =>
+        ResourceNode.For(
+            httpContext.GetOpenIdContext().Tenant.TenantId,
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId
+        );
 
     // The team's authority node, addressed from the control-plane tenant the request runs under.
     private static ResourceNode GetTeamNode(HttpContext httpContext, string teamId) =>

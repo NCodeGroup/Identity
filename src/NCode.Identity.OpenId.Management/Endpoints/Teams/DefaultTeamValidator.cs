@@ -189,7 +189,11 @@ internal class DefaultTeamValidator(
     {
         var error = await AuthorizeAsync(
             user,
-            ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, team.TeamId),
+            ResourceNode.For(
+                controlPlaneTenantId,
+                ResourceNodeTypes.Platform,
+                OpenIdConstants.PlatformResourceId
+            ),
             Operations.Delete,
             "The caller is not authorized to delete this team.",
             "Authentication is required to delete this team."

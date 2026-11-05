@@ -554,6 +554,53 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task ListTenantsAsync_RequestsListOnThePlatformNode()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<PersistedTenant> { Items = [], NextCursor = null })
+            .Verifiable();
+        object? authorizedResource = null;
+        IEnumerable<IAuthorizationRequirement>? requirements = null;
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback(
+                (
+                    ClaimsPrincipal _,
+                    object? resource,
+                    IEnumerable<IAuthorizationRequirement> value
+                ) =>
+                {
+                    authorizedResource = resource;
+                    requirements = value;
+                }
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+
+        await Handler.ListTenantsAsync(
+            CreateHttpContext(authenticated: true),
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource);
+        Assert.Equal(
+            (ControlPlaneTenantId, ResourceNodeTypes.Platform, OpenIdConstants.PlatformResourceId),
+            (node.TenantId, node.ResourceType, node.ResourceId)
+        );
+        Assert.Same(Operations.List, Assert.Single(requirements!));
+    }
+
+    [Fact]
     public async Task ListTenantsAsync_WhenUnauthenticated_ReturnsUnauthorizedWithoutReadingSettings()
     {
         SetupAuthorization(AuthorizationResult.Failed());

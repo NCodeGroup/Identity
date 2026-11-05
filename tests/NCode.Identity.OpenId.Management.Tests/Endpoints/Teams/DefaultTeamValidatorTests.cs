@@ -512,11 +512,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateDeleteAsync_AuthorizesDeleteOnTheTeamNode()
+    public async Task ValidateDeleteAsync_AuthorizesDeleteOnThePlatformNode()
     {
         SetupNodeAuthorization(
-            ResourceNodeTypes.Team,
-            TeamId,
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId,
             AuthorizationResult.Success(),
             Operations.Delete
         );

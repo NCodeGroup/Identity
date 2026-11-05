@@ -239,6 +239,28 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
+    private void SetupStoreManagerOnly()
+    {
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
+
+    private void SetupSave() =>
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private void SetupTenant(PersistedTenant? tenant) =>
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tenant)
+            .Verifiable();
+
     private void SetupAuthorization(AuthorizationResult result)
     {
         MockAuthorizationService
@@ -279,6 +301,27 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupAuthorizationCapture(
+        Action<object?, IEnumerable<IAuthorizationRequirement>> capture
+    ) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback(
+                (
+                    ClaimsPrincipal _,
+                    object? resource,
+                    IEnumerable<IAuthorizationRequirement> requirements
+                ) => capture(resource, requirements)
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+
     private void SetupValidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -289,6 +332,19 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 )
             )
             .Returns([])
+            .Verifiable();
+
+    private void SetupNoChangedLimits() => SetupChangedLimits([]);
+
+    private void SetupChangedLimits(IReadOnlyList<string> limits) =>
+        MockSettingSerializer
+            .Setup(x =>
+                x.GetChangedLimits(
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, EmptyObject())),
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, FooObject()))
+                )
+            )
+            .Returns(limits)
             .Verifiable();
 
     private void SetupInvalidSettings() =>
@@ -361,6 +417,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
 
+    private static JsonElement FooObject() =>
+        JsonSerializer.SerializeToElement(new JsonObject { ["foo"] = "bar" });
+
     private static PersistedTenant CreateTenant(string concurrencyToken, string? issuer = null) =>
         new()
         {
@@ -427,6 +486,18 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             Use = "enc",
             Algorithm = "RS512",
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(2),
+        };
+
+    private static PersistedRoleAssignment CreateAssignment(string principalId, string roleName) =>
+        new()
+        {
+            TenantId = TenantId,
+            AssignmentId = $"assignment-{principalId}",
+            PrincipalId = principalId,
+            RoleName = roleName,
+            ResourceType = ResourceNodeTypes.Tenant,
+            ResourceId = TenantId,
+            ConcurrencyToken = "assignment-ct",
         };
 
     private static JsonPatchDocument<JsonObject> CreateAddPatch(string name, string value)
@@ -1248,6 +1319,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupTenantChangedAnnouncement();
         SetupTenantChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore
@@ -1277,11 +1349,105 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTeamRefuses_ReturnsForbiddenWithoutWriting()
+    {
+        SetupValidSettings();
+        SetupChangedLimits([OpenIdSettingNames.RateLimitTenantPerMinute]);
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSettings("settings-ct"))
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == TeamId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        // Strict mocks: no coherence or store-write setup, so continuing past the refusal would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+        Assert.Contains("'rate_limit_tenant_per_minute'", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTeamAuthorizes_ReturnsNoContent()
+    {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
+        SetupValidSettings();
+        SetupChangedLimits([OpenIdSettingNames.RateLimitTenantPerMinute]);
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == TeamId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+        SetupClientCoherenceCheck();
+        SetupSettingsWrite(settings);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: true);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenTheReplacedDocumentCannotBeHonored_WritesWithoutCheckingTheClients()
     {
         SetupTenantChangedAnnouncement();
         SetupTenantChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore
@@ -1344,6 +1510,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenTheChangeMakesAClientIncoherent_ReturnsValidationProblem()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1390,6 +1557,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenTheChangeMakesManyClientsIncoherent_ListsTenAndCountsTheRest()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -4252,6 +4420,322 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.ValidateRootKeyAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region Admins Tests
+
+    [Fact]
+    public async Task ListAdminsAsync_WhenAuthorized_ReturnsTheTenantAdminAssignments()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TenantAdmin)])
+            .Verifiable();
+
+        var result = await Handler.ListAdminsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
+        var admin = Assert.Single(json.Value!.Items);
+        Assert.Equal(
+            ("principal-1", BuiltInRoles.TenantAdmin),
+            (admin.PrincipalId, admin.RoleName)
+        );
+    }
+
+    [Fact]
+    public async Task ListAdminsAsync_WhenTheTenantDoesNotExist_ReturnsNotFound()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(null);
+
+        var result = await Handler.ListAdminsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task ListAdminsAsync_WhenForbidden_ReturnsForbid()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.ListAdminsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenTheTenantDoesNotExist_ReturnsNotFound()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(null);
+
+        var result = await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenAuthorized_AssignsTheTenantAdminRoleAndReturnsCreated()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-2",
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TenantAdmin))
+            .Verifiable();
+
+        var result = await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<OwnerResource>>(result);
+        Assert.Equal($"/tenants/{TenantId}/admins/principal-2", created.Location);
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_RequestsCreateOnTheTenantNode()
+    {
+        object? authorizedResource = null;
+        IAuthorizationRequirement[] requirements = [];
+        SetupAuthorizationCapture(
+            (resource, required) =>
+            {
+                authorizedResource = resource;
+                requirements = required.ToArray();
+            }
+        );
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-2",
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TenantAdmin))
+            .Verifiable();
+
+        await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        Assert.Same(Operations.Create, Assert.Single(requirements));
+        var node = Assert.IsAssignableFrom<IResourceNode>(authorizedResource);
+        Assert.Equal(
+            (TenantId, ResourceNodeTypes.Tenant, TenantId),
+            (node.TenantId, node.ResourceType, node.ResourceId)
+        );
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenTheCallerIsOnlyAnOwner_ReturnsForbidden()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenThePrincipalIsMissing_ReturnsBadRequest()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var result = await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddOwnerRequest { PrincipalId = string.Empty },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveAdminAsync_WhenRemoved_ReturnsNoContent()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStoreManagerOnly();
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.RemoveAssignmentAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-1",
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        var result = await Handler.RemoveAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task RemoveAdminAsync_RequestsCreateOnTheTenantNode()
+    {
+        object? authorizedResource = null;
+        IAuthorizationRequirement[] requirements = [];
+        SetupAuthorizationCapture(
+            (resource, required) =>
+            {
+                authorizedResource = resource;
+                requirements = required.ToArray();
+            }
+        );
+        SetupStoreManagerOnly();
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.RemoveAssignmentAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-1",
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+
+        await Handler.RemoveAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        Assert.Same(Operations.Create, Assert.Single(requirements));
+        var node = Assert.IsAssignableFrom<IResourceNode>(authorizedResource);
+        Assert.Equal(
+            (TenantId, ResourceNodeTypes.Tenant, TenantId),
+            (node.TenantId, node.ResourceType, node.ResourceId)
+        );
+    }
+
+    [Fact]
+    public async Task RemoveAdminAsync_WhenTheCallerIsOnlyAnOwner_ReturnsForbidden()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.RemoveAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveAdminAsync_WhenTheAssignmentDoesNotExist_ReturnsNotFound()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStoreManagerOnly();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.RemoveAssignmentAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-1",
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var result = await Handler.RemoveAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "principal-1",
             CancellationToken.None
         );
 

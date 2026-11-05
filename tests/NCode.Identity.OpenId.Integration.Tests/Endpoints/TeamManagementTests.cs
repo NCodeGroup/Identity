@@ -199,6 +199,30 @@ public class TeamManagementTests
         );
     }
 
+    // Seeds the same end-user and console client, grants the user the role by posting its principal to the full grant
+    // path (such as /api/tenants/acme-dev/admins), and returns a client that calls the management API with the user's
+    // access token.
+    private static async Task<HttpClient> CreateGrantedUserClientAsync(
+        HostApplicationFactory factory,
+        HttpClient administrator,
+        string grantPath
+    )
+    {
+        var principalId = await SeedConsoleUserAsync(factory);
+
+        using var grant = await administrator.PostAsJsonAsync(grantPath, new { principalId });
+        var body = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
+
+        return await factory.CreateManagementUserClientAsync(
+            ConsoleClientId,
+            ConsoleRedirectUri,
+            UserName,
+            Password,
+            "openid read:clients"
+        );
+    }
+
     private static async Task<string> SeedConsoleUserAsync(HostApplicationFactory factory)
     {
         var localAccountId = Guid.NewGuid().ToString("N");
@@ -1021,6 +1045,278 @@ public class TeamManagementTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         Assert.Equal(principalId, JsonElement.Parse(body).GetProperty("principalId").GetString());
+    }
+
+    #endregion
+
+    #region Tenant Role Tests
+
+    [Fact]
+    public async Task TenantAdmin_CreatesAClientInItsTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var tenantAdmin = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/admins"
+        );
+
+        using var created = await tenantAdmin.PostAsJsonAsync(
+            "/api/tenants/acme-dev/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                },
+            }
+        );
+
+        var body = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    [Fact]
+    public async Task TenantAdmin_CannotReachItsTeamOrCreateATenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var tenantAdmin = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/admins"
+        );
+
+        using var team = await tenantAdmin.GetAsync("/api/teams/acme");
+        var teamBody = await team.Content.ReadAsStringAsync();
+        Assert.True(team.StatusCode == HttpStatusCode.Forbidden, teamBody);
+
+        using var tenant = await PostTenantAsync(tenantAdmin, "acme", "acme-test");
+        var tenantBody = await tenant.Content.ReadAsStringAsync();
+        Assert.True(tenant.StatusCode == HttpStatusCode.Forbidden, tenantBody);
+    }
+
+    [Fact]
+    public async Task TenantAdminOfTheRootTenant_CannotReachThePlatformOrATeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var user = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            $"/api/tenants/{RootTenantId}/admins"
+        );
+
+        using var clients = await user.GetAsync($"/api/tenants/{RootTenantId}/clients");
+        var clientsBody = await clients.Content.ReadAsStringAsync();
+        Assert.True(clients.StatusCode == HttpStatusCode.OK, clientsBody);
+
+        using var platform = await user.GetAsync("/api/platform/settings");
+        var platformBody = await platform.Content.ReadAsStringAsync();
+        Assert.True(platform.StatusCode == HttpStatusCode.Forbidden, platformBody);
+
+        using var teams = await user.GetAsync("/api/teams");
+        var teamsBody = await teams.Content.ReadAsStringAsync();
+        Assert.True(teams.StatusCode == HttpStatusCode.Forbidden, teamsBody);
+
+        using var intruder = await PostTenantAsync(user, "platform", "intruder");
+        var intruderBody = await intruder.Content.ReadAsStringAsync();
+        Assert.True(intruder.StatusCode == HttpStatusCode.Forbidden, intruderBody);
+    }
+
+    [Fact]
+    public async Task TenantAdminOfTheRootTenant_CannotTakeOverTheBootstrapClient()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        using var user = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            $"/api/tenants/{RootTenantId}/admins"
+        );
+
+        foreach (var caller in new[] { user, administrator })
+        {
+            using var secret = await caller.PostAsJsonAsync(
+                $"/api/tenants/{RootTenantId}/clients/{BootstrapClientId}/secrets",
+                new
+                {
+                    secretType = "symmetric",
+                    keySizeBits = 256,
+                    expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+                }
+            );
+            var secretBody = await secret.Content.ReadAsStringAsync();
+            Assert.True(secret.StatusCode == HttpStatusCode.Conflict, secretBody);
+
+            using var settings = await SendPatchAsync(
+                caller,
+                $"/api/tenants/{RootTenantId}/clients/{BootstrapClientId}/settings",
+                new[]
+                {
+                    new
+                    {
+                        op = "add",
+                        path = "/redirect_uris",
+                        value = new[] { "https://attacker.test/callback" },
+                    },
+                }
+            );
+            var settingsBody = await settings.Content.ReadAsStringAsync();
+            Assert.True(settings.StatusCode == HttpStatusCode.Conflict, settingsBody);
+        }
+    }
+
+    #endregion
+
+    #region Limit Tests
+
+    [Fact]
+    public async Task TeamAdmin_CannotChangeItsTeamsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        using var replaced = await SendPatchAsync(
+            teamAdmin,
+            "/api/teams/acme/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = $"/{OpenIdSettingNames.MaxTenants}",
+                    value = 5,
+                },
+            }
+        );
+        var replacedBody = await replaced.Content.ReadAsStringAsync();
+        Assert.True(replaced.StatusCode == HttpStatusCode.Forbidden, replacedBody);
+        Assert.Contains(OpenIdSettingNames.MaxTenants, replacedBody);
+
+        using var removed = await SendPatchAsync(
+            teamAdmin,
+            "/api/teams/acme/settings",
+            new[] { new { op = "remove", path = $"/{OpenIdSettingNames.MaxTenants}" } }
+        );
+        var removedBody = await removed.Content.ReadAsStringAsync();
+        Assert.True(removed.StatusCode == HttpStatusCode.Forbidden, removedBody);
+
+        await PatchAsync(
+            teamAdmin,
+            "/api/teams/acme/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
+                    value = new[] { "RS256" },
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task PlatformAdministrator_ChangesATeamsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+
+        await PatchAsync(
+            administrator,
+            "/api/teams/acme/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = $"/{OpenIdSettingNames.MaxTenants}",
+                    value = 5,
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task TeamAdmin_SetsALimitOnItsTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+
+        await PatchAsync(
+            teamAdmin,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
+                    value = 100,
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task TenantOwner_CannotChangeItsTenantsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var owner = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/owners"
+        );
+
+        using var response = await SendPatchAsync(
+            owner,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
+                    value = 100,
+                },
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
+        Assert.Contains(
+            OpenIdSettingNames.RateLimitTenantPerMinute,
+            body,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion

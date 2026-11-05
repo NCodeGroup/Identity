@@ -53,6 +53,7 @@ public sealed class DefaultOpenIdTeamFactoryTests
         Assert.Equal(2, fixture.DataSources.Count);
         Assert.Same(parentCollection.Object, fixture.DataSources[0].Collection);
         Assert.Equal("platform", lease.Value.TeamId);
+        Assert.Equal("row-token", lease.Value.ConcurrencyToken);
         await lease.DisposeAsync();
         mocks.Verify();
     }
@@ -163,6 +164,7 @@ public sealed class DefaultOpenIdTeamFactoryTests
         new()
         {
             TeamId = "platform",
+            ConcurrencyToken = "row-token",
             IsDisabled = false,
             DisplayName = "Platform",
             Settings = new PersistedTeamSettings

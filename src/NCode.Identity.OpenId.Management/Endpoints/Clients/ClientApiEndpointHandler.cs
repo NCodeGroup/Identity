@@ -17,6 +17,7 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -80,6 +81,7 @@ internal class ClientApiEndpointHandler(
     IClientSecretIssuer clientSecretIssuer,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
+    IEnumerable<IHostManagedClientPolicy> hostManagedClientPolicies,
     ILogger<ClientApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
@@ -143,6 +145,8 @@ internal class ClientApiEndpointHandler(
     private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+    private IHostManagedClientPolicy[] HostManagedClientPolicies { get; } =
+        hostManagedClientPolicies.ToArray();
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -240,6 +244,7 @@ internal class ClientApiEndpointHandler(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             PrincipalId = client.PrincipalId,
+            IsHostManaged = IsHostManaged(client.TenantId, client.ClientId),
             ResourceServerId = client.ResourceServerId,
         };
     }
@@ -828,6 +833,11 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        if (IsHostManaged(client.TenantId, client.ClientId))
+        {
+            return HostManagedClientRefused();
+        }
+
         if (
             !await HoldsAuthorityOverClientRolesAsync(
                 httpContext,
@@ -891,6 +901,11 @@ internal class ClientApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        if (IsHostManaged(client.TenantId, client.ClientId))
+        {
+            return HostManagedClientRefused();
         }
 
         if (
@@ -1053,6 +1068,11 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        if (IsHostManaged(client.TenantId, client.ClientId))
+        {
+            return HostManagedClientRefused();
+        }
+
         if (
             !await HoldsAuthorityOverClientRolesAsync(
                 httpContext,
@@ -1098,6 +1118,23 @@ internal class ClientApiEndpointHandler(
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
+        }
+
+        var changedLimits = SettingSerializer.GetChangedLimits(clientSettings.Value, settingsValue);
+        var authorityAbove = ResourceNode.For(
+            client.TenantId,
+            ResourceNodeTypes.Tenant,
+            client.TenantId
+        );
+        var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
+            httpContext,
+            changedLimits,
+            authorityAbove,
+            cancellationToken
+        );
+        if (limitRefusal is not null)
+        {
+            return limitRefusal;
         }
 
         if (HasJwksUri(settingsValue) && HasPublicKeys(client.Secrets.Value))
@@ -1308,6 +1345,11 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        if (IsHostManaged(client.TenantId, client.ClientId))
+        {
+            return HostManagedClientRefused();
+        }
+
         if (
             !await HoldsAuthorityOverClientRolesAsync(
                 httpContext,
@@ -1487,6 +1529,11 @@ internal class ClientApiEndpointHandler(
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
+        }
+
+        if (IsHostManaged(client.TenantId, client.ClientId))
+        {
+            return HostManagedClientRefused();
         }
 
         if (
@@ -1709,6 +1756,11 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        if (IsHostManaged(clientSecret.TenantId, clientId))
+        {
+            return HostManagedClientRefused();
+        }
+
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (client is null)
         {
@@ -1797,6 +1849,11 @@ internal class ClientApiEndpointHandler(
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
+        }
+
+        if (IsHostManaged(clientSecret.TenantId, clientId))
+        {
+            return HostManagedClientRefused();
         }
 
         var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
@@ -1896,6 +1953,11 @@ internal class ClientApiEndpointHandler(
         if (!updateResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
+        }
+
+        if (IsHostManaged(client.TenantId, client.ClientId))
+        {
+            return HostManagedClientRefused();
         }
 
         if (
@@ -2109,6 +2171,11 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
+        if (IsHostManaged(tenantId, clientId))
+        {
+            return HostManagedClientRefused();
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var client = await storeManager
             .GetStore<IClientStore>()
@@ -2159,6 +2226,11 @@ internal class ClientApiEndpointHandler(
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
+        }
+
+        if (IsHostManaged(tenantId, clientId))
+        {
+            return HostManagedClientRefused();
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -2235,6 +2307,17 @@ internal class ClientApiEndpointHandler(
         TypedResults.Problem(
             detail: "A client's public keys come from one source: the keys registered for it or the keys it "
                 + "publishes at its 'jwks_uri', never both.",
+            statusCode: StatusCodes.Status409Conflict
+        );
+
+    private bool IsHostManaged(string tenantId, string clientId) =>
+        HostManagedClientPolicies.Any(policy => policy.IsHostManaged(tenantId, clientId));
+
+    // A client the host configures carries authority from that configuration, so no management caller changes it.
+    // See ADR-1417.
+    private static ProblemHttpResult HostManagedClientRefused() =>
+        TypedResults.Problem(
+            detail: "The host configures this client, so the management API does not change it.",
             statusCode: StatusCodes.Status409Conflict
         );
 

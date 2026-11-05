@@ -9,7 +9,11 @@
   tenant's incoherent clients through the reporter the reconciliation uses; by
   [ADR-1240](1240-a-client-value-that-a-ceiling-lowers-is-incoherent.md): a value that a `Min` ceiling lowers is
   reported; and by [ADR-1241](1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md): a
-  settings write does not count a stored document it cannot read as a violation it introduces)
+  settings write does not count a stored document it cannot read as a violation it introduces; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform's
+  settings, the root of the settings cascade, are configured under `OpenId:Platform:Settings`, and a change of a team's
+  effective settings that is not a write is reported by that team's reconciliation
+  ([ADR-1412](1412-settings-are-reconciled-per-team.md)))
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 

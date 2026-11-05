@@ -6,7 +6,10 @@
   [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md): the eviction, the refresh
   and the announcement run on their own bounded token; amended by [ADR-1412](1412-settings-are-reconciled-per-team.md):
   the `team-changed` channel announces a team change, and `platform-settings-changed` a platform settings change, to
-  every replica)
+  every replica; amended by
+  [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md): a
+  replica that may have missed a `team-changed` announcement evicts only the teams whose row changed, with their
+  tenants)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md)

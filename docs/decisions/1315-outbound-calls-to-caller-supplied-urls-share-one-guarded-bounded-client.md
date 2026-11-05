@@ -5,7 +5,10 @@
   fetch is single-flight and a failed fetch is remembered; amended by
   [ADR-1385](1385-no-shipping-package-switches-off-its-consumers-logging-generator.md): the pipeline runs on Polly.Core
   through GuardedResilienceHandler and GuardedResiliencePipelines, which replace the GuardedHttpTimeoutHandler named
-  under References, and only a GET or HEAD without a body is retried)
+  under References, and only a GET or HEAD without a body is retried; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the fetch limits'
+  ceiling is the platform's settings, configured under `OpenId:Platform:Settings`, and a team, a tenant or a client can
+  only lower it)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)

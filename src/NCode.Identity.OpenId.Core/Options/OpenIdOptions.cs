@@ -20,7 +20,8 @@ public sealed class OpenIdOptions
     public const string DefaultSectionName = "OpenId";
 
     /// <summary>
-    /// Gets or sets the configurable options for server features.
+    /// Gets or sets the options that configure the platform, the root of the settings cascade: its configured settings
+    /// and how often its persisted settings are read again.
     /// </summary>
     public OpenIdPlatformOptions Platform { get; set; } = new();
 
@@ -43,8 +44,9 @@ public sealed class OpenIdOptions
     /// <summary>
     /// Gets or sets a delegate that extracts the subject id from a <see cref="ClaimsPrincipal"/> given an ordered list
     /// of candidate claim types. The default implementation returns the value of the first non-empty matching claim,
-    /// honoring the order of the supplied claim types. The claim types are supplied per request (per-tenant for the
-    /// end-user, or the server default for app-level callers).
+    /// honoring the order of the supplied claim types. The claim types are supplied per call: the tenant's
+    /// <c>subject_claim_types</c> setting for an end-user, or
+    /// <see cref="OpenIdConstants.DefaultSubjectClaimTypes"/> for an app-level caller.
     /// </summary>
     public GetSubjectIdDelegate GetSubjectId { get; set; } = DefaultSubjectDelegates.GetSubjectId;
 
@@ -52,7 +54,8 @@ public sealed class OpenIdOptions
     /// Gets or sets a delegate that rewrites the subject claims of a <see cref="ClaimsPrincipal"/> so its authoritative
     /// subject identifier becomes the supplied value. This is the inverse of <see cref="GetSubjectId"/>; the default
     /// implementation strips every subject-type claim and stamps a single claim of the primary subject claim type. The
-    /// claim types are supplied per request (per-tenant for the end-user, or the server default for app-level callers).
+    /// claim types are supplied per call: the tenant's <c>subject_claim_types</c> setting for an end-user, or
+    /// <see cref="OpenIdConstants.DefaultSubjectClaimTypes"/> for an app-level caller.
     /// </summary>
     public NormalizeSubjectIdDelegate NormalizeSubjectId { get; set; } =
         DefaultSubjectDelegates.NormalizeSubjectId;

@@ -1,7 +1,9 @@
 # 1014. Resource identifiers are server-generated and opaque
 
 - **Status:** Accepted (amended by [ADR-1159](1159-a-tenant-is-named-by-its-creator.md): a tenant's identifier is a
-  name its creator chooses)
+  name its creator chooses; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform has no
+  identifier, and a team's identifier, like a tenant's, is a name its creator chooses)
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 - **Refines:** [project-template ADR-0123](project-template/0123-resource-ids-are-server-generated-and-opaque.md)

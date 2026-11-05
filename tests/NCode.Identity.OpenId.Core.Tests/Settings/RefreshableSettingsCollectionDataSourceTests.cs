@@ -17,7 +17,7 @@ public class RefreshableSettingsCollectionDataSourceTests : BaseTests
     private static readonly SettingDescriptor<bool> FlagDescriptor = new()
     {
         Name = "flag",
-        AppliesTo = ["server"],
+        AppliesTo = [OpenIdSettingScopes.Platform],
     };
 
     private TimerCallback? TimerCallback { get; set; }

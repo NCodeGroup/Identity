@@ -9,8 +9,8 @@ public class DefaultSettingSerializerTests : BaseTests
 {
     private static DefaultSettingScopeCollection Scopes { get; } =
         new([
-            new SettingScopeDescriptor { Name = "server" },
-            new SettingScopeDescriptor { Name = "tenant", ParentName = "server" },
+            new SettingScopeDescriptor { Name = "root" },
+            new SettingScopeDescriptor { Name = "tenant", ParentName = "root" },
             new SettingScopeDescriptor { Name = "client", ParentName = "tenant" },
             new SettingScopeDescriptor { Name = "resource_server", ParentName = "tenant" },
         ]);
@@ -383,7 +383,7 @@ public class DefaultSettingSerializerTests : BaseTests
     }
 
     [Theory]
-    [InlineData("server")]
+    [InlineData("root")]
     [InlineData("tenant")]
     [InlineData("client")]
     public void ValidateSettings_WhenTheSettingAppliesWithinTheScope_ReturnsNoErrors(
@@ -464,6 +464,87 @@ public class DefaultSettingSerializerTests : BaseTests
         );
 
         Assert.Equal("scopeName", exception.ParamName);
+    }
+
+    #endregion
+
+    #region GetChangedLimits Tests
+
+    private DefaultSettingSerializer CreateLimitSerializer()
+    {
+        var mockProvider = CreateStrictMock<ISettingDescriptorCollectionProvider>();
+        mockProvider
+            .Setup(x => x.Collection)
+            .Returns(
+                new DefaultSettingDescriptorCollection([
+                    new SettingDescriptor<int>
+                    {
+                        Name = "l",
+                        AppliesTo = ["client"],
+                        IsLimit = true,
+                        OnMerge = SettingMerge.Min,
+                    },
+                    new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] },
+                ])
+            )
+            .Verifiable();
+        return new DefaultSettingSerializer(
+            mockProvider.Object,
+            CreateStrictMock<ISettingScopeCollectionProvider>().Object
+        );
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenOnlyAnotherSettingChanges_ReturnsEmpty()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(
+            Parse("""{"l":5,"a":"x"}"""),
+            Parse("""{"l":5,"a":"y"}""")
+        );
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenALimitChanges_NamesIt()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(Parse("""{"l":5}"""), Parse("""{"l":10}"""));
+
+        Assert.Equal(["l"], result);
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenALimitIsAdded_NamesIt()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(Parse("""{"a":"x"}"""), Parse("""{"l":5}"""));
+
+        Assert.Equal(["l"], result);
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenALimitIsRemoved_NamesIt()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(Parse("""{"l":5}"""), Parse("""{"a":"x"}"""));
+
+        Assert.Equal(["l"], result);
+    }
+
+    [Fact]
+    public void GetChangedLimits_WhenTheCurrentDocumentIsUndefined_NamesTheLimitsTheNewOneSets()
+    {
+        var serializer = CreateLimitSerializer();
+
+        var result = serializer.GetChangedLimits(default, Parse("""{"l":5,"a":"x"}"""));
+
+        Assert.Equal(["l"], result);
     }
 
     #endregion

@@ -30,9 +30,13 @@ public sealed class DefaultOpenIdTeamCacheTests : IDisposable
         MemoryCache.Dispose();
     }
 
-    private static Mock<OpenIdTeam> CreateMockTeam(TaskCompletionSource? disposed = null)
+    private static Mock<OpenIdTeam> CreateMockTeam(
+        TaskCompletionSource? disposed = null,
+        string concurrencyToken = "team-ct"
+    )
     {
         var mockTeam = new Mock<OpenIdTeam>(MockBehavior.Strict);
+        mockTeam.SetupGet(x => x.ConcurrencyToken).Returns(concurrencyToken).Verifiable();
         mockTeam
             .Protected()
             .Setup<ValueTask>("DisposeAsyncCore")
@@ -291,6 +295,80 @@ public sealed class DefaultOpenIdTeamCacheTests : IDisposable
 
             await Task.Delay(TimeSpan.FromMilliseconds(20), CancellationToken.None);
         }
+    }
+
+    #endregion
+
+    #region GetRevisionsAsync Tests
+
+    [Fact]
+    public async Task GetRevisionsAsync_ReturnsTheRevisionOfEachCachedTeam()
+    {
+        var firstTeam = CreateMockTeam(concurrencyToken: "first-ct");
+        var secondTeam = CreateMockTeam(concurrencyToken: "second-ct");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using var firstOwner = AsyncSharedReference.Create(firstTeam.Object);
+        await using var secondOwner = AsyncSharedReference.Create(secondTeam.Object);
+        await Cache.SetAsync("first", firstOwner, propertyBag, CancellationToken.None);
+        await Cache.SetAsync("second", secondOwner, propertyBag, CancellationToken.None);
+
+        var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+
+        Assert.Equal(2, revisions.Count);
+        Assert.Contains(new TeamRevision("first", "first-ct"), revisions);
+        Assert.Contains(new TeamRevision("second", "second-ct"), revisions);
+    }
+
+    [Fact]
+    public async Task GetRevisionsAsync_AfterRemoveAsync_OmitsTheTeam()
+    {
+        var mockTeam = CreateMockTeam();
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using var owner = AsyncSharedReference.Create(mockTeam.Object);
+        await Cache.SetAsync(TeamId, owner, propertyBag, CancellationToken.None);
+        await Cache.RemoveAsync(TeamId, propertyBag, CancellationToken.None);
+
+        // The eviction callback runs off the calling thread.
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (true)
+        {
+            var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+
+            if (revisions.Count == 0)
+                break;
+
+            Assert.True(
+                DateTime.UtcNow < deadline,
+                "The revision was not removed within 5 seconds."
+            );
+
+            await Task.Delay(TimeSpan.FromMilliseconds(20), CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task GetRevisionsAsync_AfterTheEntryIsReplaced_ReportsTheReplacement()
+    {
+        var replacedDisposed = CreateCompletionSource();
+        var replacedTeam = CreateMockTeam(replacedDisposed, "replaced-ct");
+        var replacementTeam = CreateMockTeam(concurrencyToken: "replacement-ct");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using var replacementOwner = AsyncSharedReference.Create(replacementTeam.Object);
+        await using (var replacedOwner = AsyncSharedReference.Create(replacedTeam.Object))
+        {
+            await Cache.SetAsync(TeamId, replacedOwner, propertyBag, CancellationToken.None);
+            await Cache.SetAsync(TeamId, replacementOwner, propertyBag, CancellationToken.None);
+        }
+
+        // The replaced entry's eviction callback removes its index entry before it releases the team.
+        await replacedDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+
+        Assert.Equal(new TeamRevision(TeamId, "replacement-ct"), Assert.Single(revisions));
     }
 
     #endregion

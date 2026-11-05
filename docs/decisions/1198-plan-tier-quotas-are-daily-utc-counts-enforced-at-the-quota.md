@@ -4,7 +4,9 @@
   [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): a quota is a
   registered fixed-window descriptor; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): `max_tenants` is a
-  team-scope ceiling, merged with `Min`, that refuses a tenant creation beyond it)
+  team-scope ceiling, merged with `Min`, that refuses a tenant creation beyond it; amended by
+  [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md): a quota is a limit
+  the platform's administrators write on a team, and a plan tier is written on the team's document)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

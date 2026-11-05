@@ -14,7 +14,25 @@ internal class DefaultSettingDescriptorCollection(IEnumerable<SettingDescriptor>
     : ISettingDescriptorCollection
 {
     private FrozenDictionary<string, SettingDescriptor> Descriptors { get; } =
-        descriptors.ToFrozenDictionary(x => x.Name, StringComparer.Ordinal);
+        Validate(descriptors).ToFrozenDictionary(x => x.Name, StringComparer.Ordinal);
+
+    // See ADR-1418.
+    private static List<SettingDescriptor> Validate(IEnumerable<SettingDescriptor> descriptors)
+    {
+        var list = descriptors.ToList();
+
+        foreach (var descriptor in list)
+        {
+            if (descriptor is { IsLimit: true, HasMeetMerge: false })
+            {
+                throw new InvalidOperationException(
+                    $"The setting '{descriptor.Name}' is a limit, so it must merge with a meet such as SettingMerge.Min; otherwise a scope beneath the one that sets it could override it."
+                );
+            }
+        }
+
+        return list;
+    }
 
     /// <inheritdoc />
     public bool TryGet(

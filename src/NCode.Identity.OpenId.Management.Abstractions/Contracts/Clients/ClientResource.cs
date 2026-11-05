@@ -29,6 +29,12 @@ public sealed class ClientResource : ISupportClientId, ISupportTenantId, ISuppor
     public required bool IsDisabled { get; init; }
 
     /// <summary>
+    /// Gets a value indicating whether the host configures this client, in which case the management API refuses
+    /// every change to it.
+    /// </summary>
+    public required bool IsHostManaged { get; init; }
+
+    /// <summary>
     /// Gets the identifier of the client's principal, which role assignments name to grant the client authority.
     /// </summary>
     public required string PrincipalId { get; init; }

@@ -55,4 +55,16 @@ public interface ISettingSerializer
         string scopeName,
         JsonSerializerOptions jsonOptions
     );
+
+    /// <summary>
+    /// Names the limits (<see cref="SettingDescriptor.IsLimit"/>) whose values differ between a scope's settings
+    /// document and the document that replaces it: a limit one document carries and the other does not, or carries
+    /// with a different JSON value. A <c>null</c>, undefined or non-object document carries no settings, and a name
+    /// with no registered descriptor is no limit.
+    /// </summary>
+    /// <param name="currentJson">The JSON settings document in force.</param>
+    /// <param name="newJson">The JSON settings document that replaces <paramref name="currentJson"/>.</param>
+    /// <returns>The names of the changed limits in ordinal order, or an empty list.</returns>
+    // See ADR-1418.
+    IReadOnlyList<string> GetChangedLimits(JsonElement currentJson, JsonElement newJson);
 }

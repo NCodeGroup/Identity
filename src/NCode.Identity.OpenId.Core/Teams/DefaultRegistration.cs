@@ -60,9 +60,7 @@ internal static class DefaultRegistration
             );
 
             // One replica reconciles each change to a team's effective settings in the background (ADR-1219).
-            builder.ServiceCollection.TryAddSingleton(_ =>
-                DefaultTeamSettingsReconciliationTrigger.CreateChannel()
-            );
+            builder.ServiceCollection.TryAddSingleton<TeamSettingsReconciliationQueue>();
             builder.ServiceCollection.TryAddSingleton<
                 ITeamSettingsReconciliationTrigger,
                 DefaultTeamSettingsReconciliationTrigger

@@ -22,6 +22,8 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 public class ClientRegistrationEndpointTests
 {
     private const string RedirectUri = "https://client.example/callback";
+    private const string BootstrapClientId = "it-bootstrap-admin";
+    private const string BootstrapClientSecret = "bootstrap-secret-value";
 
     [Fact]
     public async Task PostRegister_WithInformationalMetadata_RegistersAClientTheServerCanLoad()
@@ -850,6 +852,59 @@ public class ClientRegistrationEndpointTests
         Assert.Null(
             await ClientAuthenticationProbe.RevokeWithSecretAsync(client, clientId, clientSecret)
         );
+    }
+
+    [Fact]
+    public async Task PutRegistration_WhenTheClientCarriesALimit_KeepsTheLimit()
+    {
+        // The metadata of a registration update names no limit, and a limit changes only at the authority above the
+        // client's tenant, so the update keeps the limit its replaced document carries. See ADR-1418.
+        using var factory = new LimitAdministeredRegistrationApplicationFactory();
+        using var administrator = await factory.CreateManagementClientAsync(
+            BootstrapClientId,
+            BootstrapClientSecret
+        );
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+        var (clientId, _, registration) = await RegisterSharedSecretClientAsync(
+            client,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+        var settingsPath =
+            $"/api/tenants/{HostApplicationFactory.TenantId}/clients/{clientId}/settings";
+        var operations = new[]
+        {
+            new
+            {
+                op = "add",
+                path = "/rate_limit_client_per_minute",
+                value = 30,
+            },
+        };
+        using var patchRequest = new HttpRequestMessage(HttpMethod.Patch, settingsPath)
+        {
+            Content = new StringContent(
+                JsonSerializer.Serialize(operations),
+                SecureEncoding.UTF8,
+                "application/json-patch+json"
+            ),
+        };
+        using var patchResponse = await administrator.SendAsync(patchRequest);
+        var patchBody = await patchResponse.Content.ReadAsStringAsync();
+        Assert.True(patchResponse.StatusCode == HttpStatusCode.NoContent, patchBody);
+
+        await UpdateAuthenticationMethodAsync(
+            client,
+            registration,
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        using var settingsResponse = await administrator.GetAsync(settingsPath);
+        var settingsBody = await settingsResponse.Content.ReadAsStringAsync();
+        Assert.True(settingsResponse.StatusCode == HttpStatusCode.OK, settingsBody);
+        var settings = JsonElement.Parse(settingsBody).GetProperty("settings");
+        Assert.Equal(30, settings.GetProperty("rate_limit_client_per_minute").GetInt32());
     }
 
     [Fact]
@@ -1775,5 +1830,29 @@ public class ClientRegistrationEndpointTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, body);
         return JsonElement.Parse(body);
+    }
+
+    // Allows anonymous registration and configures the bootstrap administrator, which holds authority over a client's
+    // limits through the management API.
+    private sealed class LimitAdministeredRegistrationApplicationFactory : HostApplicationFactory
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+
+            builder.ConfigureAppConfiguration(configurationBuilder =>
+                configurationBuilder.AddInMemoryCollection(
+                    new Dictionary<string, string?>
+                    {
+                        ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
+                        ["BootstrapAdmin:ClientId"] = BootstrapClientId,
+                        ["BootstrapAdmin:ClientSecret"] = Base64Url.EncodeToString(
+                            SecureEncoding.UTF8.GetBytes(BootstrapClientSecret)
+                        ),
+                        ["BootstrapAdmin:TenantId"] = HostApplicationFactory.TenantId,
+                    }
+                )
+            );
+        }
     }
 }

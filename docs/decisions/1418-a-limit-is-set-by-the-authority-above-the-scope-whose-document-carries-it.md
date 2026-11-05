@@ -42,7 +42,8 @@ that document's node.**
    value written differently but equal counts as a change, which fails closed.
 4. **Creation needs no separate check.** The authority to create a node's resource at its parent is held only by roles
    that also manage the parent, so a creator already holds the authority over the limits it writes. The check runs on
-   the four settings `PATCH` endpoints: team, tenant, client and resource server.
+   the four settings `PATCH` endpoints: team, tenant, client and resource server. The RFC 7592 registration update
+   replaces a client's whole document from metadata that names no limit, and keeps the limits the document carries.
 5. **The limits are** `max_tenants`, `quota_tenant_requests_per_day`, `quota_tenant_token_requests_per_day`,
    `quota_tenant_requests_overage_per_day`, `quota_tenant_token_requests_overage_per_day`,
    `rate_limit_tenant_per_minute`, `rate_limit_address_per_minute` and `rate_limit_client_per_minute`. A plan tier is

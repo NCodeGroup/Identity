@@ -3648,7 +3648,7 @@ describes the family as it is rather than its changes
   [#556](https://github.com/NCodeGroup/Identity/issues/556)).
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
   authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a tenant's
-  the limits its team sets
+  the limits its team sets. A client's registration update keeps the limits its settings carry
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 

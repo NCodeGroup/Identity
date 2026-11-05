@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Amazon.KeyManagementService;
@@ -15,8 +16,9 @@ using NCode.Identity.Secrets.KeyWrapping.AwsKms.Options;
 namespace NCode.Identity.Secrets.KeyWrapping.AwsKms;
 
 /// <summary>
-/// Provides an implementation of <see cref="IKeyWrapper"/> that wraps keys with a symmetric encryption key held
-/// in AWS Key Management Service, so the root key never leaves the service.
+/// Provides an implementation of <see cref="IReferencedKeyWrapper"/> that wraps keys with a symmetric encryption key
+/// held in AWS Key Management Service, so the root key never leaves the service. It wraps under the configured key, or
+/// under the key or alias ARN that the caller names.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -35,11 +37,11 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms;
 /// key, propagates unchanged, so that a failure to reach the service is never mistaken for a wrong key.
 /// </para>
 /// </remarks>
-// See ADR-1235.
+// See ADR-1235 and ADR-1412.
 internal class AwsKmsKeyWrapper(
     IAwsKmsClientFactory clientFactory,
     IOptions<AwsKmsKeyWrapperOptions> options
-) : IKeyWrapper
+) : IReferencedKeyWrapper
 {
     /// <summary>
     /// The key of the encryption context entry that carries the context of a wrapped key.
@@ -71,6 +73,52 @@ internal class AwsKmsKeyWrapper(
             );
         }
 
+        return await WrapUnderAsync(keyArn, key, context, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public bool TryValidateKeyReference(
+        string keyReference,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (AwsKmsKeyArn.IsValid(keyReference))
+        {
+            failure = null;
+            return true;
+        }
+
+        failure =
+            "must be the ARN of a KMS key or alias, such as arn:aws:kms:us-west-2:111122223333:alias/tenant-root";
+        return false;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<WrappedKey> WrapAsync(
+        string keyReference,
+        ReadOnlyMemory<byte> key,
+        ReadOnlyMemory<byte> context,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!AwsKmsKeyArn.IsValid(keyReference))
+        {
+            throw new ArgumentException(
+                "The key reference is not the ARN of a KMS key or alias.",
+                nameof(keyReference)
+            );
+        }
+
+        return await WrapUnderAsync(keyReference, key, context, cancellationToken);
+    }
+
+    private async ValueTask<WrappedKey> WrapUnderAsync(
+        string keyArn,
+        ReadOnlyMemory<byte> key,
+        ReadOnlyMemory<byte> context,
+        CancellationToken cancellationToken
+    )
+    {
         // The SDK demands a stream, so the key is copied into a sensitive rental that the stream reads from; the
         // rental is zeroed when it is disposed.
         using var plaintextLease = BufferFactory.Rent(

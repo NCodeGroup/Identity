@@ -33,7 +33,12 @@ public sealed class ClientStoreLifecycleTests : IDisposable
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _store = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _store = new ClientStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext,
+            TestCryptoServices.CreateResourceIdGenerator()
+        );
     }
 
     public void Dispose()
@@ -161,7 +166,7 @@ public sealed class ClientStoreLifecycleTests : IDisposable
         _dbContext.ChangeTracker.Clear();
 
         Assert.NotEqual("caller-chosen", client.PrincipalId);
-        Assert.Equal(22, client.PrincipalId.Length);
+        Assert.False(string.IsNullOrEmpty(client.PrincipalId));
         var reloaded = await _store.GetOrDefaultAsync(ClientId, CancellationToken.None);
         Assert.NotNull(reloaded);
         Assert.Equal(client.PrincipalId, reloaded.PrincipalId);

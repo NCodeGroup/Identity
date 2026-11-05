@@ -40,7 +40,12 @@ public sealed class TenantStoreLifecycleTests : IDisposable
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        _clientStore = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _clientStore = new ClientStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext,
+            TestCryptoServices.CreateResourceIdGenerator()
+        );
         _resourceServerStore = new ResourceServerStore(
             Mock.Of<IStoreProvider>(),
             idGenerator,

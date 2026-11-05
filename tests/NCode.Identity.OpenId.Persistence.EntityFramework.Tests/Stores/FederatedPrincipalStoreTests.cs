@@ -238,7 +238,12 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
         const string clientId = "client-1";
         await _store.AddAsync(CreatePrincipal("principal-1"), CancellationToken.None);
         await _store.AddAsync(CreatePrincipal("principal-2"), CancellationToken.None);
-        var clientStore = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        var clientStore = new ClientStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext,
+            TestCryptoServices.CreateResourceIdGenerator()
+        );
         await clientStore.AddAsync(CreateClient(clientId), CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         var consentStore = new ConsentStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);

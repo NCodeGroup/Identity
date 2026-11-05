@@ -1,11 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers.Text;
 using System.Linq.Expressions;
-using System.Security.Cryptography;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
+using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -20,7 +19,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 internal class ClientStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
-    OpenIdDbContext openIdDbContext
+    OpenIdDbContext openIdDbContext,
+    ICryptoService cryptoService
 ) : CoreBaseStoreWithResourceId<PersistedClient, ClientEntity>, IClientStore
 {
     /// <inheritdoc />
@@ -31,6 +31,8 @@ internal class ClientStore(
 
     /// <inheritdoc />
     protected override OpenIdDbContext DbContext { get; } = openIdDbContext;
+
+    private ICryptoService CryptoService { get; } = cryptoService;
 
     /// <summary>
     /// Maps a <see cref="ClientEntity"/> to a <see cref="PersistedClientSettings"/> instance.
@@ -266,7 +268,7 @@ internal class ClientStore(
         persistedClient.Secrets.ConcurrencyToken = NextConcurrencyToken();
 
         // The store generates the client's principal identifier, so no caller chooses the principal its tokens resolve to.
-        persistedClient.PrincipalId = NextPrincipalId();
+        persistedClient.PrincipalId = CryptoService.GenerateResourceId();
 
         var secrets = new List<ClientSecretEntity>(persistedClient.Secrets.Value.Count);
 
@@ -601,7 +603,4 @@ internal class ClientStore(
 
         return true;
     }
-
-    private static string NextPrincipalId() =>
-        Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(16));
 }

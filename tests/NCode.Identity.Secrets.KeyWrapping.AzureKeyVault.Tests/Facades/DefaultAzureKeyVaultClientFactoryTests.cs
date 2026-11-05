@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Azure.Security.KeyVault.Keys.Cryptography;
 using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 using Xunit;
 
@@ -16,52 +17,80 @@ public class DefaultAzureKeyVaultClientFactoryTests
 
     private const string OtherDirectoryId = "66666666-7777-8888-9999-aaaaaaaaaaaa";
 
-    #region GetClient Tests
+    private static DefaultAzureKeyVaultClientFactory CreateFactory() => new(TimeProvider.System);
+
+    // The client that the operation receives, which the factory hands out for the key and access.
+    private static async Task<CryptographyClient> GetClientAsync(
+        DefaultAzureKeyVaultClientFactory factory,
+        string keyId,
+        KeyAccess? access
+    ) =>
+        await factory.ExecuteAsync(
+            keyId,
+            access,
+            (client, _) => ValueTask.FromResult(client),
+            CancellationToken.None
+        );
+
+    #region ExecuteAsync Tests
 
     [Fact]
-    public void GetClient_KeyVersionId_ReturnsSameClient()
+    public async Task ExecuteAsync_KeyVersionId_RunsOperationsWithTheSameClient()
     {
-        var factory = new DefaultAzureKeyVaultClientFactory();
+        using var factory = CreateFactory();
 
-        var first = factory.GetClient(KeyVersionId, access: null);
-        var second = factory.GetClient(KeyVersionId, access: null);
+        var first = await GetClientAsync(factory, KeyVersionId, access: null);
+        var second = await GetClientAsync(factory, KeyVersionId, access: null);
 
         Assert.Same(first, second);
     }
 
     [Fact]
-    public void GetClient_VersionlessKeyId_ReturnsNewClient()
+    public async Task ExecuteAsync_VersionlessKeyId_RunsOperationsWithNewClients()
     {
-        var factory = new DefaultAzureKeyVaultClientFactory();
+        using var factory = CreateFactory();
 
-        var first = factory.GetClient(KeyId, access: null);
-        var second = factory.GetClient(KeyId, access: null);
+        var first = await GetClientAsync(factory, KeyId, access: null);
+        var second = await GetClientAsync(factory, KeyId, access: null);
 
         Assert.NotSame(first, second);
     }
 
     [Fact]
-    public void GetClient_SameDirectoryAndKeyVersionId_ReturnsSameClient()
+    public async Task ExecuteAsync_SameDirectoryAndKeyVersionId_RunsOperationsWithTheSameClient()
     {
-        var factory = new DefaultAzureKeyVaultClientFactory();
+        using var factory = CreateFactory();
 
-        var first = factory.GetClient(KeyVersionId, new KeyAccess(DirectoryId, "tenant:acme"));
-        var second = factory.GetClient(KeyVersionId, new KeyAccess(DirectoryId, "tenant:other"));
+        var first = await GetClientAsync(
+            factory,
+            KeyVersionId,
+            new KeyAccess(DirectoryId, "tenant:acme")
+        );
+        var second = await GetClientAsync(
+            factory,
+            KeyVersionId,
+            new KeyAccess(DirectoryId, "tenant:other")
+        );
 
         Assert.Same(first, second);
     }
 
     [Fact]
-    public void GetClient_KeyVersionIdUnderDifferentDirectories_ReturnsDifferentClients()
+    public async Task ExecuteAsync_KeyVersionIdUnderDifferentDirectories_RunsOperationsWithDifferentClients()
     {
-        var factory = new DefaultAzureKeyVaultClientFactory();
+        using var factory = CreateFactory();
 
-        var first = factory.GetClient(KeyVersionId, new KeyAccess(DirectoryId, "tenant:acme"));
-        var second = factory.GetClient(
+        var first = await GetClientAsync(
+            factory,
+            KeyVersionId,
+            new KeyAccess(DirectoryId, "tenant:acme")
+        );
+        var second = await GetClientAsync(
+            factory,
             KeyVersionId,
             new KeyAccess(OtherDirectoryId, "tenant:acme")
         );
-        var own = factory.GetClient(KeyVersionId, access: null);
+        var own = await GetClientAsync(factory, KeyVersionId, access: null);
 
         Assert.NotSame(first, second);
         Assert.NotSame(first, own);
@@ -69,136 +98,59 @@ public class DefaultAzureKeyVaultClientFactoryTests
     }
 
     [Fact]
-    public void GetClient_DirectoryWithVersionlessKeyId_ReturnsNewClient()
+    public async Task ExecuteAsync_DirectoryWithVersionlessKeyId_RunsOperationsWithNewClients()
     {
-        var factory = new DefaultAzureKeyVaultClientFactory();
+        using var factory = CreateFactory();
 
-        var first = factory.GetClient(KeyId, new KeyAccess(DirectoryId, "tenant:acme"));
-        var second = factory.GetClient(KeyId, new KeyAccess(DirectoryId, "tenant:acme"));
+        var first = await GetClientAsync(factory, KeyId, new KeyAccess(DirectoryId, "tenant:acme"));
+        var second = await GetClientAsync(
+            factory,
+            KeyId,
+            new KeyAccess(DirectoryId, "tenant:acme")
+        );
 
         Assert.NotSame(first, second);
     }
 
-    #endregion
-
-    #region Confirm Tests
-
     [Fact]
-    public void Confirm_ThenRelease_KeepsClientCached()
+    public async Task ExecuteAsync_OperationFailsForAnotherDirectory_KeepsTheClientOfTheDirectory()
     {
-        var factory = new DefaultAzureKeyVaultClientFactory();
+        using var factory = CreateFactory();
         var access = new KeyAccess(DirectoryId, "tenant:acme");
-        var before = factory.GetClient(KeyVersionId, access);
+        var failure = new InvalidOperationException("The directory has not consented.");
+        var before = await GetClientAsync(factory, KeyVersionId, access);
 
-        factory.Confirm(access);
-        factory.Release(access);
-        var after = factory.GetClient(KeyVersionId, access);
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            factory
+                .ExecuteAsync<CryptographyClient>(
+                    KeyVersionId,
+                    new KeyAccess(OtherDirectoryId, "tenant:acme"),
+                    (_, _) => throw failure,
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+        var after = await GetClientAsync(factory, KeyVersionId, access);
 
+        Assert.Same(failure, exception);
         Assert.Same(before, after);
     }
 
     [Fact]
-    public void Confirm_AnotherDirectory_StillReleases()
+    public async Task ExecuteAsync_NullOperation_Throws()
     {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-        var access = new KeyAccess(DirectoryId, "tenant:acme");
-        var other = new KeyAccess(OtherDirectoryId, "tenant:acme");
-        var before = factory.GetClient(KeyVersionId, access);
-        factory.GetClient(KeyVersionId, other);
+        using var factory = CreateFactory();
 
-        factory.Confirm(other);
-        factory.Release(access);
-        var after = factory.GetClient(KeyVersionId, access);
-
-        Assert.NotSame(before, after);
-    }
-
-    [Fact]
-    public void Confirm_DirectoryWithoutClient_Succeeds()
-    {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-
-        factory.Confirm(new KeyAccess(DirectoryId, "tenant:acme"));
-    }
-
-    [Fact]
-    public void Confirm_NullAccess_Throws()
-    {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-
-        Assert.Throws<ArgumentNullException>(() => factory.Confirm(null!));
-    }
-
-    #endregion
-
-    #region Release Tests
-
-    [Fact]
-    public void Release_WithoutConfirm_ReturnsDifferentClientForSameDirectoryAndKeyId()
-    {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-        var access = new KeyAccess(DirectoryId, "tenant:acme");
-        var before = factory.GetClient(KeyVersionId, access);
-
-        factory.Release(access);
-        var after = factory.GetClient(KeyVersionId, access);
-
-        Assert.NotSame(before, after);
-    }
-
-    [Fact]
-    public void Release_AfterConfirm_KeepsClientCached()
-    {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-        var access = new KeyAccess(DirectoryId, "tenant:acme");
-        var before = factory.GetClient(KeyVersionId, access);
-        factory.Confirm(access);
-
-        factory.Release(access);
-        var after = factory.GetClient(KeyVersionId, access);
-
-        Assert.Same(before, after);
-    }
-
-    [Fact]
-    public void Release_AnotherDirectory_KeepsClientCached()
-    {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-        var other = new KeyAccess(OtherDirectoryId, "tenant:acme");
-        var before = factory.GetClient(KeyVersionId, other);
-
-        factory.Release(new KeyAccess(DirectoryId, "tenant:acme"));
-        var after = factory.GetClient(KeyVersionId, other);
-
-        Assert.Same(before, after);
-    }
-
-    [Fact]
-    public void Release_DirectoryWithoutClient_Succeeds()
-    {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-
-        factory.Release(new KeyAccess(DirectoryId, "tenant:acme"));
-    }
-
-    [Fact]
-    public void Release_EmptyIdentity_KeepsClientOfTheDeploymentsOwnIdentity()
-    {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-        var before = factory.GetClient(KeyVersionId, access: null);
-
-        factory.Release(new KeyAccess(string.Empty, "tenant:acme"));
-        var after = factory.GetClient(KeyVersionId, access: null);
-
-        Assert.Same(before, after);
-    }
-
-    [Fact]
-    public void Release_NullAccess_Throws()
-    {
-        var factory = new DefaultAzureKeyVaultClientFactory();
-
-        Assert.Throws<ArgumentNullException>(() => factory.Release(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            factory
+                .ExecuteAsync<CryptographyClient>(
+                    KeyVersionId,
+                    access: null,
+                    null!,
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
     }
 
     #endregion

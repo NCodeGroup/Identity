@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Security.Cryptography;
 using Azure;
 using Azure.Security.KeyVault.Keys.Cryptography;
@@ -79,7 +80,7 @@ internal class AzureKeyVaultKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(keyId, access: null, key, cancellationToken);
+        return await WrapUnderAsync(new ReferencedKey(keyId, Access: null), key, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -163,23 +164,18 @@ internal class AzureKeyVaultKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(
-            referencedKey.KeyReference,
-            referencedKey.Access,
-            key,
-            cancellationToken
-        );
+        return await WrapUnderAsync(referencedKey, key, cancellationToken);
     }
 
     // Key Vault's RSA-OAEP takes no associated data, so the context is not sent, and the key-check value of the master
     // key binds the wrapped key to its owner.
     private async ValueTask<WrappedKey> WrapUnderAsync(
-        string keyId,
-        KeyAccess? access,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         CancellationToken cancellationToken
     )
     {
+        var keyId = referencedKey.KeyReference;
         var plaintext = GC.AllocateArray<byte>(key.Length, pinned: true);
 
         WrapResult result;
@@ -188,28 +184,19 @@ internal class AzureKeyVaultKeyWrapper(
             // The SDK demands an array of exactly the key's length. Key Vault's RSA-OAEP takes no associated data, so
             // the context is not sent, and the key-check value of the master key binds it to its owner.
             key.CopyTo(plaintext);
-            var client = ClientFactory.GetClient(keyId, access);
-            result = await client.WrapKeyAsync(
-                KeyWrapAlgorithm.RsaOaep256,
-                plaintext,
+            result = await ClientFactory.ExecuteAsync(
+                keyId,
+                referencedKey.Access,
+                (client, token) =>
+                    new ValueTask<WrapResult>(
+                        client.WrapKeyAsync(KeyWrapAlgorithm.RsaOaep256, plaintext, token)
+                    ),
                 cancellationToken
             );
-        }
-        catch (Exception exception)
-            when (access is not null && exception is not OperationCanceledException)
-        {
-            // An identity that has never worked must leave no credential cached.
-            ClientFactory.Release(access);
-            throw;
         }
         finally
         {
             CryptographicOperations.ZeroMemory(plaintext);
-        }
-
-        if (access is not null)
-        {
-            ClientFactory.Confirm(access);
         }
 
         if (!AzureKeyVaultKeyId.IsKeyVersionId(result.KeyId))
@@ -306,29 +293,26 @@ internal class AzureKeyVaultKeyWrapper(
         var text = wrappedKey.Ciphertext;
         var ciphertext = new byte[WrappedKeyCiphertext.GetByteCount(text)];
         WrappedKeyCiphertext.Decode(text, ciphertext);
-        var client = ClientFactory.GetClient(keyId, access);
 
         UnwrapResult result;
         try
         {
-            result = await client.UnwrapKeyAsync(
-                KeyWrapAlgorithm.RsaOaep256,
-                ciphertext,
+            result = await ClientFactory.ExecuteAsync(
+                keyId,
+                access,
+                (client, token) =>
+                    new ValueTask<UnwrapResult>(
+                        client.UnwrapKeyAsync(KeyWrapAlgorithm.RsaOaep256, ciphertext, token)
+                    ),
                 cancellationToken
             );
         }
         catch (Exception exception)
         {
-            // An identity that has never worked must leave no credential cached.
-            if (access is not null && exception is not OperationCanceledException)
-            {
-                ClientFactory.Release(access);
-            }
-
             // Only a ciphertext that the service rejects is a cryptographic failure. Anything else propagates
             // unchanged. An outage must not look like a wrong key: callers delete keys on CryptographicException in
             // Development.
-            if (exception is RequestFailedException { Status: 400 })
+            if (exception is RequestFailedException { Status: (int)HttpStatusCode.BadRequest })
             {
                 throw new CryptographicException(
                     $"Azure Key Vault key '{keyId}' did not unwrap the master key: the service rejected the ciphertext.",
@@ -337,11 +321,6 @@ internal class AzureKeyVaultKeyWrapper(
             }
 
             throw;
-        }
-
-        if (access is not null)
-        {
-            ClientFactory.Confirm(access);
         }
 
         CopyPlaintext(result.Key, destination);

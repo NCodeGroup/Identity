@@ -60,7 +60,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var handler = new DeveloperSecretPruningSeedHandler(
             secretSerializer.Object,
             protectorProvider.Object,
-            storeManagerFactory.Object
+            new DeveloperMasterKeyReset(storeManagerFactory.Object, protectorProvider.Object)
         );
 
         var storeManager = CreateStoreManager(store);
@@ -106,7 +106,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var handler = new DeveloperSecretPruningSeedHandler(
             secretSerializer.Object,
             protectorProvider.Object,
-            storeManagerFactory.Object
+            new DeveloperMasterKeyReset(storeManagerFactory.Object, protectorProvider.Object)
         );
 
         var storeManager = CreateStoreManager(store);
@@ -190,7 +190,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var handler = new DeveloperSecretPruningSeedHandler(
             secretSerializer.Object,
             protectorProvider.Object,
-            storeManagerFactory.Object
+            new DeveloperMasterKeyReset(storeManagerFactory.Object, protectorProvider.Object)
         );
 
         var storeManager = CreateStoreManager(store);
@@ -235,7 +235,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var handler = new DeveloperSecretPruningSeedHandler(
             secretSerializer.Object,
             protectorProvider.Object,
-            storeManagerFactory.Object
+            new DeveloperMasterKeyReset(storeManagerFactory.Object, protectorProvider.Object)
         );
 
         var command = CreateCommand(tenant, storeManager.Object);
@@ -264,7 +264,7 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var handler = new DeveloperSecretPruningSeedHandler(
             secretSerializer.Object,
             protectorProvider.Object,
-            storeManagerFactory.Object
+            new DeveloperMasterKeyReset(storeManagerFactory.Object, protectorProvider.Object)
         );
 
         var command = CreateCommand(tenant, storeManager.Object);
@@ -284,7 +284,10 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         var handler = new DeveloperSecretPruningSeedHandler(
             CreateStrictMock<ISecretSerializer>().Object,
             CreateStrictMock<ISecretProtectorProvider>().Object,
-            CreateStrictMock<IStoreManagerFactory>().Object
+            new DeveloperMasterKeyReset(
+                CreateStrictMock<IStoreManagerFactory>().Object,
+                CreateStrictMock<ISecretProtectorProvider>().Object
+            )
         );
 
         Assert.Equal(DefaultMediatorPriorities.High, handler.MediatorPriority);

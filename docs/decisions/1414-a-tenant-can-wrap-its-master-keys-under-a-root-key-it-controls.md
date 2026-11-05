@@ -1,6 +1,8 @@
 # 1414. A tenant can wrap its master keys under a root key it controls
 
-- **Status:** Accepted (amended by [ADR-1428](1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md),
+- **Status:** Accepted (amended by [ADR-1422](1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md):
+  its 409 and 503 problems also carry the wait in retryAfterSeconds;
+  [ADR-1428](1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md),
   [ADR-1429](1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group

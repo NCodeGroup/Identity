@@ -1,6 +1,8 @@
 # 1313. Development conveniences are inert unless configured and run through the production path
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1423](1423-developer-key-pruning-starts-the-platform-over-when-its-master-keys-cannot-be-unwrapped.md): key
+  pruning also starts the platform over with a new master key)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md)

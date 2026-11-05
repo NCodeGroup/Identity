@@ -383,7 +383,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     window.history.replaceState(null, '', '/teams/acme/tenants');
     renderApp();
     fireEvent.click(await screen.findByTestId('tenant-row-acme-dev'));
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
     // Once the tenant loads, the exit names its team.
     await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Team'));
 
@@ -423,7 +423,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     window.history.replaceState(null, '', '/tenants/acme-dev/clients');
     renderApp();
 
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
     expect(
       within(screen.getByTestId('scope-badge')).getByTestId('BusinessIcon'),
     ).toBeInTheDocument();
@@ -496,7 +496,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     window.history.replaceState(null, '', '/teams/acme/tenants');
     renderApp();
     fireEvent.click(await screen.findByTestId('tenant-row-acme'));
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('tenant-tab-grants'));
     expect(await screen.findByText('No grants match the current filter.')).toBeInTheDocument();
@@ -510,7 +510,7 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     fireEvent.click(screen.getByTestId('exit-scope'));
     fireEvent.click(await screen.findByTestId('tenant-row-acme'));
     // Swapping the scope's tab set re-measures the tab indicator asynchronously; await the settled UI.
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
 
     const requestedUrls = fetchMock.mock.calls.map(([input]) => (input as Request).url);
     expect(requestedUrls.some((url) => url.includes('/api/tenants/acme/grants'))).toBe(true);
@@ -598,7 +598,7 @@ describe('App (routing)', () => {
 
     renderApp();
     fireEvent.click(await screen.findByTestId('tenant-row-acme'));
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/tenants/acme/clients');
 
     fireEvent.click(screen.getByTestId('tenant-tab-grants'));
@@ -606,7 +606,7 @@ describe('App (routing)', () => {
     expect(window.location.pathname).toBe('/tenants/acme/grants');
 
     act(() => window.history.back());
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/tenants/acme/clients');
   });
 
@@ -616,7 +616,7 @@ describe('App (routing)', () => {
     window.history.pushState(null, '', '/tenants/acme/clients');
 
     renderApp();
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
 
     act(() => window.history.back());
 
@@ -694,7 +694,7 @@ describe('App (caller access)', () => {
 
     renderApp();
 
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No clients in this tenant yet.')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Home'));
   });
 

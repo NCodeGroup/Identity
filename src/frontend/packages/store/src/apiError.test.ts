@@ -66,4 +66,29 @@ describe('apiErrorMessage', () => {
   it('returns the fallback for a serialized error without a message', () => {
     expect(apiErrorMessage({ name: 'AbortError' }, 'Cancelled.')).toBe('Cancelled.');
   });
+
+  it.each([
+    [1, 'Busy. Try again in 1 second.'],
+    [59, 'Busy. Try again in 59 seconds.'],
+    [60, 'Busy. Try again in 1 minute.'],
+    [91, 'Busy. Try again in 2 minutes.'],
+    [3599, 'Busy. Try again in 1 hour.'],
+    [7200, 'Busy. Try again in 2 hours.'],
+  ])('appends the wait of %i seconds to the detail', (seconds, expected) => {
+    expect(
+      apiErrorMessage({ status: 409, data: { detail: 'Busy.', retryAfterSeconds: seconds } }),
+    ).toBe(expected);
+  });
+
+  it('appends the wait to the status fallback', () => {
+    expect(apiErrorMessage({ status: 503, data: { retryAfterSeconds: 120 } })).toBe(
+      'The server rejected the request (HTTP 503). Try again in 2 minutes.',
+    );
+  });
+
+  it.each([0, -5, 1.5, '60'])('does not append the wait %s', (wait) => {
+    expect(
+      apiErrorMessage({ status: 409, data: { detail: 'Busy.', retryAfterSeconds: wait } }),
+    ).toBe('Busy.');
+  });
 });

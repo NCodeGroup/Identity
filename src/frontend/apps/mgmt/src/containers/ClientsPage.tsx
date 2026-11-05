@@ -11,7 +11,7 @@ import {
   emptyClientFormValues,
   type ClientFormValues,
 } from '@ncode/ui';
-import type { ClientResource, ManagementScope } from '@ncode/api';
+import type { ClientResource } from '@ncode/api';
 import {
   apiErrorMessage,
   useCreateClientMutation,
@@ -23,10 +23,11 @@ import {
 import { ClientDetailPage } from './ClientDetailPage.js';
 
 export type ClientsPageProps = {
-  readonly scope: ManagementScope;
+  readonly tenantId: string;
   /**
    * The resource server whose clients the page administers: it lists only the clients that act for
-   * it and creates clients bound to it. When omitted, the page administers every client in the scope.
+   * it and creates clients bound to it. When omitted, the page administers every client in the
+   * tenant.
    */
   readonly resourceServerId?: string;
   /** When set, the page renders inside a parent's detail view and omits its own heading. */
@@ -42,16 +43,16 @@ type DialogState =
 const closed: DialogState = { kind: 'none' };
 
 /**
- * Container: browses and administers the clients within a given management scope. The scope is passed
- * down from the stateful shell, so a tenant administrator view is always bound to its own tenant (the
- * API path is nested under the tenant — the boundary is structural, not a filter). Given a resource
+ * Container: browses and administers the clients of a tenant. The tenant is passed down from the
+ * stateful shell, so a tenant administrator view is always bound to its own tenant (the API path is
+ * nested under the tenant — the boundary is structural, not a filter). Given a resource
  * server, it administers the clients that act for it — that resource server's credentials at the
  * token introspection endpoint. Wires the RTK Query client list and mutations to the stateless
  * {@link ClientTable}, {@link ClientFormDialog}, and {@link ConfirmDialog}; owns only dialog/error state.
  */
-export function ClientsPage({ scope, resourceServerId, embedded = false }: ClientsPageProps) {
+export function ClientsPage({ tenantId, resourceServerId, embedded = false }: ClientsPageProps) {
   const { data, isLoading, error } = useListClientsQuery(
-    resourceServerId ? { scope, resourceServerId } : { scope },
+    resourceServerId ? { tenantId, resourceServerId } : { tenantId },
   );
   const clients = data?.items ?? [];
 
@@ -67,7 +68,11 @@ export function ClientsPage({ scope, resourceServerId, embedded = false }: Clien
   const selected = clients.find((c) => c.clientId === selectedId);
   if (selected) {
     return (
-      <ClientDetailPage scope={scope} client={selected} onBack={() => setSelectedId(undefined)} />
+      <ClientDetailPage
+        tenantId={tenantId}
+        client={selected}
+        onBack={() => setSelectedId(undefined)}
+      />
     );
   }
 
@@ -101,7 +106,7 @@ export function ClientsPage({ scope, resourceServerId, embedded = false }: Clien
     try {
       if (dialog.kind === 'create') {
         await createClient({
-          scope,
+          tenantId,
           body: {
             isDisabled: values.isDisabled,
             ...(resourceServerId ? { resourceServerId } : {}),
@@ -110,7 +115,7 @@ export function ClientsPage({ scope, resourceServerId, embedded = false }: Clien
         }).unwrap();
       } else if (dialog.kind === 'edit') {
         await updateClient({
-          scope,
+          tenantId,
           clientId: dialog.client.clientId,
           concurrencyToken: dialog.client.concurrencyToken,
           fields: { isDisabled: values.isDisabled },
@@ -128,7 +133,7 @@ export function ClientsPage({ scope, resourceServerId, embedded = false }: Clien
     }
     setDeleteError(undefined);
     try {
-      await deleteClient({ scope, clientId: dialog.client.clientId }).unwrap();
+      await deleteClient({ tenantId, clientId: dialog.client.clientId }).unwrap();
       setDialog(closed);
     } catch (removeError) {
       setDeleteError(apiErrorMessage(removeError as ApiError));
@@ -166,7 +171,7 @@ export function ClientsPage({ scope, resourceServerId, embedded = false }: Clien
         emptyMessage={
           resourceServerId
             ? 'No client acts for this resource server yet.'
-            : 'No clients in this scope yet.'
+            : 'No clients in this tenant yet.'
         }
       >
         <ClientTable

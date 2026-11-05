@@ -247,7 +247,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The new active key and the key that it retired.</response>
     /// <response code="404">The platform does not exist.</response>
-    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After).</response>
+    /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After and the problem's retryAfterSeconds).</response>
     /// <response code="412">Another rekey of the same master key committed first.</response>
     [EndpointName("api/platform/encryption-keys/rekey")]
     internal virtual async ValueTask<IResult> RekeyEncryptionKeysAsync(

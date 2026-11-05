@@ -6,7 +6,9 @@
   and no value that a registered protected-value source reports for the platform names them, the lease is
   `master-key-maintenance:platform`, and the platform's keys are reported and rekeyed under
   `/api/platform/encryption-keys` with the `platform_encryption_keys` scope family; amended by
-  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): rotation wraps the successor under the owner's root key, the status reports it, and an owner-rooted cache entry is re-validated)
+  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): rotation wraps the successor under the owner's root key, the status reports it, and an owner-rooted cache entry is re-validated; amended by
+  [ADR-1422](1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md): a
+  rekey too soon also carries the wait in the problem's retryAfterSeconds)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's

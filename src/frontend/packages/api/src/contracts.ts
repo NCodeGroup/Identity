@@ -10,6 +10,19 @@ export type CollectionResource<T> = {
   readonly continuationToken?: string;
 };
 
+/**
+ * Mirror of an RFC 9457 problem details response and the extension members that
+ * `ManagementProblemMembers` names. `retryAfterSeconds` is the whole number of seconds to wait,
+ * the same value as the `Retry-After` header.
+ */
+export type ManagementProblem = {
+  readonly type?: string;
+  readonly title?: string;
+  readonly status?: number;
+  readonly detail?: string;
+  readonly retryAfterSeconds?: number;
+};
+
 /** Mirror of `TenantResource`. */
 export type TenantResource = {
   readonly tenantId: string;

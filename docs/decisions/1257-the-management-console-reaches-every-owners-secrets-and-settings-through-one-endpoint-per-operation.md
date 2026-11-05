@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the one endpoint per
-  operation reaches the platform's and a team's settings, and only a tenant, client or resource server holds secrets)
+  operation reaches the platform's and a team's settings, and only a tenant, client or resource server holds secrets;
+  amended by
+  [ADR-1421](1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md): a client and
+  a resource server owner name their tenant)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

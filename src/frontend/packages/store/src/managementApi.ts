@@ -8,7 +8,6 @@ import {
   ownerScope,
   ownerTagId,
   replacePatch,
-  scopeApiPrefix,
   scopeTagId,
   teamScope,
   type CallerResource,
@@ -36,7 +35,6 @@ import {
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
-  type ManagementScope,
   type PublicKeyResource,
   type ResourceServerResource,
   type ScopeResource,
@@ -223,17 +221,17 @@ export const managementApi = createApi({
     // `resourceServerId` lists only the clients that act for that resource server.
     listClients: build.query<
       CollectionResource<ClientResource>,
-      { scope: ManagementScope; resourceServerId?: string }
+      { tenantId: string; resourceServerId?: string }
     >({
-      query: ({ scope, resourceServerId }) => ({
-        url: `${scopeApiPrefix(scope)}/clients`,
+      query: ({ tenantId, resourceServerId }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/clients`,
         ...(resourceServerId ? { params: { resourceServerId } } : {}),
       }),
-      providesTags: (result, _error, { scope }) => [
-        { type: 'Client' as const, id: scopeTagId(scope, LIST_TAG) },
+      providesTags: (result, _error, { tenantId }) => [
+        { type: 'Client' as const, id: tenantTag(tenantId, LIST_TAG) },
         ...(result?.items ?? []).map((c) => ({
           type: 'Client' as const,
-          id: scopeTagId(scope, c.clientId),
+          id: tenantTag(tenantId, c.clientId),
         })),
       ],
     }),
@@ -275,158 +273,156 @@ export const managementApi = createApi({
         { type: 'Caller', id: callerTag },
       ],
     }),
-    createClient: build.mutation<
-      ClientResource,
-      { scope: ManagementScope; body: CreateClientRequest }
-    >({
-      query: ({ scope, body }) => ({
-        url: `${scopeApiPrefix(scope)}/clients`,
+    createClient: build.mutation<ClientResource, { tenantId: string; body: CreateClientRequest }>({
+      query: ({ tenantId, body }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/clients`,
         method: 'POST',
         body,
       }),
-      invalidatesTags: (_result, _error, { scope }) => [
-        { type: 'Client', id: scopeTagId(scope, LIST_TAG) },
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'Client', id: tenantTag(tenantId, LIST_TAG) },
       ],
     }),
     updateClient: build.mutation<
       void,
       {
-        scope: ManagementScope;
+        tenantId: string;
         clientId: string;
         concurrencyToken: string;
         fields: UpdateClientFields;
       }
     >({
-      query: ({ scope, clientId, concurrencyToken, fields }) => ({
-        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}`,
+      query: ({ tenantId, clientId, concurrencyToken, fields }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/clients/${encodeURIComponent(clientId)}`,
         method: 'PATCH',
         body: replacePatch({ ...fields }),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { scope, clientId }) => [
-        { type: 'Client', id: scopeTagId(scope, LIST_TAG) },
-        { type: 'Client', id: scopeTagId(scope, clientId) },
+      invalidatesTags: (_result, _error, { tenantId, clientId }) => [
+        { type: 'Client', id: tenantTag(tenantId, LIST_TAG) },
+        { type: 'Client', id: tenantTag(tenantId, clientId) },
       ],
     }),
-    deleteClient: build.mutation<void, { scope: ManagementScope; clientId: string }>({
-      query: ({ scope, clientId }) => ({
-        url: `${scopeApiPrefix(scope)}/clients/${encodeURIComponent(clientId)}`,
+    deleteClient: build.mutation<void, { tenantId: string; clientId: string }>({
+      query: ({ tenantId, clientId }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/clients/${encodeURIComponent(clientId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { scope, clientId }) => [
-        { type: 'Client', id: scopeTagId(scope, LIST_TAG) },
-        { type: 'Client', id: scopeTagId(scope, clientId) },
+      invalidatesTags: (_result, _error, { tenantId, clientId }) => [
+        { type: 'Client', id: tenantTag(tenantId, LIST_TAG) },
+        { type: 'Client', id: tenantTag(tenantId, clientId) },
       ],
     }),
     listResourceServers: build.query<
       CollectionResource<ResourceServerResource>,
-      { scope: ManagementScope }
+      { tenantId: string }
     >({
-      query: ({ scope }) => `${scopeApiPrefix(scope)}/resource-servers`,
-      providesTags: (result, _error, { scope }) => [
-        { type: 'ResourceServer' as const, id: scopeTagId(scope, LIST_TAG) },
+      query: ({ tenantId }) => `api/tenants/${encodeURIComponent(tenantId)}/resource-servers`,
+      providesTags: (result, _error, { tenantId }) => [
+        { type: 'ResourceServer' as const, id: tenantTag(tenantId, LIST_TAG) },
         ...(result?.items ?? []).map((r) => ({
           type: 'ResourceServer' as const,
-          id: scopeTagId(scope, r.resourceServerId),
+          id: tenantTag(tenantId, r.resourceServerId),
         })),
       ],
     }),
     createResourceServer: build.mutation<
       ResourceServerResource,
-      { scope: ManagementScope; body: CreateResourceServerRequest }
+      { tenantId: string; body: CreateResourceServerRequest }
     >({
-      query: ({ scope, body }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers`,
+      query: ({ tenantId, body }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/resource-servers`,
         method: 'POST',
         body,
       }),
-      invalidatesTags: (_result, _error, { scope }) => [
-        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
+      invalidatesTags: (_result, _error, { tenantId }) => [
+        { type: 'ResourceServer', id: tenantTag(tenantId, LIST_TAG) },
       ],
     }),
     updateResourceServer: build.mutation<
       void,
       {
-        scope: ManagementScope;
+        tenantId: string;
         resourceServerId: string;
         concurrencyToken: string;
         fields: UpdateResourceServerFields;
       }
     >({
-      query: ({ scope, resourceServerId, concurrencyToken, fields }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(resourceServerId)}`,
+      query: ({ tenantId, resourceServerId, concurrencyToken, fields }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/resource-servers/${encodeURIComponent(
+          resourceServerId,
+        )}`,
         method: 'PATCH',
         body: replacePatch({ ...fields }),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
-        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
-        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
+      invalidatesTags: (_result, _error, { tenantId, resourceServerId }) => [
+        { type: 'ResourceServer', id: tenantTag(tenantId, LIST_TAG) },
+        { type: 'ResourceServer', id: tenantTag(tenantId, resourceServerId) },
       ],
     }),
-    deleteResourceServer: build.mutation<
-      void,
-      { scope: ManagementScope; resourceServerId: string }
-    >({
-      query: ({ scope, resourceServerId }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(resourceServerId)}`,
+    deleteResourceServer: build.mutation<void, { tenantId: string; resourceServerId: string }>({
+      query: ({ tenantId, resourceServerId }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/resource-servers/${encodeURIComponent(
+          resourceServerId,
+        )}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
-        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
-        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
+      invalidatesTags: (_result, _error, { tenantId, resourceServerId }) => [
+        { type: 'ResourceServer', id: tenantTag(tenantId, LIST_TAG) },
+        { type: 'ResourceServer', id: tenantTag(tenantId, resourceServerId) },
       ],
     }),
     createScope: build.mutation<
       ScopeResource,
-      { scope: ManagementScope; resourceServerId: string; body: CreateScopeRequest }
+      { tenantId: string; resourceServerId: string; body: CreateScopeRequest }
     >({
-      query: ({ scope, resourceServerId, body }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+      query: ({ tenantId, resourceServerId, body }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/resource-servers/${encodeURIComponent(
           resourceServerId,
         )}/scopes`,
         method: 'POST',
         body,
       }),
-      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
-        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
-        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
+      invalidatesTags: (_result, _error, { tenantId, resourceServerId }) => [
+        { type: 'ResourceServer', id: tenantTag(tenantId, LIST_TAG) },
+        { type: 'ResourceServer', id: tenantTag(tenantId, resourceServerId) },
       ],
     }),
     updateScope: build.mutation<
       void,
       {
-        scope: ManagementScope;
+        tenantId: string;
         resourceServerId: string;
         scopeValue: string;
         body: UpdateScopeRequest;
       }
     >({
-      query: ({ scope, resourceServerId, scopeValue, body }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+      query: ({ tenantId, resourceServerId, scopeValue, body }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/resource-servers/${encodeURIComponent(
           resourceServerId,
         )}/scopes/${encodeURIComponent(scopeValue)}`,
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
-        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
-        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
+      invalidatesTags: (_result, _error, { tenantId, resourceServerId }) => [
+        { type: 'ResourceServer', id: tenantTag(tenantId, LIST_TAG) },
+        { type: 'ResourceServer', id: tenantTag(tenantId, resourceServerId) },
       ],
     }),
     deleteScope: build.mutation<
       void,
-      { scope: ManagementScope; resourceServerId: string; scopeValue: string }
+      { tenantId: string; resourceServerId: string; scopeValue: string }
     >({
-      query: ({ scope, resourceServerId, scopeValue }) => ({
-        url: `${scopeApiPrefix(scope)}/resource-servers/${encodeURIComponent(
+      query: ({ tenantId, resourceServerId, scopeValue }) => ({
+        url: `api/tenants/${encodeURIComponent(tenantId)}/resource-servers/${encodeURIComponent(
           resourceServerId,
         )}/scopes/${encodeURIComponent(scopeValue)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { scope, resourceServerId }) => [
-        { type: 'ResourceServer', id: scopeTagId(scope, LIST_TAG) },
-        { type: 'ResourceServer', id: scopeTagId(scope, resourceServerId) },
+      invalidatesTags: (_result, _error, { tenantId, resourceServerId }) => [
+        { type: 'ResourceServer', id: tenantTag(tenantId, LIST_TAG) },
+        { type: 'ResourceServer', id: tenantTag(tenantId, resourceServerId) },
       ],
     }),
     listGrants: build.query<
@@ -504,7 +500,7 @@ export const managementApi = createApi({
       },
       keepUnusedDataFor: 0,
     }),
-    // The secrets of a tenant, or of a client or resource server in a scope, and the settings of any owner: the
+    // The secrets of a tenant, or of a client or resource server in a tenant, and the settings of any owner: the
     // platform, a team, a tenant, or a client or resource server (docs/decisions/1257). Every tag is scoped by the
     // owner's scope, so one owner's caches never invalidate another's.
     listSecrets: build.query<SecretsResource, SecretOwner>({

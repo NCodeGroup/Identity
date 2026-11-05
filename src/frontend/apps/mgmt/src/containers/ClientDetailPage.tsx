@@ -5,12 +5,12 @@ import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import type { ClientResource, SecretOwner, ManagementScope } from '@ncode/api';
+import type { ClientResource, SecretOwner } from '@ncode/api';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 
 export type ClientDetailPageProps = {
-  readonly scope: ManagementScope;
+  readonly tenantId: string;
   readonly client: ClientResource;
   readonly onBack: () => void;
 };
@@ -23,9 +23,9 @@ type ClientSurface = 'secrets' | 'settings';
  * Secrets honor the one-time reveal (ADR-1050) and settings are a top-level JSON Patch diff; the owner-generic
  * {@link OwnerSecretsTab}/{@link OwnerSettingsTab} render both for the client. Owns only tab state.
  */
-export function ClientDetailPage({ scope, client, onBack }: ClientDetailPageProps) {
+export function ClientDetailPage({ tenantId, client, onBack }: ClientDetailPageProps) {
   const [surface, setSurface] = useState<ClientSurface>('secrets');
-  const owner: SecretOwner = { kind: 'client', scope, clientId: client.clientId };
+  const owner: SecretOwner = { kind: 'client', tenantId, clientId: client.clientId };
 
   return (
     <>

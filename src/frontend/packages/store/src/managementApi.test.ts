@@ -1664,7 +1664,13 @@ describe('managementApi encryption key requests', () => {
     'listEncryptionKeys GETs the encryption keys of the $key owner',
     async ({ owner, path }) => {
       const captured = mockFetch(
-        jsonResponse({ keys: [], recoveryConfigured: true, rootKey: null, rootKeyProviders: [] }),
+        jsonResponse({
+          keys: [],
+          recoveryConfigured: true,
+          rootKey: null,
+          rootKeyProviders: [],
+          rootKeyAccessBinding: null,
+        }),
       );
       const store = createStore();
 
@@ -1681,7 +1687,13 @@ describe('managementApi encryption key requests', () => {
       const otherOwner: EncryptionKeyOwner =
         owner.kind === 'platform' ? { kind: 'tenant', tenantId: 'other' } : { kind: 'platform' };
       const captured = mockFetch(
-        jsonResponse({ keys: [], recoveryConfigured: true, rootKey: null, rootKeyProviders: [] }),
+        jsonResponse({
+          keys: [],
+          recoveryConfigured: true,
+          rootKey: null,
+          rootKeyProviders: [],
+          rootKeyAccessBinding: null,
+        }),
       );
       const store = createStore();
       const subscriptions = [
@@ -1707,6 +1719,7 @@ describe('managementApi tenant root key requests', () => {
   const rootKey = {
     provider: 'aws-kms',
     keyReference: 'arn:aws:kms:us-east-1:111122223333:key/abc',
+    accessIdentity: 'arn:aws:iam::111122223333:role/ncode-identity',
     state: 'active',
     createdWhen: '2026-10-01T09:00:00Z',
     stateChangedWhen: '2026-10-01T09:00:00Z',
@@ -1742,7 +1755,11 @@ describe('managementApi tenant root key requests', () => {
   }
 
   it('setTenantRootKey PUTs the root key and refetches only the tenant keys', async () => {
-    const body = { provider: 'aws-kms', keyReference: rootKey.keyReference };
+    const body = {
+      provider: 'aws-kms',
+      keyReference: rootKey.keyReference,
+      accessIdentity: rootKey.accessIdentity,
+    };
 
     const { mutation, refetched } = await runMutation(
       jsonResponse({ rootKey, activeKey: null, retiredKey: null, rewrappedKeys: 2, failedKeys: 0 }),

@@ -13,9 +13,14 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 internal interface IAwsKmsClientFactory
 {
     /// <summary>
-    /// Gets the client for the specified region. The same client is returned for every call with the same region.
+    /// Gets the client for the specified region and access. The same client is returned for every call with the same
+    /// region and access.
     /// </summary>
     /// <param name="region">The system name of the AWS region, such as <c>us-west-2</c>.</param>
+    /// <param name="access">
+    /// The IAM role to assume, as its ARN in <see cref="KeyAccess.Identity"/> and the external ID in
+    /// <see cref="KeyAccess.Binding"/>; or <see langword="null"/> to use the credentials of the deployment.
+    /// </param>
     /// <returns>The <see cref="IAmazonKeyManagementService"/> that calls the KMS endpoint of the region.</returns>
-    IAmazonKeyManagementService GetClient(string region);
+    IAmazonKeyManagementService GetClient(string region, KeyAccess? access);
 }

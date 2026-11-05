@@ -1,0 +1,88 @@
+# End-to-end — the BFF in real browsers and against a containerized OpenID Provider (ADR-1419).
+#
+# This workflow runs the SAME entrypoint developers run (build/e2e.ps1), with no CI-only variant: the script is the
+# single source of truth for how the tests/*.EndToEnd.Tests suites run, so a green run here and a green run locally mean
+# the same thing. It has the same triggers and tiers as the Definition of Done (ADR-1263): a pull request into main
+# runs the suites its change affects (-Affected against the pull request's base); the merge queue, a push to main or a
+# release line, and a pull request into a release line run every suite. The job reports on every pull request, so it can
+# be a required check (ADR-1261).
+name: End-to-end
+
+on:
+  # The same triggers as ci.yml: a pull request into main runs the affected suites, the merge queue runs every suite on
+  # the merged result, and a required check must report on merge_group (ADR-1263). Run a branch that has no pull request
+  # yet with workflow_dispatch, or open a draft pull request.
+  push:
+    branches: [main, 'release/**']
+  pull_request:
+    branches: [main, 'release/**']
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+
+# Least privilege: the job only reads the tree, and nothing here publishes.
+permissions:
+  contents: read
+
+# Supersede in-flight runs for the same ref while iterating on a branch, but give every commit of main and a release
+# line its own verdict (the reasoning is in ci.yml).
+concurrency:
+  group: end-to-end-${{ github.ref }}-${{ (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && github.sha || 'head' }}
+  cancel-in-progress: ${{ !(github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) }}
+
+jobs:
+  end-to-end:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Nerdbank.GitVersioning computes the version from commit height and FAILS on a shallow clone, which is the
+          # actions/checkout default. The full history is required, not an optimization to trim.
+          fetch-depth: 0
+          # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # No lock files are committed, so setup-dotnet's built-in cache cannot key itself. Key on the central package
+      # manifest plus every project file: those are exactly the inputs that change the restore graph (ADR-1003).
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props', 'global.json', '.config/dotnet-tools.json', '**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # The Playwright browsers are roughly 500 MB. Their version follows the Microsoft.Playwright package, which
+      # Directory.Packages.props pins, so that file is the cache key.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('Directory.Packages.props') }}
+
+      # The one entrypoint. It checks Docker, builds the suites, installs the browsers and runs the tests. A pull request
+      # into main runs only the suites its change affects, measured from the base SHA (the checkout's full history holds
+      # its merge base); every other event runs every suite (ADR-1263).
+      - name: End-to-end
+        shell: pwsh
+        env:
+          AFFECTED_BASE: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' && github.event.pull_request.base.sha || '' }}
+        run: if ($env:AFFECTED_BASE) { ./build/e2e.ps1 -Affected -Base $env:AFFECTED_BASE } else { ./build/e2e.ps1 }
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: end-to-end-results
+          path: artifacts/e2e-results/*.junit.xml
+          retention-days: 14
+          if-no-files-found: warn

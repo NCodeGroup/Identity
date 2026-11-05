@@ -81,11 +81,14 @@ the platform and its tenants in the settings cascade and in authority.**
    resource-server identifiers are unique only within a tenant. Tenants are created and listed under
    `/api/teams/{teamId}/tenants`. The root tenant holds the `platform_settings`, `teams`, `team_settings` and `tenants`
    scope families.
-5. **Lifecycle.** A disabled team's tenants answer `404` on the protocol surface and stay manageable. A team with
-   tenants cannot be deleted. A deleted team's identifier is retired
+5. **Lifecycle.** A team's lifecycle is platform authority: an assignment at the platform node (or `GlobalAdmin`)
+   creates, deletes, disables and restores a team and lists teams and tenants across teams, and a team's own owner or
+   admin does none of these. A disabled team's tenants answer `404` on the protocol surface and on the management
+   routes that act through a tenant's OpenID runtime (sessions, principals, local accounts), as a disabled tenant does,
+   while their stored configuration (settings, clients, resource servers, grants, secrets, owners) stays manageable. A
+   team with tenants cannot be deleted. A deleted team's identifier is retired
    ([ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)). The platform's own team can be neither
-   disabled nor deleted. An assignment at the platform node (or `GlobalAdmin`) disables and restores a team, and a
-   team's own owner or admin cannot.
+   disabled nor deleted.
 6. **Audit and usage carry the team.** Usage rows and tenant audit events carry the team. Team and platform audit
    events are recorded in the control-plane tenant with the resource types `team` and `platform`.
 7. **The console addresses the tiers.** Its routes are `/teams`, `/settings`, `/teams/{teamId}/{tenants|settings|usage}`
@@ -113,7 +116,8 @@ the platform and its tenants in the settings cascade and in authority.**
 - The administrators of a team create tenants without holding authority over the deployment, and the platform
   administrator never needs to be a member of a customer's tenant.
 - Every tenant has a team, so a tenant cannot be created without one and its creation path takes a team identifier.
-- A disabled team switches off all of a customer's protocol surface in one write, while its tenants stay manageable.
+- A disabled team switches off all of a customer's protocol surface and tenant runtime routes in one write, while its
+  tenants' stored configuration stays manageable.
 - The cascade resolves four tiers: host configuration and the platform, the team, the tenant, and the client or
   resource server; a change to a team document reaches its cached tenants on every replica.
 - A tenant never moves between teams, so a customer that reorganizes recreates tenants rather than relocating them.

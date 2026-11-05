@@ -7,15 +7,15 @@
 # previous response's 'continuationToken' back as '?cursor=' to fetch the next page. A null
 # 'continuationToken' means there are no more pages.
 #
-# Authorization: every build enforces authentication. The platform settings, creating or deleting a
-# team, listing teams and listing tenants across teams need GlobalAdmin (or an assignment at the
-# platform node). A team's own get, update, settings, effective settings, usage and owners need
-# authority at the team node: an Owner or TeamAdmin assignment at it, or at the platform. Creating
-# a tenant and previewing a new tenant's address need create authority on the team (TeamAdmin or
-# GlobalAdmin). The per-tenant endpoints need authority on that tenant: an assignment at it, its
-# team or the platform, or a TenantAdmin/GlobalAdmin token for the request's tenant. Obtain a
-# token by exchanging the configuration-seeded bootstrap administrator credential at the token
-# endpoint (see ADR-1044).
+# Authorization: every build enforces authentication. The platform settings, creating, deleting,
+# disabling and restoring a team, listing teams and listing tenants across teams need GlobalAdmin
+# (or an assignment at the platform node). A team's own get, settings, effective settings, usage
+# and owners need authority at the team node: an Owner or TeamAdmin assignment at it, or at the
+# platform. Creating a tenant and previewing a new tenant's address need create authority on the
+# team (TeamAdmin or GlobalAdmin). The per-tenant endpoints need authority on that tenant: an
+# assignment at it, its team or the platform, or a TenantAdmin/GlobalAdmin token for the request's
+# tenant. Obtain a token by exchanging the configuration-seeded bootstrap administrator credential
+# at the token endpoint (see ADR-1044).
 #
 # First-run bootstrap: the platform and the static-single tenant are provisioned LAZILY by the
 # OpenID runtime on first resolution, not at startup and not by these management endpoints (the list

@@ -3370,8 +3370,11 @@ describes the family as it is rather than its changes
   ([ADR-1404](docs/decisions/1404-settings-are-reconciled-per-team.md)).
 
 - **Disabling a team suspends its tenants, and a team with tenants cannot be deleted.** A tenant of a disabled team
-  answers `404` on the protocol surface and stays manageable; `DELETE /api/teams/{teamId}` answers `409` while the team
-  has tenants, a deleted team's id is never reissued, and the platform's own team can be neither disabled nor deleted
+  answers `404` on the protocol surface and on the management routes that act through its OpenID runtime (sessions,
+  principals, local accounts), as a disabled tenant does, while its stored configuration stays manageable;
+  `DELETE /api/teams/{teamId}` answers `409` while the team has tenants, a deleted team's id is never reissued, and the
+  platform's own team can be neither disabled nor deleted. Creating, deleting, disabling and restoring a team, and
+  `GET /api/teams` and `GET /api/tenants`, need `GlobalAdmin` or an assignment at the platform node
   ([ADR-1403](docs/decisions/1403-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
 - **Usage is queryable per team.** Every usage row carries the team the tenant belonged to, so a deleted tenant's final

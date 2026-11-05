@@ -1083,10 +1083,16 @@ internal class ClientApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
-        var limitRefusal = await AuthorizeLimitChangesOrDefaultAsync(
+        var changedLimits = SettingSerializer.GetChangedLimits(clientSettings.Value, settingsValue);
+        var authorityAbove = ResourceNode.For(
+            client.TenantId,
+            ResourceNodeTypes.Tenant,
+            client.TenantId
+        );
+        var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
             httpContext,
-            SettingSerializer.GetChangedLimits(clientSettings.Value, settingsValue),
-            ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId)
+            changedLimits,
+            authorityAbove
         );
         if (limitRefusal is not null)
         {

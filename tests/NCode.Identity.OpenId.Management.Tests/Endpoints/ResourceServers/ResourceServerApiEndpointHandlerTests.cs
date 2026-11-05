@@ -207,10 +207,24 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Returns([])
             .Verifiable();
 
-    private void SetupNoChangedLimits() =>
+    private void SetupNoChangedLimits() => SetupChangedLimits([], new JsonObject());
+
+    private void SetupChangedLimits(IReadOnlyList<string> limits, JsonObject proposed) =>
         MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([])
+            .Setup(x =>
+                x.GetChangedLimits(
+                    It.Is<JsonElement>(element =>
+                        JsonElement.DeepEquals(
+                            element,
+                            JsonSerializer.SerializeToElement(new JsonObject())
+                        )
+                    ),
+                    It.Is<JsonElement>(element =>
+                        JsonElement.DeepEquals(element, JsonSerializer.SerializeToElement(proposed))
+                    )
+                )
+            )
+            .Returns(limits)
             .Verifiable();
 
     private void SetupInvalidSettings() =>
@@ -745,10 +759,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTenantRefuses_ReturnsForbiddenWithoutWriting()
     {
         SetupValidSettings();
-        MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns(["some_limit"])
-            .Verifiable();
+        SetupChangedLimits(["some_limit"], new JsonObject { ["some_limit"] = "10" });
         SetupStore();
         MockStore
             .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))

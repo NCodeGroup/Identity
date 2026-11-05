@@ -693,10 +693,12 @@ internal class TeamApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
-        var limitRefusal = await AuthorizeLimitChangesOrDefaultAsync(
+        var changedLimits = SettingSerializer.GetChangedLimits(teamSettings.Value, settingsValue);
+        var authorityAbove = GetPlatformNode(httpContext);
+        var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
             httpContext,
-            SettingSerializer.GetChangedLimits(teamSettings.Value, settingsValue),
-            GetPlatformNode(httpContext)
+            changedLimits,
+            authorityAbove
         );
         if (limitRefusal is not null)
         {

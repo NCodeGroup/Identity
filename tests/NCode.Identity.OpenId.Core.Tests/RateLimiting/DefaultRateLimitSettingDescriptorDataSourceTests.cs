@@ -12,7 +12,7 @@ public class DefaultRateLimitSettingDescriptorDataSourceTests : BaseTests
     private DefaultRateLimitSettingDescriptorDataSource CreateDataSource() =>
         new(CreateStrictMock<INullChangeToken>().Object);
 
-    #region Collection Tests
+    #region Collection Property Tests
 
     [Fact]
     public void Collection_WhenEnumerated_EachIsALimitThatMergesWithAMeet()

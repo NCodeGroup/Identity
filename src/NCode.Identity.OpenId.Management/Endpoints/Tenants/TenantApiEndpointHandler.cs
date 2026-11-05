@@ -1447,10 +1447,12 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var limitRefusal = await AuthorizeLimitChangesOrDefaultAsync(
+        var changedLimits = SettingSerializer.GetChangedLimits(tenantSettings.Value, settingsValue);
+        var authorityAbove = GetTeamNode(httpContext, tenant.TeamId);
+        var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
             httpContext,
-            SettingSerializer.GetChangedLimits(tenantSettings.Value, settingsValue),
-            GetTeamNode(httpContext, tenant.TeamId)
+            changedLimits,
+            authorityAbove
         );
         if (limitRefusal is not null)
         {

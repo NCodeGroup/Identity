@@ -236,10 +236,17 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .Returns([])
             .Verifiable();
 
-    private void SetupNoChangedLimits() =>
+    private void SetupNoChangedLimits() => SetupChangedLimits([]);
+
+    private void SetupChangedLimits(IReadOnlyList<string> limits) =>
         MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([])
+            .Setup(x =>
+                x.GetChangedLimits(
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, EmptyObject())),
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, FooObject()))
+                )
+            )
+            .Returns(limits)
             .Verifiable();
 
     private void SetupInvalidSettings() =>
@@ -321,6 +328,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
+
+    private static JsonElement FooObject() =>
+        JsonSerializer.SerializeToElement(new JsonObject { ["foo"] = "bar" });
 
     private static bool HasProperty(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
@@ -1378,10 +1388,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenALimitChangesAndThePlatformRefuses_ReturnsForbiddenWithoutWriting()
     {
         SetupValidSettings();
-        MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([OpenIdSettingNames.MaxTenants])
-            .Verifiable();
+        SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
         SetupStore();
         SetupTeamSettings(CreateSettings("settings-ct"));
         SetupAuthorization(AuthorizationResult.Success());
@@ -1417,10 +1424,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenALimitChangesAndThePlatformAuthorizes_Writes()
     {
         SetupValidSettings();
-        MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([OpenIdSettingNames.MaxTenants])
-            .Verifiable();
+        SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
         SetupStore();
         var settings = CreateSettings("settings-ct");
         SetupTeamSettings(settings);

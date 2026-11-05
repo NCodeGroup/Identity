@@ -334,10 +334,17 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns([])
             .Verifiable();
 
-    private void SetupNoChangedLimits() =>
+    private void SetupNoChangedLimits() => SetupChangedLimits([]);
+
+    private void SetupChangedLimits(IReadOnlyList<string> limits) =>
         MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([])
+            .Setup(x =>
+                x.GetChangedLimits(
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, EmptyObject())),
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, FooObject()))
+                )
+            )
+            .Returns(limits)
             .Verifiable();
 
     private void SetupInvalidSettings() =>
@@ -409,6 +416,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
+
+    private static JsonElement FooObject() =>
+        JsonSerializer.SerializeToElement(new JsonObject { ["foo"] = "bar" });
 
     private static PersistedTenant CreateTenant(string concurrencyToken, string? issuer = null) =>
         new()
@@ -1342,10 +1352,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTeamRefuses_ReturnsForbiddenWithoutWriting()
     {
         SetupValidSettings();
-        MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([OpenIdSettingNames.RateLimitTenantPerMinute])
-            .Verifiable();
+        SetupChangedLimits([OpenIdSettingNames.RateLimitTenantPerMinute]);
         SetupStore();
         MockTenantStore
             .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
@@ -1391,10 +1398,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupTenantChangedAnnouncement();
         SetupTenantChangedAudit();
         SetupValidSettings();
-        MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([OpenIdSettingNames.RateLimitTenantPerMinute])
-            .Verifiable();
+        SetupChangedLimits([OpenIdSettingNames.RateLimitTenantPerMinute]);
         SetupStore();
         var settings = CreateSettings("settings-ct");
         MockTenantStore
@@ -4489,6 +4493,23 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
 
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenTheTenantDoesNotExist_ReturnsNotFound()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(null);
+
+        var result = await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
     }
 
     [Fact]

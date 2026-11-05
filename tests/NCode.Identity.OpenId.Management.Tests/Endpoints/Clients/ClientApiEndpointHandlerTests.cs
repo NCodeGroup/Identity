@@ -315,11 +315,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns([])
             .Verifiable();
 
-    private void SetupNoChangedLimits() =>
+    private void SetupNoChangedLimits(string name, string value) =>
+        SetupChangedLimits([], name, value);
+
+    private void SetupChangedLimits(IReadOnlyList<string> limits, string name, string value)
+    {
+        var proposed = JsonSerializer.SerializeToElement(new JsonObject { [name] = value });
         MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([])
+            .Setup(x =>
+                x.GetChangedLimits(
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, EmptyObject())),
+                    It.Is<JsonElement>(element => JsonElement.DeepEquals(element, proposed))
+                )
+            )
+            .Returns(limits)
             .Verifiable();
+    }
 
     private void SetupInvalidSettings() =>
         MockSettingSerializer
@@ -1370,7 +1381,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupClientChangedAudit();
         SetupValidSettings();
-        SetupNoChangedLimits();
+        SetupNoChangedLimits("name", "value");
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1452,7 +1463,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task UpdateSettingsAsync_WhenARegisteredAlgorithmIsNotPermitted_ReturnsValidationProblem()
     {
         SetupValidSettings();
-        SetupNoChangedLimits();
+        SetupNoChangedLimits(OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256");
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1507,7 +1518,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithPublicKeys_ReturnsConflict()
     {
         SetupValidSettings();
-        SetupNoChangedLimits();
+        SetupNoChangedLimits(OpenIdSettingNames.JwksUri, "https://client.example/jwks");
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1537,7 +1548,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupClientChangedAudit();
         SetupValidSettings();
-        SetupNoChangedLimits();
+        SetupNoChangedLimits(OpenIdSettingNames.JwksUri, "https://client.example/jwks");
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1668,7 +1679,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupClientChangedAudit();
         SetupClientSecretChangedAudit();
         SetupValidSettings();
-        SetupNoChangedLimits();
+        SetupNoChangedLimits(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post");
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1724,7 +1735,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupClientChangedAudit();
         SetupClientSecretChangedAudit();
         SetupValidSettings();
-        SetupNoChangedLimits();
+        SetupNoChangedLimits(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post");
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1771,7 +1782,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Issuing a secret is creating one, which needs the authority creating a secret needs.
         var issued = CreatePersistedSecret("issued-1");
         SetupValidSettings();
-        SetupNoChangedLimits();
+        SetupNoChangedLimits(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post");
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1831,10 +1842,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTenantRefuses_ReturnsForbiddenWithoutWriting()
     {
         SetupValidSettings();
-        MockSettingSerializer
-            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
-            .Returns([OpenIdSettingNames.RateLimitClientPerMinute])
-            .Verifiable();
+        SetupChangedLimits(
+            [OpenIdSettingNames.RateLimitClientPerMinute],
+            OpenIdSettingNames.RateLimitClientPerMinute,
+            "10"
+        );
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))

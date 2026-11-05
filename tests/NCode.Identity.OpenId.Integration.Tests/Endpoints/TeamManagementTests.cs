@@ -1018,6 +1018,11 @@ public class TeamManagementTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
+        Assert.Contains(
+            OpenIdSettingNames.RateLimitTenantPerMinute,
+            body,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion

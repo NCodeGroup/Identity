@@ -71,8 +71,8 @@ internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken null
             };
 
             // quota_tenant_requests_per_day: the most requests the tenant's protocol endpoints serve in one UTC calendar
-            // day; the platform writes a plan tier's quota on a team, and the team's administrators may set lower ones on its
-            // tenants (ADR-1198, ADR-1418).
+            // day; the platform writes a plan tier's quota on a team, and the team's administrators may set lower ones
+            // on its tenants (ADR-1198, ADR-1418).
             yield return new SettingDescriptor<int>
             {
                 Name = OpenIdSettingNames.QuotaTenantRequestsPerDay,

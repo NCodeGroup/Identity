@@ -38,7 +38,8 @@ internal static class TenantOwnedResource
 
 /// <summary>
 /// Wraps a persisted resource together with its owning tenant so that the ownership authorization
-/// handler judges, at its tenant's node, a resource that does not itself carry a tenant identifier — most notably an individual secret loaded by id.
+/// handler judges, at its tenant's node, a resource that does not itself carry a tenant identifier — most notably an
+/// individual secret loaded by id.
 /// The <see cref="ConcurrencyToken"/> delegates to the wrapped value so the <c>ETag</c> flow is unaffected.
 /// </summary>
 /// <typeparam name="TValue">The type of the wrapped resource.</typeparam>

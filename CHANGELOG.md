@@ -3646,6 +3646,7 @@ describes the family as it is rather than its changes
   administrators never reach the platform or a team
   ([ADR-1417](docs/decisions/1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
   [#556](https://github.com/NCodeGroup/Identity/issues/556)).
+
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
   authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a tenant's
   the limits its team sets. A client's registration update keeps the limits its settings carry
@@ -5216,9 +5217,10 @@ describes the family as it is rather than its changes
   `rate_limit_tenant_per_minute` (every request), `rate_limit_address_per_minute` (one remote address, an IPv6 address
   counted by its `/64`), and `rate_limit_client_per_minute` (one authenticated confidential client, set on the tenant or
   the client). Each is unset (unlimited) by default and merges with `Min`, and each is a limit, set by the
-  administrators above the tenant or client whose settings carry it. The limiter counts in the shared `IExpiringCounterSet` with a two-window sliding estimate, so the
-  limits hold across replicas that share Valkey. A refused request is answered `429 Too Many Requests` with
-  `temporarily_unavailable`, `Retry-After`, and `Cache-Control: no-store`, and is neither handled nor audited
+  administrators above the tenant or client whose settings carry it. The limiter counts in the shared
+  `IExpiringCounterSet` with a two-window sliding estimate, so the limits hold across replicas that share Valkey.
+  A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and
+  `Cache-Control: no-store`, and is neither handled nor audited
   ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
   [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
   [#84](https://github.com/NCodeGroup/Identity/issues/84),

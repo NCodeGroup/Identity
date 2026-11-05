@@ -319,6 +319,8 @@ NCode.Identity.OpenId.Tenants.TenantPlane.Root = 1 -> NCode.Identity.OpenId.Tena
 NCode.Identity.OpenId.Tenants.TenantPlane.Workload = 0 -> NCode.Identity.OpenId.Tenants.TenantPlane
 NCode.Identity.OpenId.Tenants.TenantSeedContext
 NCode.Identity.OpenId.Tenants.TenantSeedContext.Plane.get -> NCode.Identity.OpenId.Tenants.TenantPlane
+NCode.Identity.OpenId.Tenants.TenantSeedContext.PostCommitSteps.get -> System.Collections.Generic.IReadOnlyList<System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>!>!
+NCode.Identity.OpenId.Tenants.TenantSeedContext.RunAfterCommit(System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>! step) -> void
 NCode.Identity.OpenId.Tenants.TenantSeedContext.Plane.init -> void
 NCode.Identity.OpenId.Tenants.TenantSeedContext.StoreManager.get -> NCode.Persistence.Stores.IStoreManager!
 NCode.Identity.OpenId.Tenants.TenantSeedContext.StoreManager.init -> void
@@ -1010,3 +1012,26 @@ NCode.Identity.OpenId.Teams.TeamChangedCommand.TeamId.init -> void
 NCode.Identity.OpenId.Tenants.IOpenIdTenantCache.RemoveTeamAsync(string! teamId, NCode.PropertyBag.IPropertyBag! propertyBag, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 const NCode.Identity.OpenId.OpenIdConstants.EndpointTags.Teams = "Teams" -> string!
 static NCode.Identity.OpenId.Tenants.TenantIdentifierRules.IsValidTenantId(string? tenantId) -> bool
+NCode.Identity.OpenId.Locales.IUiLocale
+NCode.Identity.OpenId.Locales.IUiLocale.LanguageTag.get -> string!
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog.Locales.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Locales.IUiLocale!>!
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog.Select(NCode.Identity.Settings.IReadOnlySettingCollection! settings, System.Collections.Generic.IEnumerable<string!>! preferredLanguageTags) -> NCode.Identity.OpenId.Locales.IUiLocale!
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog.Select(System.Collections.Generic.IEnumerable<string!>! preferredLanguageTags, System.Collections.Generic.IReadOnlyCollection<string!>? supportedLanguageTags, string? defaultLanguageTag) -> NCode.Identity.OpenId.Locales.IUiLocale!
+NCode.Identity.OpenId.Locales.IUiLocaleCatalog.TryGet(string! languageTag, out NCode.Identity.OpenId.Locales.IUiLocale! locale) -> bool
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.DefaultUiLocale = "default_ui_locale" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.DefaultUiLocale.get -> NCode.Identity.Settings.SettingKey<string!>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.AuditUserInfoAccess = "audit_userinfo_access" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAuthenticationFailedAttemptsAddressLimit = "client_authentication_failed_attempts_address_limit" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAuthenticationFailedAttemptsLimit = "client_authentication_failed_attempts_limit" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.ClientAuthenticationFailedAttemptsWindow = "client_authentication_failed_attempts_window" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.AuditUserInfoAccess.get -> NCode.Identity.Settings.SettingKey<bool>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsAddressLimit.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsLimit.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.ClientAuthenticationFailedAttemptsWindow.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyActivationDelay = "tenant_key_activation_delay" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyLifetime = "tenant_key_lifetime" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.TenantKeyRetirementGrace = "tenant_key_retirement_grace" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyActivationDelay.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyLifetime.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.TenantKeyRetirementGrace.get -> NCode.Identity.Settings.SettingKey<System.TimeSpan>

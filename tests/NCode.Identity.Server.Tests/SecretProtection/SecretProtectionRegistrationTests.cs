@@ -51,6 +51,10 @@ public class SecretProtectionRegistrationTests : BaseTests
         descriptor.ServiceType == typeof(IHostedService)
         && descriptor.ImplementationType == typeof(DataProtectionKeyRingGate);
 
+    private static bool IsRefreshService(ServiceDescriptor descriptor) =>
+        descriptor.ServiceType == typeof(IHostedService)
+        && descriptor.ImplementationType == typeof(ServerSecretProtectorRefreshService);
+
     #region AddSecretProtection Tests
 
     [Fact]
@@ -73,6 +77,7 @@ public class SecretProtectionRegistrationTests : BaseTests
     [InlineData("SecretProtection:RootKeyProvider")]
     [InlineData("secretprotection:ROOTKEYPROVIDER")]
     [InlineData("SecretProtection:recovery:Disabled")]
+    [InlineData("SecretProtection:MASTERKEYS:DestroyRetired")]
     [InlineData("SecretProtection:ROOTKEYPROVIDERS:Local:KeyPath")]
     public void AddSecretProtection_KnownChildInAnyCase_DoesNotThrow(string key)
     {
@@ -101,6 +106,50 @@ public class SecretProtectionRegistrationTests : BaseTests
         Assert.Equal("aws-kms", options.RootKeyProvider);
         Assert.Equal("/recovery/recovery-public.pem", options.Recovery.PublicKeyPath);
         Assert.False(options.Recovery.Disabled);
+    }
+
+    [Fact]
+    public void AddSecretProtection_BindsMasterKeys()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
+                ["SecretProtection:MasterKeys:RotationPeriod"] = "180.00:00:00",
+                ["SecretProtection:MasterKeys:RefreshInterval"] = "00:10:00",
+                ["SecretProtection:MasterKeys:RetirementGrace"] = "7.00:00:00",
+                ["SecretProtection:MasterKeys:MaintenanceInterval"] = "12:00:00",
+                ["SecretProtection:MasterKeys:DestroyRetired"] = "false",
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var keys = serviceProvider
+            .GetRequiredService<IOptions<SecretProtectionOptions>>()
+            .Value.MasterKeys;
+
+        Assert.Equal(TimeSpan.FromDays(180), keys.RotationPeriod);
+        Assert.Equal(TimeSpan.FromMinutes(10), keys.RefreshInterval);
+        Assert.Equal(TimeSpan.FromDays(7), keys.RetirementGrace);
+        Assert.Equal(TimeSpan.FromHours(12), keys.MaintenanceInterval);
+        Assert.False(keys.DestroyRetired);
+    }
+
+    [Fact]
+    public void AddSecretProtection_UnknownMasterKeysChild_FailsStrictBinding()
+    {
+        var serviceCollection = AddSecretProtection(
+            new Dictionary<string, string?>
+            {
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
+                ["SecretProtection:MasterKeys:Rotation"] = "1.00:00:00",
+            }
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        Assert.ThrowsAny<Exception>(() =>
+            serviceProvider.GetRequiredService<IOptions<SecretProtectionOptions>>().Value
+        );
     }
 
     [Theory]
@@ -247,6 +296,27 @@ public class SecretProtectionRegistrationTests : BaseTests
         Assert.True(IsWarmup(serviceCollection[0]));
         Assert.True(IsKeyRingGate(serviceCollection[1]));
         Assert.Equal(typeof(StubHostedService), serviceCollection[2].ImplementationType);
+    }
+
+    [Fact]
+    public void AddSecretProtection_RegistersTheRefreshServiceAfterTheKeyRingGate()
+    {
+        var serviceCollection = AddSecretProtection([]);
+
+        var gate = serviceCollection.ToList().FindIndex(d => IsKeyRingGate(d));
+        var refresh = serviceCollection.ToList().FindIndex(d => IsRefreshService(d));
+
+        Assert.True(gate >= 0);
+        Assert.True(refresh > gate);
+    }
+
+    [Fact]
+    public void AddSecretProtection_CalledTwice_RegistersTheRefreshServiceOnce()
+    {
+        var serviceCollection = AddSecretProtection([]);
+        AddSecretProtection([], serviceCollection);
+
+        Assert.Single(serviceCollection, IsRefreshService);
     }
 
     [Fact]

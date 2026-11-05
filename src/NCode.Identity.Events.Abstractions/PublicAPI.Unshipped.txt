@@ -6,6 +6,7 @@ const NCode.Identity.Events.Audit.AuditActorTypes.EndUser = "end_user" -> string
 const NCode.Identity.Events.Audit.AuditActorTypes.System = "system" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Authentication = "authentication" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Authorization = "authorization" -> string!
+const NCode.Identity.Events.Audit.AuditEventCategories.DataAccess = "data_access" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Management = "management" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Protocol = "protocol" -> string!
 const NCode.Identity.Events.Audit.AuditEventCategories.Session = "session" -> string!
@@ -197,3 +198,7 @@ NCode.Identity.Events.ISupportMetricAttributes
 NCode.Identity.Events.ISupportMetricAttributes.AddMetricAttributes(ref System.Diagnostics.TagList tags) -> void
 virtual NCode.Identity.Events.Audit.ResourceChangeAuditEvent.ParentResources.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Events.Audit.AuditResource!>!
 virtual NCode.Identity.Events.Audit.ResourceChangeAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+const NCode.Identity.Events.Audit.AuditEventCategories.Key = "key" -> string!
+const NCode.Identity.Events.Audit.AuditResourceTypes.Tenant = "tenant" -> string!
+const NCode.Identity.Events.Audit.AuditResourceTypes.TenantSecret = "tenant.secret" -> string!
+const NCode.Identity.Events.Audit.AuditResourceTypes.MasterKey = "master_key" -> string!

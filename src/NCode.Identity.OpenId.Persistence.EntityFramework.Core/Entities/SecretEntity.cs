@@ -78,6 +78,21 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required DateTimeOffset CreatedWhen { get; init; }
 
     /// <summary>
+    /// Gets or sets the <see cref="DateTimeOffset"/> when this secret's active window opens and it starts to sign or
+    /// encrypt. Never before <see cref="CreatedWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public required DateTimeOffset ActivatesWhen { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <see cref="DateTimeOffset"/> when this secret's active window closes and it stops signing or
+    /// encrypting, while it still verifies or decrypts until <see cref="ExpiresWhen"/>. Never before
+    /// <see cref="ActivatesWhen"/>, never after <see cref="ExpiresWhen"/>.
+    /// </summary>
+    // See ADR-1403.
+    public required DateTimeOffset RetiresWhen { get; set; }
+
+    /// <summary>
     /// Gets or sets the <see cref="DateTimeOffset"/> when this secret expires and is no longer valid.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; set; }
@@ -108,6 +123,15 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required string Origin { get; init; }
 
     /// <summary>
+    /// Gets the name of the component that manages the secret's lifecycle on its own, or <c>null</c> when the secret
+    /// keeps the lifecycle its creator gave it. See <see cref="PersistedSecret.ManagedBy"/>.
+    /// </summary>
+    // See ADR-1404.
+    [Unicode(false)]
+    [MaxLength(SecretMaxLengths.ManagedBy)]
+    public required string? ManagedBy { get; init; }
+
+    /// <summary>
     /// Gets the size, in bits, of the key material.
     /// For asymmetric keys, this is the size of the modulus.
     /// For symmetric keys, this is the size of the actual key material.
@@ -115,11 +139,12 @@ public sealed class SecretEntity : ISupportConcurrencyToken
     public required int KeySizeBits { get; init; }
 
     /// <summary>
-    /// Gets the base64url encoded value of the key material.
+    /// Gets or sets the base64url encoded value of the key material. The material is immutable; a rewrap replaces
+    /// the envelope that protects it.
     /// </summary>
     [Unicode(false)]
     [MaxLength(SecretMaxLengths.EncodedValue)]
-    public required string EncodedValue { get; init; }
+    public required string EncodedValue { get; set; }
 
     /// <summary>
     /// Gets the base64url-encoded <c>SubjectPublicKeyInfo</c> DER of the public half of a private asymmetric key, or

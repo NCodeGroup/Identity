@@ -81,6 +81,10 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
         Assert.Contains("read:clients", values);
         Assert.DoesNotContain("read:platform_settings", values);
         Assert.DoesNotContain("read:tenants", values);
+        Assert.Contains("read:encryption_keys", values);
+        Assert.Contains("update:encryption_keys", values);
+        Assert.DoesNotContain("read:server_encryption_keys", values);
+        Assert.DoesNotContain("update:server_encryption_keys", values);
     }
 
     [Fact]
@@ -96,6 +100,10 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
         Assert.Contains("update:team_settings", values);
         Assert.Contains("create:tenants", values);
         Assert.Contains("read:tenants", values);
+        Assert.Contains("read:encryption_keys", values);
+        Assert.Contains("update:encryption_keys", values);
+        Assert.Contains("read:server_encryption_keys", values);
+        Assert.Contains("update:server_encryption_keys", values);
     }
 
     [Fact]

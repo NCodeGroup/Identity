@@ -16,6 +16,7 @@ import {
   SESSIONS_PATH,
   resolveSurfacePath,
 } from './params.js';
+import { useLocale } from './i18n/LocaleContext.js';
 import { fetchSurfaceJson } from './surfaceFetch.js';
 
 /** The current end-user session the account page renders (mirrors the OP's `/account/me` payload). */
@@ -45,11 +46,11 @@ async function fetchSession(): Promise<AccountSession | null> {
   return fetchSurfaceJson<AccountSession>(ME_ENDPOINT, ACCOUNT_PATH);
 }
 
-function formatAuthTime(authTime: number | null | undefined): string | null {
+function formatAuthTime(authTime: number | null | undefined, locale: string): string | null {
   if (typeof authTime !== 'number') {
     return null;
   }
-  return new Date(authTime * 1000).toLocaleString();
+  return new Date(authTime * 1000).toLocaleString(locale);
 }
 
 /**
@@ -62,6 +63,7 @@ export function AccountPage({
   productName,
   loadSession = fetchSession,
 }: AccountPageProps) {
+  const { locale, messages } = useLocale();
   const [session, setSession] = useState<AccountSession | null>(null);
 
   useEffect(() => {
@@ -80,7 +82,8 @@ export function AccountPage({
     };
   }, [loadSession]);
 
-  const authTime = formatAuthTime(session?.authTime);
+  const authTime = formatAuthTime(session?.authTime, locale);
+  const text = messages.account;
 
   return (
     <Box
@@ -96,32 +99,40 @@ export function AccountPage({
         <CardContent>
           <Stack spacing={3}>
             <Typography variant="h5" component="h1">
-              {productName ? `${productName} account` : 'Your account'}
+              {productName ? text.titleFor(productName) : text.title}
             </Typography>
 
             {session ? (
               <Stack spacing={1} data-testid="account-session">
                 <Typography>
-                  Signed in as <strong>{session.name ?? session.subject}</strong>
+                  {text.signedInAs} <strong>{session.name ?? session.subject}</strong>
                 </Typography>
                 <Divider />
-                <DetailRow label="Subject" value={session.subject} testId="account-subject" />
+                <DetailRow label={text.subject} value={session.subject} testId="account-subject" />
                 {authTime ? (
-                  <DetailRow label="Signed in at" value={authTime} testId="account-auth-time" />
+                  <DetailRow label={text.signedInAt} value={authTime} testId="account-auth-time" />
                 ) : null}
                 {session.amr && session.amr.length > 0 ? (
-                  <DetailRow label="Methods" value={session.amr.join(', ')} testId="account-amr" />
+                  <DetailRow
+                    label={text.methods}
+                    value={session.amr.join(', ')}
+                    testId="account-amr"
+                  />
                 ) : null}
                 {session.idp ? (
-                  <DetailRow label="Identity provider" value={session.idp} testId="account-idp" />
+                  <DetailRow
+                    label={text.identityProvider}
+                    value={session.idp}
+                    testId="account-idp"
+                  />
                 ) : null}
                 {session.sessionId ? (
-                  <DetailRow label="Session" value={session.sessionId} testId="account-sid" />
+                  <DetailRow label={text.session} value={session.sessionId} testId="account-sid" />
                 ) : null}
               </Stack>
             ) : (
               <Typography data-testid="account-loading" sx={{ color: 'text.secondary' }}>
-                Loading your session…
+                {text.loading}
               </Typography>
             )}
 
@@ -137,16 +148,16 @@ export function AccountPage({
                 color="error"
                 fullWidth
               >
-                Sign out
+                {text.signOut}
               </Button>
             </Stack>
 
             <Button href={resolveSurfacePath(SESSIONS_PATH)} variant="text">
-              Manage active sessions
+              {text.manageSessions}
             </Button>
 
             <Button href={resolveSurfacePath(PASSWORD_PATH)} variant="text">
-              Change password
+              {text.changePassword}
             </Button>
           </Stack>
         </CardContent>

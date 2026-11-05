@@ -70,19 +70,24 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
     }
 
     private SecretKey CreateRsaKey(string keyId, RSA rsa, string? use, string? algorithm) =>
-        _serviceProvider
-            .GetRequiredService<ISecretKeyFactory>()
-            .CreateRsa(
-                new KeyMetadata
-                {
-                    KeyId = keyId,
-                    Use = use,
-                    Algorithm = algorithm,
-                },
-                rsa
-            );
+        CreateRsaKey(
+            rsa,
+            new KeyMetadata
+            {
+                KeyId = keyId,
+                Use = use,
+                Algorithm = algorithm,
+            }
+        );
 
-    private SecretKey CreateCertificateKey(DateTimeOffset notBefore, DateTimeOffset notAfter)
+    private SecretKey CreateRsaKey(RSA rsa, KeyMetadata metadata) =>
+        _serviceProvider.GetRequiredService<ISecretKeyFactory>().CreateRsa(metadata, rsa);
+
+    private SecretKey CreateCertificateKey(
+        DateTimeOffset notBefore,
+        DateTimeOffset notAfter,
+        DateTimeOffset? expiresWhen = null
+    )
     {
         var request = new CertificateRequest(
             "CN=client",
@@ -93,7 +98,10 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         using var certificate = request.CreateSelfSigned(notBefore, notAfter);
         return _serviceProvider
             .GetRequiredService<ISecretKeyFactory>()
-            .Create(new KeyMetadata { KeyId = "client-cert" }, certificate);
+            .Create(
+                new KeyMetadata { KeyId = "client-cert", ExpiresWhen = expiresWhen },
+                certificate
+            );
     }
 
     private JoseSigningCredentials CreateSigningCredentials(
@@ -274,9 +282,11 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         string expectedMessage
     )
     {
+        // The key's own expiry lies ahead, so the key is tried and the certificate's validity is what refuses it.
         var certificateKey = CreateCertificateKey(
             _utcNow.AddMinutes(notBeforeMinutes),
-            _utcNow.AddMinutes(notAfterMinutes)
+            _utcNow.AddMinutes(notAfterMinutes),
+            expiresWhen: _utcNow.AddDays(1)
         );
         var token = EncodeToken(
             CreateSigningCredentials(certificateKey),
@@ -594,6 +604,102 @@ public sealed class DefaultJwtValidatorTests : IAsyncLifetime, IDisposable
         var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
 
         var result = await ValidateAsync(token, x => x.UseValidationKeys([pssOnlyKey]));
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheCertificateKeyExpiredPastTheClockSkew_IsNotTried()
+    {
+        // A certificate key expires with its certificate, so one that expired beyond the clock skew is never tried,
+        // whatever the certificate requirement would say.
+        var certificateKey = CreateCertificateKey(
+            _utcNow.AddMinutes(-120),
+            _utcNow.AddMinutes(-60)
+        );
+        var token = EncodeToken(
+            CreateSigningCredentials(certificateKey),
+            encryptionCredentials: null
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([certificateKey]).ValidateCertificateLifeTime()
+        );
+
+        Assert.False(result.IsValid);
+        Assert.Equal(JwtValidationFailureCodes.KeyNotFound, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheKeyExpiredWithinTheClockSkew_StillVerifiesWithIt()
+    {
+        var justExpiredKey = CreateRsaKey(
+            _clientRsa,
+            new KeyMetadata { KeyId = "client-just-expired", ExpiresWhen = _utcNow.AddMinutes(-1) }
+        );
+        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+
+        var result = await ValidateAsync(token, x => x.UseValidationKeys([justExpiredKey]));
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheKeyHasExpired_DoesNotVerifyWithIt()
+    {
+        // The key expired beyond the clock skew, so a token it signed, however fresh, is refused: a key verifies only
+        // within its validity window (ADR-1403).
+        var expiredKey = CreateRsaKey(
+            _clientRsa,
+            new KeyMetadata { KeyId = "client-expired", ExpiresWhen = _utcNow.AddMinutes(-6) }
+        );
+        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+
+        var result = await ValidateAsync(token, x => x.UseValidationKeys([expiredKey]));
+
+        Assert.False(result.IsValid);
+        Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);
+        Assert.Equal(JwtValidationFailureCodes.KeyNotFound, result.FailureCode);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheKeyIsRetiredButNotExpired_VerifiesWithIt()
+    {
+        // A retired key signs nothing more but still verifies what it signed until it expires (ADR-1403).
+        var retiredKey = CreateRsaKey(
+            _clientRsa,
+            new KeyMetadata
+            {
+                KeyId = "client-retired",
+                RetiresWhen = _utcNow.AddDays(-1),
+                ExpiresWhen = _utcNow.AddSeconds(1),
+            }
+        );
+        var token = EncodeToken(CreateSigningCredentials(SigningKey), encryptionCredentials: null);
+
+        var result = await ValidateAsync(token, x => x.UseValidationKeys([retiredKey]));
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheDecryptionKeyHasExpired_FailsWithDecryptionFailed()
+    {
+        var expiredKey = CreateRsaKey(
+            _serverRsa,
+            new KeyMetadata { KeyId = "server-expired", ExpiresWhen = _utcNow.AddMinutes(-6) }
+        );
+        var token = EncodeToken(
+            CreateSigningCredentials(SigningKey),
+            CreateEncryptionCredentials()
+        );
+
+        var result = await ValidateAsync(
+            token,
+            x => x.UseValidationKeys([SigningKey]).UseDecryptionKeys([expiredKey])
+        );
 
         Assert.False(result.IsValid);
         Assert.IsType<JwtSecretKeyNotFoundException>(result.Exception);

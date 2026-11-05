@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { LoginForm } from './LoginForm.js';
+import { LocaleProvider } from './i18n/LocaleContext.js';
 
 function renderForm(props: Parameters<typeof LoginForm>[0]) {
   return render(
@@ -142,5 +143,29 @@ describe('LoginForm', () => {
     expect(submitted.get('ReturnUrl')).toBe('/authorize?x=1');
     expect(submitted.get('__RequestVerificationToken')).toBe('the-token');
     expect(submitted.get('login')).toBe('login');
+  });
+
+  it('carries no language when the page has none', () => {
+    const { container } = renderForm({ returnUrl: '/', antiforgeryToken: 't' });
+
+    expect(container.querySelector('input[name="ui_locales"]')).toBeNull();
+  });
+
+  it('renders in the language the host selected and carries it back on the form', () => {
+    const { container } = render(
+      <LocaleProvider pageLanguage="fr">
+        <AppThemeProvider>
+          <LoginForm returnUrl="/" antiforgeryToken="t" productName="Acme" />
+        </AppThemeProvider>
+      </LocaleProvider>,
+    );
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Se connecter à Acme');
+    expect(screen.getByLabelText(/Nom d’utilisateur/)).toBe(container.querySelector('#username'));
+    expect(screen.getByRole('button', { name: 'Se connecter' })).toBe(
+      container.querySelector('#login'),
+    );
+    const carried = container.querySelector('input[name="ui_locales"]') as HTMLInputElement | null;
+    expect(carried?.value).toBe('fr');
   });
 });

@@ -39,6 +39,11 @@ public static class SecretMaxLengths
     public const int Origin = 100;
 
     /// <summary>
+    /// Specifies the maximum length of the <c>ManagedBy</c> field.
+    /// </summary>
+    public const int ManagedBy = 100;
+
+    /// <summary>
     /// Specifies the maximum length of the <c>KeyId</c> field (a key's <c>kid</c>).
     /// </summary>
     public const int KeyId = 300;

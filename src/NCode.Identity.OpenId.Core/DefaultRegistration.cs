@@ -9,6 +9,7 @@ using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Results;
+using NCode.Identity.OpenId.SecretProtection;
 using NCode.Identity.OpenId.Serialization;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Teams;
@@ -42,6 +43,7 @@ public static class DefaultRegistration
                 .AddContextServices()
                 .AddPlatformServices()
                 .AddSettingServices()
+                .AddSecretProtectionServices()
                 .AddTenantResolutionServices()
                 .AddTeamServices()
                 .AddPrincipalResolutionServices();

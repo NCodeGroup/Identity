@@ -179,8 +179,9 @@ internal class Pbes2KeyManagementAlgorithm(
             );
         }
 
-        var saltInputByteCount = Base64Url.GetByteCountForDecode(saltInputString.Length);
-        if (saltInputByteCount != SaltInputSizeBytes)
+        // The salt input is base64url without padding (RFC 7515 §2), so its length shows its decoded size without
+        // decoding it.
+        if (saltInputString.Length != Base64Url.GetCharCountForEncode(SaltInputSizeBytes))
         {
             throw new JoseException(
                 "The salt input ('p2s') does not have a valid size for this cryptographic algorithm."
@@ -221,12 +222,7 @@ internal class Pbes2KeyManagementAlgorithm(
 
         var saltInput = salt[(algByteCount + 1)..];
         Debug.Assert(saltInput.Length == SaltInputSizeBytes);
-        var saltInputResult = Base64Url.TryDecode(
-            saltInputString,
-            saltInput,
-            out var saltInputBytesWritten
-        );
-        Debug.Assert(saltInputResult && saltInputBytesWritten == SaltInputSizeBytes);
+        DecodeSaltInput(saltInputString, saltInput);
 
         // increase our chances for a single-segment buffer
         using var privateKeyBuffer = BufferFactory.CreatePooledBufferWriter(
@@ -251,5 +247,31 @@ internal class Pbes2KeyManagementAlgorithm(
 
         bytesWritten = contentKeyWriter.WrittenCount;
         return true;
+    }
+
+    private static void DecodeSaltInput(string saltInputString, Span<byte> saltInput)
+    {
+        // The salt input is read from the JWE header, so a value that does not decode to exactly the salt input's size
+        // is refused before any key is derived from it.
+        bool decoded;
+        int bytesWritten;
+        try
+        {
+            decoded = Base64Url.TryDecode(saltInputString, saltInput, out bytesWritten);
+        }
+        catch (FormatException exception)
+        {
+            throw new JoseException(
+                "The salt input ('p2s') in the JWT header is not valid base64url.",
+                exception
+            );
+        }
+
+        if (!decoded || bytesWritten != SaltInputSizeBytes)
+        {
+            throw new JoseException(
+                "The salt input ('p2s') in the JWT header is not valid base64url."
+            );
+        }
     }
 }

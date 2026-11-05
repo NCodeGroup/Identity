@@ -101,4 +101,41 @@ public class SecretOwnerTests
     }
 
     #endregion
+
+    #region TryParse Tests
+
+    [Theory]
+    [InlineData("tenant:tenant-1", "tenant", "tenant-1")]
+    [InlineData("server:a:b", "server", "a:b")]
+    public void TryParse_ValidText_ReturnsOwner(string text, string ownerType, string ownerId)
+    {
+        Assert.True(SecretOwner.TryParse(text, out var owner));
+        Assert.Equal(ownerType, owner.OwnerType);
+        Assert.Equal(ownerId, owner.OwnerId);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("tenant")]
+    [InlineData(":id")]
+    [InlineData("tenant:")]
+    [InlineData(" :id")]
+    [InlineData("tenant:  ")]
+    public void TryParse_InvalidText_ReturnsFalse(string? text)
+    {
+        Assert.False(SecretOwner.TryParse(text, out var owner));
+        Assert.Equal(default, owner);
+    }
+
+    [Fact]
+    public void TryParse_RoundTripsToString()
+    {
+        var owner = SecretOwner.ForTenant("tenant-1");
+
+        Assert.True(SecretOwner.TryParse(owner.ToString(), out var parsed));
+        Assert.Equal(owner, parsed);
+    }
+
+    #endregion
 }

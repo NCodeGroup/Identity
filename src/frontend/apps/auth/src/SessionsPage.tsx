@@ -16,6 +16,7 @@ import {
   SESSIONS_REVOKE_ALL_ACTION,
   resolveSurfacePath,
 } from './params.js';
+import { useLocale } from './i18n/LocaleContext.js';
 import { fetchSurfaceJson } from './surfaceFetch.js';
 
 /** One active session of the end-user (mirrors the OP's `/account/sessions/list` payload). */
@@ -52,11 +53,11 @@ async function fetchSessions(): Promise<readonly ActiveSession[] | null> {
   return payload ? (payload.sessions ?? []) : null;
 }
 
-function formatTimestamp(seconds: number | null | undefined): string | null {
+function formatTimestamp(seconds: number | null | undefined, locale: string): string | null {
   if (typeof seconds !== 'number') {
     return null;
   }
-  return new Date(seconds * 1000).toLocaleString();
+  return new Date(seconds * 1000).toLocaleString(locale);
 }
 
 /**
@@ -70,6 +71,8 @@ export function SessionsPage({
   productName,
   loadSessions = fetchSessions,
 }: SessionsPageProps) {
+  const { locale, messages } = useLocale();
+  const text = messages.sessions;
   const [sessions, setSessions] = useState<readonly ActiveSession[] | null>(null);
 
   useEffect(() => {
@@ -104,16 +107,16 @@ export function SessionsPage({
         <CardContent>
           <Stack spacing={3}>
             <Typography variant="h5" component="h1">
-              {productName ? `${productName} — active sessions` : 'Active sessions'}
+              {productName ? text.titleFor(productName) : text.title}
             </Typography>
 
             {sessions === null ? (
               <Typography data-testid="sessions-loading" sx={{ color: 'text.secondary' }}>
-                Loading your sessions…
+                {text.loading}
               </Typography>
             ) : sessions.length === 0 ? (
               <Typography data-testid="sessions-empty" sx={{ color: 'text.secondary' }}>
-                You have no other active sessions.
+                {text.empty}
               </Typography>
             ) : (
               <Stack spacing={2} data-testid="sessions-list">
@@ -125,11 +128,11 @@ export function SessionsPage({
                       sx={{ justifyContent: 'space-between', alignItems: 'center' }}
                     >
                       <Typography sx={{ wordBreak: 'break-word' }}>
-                        <strong>{session.userAgent ?? 'Unknown device'}</strong>
+                        <strong>{session.userAgent ?? text.unknownDevice}</strong>
                       </Typography>
                       {session.isCurrent ? (
                         <Chip
-                          label="This device"
+                          label={text.thisDevice}
                           color="success"
                           size="small"
                           data-testid="session-current"
@@ -150,27 +153,21 @@ export function SessionsPage({
                             color="error"
                             size="small"
                           >
-                            Sign out
+                            {text.signOut}
                           </Button>
                         </Stack>
                       )}
                     </Stack>
                     <Stack spacing={0.5} sx={{ mt: 1 }}>
-                      {session.ipAddress ? (
-                        <DetailRow label="IP address" value={session.ipAddress} />
-                      ) : null}
-                      {formatTimestamp(session.lastActivityWhen) ? (
-                        <DetailRow
-                          label="Last active"
-                          value={formatTimestamp(session.lastActivityWhen)!}
-                        />
-                      ) : null}
-                      {formatTimestamp(session.createdWhen) ? (
-                        <DetailRow
-                          label="Signed in"
-                          value={formatTimestamp(session.createdWhen)!}
-                        />
-                      ) : null}
+                      <DetailRow label={text.ipAddress} value={session.ipAddress} />
+                      <DetailRow
+                        label={text.lastActive}
+                        value={formatTimestamp(session.lastActivityWhen, locale)}
+                      />
+                      <DetailRow
+                        label={text.signedIn}
+                        value={formatTimestamp(session.createdWhen, locale)}
+                      />
                     </Stack>
                     <Divider sx={{ mt: 1 }} />
                   </Box>
@@ -188,7 +185,7 @@ export function SessionsPage({
                 <input type="hidden" name="scope" value="others" />
                 <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
                 <Button type="submit" variant="outlined" color="warning" fullWidth>
-                  Sign out everywhere else
+                  {text.signOutOthers}
                 </Button>
               </Stack>
             ) : null}
@@ -202,12 +199,12 @@ export function SessionsPage({
               <input type="hidden" name="scope" value="all" />
               <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
               <Button type="submit" variant="contained" color="error" fullWidth>
-                Sign out everywhere
+                {text.signOutAll}
               </Button>
             </Stack>
 
             <Button href={resolveSurfacePath(ACCOUNT_PATH)} variant="text">
-              Back to your account
+              {text.back}
             </Button>
           </Stack>
         </CardContent>
@@ -216,7 +213,17 @@ export function SessionsPage({
   );
 }
 
-function DetailRow({ label, value }: { readonly label: string; readonly value: string }) {
+/** One labelled detail of a session; a detail without a value draws nothing. */
+function DetailRow({
+  label,
+  value,
+}: {
+  readonly label: string;
+  readonly value: string | null | undefined;
+}) {
+  if (!value) {
+    return null;
+  }
   return (
     <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between' }}>
       <Typography variant="body2" sx={{ color: 'text.secondary' }}>

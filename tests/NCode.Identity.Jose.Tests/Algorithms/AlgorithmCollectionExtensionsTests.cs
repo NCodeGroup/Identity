@@ -294,7 +294,7 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
 
     [Theory]
     [InlineData(null, "secp256k1", "'secp256k1'")]
-    [InlineData(256, "P-384", "'P-384'")]
+    [InlineData(256, "secp256k1", "'secp256k1'")]
     [InlineData(320, null, "'320'")]
     public void TryResolveKeyGeneration_WhenCurveOrSizeIsNotOneTheAlgorithmAccepts_ReturnsError(
         int? keySizeBits,
@@ -393,13 +393,22 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
         Assert.Contains("'XX999'", error, StringComparison.Ordinal);
     }
 
-    // Only a declared size can make a curve the algorithm accepts refuse a key, so a refused curve without a declared
-    // size is reported without one.
-    [Fact]
-    public void TryResolveKeyGeneration_WhenCurveIsNotOneTheAlgorithmAcceptsAndNoSizeIsDeclared_ReportsNoSize()
+    [Theory]
+    [InlineData(null)]
+    [InlineData(384)]
+    public void TryResolveKeyGeneration_WhenCurveIsNotOneTheAlgorithmAccepts_ListsItsCurves(
+        int? keySizeBits
+    )
     {
         Assert.False(
-            TryResolve(typeof(EccSecretKey), null, "secp256k1", "ECDH-ES", out _, out var error)
+            TryResolve(
+                typeof(EccSecretKey),
+                keySizeBits,
+                "secp256k1",
+                "ECDH-ES",
+                out _,
+                out var error
+            )
         );
 
         Assert.Equal(
@@ -407,6 +416,113 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
                 + "'P-384' (384 bits), 'P-521' (521 bits).",
             error
         );
+    }
+
+    // See ADR-1398: a curve fixes the size of its keys, and the key type's descriptor refuses another size when it
+    // validates the generation parameters, so the resolver passes the declared size on.
+    [Fact]
+    public void TryResolveKeyGeneration_WhenCurveIsDeclaredWithASize_PassesTheSizeToTheKeyType()
+    {
+        Assert.True(
+            TryResolve(
+                typeof(EccSecretKey),
+                256,
+                "P-384",
+                "ECDH-ES",
+                out var resolved,
+                out var error
+            )
+        );
+
+        Assert.Null(error);
+        Assert.NotNull(resolved);
+        Assert.Equal("P-384", resolved.Curve);
+        Assert.Equal(256, resolved.KeySizeBits);
+    }
+
+    // An agreement that contributes a Brainpool curve beside the NIST curves, so two of the algorithm's curves share
+    // the 256-bit size.
+    private sealed class BrainpoolEcdhKeyAgreement : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            AlgorithmKeyType.OnCurves(
+                typeof(EccSecretKey),
+                [new("P-256", 256), new("brainpoolP256r1", 256), new("P-384", 384)]
+            );
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
+            throw new NotSupportedException();
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public void TryResolveKeyGeneration_WhenTwoCurvesHaveTheDeclaredSize_ReturnsError()
+    {
+        var collection = CreateEcdhCollection(new BrainpoolEcdhKeyAgreement());
+
+        var result = collection.TryResolveKeyGeneration(
+            new KeyGenerationDeclaration
+            {
+                KeyClrType = typeof(EccSecretKey),
+                KeySizeBits = 256,
+                Algorithm = "ECDH-ES",
+            },
+            out var resolved,
+            out var error
+        );
+
+        Assert.False(result);
+        Assert.Null(resolved);
+        Assert.Equal(
+            "The key size '256' bits does not select a curve for algorithm 'ECDH-ES', which accepts 'P-256', "
+                + "'brainpoolP256r1' at that size; name the curve.",
+            error
+        );
+    }
+
+    [Theory]
+    [InlineData(null, "brainpoolP256r1", "brainpoolP256r1", 256)]
+    [InlineData(256, "brainpoolP256r1", "brainpoolP256r1", 256)]
+    [InlineData(null, "P-256", "P-256", 256)]
+    [InlineData(384, null, "P-384", 384)]
+    [InlineData(null, null, "P-256", 256)]
+    public void TryResolveKeyGeneration_WhenTwoCurvesShareASize_ResolvesWhatSelectsOne(
+        int? keySizeBits,
+        string? curve,
+        string expectedCurve,
+        int expectedKeySizeBits
+    )
+    {
+        var collection = CreateEcdhCollection(new BrainpoolEcdhKeyAgreement());
+
+        var result = collection.TryResolveKeyGeneration(
+            new KeyGenerationDeclaration
+            {
+                KeyClrType = typeof(EccSecretKey),
+                KeySizeBits = keySizeBits,
+                Curve = curve,
+                Algorithm = "ECDH-ES",
+            },
+            out var resolved,
+            out var error
+        );
+
+        Assert.True(result);
+        Assert.Null(error);
+        Assert.NotNull(resolved);
+        Assert.Equal(expectedCurve, resolved.Curve);
+        Assert.Equal(expectedKeySizeBits, resolved.KeySizeBits);
     }
 
     [Fact]
@@ -482,6 +598,24 @@ public class AlgorithmCollectionExtensionsTests : BaseTests
 
         Assert.NotNull(error);
         Assert.Contains("type", error, StringComparison.Ordinal);
+    }
+
+    // See ADR-1398: an asymmetric key has parameters its type and size do not show, so it is checked by the key.
+    [Theory]
+    [InlineData("RS256", 2048)]
+    [InlineData("RSA-OAEP-256", 3072)]
+    public void ValidateKeySize_WhenKeyTypeIsAsymmetric_ReturnsError(
+        string algorithm,
+        int keySizeBits
+    )
+    {
+        var error = ValidateSize(typeof(RsaSecretKey), keySizeBits, null, algorithm);
+
+        Assert.Equal(
+            $"The algorithm '{algorithm}' is checked against an asymmetric key by the key itself, whose parameters "
+                + "its type and size do not show.",
+            error
+        );
     }
 
     // Type and size do not show a key's curve, so they never show that a curve-bound algorithm accepts the key.

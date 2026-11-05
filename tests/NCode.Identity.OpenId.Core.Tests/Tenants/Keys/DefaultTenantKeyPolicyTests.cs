@@ -122,13 +122,21 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     // composition does not, so no registered secret key type is one it accepts.
     private const string OkpKeyAlgorithm = "X-OKP";
 
-    // A signature algorithm that accepts keys of one runtime type, of no particular size.
-    private sealed class StubKeySignatureAlgorithm(string code, Type keyClrType)
-        : SignatureAlgorithm
+    // A registered signature algorithm keyed by RSA keys of one size, and one keyed by RSA keys of a size or more.
+    private const string ExactSizeKeyAlgorithm = "X-RSA-3072";
+    private const string OpenEndedSizeKeyAlgorithm = "X-RSA-2048-UP";
+
+    // A signature algorithm that accepts keys of one runtime type, of the given sizes or of no particular size.
+    private sealed class StubKeySignatureAlgorithm(
+        string code,
+        Type keyClrType,
+        params KeySizes[] keyBitSizes
+    ) : SignatureAlgorithm
     {
         public override string Code => code;
 
-        public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } = [new(keyClrType, [])];
+        public override IReadOnlyList<AlgorithmKeyType> KeyTypes { get; } =
+        [new(keyClrType, keyBitSizes)];
 
         public override HashAlgorithmName HashAlgorithmName => HashAlgorithmName.SHA256;
 
@@ -179,6 +187,16 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         [
             new StubKeySignatureAlgorithm(UntypedKeyAlgorithm, typeof(SecretKey)),
             new StubKeySignatureAlgorithm(OkpKeyAlgorithm, typeof(OkpSecretKey)),
+            new StubKeySignatureAlgorithm(
+                ExactSizeKeyAlgorithm,
+                typeof(RsaSecretKey),
+                new KeySizes(minSize: 3072, maxSize: 3072, skipSize: 0)
+            ),
+            new StubKeySignatureAlgorithm(
+                OpenEndedSizeKeyAlgorithm,
+                typeof(RsaSecretKey),
+                new KeySizes(minSize: 2048, maxSize: int.MaxValue, skipSize: 8)
+            ),
         ];
 
         public IChangeToken GetChangeToken() => NullChangeToken.Singleton;
@@ -486,8 +504,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
     [Fact]
     public void ResolveSpecifications_WhenAlgorithmIsBoundToACurve_GeneratesTheKeyOnThatCurve()
     {
-        // The contributed curve has the size of P-256, which the ecc key type selects by size, so only the named curve
-        // generates a key the algorithm accepts.
+        // The contributed curve shares P-256's size, so only the curve the algorithm names, carried into the
+        // specification, generates a key the algorithm accepts.
         var resolution = Policy.ResolveSpecifications(
             CreateOptions(new OpenIdTenantKeyOptions { Algorithm = BrainpoolAlgorithm })
         );
@@ -662,6 +680,324 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
                 SecretKeyTypes.Ecc,
                 256,
                 "P-256"
+            ),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
+    // Gives the ECDH-ES algorithms a Brainpool curve beside the core's NIST curves, as a package that contributes an
+    // agreement over it does, so two of ECDH-ES's EC curves share the 256-bit size; provisioning never performs an
+    // agreement.
+    private sealed class BrainpoolAgreementStub : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            AlgorithmKeyType.OnCurves(
+                typeof(EccSecretKey),
+                [new AlgorithmCurve(Brainpool256.CurveName, Brainpool256.CurveSizeBits)]
+            );
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
+            throw new NotSupportedException();
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
+    // ECDH-ES over the core's NIST curves and a Brainpool curve, and over the OKP curves of the EdDSA package.
+    private static ServiceProvider BuildBrainpoolEcdhServiceProvider()
+    {
+        var serviceCollection = new ServiceCollection();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddJoseLibrary().AddEdDsa();
+        secrets.AddPersistenceLibrary();
+        serviceCollection.AddSingleton(Brainpool256);
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IEcdhKeyAgreement, BrainpoolAgreementStub>()
+        );
+        return serviceCollection.BuildServiceProvider();
+    }
+
+    // See ADR-1398: P-256 and brainpoolP256r1 are both 256 bits, so the size selects neither, and the EC key type,
+    // which accepts the size, reports it rather than yielding to the OKP key type, whose X25519 curve has it too.
+    [Theory]
+    [InlineData(null)]
+    [InlineData(SecretKeyTypes.Ecc)]
+    public async Task ResolveSpecifications_WhenTwoCurvesHaveTheConfiguredSize_ReportsIt(
+        string? secretType
+    )
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var resolution = CreatePolicy(serviceProvider)
+            .ResolveSpecifications(
+                CreateOptions(
+                    new OpenIdTenantKeyOptions
+                    {
+                        Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                        SecretType = secretType,
+                        KeySizeBits = 256,
+                    }
+                )
+            );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(
+            "The key size '256' bits does not select a curve for algorithm 'ECDH-ES', which accepts 'P-256', "
+                + "'brainpoolP256r1' at that size; name the curve.",
+            Assert.Single(resolution.Errors)
+        );
+    }
+
+    [Theory]
+    [InlineData("brainpoolP256r1", null)]
+    [InlineData("brainpoolP256r1", 256)]
+    [InlineData("P-256", 256)]
+    public async Task ResolveSpecifications_WhenTheCurveSelectsAmongCurvesOfOneSize_GeneratesTheKeyOnIt(
+        string curve,
+        int? keySizeBits
+    )
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var resolution = CreatePolicy(serviceProvider)
+            .ResolveSpecifications(
+                CreateOptions(
+                    new OpenIdTenantKeyOptions
+                    {
+                        Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                        Curve = curve,
+                        KeySizeBits = keySizeBits,
+                    }
+                )
+            );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification(
+                AlgorithmCodes.KeyManagement.EcdhEs,
+                SecretKeyUses.Encryption,
+                SecretKeyTypes.Ecc,
+                256,
+                curve
+            ),
+            Assert.Single(resolution.Specifications)
+        );
+    }
+
+    // The algorithm's first curve is its preference when nothing selects one.
+    [Fact]
+    public async Task ResolveSpecifications_WhenNeitherCurveNorSizeIsConfigured_GeneratesTheKeyOnTheFirstCurve()
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var resolution = CreatePolicy(serviceProvider)
+            .ResolveSpecifications(
+                CreateOptions(
+                    new OpenIdTenantKeyOptions { Algorithm = AlgorithmCodes.KeyManagement.EcdhEs }
+                )
+            );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal("P-256", Assert.Single(resolution.Specifications).Curve);
+    }
+
+    // See ADR-1398: a curve fixes the size of its keys, which the key type's descriptor checks.
+    [Theory]
+    [InlineData("P-256", 384)]
+    [InlineData("brainpoolP256r1", 521)]
+    public async Task ResolveSpecifications_WhenTheSizeIsNotTheConfiguredCurves_ReportsIt(
+        string curve,
+        int keySizeBits
+    )
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var resolution = CreatePolicy(serviceProvider)
+            .ResolveSpecifications(
+                CreateOptions(
+                    new OpenIdTenantKeyOptions
+                    {
+                        Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                        Curve = curve,
+                        KeySizeBits = keySizeBits,
+                    }
+                )
+            );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(
+            $"A key for the algorithm 'ECDH-ES' cannot be generated: The ECC key size '{keySizeBits}' bits is invalid "
+                + $"for the curve '{curve}', whose keys are 256 bits.",
+            Assert.Single(resolution.Errors)
+        );
+    }
+
+    // See ADR-1398: a configuration no key type accepts is reported with what every key type of the algorithm accepts,
+    // so the OKP curves are listed beside the EC curves and not left out.
+    [Fact]
+    public async Task ResolveSpecifications_WhenNoKeyTypeAcceptsTheConfiguredCurve_ListsEveryKeyTypesCurves()
+    {
+        await using var serviceProvider = BuildEdDsaServiceProvider();
+
+        var resolution = CreatePolicy(serviceProvider)
+            .ResolveSpecifications(
+                CreateOptions(
+                    new OpenIdTenantKeyOptions
+                    {
+                        Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                        Curve = "X25519x",
+                    }
+                )
+            );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(
+            "The curve 'X25519x' is not valid for algorithm 'ECDH-ES'; expected 'P-256' (256 bits), 'P-384' "
+                + "(384 bits), 'P-521' (521 bits) for 'ecc' keys; 'X25519' (256 bits), 'X448' (448 bits) for 'okp' "
+                + "keys.",
+            Assert.Single(resolution.Errors)
+        );
+    }
+
+    [Fact]
+    public async Task ResolveSpecifications_WhenNoKeyTypeAcceptsTheConfiguredSize_ListsEveryKeyTypesCurves()
+    {
+        await using var serviceProvider = BuildEdDsaServiceProvider();
+
+        var resolution = CreatePolicy(serviceProvider)
+            .ResolveSpecifications(
+                CreateOptions(
+                    new OpenIdTenantKeyOptions
+                    {
+                        Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                        KeySizeBits = 512,
+                    }
+                )
+            );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(
+            "The key size '512' bits is not valid for algorithm 'ECDH-ES'; expected 'P-256' (256 bits), 'P-384' "
+                + "(384 bits), 'P-521' (521 bits) for 'ecc' keys; 'X25519' (256 bits), 'X448' (448 bits) for 'okp' "
+                + "keys.",
+            Assert.Single(resolution.Errors)
+        );
+    }
+
+    // A key type without curves is listed with its sizes, or with no curve when a curve is configured.
+    [Theory]
+    [InlineData(
+        null,
+        1024,
+        "The key size '1024' bits is not valid for algorithm 'ECDH-ES'; expected 'P-256' (256 bits), 'P-384' "
+            + "(384 bits), 'P-521' (521 bits) for 'ecc' keys; 2048 to 4096 bits in steps of 1024 for 'rsa' keys."
+    )]
+    [InlineData(
+        "P-999",
+        null,
+        "The curve 'P-999' is not valid for algorithm 'ECDH-ES'; expected 'P-256' (256 bits), 'P-384' (384 bits), "
+            + "'P-521' (521 bits) for 'ecc' keys; no curve for 'rsa' keys."
+    )]
+    [InlineData(
+        "P-999",
+        256,
+        "The curve 'P-999' is not valid for algorithm 'ECDH-ES'; expected 'P-256' (256 bits), 'P-384' (384 bits), "
+            + "'P-521' (521 bits) for 'ecc' keys; no curve for 'rsa' keys."
+    )]
+    public void ResolveSpecifications_WhenNoKeyTypeAcceptsTheConfiguredKey_ListsEveryKeyTypesSizesOrCurves(
+        string? curve,
+        int? keySizeBits,
+        string expected
+    )
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(
+                new OpenIdTenantKeyOptions
+                {
+                    Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                    Curve = curve,
+                    KeySizeBits = keySizeBits,
+                }
+            )
+        );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(expected, Assert.Single(resolution.Errors));
+    }
+
+    [Fact]
+    public void ResolveSpecifications_WhenTheOnlyKeyTypeRefusesTheSize_ListsItsSizes()
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(new OpenIdTenantKeyOptions { Algorithm = "RS256", KeySizeBits = 1024 })
+        );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(
+            "The key size '1024' bits is not valid for algorithm 'RS256'; expected 2048 to 16384 bits in steps of 64 "
+                + "for 'rsa' keys.",
+            Assert.Single(resolution.Errors)
+        );
+    }
+
+    // A key type of one size is listed with that size, and one of a size or more with its smallest.
+    [Theory]
+    [InlineData(
+        ExactSizeKeyAlgorithm,
+        "The key size '1024' bits is not valid for algorithm 'X-RSA-3072'; expected 3072 bits for 'rsa' keys."
+    )]
+    [InlineData(
+        OpenEndedSizeKeyAlgorithm,
+        "The key size '1024' bits is not valid for algorithm 'X-RSA-2048-UP'; expected 2048 bits or more for 'rsa' "
+            + "keys."
+    )]
+    public void ResolveSpecifications_WhenTheOnlyKeyTypeRefusesTheSize_ListsItsExactOrOpenEndedSize(
+        string algorithm,
+        string expected
+    )
+    {
+        var resolution = Policy.ResolveSpecifications(
+            CreateOptions(new OpenIdTenantKeyOptions { Algorithm = algorithm, KeySizeBits = 1024 })
+        );
+
+        Assert.Empty(resolution.Specifications);
+        Assert.Equal(expected, Assert.Single(resolution.Errors));
+    }
+
+    // The EC key type has no 448-bit curve, so it yields to the OKP key type, which has.
+    [Fact]
+    public async Task ResolveSpecifications_WhenOnlyALaterKeyTypeAcceptsTheSize_GeneratesThatKeyType()
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var resolution = CreatePolicy(serviceProvider)
+            .ResolveSpecifications(
+                CreateOptions(
+                    new OpenIdTenantKeyOptions
+                    {
+                        Algorithm = AlgorithmCodes.KeyManagement.EcdhEs,
+                        KeySizeBits = 448,
+                    }
+                )
+            );
+
+        Assert.Empty(resolution.Errors);
+        Assert.Equal(
+            CreateSpecification(
+                AlgorithmCodes.KeyManagement.EcdhEs,
+                SecretKeyUses.Encryption,
+                "okp",
+                448,
+                "X448"
             ),
             Assert.Single(resolution.Specifications)
         );
@@ -973,6 +1309,8 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = encoding,
             Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,

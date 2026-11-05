@@ -15,6 +15,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
+using NCode.Identity.OpenId.Locales;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
@@ -72,7 +73,8 @@ public sealed class DefaultAccessTokenPolicyServiceTests : BaseTests, IAsyncLife
                 nullChangeToken,
                 algorithmCollectionProvider,
                 [],
-                []
+                [],
+                new DefaultUiLocaleCatalog([])
             ).Collection
         );
 

@@ -7,7 +7,8 @@ import CardContent from '@mui/material/CardContent';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { ANTIFORGERY_FIELD, LOGIN_ACTION, resolveSurfacePath } from './params.js';
+import { useLocale } from './i18n/LocaleContext.js';
+import { ANTIFORGERY_FIELD, LOGIN_ACTION, UI_LOCALES_FIELD, resolveSurfacePath } from './params.js';
 import { writeCarriedValue } from './serverPage.js';
 
 export type LoginFormProps = {
@@ -40,6 +41,7 @@ export function LoginForm({
   carriedValues,
   focusedFieldId,
 }: LoginFormProps) {
+  const { pageLanguage, messages } = useLocale();
   const carriedUsername = carriedValues?.['username'];
   const carriedPassword = carriedValues?.['password'];
   // A carried value is written to the DOM property, never to React's `defaultValue`, which would put a password in
@@ -72,18 +74,21 @@ export function LoginForm({
             action={resolveSurfacePath(LOGIN_ACTION)}
           >
             <Typography variant="h5" component="h1">
-              {productName ? `Sign in to ${productName}` : 'Sign in'}
+              {productName ? messages.login.titleFor(productName) : messages.login.title}
             </Typography>
 
             {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
 
             <input type="hidden" name="ReturnUrl" value={returnUrl} />
             <input type="hidden" name={ANTIFORGERY_FIELD} value={antiforgeryToken} />
+            {pageLanguage ? (
+              <input type="hidden" name={UI_LOCALES_FIELD} value={pageLanguage} />
+            ) : null}
 
             <TextField
               id="username"
               name="username"
-              label="Username"
+              label={messages.login.username}
               autoComplete="username"
               autoFocus={focusedFieldId !== 'password'}
               inputRef={carryUsername}
@@ -93,7 +98,7 @@ export function LoginForm({
             <TextField
               id="password"
               name="password"
-              label="Password"
+              label={messages.login.password}
               type="password"
               autoComplete="current-password"
               autoFocus={focusedFieldId === 'password'}
@@ -110,7 +115,7 @@ export function LoginForm({
               variant="contained"
               fullWidth
             >
-              Sign in
+              {messages.login.submit}
             </Button>
           </Stack>
         </CardContent>

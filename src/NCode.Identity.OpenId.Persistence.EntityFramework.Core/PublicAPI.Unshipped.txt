@@ -367,7 +367,7 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Con
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.CreatedWhen.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.EncodedValue.get -> string!
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.EncodedValue.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.EncodedValue.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ExpiresWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.Id.get -> long
@@ -561,3 +561,9 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Tea
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.TeamId.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TeamId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TeamId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ActivatesWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ActivatesWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.RetiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.RetiresWhen.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ManagedBy.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ManagedBy.init -> void

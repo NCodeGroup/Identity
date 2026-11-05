@@ -81,4 +81,30 @@ public interface ISecretProtector
         ref TWriter destination
     )
         where TWriter : IBufferWriter<byte>, allows ref struct;
+
+    /// <summary>
+    /// Rewraps the data key of a protected value under the active master key of the owner and writes the rewrapped
+    /// value to a destination. The encrypted payload is copied unchanged, so the value unprotects to the same plaintext
+    /// for the same owner and <see cref="SecretProtectionContext"/>. A value that is already protected by the active
+    /// master key is copied unchanged. This method is synchronous because the master keys of the owner are already
+    /// loaded.
+    /// </summary>
+    /// <remarks>
+    /// Exactly <paramref name="protectedValue"/>.Length characters are written to <paramref name="destination"/>. The
+    /// payload is never decrypted. The master key that protects the value must be loaded in this protector.
+    /// </remarks>
+    /// <typeparam name="TWriter">The type of the buffer writer that receives the rewrapped value.</typeparam>
+    /// <param name="protectedValue">The protected value to rewrap.</param>
+    /// <param name="context">The purpose of the value and the identifier of the item that the value belongs to.</param>
+    /// <param name="destination">The buffer writer that receives the rewrapped value, as characters.</param>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the value was not protected for this owner and context, when its master key is not loaded, or when
+    /// the value was altered.
+    /// </exception>
+    void Rewrap<TWriter>(
+        ReadOnlySpan<char> protectedValue,
+        SecretProtectionContext context,
+        ref TWriter destination
+    )
+        where TWriter : IBufferWriter<char>, allows ref struct;
 }

@@ -1195,6 +1195,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTimeOffset>("ActivatesWhen")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Algorithm")
                         .HasMaxLength(100)
                         .IsUnicode(false)
@@ -1226,6 +1229,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Property<int>("KeySizeBits")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ManagedBy")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<string>("NormalizedSecretId")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -1242,6 +1250,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .HasMaxLength(4000)
                         .IsUnicode(false)
                         .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTimeOffset>("RetiresWhen")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("SecretEncoding")
                         .IsRequired()

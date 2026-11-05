@@ -5,8 +5,10 @@ using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logging;
+using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
@@ -24,6 +26,11 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// wins, and the other nodes use the stored key and discard their own.
 /// </para>
 /// <para>
+/// A cached entry is used for at most <see cref="MasterKeyOptions.RefreshInterval"/>. After that the next call reads
+/// the active row and the rows of every cached key again, reuses the key material it already holds, and drops the keys
+/// whose rows no longer exist, so a replica that missed a rotation or a destruction catches up without a broadcast.
+/// </para>
+/// <para>
 /// The ring owns the unwrapped master keys that it caches and zeroes them when it is disposed. Evicting an owner does
 /// not zero its master keys because a protector that was handed out earlier may still be using them. An owner that is
 /// evicted while its master keys load is not cached.
@@ -32,12 +39,16 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <param name="factory">The factory that creates new master keys and unwraps persisted master keys.</param>
 /// <param name="storeManagerFactory">The factory that creates the unit of work that reads and writes master keys.</param>
 /// <param name="recovery">The wrapper that reports whether master keys are wrapped under a recovery key.</param>
+/// <param name="options">The options whose master key refresh interval bounds how long an entry is used.</param>
+/// <param name="timeProvider">The clock that ages the cached entries.</param>
 /// <param name="logger">The logger.</param>
 // See ADR-1235.
 internal class DefaultMasterKeyRing(
     MasterKeyFactory factory,
     IStoreManagerFactory storeManagerFactory,
     IRecoveryKeyWrapper recovery,
+    IOptions<SecretProtectionOptions> options,
+    TimeProvider timeProvider,
     ILogger<DefaultMasterKeyRing> logger
 ) : ISecretProtectorProvider, IDisposable
 {
@@ -51,6 +62,10 @@ internal class DefaultMasterKeyRing(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     private IRecoveryKeyWrapper Recovery { get; } = recovery;
+
+    private IOptions<SecretProtectionOptions> Options { get; } = options;
+
+    private TimeProvider TimeProvider { get; } = timeProvider;
 
     private ILogger<DefaultMasterKeyRing> Logger { get; } = logger;
 
@@ -73,9 +88,14 @@ internal class DefaultMasterKeyRing(
         LogRecoveryWarningOnce();
 
         var requiredKeyIds = GetRequiredKeyIds(protectedValues);
+        var refreshInterval = Options.Value.MasterKeys.RefreshInterval;
 
         // The dictionaries ignore case, so a cached owner is found without normalizing the owner.
-        if (Entries.TryGetValue(owner, out var cached) && cached.Contains(requiredKeyIds))
+        if (
+            Entries.TryGetValue(owner, out var cached)
+            && !cached.IsStale(TimeProvider, refreshInterval)
+            && cached.Contains(requiredKeyIds)
+        )
             return CreateProtector(owner, cached);
 
         var key = owner.Normalize();
@@ -88,7 +108,11 @@ internal class DefaultMasterKeyRing(
             var evictionsBefore = Volatile.Read(ref _evictionCount);
 
             // Another caller may have loaded the master keys while this caller waited for the gate.
-            if (Entries.TryGetValue(key, out cached) && cached.Contains(requiredKeyIds))
+            if (
+                Entries.TryGetValue(key, out cached)
+                && !cached.IsStale(TimeProvider, refreshInterval)
+                && cached.Contains(requiredKeyIds)
+            )
                 return CreateProtector(owner, cached);
 
             var entry = await LoadEntryAsync(key, cached, requiredKeyIds, cancellationToken);
@@ -107,6 +131,14 @@ internal class DefaultMasterKeyRing(
             gate.Release();
         }
     }
+
+    /// <inheritdoc />
+    public bool TryReadMasterKeyId(ReadOnlySpan<char> protectedValue, out Guid masterKeyId) =>
+        SecretProtectionFormat.TryReadMasterKeyId(protectedValue, out masterKeyId);
+
+    /// <inheritdoc />
+    public string GetMasterKeyIdPrefix(Guid masterKeyId) =>
+        SecretProtectionFormat.GetMasterKeyIdPrefix(masterKeyId);
 
     /// <inheritdoc />
     public void Evict(SecretOwner owner)
@@ -201,18 +233,7 @@ internal class DefaultMasterKeyRing(
     )
     {
         // The cached master keys are reused by their identifiers, so only the rows that are not cached are unwrapped.
-        // The dictionary has room for the cached keys, each required key and the active key.
-        var keys = new Dictionary<Guid, MasterKey>(
-            (cached?.Keys.Count ?? 0) + requiredKeyIds.Count + 1
-        );
-
-        if (cached is not null)
-        {
-            foreach (var pair in cached.Keys)
-            {
-                keys[pair.Key] = pair.Value;
-            }
-        }
+        var cachedKeys = cached?.Keys ?? FrozenDictionary<Guid, MasterKey>.Empty;
 
         // The master keys that this load created or unwrapped, which are zeroed again if the load fails. At most the
         // active master key and each required master key are unwrapped.
@@ -222,7 +243,7 @@ internal class DefaultMasterKeyRing(
         {
             var (activeRow, createdKey, rows) = await ReadRowsAsync(
                 key,
-                keys,
+                cachedKeys,
                 requiredKeyIds,
                 cancellationToken
             );
@@ -230,8 +251,22 @@ internal class DefaultMasterKeyRing(
             if (createdKey is not null)
                 loaded.Add(createdKey);
 
+            // A cached key whose row is gone was destroyed, so it is not carried into the new entry.
+            var keys = new Dictionary<Guid, MasterKey>(rows.Count + 1);
+            foreach (var row in rows)
+            {
+                if (cachedKeys.TryGetValue(row.KeyId, out var cachedKey))
+                    keys[row.KeyId] = cachedKey;
+            }
+
+            foreach (var cachedKeyId in cachedKeys.Keys)
+            {
+                if (cachedKeyId != activeRow.KeyId && !keys.ContainsKey(cachedKeyId))
+                    Logger.MasterKeyDropped(key, cachedKeyId);
+            }
+
             var active = createdKey;
-            if (active is null && !keys.TryGetValue(activeRow.KeyId, out active))
+            if (active is null && !cachedKeys.TryGetValue(activeRow.KeyId, out active))
                 active = await UnwrapRowAsync(key, activeRow, loaded, cancellationToken);
 
             keys[activeRow.KeyId] = active;
@@ -244,7 +279,11 @@ internal class DefaultMasterKeyRing(
 
             ThrowIfMissing(key, keys, requiredKeyIds);
 
-            return new MasterKeyRingEntry(active, keys.ToFrozenDictionary());
+            return new MasterKeyRingEntry(
+                active,
+                keys.ToFrozenDictionary(),
+                TimeProvider.GetTimestamp()
+            );
         }
         catch
         {
@@ -296,7 +335,7 @@ internal class DefaultMasterKeyRing(
         IReadOnlyList<PersistedMasterKey> Rows
     )> ReadRowsAsync(
         SecretOwner key,
-        Dictionary<Guid, MasterKey> keys,
+        FrozenDictionary<Guid, MasterKey> cachedKeys,
         IReadOnlySet<Guid> requiredKeyIds,
         CancellationToken cancellationToken
     )
@@ -308,21 +347,31 @@ internal class DefaultMasterKeyRing(
         var activeRow = await store.FindActiveAsync(key, cancellationToken);
         var activeKeyId = activeRow?.KeyId;
 
-        // The required identifiers are a set, so the list of missing ones holds no duplicates; it stays null when
-        // every required master key is already cached or active.
-        List<Guid>? missingKeyIds = null;
-        foreach (var keyId in requiredKeyIds)
+        // Every cached key is read again to learn whether it still exists, together with each required key that is not
+        // cached. The identifiers are collected in a set, so the list holds no duplicates; it stays empty when the
+        // active key is the only one involved.
+        HashSet<Guid>? queryKeyIds = null;
+        foreach (var keyId in cachedKeys.Keys)
         {
-            if (keys.ContainsKey(keyId) || keyId == activeKeyId)
+            if (keyId == activeKeyId)
                 continue;
 
-            missingKeyIds ??= new List<Guid>(requiredKeyIds.Count);
-            missingKeyIds.Add(keyId);
+            queryKeyIds ??= new HashSet<Guid>(cachedKeys.Count + requiredKeyIds.Count);
+            queryKeyIds.Add(keyId);
         }
 
-        IReadOnlyList<PersistedMasterKey> rows = missingKeyIds is null
+        foreach (var keyId in requiredKeyIds)
+        {
+            if (keyId == activeKeyId)
+                continue;
+
+            queryKeyIds ??= new HashSet<Guid>(requiredKeyIds.Count);
+            queryKeyIds.Add(keyId);
+        }
+
+        IReadOnlyList<PersistedMasterKey> rows = queryKeyIds is null
             ? []
-            : await store.FindByKeyIdsAsync(key, missingKeyIds, cancellationToken);
+            : await store.FindByKeyIdsAsync(key, queryKeyIds, cancellationToken);
 
         if (activeRow is not null)
             return (activeRow, null, rows);

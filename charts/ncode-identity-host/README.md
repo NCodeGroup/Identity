@@ -138,11 +138,68 @@ the root key by hand:
 2. Add the old Secret to `secretProtection.local.previousKeySecrets` and name the new one in
    `secretProtection.local.keySecret`, then upgrade the release. New master keys use the new root key; master keys the
    old one wrapped keep unwrapping.
-3. Keep the old Secret listed until the rewrap tool has run, so that no master key still depends on it.
+3. Keep the old Secret listed until the secret protection Job has rewrapped every master key under the new root key (see
+   [Rewrapping master keys](#rewrapping-master-keys)), so that no master key still depends on it.
 
 **Never replace a root key in place.** New contents written into the same Secret replace the only key that can unwrap
 the existing master keys. After the next restart the stored secrets cannot be read, and only the recovery key can
 restore them.
+
+### Rewrapping master keys
+
+A master key is wrapped by the root key provider that was configured when it was created, and again under the recovery
+public key. When the root key provider, the root key or the recovery key pair changes, the existing master keys still
+name the old ones. `secretProtection.rewrapJob` runs the host image's offline `secret-protection` command once, as a Job,
+to wrap every master key under the configured root key provider and recovery public key
+([ADR-1408](../../docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)):
+
+| Value                                            | Meaning                                                                                              |
+|--------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| `secretProtection.rewrapJob.enabled`             | Renders the Job. Set it for the release that needs the run, and unset it afterwards.                 |
+| `secretProtection.rewrapJob.command`             | `rewrap` (the default) or `rewrap-recovery`, which replaces only the recovery copies.                |
+| `secretProtection.rewrapJob.owner`               | Limits the run to one owner such as `tenant:acme` or `server:default`; empty rewraps every owner.    |
+| `secretProtection.rewrapJob.dryRun`              | `true` unwraps and verifies every master key and writes nothing.                                     |
+| `secretProtection.rewrapJob.recoveryPrivateKeySecret` | A Secret holding the recovery private key under `recovery-private.pem`, mounted into the Job only. |
+| `secretProtection.rewrapJob.backoffLimit`, `activeDeadlineSeconds` | How often the Job retries and how long it may run (`0` and `3600`).              |
+
+The Job is named for the release revision, runs as the host does, and reads the same configuration, so it reaches the
+root key the pods reach. Each master key is unwrapped by the root key provider it names, so the previous provider must
+stay registered and configured for the run: keep the old Secret in `secretProtection.local.previousKeySecrets`, or the
+old KMS key reachable. When the root key is lost, the Job unwraps each master key from its recovery copy instead, with
+the recovery private key:
+
+```powershell
+kubectl -n identity create secret generic identity-recovery-private-key --from-file=recovery-private.pem
+helm upgrade identity ./charts/ncode-identity-host --reuse-values `
+  --set secretProtection.rewrapJob.enabled=true `
+  --set secretProtection.rewrapJob.recoveryPrivateKeySecret=identity-recovery-private-key
+kubectl -n identity wait --for=condition=complete job -l app.kubernetes.io/component=secret-protection --timeout=1h
+```
+
+Start with `secretProtection.rewrapJob.dryRun=true` to prove that every master key unwraps. The private key is read from
+the mounted file only, held in memory that is zeroed when the command ends, and never reaches a serving pod. When the
+Job has completed, set `secretProtection.rewrapJob.enabled=false` and delete the recovery private key Secret.
+
+### Rotating the recovery key
+
+To replace the recovery key pair, create the new pair as in [Creating the recovery key](#creating-the-recovery-key),
+point `secretProtection.recovery.publicKeyConfigMap` at the ConfigMap holding the new public key, and run the Job with
+`secretProtection.rewrapJob.command=rewrap-recovery`. Every master key's recovery copy is replaced with one under the new
+key; the root wraps stay as they are. Keep the old private key until the Job has completed, then retire it.
+
+### Rotating master keys
+
+Master keys rotate on their own: after `SecretProtection:MasterKeys:RotationPeriod` (365 days by default) the active key
+of the server and of each tenant retires and the next version takes over, the values the retired key protected are
+rewrapped under the new one, and a retired key is destroyed once its grace has passed and nothing names it
+([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+An administrator rekeys at once with `POST /api/tenants/{tenantId}/encryption-keys/rekey` or
+`POST /api/servers/{serverId}/encryption-keys/rekey`, and reads the keys with `GET .../encryption-keys`. Tune the
+lifecycle with environment variables in `extraEnv`: `SecretProtection__MasterKeys__RotationPeriod`,
+`SecretProtection__MasterKeys__RefreshInterval`, `SecretProtection__MasterKeys__RetirementGrace`,
+`SecretProtection__MasterKeys__MaintenanceInterval` and `SecretProtection__MasterKeys__DestroyRetired` (`false` keeps
+retired keys for good). A database backup keeps the master keys it held, so it can still be read with the root key that
+wrapped them.
 
 ### AWS KMS
 

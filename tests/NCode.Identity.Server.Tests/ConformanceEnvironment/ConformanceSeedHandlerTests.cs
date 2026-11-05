@@ -549,6 +549,8 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             Algorithm = "ES256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.MaxValue,
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.MaxValue,
             SecretType = "ecc",
             SecretEncoding = "spki",
             Origin = SecretOrigins.Generated,

@@ -2,10 +2,10 @@ import { useState } from 'react';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import type { SecretOwner } from '@ncode/api';
 import { apiErrorMessage, type ApiError, useGetTenantUsageQuery } from '@ncode/store';
 import { DataStateBoundary, TenantUsageTable } from '@ncode/ui';
 import type { TenantOwnSurface } from '../routes.js';
+import { OwnerEncryptionKeysTab } from './OwnerEncryptionKeysTab.js';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 
@@ -20,14 +20,14 @@ type TenantTabProps = {
 };
 
 /**
- * Container: the current tenant's own secrets, settings, or usage surface (as opposed to its clients'), as the
+ * Container: the current tenant's own secrets, encryption keys, settings, or usage surface (as opposed to its clients'), as the
  * `surface` prop names. The address bar selects the surface (ADR-1255), so this page holds no tab state. Wires the
- * owner-generic {@link OwnerSecretsTab}/{@link OwnerSettingsTab} to the tenant, and shows the tenant's usage ledger
+ * owner-generic {@link OwnerSecretsTab}/{@link OwnerSettingsTab} and the {@link OwnerEncryptionKeysTab} to the tenant, and shows the tenant's usage ledger
  * (ADR-1199) through {@link TenantUsageTable}. The tenant id comes from the active scope, so the boundary stays
  * structural (a tenant administrator can never address another tenant).
  */
 export function TenantDetailPage({ tenantId, surface }: TenantDetailPageProps) {
-  const owner: SecretOwner = { kind: 'tenant', tenantId };
+  const owner = { kind: 'tenant', tenantId } as const;
 
   return (
     <>
@@ -40,6 +40,9 @@ export function TenantDetailPage({ tenantId, surface }: TenantDetailPageProps) {
         </Typography>
       </Stack>
       {surface === 'secrets' && <OwnerSecretsTab owner={owner} ownerLabel="tenant" />}
+      {surface === 'encryption-keys' && (
+        <OwnerEncryptionKeysTab owner={owner} ownerLabel="tenant" />
+      )}
       {surface === 'settings' && <OwnerSettingsTab owner={owner} />}
       {surface === 'usage' && <TenantUsageTab tenantId={tenantId} />}
     </>

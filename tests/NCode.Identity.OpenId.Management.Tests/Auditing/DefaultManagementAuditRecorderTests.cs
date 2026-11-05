@@ -10,6 +10,8 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Tenants;
+using NCode.Identity.Secrets.Persistence.Auditing;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 
@@ -134,6 +136,101 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal("trace-1", captured.Request.RequestId);
         Assert.Equal("test-endpoint", captured.Request.Endpoint);
         Assert.Equal(7, captured.EventId.Version);
+    }
+
+    #endregion
+
+    #region RecordMasterKeyRotatedAsync Tests
+
+    private static MasterKeyInfo KeyInfo(SecretOwner owner, int version, bool retired) =>
+        new(
+            Guid.NewGuid(),
+            owner,
+            version,
+            DateTimeOffset.UnixEpoch,
+            retired ? DateTimeOffset.UnixEpoch.AddDays(1) : null,
+            "local",
+            "root-key",
+            null
+        );
+
+    [Fact]
+    public async Task RecordMasterKeyRotatedAsync_ATenantRekey_PublishesTheEventWithTheAdministratorAndEnvironment()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        MasterKeyAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<MasterKeyAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (MasterKeyAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var owner = SecretOwner.ForTenant("tenant-1");
+        var rotation = new MasterKeyRotation(
+            owner,
+            KeyInfo(owner, 2, retired: false),
+            KeyInfo(owner, 1, retired: true)
+        );
+
+        await CreateRecorder(mockPublisher.Object)
+            .RecordMasterKeyRotatedAsync(
+                CreateHttpContext("admin-1"),
+                rotation,
+                CancellationToken.None
+            );
+
+        Assert.NotNull(captured);
+        Assert.Equal("master_key.rotated", captured.EventName);
+        Assert.Equal(AuditEventSources.Management, captured.EventSource);
+        Assert.Equal("requested", captured.Reason);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
+        Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
+        Assert.Equal("admin-1", captured.Actor.Id);
+        Assert.Equal(rotation.ActiveKey.KeyId, captured.KeyId);
+        Assert.Equal(rotation.RetiredKey?.KeyId, captured.RetiredKeyId);
+        Assert.Equal(1, captured.RetiredVersion);
+        Assert.Equal(7, captured.EventId.Version);
+    }
+
+    [Fact]
+    public async Task RecordMasterKeyRotatedAsync_APlatformRekey_PublishesTheEventWithNoTenant()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        MasterKeyAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<MasterKeyAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (MasterKeyAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var owner = SecretOwner.Platform;
+        var rotation = new MasterKeyRotation(
+            owner,
+            KeyInfo(owner, 2, retired: false),
+            KeyInfo(owner, 1, retired: true)
+        );
+
+        await CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false)
+            .RecordMasterKeyRotatedAsync(
+                CreateHttpContext("admin-1"),
+                rotation,
+                CancellationToken.None
+            );
+
+        Assert.NotNull(captured);
+        Assert.Equal("master_key.rotated", captured.EventName);
+        Assert.Null(captured.TenantId);
+        Assert.Null(captured.TenantEnvironmentType);
+        Assert.Equal("platform", captured.OwnerType);
+        Assert.Equal("platform", captured.OwnerId);
+        Assert.Equal("admin-1", captured.Actor.Id);
     }
 
     #endregion

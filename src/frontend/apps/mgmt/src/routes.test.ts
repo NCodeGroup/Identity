@@ -41,6 +41,7 @@ describe('routePath', () => {
 
   it("nests each of the tenant's own surfaces under its tenant", () => {
     expect(routePath(tenantRoute('acme', 'secrets'))).toBe('/tenants/acme/secrets');
+    expect(routePath(tenantRoute('acme', 'encryption-keys'))).toBe('/tenants/acme/encryption-keys');
     expect(routePath(tenantRoute('acme', 'usage'))).toBe('/tenants/acme/usage');
   });
 
@@ -50,6 +51,12 @@ describe('routePath', () => {
 
   it('percent-encodes the tenant id as a single segment', () => {
     expect(routePath(tenantRoute('a/b c', 'grants'))).toBe('/tenants/a%2Fb%20c/grants');
+  });
+});
+
+describe('TENANT_SURFACES', () => {
+  it('lists the tenant encryption keys right after its secrets', () => {
+    expect(TENANT_SURFACES.indexOf('encryption-keys')).toBe(TENANT_SURFACES.indexOf('secrets') + 1);
   });
 });
 

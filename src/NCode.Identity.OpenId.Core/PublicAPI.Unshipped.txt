@@ -85,3 +85,56 @@ NCode.Identity.OpenId.OpenIdTeamOptions.SettingsPeriodicRefreshInterval.get -> S
 NCode.Identity.OpenId.OpenIdTeamOptions.SettingsPeriodicRefreshInterval.set -> void
 NCode.Identity.OpenId.OpenIdTeamOptions.TeamCacheLifetime.get -> System.TimeSpan
 NCode.Identity.OpenId.OpenIdTeamOptions.TeamCacheLifetime.set -> void
+NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions
+NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.Interval.get -> System.TimeSpan
+NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.Interval.set -> void
+NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.OpenIdTenantKeyRolloverOptions() -> void
+NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.TokenLifetimeSettings.get -> System.Collections.Generic.List<string!>!
+static NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.DefaultTokenLifetimeSettings.get -> System.Collections.Immutable.ImmutableArray<string!>
+NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions.TokenLifetimeSettings.set -> void
+NCode.Identity.OpenId.OpenIdTenantOptions.KeyRollover.get -> NCode.Identity.OpenId.OpenIdTenantKeyRolloverOptions!
+NCode.Identity.OpenId.OpenIdTenantOptions.KeyRollover.set -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.ActivatesWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Algorithm.get -> string?
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Algorithm.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Change.get -> string!
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Change.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.ExpiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.ExpiresWhen.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.KeyId.get -> string!
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.KeyId.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Reason.get -> string!
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Reason.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.RetiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.RetiresWhen.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.SecretId.get -> string!
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.SecretId.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.SecretType.get -> string!
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.SecretType.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Use.get -> string?
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Use.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEventNames
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges
+NCode.Identity.OpenId.Tenants.Keys.SecretManagers
+const NCode.Identity.OpenId.Tenants.Keys.SecretManagers.TenantKeyRollover = "tenant_key_rollover" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEventNames.Prefix = "tenant.key" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.Expired = "expired" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.NoActiveKey = "no_active_key" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.RetirementGraceRaised = "retirement_grace_raised" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.Successor = "successor" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.UnusedAlgorithm = "unused_algorithm" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Activated = "activated" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Extended = "extended" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Generated = "generated" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Removed = "removed" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges.Retired = "retired" -> string!
+override NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.EventCategory.get -> string!
+override NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.EventName.get -> string!
+override NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Resources.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.AuditResource!>!
+static NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEventNames.For(string! change) -> string!
+const NCode.Identity.OpenId.SecretProtection.MasterKeyBroadcast.ChannelName = "master-key-changed" -> string!
+NCode.Identity.OpenId.SecretProtection.MasterKeyBroadcast

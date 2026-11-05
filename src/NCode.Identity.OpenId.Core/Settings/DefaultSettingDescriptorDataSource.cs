@@ -8,6 +8,7 @@ using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
+using NCode.Identity.OpenId.Locales;
 using NCode.Identity.Settings;
 using static NCode.Identity.Settings.SettingMerge;
 
@@ -36,7 +37,8 @@ internal class DefaultSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     IEnumerable<ISecurityProfile> securityProfiles,
-    IEnumerable<IRedirectUriKind> redirectUriKinds
+    IEnumerable<IRedirectUriKind> redirectUriKinds,
+    IUiLocaleCatalog uiLocaleCatalog
 ) : ICollectionDataSource<SettingDescriptor>
 {
     private const bool IsStdDiscoverable = true;
@@ -62,6 +64,8 @@ internal class DefaultSettingDescriptorDataSource(
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
+
+    private IUiLocaleCatalog UiLocaleCatalog { get; } = uiLocaleCatalog;
 
     private ImmutableArray<string> SecurityProfileNames { get; } =
     [.. securityProfiles.Select(profile => profile.ProfileName).Order(StringComparer.Ordinal)];
@@ -972,6 +976,51 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
+            // tenant_key_lifetime: how long a key the server provisions for the tenant signs or encrypts before it
+            // retires and its successor takes over. Between one hour and ten years; default 90 days, the quarterly
+            // cadence of the major providers' automatic rollover. Not advertised. Ceiling (Min): a parent bounds how
+            // long a tenant's keys stay in use. (ADR-1404)
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.TenantKeyLifetime,
+                AppliesTo = Tenants,
+                Rule = SettingRules.Between(TimeSpan.FromHours(1), TimeSpan.FromDays(3650)),
+                Default = TimeSpan.FromDays(90),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Min,
+            };
+
+            // tenant_key_activation_delay: how long a provisioned key is published before it starts to sign or
+            // encrypt, so a verifier that caches the JSON Web Key Set holds the key before the first token it signs
+            // (OpenID Connect Core 1.0 §10.1.1). Up to a year; default two days. Not advertised. Floor (Max): a
+            // parent's delay is the least a tenant publishes ahead. (ADR-1404)
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.TenantKeyActivationDelay,
+                AppliesTo = Tenants,
+                Rule = SettingRules.Between(TimeSpan.Zero, TimeSpan.FromDays(365)),
+                Default = TimeSpan.FromDays(2),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Max,
+            };
+
+            // tenant_key_retirement_grace: how long a retired key stays published and verifies or decrypts. The
+            // rollover raises it to the longest lifetime of the tokens the tenant protects with its keys plus the
+            // clock skew, so no token outlives its key. Up to a year; default seven days. Not advertised. Floor
+            // (Max): a parent's grace is the least a tenant keeps a retired key. (ADR-1404)
+            yield return new SettingDescriptor<TimeSpan>
+            {
+                Name = OpenIdSettingNames.TenantKeyRetirementGrace,
+                AppliesTo = Tenants,
+                Rule = SettingRules.Between(TimeSpan.Zero, TimeSpan.FromDays(365)),
+                Default = TimeSpan.FromDays(7),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Max,
+            };
+
             // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
             // anonymous (no initial access token) requests (default false). (ADR-1063)
             // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.
@@ -1620,6 +1669,22 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Replace,
             };
 
+            // audit_userinfo_access: audit each answer of the UserInfo endpoint to a request whose access token
+            // authenticated, naming the subject, the client and the claims disclosed (default false: the subject is
+            // already audited when the token is issued, and the endpoint is a hot read path). Floor (Or): once a server,
+            // tenant or client turns it on, a narrower scope cannot turn it off, so a client cannot opt out of its
+            // tenant's audit trail. Scopes: the endpoint reads the effective settings of the token's client, and the
+            // tenant's when the token names no client the tenant serves. (ADR-1401)
+            yield return new SettingDescriptor<bool>
+            {
+                Name = OpenIdSettingNames.AuditUserInfoAccess,
+                AppliesTo = TenantsAndClients,
+                Default = false,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Or,
+            };
+
             // send_system_metadata_in_access_token: project the account's server-controlled system metadata bag into
             // the access token as a single JSON object claim (default false). This is the authorization-appropriate
             // destination for system metadata. Override (Replace): a child fully replaces the parent value.
@@ -1963,16 +2028,32 @@ internal class DefaultSettingDescriptorDataSource(
                 OnMerge = Intersect,
             };
 
-            // ui_locales_supported: BCP47 locales the server's UI supports.
+            // ui_locales_supported: the registered UI locales a request's ui_locales may select, so discovery advertises
+            // only locales the end-user interface renders (ADR-1402).
             // Ceiling (Intersect): a child narrows the parent's set; unset = unrestricted (ADR-1010).
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.UiLocalesSupported,
                 AppliesTo = Tenants,
-                Rule = SettingRules.Each(OpenIdSettingRules.Token()),
+                Rule = SettingRules.Each(UiLocale()),
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
+            };
+
+            // default_ui_locale: the registered UI locale the end-user interface renders in when no preference selects
+            // another; empty, or a value the effective ui_locales_supported leaves out, renders in the first registered
+            // locale that ceiling lists (ADR-1402). Not advertised.
+            // Override (Replace): a child fully replaces the parent value.
+            yield return new SettingDescriptor<string>
+            {
+                Name = OpenIdSettingNames.DefaultUiLocale,
+                AppliesTo = Tenants,
+                Rule = SettingRules.EmptyOr(UiLocale()),
+                Default = string.Empty,
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Replace,
             };
 
             // userinfo_encrypted_response_alg: the key-management "alg" the client registers for encrypting its UserInfo
@@ -2263,6 +2344,15 @@ internal class DefaultSettingDescriptorDataSource(
                 value => value.Count == 0
             )
             : SettingRules.Each(SettingRules.OneOf(RedirectUriKindNames));
+
+    /// <summary>
+    /// Gets the rule for a locale the end-user interface renders: the value names a registered UI locale.
+    /// </summary>
+    private SettingRule<string> UiLocale() =>
+        SettingRules.Must<string>(
+            "a registered UI locale such as 'en'",
+            languageTag => UiLocaleCatalog.TryGet(languageTag, out _)
+        );
 
     /// <summary>
     /// Gets the rule for a list of signature algorithms a client or the server may choose from, symmetric ones

@@ -25,7 +25,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -1154,7 +1153,8 @@ internal class ResourceServerApiEndpointHandler(
             return SystemResourceServerHoldsNoKeys();
         }
 
-        var validation = SecretValidator.ValidateCreate(request);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validation = SecretValidator.ValidateCreate(request, createdWhen);
         if (!validation.IsValid)
         {
             return ToErrorResult(validation.Error);
@@ -1180,7 +1180,9 @@ internal class ResourceServerApiEndpointHandler(
                     GenerationParameters = validation.GenerationParameters,
                     Use = request.Use,
                     Algorithm = request.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    CreatedWhen = createdWhen,
+                    ActivatesWhen = request.ActivatesWhen,
+                    RetiresWhen = request.RetiresWhen,
                     ExpiresWhen = request.ExpiresWhen,
                 }
             );
@@ -1265,7 +1267,8 @@ internal class ResourceServerApiEndpointHandler(
             return SystemResourceServerHoldsNoKeys();
         }
 
-        var validationError = SecretValidator.ValidateImport(request);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validationError = SecretValidator.ValidateImport(request, createdWhen);
         if (validationError is not null)
         {
             return ToErrorResult(validationError);
@@ -1281,7 +1284,9 @@ internal class ResourceServerApiEndpointHandler(
             KeyMaterial = request.KeyMaterial,
             Use = request.Use,
             Algorithm = request.Algorithm,
-            CreatedWhen = TimeProvider.GetUtcNow(),
+            CreatedWhen = createdWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
             ExpiresWhen = request.ExpiresWhen,
         };
         if (!KeyImporter.TryImportKey(importRequest, out var importedSecret, out var importError))
@@ -1469,22 +1474,7 @@ internal class ResourceServerApiEndpointHandler(
             return ToErrorResult(metadataError);
         }
 
-        var updated = new PersistedSecret
-        {
-            SecretId = secret.SecretId,
-            KeyId = secret.KeyId,
-            ConcurrencyToken = secret.ConcurrencyToken,
-            Use = request.Use,
-            Algorithm = request.Algorithm,
-            CreatedWhen = secret.CreatedWhen,
-            ExpiresWhen = request.ExpiresWhen,
-            SecretType = secret.SecretType,
-            SecretEncoding = secret.SecretEncoding,
-            Origin = secret.Origin,
-            KeySizeBits = secret.KeySizeBits,
-            EncodedValue = secret.EncodedValue,
-            PublicKey = secret.PublicKey,
-        };
+        var updated = WithUpdate(secret, request);
 
         await store.UpdateSecretAsync(resourceServerId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);

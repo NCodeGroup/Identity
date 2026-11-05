@@ -4,11 +4,14 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Jose;
 using NCode.Buffers;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Jose.Algorithms.KeyManagement;
 using NCode.Identity.Secrets.Keys;
+using Base64Url = NCode.Encoders.Base64Url;
+using JoseEncryptionException = NCode.Identity.Jose.Exceptions.JoseEncryptionException;
 using JoseException = NCode.Identity.Jose.Exceptions.JoseException;
 
 namespace NCode.Identity.Jose.Tests.Algorithms.KeyManagement;
@@ -240,4 +243,307 @@ public class Pbes2KeyManagementAlgorithmTests : BaseTests
         Assert.Equal(contentKey.Length, unwrapBytesWritten);
         Assert.Equal(contentKey, decryptedContentKey);
     }
+
+    #region TryUnwrapKey Tests
+
+    private const string Password = "correct horse battery staple";
+
+    // A header, encrypted content key and content key from a real wrap, which each test alters in one way.
+    private static (JsonObject Header, byte[] EncryptedContentKey, byte[] ContentKey) Wrap(
+        Pbes2KeyManagementAlgorithm algorithm,
+        string password = Password
+    )
+    {
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, password);
+        var header = new Dictionary<string, object>
+        {
+            ["alg"] = "PBES2-HS256+A128KW",
+            ["p2c"] = Pbes2KeyManagementAlgorithm.MinIterationCount,
+        };
+
+        var contentKey = new byte[32];
+        RandomNumberGenerator.Fill(contentKey);
+
+        var encryptedContentKeyWriter = new ArrayBufferWriter<byte>();
+        algorithm.WrapKey(secretKey, header, contentKey, encryptedContentKeyWriter);
+
+        var headerNode = Assert.IsType<JsonObject>(JsonSerializer.SerializeToNode(header));
+        return (headerNode, encryptedContentKeyWriter.WrittenSpan.ToArray(), contentKey);
+    }
+
+    private static bool TryUnwrap(
+        Pbes2KeyManagementAlgorithm algorithm,
+        JsonObject header,
+        byte[] encryptedContentKey,
+        Span<byte> contentKey,
+        out int bytesWritten,
+        string password = Password
+    ) =>
+        algorithm.TryUnwrapKey(
+            SecretKeyFactory.CreateSymmetric(default, password),
+            JsonSerializer.SerializeToElement(header),
+            encryptedContentKey,
+            contentKey,
+            out bytesWritten
+        );
+
+    // The strict key wrap mock fails any test that reaches the key wrap, so each header check is shown to refuse the
+    // header before a key encryption key is derived from it.
+    private JoseException AssertUnwrapRefusesHeader(JsonObject header)
+    {
+        var algorithm = Create();
+        var contentKey = new byte[32];
+        return Assert.Throws<JoseException>(() =>
+            TryUnwrap(algorithm, header, new byte[40], contentKey, out _)
+        );
+    }
+
+    private static JsonObject CreateHeader() =>
+        new()
+        {
+            ["alg"] = "PBES2-HS256+A128KW",
+            ["p2c"] = Pbes2KeyManagementAlgorithm.MinIterationCount,
+            ["p2s"] = Base64Url.Encode(new byte[Pbes2KeyManagementAlgorithm.SaltInputSizeBytes]),
+        };
+
+    [Theory]
+    [InlineData("alg")]
+    [InlineData("p2c")]
+    [InlineData("p2s")]
+    public void TryUnwrapKey_GivenHeaderWithoutAMember_ThenThrows(string member)
+    {
+        var header = CreateHeader();
+        header.Remove(member);
+
+        var exception = AssertUnwrapRefusesHeader(header);
+
+        Assert.Equal($"The JWT header is missing the '{member}' field.", exception.Message);
+    }
+
+    [Theory]
+    [InlineData(0, "The 'p2c' field in the JWT header must be at least 1000")]
+    [InlineData(999, "The 'p2c' field in the JWT header must be at least 1000")]
+    [InlineData(310001, "The 'p2c' field in the JWT header must be at most 310000")]
+    public void TryUnwrapKey_GivenIterationCountOutOfRange_ThenThrows(
+        int iterationCount,
+        string expected
+    )
+    {
+        var header = CreateHeader();
+        header["p2c"] = iterationCount;
+
+        var exception = AssertUnwrapRefusesHeader(header);
+
+        Assert.Equal(expected, exception.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(8)]
+    [InlineData(11)]
+    [InlineData(13)]
+    [InlineData(16)]
+    public void TryUnwrapKey_GivenSaltInputOfAnotherSize_ThenThrows(int saltInputSizeBytes)
+    {
+        var header = CreateHeader();
+        header["p2s"] = Base64Url.Encode(new byte[saltInputSizeBytes]);
+
+        var exception = AssertUnwrapRefusesHeader(header);
+
+        Assert.Equal(
+            "The salt input ('p2s') does not have a valid size for this cryptographic algorithm.",
+            exception.Message
+        );
+    }
+
+    // A length that no base64url value has, which a decoder refuses before it decodes.
+    [Fact]
+    public void TryUnwrapKey_GivenSaltInputOfAnImpossibleLength_ThenThrows()
+    {
+        var header = CreateHeader();
+        header["p2s"] = new string('A', 17);
+
+        var exception = AssertUnwrapRefusesHeader(header);
+
+        Assert.Equal(
+            "The salt input ('p2s') does not have a valid size for this cryptographic algorithm.",
+            exception.Message
+        );
+    }
+
+    [Theory]
+    [InlineData("!!!!!!!!!!!!!!!!")]
+    [InlineData("AAAAAAAAAAAAAAA=")]
+    [InlineData("AAAAAAAA+AAAAAAA")]
+    [InlineData("AAAAAAAA/AAAAAAA")]
+    [InlineData("AAAAAAAA AAAAAAA")]
+    public void TryUnwrapKey_GivenSaltInputThatIsNotBase64Url_ThenThrows(string saltInput)
+    {
+        var header = CreateHeader();
+        header["p2s"] = saltInput;
+
+        var exception = AssertUnwrapRefusesHeader(header);
+
+        Assert.Equal(
+            "The salt input ('p2s') in the JWT header is not valid base64url.",
+            exception.Message
+        );
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(8)]
+    [InlineData(16)]
+    [InlineData(23)]
+    [InlineData(25)]
+    [InlineData(31)]
+    public void TryUnwrapKey_GivenEncryptedContentKeyOfAnInvalidSize_ThenThrows(
+        int encryptedContentKeySizeBytes
+    )
+    {
+        var algorithm = Create();
+        var contentKey = new byte[64];
+
+        var exception = Assert.Throws<JoseException>(() =>
+            TryUnwrap(
+                algorithm,
+                CreateHeader(),
+                new byte[encryptedContentKeySizeBytes],
+                contentKey,
+                out _
+            )
+        );
+
+        Assert.Equal(
+            "The encrypted content encryption key (CEK) does not have a valid size for this cryptographic algorithm.",
+            exception.Message
+        );
+    }
+
+    [Fact]
+    public void TryUnwrapKey_GivenContentKeyDestinationTooSmall_ThenReturnsFalse()
+    {
+        var algorithm = Create();
+        var contentKey = new byte[31];
+
+        var result = TryUnwrap(
+            algorithm,
+            CreateHeader(),
+            new byte[40],
+            contentKey,
+            out var bytesWritten
+        );
+
+        Assert.False(result);
+        Assert.Equal(0, bytesWritten);
+    }
+
+    [Fact]
+    public void TryUnwrapKey_GivenKeyOfASizeOutsideTheKeyBitSizes_ThenThrows()
+    {
+        var algorithm = Create();
+        var secretKey = SecretKeyFactory.CreateSymmetric(default, Array.Empty<byte>());
+        var contentKey = new byte[32];
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            algorithm.TryUnwrapKey(
+                secretKey,
+                JsonSerializer.SerializeToElement(CreateHeader()),
+                new byte[40],
+                contentKey,
+                out _
+            )
+        );
+
+        Assert.StartsWith(
+            "The secret key does not have a valid size for this cryptographic algorithm.",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void TryUnwrapKey_GivenKeyOfAnotherType_ThenThrows()
+    {
+        var algorithm = Create();
+        using var rsa = RSA.Create(2048);
+        var secretKey = SecretKeyFactory.CreateRsa(default, rsa);
+        var contentKey = new byte[32];
+
+        Assert.Throws<ArgumentException>(() =>
+            algorithm.TryUnwrapKey(
+                secretKey,
+                JsonSerializer.SerializeToElement(CreateHeader()),
+                new byte[40],
+                contentKey,
+                out _
+            )
+        );
+    }
+
+    [Fact]
+    public void TryUnwrapKey_GivenTheWrappedKey_ThenUnwrapsIt()
+    {
+        var algorithm = Create(aesKeyWrap: DefaultAesKeyWrap.Singleton);
+        var (header, encryptedContentKey, expected) = Wrap(algorithm);
+        var contentKey = new byte[expected.Length];
+
+        var result = TryUnwrap(algorithm, header, encryptedContentKey, contentKey, out var written);
+
+        Assert.True(result);
+        Assert.Equal(expected.Length, written);
+        Assert.Equal(expected, contentKey);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(8)]
+    [InlineData(39)]
+    public void TryUnwrapKey_GivenTamperedEncryptedContentKey_ThenFailsTheIntegrityCheck(
+        int tamperedIndex
+    )
+    {
+        var algorithm = Create(aesKeyWrap: DefaultAesKeyWrap.Singleton);
+        var (header, encryptedContentKey, _) = Wrap(algorithm);
+        encryptedContentKey[tamperedIndex] ^= 0x01;
+        var contentKey = new byte[32];
+
+        Assert.Throws<JoseEncryptionException>(() =>
+            TryUnwrap(algorithm, header, encryptedContentKey, contentKey, out _)
+        );
+    }
+
+    [Fact]
+    public void TryUnwrapKey_GivenTamperedSaltInput_ThenFailsTheIntegrityCheck()
+    {
+        var algorithm = Create(aesKeyWrap: DefaultAesKeyWrap.Singleton);
+        var (header, encryptedContentKey, _) = Wrap(algorithm);
+        header["p2s"] = Base64Url.Encode(new byte[Pbes2KeyManagementAlgorithm.SaltInputSizeBytes]);
+        var contentKey = new byte[32];
+
+        Assert.Throws<JoseEncryptionException>(() =>
+            TryUnwrap(algorithm, header, encryptedContentKey, contentKey, out _)
+        );
+    }
+
+    [Fact]
+    public void TryUnwrapKey_GivenWrongPassword_ThenFailsTheIntegrityCheck()
+    {
+        var algorithm = Create(aesKeyWrap: DefaultAesKeyWrap.Singleton);
+        var (header, encryptedContentKey, _) = Wrap(algorithm);
+        var contentKey = new byte[32];
+
+        Assert.Throws<JoseEncryptionException>(() =>
+            TryUnwrap(
+                algorithm,
+                header,
+                encryptedContentKey,
+                contentKey,
+                out _,
+                password: "wrong password"
+            )
+        );
+    }
+
+    #endregion
 }

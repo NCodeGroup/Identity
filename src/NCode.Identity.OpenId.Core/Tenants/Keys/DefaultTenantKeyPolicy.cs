@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
@@ -24,8 +25,8 @@ internal class DefaultTenantKeyPolicy(
     ISecretSerializer secretSerializer
 ) : ITenantKeyPolicy
 {
-    // RSA keys are 3072 bits because NIST SP 800-57 accepts 2048-bit RSA only through 2030, and a provisioned key has
-    // no lifetime of its own until key rollover exists (issue #166).
+    // RSA keys are 3072 bits because NIST SP 800-57 accepts 2048-bit RSA only through 2030, and a tenant may set a key
+    // lifetime that reaches past it.
     private const int DefaultRsaKeySizeBits = 3072;
 
     // RS256 is the algorithm every OpenID provider must support (OpenID Connect Core 1.0 §15.1); PS256 and ES256 are the
@@ -61,19 +62,15 @@ internal class DefaultTenantKeyPolicy(
         var algorithmCode = key.Algorithm;
         specification = default;
 
-        // A tenant key is published in the tenant's JSON Web Key Set and used across trust boundaries, which only an
-        // asymmetric key can be.
         if (!descriptor.IsAsymmetric)
         {
-            error =
-                $"The algorithm '{algorithmCode}' uses a symmetric key, and a tenant is provisioned with asymmetric "
-                + "keys only.";
+            error = FormatSymmetricKeyError(algorithmCode);
             return false;
         }
 
-        // See ADR-1389 and ADR-1392: two curves can share a key size, so the key is generated on the configured curve,
-        // or on the first curve the algorithm accepts that has the configured size, never on whichever curve the key
-        // type picks for the size.
+        // See ADR-1389, ADR-1392 and ADR-1398: two curves can share a key size, so the key is generated on the
+        // configured curve, or on the one curve the algorithm accepts that has the configured size, never on whichever
+        // curve the key type picks for the size; a size two of the algorithm's curves share is refused.
         if (
             !collection.TryResolveKeyGeneration(
                 new KeyGenerationDeclaration
@@ -118,11 +115,88 @@ internal class DefaultTenantKeyPolicy(
         return true;
     }
 
+    /// <summary>
+    /// Determines whether a key type of the algorithm accepts the configured curve and size, before either is resolved
+    /// onto a key: a configured curve must be one of its curves, and a configured size, without a curve, one of its
+    /// sizes.
+    /// </summary>
+    private static bool AcceptsConfiguredKey(
+        AlgorithmKeyType algorithmKeyType,
+        OpenIdTenantKeyOptions key
+    ) =>
+        key.Curve is { } curve ? algorithmKeyType.TryGetCurve(curve, out _)
+        : key.KeySizeBits is { } keySizeBits ? algorithmKeyType.IsLegalSize(keySizeBits)
+        : true;
+
     private static string FormatList(IEnumerable<string> values)
     {
         var quoted = values.Select(value => $"'{value}'").ToList();
         return quoted.Count == 0 ? "none" : string.Join(", ", quoted);
     }
+
+    // A tenant key is published in the tenant's JSON Web Key Set and used across trust boundaries, which only an
+    // asymmetric key can be.
+    private static string FormatSymmetricKeyError(string algorithmCode) =>
+        $"The algorithm '{algorithmCode}' uses a symmetric key, and a tenant is provisioned with asymmetric keys "
+        + "only.";
+
+    // Formats the error for a configured curve or size that none of the algorithm's provisionable key types accepts:
+    // the curves, or the sizes, that each of them accepts, so an algorithm that accepts several key types, such as
+    // ECDH-ES over EC and OKP keys, reports every curve it accepts (ADR-1398).
+    private static string FormatConfiguredKeyError(
+        string algorithmCode,
+        OpenIdTenantKeyOptions key,
+        IEnumerable<(
+            AlgorithmKeyType AlgorithmKeyType,
+            ISecretKeyTypeDescriptor Descriptor
+        )> keyTypes
+    ) =>
+        key.Curve is { } curve
+            ? $"The curve '{curve}' is not valid for algorithm '{algorithmCode}'; expected "
+                + FormatAcceptedKeys(keyTypes, FormatAcceptedCurves)
+                + "."
+            : $"The key size '{key.KeySizeBits}' bits is not valid for algorithm '{algorithmCode}'; expected "
+                + FormatAcceptedKeys(keyTypes, FormatAcceptedSizes)
+                + ".";
+
+    private static string FormatAcceptedKeys(
+        IEnumerable<(
+            AlgorithmKeyType AlgorithmKeyType,
+            ISecretKeyTypeDescriptor Descriptor
+        )> keyTypes,
+        Func<AlgorithmKeyType, string> formatAccepted
+    ) =>
+        string.Join(
+            "; ",
+            keyTypes.Select(keyType =>
+                formatAccepted(keyType.AlgorithmKeyType)
+                + $" for '{keyType.Descriptor.KeyType}' keys"
+            )
+        );
+
+    // The curves a key type accepts, each with its size, or no curve for a key type without curves, which a
+    // configured curve never fits.
+    private static string FormatAcceptedCurves(AlgorithmKeyType algorithmKeyType) =>
+        algorithmKeyType.Curves.Count > 0 ? FormatCurves(algorithmKeyType) : "no curve";
+
+    // The curves a key type accepts, each with its size, which a configured size selects among, or the sizes of a key
+    // type without curves.
+    private static string FormatAcceptedSizes(AlgorithmKeyType algorithmKeyType) =>
+        algorithmKeyType.Curves.Count > 0
+            ? FormatCurves(algorithmKeyType)
+            : string.Join(", ", algorithmKeyType.KeyBitSizes.Select(FormatKeySizes));
+
+    private static string FormatCurves(AlgorithmKeyType algorithmKeyType) =>
+        string.Join(
+            ", ",
+            algorithmKeyType.Curves.Select(curve => $"'{curve.Name}' ({curve.KeySizeBits} bits)")
+        );
+
+    private static string FormatKeySizes(KeySizes keySizes) =>
+        keySizes.MinSize == keySizes.MaxSize ? $"{keySizes.MinSize} bits"
+        : keySizes.MaxSize == int.MaxValue ? $"{keySizes.MinSize} bits or more"
+        : keySizes.SkipSize == 0 ? $"{keySizes.MinSize} to {keySizes.MaxSize} bits"
+        : $"{keySizes.MinSize} to {keySizes.MaxSize} bits in steps of {keySizes.SkipSize}";
 
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
@@ -300,40 +374,57 @@ internal class DefaultTenantKeyPolicy(
             return TryBuildSpecification(collection, key, descriptor, out specification, out error);
         }
 
-        // See ADR-1389: an algorithm may accept several key types. Unless the configured secret type selects one, the
-        // key is generated as the first key type the algorithm lists that has a registered secret key type and that a
-        // key can be generated as, so a key type that cannot be provisioned yields to the next.
-        string? firstError = null;
+        // See ADR-1389 and ADR-1398: an algorithm may accept several key types. Unless the configured secret type selects
+        // one, the key is generated as the first key type the algorithm lists that has a registered asymmetric secret key
+        // type and that accepts the configured curve and size, so a key type that cannot be provisioned yields to the
+        // next, and that key type's resolution is the outcome: a configuration it refuses, such as a size two of its
+        // curves share, is reported, never provisioned as another key type.
+        var keyTypes =
+            new List<(AlgorithmKeyType AlgorithmKeyType, ISecretKeyTypeDescriptor Descriptor)>();
         foreach (var algorithmKeyType in algorithm.KeyTypes)
         {
             var descriptor = SecretKeyTypeCatalog.Descriptors.FirstOrDefault(candidate =>
                 candidate.KeyClrType == algorithmKeyType.KeyClrType
             );
-            if (descriptor is null)
+            if (descriptor is not null)
             {
-                continue;
+                keyTypes.Add((algorithmKeyType, descriptor));
             }
+        }
 
-            if (
-                TryBuildSpecification(
+        if (keyTypes.Count == 0)
+        {
+            error =
+                $"The algorithm '{algorithmCode}' uses a key type that has no registered secret key type.";
+            return false;
+        }
+
+        var asymmetricKeyTypes = keyTypes
+            .Where(keyType => keyType.Descriptor.IsAsymmetric)
+            .ToList();
+        if (asymmetricKeyTypes.Count == 0)
+        {
+            error = FormatSymmetricKeyError(algorithmCode);
+            return false;
+        }
+
+        foreach (var (algorithmKeyType, descriptor) in asymmetricKeyTypes)
+        {
+            if (AcceptsConfiguredKey(algorithmKeyType, key))
+            {
+                return TryBuildSpecification(
                     collection,
                     key,
                     descriptor,
                     out specification,
-                    out var candidateError
-                )
-            )
-            {
-                error = null;
-                return true;
+                    out error
+                );
             }
-
-            firstError ??= candidateError;
         }
 
-        error =
-            firstError
-            ?? $"The algorithm '{algorithmCode}' uses a key type that has no registered secret key type.";
+        // No key type accepts the configured curve or size, so the error lists what every provisionable key type of
+        // the algorithm accepts.
+        error = FormatConfiguredKeyError(algorithmCode, key, asymmetricKeyTypes);
         return false;
     }
 }

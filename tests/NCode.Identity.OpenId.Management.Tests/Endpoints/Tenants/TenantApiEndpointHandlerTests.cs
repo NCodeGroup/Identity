@@ -16,6 +16,7 @@ using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
+using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -54,6 +55,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private Mock<IClientKeyImporter> MockKeyImporter { get; }
     private Mock<ISecretPublicKeyConverter> MockSecretPublicKeyConverter { get; }
     private Mock<ISecretProtectorProvider> MockSecretProtectorProvider { get; }
+    private Mock<IMasterKeyManager> MockMasterKeyManager { get; }
     private Mock<ITenantValidator> MockTenantValidator { get; }
     private Mock<ITenantResolver> MockTenantResolver { get; }
     private Mock<ITenantProvisioner> MockTenantProvisioner { get; }
@@ -81,6 +83,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         MockKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockSecretPublicKeyConverter = MockRepository.Create<ISecretPublicKeyConverter>();
         MockSecretProtectorProvider = MockRepository.Create<ISecretProtectorProvider>();
+        MockMasterKeyManager = MockRepository.Create<IMasterKeyManager>();
         MockTenantValidator = MockRepository.Create<ITenantValidator>();
         MockTenantResolver = MockRepository.Create<ITenantResolver>();
         MockTenantProvisioner = MockRepository.Create<ITenantProvisioner>();
@@ -109,6 +112,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             MockKeyImporter.Object,
             MockSecretPublicKeyConverter.Object,
             MockSecretProtectorProvider.Object,
+            MockMasterKeyManager.Object,
             TimeProvider.System,
             MockCryptoService.Object,
             MockSettingSerializer.Object,
@@ -144,9 +148,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private void SetupSecretCreateValidation()
     {
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
-                (CreateSecretRequest request) =>
+                (CreateSecretRequest request, DateTimeOffset _) =>
                     SecretCreateValidation.Valid(
                         new SecretKeyGenerationParameters
                         {
@@ -392,6 +398,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             Origin = SecretOrigins.Generated,
@@ -1579,6 +1587,132 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateSecretAsync_WhenTheRequestNamesALifecycle_GeneratesTheKeyWithIt()
+    {
+        SetupTenantChangedAnnouncement();
+        SetupSecretCreateValidation();
+        SetupTenantSecretChangedAudit();
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+
+        var protector = SetupCreateSecretProtector();
+        var generated = CreatePersistedSecret();
+        GenerateSecretRequest? generateRequest = null;
+        MockSecretGenerator
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
+            .Callback(
+                (ISecretProtector _, GenerateSecretRequest request) => generateRequest = request
+            )
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.AddSecretAsync(TenantId, generated, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var request = new CreateSecretRequest
+        {
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 2048,
+            Use = "sig",
+            Algorithm = "RS256",
+            ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+        };
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<SecretResource>>(result);
+        Assert.NotNull(generateRequest);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), generateRequest.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), generateRequest.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(99), generateRequest.ExpiresWhen);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenTheRequestNamesALifecycle_ImportsTheKeyWithIt()
+    {
+        SetupTenantChangedAnnouncement();
+        SetupTenantSecretChangedAudit();
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateImport(It.IsAny<ImportSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
+            .Returns((ManagementError?)null)
+            .Verifiable();
+        SetupResourceId("secret-2");
+        var imported = CreatePersistedSecret("secret-2");
+        var importedSecret = (PersistedSecret?)imported;
+        string? error = null;
+        // Moq cannot capture beside out arguments, so the import request is matched by the instants it carries.
+        MockKeyImporter
+            .Setup(x =>
+                x.TryImportKey(
+                    It.Is<SecretKeyImportRequest>(request =>
+                        request.SecretId == "secret-2"
+                        && request.ActivatesWhen == DateTimeOffset.UnixEpoch.AddDays(2)
+                        && request.RetiresWhen == DateTimeOffset.UnixEpoch.AddDays(92)
+                        && request.ExpiresWhen == DateTimeOffset.UnixEpoch.AddDays(99)
+                    ),
+                    out importedSecret,
+                    out error
+                )
+            )
+            .Returns(true)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.AddSecretAsync(TenantId, imported, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var request = new ImportSecretRequest
+        {
+            SecretType = SecretTypes.Rsa,
+            Format = "jwk",
+            KeyMaterial = """{"kty":"RSA","n":"AQAB","e":"AQAB"}""",
+            Use = "sig",
+            Algorithm = "RS256",
+            ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+        };
+
+        var result = await Handler.ImportSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<SecretResource>>(result);
+        Assert.Equal("secret-2", created.Value?.SecretId);
+        VerifyTenantChanged(settingsChanged: false);
+    }
+
+    [Fact]
     public async Task CreateSecretAsync_WhenTenantNotFound_ReturnsNotFound()
     {
         SetupStore();
@@ -1646,7 +1780,9 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
                 SecretCreateValidation.Invalid(
                     new ManagementError
@@ -1862,6 +1998,78 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         Assert.IsType<NoContent>(result);
         VerifyTenantChanged(settingsChanged: false);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenTheRequestOmitsTheInstants_KeepsTheStoredOnesBoundedByTheExpiry()
+    {
+        // A retired key stays retired when only its expiry is extended; the retirement follows a shortened expiry.
+        SetupTenantChangedAnnouncement();
+        SetupSecretUpdateValidation();
+        SetupTenantSecretChangedAudit();
+        SetupStore();
+        var stored = new PersistedSecret
+        {
+            SecretId = "secret-1",
+            ConcurrencyToken = "secret-ct",
+            Use = "sig",
+            Algorithm = "RS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            SecretType = SecretTypes.Symmetric,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
+            Origin = SecretOrigins.Generated,
+            ManagedBy = "rotation",
+            KeySizeBits = 256,
+            EncodedValue = "encoded",
+        };
+        MockTenantStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(TenantId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(stored)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        PersistedSecret? updated = null;
+        MockTenantStore
+            .Setup(x =>
+                x.UpdateSecretAsync(
+                    TenantId,
+                    It.IsAny<PersistedSecret>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback((string _, PersistedSecret secret, CancellationToken _) => updated = secret)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var request = new UpdateSecretRequest
+        {
+            Use = "sig",
+            Algorithm = "RS256",
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(50),
+        };
+
+        var result = await Handler.UpdateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "secret-1",
+            request,
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        Assert.NotNull(updated);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), updated.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(50), updated.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(50), updated.ExpiresWhen);
+        Assert.Equal("rotation", updated.ManagedBy);
     }
 
     [Fact]
@@ -2993,6 +3201,252 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
 
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region Encryption Keys Tests
+
+    private static MasterKeyInfo CreateKeyInfo(int version, bool retired) =>
+        new(
+            Guid.NewGuid(),
+            SecretOwner.ForTenant(TenantId),
+            version,
+            DateTimeOffset.UnixEpoch,
+            retired ? DateTimeOffset.UnixEpoch.AddDays(1) : null,
+            "local",
+            "root-key",
+            "recovery-key"
+        );
+
+    [Fact]
+    public async Task GetEncryptionKeysAsync_WhenFoundAndAuthorized_MapsTheStatusWithoutMaterial()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        var active = CreateKeyInfo(2, retired: false);
+        var retired = CreateKeyInfo(1, retired: true);
+        MockMasterKeyManager
+            .Setup(x =>
+                x.GetStatusAsync(SecretOwner.ForTenant(TenantId), It.IsAny<CancellationToken>())
+            )
+            .Returns(
+                new ValueTask<MasterKeyStatus>(
+                    new MasterKeyStatus(
+                        SecretOwner.ForTenant(TenantId),
+                        [active, retired],
+                        RecoveryConfigured: true
+                    )
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.GetEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionKeysResource>>(result);
+        Assert.True(ok.Value?.RecoveryConfigured);
+        Assert.Collection(
+            ok.Value?.Keys ?? [],
+            key =>
+            {
+                Assert.Equal(active.KeyId, key.KeyId);
+                Assert.Equal(2, key.Version);
+                Assert.Equal(EncryptionKeyStates.Active, key.State);
+                Assert.Equal("local", key.RootKeyProvider);
+                Assert.Equal("root-key", key.RootKeyId);
+                Assert.Equal("recovery-key", key.RecoveryKeyId);
+                Assert.Null(key.RetiredWhen);
+            },
+            key =>
+            {
+                Assert.Equal(EncryptionKeyStates.Retired, key.State);
+                Assert.Equal(retired.RetiredWhen, key.RetiredWhen);
+            }
+        );
+    }
+
+    [Fact]
+    public async Task GetEncryptionKeysAsync_WhenNotFound_ReturnsNotFoundWithoutTouchingTheManager()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+
+        var result = await Handler.GetEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetEncryptionKeysAsync_WhenNotAuthorized_DoesNotReadTheStatus()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsNotType<Ok<EncryptionKeysResource>>(result);
+    }
+
+    [Fact]
+    public async Task RekeyEncryptionKeysAsync_RotatesRecordsOneAuditEventAndMapsTheRotation()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        var rotation = new MasterKeyRotation(
+            SecretOwner.ForTenant(TenantId),
+            CreateKeyInfo(2, retired: false),
+            CreateKeyInfo(1, retired: true)
+        );
+        MockMasterKeyManager
+            .Setup(x =>
+                x.RotateAsync(SecretOwner.ForTenant(TenantId), It.IsAny<CancellationToken>())
+            )
+            .Returns(new ValueTask<MasterKeyRotation>(rotation))
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordMasterKeyRotatedAsync(
+                    It.IsAny<HttpContext>(),
+                    rotation,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+
+        var result = await Handler.RekeyEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<EncryptionKeyRotationResource>>(result);
+        Assert.Equal(2, ok.Value?.ActiveKey.Version);
+        Assert.Equal(EncryptionKeyStates.Active, ok.Value?.ActiveKey.State);
+        Assert.Equal(1, ok.Value?.RetiredKey?.Version);
+        Assert.Equal(EncryptionKeyStates.Retired, ok.Value?.RetiredKey?.State);
+    }
+
+    [Fact]
+    public async Task RekeyEncryptionKeysAsync_WhenAnotherRekeyCommittedFirst_ThrowsStoreConcurrencyExceptionForTheFilter()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockMasterKeyManager
+            .Setup(x =>
+                x.RotateAsync(SecretOwner.ForTenant(TenantId), It.IsAny<CancellationToken>())
+            )
+            .Throws(new StoreConcurrencyException())
+            .Verifiable();
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(async () =>
+            await Handler.RekeyEncryptionKeysAsync(
+                CreateHttpContext(authenticated: true),
+                TenantId,
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
+    public async Task RekeyEncryptionKeysAsync_WhenTheLastRotationIsTooRecent_ReturnsConflictWithRetryAfterAndRecordsNothing()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockMasterKeyManager
+            .Setup(x =>
+                x.RotateAsync(SecretOwner.ForTenant(TenantId), It.IsAny<CancellationToken>())
+            )
+            .Throws(
+                new MasterKeyRotationTooSoonException(
+                    SecretOwner.ForTenant(TenantId),
+                    TimeSpan.FromSeconds(90.2)
+                )
+            )
+            .Verifiable();
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.RekeyEncryptionKeysAsync(
+            httpContext,
+            TenantId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal("91", httpContext.Response.Headers.RetryAfter.ToString());
+    }
+
+    [Fact]
+    public async Task RekeyEncryptionKeysAsync_WhenNotFound_NeverRotates()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTenant?)null)
+            .Verifiable();
+
+        var result = await Handler.RekeyEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task RekeyEncryptionKeysAsync_WhenNotAuthorized_NeverRotates()
+    {
+        SetupStore();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.RekeyEncryptionKeysAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsNotType<Ok<EncryptionKeyRotationResource>>(result);
     }
 
     #endregion

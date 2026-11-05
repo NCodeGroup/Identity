@@ -7,6 +7,14 @@
  * the base as a parameter, defaulting to the document's, so they are unit-testable.
  */
 
+import type { Messages } from './i18n/messages.js';
+
+/**
+ * The form field that carries the language tag the host selected for the page back to it, so a page the host
+ * redirects to after a failed sign-in renders in the same language; the authorization request's parameter name.
+ */
+export const UI_LOCALES_FIELD = 'ui_locales';
+
 /** The server-set, JavaScript-readable cookie whose value is echoed back as the antiforgery token. */
 export const ANTIFORGERY_COOKIE = '__Host-XSRF-TOKEN';
 
@@ -126,42 +134,42 @@ export function isLogoutConfirmPath(pathname: string, baseUri: string = document
   return isSurfacePath(pathname, LOGOUT_CONFIRM_PATH, baseUri);
 }
 
-/** Maps a login error code to a human-readable message. */
-export function describeLoginError(error: string | null): string | null {
+/** Maps a login error code to the page's message for it. */
+export function describeLoginError(error: string | null, messages: Messages): string | null {
   switch (error) {
     case null:
       return null;
     case 'invalid_credentials':
-      return 'The username or password is incorrect.';
+      return messages.loginErrors.invalidCredentials;
     case 'invalid_request':
-      return 'Enter both a username and a password.';
+      return messages.loginErrors.invalidRequest;
     case 'access_denied':
-      return 'This account cannot sign in. Contact your administrator.';
+      return messages.loginErrors.accessDenied;
     default:
-      return 'Sign-in failed. Please try again.';
+      return messages.loginErrors.fallback;
   }
 }
 
-/** Maps a change-password error code to a human-readable message. */
-export function describePasswordError(error: string | null): string | null {
+/** Maps a change-password error code to the page's message for it. */
+export function describePasswordError(error: string | null, messages: Messages): string | null {
   switch (error) {
     case null:
       return null;
     case 'invalid_request':
-      return 'Enter your current password and a new password.';
+      return messages.passwordErrors.invalidRequest;
     case 'password_mismatch':
-      return 'The new passwords do not match.';
+      return messages.passwordErrors.passwordMismatch;
     case 'invalid_current_password':
-      return 'The current password is incorrect.';
+      return messages.passwordErrors.invalidCurrentPassword;
     case 'not_supported':
-      return 'Your account has no password to change here.';
+      return messages.passwordErrors.notSupported;
     case 'password_too_short':
-      return 'The new password is too short. A passphrase of several words is long enough and easy to remember.';
+      return messages.passwordErrors.passwordTooShort;
     case 'password_too_long':
-      return 'The new password is too long. Choose a shorter one.';
+      return messages.passwordErrors.passwordTooLong;
     case 'password_blocklisted':
-      return 'The new password is too common or is known to be compromised. Choose one you do not use anywhere else.';
+      return messages.passwordErrors.passwordBlocklisted;
     default:
-      return 'The password could not be changed. Please try again.';
+      return messages.passwordErrors.fallback;
   }
 }

@@ -378,6 +378,8 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = secretEncoding,
             Origin = SecretOrigins.Generated,

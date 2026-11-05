@@ -482,12 +482,69 @@ describes the family as it is rather than its changes
   [#336](https://github.com/NCodeGroup/Identity/issues/336),
   [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 
+- **Selective Disclosure for JWTs (SD-JWT, RFC 9901) is available as the opt-in `NCode.Identity.Jose.SdJwt` package.**
+  `AddSdJwt()`, an extension of `IServiceBuilder<JwtLibrary>`, registers `ISdJwtIssuer`, `ISdJwtHolder` and
+  `ISdJwtVerifier`. The issuer takes a claims object and the JSON Pointers (RFC 6901) of the claims the holder may
+  disclose selectively, object members and array elements at any depth, and moves each into a salted disclosure
+  whose digest it writes in its place, in the object's sorted `_sd` array or as a `{"...": digest}` array element,
+  with decoy digests where asked, the `_sd_alg` algorithm, and the holder's public key in `cnf`; a nested pointer
+  puts the inner digest in the outer disclosure's value. The holder parses the combined format
+  `<Issuer-signed JWT>~<Disclosure 1>~...~<Disclosure N>~[<KB-JWT>]`, resolves each disclosure to the claim it
+  discloses and the disclosure that carries its digest, and presents a chosen subset with the disclosures it depends
+  on, binding the presentation with a `kb+jwt` Key Binding JWT over `iat`, `aud`, `nonce` and the `sd_hash` of the
+  presentation when the verifier supplied an audience and a nonce. The verifier validates the issuer-signed JWT under
+  the caller's `JwtValidationParameters`, resolves the disclosures into the payload, drops the decoys, verifies the
+  Key Binding JWT against the `cnf` key, the verifier's audience and nonce, the presentation's digest and its
+  maximum age, and returns one claims object with every disclosed value in place and the `_sd`, `_sd_alg` and `...`
+  members removed, or the `SdJwtVerificationFailureCodes` code of the rule the presentation failed. The `_sd_alg`
+  hash algorithms (`sha-256`, `sha-384`, `sha-512` built in) and the `cnf` confirmation methods (`jwk` built in) are
+  registered data, and each `cnf` method has exactly one resolver, validated when the verifier is composed. The
+  SD-JWT VC profile, `SdJwtProfiles.SdJwtVc`, types the issuer-signed JWT `dc+sd-jwt`, requires `vct`, keeps
+  `iss`, `nbf`, `exp`, `cnf`, `vct`, `vct#integrity` and `status` in the signed payload, and passes `status`
+  through to the verified claims; an application defines another `SdJwtProfile` as data, whose required claims
+  are protected whether or not it lists them
+  ([#73](https://github.com/NCodeGroup/Identity/issues/73),
+  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
+  [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)).
+
 - **ES256K over secp256k1 is available as the opt-in `NCode.Identity.Jose.Secp256k1` package.** `AddSecp256k1()`, an
   extension of `IServiceBuilder<JoseLibrary>` as `AddEdDsa()` is, registers the secp256k1 curve (`crv` `secp256k1`,
   RFC 8812) in the elliptic-curve catalog, so `ecc` keys on it are generated, imported and published as JSON Web Keys,
   and the `ES256K` JWS algorithm (ECDSA over secp256k1 with SHA-256), bound to the curve. It registers nothing where the
   platform's cryptography lacks the curve, as on macOS ([#337](https://github.com/NCodeGroup/Identity/issues/337),
   [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+
+- **CBOR Object Signing and Encryption (COSE, RFC 9052 / 9053) is available as the opt-in `NCode.Identity.Cose` package.**
+  `AddCoseLibrary()`, an extension of `IServiceBuilder<JoseLibrary>`, registers `ICoseSerializer`, which encodes,
+  verifies and decrypts `COSE_Sign1`, `COSE_Sign`, `COSE_Mac0`, `COSE_Mac`, `COSE_Encrypt0` and `COSE_Encrypt` messages
+  with protected and unprotected header buckets, external additional data, detached content and an optional tag; the
+  content of a message is readable only from `Verify` or `Decrypt`, and `Inspect` returns its type and headers alone.
+  The algorithms are registered `CoseAlgorithm` data keyed by the IANA identifiers and bound to JOSE algorithms, so the
+  JOSE implementations serve them: ES256, ES384, ES512, ESP256, ESP384, ESP512, ES256K, EdDSA, Ed25519, Ed448, PS256,
+  PS384, PS512, ML-DSA-44, ML-DSA-65 and ML-DSA-87 signatures, HMAC 256/256, 384/384 and 512/512, AES-GCM, direct, AES
+  key wrap and RSAES-OAEP with SHA-256 and SHA-512 recipients, with HMAC 256/64, RSAES-OAEP with SHA-1 and
+  RSASSA-PKCS1-v1_5 offered as descriptors that `AddCoseAlgorithm` registers. `ICoseKeyConverter` reads and writes
+  public `COSE_Key` and `COSE_KeySet` structures through registered key type and curve descriptors mapped onto JSON Web
+  Keys and the registered secret key types, for `OKP`, `EC2`, `RSA` and `AKP` keys. A `COSE_Key` whose `key_ops` is empty or combines signature and
+  encryption operations is refused, and its operations otherwise set the key's use. A `kid` is an opaque byte string
+  that `CoseKeyIdentifiers` names as a key's `KeyId`: its UTF-8 text, or its CBOR diagnostic notation (`h'a1b2'`) when
+  it is not text, and keys are matched by the bytes. Everything it writes is in the core
+  deterministic encoding of RFC 8949 §4.2.1, and `CoseOptions` bounds the size, nesting, signatures and recipients of
+  what it reads
+  ([#76](https://github.com/NCodeGroup/Identity/issues/76),
+  [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md)).
+
+- **CBOR Web Tokens (CWT, RFC 8392) are available as the opt-in `NCode.Identity.Cwt` package.** `AddCwtLibrary()`, an
+  extension of `IServiceBuilder<CoseLibrary>`, registers `ICwtIssuer` and `ICwtValidator`. The issuer writes the
+  registered claims, the confirmation key as a public `COSE_Key` and any further claims in the deterministic encoding,
+  and protects them with a `COSE_Sign1` or `COSE_Mac0` message typed by the protected `typ` header when a token type is
+  given, optionally inside a `COSE_Encrypt0` or `COSE_Encrypt` message and optionally under the CWT tag. The validator
+  takes `CwtValidationParameters`: the permitted algorithms and issuers, the verification keys or a resolver of them,
+  the audiences, the decryption keys, the token type, the clock skew, the lifetime requirements and the required
+  claims; it verifies the COSE layer first, then reads the claims into a `CwtClaimsSet`, and returns the claims or a
+  `CwtValidationFailureCodes` or `CoseFailureCodes` code
+  ([#76](https://github.com/NCodeGroup/Identity/issues/76),
+  [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)).
 
 - **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
   `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
@@ -515,16 +572,29 @@ describes the family as it is rather than its changes
   `IAlgorithmCollection` returns a registered signature or key-management algorithm with the use it implies.
   `TryResolveKeyGeneration` resolves a `KeyGenerationDeclaration` (CLR type, optional size, optional curve, use and
   algorithm) into a `ResolvedKeyGeneration`: for a key type on curves the key is generated on the named curve, which the
-  algorithm must accept, or on the first curve it accepts that has the requested size, and its size is its curve's; a
-  curve named for a key type the algorithm binds to no curve is refused. Tenant key provisioning and management secret
-  creation share it, so `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic `EdDSA` and for
-  `ECDH-ES`, are generated on the right curve. `ValidateKeyAlgorithm` checks a declared key itself: a
-  `KeyAlgorithmDeclaration` carries the key, whose type, size and curve the algorithm checks with `IsKeyCompatible`.
-  `ValidateKeySize` checks a held key of a type without curves, such as a stored symmetric key, by a
-  `KeySizeDeclaration` of its type and size, and refuses an algorithm that binds the type to curves
-  ([#327](https://github.com/NCodeGroup/Identity/issues/327), [#337](https://github.com/NCodeGroup/Identity/issues/337),
+  algorithm must accept, or on the one curve it accepts that has the requested size (`AlgorithmKeyType.GetCurves`), or
+  on its first curve when neither is given; a size that two of the algorithm's curves have, such as P-256 and a
+  contributed Brainpool curve for `ECDH-ES`, is refused with the curves that have it, and a curve named for a key type
+  the algorithm binds to no curve is refused. Tenant key provisioning and management secret creation share it, so
+  `ES256K`, `Ed25519` and `Ed448` keys, and `OKP` keys for the polymorphic `EdDSA` and for `ECDH-ES`, are generated on
+  the right curve. `ValidateKeyAlgorithm` checks a declared key itself: a `KeyAlgorithmDeclaration` carries the key,
+  whose type, size and curve the algorithm checks with `IsKeyCompatible`. `ValidateKeySize` checks a held symmetric
+  key, whose material is not at hand, by a `KeySizeDeclaration` of its type and size, and refuses an asymmetric key
+  type, which is checked by its stored public half ([#327](https://github.com/NCodeGroup/Identity/issues/327),
+  [#337](https://github.com/NCodeGroup/Identity/issues/337), [#534](https://github.com/NCodeGroup/Identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+
+- **A key type refuses a curve requested with another size, and a size two of its curves share.** The `ecc`, `okp`
+  and `AKP` secret key types refuse generation parameters that name a curve, or an ML-DSA parameter set, whose keys
+  are not the requested `SecretKeyGenerationParameters.KeySizeBits`, such as P-256 at 384 bits or Ed25519 at 456 bits.
+  An `ecc` key requested without a curve is generated on the one curve of the elliptic-curve catalog whose keys are
+  that size (`IEccCurveCatalog.GetByCurveSizeBits`) and refused, with the curves named, when several catalog curves
+  share it, as P-256 and secp256k1 do with `AddSecp256k1()`; an `okp` key is generated only on a named curve.
+  Management secret creation, tenant key provisioning and every other caller of the key types meet the same checks
+  ([#534](https://github.com/NCodeGroup/Identity/issues/534),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
 - **The EdDsa primitives have benchmarks.** `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks` measures the field, scalar
   and group arithmetic and the Ed25519 and Ed448 signing and verification of `NCode.Identity.Jose.EdDsa` with
@@ -728,18 +798,65 @@ describes the family as it is rather than its changes
   optional `KeySizeBits`, an optional `SecretType` that selects which of the algorithm's key types the key is generated
   as, and an optional `Curve` that selects which of the algorithm's curves it is generated on, such as a contributed
   curve that shares P-256's size for `ECDH-ES`. Unset, the type is the algorithm's first key type that has a registered
-  secret key type and can be provisioned, and the curve is the first the algorithm accepts that has the configured
-  size, or the algorithm's first curve; a secret type or curve the algorithm does not accept is reported with the ones
-  it does. Configuring `Keys` overrides the defaults, and it is validated when the host starts. A stored key satisfies
-  a configured key only when it is on that key's curve and the algorithm accepts its stored public half, so a stored
-  key whose public half is missing or unreadable does not suppress generation.
+  asymmetric secret key type and accepts the configured curve and size, and that key type reports a configuration it
+  refuses; the curve is the one the algorithm accepts that has the configured size, or the algorithm's first curve. A
+  size that two of the algorithm's curves have is reported until `Curve` names one, a curve configured with another
+  size is reported, a secret type the algorithm does not accept is reported with the ones it does, and a curve or size
+  none of the algorithm's key types accepts is reported with the curves and sizes each of them accepts.
+  Configuring `Keys` overrides the defaults, and it is validated when the host starts. A stored key satisfies a
+  configured key only when it is on that key's curve and the algorithm accepts its stored public half, so a stored key
+  whose public half is missing or unreadable does not suppress generation.
   `OpenId:Tenant:KeyProvisioning:Enabled=false` turns provisioning off for a deployment that brings its own keys. A key
-  the tenant already holds — imported or generated — suppresses generation and is never overwritten, rotated, or
-  removed, and a key the tenant cannot unprotect fails the tenant with a message naming the tenant and the master key or
-  root key to restore, rather than being regenerated
+  the tenant holds that serves an algorithm, or will, suppresses generation; a key an operator supplied is never
+  overwritten or removed, and a key the tenant cannot unprotect fails the tenant with a message naming the tenant and
+  the master key or root key to restore, rather than being regenerated
   ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [#327](https://github.com/NCodeGroup/Identity/issues/327),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [#327](https://github.com/NCodeGroup/Identity/issues/327), [#534](https://github.com/NCodeGroup/Identity/issues/534),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
+
+- **Every stored secret has an active window inside its validity window, and every use of a key honors them.** A
+  `PersistedSecret` carries `CreatedWhen`, `ActivatesWhen`, `RetiresWhen` and `ExpiresWhen`, in that order
+  (`SecretLifecycle`), and a key's `KeyMetadata` carries the same instants. A key signs or encrypts only in its active
+  window: `ICredentialSelector` never selects a key published ahead of its activation, a retired key or an expired key.
+  A key verifies, decrypts and is published only in its validity window: the JSON Web Token validator never tries an
+  expired key, with the clock skew as tolerance, and the JSON Web Key Set publishes every key in its validity window,
+  the upcoming and the retired ones included, and never an expired one. `GenerateSecretRequest`,
+  `SecretKeyImportRequest` and the management `CreateSecretRequest`, `ImportSecretRequest` and `UpdateSecretRequest`
+  name `activatesWhen` and `retiresWhen`, each optional, and a request out of order is refused (`400`); a shared secret
+  activates when it is created and retires when it expires. A management update that omits an instant keeps the
+  stored one, the retirement bounded by the new expiry, so a retired or upcoming key stays so unless the update names
+  the instant; a rotation that stops the rotated secret at once collapses its active window with its expiry.
+  `SecretResource` and `CreatedSecretResource` show both instants, `PersistedSecret.GetLifecycleState` names the
+  state (`SecretLifecycleStates`: `upcoming`, `active`, `retired`, `expired`), and the management console's secrets
+  table shows the instants and the state
+  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
+  [#166](https://github.com/NCodeGroup/Identity/issues/166)).
+
+- **A tenant's provisioned keys roll over on their own, ahead of retirement and with a grace after it.** The tenant
+  settings `tenant_key_lifetime` (90 days), `tenant_key_activation_delay` (two days) and `tenant_key_retirement_grace`
+  (seven days, raised to the longest lifetime of the tokens the tenant protects with its keys plus its clock skew, the
+  settings `OpenId:Tenant:KeyRollover:TokenLifetimeSettings` names, each checked at startup against the registered
+  settings) shape a provisioned key's lifecycle. One planner decides what a tenant's keys need: the successors of a
+  key that retires within the delay plus the pass interval, generated and published ahead and chained until the keys
+  sign past that horizon; a key that activates at once when no key signs, or the activation of a key already
+  published; the retirement, for the grace, of a key the rollover provisioned for an algorithm the tenant's settings
+  no longer use; a later expiry for a key whose grace was raised since it was generated; and the removal of an expired
+  key the rollover provisioned. A provisioned key names the rollover in `PersistedSecret.ManagedBy`
+  (`SecretManagers.TenantKeyRollover`, shown as `managedBy`), and a key an operator generated or imported through the
+  management API is never retired, extended or removed. The seed applies the plan whenever the tenant is
+  materialized, and `TenantKeyRolloverService` applies it in the background every
+  `OpenId:Tenant:KeyRollover:Interval` (one hour), one replica per interval under a lease on the shared-state port
+  that lasts half the interval, each tenant in its own unit of work under its optimistic concurrency, and announces
+  every tenant it changed so every replica serves its keys as they are. A team's settings reconciliation seeds a
+  tenant whose only key for an algorithm has retired like one that never held it. Every change is an audit event,
+  `tenant.key.generated`, `tenant.key.activated`, `tenant.key.retired`, `tenant.key.extended` or
+  `tenant.key.removed`, in the `key` category with the `system` actor, published once the change is committed: the
+  pass publishes after its save, and a seed queues its events on `TenantSeedContext.RunAfterCommit`, whose steps the
+  provisioner runs once the seed has committed
+  ([ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
+  [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
+  [#166](https://github.com/NCodeGroup/Identity/issues/166)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -1757,6 +1874,24 @@ describes the family as it is rather than its changes
   [ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), issue
   [#211](https://github.com/NCodeGroup/Identity/issues/211)).
 
+- **The interactive surface renders in the language the request prefers.** The locales the end-user interface
+  renders are a registered vocabulary (`IUiLocale`, resolved through `IUiLocaleCatalog`), so the tenant settings
+  `ui_locales_supported`, which discovery advertises, and `default_ui_locale` name only locales the interface renders.
+  An authorization request's `ui_locales` reaches the login and consent pages, an end-session request's
+  (`IEndSessionRequest.UiLocales`) the logout confirmation page, and every page renders in the first preference it
+  serves and the tenant supports (RFC 4647 lookup, so `fr-CA` selects `fr`), then the user agent's `Accept-Language`,
+  then the tenant's default language, which `ui_locales_supported` bounds like a preference, so the advertised set and
+  the rendered default never disagree; a preference nothing serves never fails the request (OpenID Connect Core 1.0
+  §3.1.2.1). The surface ships English, German, Spanish and French as `InteractiveLocale` records (`InteractiveLocales`),
+  each carrying the text of its server-rendered pages; a host adds a language, or rewords a shipped locale, with
+  `AddInteractiveLocale`, and a locale registered without the surface's messages stops the host as it starts. The page
+  carries the selected locale in its `html` element's `lang` attribute, which the `apps/auth` bundle reads to render
+  from its own typed catalogs (`apps/auth/src/i18n`), and its forms carry it back as `ui_locales`, so a page the host
+  redirects to, such as the login page after a refused sign-in or the account page after a declined sign-out, renders
+  in the same language
+  ([ADR-1402](docs/decisions/1402-the-interactive-surface-renders-in-the-locale-the-request-prefers-among-the-registered-ui-locales.md),
+  issue [#540](https://github.com/NCodeGroup/Identity/issues/540)).
+
 - **The HTML page security model and the front-channel marker are general ASP.NET Core helpers in `NCode.AspNetCore`.**
   `HtmlPageSecurityPolicy`, `HtmlPageSecurityResponseExtensions` (`SetHtmlPageSecurity`),
   `ContentSecurityPolicyDirective`, `ContentSecurityPolicyDirectives` and `ContentSecurityPolicySources` are in the
@@ -2571,6 +2706,17 @@ describes the family as it is rather than its changes
   refresh-token replay logs at Critical
   ([ADR-1283](docs/decisions/1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md), [audit
   records](docs/audit-records.md)).
+
+- **UserInfo access is audited on opt-in, as a trail of the personal data each client reads.** With
+  `audit_userinfo_access` on (off by default; it applies to tenants and clients, merges with `Or` so a client cannot
+  turn off its tenant's choice, and is not discoverable), each UserInfo response is audited as a `userinfo.accessed`
+  event (`UserInfoAccessedAuditEvent`, category `data_access`) once the response is built: `success`, with the subject,
+  the client as the actor and the names of the claims disclosed in `details.claim_names`, never a claim value or the
+  access token. An access token that authenticates but names no client the tenant serves is audited, when the tenant
+  turns the setting on, as `denied` with the error code `invalid_token` and no claims.
+  `IAuditEventRecorder.RecordUserInfoAccessedAsync` and `RecordUserInfoAccessDeniedAsync` publish the two outcomes
+  ([ADR-1401](docs/decisions/1401-userinfo-access-is-audited-when-a-tenant-or-client-opts-in.md),
+  [#21](https://github.com/NCodeGroup/Identity/issues/21), [audit records](docs/audit-records.md)).
 
 - **Several replicas share DPoP nonces and single-use records through Valkey.**
   `NCode.Identity.SharedState.Abstractions` defines `IExpiringKeySet`, an atomic add-if-absent set of expiring keys;
@@ -3394,7 +3540,91 @@ describes the family as it is rather than its changes
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
 
+- **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key
+  (the platform's or a tenant's) rotates after `SecretProtection:MasterKeys:RotationPeriod` (365 days) in a daily pass that
+  one replica runs under a lease, or at once through `POST /api/tenants/{tenantId}/encryption-keys/rekey` and
+  `POST /api/platform/encryption-keys/rekey`; `GET .../encryption-keys` reports the keys by id, version,
+  state, instants, root key provider and recovery key id, and carries no key material. The scopes are
+  `read:encryption_keys` and `update:encryption_keys` for a tenant and `read:platform_encryption_keys` and
+  `update:platform_encryption_keys` for the platform. A rekey within twice `RefreshInterval` of the owner's last rotation
+  answers `409` with `Retry-After`, and one that loses a race to another rekey answers `412`, as every management
+  write that loses a race does. A
+  rotation creates the successor's key material before it retires the active key, and a store failure re-activates the
+  retired key. Every
+  replica reloads an owner's keys within `SecretProtection:MasterKeys:RefreshInterval` (five minutes) without a KMS
+  call and drops a destroyed key, and a broadcast makes them reload at once. The data keys that a retired key wraps are
+  rewrapped under the active key by `ISecretProtector.Rewrap`, which copies the payload unchanged, for the stored
+  secrets of a tenant, its clients and its resource servers and the grant payloads of a tenant. The
+  rewrap and the destruction check read each owner's values once, and only those under a retired key, and a value that
+  cannot be rewrapped is logged and keeps its key. A
+  retired key is destroyed after `RetirementGrace` (30 days) once no registered `IProtectedValueSource` reports a value
+  that names it, and the Data Protection key ring keeps the retired platform key while a live ring key names it.
+  `IMasterKeyManager` reports, rotates, rewraps and destroys; `IMasterKeyChangeObserver` hears of each change;
+  `master_key.rotated` and `master_key.destroyed` are `key` audit events; and the management console shows the keys of a
+  tenant and of the platform with a confirmed "Rekey" action
+  ([#171](https://github.com/NCodeGroup/Identity/issues/171),
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+
+- **The host image rewraps every master key offline.** `secret-protection rewrap` wraps every master key under the
+  configured root key provider and recovery public key, and `secret-protection rewrap-recovery` replaces only the
+  recovery copies, each unwrapping a key with the root key provider it names or, with `--recovery-private-key <file>`,
+  from its recovery copy. `--owner <type:id>` limits the run to one owner and `--dry-run` verifies every key without
+  writing. An `--owner` with no master keys exits `1`. The recovery private key is read from the file only, held in memory that is zeroed when the command ends,
+  and never reaches a serving process. The Helm chart's `secretProtection.rewrapJob` runs the command as a Job, and
+  `IMasterKeyRewrapper` is its engine
+  ([#172](https://github.com/NCodeGroup/Identity/issues/172),
+  [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
+
 ### Security
+
+- **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's, a
+  server's and a resource server's keys all carry an active window inside a validity window: a key that is not yet
+  active or has retired signs and encrypts nothing, and an expired key verifies and decrypts nothing, is not published
+  and does not authenticate, on every path. A tenant's provisioned signing and encryption keys roll over every 90
+  days by default, so the window a compromised key can be abused in is bounded, each successor is published two days
+  before the first token it signs, and a retired key stays published for seven days or the longest token lifetime plus
+  the clock skew, whichever is longer, so no token outlives the key that verifies it
+  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
+  [ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)).
+- **An SD-JWT presentation is verified fail-closed under bounded work.** The issuer-signed JWT must be a compact JWS,
+  never a Nested JWT whatever decryption keys the verifier's parameters name, signed with an asymmetric key under
+  signature algorithms the verifier names; every salt comes from the platform's cryptographically secure random
+  number generator and is as long as `SdJwtOptions.SaltSizeBytes` says, at least 128 bits; and a presentation is
+  refused with a machine-readable code when a digest repeats, a disclosure is referenced by nothing or presented
+  twice, a disclosed claim collides with a member already present, a reserved name appears where RFC 9901 forbids
+  it, a disclosure is of the wrong kind for its digest, or a protected claim is disclosed in whole or in part.
+  `iss`, `nbf`, `exp` and `cnf` are protected under every profile and the profile's claims beside them, its required
+  claims included: the issuer never makes one disclosable, and the verifier refuses any digest beneath one, decoy or
+  not, so a withheld `status_list` can never read as an unrevoked credential. A refusal names the rule, never a claim
+  name the holder chose, and never the token: a JWT the validator could not decode is reported by its failure code
+  and fixed text, and a disclosure that repeats a member name is reported as an invalid disclosure. The holder key is
+  read from the signed payload before any disclosure is resolved, so a disclosure never supplies it, and is written at
+  issuance only when its registered key type finds no private member in it; the Key Binding JWT must be typed
+  `kb+jwt`, signed by that key, addressed to the verifier, carry its nonce and the digest of the presentation as
+  received, compared in fixed time, and be no older than the maximum age, and the verifier refuses a
+  `SdJwtKeyBindingRequirement` whose audience or nonce is empty, whose algorithms are unset, whose maximum age is not
+  positive or whose clock skew is negative before it reads the presentation. `SdJwtOptions.MaxDisclosureCount`
+  refuses an over-long presentation before any disclosure is decoded and `MaxNestingDepth` bounds the depth the
+  resolved claims may reach; the issuer refuses claims beyond either limit, and both are validated when the host
+  starts ([#73](https://github.com/NCodeGroup/Identity/issues/73),
+  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)).
+
+- **A COSE message (`NCode.Identity.Cose`) and a CWT (`NCode.Identity.Cwt`) are processed fail-closed under bounded
+  work.** The algorithm of a message must be in the protected header bucket and in the caller's permitted list, which is
+  checked before the algorithm or a key is looked up; a header in both buckets, a `crit` parameter that is unprotected
+  or names a label the verifier does not understand, a Partial IV and a recipient that carries recipients are refused; a
+  direct recipient must be the only recipient. The input is read in strict mode and refused before parsing when it is
+  larger than `CoseOptions.MaxMessageSizeBytes`, and refused when it uses an indefinite length, has bytes after the
+  message, repeats a label, nests deeper than `MaxNestingDepth` or carries more than `MaxSignatures` signatures or
+  `MaxRecipients` recipients; the limits are validated when the host starts. A message authentication code is compared
+  in fixed time, and a content key lives only in sensitive pooled memory. A `COSE_Key` is read and written as a public
+  key: a key with a private parameter or a Base IV is refused. A CWT is validated against explicit algorithm, issuer and
+  key lists, none of which defaults to unrestricted; its claims are read only after the COSE layer verifies; a token
+  that is protected only by encryption is refused, and a token that carries an `aud` is refused unless the
+  verifier names its audiences. A failure carries a machine-readable code and fixed text, never the message or the token
+  ([#76](https://github.com/NCodeGroup/Identity/issues/76),
+  [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md),
+  [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)).
 
 - **Every development-only convenience is inert unless configured, behind one call.**
   `AddDevelopmentEnvironment(configuration)` registers the developer CORS policy, the developer and conformance seeders,
@@ -3577,11 +3807,14 @@ describes the family as it is rather than its changes
   X25519 key for `EdDSA`, a P-256 key for `ES256K` or a secp256k1 key for `ES256`, the signing and agreement confusion
   RFC 8037 §3.1 and §3.2 forbid. A curve's kind keeps the `OKP` curves apart: an X25519 or X448 key is never accepted
   for `EdDSA`, `Ed25519` or `Ed448`, and an Ed25519 or Ed448 key never for `ECDH-ES`. A key to generate is resolved onto
-  one of its algorithm's curves, so no path checks a curve-bound algorithm by type and size alone. A JWE decryption key
+  one of its algorithm's curves, so no path checks a curve-bound algorithm by type and size alone, and a held
+  asymmetric key is checked by its stored public half, never by its type and size. A JWE decryption key
   on a curve the algorithm refuses is reported as the caller's configuration error rather than as a failed
   authentication tag ([#327](https://github.com/NCodeGroup/Identity/issues/327),
   [#336](https://github.com/NCodeGroup/Identity/issues/336), [#337](https://github.com/NCodeGroup/Identity/issues/337),
+  [#534](https://github.com/NCodeGroup/Identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md),
   [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 
 - **ECDH-ES publishes only the public half of its ephemeral key and refuses a degenerate agreement.** The `ECDH-ES`
@@ -3598,6 +3831,14 @@ describes the family as it is rather than its changes
   `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
   ([ADR-1296](docs/decisions/1296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
   [#380](https://github.com/NCodeGroup/Identity/issues/380)).
+
+- **A JOSE token's encoded members are decoded whole or refused.** Every base64url segment of a JWS or JWE, the
+  `PBES2` salt input (`p2s`), the AES-GCM key wrap's `iv` and `tag`, and the `x5t` and `x5t#S256` certificate
+  thumbprints a JWT names are read only when they decode whole to the size they must have. A value that is not
+  base64url or has another size fails with `JoseException`, or `JwtValidationException` for a thumbprint, before any
+  key is derived from it or compared with it, and `PBES2` refuses an iteration count (`p2c`) outside its bounds and an
+  encrypted key that is not a whole AES key wrap before it derives a key encryption key
+  ([#541](https://github.com/NCodeGroup/Identity/issues/541)).
 
 - **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed
   before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release
@@ -3647,8 +3888,8 @@ describes the family as it is rather than its changes
   master key (the platform's or the tenant's), which is wrapped by a root key held by a root key provider (`ephemeral`,
   `local`, or a registered one) and, optionally, by an offline recovery RSA key. The public contracts are
   `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`, `SecretOwner` and
-  `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes its master
-  keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes
+  its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [#167](https://github.com/NCodeGroup/Identity/issues/167)).
 
 - **A database dump or backup reveals no secret material without the root key, and every host names its root key
@@ -3670,9 +3911,33 @@ describes the family as it is rather than its changes
   (`client_secret_jwt`) keeps it reversible. `Pbkdf2SecretVerifierOptions.Iterations` sets the PBKDF2 work factor
   (600,000, the least a Production host may set), and every verification with a work factor takes a turn of the
   process's `ISecretVerificationGate`, sized by `SecretVerificationGateOptions` (`MaxConcurrency`, `MaxQueueLength`,
-  `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound. Limits on
-  failed client authentications are tracked in [#533](https://github.com/NCodeGroup/Identity/issues/533)
+  `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound
   ([#163](https://github.com/NCodeGroup/Identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+
+- **Failed client authentications are limited per remote address by default, without a per-client lockout.** Every
+  handler of a client-authentication method that verifies a credential asks `IClientAuthenticationAttemptLimiter`
+  before it verifies one, at every endpoint that authenticates a client, and counts each credential it refuses, the
+  identifier of a client it cannot find included, before it audits the failure and with no cancellation token, so a
+  caller that disconnects after a guess is counted. A public client's `none` authentication verifies no credential, so
+  it is neither refused at the limit nor counted, and an address at its limit cannot deny the public clients behind it;
+  a Basic header that carries no credential is answered without a count. The mutual-TLS handlers ask once the resolved
+  client's registration says the request is theirs, so a refusal is audited with the method the client is registered
+  for. The default limiter counts failures in the shared `IExpiringCounterSet`, so the limits hold across replicas, in fixed
+  windows of `client_authentication_failed_attempts_window` (15 minutes by default, one minute to one day) and in two
+  partitions: one remote address with one `client_id`, limited by `client_authentication_failed_attempts_limit` (10 by
+  default, at most 100), and one remote address across every `client_id`, limited by
+  `client_authentication_failed_attempts_address_limit` (100 by default, at most 10,000). An IPv6 address is counted by
+  its `/64` and an IPv4-mapped address as the IPv4 address it maps. The failures are never counted per `client_id`
+  alone, so a caller that knows a public `client_id` cannot lock its client out from another address. The settings
+  apply to tenants and a narrower scope may only lower a limit or lengthen the window. A request refused at a limit
+  verifies nothing and is answered as a rate limit answers: `429 Too Many Requests` with `temporarily_unavailable`, a
+  `Retry-After` until the window ends and `Cache-Control: no-store`; it is audited as a `client.authentication` failure
+  with the error code `attempt_limit_reached`, logged as event 2072 without the address or the `client_id`, and not
+  recorded as usage. A request without a remote address is not limited, and the first one logs event 2073 at
+  `Warning`, so a host whose proxy does not forward the client's address learns that the limit is off. A shared state
+  that cannot be reached fails client authentication rather than admitting unlimited
+  guesses ([ADR-1399](docs/decisions/1399-failed-client-authentications-are-limited-per-remote-address-by-default.md),
+  [#533](https://github.com/NCodeGroup/Identity/issues/533)).
 
 - **The Data Protection key ring is encrypted under the platform master key, and a key it cannot decrypt stops the host.**
   The host configures the key ring through the `SecretProtection` section, and the Helm chart through its
@@ -4028,8 +4293,16 @@ describes the family as it is rather than its changes
   (`ClientCertificateRevocationStatus`); `Unknown` is the zero value, so a checker that cannot tell fails closed. The
   chain validator asks it about every element of a chain except the trust anchor, and under `online` the chain passes
   only when every answer is `Good`. The default is registered with `TryAddSingleton`, so a host registers its own in its
-  place, and asks each registered `IClientCertificateRevocationSource` (named by
-  `ClientCertificateRevocationSourceNames`) in registration order until one answers `Good` or `Revoked`. The `ocsp`
+  place, and asks the `IClientCertificateRevocationSource`s that `OpenId:ClientCertificateRevocation:Sources` selects,
+  in the configured order, until one answers `Good` or `Revoked`. Each source is described by a registered
+  `ClientCertificateRevocationSourceDescriptor` of the same name (`ClientCertificateRevocationSourceNames` names the
+  built-in `ocsp` and `crl`), collected by `IClientCertificateRevocationSourceCatalog`, so a package adds a source with
+  its descriptor and the configured names are validated when the host starts without constructing a source: a name no
+  descriptor registers, or a name listed twice, stops the host, and so does a registered source that no descriptor
+  names or a descriptor without a source, which the host finds as it resolves the checker at start. With no sources
+  configured, every registered source is
+  asked in its descriptor's default order, `ocsp` then `crl`, and a deployment that cannot reach its PKI's OCSP
+  responders configures `crl` alone so it never waits for a responder's timeout. The `ocsp`
   source queries the responders that the certificate's authority information access names (RFC 6960 with the RFC 5019
   profile: a SHA-1 `CertID`, no nonce, GET up to 255 characters and POST beyond), accepts a response signed by the
   issuer or by a responder it issued with `id-kp-OCSPSigning`, checks a responder without `id-pkix-ocsp-nocheck` through
@@ -4042,8 +4315,10 @@ describes the family as it is rather than its changes
   revocation source and record the `Location`
   ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md),
   [ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md), issues
-  [#207](https://github.com/NCodeGroup/Identity/issues/207), [#255](https://github.com/NCodeGroup/Identity/issues/255)).
+  [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md),
+  [ADR-1400](docs/decisions/1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md),
+  issues [#207](https://github.com/NCodeGroup/Identity/issues/207), [#255](https://github.com/NCodeGroup/Identity/issues/255),
+  [#38](https://github.com/NCodeGroup/Identity/issues/38)).
 
 - **Revocation data is fetched only by the server, through the outbound-request guard, and its retrieval is shared and
   bounded.** The platform chain engine retrieves nothing: certificate downloads are disabled and its own revocation
@@ -4888,5 +5163,13 @@ describes the family as it is rather than its changes
   and VS Code's settings add none. A pull request from the cloud agent fails the check until its commits are re-authored
   with `git rebase origin/main --exec "git commit --amend --no-edit --reset-author"` and `git push --force-with-lease`
   ([ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md)).
+- **A master key is bounded in time and destroyed once nothing names it.** An owner's master key rotates every year, the
+  values it protected are rewrapped without their payloads being touched, a retired key is destroyed only after its grace
+  and when no stored secret, grant payload or live Data Protection key names it, and the recovery private key that can
+  unwrap every master key exists only inside the offline rewrap command
+  ([#171](https://github.com/NCodeGroup/Identity/issues/171),
+  [#172](https://github.com/NCodeGroup/Identity/issues/172),
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
+  [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

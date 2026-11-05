@@ -53,6 +53,7 @@ public static class DefaultRegistration
             serviceCollection.AddStore<TDbContext, ITenantUsageStore, TenantUsageStore>();
             serviceCollection.AddStore<TDbContext, IAuditRecordStore, AuditRecordStore>();
             serviceCollection.AddStore<TDbContext, IMasterKeyStore, MasterKeyStore>();
+            serviceCollection.AddStore<TDbContext, ISecretEnvelopeStore, SecretEnvelopeStore>();
             serviceCollection.AddStore<
                 TDbContext,
                 IFederatedPrincipalStore,

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>NCode.Identity.Cose</RootNamespace>
+        <Description>Contracts of CBOR Object Signing and Encryption (COSE, RFC 9052 / 9053) for NCode.Identity: the labels and values of COSE maps, the algorithm, key type and curve vocabularies as registered data, the COSE_Key converter and the COSE serializer.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.Abstractions\NCode.Identity.Secrets.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+        <PackageReference Include="System.Formats.Cbor" />
+    </ItemGroup>
+</Project>

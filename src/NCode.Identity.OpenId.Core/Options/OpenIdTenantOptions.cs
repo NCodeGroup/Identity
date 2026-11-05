@@ -7,7 +7,7 @@ namespace NCode.Identity.OpenId;
 
 /// <summary>
 /// Contains the options that are used to configure how a resolved tenant is materialized (settings/secrets refresh
-/// and caching) and which keys every tenant is provisioned with. Tenant <em>selection</em> is configured separately via
+/// and caching), which keys every tenant is provisioned with, and how they roll over. Tenant <em>selection</em> is configured separately via
 /// <see cref="NCode.Identity.OpenId.Tenants.TenantResolutionOptions"/>.
 /// </summary>
 [PublicAPI]
@@ -36,4 +36,9 @@ public sealed class OpenIdTenantOptions
     /// Gets or sets the options that decide which keys every tenant is provisioned with when it is seeded.
     /// </summary>
     public OpenIdTenantKeyProvisioningOptions KeyProvisioning { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the options of the rollover of the keys every tenant is provisioned with.
+    /// </summary>
+    public OpenIdTenantKeyRolloverOptions KeyRollover { get; set; } = new();
 }

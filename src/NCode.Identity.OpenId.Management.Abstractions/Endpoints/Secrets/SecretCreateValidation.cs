@@ -55,7 +55,7 @@ public sealed class SecretCreateValidation
 
     /// <summary>
     /// Gets the parameters the key is generated with: the request's size and curve, or, for a request that names an
-    /// algorithm bound to curves and no curve, the first curve the algorithm accepts that has the requested size.
+    /// algorithm bound to curves and no curve, the one curve the algorithm accepts that has the requested size.
     /// <c>null</c> when the request is not coherent.
     /// </summary>
     public SecretKeyGenerationParameters? GenerationParameters { get; }

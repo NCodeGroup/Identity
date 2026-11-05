@@ -26,8 +26,34 @@ export type SecretRow = {
   readonly use: string | null;
   readonly algorithm: string | null;
   readonly createdWhen: string;
+  /** When the secret starts to sign or encrypt; a key published ahead of its use carries a future instant. */
+  readonly activatesWhen: string;
+  /** When the secret stops signing or encrypting while it still verifies or decrypts until {@link expiresWhen}. */
+  readonly retiresWhen: string;
   readonly expiresWhen: string;
+  /**
+   * The component that manages the secret's lifecycle on its own, such as the tenant key rollover for a key the
+   * server provisioned, or `null` when the secret keeps the lifecycle its creator gave it.
+   */
+  readonly managedBy: string | null;
 };
+
+/** Where a secret stands at an instant, derived from its four instants (`SecretLifecycleStates`). */
+export type SecretLifecycleState = 'upcoming' | 'active' | 'retired' | 'expired';
+
+/** Names the state a secret is in at `now` (epoch milliseconds), as the server judges it from the same instants. */
+export function getSecretLifecycleState(secret: SecretRow, now: number): SecretLifecycleState {
+  if (Date.parse(secret.expiresWhen) <= now) {
+    return 'expired';
+  }
+  if (Date.parse(secret.retiresWhen) <= now) {
+    return 'retired';
+  }
+  if (Date.parse(secret.activatesWhen) > now) {
+    return 'upcoming';
+  }
+  return 'active';
+}
 
 export type SecretTableProps = {
   readonly secrets: readonly SecretRow[];
@@ -59,12 +85,20 @@ function formatInstant(value: string): string {
   return Number.isNaN(parsed) ? value : new Date(parsed).toLocaleString();
 }
 
-// See ADR-1050 (secret material is revealed once) and ADR-1391 (a compared secret is stored as a verifier).
+const stateLabels: Record<Exclude<SecretLifecycleState, 'active'>, string> = {
+  upcoming: 'Upcoming',
+  retired: 'Retired',
+  expired: 'Expired',
+};
+
+// See ADR-1050 (secret material is revealed once), ADR-1391 (a compared secret is stored as a verifier), ADR-1403 (a
+// secret's active window lies inside its validity window) and ADR-1404 (the server manages its provisioned keys).
 /**
  * Stateless secrets table. Secret key material is never shown here (it is revealed once at creation); this lists only
- * metadata. An expired secret is flagged, and so is a shared secret held only as a one-way verifier, which a method
- * that uses the secret as a key cannot use. Receives rows and a callback as props; holds no state and does no
- * fetching, so it renders directly in Storybook and under RTL.
+ * metadata: when each secret activates, retires and expires, and where it stands at `now`. A secret that is not yet
+ * active, retired or expired is flagged, and so are a shared secret held only as a one-way verifier, which a method
+ * that uses the secret as a key cannot use, and a key whose lifecycle the server manages. Receives rows and a
+ * callback as props; holds no state and does no fetching, so it renders directly in Storybook and under RTL.
  */
 export function SecretTable({
   secrets,
@@ -86,13 +120,15 @@ export function SecretTable({
           <TableCell>Key ID</TableCell>
           <TableCell>Type</TableCell>
           <TableCell>Key size</TableCell>
+          <TableCell>Activates</TableCell>
+          <TableCell>Retires</TableCell>
           <TableCell>Expires</TableCell>
           {showActions && <TableCell align="right">Actions</TableCell>}
         </TableRow>
       </TableHead>
       <TableBody>
         {secrets.map((secret) => {
-          const expired = Date.parse(secret.expiresWhen) <= now;
+          const state = getSecretLifecycleState(secret, now);
           return (
             <TableRow key={secret.secretId} data-testid={`secret-row-${secret.secretId}`}>
               <TableCell>{secret.secretId}</TableCell>
@@ -109,13 +145,31 @@ export function SecretTable({
                       />
                     </Tooltip>
                   )}
+                  {secret.managedBy !== null && (
+                    <Tooltip title="The server manages this key's lifecycle: it publishes the successor ahead of the retirement, retires the key when its algorithm is no longer used and removes it once it has expired">
+                      <Chip
+                        size="small"
+                        label="Managed"
+                        data-testid={`secret-managed-${secret.secretId}`}
+                      />
+                    </Tooltip>
+                  )}
                 </Stack>
               </TableCell>
               <TableCell>{secret.keySizeBits}</TableCell>
+              <TableCell>{formatInstant(secret.activatesWhen)}</TableCell>
+              <TableCell>{formatInstant(secret.retiresWhen)}</TableCell>
               <TableCell>
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                   <span>{formatInstant(secret.expiresWhen)}</span>
-                  {expired && <Chip size="small" color="warning" label="Expired" />}
+                  {state !== 'active' && (
+                    <Chip
+                      size="small"
+                      color={state === 'expired' ? 'warning' : 'default'}
+                      label={stateLabels[state]}
+                      data-testid={`secret-state-${secret.secretId}`}
+                    />
+                  )}
                 </Stack>
               </TableCell>
               {showActions && (

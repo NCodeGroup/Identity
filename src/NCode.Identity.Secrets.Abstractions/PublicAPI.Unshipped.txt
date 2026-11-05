@@ -83,8 +83,8 @@ NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretMaterial.get
 NCode.Identity.Secrets.KeyMaterial.GeneratedSecretKeyMaterial.SecretMaterial.init -> void
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.Curves.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!>!
+NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.GetByCurveSizeBits(int curveSizeBits) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Secrets.KeyTypes.EccCurveSpecification!>!
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByCurve(System.Security.Cryptography.ECCurve curve, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
-NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByCurveSizeBits(int curveSizeBits, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
 NCode.Identity.Secrets.KeyTypes.IEccCurveCatalog.TryGetByName(string! curveName, out NCode.Identity.Secrets.KeyTypes.EccCurveSpecification? specification) -> bool
 NCode.Identity.Secrets.Collections.ISecretKeyCollection
 NCode.Identity.Secrets.Collections.ISecretKeyCollection.TryGetByKeyId(string! keyId, out NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
@@ -237,3 +237,14 @@ NCode.Identity.Secrets.Verifiers.SecretVerificationResult.Unavailable = 2 -> NCo
 NCode.Identity.Secrets.Verifiers.ISecretVerificationGate
 NCode.Identity.Secrets.Verifiers.ISecretVerificationGate.Release() -> void
 NCode.Identity.Secrets.Verifiers.ISecretVerificationGate.TryEnterAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.Secrets.Keys.KeyMetadata.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Keys.KeyMetadata.ActivatesWhen.init -> void
+NCode.Identity.Secrets.Keys.KeyMetadata.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.Secrets.Keys.KeyMetadata.RetiresWhen.init -> void
+NCode.Identity.Secrets.Keys.KeyMetadataExtensions
+NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata)
+NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata).IsActive(System.DateTimeOffset now) -> bool
+NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secrets.Keys.KeyMetadata).IsExpired(System.DateTimeOffset now) -> bool
+NCode.Identity.Secrets.Keys.KeyLifecycle
+static NCode.Identity.Secrets.Keys.KeyLifecycle.IsActive(System.DateTimeOffset? activatesWhen, System.DateTimeOffset? retiresWhen, System.DateTimeOffset? expiresWhen, System.DateTimeOffset now) -> bool
+static NCode.Identity.Secrets.Keys.KeyLifecycle.IsExpired(System.DateTimeOffset? expiresWhen, System.DateTimeOffset now) -> bool

@@ -20,8 +20,6 @@ internal static class EventIds
 
     public const int PlatformSettingsReloadRejected = Base + 3;
 
-    public const int TenantKeyProvisioned = Base + 4;
-
     public const int TenantKeyReseedFailed = Base + 5;
 
     public const int TenantChangeBroadcastFailed = Base + 6;
@@ -47,4 +45,32 @@ internal static class EventIds
     public const int TeamChangeBroadcastFailed = Base + 16;
 
     public const int TeamCacheClearFailed = Base + 17;
+
+    public const int TenantKeyRolloverFailed = Base + 19;
+
+    public const int TenantKeyRolloverPassFailed = Base + 20;
+
+    public const int TenantKeyRolloverLostRace = Base + 21;
+
+    public const int TenantSeedPostCommitStepFailed = Base + 23;
+
+    public const int TenantKeyAuditPublishFailed = Base + 24;
+
+    public const int TenantKeyExtended = Base + 22;
+
+    public const int ProtectedValuePageConflict = Base + 25;
+
+    public const int MasterKeyMaintenancePassFailed = Base + 26;
+
+    public const int MasterKeyMaintenanceOwnerFailed = Base + 27;
+
+    public const int MasterKeyRotationLostRace = Base + 28;
+
+    public const int MasterKeyAuditPublishFailed = Base + 29;
+
+    public const int ProtectedValueRewrapFailed = Base + 30;
+
+    public const int ProtectedValuePageAbandoned = Base + 31;
+
+    public const int ProtectedValuePageUnreadable = Base + 32;
 }

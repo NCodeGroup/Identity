@@ -21,6 +21,7 @@ public class ClientSecretBasicClientAuthenticationHandlerTests : ClientAuthentic
             MockClientResolver.Object,
             MockClientFactory.Object,
             MockAuditEventRecorder.Object,
+            MockAttemptLimiter.Object,
             CreateLogger<ClientSecretBasicClientAuthenticationHandler>()
         );
 
@@ -60,7 +61,8 @@ public class ClientSecretBasicClientAuthenticationHandlerTests : ClientAuthentic
     [Fact]
     public async Task AuthenticateClientAsync_WhenTheCredentialsHaveNoSecret_Returns401InvalidClient()
     {
-        // RFC 7617 credentials are 'user-id:password'; without the colon there is no client_secret to verify.
+        // RFC 7617 credentials are 'user-id:password'; without the colon there is no client_secret to verify, so the
+        // strict limiter proves the header is neither asked about nor counted.
         SetupBasicCredentials(ClientId);
         SetupErrorFactory();
         SetupChallengeRealm();
@@ -85,8 +87,10 @@ public class ClientSecretBasicClientAuthenticationHandlerTests : ClientAuthentic
             ceiling: null,
             readsClientId: true
         );
+        SetupAttemptAdmitted();
         SetupResolvedClient(client);
         SetupAudit("authentication_method_not_registered");
+        SetupFailureCounted();
         var handler = CreateHandler();
 
         var result = await handler.AuthenticateClientAsync(

@@ -31,12 +31,12 @@ public static class ManagementResourceTypes
     /// <summary>
     /// An OpenID tenant.
     /// </summary>
-    public const string Tenant = "tenant";
+    public const string Tenant = AuditResourceTypes.Tenant;
 
     /// <summary>
     /// A secret belonging to an OpenID tenant.
     /// </summary>
-    public const string TenantSecret = "tenant.secret";
+    public const string TenantSecret = AuditResourceTypes.TenantSecret;
 
     /// <summary>
     /// The platform, the deployment root.

@@ -194,6 +194,109 @@ public class DefaultSecretGeneratorTests
     #region GenerateSecret Symmetric Tests
 
     [Fact]
+    public void GenerateSecret_WhenTheRequestNamesNoLifecycle_ActivatesAtCreationAndRetiresAtExpiry()
+    {
+        var protector = CreateProtector();
+        var request = CreateRequest(SecretTypes.Symmetric, 256);
+
+        var persisted = _generator.GenerateSecret(protector, request).Secret;
+
+        Assert.Equal(request.CreatedWhen, persisted.ActivatesWhen);
+        Assert.Equal(request.ExpiresWhen, persisted.RetiresWhen);
+    }
+
+    [Fact]
+    public void GenerateSecret_WhenTheRequestNamesALifecycle_StoresIt()
+    {
+        var protector = CreateProtector();
+        var request = new GenerateSecretRequest
+        {
+            SecretId = "gen-1",
+            SecretType = SecretTypes.Symmetric,
+            GenerationParameters = new SecretKeyGenerationParameters { KeySizeBits = 256 },
+            Use = "sig",
+            Algorithm = "HS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+        };
+
+        var persisted = _generator.GenerateSecret(protector, request).Secret;
+
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), persisted.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), persisted.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(99), persisted.ExpiresWhen);
+    }
+
+    [Fact]
+    public void GenerateSecret_WhenTheRequestNamesNoManager_LeavesTheSecretToItsCreator()
+    {
+        var protector = CreateProtector();
+        var request = CreateRequest(SecretTypes.Symmetric, 256);
+
+        var persisted = _generator.GenerateSecret(protector, request).Secret;
+
+        Assert.Null(persisted.ManagedBy);
+    }
+
+    [Fact]
+    public void GenerateSecret_WhenTheRequestNamesAManager_StoresIt()
+    {
+        var protector = CreateProtector();
+        var request = new GenerateSecretRequest
+        {
+            SecretId = "gen-1",
+            SecretType = SecretTypes.Symmetric,
+            GenerationParameters = new SecretKeyGenerationParameters { KeySizeBits = 256 },
+            Use = "sig",
+            Algorithm = "HS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            ManagedBy = "rotation",
+        };
+
+        var persisted = _generator.GenerateSecret(protector, request).Secret;
+
+        Assert.Equal("rotation", persisted.ManagedBy);
+    }
+
+    [Fact]
+    public void GenerateSecret_WhenTheLifecycleIsOutOfOrder_ThrowsArgumentException()
+    {
+        var protector = CreateProtector();
+        var request = new GenerateSecretRequest
+        {
+            SecretId = "gen-1",
+            SecretType = SecretTypes.Symmetric,
+            GenerationParameters = new SecretKeyGenerationParameters { KeySizeBits = 256 },
+            Use = "sig",
+            Algorithm = "HS256",
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(100),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            _generator.GenerateSecret(protector, request)
+        );
+
+        Assert.Contains("cannot expire", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GenerateSharedSecretVerifier_ActivatesAtCreationAndRetiresAtExpiry()
+    {
+        var protector = CreateProtector();
+        var request = CreateSharedRequest();
+
+        var persisted = _generator.GenerateSharedSecretVerifier(protector, request).Secret;
+
+        Assert.Equal(request.CreatedWhen, persisted.ActivatesWhen);
+        Assert.Equal(request.ExpiresWhen, persisted.RetiresWhen);
+    }
+
+    [Fact]
     public void GenerateSecret_WhenSymmetric_ProducesRoundTrippableSecret()
     {
         var protector = CreateProtector();
@@ -485,18 +588,15 @@ public class DefaultSecretGeneratorTests
         Assert.Null(generated.Secret.PublicKey);
     }
 
-    [Fact]
-    public void GenerateSecret_WhenEccWithCurveName_UsesThatCurveSize()
-    {
-        var protector = CreateProtector();
-        var request = new GenerateSecretRequest
+    private static GenerateSecretRequest CreateEccRequest(int keySizeBits, string curve) =>
+        new()
         {
             SecretId = "gen-ecc",
             SecretType = SecretTypes.Ecc,
             GenerationParameters = new SecretKeyGenerationParameters
             {
-                KeySizeBits = 0,
-                Curve = "P-384",
+                KeySizeBits = keySizeBits,
+                Curve = curve,
             },
             Use = "sig",
             Algorithm = null,
@@ -504,9 +604,33 @@ public class DefaultSecretGeneratorTests
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
-        var persisted = _generator.GenerateSecret(protector, request).Secret;
+    [Fact]
+    public void GenerateSecret_WhenEccWithCurveName_GeneratesOnThatCurve()
+    {
+        var protector = CreateProtector();
+
+        var persisted = _generator.GenerateSecret(protector, CreateEccRequest(384, "P-384")).Secret;
 
         Assert.Equal(384, persisted.KeySizeBits);
+    }
+
+    // A curve fixes the size of its keys, so a curve requested with another size generates nothing.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(256)]
+    public void GenerateSecret_WhenEccCurveNameHasAnotherSize_Throws(int keySizeBits)
+    {
+        var protector = CreateProtector();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            _generator.GenerateSecret(protector, CreateEccRequest(keySizeBits, "P-384"))
+        );
+
+        Assert.StartsWith(
+            $"The ECC key size '{keySizeBits}' bits is invalid for the curve 'P-384', whose keys are 384 bits.",
+            exception.Message,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion

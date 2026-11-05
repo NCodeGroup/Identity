@@ -27,11 +27,13 @@ internal static class ManagementScopes
     internal static class Families
     {
         internal const string PlatformSettings = "platform_settings";
+        internal const string PlatformEncryptionKeys = "platform_encryption_keys";
         internal const string Teams = "teams";
         internal const string TeamSettings = "team_settings";
         internal const string Tenants = "tenants";
         internal const string TenantSettings = "tenant_settings";
         internal const string TenantSecrets = "tenant_secrets";
+        internal const string EncryptionKeys = "encryption_keys";
         internal const string Clients = "clients";
         internal const string ClientSecrets = "client_secrets";
         internal const string ResourceServers = "resource_servers";

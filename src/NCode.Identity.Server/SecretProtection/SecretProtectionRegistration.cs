@@ -9,6 +9,8 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.Persistence.Options;
+using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.SharedState;
 using NCode.Registration;
 
 namespace NCode.Identity.Server.SecretProtection;
@@ -30,6 +32,7 @@ internal static class SecretProtectionRegistration
             StringComparer.OrdinalIgnoreCase,
             nameof(SecretProtectionOptions.RootKeyProvider),
             nameof(SecretProtectionOptions.Recovery),
+            nameof(SecretProtectionOptions.MasterKeys),
             RootKeyProvidersSubsection
         );
 
@@ -49,7 +52,7 @@ internal static class SecretProtectionRegistration
     /// <param name="configuration">The <see cref="IConfiguration"/> that holds the
     /// <see cref="SecretProtectionOptions.DefaultSectionName"/> section.</param>
     /// <exception cref="InvalidOperationException">The section has a direct child other than the root key provider,
-    /// the recovery options and the root key provider options.</exception>
+    /// the recovery options, the master key options and the root key provider options.</exception>
     public static void AddSecretProtection(
         IIdentityServerBuilder builder,
         IConfiguration configuration
@@ -59,6 +62,7 @@ internal static class SecretProtectionRegistration
         ThrowOnUnknownChild(section);
 
         var recoverySection = section.GetSection(nameof(SecretProtectionOptions.Recovery));
+        var masterKeysSection = section.GetSection(nameof(SecretProtectionOptions.MasterKeys));
         var localSection = configuration.GetSection(LocalKeyWrapperOptions.DefaultSectionName);
         var keyRingSection = configuration.GetSection(
             DataProtectionKeyRingOptions.DefaultSectionName
@@ -74,6 +78,7 @@ internal static class SecretProtectionRegistration
             {
                 options.RootKeyProvider = section[nameof(SecretProtectionOptions.RootKeyProvider)];
                 recoverySection.BindStrictly(options.Recovery);
+                masterKeysSection.BindStrictly(options.MasterKeys);
             })
             .ValidateOnStart();
 
@@ -95,6 +100,17 @@ internal static class SecretProtectionRegistration
             .ValidateOnStart();
 
         serviceCollection.TryAddSingleton<PlatformSecretProtectorHolder>();
+        serviceCollection.TryAddSingleton<DataProtectionKeyRingReader>();
+        serviceCollection.TryAddSingleton<PlatformSecretProtectorLoader>();
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IProtectedValueSource, DataProtectionKeyRingValueSource>()
+        );
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                IReplicaBroadcastHandler,
+                PlatformMasterKeyChangeBroadcastHandler
+            >()
+        );
         serviceCollection.TryAddSingleton(TimeProvider.System);
 
         // The gate resolves IKeyManager, which Data Protection registers.
@@ -129,6 +145,17 @@ internal static class SecretProtectionRegistration
                 1,
                 ServiceDescriptor.Singleton<IHostedService, DataProtectionKeyRingGate>()
             );
+        }
+
+        // The refresh follows the gate, so it never runs before the platform's protector is loaded and checked.
+        if (
+            !serviceCollection.Any(descriptor =>
+                descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType == typeof(PlatformSecretProtectorRefreshService)
+            )
+        )
+        {
+            serviceCollection.AddHostedService<PlatformSecretProtectorRefreshService>();
         }
 
         serviceCollection

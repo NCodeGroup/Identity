@@ -152,9 +152,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private void SetupSecretCreateValidation()
     {
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
-                (CreateSecretRequest request) =>
+                (CreateSecretRequest request, DateTimeOffset _) =>
                     SecretCreateValidation.Valid(
                         new SecretKeyGenerationParameters
                         {
@@ -434,6 +436,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
             Origin = SecretOrigins.Generated,
@@ -453,6 +457,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             Origin = SecretOrigins.Generated,
@@ -2106,7 +2112,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorization(AuthorizationResult.Success());
         SetupResourceId();
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
                 SecretCreateValidation.Valid(
                     new SecretKeyGenerationParameters { KeySizeBits = 256, Curve = "secp256k1" }
@@ -2190,7 +2198,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
                 SecretCreateValidation.Invalid(
                     new ManagementError
@@ -2217,6 +2227,42 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateSecretAsync_WhenASharedSecretNamesAnActivationOrARetirement_ReturnsBadRequest()
+    {
+        // A shared secret is active for its whole validity, so an instant it cannot honor is refused rather than
+        // dropped: the issuer is strict with no setup, so nothing is generated.
+        SetupSecretCreateValidation();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.CreateSecretAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            new CreateSecretRequest
+            {
+                SecretType = SecretTypes.Symmetric,
+                KeySizeBits = 256,
+                Use = "sig",
+                Algorithm = "HS256",
+                ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(1),
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Contains("shared secret", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CreateSecretAsync_WhenSharedSecretIsBelowTheMinimumEntropy_ReturnsBadRequest()
     {
         SetupSecretCreateValidation();
@@ -2227,9 +2273,11 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
-                (CreateSecretRequest request) =>
+                (CreateSecretRequest request, DateTimeOffset _) =>
                     SecretCreateValidation.Valid(
                         new SecretKeyGenerationParameters
                         {
@@ -2358,7 +2406,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
         SetupAuthorization(AuthorizationResult.Success());
         MockSecretValidator
-            .Setup(x => x.ValidateImport(It.IsAny<ImportSecretRequest>()))
+            .Setup(x =>
+                x.ValidateImport(It.IsAny<ImportSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns((ManagementError?)null)
             .Verifiable();
     }
@@ -2665,6 +2715,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                         Algorithm = stored.Algorithm,
                         CreatedWhen = stored.CreatedWhen,
                         ExpiresWhen = stored.ExpiresWhen,
+                        ActivatesWhen = stored.CreatedWhen,
+                        RetiresWhen = stored.ExpiresWhen,
                         SecretType = stored.SecretType,
                         SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Verifier,
                         Origin = SecretOrigins.Generated,
@@ -3189,6 +3241,32 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     "secret-1",
                     ResourceChangeTypes.Updated,
                     It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task RotateSecretAsync_WhenRotatedExpiresWhenPrecedesTheSecretsCreation_StopsItAtItsCreation()
+    {
+        // A value in the past stops the rotated secret at once; its creation is the earliest instant its lifecycle
+        // can hold, and its active window collapses with its expiry so the instants stay in order.
+        SetupSecretCreateValidation();
+        SetupClientSecretChangedAudit();
+        await RotateWithGraceAsync(DateTimeOffset.UnixEpoch.AddDays(-1));
+
+        MockClientStore.Verify(
+            x =>
+                x.UpdateSecretAsync(
+                    ClientId,
+                    It.Is<PersistedSecret>(s =>
+                        s.SecretId == "secret-1"
+                        && s.CreatedWhen == DateTimeOffset.UnixEpoch
+                        && s.ActivatesWhen == DateTimeOffset.UnixEpoch
+                        && s.RetiresWhen == DateTimeOffset.UnixEpoch
+                        && s.ExpiresWhen == DateTimeOffset.UnixEpoch
+                    ),
                     It.IsAny<CancellationToken>()
                 ),
             Times.Once

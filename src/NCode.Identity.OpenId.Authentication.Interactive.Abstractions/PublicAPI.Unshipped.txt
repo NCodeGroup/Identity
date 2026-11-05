@@ -52,3 +52,44 @@ static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.B
 static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingLogoUri.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingPrimaryColor.get -> NCode.Identity.Settings.SettingKey<string!>
 static NCode.Identity.OpenId.Authentication.Interactive.InteractiveSettingKeys.BrandingSecondaryColor.get -> NCode.Identity.Settings.SettingKey<string!>
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveLocale
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveLocale.InteractiveLocale(string! LanguageTag, NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages! Messages) -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveLocale.LanguageTag.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveLocale.LanguageTag.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveLocale.Messages.get -> NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveLocale.Messages.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.AccessDeniedError.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.AccessDeniedError.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.AllowButton.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.AllowButton.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.AuthorizationErrorTitle.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.AuthorizationErrorTitle.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.AuthorizeAccessTitle.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.AuthorizeAccessTitle.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.ConsentPromptFormat.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.ConsentPromptFormat.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.DenyButton.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.DenyButton.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.InvalidCredentialsError.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.InvalidCredentialsError.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.MissingCredentialsError.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.MissingCredentialsError.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.PasswordLabel.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.PasswordLabel.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignInButton.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignInButton.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignInFailedError.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignInFailedError.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignInTitle.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignInTitle.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignOutButton.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignOutButton.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignOutQuestion.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignOutQuestion.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignOutTitle.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.SignOutTitle.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.StaySignedInButton.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.StaySignedInButton.init -> void
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.UsernameLabel.get -> string!
+NCode.Identity.OpenId.Authentication.Interactive.InteractiveMessages.UsernameLabel.init -> void

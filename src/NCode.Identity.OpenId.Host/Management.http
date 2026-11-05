@@ -191,3 +191,19 @@ Accept: application/json
 DELETE {{host}}/api/tenants/{{tenantId}}/grants?clientId=REPLACE_WITH_ClientId
 Accept: application/json
 
+
+### List a tenant's master keys (read:encryption_keys) — newest version first; carries no key material
+GET {{host}}/api/tenants/{{tenantId}}/encryption-keys
+Accept: application/json
+
+### Rekey a tenant (update:encryption_keys) — retires the active master key and creates the next version; returns the new active key and the retired one, or 412 when another rekey committed first, or 409 with Retry-After when the last rotation is too recent
+POST {{host}}/api/tenants/{{tenantId}}/encryption-keys/rekey
+Accept: application/json
+
+### List the server's master keys (read:server_encryption_keys, central-admin)
+GET {{host}}/api/servers/REPLACE_WITH_ServerId/encryption-keys
+Accept: application/json
+
+### Rekey the server (update:server_encryption_keys, central-admin)
+POST {{host}}/api/servers/REPLACE_WITH_ServerId/encryption-keys/rekey
+Accept: application/json

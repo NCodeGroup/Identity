@@ -448,4 +448,107 @@ internal class GrantStore(
 
         DbContext.Grants.Update(grantEntity);
     }
+
+    /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedProtectedValue>> GetProtectedPayloadPageAsync(
+        string tenantId,
+        IReadOnlyCollection<string> payloadPrefixes,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var (prefixes, length) = ProtectedValuePrefixes.Validate(
+            payloadPrefixes,
+            nameof(payloadPrefixes)
+        );
+
+        var normalizedTenantId = Normalize(tenantId);
+        var tenantKey = await DbContext
+            .Tenants.IgnoreQueryFilters()
+            .Where(tenant => tenant.NormalizedTenantId == normalizedTenantId)
+            .Select(tenant => (long?)tenant.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (tenantKey is not { } tenantRowId)
+            return new PagedResult<PersistedProtectedValue> { Items = [], NextCursor = null };
+
+        var query = DbContext
+            .Grants.AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(entity => entity.TenantId == tenantRowId)
+            // Only the rows under the requested keys leave the database (ADR-1407). The length guard keeps a provider
+            // that evaluates Substring in memory from throwing on a shorter value.
+            .Where(entity =>
+                entity.ProtectedPayload.Length >= length
+                && prefixes.Contains(entity.ProtectedPayload.Substring(0, length))
+            );
+
+        var afterId = DecodeCursor(page.Cursor);
+        if (afterId is { } id)
+            query = query.Where(entity => entity.Id > id);
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var entities = await query
+            .OrderBy(entity => entity.Id)
+            .Take(page.Limit + 1)
+            .Select(entity => new
+            {
+                entity.Id,
+                entity.GrantId,
+                entity.HashedKey,
+                entity.ProtectedPayload,
+                entity.ConcurrencyToken,
+            })
+            .ToListAsync(cancellationToken);
+
+        var hasMore = entities.Count > page.Limit;
+        var count = hasMore ? page.Limit : entities.Count;
+
+        return new PagedResult<PersistedProtectedValue>
+        {
+            Items = entities
+                .Take(count)
+                .Select(entity => new PersistedProtectedValue
+                {
+                    RecordId = entity.GrantId,
+                    ItemId = entity.HashedKey,
+                    ProtectedValue = entity.ProtectedPayload,
+                    ConcurrencyToken = entity.ConcurrencyToken,
+                })
+                .ToList(),
+            NextCursor = hasMore ? EncodeCursor(entities[count - 1].Id) : null,
+        };
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> UpdateProtectedPayloadAsync(
+        PersistedProtectedValue value,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedGrantId = Normalize(value.RecordId);
+        var grantEntity = await DbContext
+            .Grants.IgnoreQueryFilters()
+            .Where(entity => entity.NormalizedGrantId == normalizedGrantId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (grantEntity is null)
+            return false;
+
+        if (
+            !string.Equals(
+                value.ConcurrencyToken,
+                grantEntity.ConcurrencyToken,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            throw new StoreConcurrencyException(
+                "The OpenId Grant has been modified by another process. Please reload and try again."
+            );
+        }
+
+        // Touch the row so the interceptor regenerates the ConcurrencyToken on save (ADR-1012).
+        grantEntity.ProtectedPayload = value.ProtectedValue;
+        DbContext.Grants.Update(grantEntity);
+        return true;
+    }
 }

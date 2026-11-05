@@ -1,0 +1,18 @@
+#nullable enable
+NCode.Identity.Cose.CoseLibraryRegistration
+NCode.Identity.Cose.CoseLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!)
+NCode.Identity.Cose.CoseLibraryRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!).AddCoseAlgorithm(NCode.Identity.Cose.Algorithms.CoseAlgorithm! algorithm) -> NCode.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!
+NCode.Identity.Cose.DefaultRegistration
+NCode.Identity.Cose.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!)
+NCode.Identity.Cose.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!).AddCoseLibrary() -> NCode.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!
+NCode.Identity.Cose.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Jose.JoseLibrary>!).AddCoseLibrary(System.Action<NCode.Identity.Cose.Options.CoseOptions!>! configureOptions) -> NCode.Registration.IServiceBuilder<NCode.Identity.Cose.CoseLibrary>!
+NCode.Identity.Cose.Options.CoseOptions
+NCode.Identity.Cose.Options.CoseOptions.CoseOptions() -> void
+NCode.Identity.Cose.Options.CoseOptions.MaxMessageSizeBytes.get -> int
+NCode.Identity.Cose.Options.CoseOptions.MaxMessageSizeBytes.set -> void
+NCode.Identity.Cose.Options.CoseOptions.MaxNestingDepth.get -> int
+NCode.Identity.Cose.Options.CoseOptions.MaxNestingDepth.set -> void
+NCode.Identity.Cose.Options.CoseOptions.MaxRecipients.get -> int
+NCode.Identity.Cose.Options.CoseOptions.MaxRecipients.set -> void
+NCode.Identity.Cose.Options.CoseOptions.MaxSignatures.get -> int
+NCode.Identity.Cose.Options.CoseOptions.MaxSignatures.set -> void

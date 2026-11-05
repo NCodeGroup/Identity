@@ -8,6 +8,7 @@ using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Clients.Coherence;
 using NCode.Identity.OpenId.Authentication.Clients.Handlers;
 using NCode.Identity.OpenId.Teams;
+using NCode.Identity.Settings;
 using NCode.Mediator;
 using NCode.Registration;
 
@@ -54,6 +55,20 @@ internal static class DefaultRegistration
                 IClientAssertionReplayCache,
                 DefaultClientAssertionReplayCache
             >();
+
+            // Failed client authentications are limited per remote address before any credential is verified, in the
+            // shared counter set the composition root registers (ADR-1399).
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<
+                IClientAuthenticationAttemptLimiter,
+                DefaultClientAuthenticationAttemptLimiter
+            >();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICollectionDataSource<SettingDescriptor>,
+                    DefaultClientAuthenticationAttemptSettingDescriptorDataSource
+                >()
+            );
 
             // Each client-authentication handler below has a descriptor of the same name, so the methods are named
             // without constructing a handler (ADR-1207).

@@ -124,6 +124,8 @@ public class DefaultClientSecretIssuerTests : BaseTests
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = expiresWhen ?? DateTimeOffset.MaxValue,
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = expiresWhen ?? DateTimeOffset.MaxValue,
             SecretType = secretType,
             SecretEncoding = secretEncoding,
             Origin = SecretOrigins.Generated,

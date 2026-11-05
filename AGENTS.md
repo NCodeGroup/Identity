@@ -25,8 +25,17 @@ Production projects live under `src/`; test projects (the `*Tests` projects) liv
 Benchmark projects (the `*.Benchmarks` projects) live under `benchmarks/`; the build compiles them and nothing runs
 them ([ADR-1386](docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
 
-- **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.JsonWebTokens`, and the opt-in algorithm
-  packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K)
+- **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
+  packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the
+  opt-in `NCode.Identity.Jose.SdJwt`, Selective Disclosure for JWTs (RFC 9901) over the JWT library with the SD-JWT
+  VC profile as data
+  ([ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
+  [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md))
+- **COSE / CWT** — the opt-in `NCode.Identity.Cose(.Abstractions)`, CBOR Object Signing and Encryption (RFC 9052 / 9053)
+  over `System.Formats.Cbor` and the family's JOSE algorithms and secret keys, and the opt-in
+  `NCode.Identity.Cwt(.Abstractions)`, CBOR Web Tokens (RFC 8392) over it
+  ([ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md),
+  [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md))
 - **Secrets** — `NCode.Identity.Secrets(.Abstractions)`, `NCode.Identity.Secrets.Persistence(.Abstractions)` and its
   opt-in key wrapper adapters `NCode.Identity.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms`
   ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),

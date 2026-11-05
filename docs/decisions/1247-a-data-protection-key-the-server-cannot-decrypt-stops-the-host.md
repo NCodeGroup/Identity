@@ -1,6 +1,7 @@
 # 1247. A Data Protection key the server cannot decrypt stops the host
 
 - **Status:** Accepted (amended by
+  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): the warmup loads the retired platform keys that a live ring key names; amended by
   [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md): the Data Protection key ring
   is protected by the platform's master key)
 - **Date:** 2026-10-24

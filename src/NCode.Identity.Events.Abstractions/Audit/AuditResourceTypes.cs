@@ -22,4 +22,19 @@ public static class AuditResourceTypes
     /// The resource type code for a user session, shared by the protocol and management planes.
     /// </summary>
     public const string Session = "session";
+
+    /// <summary>
+    /// An OpenID tenant, shared by the protocol plane and the management plane.
+    /// </summary>
+    public const string Tenant = "tenant";
+
+    /// <summary>
+    /// A secret belonging to an OpenID tenant, shared by the protocol plane and the management plane.
+    /// </summary>
+    public const string TenantSecret = "tenant.secret";
+
+    /// <summary>
+    /// The resource type of a master key, which protects the stored secrets of a tenant or of the server.
+    /// </summary>
+    public const string MasterKey = "master_key";
 }

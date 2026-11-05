@@ -69,6 +69,8 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             Origin = SecretOrigins.Generated,

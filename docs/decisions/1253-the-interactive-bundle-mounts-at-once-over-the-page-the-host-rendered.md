@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md):
-  the bundle runs only the scripts and styles that carry the page's nonce)
+  the bundle runs only the scripts and styles that carry the page's nonce; and by
+  [ADR-1402](1402-the-interactive-surface-renders-in-the-locale-the-request-prefers-among-the-registered-ui-locales.md):
+  the page carries its language, which the bundle reads before it renders)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

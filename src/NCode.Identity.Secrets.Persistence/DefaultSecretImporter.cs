@@ -62,6 +62,13 @@ internal sealed class DefaultSecretImporter(ISecretKeyTypeCatalog secretKeyTypeC
             );
         }
 
+        var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
+            request.CreatedWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+
         return new PersistedSecret
         {
             SecretId = request.SecretId,
@@ -69,6 +76,8 @@ internal sealed class DefaultSecretImporter(ISecretKeyTypeCatalog secretKeyTypeC
             Use = request.Use,
             Algorithm = request.Algorithm,
             CreatedWhen = request.CreatedWhen,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
             ExpiresWhen = request.ExpiresWhen,
             SecretType = request.SecretType,
             SecretEncoding = material.SecretEncoding,

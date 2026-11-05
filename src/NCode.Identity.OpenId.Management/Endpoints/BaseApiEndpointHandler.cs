@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 
@@ -159,6 +160,33 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     }
 
     /// <summary>
+    /// Copies a persisted secret with the use, algorithm and lifecycle of an update, keeping its identity, concurrency
+    /// token, origin, manager and key material. An instant the update omits keeps the stored one, the retirement
+    /// bounded by the new expiry, so a retired or upcoming key stays so unless the update names the instant.
+    /// </summary>
+    /// <param name="secret">The <see cref="PersistedSecret"/> to copy.</param>
+    /// <param name="request">The <see cref="UpdateSecretRequest"/> whose metadata the copy takes.</param>
+    /// <returns>The copy of <paramref name="secret"/> with the metadata of <paramref name="request"/>.</returns>
+    // See ADR-1403.
+    internal static PersistedSecret WithUpdate(PersistedSecret secret, UpdateSecretRequest request)
+    {
+        var (activatesWhen, retiresWhen) = SecretLifecycle.ResolveUpdate(
+            secret,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+        return secret with
+        {
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
+        };
+    }
+
+    /// <summary>
     /// Maps a collection of <see cref="PersistedSecret"/> instances to their <see cref="SecretResource"/> representations.
     /// </summary>
     /// <param name="secrets">The collection of <see cref="PersistedSecret"/> instances to map.</param>
@@ -185,9 +213,12 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             Use = secret.Use,
             Algorithm = secret.Algorithm,
             CreatedWhen = secret.CreatedWhen,
+            ActivatesWhen = secret.ActivatesWhen,
+            RetiresWhen = secret.RetiresWhen,
             ExpiresWhen = secret.ExpiresWhen,
             SecretType = secret.SecretType,
             KeySizeBits = secret.KeySizeBits,
+            ManagedBy = secret.ManagedBy,
             IsVerifier = SecretEncodings.IsVerifier(secret.SecretEncoding),
         };
     }
@@ -213,9 +244,12 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             Use = secret.Use,
             Algorithm = secret.Algorithm,
             CreatedWhen = secret.CreatedWhen,
+            ActivatesWhen = secret.ActivatesWhen,
+            RetiresWhen = secret.RetiresWhen,
             ExpiresWhen = secret.ExpiresWhen,
             SecretType = secret.SecretType,
             KeySizeBits = secret.KeySizeBits,
+            ManagedBy = secret.ManagedBy,
             IsVerifier = SecretEncodings.IsVerifier(secret.SecretEncoding),
             SecretMaterial = secretMaterial,
         };

@@ -209,7 +209,12 @@ internal sealed class DefaultJwtValidator(
 
         var enclosedToken = Decrypt(
             encryptedToken,
-            FilterKeys(decryptionKeys, SecretKeyUses.Encryption, keyManagementAlgorithm),
+            FilterKeys(
+                decryptionKeys,
+                SecretKeyUses.Encryption,
+                keyManagementAlgorithm,
+                parameters.ClockSkew
+            ),
             out var decryptionKey
         );
 
@@ -276,7 +281,12 @@ internal sealed class DefaultJwtValidator(
 
         var payload = DeserializePayload(
             signedToken,
-            FilterKeys(validationKeys, SecretKeyUses.Signature, signatureAlgorithm),
+            FilterKeys(
+                validationKeys,
+                SecretKeyUses.Signature,
+                signatureAlgorithm,
+                parameters.ClockSkew
+            ),
             out var secretKey
         );
 
@@ -319,16 +329,24 @@ internal sealed class DefaultJwtValidator(
     }
 
     // RFC 8725 §3.1: a key is used only for the use and with the algorithm its metadata declares; a key that declares
-    // neither may serve any.
-    private static IEnumerable<SecretKey> FilterKeys(
+    // neither may serve any. A key verifies or decrypts only within its validity window, judged with the same clock
+    // skew the token's own lifetime gets: an expired key is never tried, so a token it signed, or that was encrypted
+    // to it, is refused once the key has expired, while a retired key still serves what it signed until then.
+    // See ADR-1403.
+    private IEnumerable<SecretKey> FilterKeys(
         IEnumerable<SecretKey> secretKeys,
         string use,
-        string algorithm
-    ) =>
-        secretKeys.Where(secretKey =>
-            (secretKey.Metadata.Use is null || secretKey.Metadata.Use == use)
+        string algorithm,
+        TimeSpan clockSkew
+    )
+    {
+        var now = TimeProvider.GetUtcNow() - clockSkew;
+        return secretKeys.Where(secretKey =>
+            !secretKey.Metadata.IsExpired(now)
+            && (secretKey.Metadata.Use is null || secretKey.Metadata.Use == use)
             && (secretKey.Metadata.Algorithm is null || secretKey.Metadata.Algorithm == algorithm)
         );
+    }
 
     private async ValueTask<IEnumerable<SecretKey>> ResolveValidationKeysAsync(
         JoseToken joseToken,

@@ -114,6 +114,8 @@ internal class DefaultSecretSerializer(
             KeyId = persistedSecret.KeyId ?? persistedSecret.SecretId,
             Use = persistedSecret.Use,
             Algorithm = persistedSecret.Algorithm,
+            ActivatesWhen = persistedSecret.ActivatesWhen,
+            RetiresWhen = persistedSecret.RetiresWhen,
             ExpiresWhen = persistedSecret.ExpiresWhen,
         };
 
@@ -183,6 +185,8 @@ internal class DefaultSecretSerializer(
             KeyId = persistedSecret.KeyId ?? persistedSecret.SecretId,
             Use = persistedSecret.Use,
             Algorithm = persistedSecret.Algorithm,
+            ActivatesWhen = persistedSecret.ActivatesWhen,
+            RetiresWhen = persistedSecret.RetiresWhen,
             ExpiresWhen = persistedSecret.ExpiresWhen,
         };
 

@@ -18,6 +18,7 @@ import {
   isSessionsPath,
 } from './params.js';
 import { EMPTY_SERVER_PAGE, type ServerPage } from './serverPage.js';
+import type { Messages } from './i18n/messages.js';
 
 /** The per-request inputs the interactive surfaces render against, derived from the environment. */
 export type RouteContext = {
@@ -33,6 +34,8 @@ export type RouteContext = {
   readonly branding?: BrandingConfig;
   /** The state of the page the host rendered: typed values, focus, cleared scopes and any authorization error. */
   readonly serverPage?: ServerPage;
+  /** The catalog that renders the page, which maps the error codes a surface reads back to its messages. */
+  readonly messages: Messages;
 };
 
 type Route = {
@@ -66,10 +69,10 @@ const ROUTES: readonly Route[] = [
   },
   {
     match: isPasswordPath,
-    render: ({ antiforgeryToken, branding, errorCode, status }) => (
+    render: ({ antiforgeryToken, branding, errorCode, status, messages }) => (
       <PasswordPage
         antiforgeryToken={antiforgeryToken}
-        errorMessage={describePasswordError(errorCode ?? null)}
+        errorMessage={describePasswordError(errorCode ?? null, messages)}
         changed={status === 'changed'}
         {...productNameOf(branding)}
       />

@@ -99,32 +99,29 @@ internal class ClientApiEndpointHandler(
         Math.Max(SharedSecretPolicy.MinimumEntropyBits, storedKeySizeBits / 8 * 3 / 4 * 8);
 
     /// <summary>
-    /// Copies a persisted secret with the use, algorithm, and expiry of the specified metadata, keeping its identity,
-    /// concurrency token, and key material.
+    /// Returns the earlier of two instants.
     /// </summary>
-    /// <param name="secret">The <see cref="PersistedSecret"/> to copy.</param>
-    /// <param name="metadata">The <see cref="UpdateSecretRequest"/> whose metadata the copy takes.</param>
-    /// <returns>The copy of <paramref name="secret"/> with the metadata of <paramref name="metadata"/>.</returns>
-    private static PersistedSecret WithMetadata(
-        PersistedSecret secret,
-        UpdateSecretRequest metadata
-    ) =>
-        new()
-        {
-            SecretId = secret.SecretId,
-            KeyId = secret.KeyId,
-            ConcurrencyToken = secret.ConcurrencyToken,
-            Use = metadata.Use,
-            Algorithm = metadata.Algorithm,
-            CreatedWhen = secret.CreatedWhen,
-            ExpiresWhen = metadata.ExpiresWhen,
-            SecretType = secret.SecretType,
-            SecretEncoding = secret.SecretEncoding,
-            Origin = secret.Origin,
-            KeySizeBits = secret.KeySizeBits,
-            EncodedValue = secret.EncodedValue,
-            PublicKey = secret.PublicKey,
-        };
+    private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right) =>
+        left < right ? left : right;
+
+    /// <summary>
+    /// Returns the later of two instants.
+    /// </summary>
+    private static DateTimeOffset Max(DateTimeOffset left, DateTimeOffset right) =>
+        left > right ? left : right;
+
+    /// <summary>
+    /// Refuses a create request that names an activation or a retirement for a shared secret, which has no lifecycle
+    /// of its own: it is active for its whole validity, so an instant it cannot honor is refused rather than dropped.
+    /// </summary>
+    // See ADR-1403.
+    private static ProblemHttpResult? ValidateSharedSecretLifecycle(CreateSecretRequest request) =>
+        request.ActivatesWhen is null && request.RetiresWhen is null
+            ? null
+            : TypedResults.Problem(
+                detail: "A shared secret is active for its whole validity: it names no activation or retirement.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
 
     /// <inheritdoc />
     protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -1274,7 +1271,8 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validation = SecretValidator.ValidateCreate(request);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validation = SecretValidator.ValidateCreate(request, createdWhen);
         if (!validation.IsValid)
         {
             return ToErrorResult(validation.Error);
@@ -1297,6 +1295,11 @@ internal class ClientApiEndpointHandler(
         }
 
         var isSharedSecret = request.SecretType == SecretTypes.Symmetric;
+        if (isSharedSecret && ValidateSharedSecretLifecycle(request) is { } lifecycleError)
+        {
+            return lifecycleError;
+        }
+
         var tokenEndpointAuthMethod = isSharedSecret
             ? await GetTokenEndpointAuthMethodAsync(
                 client.TenantId,
@@ -1318,8 +1321,6 @@ internal class ClientApiEndpointHandler(
         GeneratedSecret generatedSecret;
         try
         {
-            var createdWhen = TimeProvider.GetUtcNow();
-
             // A client's symmetric secret is its client_secret, presented verbatim for client_secret_basic/post and
             // used as the HMAC key for client_secret_jwt: the issuer stores it in the form the client's method needs,
             // never as the raw-byte / base64url-reveal crypto-key material GenerateSecret produces (which never UTF-8
@@ -1348,6 +1349,8 @@ internal class ClientApiEndpointHandler(
                         Use = request.Use,
                         Algorithm = request.Algorithm,
                         CreatedWhen = createdWhen,
+                        ActivatesWhen = request.ActivatesWhen,
+                        RetiresWhen = request.RetiresWhen,
                         ExpiresWhen = request.ExpiresWhen,
                     }
                 );
@@ -1437,7 +1440,8 @@ internal class ClientApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        var validationError = SecretValidator.ValidateImport(request);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validationError = SecretValidator.ValidateImport(request, createdWhen);
         if (validationError is not null)
         {
             return ToErrorResult(validationError);
@@ -1458,7 +1462,9 @@ internal class ClientApiEndpointHandler(
             KeyMaterial = request.KeyMaterial,
             Use = request.Use,
             Algorithm = request.Algorithm,
-            CreatedWhen = TimeProvider.GetUtcNow(),
+            CreatedWhen = createdWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
             ExpiresWhen = request.ExpiresWhen,
         };
         if (!ClientKeyImporter.TryImportKey(importRequest, out var importedSecret, out var error))
@@ -1656,7 +1662,7 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(metadataError);
         }
 
-        var updated = WithMetadata(secret, request);
+        var updated = WithUpdate(secret, request);
 
         await store.UpdateSecretAsync(clientId, updated, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
@@ -1820,7 +1826,8 @@ internal class ClientApiEndpointHandler(
             Algorithm = secret.Algorithm,
             ExpiresWhen = request.ExpiresWhen,
         };
-        var validation = SecretValidator.ValidateCreate(createRequest);
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validation = SecretValidator.ValidateCreate(createRequest, createdWhen);
         if (!validation.IsValid)
         {
             return ToErrorResult(validation.Error);
@@ -1856,7 +1863,7 @@ internal class ClientApiEndpointHandler(
                     SecretId = replacementId,
                     Use = createRequest.Use,
                     Algorithm = createRequest.Algorithm,
-                    CreatedWhen = TimeProvider.GetUtcNow(),
+                    CreatedWhen = createdWhen,
                     ExpiresWhen = createRequest.ExpiresWhen,
                     EntropyBits = validation.GenerationParameters.KeySizeBits,
                 }
@@ -1873,10 +1880,12 @@ internal class ClientApiEndpointHandler(
         }
 
         // The replacement is added beside the rotated secret in one unit of work; the rotated secret keeps
-        // authenticating until its (possibly shortened) expiry passes or it is deleted (ADR-1320).
+        // authenticating until its (possibly shortened) expiry passes or it is deleted (ADR-1320). A requested expiry
+        // in the past stops it at once; one before its creation stops it at its creation, the earliest instant its
+        // lifecycle can hold (ADR-1403).
         var rotatedExpiresWhen =
             request.RotatedExpiresWhen is { } requested && requested < secret.ExpiresWhen
-                ? requested
+                ? Max(requested, secret.CreatedWhen)
                 : secret.ExpiresWhen;
 
         try
@@ -1895,13 +1904,17 @@ internal class ClientApiEndpointHandler(
         PersistedSecret? shortened = null;
         if (rotatedExpiresWhen != secret.ExpiresWhen)
         {
+            // The shortened expiry bounds the secret's active window with it: a secret stopped at once neither signs
+            // nor authenticates from that instant, whatever its activation and retirement were.
             var shortenedMetadata = new UpdateSecretRequest
             {
                 Use = secret.Use,
                 Algorithm = secret.Algorithm,
                 ExpiresWhen = rotatedExpiresWhen,
+                ActivatesWhen = Min(secret.ActivatesWhen, rotatedExpiresWhen),
+                RetiresWhen = Min(secret.RetiresWhen, rotatedExpiresWhen),
             };
-            shortened = WithMetadata(secret, shortenedMetadata);
+            shortened = WithUpdate(secret, shortenedMetadata);
             await store.UpdateSecretAsync(clientId, shortened, cancellationToken);
         }
 

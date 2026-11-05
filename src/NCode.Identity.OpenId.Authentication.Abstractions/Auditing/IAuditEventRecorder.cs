@@ -266,4 +266,49 @@ public interface IAuditEventRecorder
         string? sessionId,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Records that the UserInfo endpoint disclosed claims about a subject to a client. A caller records it only when
+    /// the client's effective settings turn on UserInfo access auditing.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="openIdClient">The <see cref="OpenIdClient"/> the access token was issued to.</param>
+    /// <param name="subjectId">The identifier of the subject whose claims were disclosed.</param>
+    /// <param name="claimNames">The names of the claims the response disclosed; never their values.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordUserInfoAccessedAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string subjectId,
+        IEnumerable<string> claimNames,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that the UserInfo endpoint refused to disclose a subject's claims for an access token that
+    /// authenticated, because the client it was issued to is unknown or not enabled. A caller records it only when the
+    /// tenant's effective settings turn on UserInfo access auditing.
+    /// </summary>
+    /// <param name="openIdContext">The <see cref="OpenIdContext"/> associated with the current request.</param>
+    /// <param name="subjectId">The identifier of the subject the access token was issued for.</param>
+    /// <param name="clientId">The identifier of the client the access token names, if any.</param>
+    /// <param name="errorCode">The machine-readable error code the request was refused with.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordUserInfoAccessDeniedAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string? clientId,
+        string errorCode,
+        CancellationToken cancellationToken
+    );
 }

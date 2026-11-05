@@ -51,6 +51,8 @@ public sealed class TenantStoreSecretsTests : IDisposable
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
             Origin = SecretOrigins.Generated,
@@ -187,6 +189,8 @@ public sealed class TenantStoreSecretsTests : IDisposable
             Use = "enc",
             Algorithm = "RS512",
             CreatedWhen = current.CreatedWhen,
+            ActivatesWhen = current.CreatedWhen.AddDays(2),
+            RetiresWhen = current.ExpiresWhen.AddMonths(6),
             ExpiresWhen = current.ExpiresWhen.AddYears(1),
             SecretType = current.SecretType,
             SecretEncoding = current.SecretEncoding,
@@ -206,8 +210,50 @@ public sealed class TenantStoreSecretsTests : IDisposable
         Assert.NotNull(reloaded);
         Assert.Equal("enc", reloaded.Use);
         Assert.Equal("RS512", reloaded.Algorithm);
+        Assert.Equal(current.CreatedWhen.AddDays(2), reloaded.ActivatesWhen);
+        Assert.Equal(current.ExpiresWhen.AddMonths(6), reloaded.RetiresWhen);
+        Assert.Equal(current.ExpiresWhen.AddYears(1), reloaded.ExpiresWhen);
         Assert.Equal(current.EncodedValue, reloaded.EncodedValue);
         Assert.NotEqual(current.ConcurrencyToken, reloaded.ConcurrencyToken);
+    }
+
+    [Fact]
+    public async Task AddSecretAsync_StoresTheInstantsOfTheSecretsLifecycleAndItsManager()
+    {
+        await SeedTenantAsync();
+        var secret = CreateSecret("secret-1");
+        var staged = new PersistedSecret
+        {
+            SecretId = secret.SecretId,
+            ConcurrencyToken = secret.ConcurrencyToken,
+            Use = secret.Use,
+            Algorithm = secret.Algorithm,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            SecretType = secret.SecretType,
+            SecretEncoding = secret.SecretEncoding,
+            Origin = secret.Origin,
+            ManagedBy = "rotation",
+            KeySizeBits = secret.KeySizeBits,
+            EncodedValue = secret.EncodedValue,
+        };
+
+        await _store.AddSecretAsync(TenantId, staged, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetSecretOrDefaultAsync(
+            TenantId,
+            "secret-1",
+            CancellationToken.None
+        );
+        Assert.NotNull(reloaded);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), reloaded.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), reloaded.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(99), reloaded.ExpiresWhen);
+        Assert.Equal("rotation", reloaded.ManagedBy);
     }
 
     [Fact]

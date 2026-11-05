@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +11,7 @@ using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -66,6 +68,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         await ServiceProvider.DisposeAsync();
     }
 
+    private static readonly DateTimeOffset CreatedWhen = DateTimeOffset.UnixEpoch;
+
     private static CreateSecretRequest CreateRequest(
         string secretType,
         int keySizeBits,
@@ -84,14 +88,160 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         };
 
     private ManagementError? CreateError(CreateSecretRequest request) =>
-        Validator.ValidateCreate(request).Error;
+        Validator.ValidateCreate(request, CreatedWhen).Error;
+
+    #region Lifecycle Tests
+
+    [Fact]
+    public void ValidateCreate_WhenTheLifecycleIsInOrder_ReturnsNull()
+    {
+        var request = new CreateSecretRequest
+        {
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            ActivatesWhen = CreatedWhen.AddDays(2),
+            RetiresWhen = CreatedWhen.AddDays(92),
+        };
+
+        Assert.Null(CreateError(request));
+    }
+
+    [Fact]
+    public void ValidateCreate_WhenTheActivationPrecedesTheCreation_Returns400()
+    {
+        var request = new CreateSecretRequest
+        {
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            ActivatesWhen = CreatedWhen.AddSeconds(-1),
+        };
+
+        var error = CreateError(request);
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains("cannot activate", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateCreate_WhenTheRetirementFollowsTheExpiry_Returns400()
+    {
+        var request = new CreateSecretRequest
+        {
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            RetiresWhen = CreatedWhen.AddDays(100),
+        };
+
+        var error = CreateError(request);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot expire", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateImport_WhenTheLifecycleIsOutOfOrder_Returns400()
+    {
+        var request = new ImportSecretRequest
+        {
+            SecretType = SecretTypes.Rsa,
+            Format = SecretKeyImportFormats.Jwk,
+            KeyMaterial = "{}",
+            ExpiresWhen = CreatedWhen.AddDays(99),
+            ActivatesWhen = CreatedWhen.AddDays(3),
+            RetiresWhen = CreatedWhen.AddDays(2),
+        };
+
+        var error = Validator.ValidateImport(request, CreatedWhen);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot retire", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheActivationPrecedesTheKeysCreation_Returns400()
+    {
+        var key = CreateRsaKey();
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = key.ExpiresWhen,
+            ActivatesWhen = key.CreatedWhen.AddSeconds(-1),
+        };
+
+        var error = Validator.ValidateUpdate(key, request);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot activate", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheInstantsAreOmitted_JudgesTheStoredOnesAgainstTheNewExpiry()
+    {
+        // The stored activation lies past the new expiry, which the update keeps, so the update is refused as the
+        // handler would write it.
+        var key = CreateRsaKey(
+            activatesWhen: CreatedWhen.AddDays(20),
+            retiresWhen: CreatedWhen.AddDays(92)
+        );
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = CreatedWhen.AddDays(10),
+        };
+
+        var error = Validator.ValidateUpdate(key, request);
+
+        Assert.NotNull(error);
+        Assert.Contains("cannot retire", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheInstantsAreOmittedAndTheStoredOnesFitTheNewExpiry_ReturnsNull()
+    {
+        var key = CreateRsaKey(
+            activatesWhen: CreatedWhen.AddDays(2),
+            retiresWhen: CreatedWhen.AddDays(92)
+        );
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = CreatedWhen.AddDays(10),
+        };
+
+        Assert.Null(Validator.ValidateUpdate(key, request));
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenTheLifecycleIsInOrder_ReturnsNull()
+    {
+        var key = CreateRsaKey();
+        var request = new UpdateSecretRequest
+        {
+            Use = null,
+            Algorithm = null,
+            ExpiresWhen = key.ExpiresWhen,
+            ActivatesWhen = key.CreatedWhen.AddDays(1),
+            RetiresWhen = key.ExpiresWhen.AddDays(-1),
+        };
+
+        Assert.Null(Validator.ValidateUpdate(key, request));
+    }
+
+    #endregion
 
     #region Curve Tests
 
     [Fact]
     public void ValidateCreate_WhenEccWithKnownCurve_ReturnsNull()
     {
-        Assert.Null(CreateError(CreateRequest("ecc", 0, curve: "P-384")));
+        Assert.Null(CreateError(CreateRequest("ecc", 384, curve: "P-384")));
     }
 
     [Fact]
@@ -135,6 +285,117 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.Null(CreateError(CreateRequest("ecc", 256, algorithm: BrainpoolAlgorithm)));
     }
 
+    // See ADR-1398: a curve fixes the size of its keys, so a request that names a curve and another size is refused,
+    // with or without an algorithm.
+    [Theory]
+    [InlineData(0, null, "P-384", 384)]
+    [InlineData(256, null, "P-384", 384)]
+    [InlineData(384, "ECDH-ES", "P-256", 256)]
+    [InlineData(384, BrainpoolAlgorithm, "brainpoolP256r1", 256)]
+    public void ValidateCreate_WhenTheCurvesSizeIsNotTheRequestedSize_Returns400(
+        int keySizeBits,
+        string? algorithm,
+        string curve,
+        int curveSizeBits
+    )
+    {
+        var error = CreateError(
+            CreateRequest("ecc", keySizeBits, algorithm: algorithm, curve: curve)
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            $"The ECC key size '{keySizeBits}' bits is invalid for the curve '{curve}', whose keys are "
+                + $"{curveSizeBits} bits.",
+            error.Detail
+        );
+    }
+
+    // Gives the ECDH-ES algorithms a Brainpool curve beside the core's NIST curves, so two of their curves share the
+    // 256-bit size; validation never performs an agreement.
+    private sealed class BrainpoolAgreementStub : IEcdhKeyAgreement
+    {
+        public AlgorithmKeyType AlgorithmKeyType { get; } =
+            AlgorithmKeyType.OnCurves(
+                typeof(EccSecretKey),
+                [new AlgorithmCurve(Brainpool256.CurveName, Brainpool256.CurveSizeBits)]
+            );
+
+        public int GetSharedSecretSizeBytes(SecretKey secretKey) =>
+            throw new NotSupportedException();
+
+        public void AgreeWithEphemeralKey(
+            SecretKey recipientKey,
+            IBufferWriter<byte> ephemeralPublicKeyWriter,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+
+        public void Agree(
+            SecretKey recipientKey,
+            SecretKey ephemeralPublicKey,
+            Span<byte> sharedSecret
+        ) => throw new NotSupportedException();
+    }
+
+    private static ServiceProvider BuildBrainpoolEcdhServiceProvider()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        var secrets = serviceCollection.AddSecretsLibrary();
+        secrets.AddPersistenceLibrary();
+        secrets.AddJoseLibrary();
+        serviceCollection.AddSingleton(Brainpool256);
+        serviceCollection.AddSingleton<IEcdhKeyAgreement, BrainpoolAgreementStub>();
+        return serviceCollection.BuildServiceProvider();
+    }
+
+    private static DefaultSecretValidator CreateValidator(IServiceProvider serviceProvider) =>
+        new(
+            serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
+            serviceProvider.GetRequiredService<ISecretSerializer>()
+        );
+
+    // See ADR-1398: P-256 and brainpoolP256r1 are both 256 bits, so the size selects neither.
+    [Fact]
+    public async Task ValidateCreate_WhenTwoOfTheAlgorithmsCurvesHaveTheRequestedSize_Returns400()
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var error = CreateValidator(serviceProvider)
+            .ValidateCreate(CreateRequest("ecc", 256, algorithm: "ECDH-ES"), CreatedWhen)
+            .Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The key size '256' bits does not select a curve for algorithm 'ECDH-ES', which accepts 'P-256', "
+                + "'brainpoolP256r1' at that size; name the curve.",
+            error.Detail
+        );
+    }
+
+    [Theory]
+    [InlineData("P-256")]
+    [InlineData("brainpoolP256r1")]
+    public async Task ValidateCreate_WhenTheCurveSelectsAmongCurvesOfOneSize_GeneratesOnIt(
+        string curve
+    )
+    {
+        await using var serviceProvider = BuildBrainpoolEcdhServiceProvider();
+
+        var validation = CreateValidator(serviceProvider)
+            .ValidateCreate(
+                CreateRequest("ecc", 256, algorithm: "ECDH-ES", curve: curve),
+                CreatedWhen
+            );
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(curve, validation.GenerationParameters.Curve);
+        Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
+    }
+
     #endregion
 
     #region GenerationParameters Tests
@@ -151,7 +412,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     )
     {
         var validation = Validator.ValidateCreate(
-            CreateRequest("ecc", keySizeBits, algorithm: algorithm)
+            CreateRequest("ecc", keySizeBits, algorithm: algorithm),
+            CreatedWhen
         );
 
         Assert.True(validation.IsValid);
@@ -163,7 +425,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     public void ValidateCreate_WhenRequestNamesACurveTheAlgorithmAccepts_GeneratesOnIt()
     {
         var validation = Validator.ValidateCreate(
-            CreateRequest("ecc", 384, algorithm: "ECDH-ES", curve: "P-384")
+            CreateRequest("ecc", 384, algorithm: "ECDH-ES", curve: "P-384"),
+            CreatedWhen
         );
 
         Assert.True(validation.IsValid);
@@ -172,7 +435,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("ecc", 256, null, null)]
+    [InlineData("ecc", 384, null, null)]
     [InlineData("ecc", 384, null, "P-384")]
     [InlineData("rsa", 2048, "RS256", null)]
     public void ValidateCreate_WhenNoAlgorithmCurveApplies_GeneratesWithTheRequestsParameters(
@@ -183,7 +446,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     )
     {
         var validation = Validator.ValidateCreate(
-            CreateRequest(secretType, keySizeBits, algorithm: algorithm, curve: curve)
+            CreateRequest(secretType, keySizeBits, algorithm: algorithm, curve: curve),
+            CreatedWhen
         );
 
         Assert.True(validation.IsValid);
@@ -194,7 +458,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreate_WhenRequestIsNotCoherent_HasNoGenerationParameters()
     {
-        var validation = Validator.ValidateCreate(CreateRequest("unknown", 256));
+        var validation = Validator.ValidateCreate(CreateRequest("unknown", 256), CreatedWhen);
 
         Assert.False(validation.IsValid);
         Assert.Null(validation.GenerationParameters);
@@ -208,7 +472,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Theory]
     [InlineData("symmetric", 256)]
     [InlineData("rsa", 2048)]
-    [InlineData("ecc", 256)]
+    [InlineData("ecc", 384)]
     public void ValidateCreate_WhenKnownSecretTypeAndNoUseOrAlgorithm_ReturnsNull(
         string secretType,
         int keySizeBits
@@ -285,7 +549,6 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData(256)]
     [InlineData(384)]
     [InlineData(521)]
     public void ValidateCreate_WhenEccKeySizeValid_ReturnsNull(int keySizeBits)
@@ -293,6 +556,39 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         var error = CreateError(CreateRequest("ecc", keySizeBits));
 
         Assert.Null(error);
+    }
+
+    // See ADR-1398: a request without an algorithm reaches the key type alone, whose catalog holds P-256 and
+    // brainpoolP256r1 at 256 bits, so the size selects neither.
+    [Fact]
+    public void ValidateCreate_WhenTwoCatalogCurvesHaveTheRequestedSizeAndNoAlgorithm_Returns400()
+    {
+        var error = CreateError(CreateRequest("ecc", 256));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The ECC key size '256' bits does not select a curve; 'P-256', 'brainpoolP256r1' have that size, so name "
+                + "the curve.",
+            error.Detail
+        );
+    }
+
+    [Theory]
+    [InlineData("P-256")]
+    [InlineData("brainpoolP256r1")]
+    public void ValidateCreate_WhenTheCurveSelectsAmongCatalogCurvesOfOneSizeAndNoAlgorithm_GeneratesOnIt(
+        string curve
+    )
+    {
+        var validation = Validator.ValidateCreate(
+            CreateRequest("ecc", 256, curve: curve),
+            CreatedWhen
+        );
+
+        Assert.True(validation.IsValid);
+        Assert.Equal(curve, validation.GenerationParameters.Curve);
+        Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
     }
 
     #endregion
@@ -405,10 +701,20 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
     #region ValidateUpdate Tests
 
-    private static PersistedSecret CreateRsaKey()
+    private static PersistedSecret CreateRsaKey(
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null
+    )
     {
         using var rsa = RSA.Create(2048);
-        return CreatePublicKey(SecretTypes.Rsa, 2048, rsa.ExportSubjectPublicKeyInfo(), "PS256");
+        return CreatePublicKey(
+            SecretTypes.Rsa,
+            2048,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "PS256",
+            activatesWhen,
+            retiresWhen
+        );
     }
 
     private static PersistedSecret CreateEccKey(ECCurve curve)
@@ -421,7 +727,9 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string secretType,
         int keySizeBits,
         byte[] subjectPublicKeyInfo,
-        string? algorithm
+        string? algorithm,
+        DateTimeOffset? activatesWhen = null,
+        DateTimeOffset? retiresWhen = null
     ) =>
         new()
         {
@@ -431,6 +739,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Algorithm = algorithm,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = activatesWhen ?? DateTimeOffset.UnixEpoch,
+            RetiresWhen = retiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = SecretEncodings.Spki,
             Origin = SecretOrigins.Generated,
@@ -521,6 +831,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = SecretEncodings.SymmetricRaw,
             Origin = SecretOrigins.Generated,
@@ -545,6 +857,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Algorithm = secret.Algorithm,
             CreatedWhen = secret.CreatedWhen,
             ExpiresWhen = secret.ExpiresWhen,
+            ActivatesWhen = secret.CreatedWhen,
+            RetiresWhen = secret.ExpiresWhen,
             SecretType = "unknown",
             SecretEncoding = secret.SecretEncoding,
             Origin = secret.Origin,
@@ -580,7 +894,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string format
     )
     {
-        var error = Validator.ValidateImport(CreateImportRequest(secretType, format));
+        var error = Validator.ValidateImport(CreateImportRequest(secretType, format), CreatedWhen);
 
         Assert.Null(error);
     }
@@ -593,7 +907,10 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         string format
     )
     {
-        var error = Validator.ValidateImport(CreateImportRequest(SecretTypes.Rsa, format));
+        var error = Validator.ValidateImport(
+            CreateImportRequest(SecretTypes.Rsa, format),
+            CreatedWhen
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
@@ -609,7 +926,8 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     )
     {
         var error = Validator.ValidateImport(
-            CreateImportRequest(secretType, SecretKeyImportFormats.Jwk)
+            CreateImportRequest(secretType, SecretKeyImportFormats.Jwk),
+            CreatedWhen
         );
 
         Assert.NotNull(error);

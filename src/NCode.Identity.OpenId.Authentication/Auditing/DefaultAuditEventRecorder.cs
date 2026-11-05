@@ -353,4 +353,85 @@ internal class DefaultAuditEventRecorder(IEventPublisher eventPublisher, TimePro
 
         return EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public ValueTask RecordUserInfoAccessedAsync(
+        OpenIdContext openIdContext,
+        OpenIdClient openIdClient,
+        string subjectId,
+        IEnumerable<string> claimNames,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var auditEvent = new UserInfoAccessedAuditEvent
+        {
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
+            TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
+            SubjectId = subjectId,
+            ClientId = openIdClient.ClientId,
+            Actor = AuditActor.Client(openIdClient.ClientId),
+            Request = CreateRequest(openIdContext),
+            Outcome = AuditOutcome.Success,
+            ClaimNames = SortDistinct(claimNames),
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    // The names of a response's claims in ordinal order, each once: one array, sorted in place and compacted, so an
+    // audited response allocates no enumerator or delegate beyond the record it publishes.
+    private static string[] SortDistinct(IEnumerable<string> claimNames)
+    {
+        var names = claimNames.ToArray();
+        if (names.Length < 2)
+            return names;
+
+        Array.Sort(names, StringComparer.Ordinal);
+
+        var count = 1;
+        for (var i = 1; i < names.Length; i++)
+        {
+            if (!string.Equals(names[i], names[count - 1], StringComparison.Ordinal))
+                names[count++] = names[i];
+        }
+
+        if (count == names.Length)
+            return names;
+
+        Array.Resize(ref names, count);
+        return names;
+    }
+
+    /// <inheritdoc />
+    public ValueTask RecordUserInfoAccessDeniedAsync(
+        OpenIdContext openIdContext,
+        string subjectId,
+        string? clientId,
+        string errorCode,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var auditEvent = new UserInfoAccessedAuditEvent
+        {
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.OpenId,
+            TenantId = openIdContext.Tenant.TenantId,
+            TenantEnvironmentType = GetTenantEnvironmentType(openIdContext),
+            SubjectId = subjectId,
+            ClientId = clientId,
+            Actor = clientId is null ? AuditActor.Anonymous : AuditActor.Client(clientId),
+            Request = CreateRequest(openIdContext),
+            Outcome = AuditOutcome.Denied,
+            Error = new AuditError(errorCode),
+            ClaimNames = [],
+        };
+
+        return EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
 }

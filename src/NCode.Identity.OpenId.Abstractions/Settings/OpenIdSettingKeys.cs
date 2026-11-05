@@ -550,6 +550,24 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.MaxConcurrentSessions);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_key_lifetime' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> TenantKeyLifetime =>
+        new(OpenIdSettingNames.TenantKeyLifetime);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_key_activation_delay' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> TenantKeyActivationDelay =>
+        new(OpenIdSettingNames.TenantKeyActivationDelay);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_key_retirement_grace' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> TenantKeyRetirementGrace =>
+        new(OpenIdSettingNames.TenantKeyRetirementGrace);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'environment_type' setting.
     /// </summary>
     public static SettingKey<string> EnvironmentType => new(OpenIdSettingNames.EnvironmentType);
@@ -884,6 +902,11 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.UiLocalesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'default_ui_locale' setting.
+    /// </summary>
+    public static SettingKey<string> DefaultUiLocale => new(OpenIdSettingNames.DefaultUiLocale);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'userinfo_encrypted_response_alg' setting.
     /// </summary>
     public static SettingKey<string> UserInfoEncryptedResponseAlg =>
@@ -1102,4 +1125,28 @@ public static class OpenIdSettingKeys
     /// </summary>
     public static SettingKey<TimeSpan> PasswordFailedAttemptsWindow =>
         new(OpenIdSettingNames.PasswordFailedAttemptsWindow);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'client_authentication_failed_attempts_limit' setting.
+    /// </summary>
+    public static SettingKey<int> ClientAuthenticationFailedAttemptsLimit =>
+        new(OpenIdSettingNames.ClientAuthenticationFailedAttemptsLimit);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'client_authentication_failed_attempts_address_limit' setting.
+    /// </summary>
+    public static SettingKey<int> ClientAuthenticationFailedAttemptsAddressLimit =>
+        new(OpenIdSettingNames.ClientAuthenticationFailedAttemptsAddressLimit);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'client_authentication_failed_attempts_window' setting.
+    /// </summary>
+    public static SettingKey<TimeSpan> ClientAuthenticationFailedAttemptsWindow =>
+        new(OpenIdSettingNames.ClientAuthenticationFailedAttemptsWindow);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'audit_userinfo_access' setting.
+    /// </summary>
+    public static SettingKey<bool> AuditUserInfoAccess =>
+        new(OpenIdSettingNames.AuditUserInfoAccess);
 }

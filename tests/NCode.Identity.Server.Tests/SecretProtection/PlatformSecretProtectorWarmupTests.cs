@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -44,18 +45,33 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
         return mockProvider.Object;
     }
 
-    private static PlatformSecretProtectorWarmup CreateWarmup(
+    private PlatformSecretProtectorWarmup CreateWarmup(
         ISecretProtectorProvider provider,
         SecretProtectionOptions protectionOptions,
         IHostEnvironment hostEnvironment,
         PlatformSecretProtectorHolder holder,
         ILogger<PlatformSecretProtectorWarmup> logger
-    ) => new(provider, Options.Create(protectionOptions), hostEnvironment, holder, logger);
+    ) =>
+        new(
+            // A key ring this code cannot read names no master key, so the loader asks the provider for the
+            // platform's protector alone.
+            new PlatformSecretProtectorLoader(
+                provider,
+                new DataProtectionKeyRingReader(Options.Create(new KeyManagementOptions())),
+                Options.Create(protectionOptions),
+                TimeProvider.System,
+                holder,
+                CreateLooseMock<ILogger<PlatformSecretProtectorLoader>>().Object
+            ),
+            Options.Create(protectionOptions),
+            hostEnvironment,
+            logger
+        );
 
     #region StartAsync Tests
 
     [Fact]
-    public async Task StartAsync_LoadsServerProtector()
+    public async Task StartAsync_LoadsPlatformProtector()
     {
         using var cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = cancellationTokenSource.Token;

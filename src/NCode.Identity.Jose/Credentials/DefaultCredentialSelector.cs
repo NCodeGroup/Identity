@@ -14,9 +14,12 @@ using SignatureAlgorithm = NCode.Identity.Jose.Algorithms.SignatureAlgorithm;
 namespace NCode.Identity.Jose.Credentials;
 
 /// <summary>
-/// Provides the default implementation of the <see cref="ICredentialSelector"/> abstraction.
+/// Provides the default implementation of the <see cref="ICredentialSelector"/> abstraction. A key is selected only
+/// while it is in its active window: a key published ahead of its activation, a retired key and an expired key never
+/// sign or encrypt, whatever algorithm they fit.
 /// </summary>
-internal class DefaultCredentialSelector : ICredentialSelector
+// See ADR-1403.
+internal class DefaultCredentialSelector(TimeProvider timeProvider) : ICredentialSelector
 {
     private static bool IsSecretKeyUseCompatible(
         Secrets.Keys.SecretKey secretKey,
@@ -31,9 +34,11 @@ internal class DefaultCredentialSelector : ICredentialSelector
     private static bool IsSecretKeyCompatible(
         Secrets.Keys.SecretKey secretKey,
         KeyedAlgorithm algorithm,
-        string expectedUse
+        string expectedUse,
+        DateTimeOffset now
     ) =>
-        IsSecretKeyUseCompatible(secretKey, expectedUse)
+        secretKey.Metadata.IsActive(now)
+        && IsSecretKeyUseCompatible(secretKey, expectedUse)
         && IsSecretKeyAlgorithmCompatible(secretKey, algorithm.Code)
         && algorithm.IsKeyCompatible(secretKey);
 
@@ -57,7 +62,9 @@ internal class DefaultCredentialSelector : ICredentialSelector
         return false;
     }
 
-    private static bool TryGetCredential<T>(
+    private TimeProvider TimeProvider { get; } = timeProvider;
+
+    private bool TryGetCredential<T>(
         string expectedUse,
         AlgorithmType algorithmType,
         IAlgorithmCollection candidateAlgorithms,
@@ -67,6 +74,8 @@ internal class DefaultCredentialSelector : ICredentialSelector
     )
         where T : KeyedAlgorithm
     {
+        var now = TimeProvider.GetUtcNow();
+
         foreach (var algorithmCode in preferredAlgorithms)
         {
             if (
@@ -80,7 +89,7 @@ internal class DefaultCredentialSelector : ICredentialSelector
 
             foreach (
                 var secretKey in candidateKeys.Where(secretKey =>
-                    IsSecretKeyCompatible(secretKey, algorithm, expectedUse)
+                    IsSecretKeyCompatible(secretKey, algorithm, expectedUse, now)
                 )
             )
             {

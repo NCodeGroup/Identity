@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Text;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -57,9 +58,7 @@ public sealed class OkpSecretKeyTypeDescriptor(
 
     /// <inheritdoc />
     public string? ValidateGeneration(SecretKeyGenerationParameters parameters) =>
-        OkpCurves.TryGetByName(parameters.Curve, out _)
-            ? null
-            : $"The OKP curve '{parameters.Curve}' is not supported; expected {OkpCurves.SupportedNames}.";
+        TryResolveCurve(parameters, out _, out var error) ? null : error;
 
     /// <inheritdoc />
     public GeneratedSecretKeyMaterial GenerateKeyMaterial(
@@ -67,12 +66,9 @@ public sealed class OkpSecretKeyTypeDescriptor(
         SecretKeyMaterialProtector protect
     )
     {
-        if (!OkpCurves.TryGetByName(parameters.Curve, out var curve))
+        if (!TryResolveCurve(parameters, out var curve, out var error))
         {
-            throw new ArgumentException(
-                $"The OKP curve '{parameters.Curve}' is not supported.",
-                nameof(parameters)
-            );
+            throw new ArgumentException(error, nameof(parameters));
         }
 
         Span<byte> seed = stackalloc byte[curve.PrivateKeySize];
@@ -235,6 +231,43 @@ public sealed class OkpSecretKeyTypeDescriptor(
             Jwk = new JsonWebKey(jwk, JsonWebKeyTypeDescriptors.Okp),
             Pem = okp.ExportSubjectPublicKeyInfoPem(),
         };
+    }
+
+    // Resolves the requested curve by name. A signing and an agreement curve can share a size, as Ed25519 and X25519
+    // do, and the descriptor has no algorithm to tell them apart, so the size does not select a curve; a curve fixes
+    // the size of its keys, so a named curve is refused for any other requested size.
+    private static bool TryResolveCurve(
+        SecretKeyGenerationParameters parameters,
+        [NotNullWhen(true)] out OkpCurve? curve,
+        [NotNullWhen(false)] out string? error
+    )
+    {
+        if (parameters.Curve is null)
+        {
+            curve = null;
+            error =
+                $"An OKP key is generated on a named curve; expected {OkpCurves.SupportedNames}.";
+            return false;
+        }
+
+        if (!OkpCurves.TryGetByName(parameters.Curve, out curve))
+        {
+            error =
+                $"The OKP curve '{parameters.Curve}' is not supported; expected {OkpCurves.SupportedNames}.";
+            return false;
+        }
+
+        if (curve.KeySizeBits != parameters.KeySizeBits)
+        {
+            error =
+                $"The OKP key size '{parameters.KeySizeBits}' bits is invalid for the curve '{curve.Name}', whose "
+                + $"keys are {curve.KeySizeBits} bits.";
+            curve = null;
+            return false;
+        }
+
+        error = null;
+        return true;
     }
 
     private ReadOnlyMemory<byte> ProtectSeed(ReadOnlySpan<byte> seed)

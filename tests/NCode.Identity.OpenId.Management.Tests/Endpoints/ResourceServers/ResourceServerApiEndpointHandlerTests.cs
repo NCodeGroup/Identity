@@ -644,6 +644,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UtcNow,
             ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            ActivatesWhen = DateTimeOffset.UtcNow,
+            RetiresWhen = DateTimeOffset.UtcNow.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Pkcs8,
             Origin = SecretOrigins.Generated,
@@ -771,9 +773,11 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(CreateResourceServer())
             .Verifiable();
         MockSecretValidator
-            .Setup(x => x.ValidateCreate(It.IsAny<CreateSecretRequest>()))
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
             .Returns(
-                (CreateSecretRequest request) =>
+                (CreateSecretRequest request, DateTimeOffset _) =>
                     SecretCreateValidation.Valid(
                         new SecretKeyGenerationParameters
                         {
@@ -833,6 +837,239 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         var created = Assert.IsType<Created<CreatedSecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
         Assert.Equal("revealed", created.Value?.SecretMaterial);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenTheRequestNamesALifecycle_GeneratesTheKeyWithIt()
+    {
+        SetupResourceServerSecretChangedAudit();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
+            .Returns(
+                (CreateSecretRequest request, DateTimeOffset _) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
+            .Verifiable();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("secret-1")
+            .Verifiable();
+        var protector = MockRepository.Create<ISecretProtector>().Object;
+        MockSecretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.ForTenant(TenantId),
+                    It.Is<IReadOnlyCollection<string>>(v => v.Count == 0),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(protector)
+            .Verifiable();
+        var generated = CreatePersistedSecret();
+        GenerateSecretRequest? generateRequest = null;
+        MockSecretGenerator
+            .Setup(x => x.GenerateSecret(protector, It.IsAny<GenerateSecretRequest>()))
+            .Callback(
+                (ISecretProtector _, GenerateSecretRequest request) => generateRequest = request
+            )
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = null })
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.AddSecretAsync(ResourceServerId, generated, It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new CreateSecretRequest
+            {
+                SecretType = "rsa",
+                KeySizeBits = 2048,
+                Use = "sig",
+                Algorithm = "RS256",
+                ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+                RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            },
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<CreatedSecretResource>>(result);
+        Assert.NotNull(generateRequest);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), generateRequest.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(92), generateRequest.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(99), generateRequest.ExpiresWhen);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenTheRequestNamesALifecycle_ImportsTheKeyWithIt()
+    {
+        SetupResourceServerSecretChangedAudit();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateImport(It.IsAny<ImportSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
+            .Returns((ManagementError?)null)
+            .Verifiable();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("secret-2")
+            .Verifiable();
+        var imported = CreatePersistedSecret();
+        var importedSecret = (PersistedSecret?)imported;
+        string? error = null;
+        // Moq cannot capture beside out arguments, so the import request is matched by the instants it carries.
+        MockKeyImporter
+            .Setup(x =>
+                x.TryImportKey(
+                    It.Is<SecretKeyImportRequest>(request =>
+                        request.SecretId == "secret-2"
+                        && request.ActivatesWhen == DateTimeOffset.UnixEpoch.AddDays(2)
+                        && request.RetiresWhen == DateTimeOffset.UnixEpoch.AddDays(92)
+                        && request.ExpiresWhen == DateTimeOffset.UnixEpoch.AddDays(99)
+                    ),
+                    out importedSecret,
+                    out error
+                )
+            )
+            .Returns(true)
+            .Verifiable();
+        MockStore
+            .Setup(x => x.AddSecretAsync(ResourceServerId, imported, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.ImportSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new ImportSecretRequest
+            {
+                SecretType = "rsa",
+                Format = "jwk",
+                KeyMaterial = """{"kty":"RSA","n":"AQAB","e":"AQAB"}""",
+                Use = "sig",
+                Algorithm = "RS256",
+                ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+                RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            },
+            CancellationToken.None
+        );
+
+        Assert.IsType<Created<SecretResource>>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenTheRequestOmitsTheInstants_KeepsTheStoredOnesBoundedByTheExpiry()
+    {
+        // A retired key stays retired when only its expiry is extended; the retirement follows a shortened expiry.
+        SetupResourceServerSecretChangedAudit();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        var stored = CreatePersistedSecret() with
+        {
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            ManagedBy = "rotation",
+        };
+        MockStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(
+                    ResourceServerId,
+                    "secret-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PersistedResourceServerSecret
+                {
+                    TenantId = TenantId,
+                    ResourceServerId = ResourceServerId,
+                    Value = stored,
+                }
+            )
+            .Verifiable();
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateUpdate(It.IsAny<PersistedSecret>(), It.IsAny<UpdateSecretRequest>())
+            )
+            .Returns((ManagementError?)null)
+            .Verifiable();
+        PersistedSecret? updated = null;
+        MockStore
+            .Setup(x =>
+                x.UpdateSecretAsync(
+                    ResourceServerId,
+                    It.IsAny<PersistedSecret>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback((string _, PersistedSecret secret, CancellationToken _) => updated = secret)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.UpdateSecretAsync(
+            CreateHttpContext(),
+            ResourceServerId,
+            "secret-1",
+            new UpdateSecretRequest
+            {
+                Use = "enc",
+                Algorithm = "RSA-OAEP",
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(50),
+            },
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        Assert.NotNull(updated);
+        Assert.Equal("enc", updated.Use);
+        Assert.Equal("RSA-OAEP", updated.Algorithm);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(2), updated.ActivatesWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(50), updated.RetiresWhen);
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddDays(50), updated.ExpiresWhen);
+        Assert.Equal("rotation", updated.ManagedBy);
+        Assert.Equal(stored.EncodedValue, updated.EncodedValue);
     }
 
     [Fact]

@@ -414,6 +414,64 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_ResolvesTheRevocationCheckerWithEveryDescribedSource()
+    {
+        // The checker checks at construction that every source has a descriptor and every descriptor a source
+        // (ADR-1400), so the built-in registrations must correspond.
+        using var host = BuildHost([]);
+
+        Assert.NotNull(host.Services.GetRequiredService<IClientCertificateRevocationChecker>());
+        Assert.Equal(
+            [
+                ClientCertificateRevocationSourceNames.Ocsp,
+                ClientCertificateRevocationSourceNames.Crl,
+            ],
+            host.Services.GetRequiredService<IClientCertificateRevocationSourceCatalog>().SourceNames
+        );
+    }
+
+    [Fact]
+    public async Task AddIdentityServer_WhenTheRevocationSourcesNameAnUnregisteredSource_FailsToStartWithoutConstructingASource()
+    {
+        // The sources read the options being validated, so validation reads only their descriptors (ADR-1400).
+        using var host = BuildHost(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:ClientCertificateRevocation:Sources:0"] = "crl",
+                ["OpenId:ClientCertificateRevocation:Sources:1"] = "deny_list",
+            },
+            services =>
+                services.AddSingleton<IClientCertificateRevocationSource>(_ =>
+                    throw new InvalidOperationException("A revocation source was constructed.")
+                )
+        );
+
+        var exception = await Assert.ThrowsAsync<OptionsValidationException>(() =>
+            host.StartAsync()
+        );
+
+        Assert.Contains("'deny_list'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddIdentityServer_WhenTheRevocationSourcesNameOnlyCrl_ValidatesAndAsksOnlyCrl()
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:ClientCertificateRevocation:Sources:0"] = "crl",
+            }
+        );
+
+        var options = host.Services.GetRequiredService<
+            IOptions<ClientCertificateRevocationOptions>
+        >();
+
+        Assert.Equal(["crl"], options.Value.Sources);
+        Assert.NotNull(host.Services.GetRequiredService<IClientCertificateRevocationChecker>());
+    }
+
+    [Fact]
     public void AddIdentityServer_ResolvesTheClientAuthenticationService()
     {
         // The service checks at construction that every handler has a descriptor and every descriptor has a handler

@@ -38,6 +38,34 @@ internal sealed class DefaultSecretValidator(
     private static SecretCreateValidation Invalid(string detail) =>
         SecretCreateValidation.Invalid(Error(detail));
 
+    /// <summary>
+    /// Checks the instants of a secret's lifecycle a create or import request names, resolved and judged by the one
+    /// rule the generator and the importer apply, so a request they would refuse is answered <c>400</c> with the
+    /// reason.
+    /// </summary>
+    /// <param name="createdWhen">The instant the secret is created.</param>
+    /// <param name="activatesWhen">The instant the request activates the secret, or <c>null</c> for its creation.</param>
+    /// <param name="retiresWhen">The instant the request retires the secret, or <c>null</c> for its expiry.</param>
+    /// <param name="expiresWhen">The instant the secret expires.</param>
+    /// <returns>The error that names the instants out of order, or <c>null</c> when they are in order.</returns>
+    // See ADR-1403.
+    private static ManagementError? ValidateLifecycle(
+        DateTimeOffset createdWhen,
+        DateTimeOffset? activatesWhen,
+        DateTimeOffset? retiresWhen,
+        DateTimeOffset expiresWhen
+    ) =>
+        SecretLifecycle.TryResolve(
+            createdWhen,
+            activatesWhen,
+            retiresWhen,
+            expiresWhen,
+            out _,
+            out var error
+        )
+            ? null
+            : Error(error);
+
     private IAlgorithmCollectionProvider AlgorithmCollectionProvider { get; } =
         algorithmCollectionProvider;
 
@@ -47,9 +75,23 @@ internal sealed class DefaultSecretValidator(
 
     /// <inheritdoc />
     // See ADR-1389 and ADR-1392.
-    public SecretCreateValidation ValidateCreate(CreateSecretRequest request)
+    public SecretCreateValidation ValidateCreate(
+        CreateSecretRequest request,
+        DateTimeOffset createdWhen
+    )
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        var lifecycleError = ValidateLifecycle(
+            createdWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+        if (lifecycleError is not null)
+        {
+            return SecretCreateValidation.Invalid(lifecycleError);
+        }
 
         var secretType = request.SecretType;
         if (!SecretKeyTypeCatalog.TryGet(secretType, out var descriptor))
@@ -71,8 +113,8 @@ internal sealed class DefaultSecretValidator(
 
         // When an algorithm is specified, its registered metadata is authoritative for the use, the key type, the legal
         // key sizes and the curve the key is generated on: two curves can share a key size, so the key is generated on
-        // the first curve the algorithm accepts that has the requested size, never on whichever curve the key type
-        // picks for the size.
+        // the requested curve or on the one curve the algorithm accepts that has the requested size, never on whichever
+        // curve the key type picks for the size (ADR-1398).
         var parameters = new SecretKeyGenerationParameters
         {
             KeySizeBits = request.KeySizeBits,
@@ -105,8 +147,8 @@ internal sealed class DefaultSecretValidator(
             };
         }
 
-        // The descriptor validates the intrinsic generation parameters (key size and, for a key type with curves, the
-        // curve).
+        // The descriptor validates the intrinsic generation parameters: the key size and, for a key type with curves,
+        // the curve and that the size is the curve's.
         var generationError = descriptor.ValidateGeneration(parameters);
         return generationError is null
             ? SecretCreateValidation.Valid(parameters)
@@ -114,8 +156,10 @@ internal sealed class DefaultSecretValidator(
     }
 
     /// <inheritdoc />
-    public ManagementError? ValidateImport(ImportSecretRequest request)
+    public ManagementError? ValidateImport(ImportSecretRequest request, DateTimeOffset createdWhen)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         // Each key type declares the formats it parses, so a key type another package registers brings its own
         // (ADR-1150).
         var secretType = request.SecretType;
@@ -155,13 +199,21 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        return null;
+        return ValidateLifecycle(
+            createdWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
     }
 
     /// <inheritdoc />
     // See ADR-1161 and ADR-1186.
     public ManagementError? ValidateUpdate(PersistedSecret secret, UpdateSecretRequest request)
     {
+        ArgumentNullException.ThrowIfNull(secret);
+        ArgumentNullException.ThrowIfNull(request);
+
         var use = request.Use;
         if (use is not null && use is not (SecretKeyUses.Signature or SecretKeyUses.Encryption))
         {
@@ -169,6 +221,21 @@ internal sealed class DefaultSecretValidator(
                 $"The use '{use}' is not supported; expected "
                     + $"'{SecretKeyUses.Signature}' or '{SecretKeyUses.Encryption}'."
             );
+        }
+
+        // An instant the update omits keeps the stored one, so the update is judged as the handler will write it.
+        if (
+            !SecretLifecycle.TryResolveUpdate(
+                secret,
+                request.ActivatesWhen,
+                request.RetiresWhen,
+                request.ExpiresWhen,
+                out _,
+                out var lifecycleError
+            )
+        )
+        {
+            return Error(lifecycleError);
         }
 
         if (request.Algorithm is not { } algorithm)

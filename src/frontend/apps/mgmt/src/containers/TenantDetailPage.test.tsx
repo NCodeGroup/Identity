@@ -72,10 +72,13 @@ const createdSecret: CreatedSecretResource = {
   use: null,
   algorithm: null,
   createdWhen: '2026-01-01T00:00:00Z',
+  activatesWhen: '2026-01-01T00:00:00Z',
+  retiresWhen: '2027-01-01T00:00:00Z',
   expiresWhen: '2027-01-01T00:00:00Z',
   secretType: 'symmetric',
   keySizeBits: 256,
   isVerifier: false,
+  managedBy: null,
   secretMaterial: 'one-time-material',
 };
 
@@ -309,5 +312,33 @@ describe('TenantDetailPage', () => {
     renderPage('usage');
 
     expect(await screen.findByTestId('data-error')).toBeInTheDocument();
+  });
+
+  it('shows the tenant encryption keys on the encryption-keys surface', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/tenants/acme/encryption-keys')) {
+        return jsonResponse({
+          recoveryConfigured: true,
+          keys: [
+            {
+              keyId: 'k-1',
+              version: 1,
+              state: 'active',
+              createdWhen: '2026-10-01T09:00:00Z',
+              retiredWhen: null,
+              rootKeyProvider: 'local',
+              rootKeyId: 'root-1',
+              recoveryKeyId: 'recovery-1',
+            },
+          ],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage('encryption-keys');
+
+    expect(await screen.findByTestId('encryption-key-row-k-1')).toBeInTheDocument();
+    expect(screen.getByTestId('encryption-keys-rekey')).toBeInTheDocument();
   });
 });

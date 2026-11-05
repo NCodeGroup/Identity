@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers.Text;
+using System.Collections.Frozen;
 using System.Security.Cryptography;
 using System.Text;
 using NCode.Buffers;
@@ -813,6 +814,40 @@ public class SecretProtectionFormatTests
         var actual = SecretProtectionFormat.ReadMasterKeyId(buffer);
 
         Assert.Equal(masterKeyId, actual);
+    }
+
+    #endregion
+
+    #region GetMasterKeyIdPrefix Tests
+
+    private static DefaultSecretProtector CreateProtector(Guid keyId)
+    {
+        var owner = SecretOwner.ForTenant("tenant-one");
+        var masterKey = MasterKey.Create(keyId, owner, 1, CreateMasterKey());
+        var keys = new Dictionary<Guid, MasterKey> { [keyId] = masterKey }.ToFrozenDictionary();
+        return new DefaultSecretProtector(owner, masterKey, keys);
+    }
+
+    [Fact]
+    public void GetMasterKeyIdPrefix_IsTheStartOfEveryValueTheKeyProtects()
+    {
+        var keyId = Guid.NewGuid();
+        var otherKeyId = Guid.NewGuid();
+        var protector = CreateProtector(keyId);
+        var context = new SecretProtectionContext(SecretProtectionPurposes.PersistedSecret, "item");
+
+        var first = protector.ProtectToString([1, 2, 3], context);
+        var second = protector.ProtectToString([4, 5, 6, 7], context);
+        var prefix = SecretProtectionFormat.GetMasterKeyIdPrefix(keyId);
+
+        Assert.StartsWith(prefix, first, StringComparison.Ordinal);
+        Assert.StartsWith(prefix, second, StringComparison.Ordinal);
+        Assert.Equal(SecretProtectionFormat.MasterKeyIdPrefixLength, prefix.Length);
+        Assert.NotEqual(prefix, SecretProtectionFormat.GetMasterKeyIdPrefix(otherKeyId));
+        Assert.Equal(
+            SecretProtectionFormat.MasterKeyIdPrefixLength,
+            SecretProtectionFormat.GetMasterKeyIdPrefix(otherKeyId).Length
+        );
     }
 
     #endregion

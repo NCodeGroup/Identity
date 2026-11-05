@@ -254,6 +254,134 @@ internal class DefaultSecretProtector(
         }
     }
 
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
+    /// Thrown when the purpose or the item identifier of <paramref name="context"/> is <see langword="null"/> or empty,
+    /// which is the case for a <see langword="default"/> context.
+    /// </exception>
+    // See ADR-1407.
+    public void Rewrap<TWriter>(
+        ReadOnlySpan<char> protectedValue,
+        SecretProtectionContext context,
+        ref TWriter destination
+    )
+        where TWriter : IBufferWriter<char>, allows ref struct
+    {
+        ValidateContext(context);
+
+        var envelopeSize = GetEnvelopeSize(protectedValue);
+
+        using var envelopeLease = BufferFactory.Rent(
+            envelopeSize,
+            isSensitive: false,
+            out Span<byte> envelope
+        );
+
+        if (!TryDecode(protectedValue, envelope))
+        {
+            throw CreateUnrecognizedFormatException();
+        }
+
+        var oldKeyId = SecretProtectionFormat.ReadMasterKeyId(envelope);
+        var newKeyId = ActiveKey.KeyId;
+
+        if (oldKeyId != newKeyId)
+        {
+            if (!Keys.TryGetValue(oldKeyId, out var oldKey))
+            {
+                throw new CryptographicException(
+                    $"The master key '{oldKeyId}' is not available for owner '{Owner}'."
+                );
+            }
+
+            RewrapEnvelope(envelope, oldKey, ActiveKey, context);
+        }
+
+        var chars = destination.GetSpan(protectedValue.Length);
+        SecretProtectionFormat.Prefix.CopyTo(chars);
+        if (
+            !Base64Url.TryEncode(
+                envelope,
+                chars[SecretProtectionFormat.Prefix.Length..],
+                out var charsWritten
+            )
+        )
+        {
+            throw new InvalidOperationException(
+                "The destination did not provide the requested space."
+            );
+        }
+
+        destination.Advance(SecretProtectionFormat.Prefix.Length + charsWritten);
+    }
+
+    // Rewrites the header of a decoded envelope so that its data key is wrapped under the new master key. The payload
+    // is not read or changed.
+    private void RewrapEnvelope(
+        Span<byte> envelope,
+        MasterKey oldKey,
+        MasterKey newKey,
+        SecretProtectionContext context
+    )
+    {
+        var associatedDataSize = SecretProtectionFormat.GetAssociatedDataSize(Owner, context);
+        using var associatedDataLease = BufferFactory.Rent(
+            associatedDataSize,
+            isSensitive: false,
+            out Span<byte> associatedData
+        );
+
+        Span<byte> dataKey = stackalloc byte[SecretProtectionFormat.DataKeySizeBytes];
+        using var dataKeyLifetime = dataKey.GetSecureLifetime();
+
+        Span<byte> keyEncryptionKey = stackalloc byte[SecretProtectionFormat.DataKeySizeBytes];
+        using var keyEncryptionKeyLifetime = keyEncryptionKey.GetSecureLifetime();
+
+        try
+        {
+            SecretProtectionFormat.DeriveKeyEncryptionKey(
+                oldKey.Material,
+                oldKey.KeyId,
+                context.Purpose,
+                keyEncryptionKey
+            );
+            SecretProtectionFormat.WriteAssociatedData(
+                SecretProtectionFormat.RoleDataKeyWrap,
+                oldKey.KeyId,
+                Owner,
+                context,
+                associatedData
+            );
+            UnwrapDataKey(envelope, keyEncryptionKey, dataKey, associatedData);
+
+            SecretProtectionFormat.DeriveKeyEncryptionKey(
+                newKey.Material,
+                newKey.KeyId,
+                context.Purpose,
+                keyEncryptionKey
+            );
+            SecretProtectionFormat.WriteAssociatedData(
+                SecretProtectionFormat.RoleDataKeyWrap,
+                newKey.KeyId,
+                Owner,
+                context,
+                associatedData
+            );
+            SecretProtectionFormat.WriteMasterKeyId(
+                newKey.KeyId,
+                envelope[..SecretProtectionFormat.KeyIdSizeBytes]
+            );
+            WrapDataKey(envelope, keyEncryptionKey, dataKey, associatedData);
+        }
+        catch (CryptographicException exception)
+        {
+            throw new CryptographicException(
+                $"The protected value could not be rewrapped for owner '{Owner}' from master key '{oldKey.KeyId}' to master key '{newKey.KeyId}'.",
+                exception
+            );
+        }
+    }
+
     // A default context has a null purpose and a null item identifier, which would otherwise surface later as a
     // null reference.
     private static void ValidateContext(SecretProtectionContext context)

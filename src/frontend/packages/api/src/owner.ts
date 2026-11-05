@@ -33,6 +33,9 @@ export type SecretOwner = Exclude<
   { readonly kind: 'platform' } | { readonly kind: 'team' }
 >;
 
+/** The owners that have master keys to report and rekey: the platform or a tenant. */
+export type EncryptionKeyOwner = Extract<ManagementOwner, { readonly kind: 'platform' | 'tenant' }>;
+
 /** The scope an owner is administered in: the platform, a team and a tenant are each their own scope. */
 export function ownerScope(owner: ManagementOwner): ManagementScope {
   switch (owner.kind) {

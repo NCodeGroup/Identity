@@ -8,6 +8,8 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.Secrets.Persistence.Auditing;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 
@@ -455,6 +457,52 @@ internal class DefaultManagementAuditRecorder(
         };
 
         await EventPublisher.PublishAsync(stamped, cancellationToken);
+    }
+
+    public async ValueTask RecordMasterKeyRotatedAsync(
+        HttpContext httpContext,
+        MasterKeyRotation rotation,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var owner = rotation.Owner;
+        var tenantId = string.Equals(
+            owner.OwnerType,
+            SecretOwnerTypes.Tenant,
+            StringComparison.OrdinalIgnoreCase
+        )
+            ? owner.OwnerId
+            : null;
+
+        var auditEvent = new MasterKeyAuditEvent
+        {
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
+            TenantId = tenantId,
+            TenantEnvironmentType = tenantId is null
+                ? null
+                : await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                    httpContext,
+                    tenantId,
+                    cancellationToken
+                ),
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
+            Outcome = AuditOutcome.Success,
+            Change = MasterKeyChanges.Rotated,
+            Reason = MasterKeyChangeReasons.Requested,
+            OwnerType = owner.OwnerType,
+            OwnerId = owner.OwnerId,
+            KeyId = rotation.ActiveKey.KeyId,
+            Version = rotation.ActiveKey.Version,
+            RootKeyProvider = rotation.ActiveKey.RootKeyProvider,
+            RetiredKeyId = rotation.RetiredKey?.KeyId,
+            RetiredVersion = rotation.RetiredKey?.Version,
+        };
+
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
     }
 
     private static AuditRequest CreateRequest(HttpContext httpContext) =>

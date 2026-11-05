@@ -18,9 +18,9 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// <summary>
 /// Handles <see cref="ReconcileTeamSettingsCommand"/> by seeding, through a <see cref="TenantChangedCommand"/> with
 /// <see cref="TenantChangedCommand.SettingsChanged"/>, every tenant whose effective settings use a configured algorithm
-/// that the tenant holds no satisfying key for. The announcement evicts the tenant, seeds it, and tells the other
-/// replicas, so the key the team's settings permit is provisioned without waiting for the tenant to be materialized
-/// again. A tenant that already holds every key its settings use is not evicted.
+/// that the tenant holds no satisfying key for that serves, or will serve, it. The announcement evicts the tenant,
+/// seeds it, and tells the other replicas, so the key the team's settings permit is provisioned without waiting for
+/// the tenant to be materialized again. A tenant that already holds every key its settings use is not evicted.
 /// A tenant that holds no key is left to its first materialization, which seeds it in full.
 /// When the command carries the settings it was last reconciled against, a tenant's keys are read only if the tenant
 /// uses, under the current settings, a configured algorithm that it did not use under those: a tenant that used every
@@ -37,9 +37,11 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 internal sealed class TenantKeyReconciliationHandler(
     IOptions<OpenIdOptions> optionsAccessor,
     ITenantKeyPolicy tenantKeyPolicy,
+    ITenantKeyRolloverPlanner planner,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IStoreManagerFactory storeManagerFactory,
     IServiceScopeFactory serviceScopeFactory,
+    TimeProvider timeProvider,
     ILogger<TenantKeyReconciliationHandler> logger
 ) : ICommandHandler<ReconcileTeamSettingsCommand>
 {
@@ -50,6 +52,8 @@ internal sealed class TenantKeyReconciliationHandler(
         optionsAccessor.Value.Tenant.KeyProvisioning;
 
     private ITenantKeyPolicy TenantKeyPolicy { get; } = tenantKeyPolicy;
+    private ITenantKeyRolloverPlanner Planner { get; } = planner;
+    private TimeProvider TimeProvider { get; } = timeProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -172,8 +176,9 @@ internal sealed class TenantKeyReconciliationHandler(
         if (held.Count == 0)
             return false;
 
-        return used.Any(specification =>
-            !held.Any(secret => TenantKeyPolicy.IsSatisfiedBy(specification, secret))
-        );
+        // A key that has retired or expired serves the algorithm no more, so a tenant whose only key for it has
+        // retired lacks the key as much as one that never held it (ADR-1404).
+        var now = TimeProvider.GetUtcNow();
+        return used.Any(specification => !Planner.HasServingKey(specification, held, now));
     }
 }

@@ -91,10 +91,13 @@ const createdSecret: CreatedSecretResource = {
   use: null,
   algorithm: null,
   createdWhen: '2026-01-01T00:00:00Z',
+  activatesWhen: '2026-01-01T00:00:00Z',
+  retiresWhen: '2027-01-01T00:00:00Z',
   expiresWhen: '2027-01-01T00:00:00Z',
   secretType: 'symmetric',
   keySizeBits: 256,
   isVerifier: true,
+  managedBy: null,
   secretMaterial: 'one-time-material',
 };
 
@@ -282,10 +285,13 @@ describe('ClientDetailPage', () => {
               use: null,
               algorithm: null,
               createdWhen: '2026-01-01T00:00:00Z',
+              activatesWhen: '2026-01-01T00:00:00Z',
+              retiresWhen: '2099-01-01T00:00:00Z',
               expiresWhen: '2099-01-01T00:00:00Z',
               secretType: 'rsa',
               keySizeBits: 2048,
               isVerifier: false,
+              managedBy: null,
             } satisfies SecretResource,
           ],
         });

@@ -566,6 +566,29 @@ public static class OpenIdSettingNames
     public const string MaxConcurrentSessions = "max_concurrent_sessions";
 
     /// <summary>
+    /// Contains the name of the tenant <c>tenant_key_lifetime</c> setting: how long a key the server provisions for
+    /// the tenant signs or encrypts before it retires and its successor takes over. Defaults to 90 days. Not
+    /// advertised in discovery.
+    /// </summary>
+    public const string TenantKeyLifetime = "tenant_key_lifetime";
+
+    /// <summary>
+    /// Contains the name of the tenant <c>tenant_key_activation_delay</c> setting: how long a key the server
+    /// provisions for the tenant is published in the tenant's JSON Web Key Set before it starts to sign or encrypt,
+    /// so every verifier that caches the set has fetched the key before the first token it signs. Defaults to 2 days.
+    /// Not advertised in discovery.
+    /// </summary>
+    public const string TenantKeyActivationDelay = "tenant_key_activation_delay";
+
+    /// <summary>
+    /// Contains the name of the tenant <c>tenant_key_retirement_grace</c> setting: how long a key the server
+    /// provisions for the tenant stays published, and verifies or decrypts, after it stops signing or encrypting.
+    /// The server raises it to the longest lifetime of the tokens the tenant protects with its keys plus the tenant's
+    /// clock skew, so no token outlives the key that verifies it. Defaults to 7 days. Not advertised in discovery.
+    /// </summary>
+    public const string TenantKeyRetirementGrace = "tenant_key_retirement_grace";
+
+    /// <summary>
     /// Contains the name of the tenant <c>environment_type</c> setting: the name of the tenant's registered
     /// environment type, which selects that type's security profiles. Defaults to <c>production</c>. Not advertised in
     /// discovery.
@@ -880,9 +903,16 @@ public static class OpenIdSettingNames
         .TokenEndpointAuthSigningAlgValuesSupported;
 
     /// <summary>
-    /// Contains the name of <c>ui_locales_supported</c> setting.
+    /// Contains the name of the <c>ui_locales_supported</c> setting: the registered UI locales a request's
+    /// <c>ui_locales</c> may select; unset lets it select any registered locale.
     /// </summary>
     public const string UiLocalesSupported = "ui_locales_supported";
+
+    /// <summary>
+    /// Contains the name of the <c>default_ui_locale</c> setting: the registered UI locale the end-user interface
+    /// renders in when no preference selects another; empty renders in the first registered locale.
+    /// </summary>
+    public const string DefaultUiLocale = "default_ui_locale";
 
     /// <summary>
     /// Contains the name of the per-client <c>userinfo_encrypted_response_alg</c> setting (OpenID Connect Dynamic
@@ -1134,4 +1164,33 @@ public static class OpenIdSettingNames
     /// </summary>
     // See ADR-1010 (unset means unlimited).
     public const string MaxTenants = "max_tenants";
+
+    /// <summary>
+    /// Contains the name of the <c>client_authentication_failed_attempts_limit</c> setting: the failed client
+    /// authentications that one remote address may make for one <c>client_id</c> within a window before every client
+    /// authentication it presents for that <c>client_id</c> is refused until the window ends.
+    /// </summary>
+    public const string ClientAuthenticationFailedAttemptsLimit =
+        "client_authentication_failed_attempts_limit";
+
+    /// <summary>
+    /// Contains the name of the <c>client_authentication_failed_attempts_address_limit</c> setting: the failed client
+    /// authentications that one remote address may make, for any <c>client_id</c>, within a window before every client
+    /// authentication it presents is refused until the window ends.
+    /// </summary>
+    public const string ClientAuthenticationFailedAttemptsAddressLimit =
+        "client_authentication_failed_attempts_address_limit";
+
+    /// <summary>
+    /// Contains the name of the <c>client_authentication_failed_attempts_window</c> setting: the length of the fixed
+    /// windows in which failed client authentications are counted.
+    /// </summary>
+    public const string ClientAuthenticationFailedAttemptsWindow =
+        "client_authentication_failed_attempts_window";
+
+    /// <summary>
+    /// Contains the name of the <c>audit_userinfo_access</c> setting: whether each response of the UserInfo endpoint
+    /// is audited as a <c>userinfo.accessed</c> event that names the subject, the client and the claims disclosed.
+    /// </summary>
+    public const string AuditUserInfoAccess = "audit_userinfo_access";
 }

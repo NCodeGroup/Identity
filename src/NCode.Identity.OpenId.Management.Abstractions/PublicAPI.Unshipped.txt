@@ -561,8 +561,8 @@ NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValida
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IResourceServerValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedResourceServer! resourceServer, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator
-NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
-NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImport(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateCreate(NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
+NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateImport(NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest! request, System.DateTimeOffset createdWhen) -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ImportSecretRequest() -> void
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.SecretType.get -> string!
@@ -798,3 +798,61 @@ NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.RetiresWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ActivatesWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.RetiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ManagedBy.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.ManagedBy.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ActivatesWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ActivatesWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.RetiresWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.RetiresWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ManagedBy.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ManagedBy.init -> void
+const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyStates.Active = "active" -> string!
+const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyStates.Retired = "retired" -> string!
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordMasterKeyRotatedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation! rotation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.CreatedWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.EncryptionKeyResource() -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.KeyId.get -> System.Guid
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.KeyId.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RecoveryKeyId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RecoveryKeyId.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RetiredWhen.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RetiredWhen.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyId.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyProvider.get -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyProvider.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.State.get -> string!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.State.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.Version.get -> int
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.Version.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyRotationResource
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyRotationResource.ActiveKey.get -> NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyRotationResource.ActiveKey.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyRotationResource.EncryptionKeyRotationResource() -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyRotationResource.RetiredKey.get -> NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyRotationResource.RetiredKey.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.EncryptionKeysResource() -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.Keys.get -> System.Collections.Generic.List<NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource!>!
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.Keys.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RecoveryConfigured.get -> bool
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RecoveryConfigured.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyStates

@@ -21,14 +21,18 @@ public sealed class CreateSecretRequest
     public required string SecretType { get; init; }
 
     /// <summary>
-    /// Gets the size, in bits, of the key material to generate.
+    /// Gets the size, in bits, of the key material to generate. With a <see cref="Curve"/>, it is the size of the keys
+    /// on that curve.
     /// </summary>
     public required int KeySizeBits { get; init; }
 
     /// <summary>
     /// Gets the curve to generate the key on (the <c>JWK</c> <c>crv</c> name, for example <c>P-256</c> or
-    /// <c>Ed25519</c>) for a secret type with curves, or <c>null</c> to leave it to the type: <c>ecc</c> then selects a
-    /// curve by <see cref="KeySizeBits"/>, while <c>okp</c> requires one. A secret type without curves rejects a curve.
+    /// <c>Ed25519</c>) for a secret type with curves, or <c>null</c> to leave it to the type: <c>ecc</c> then selects
+    /// the one curve of its catalog whose keys are <see cref="KeySizeBits"/> and refuses a size two catalog curves
+    /// share, while <c>okp</c> requires one. With an <see cref="Algorithm"/> whose curves include two of the requested
+    /// size, a curve is required. A curve whose keys are not <see cref="KeySizeBits"/> in size is refused, and a secret
+    /// type without curves rejects a curve.
     /// </summary>
     public string? Curve { get; init; }
 
@@ -46,4 +50,17 @@ public sealed class CreateSecretRequest
     /// Gets the <see cref="DateTimeOffset"/> when the secret expires and is no longer valid.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when the secret starts to sign or encrypt, or <c>null</c> to activate it
+    /// when it is created; a key published ahead of its use names a later instant. Never before the creation.
+    /// </summary>
+    public DateTimeOffset? ActivatesWhen { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DateTimeOffset"/> when the secret stops signing or encrypting while it still verifies or
+    /// decrypts, or <c>null</c> to retire it when it expires. Never before <see cref="ActivatesWhen"/>, never after
+    /// <see cref="ExpiresWhen"/>.
+    /// </summary>
+    public DateTimeOffset? RetiresWhen { get; init; }
 }

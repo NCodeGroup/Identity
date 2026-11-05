@@ -348,6 +348,79 @@ public class OkpIntegrationTests
         );
     }
 
+    #region ValidateGeneration
+
+    [Theory]
+    [InlineData(OkpCurves.Ed25519Name, 256)]
+    [InlineData(OkpCurves.Ed448Name, 456)]
+    [InlineData(OkpCurves.X25519Name, 256)]
+    [InlineData(OkpCurves.X448Name, 448)]
+    public void ValidateGeneration_WhenTheSizeIsTheCurves_ReturnsNull(string curve, int keySizeBits)
+    {
+        Assert.Null(
+            CreateDescriptor()
+                .ValidateGeneration(
+                    new SecretKeyGenerationParameters { KeySizeBits = keySizeBits, Curve = curve }
+                )
+        );
+    }
+
+    // A curve fixes the size of its keys, so a named curve is refused for any other requested size.
+    [Theory]
+    [InlineData(OkpCurves.Ed25519Name, 0, 256)]
+    [InlineData(OkpCurves.Ed25519Name, 456, 256)]
+    [InlineData(OkpCurves.Ed448Name, 448, 456)]
+    [InlineData(OkpCurves.X448Name, 456, 448)]
+    [InlineData(OkpCurves.X25519Name, 384, 256)]
+    public void ValidateGeneration_WhenTheSizeIsNotTheCurves_ReturnsError(
+        string curve,
+        int keySizeBits,
+        int curveSizeBits
+    )
+    {
+        var parameters = new SecretKeyGenerationParameters
+        {
+            KeySizeBits = keySizeBits,
+            Curve = curve,
+        };
+        var expected =
+            $"The OKP key size '{keySizeBits}' bits is invalid for the curve '{curve}', whose keys are "
+            + $"{curveSizeBits} bits.";
+
+        Assert.Equal(expected, CreateDescriptor().ValidateGeneration(parameters));
+        var exception = Assert.Throws<ArgumentException>(() =>
+            CreateDescriptor().GenerateKeyMaterial(parameters, Protect)
+        );
+        Assert.StartsWith(expected, exception.Message, StringComparison.Ordinal);
+    }
+
+    // Ed25519 and X25519 keys are both 256 bits, so a size never selects an OKP curve.
+    [Theory]
+    [InlineData(256)]
+    [InlineData(448)]
+    public void ValidateGeneration_WhenNoCurveIsNamed_ReturnsError(int keySizeBits)
+    {
+        Assert.Equal(
+            "An OKP key is generated on a named curve; expected 'Ed25519', 'Ed448', 'X25519', 'X448'.",
+            CreateDescriptor()
+                .ValidateGeneration(new SecretKeyGenerationParameters { KeySizeBits = keySizeBits })
+        );
+    }
+
+    [Fact]
+    public void ValidateGeneration_WhenTheCurveIsNotSupported_ReturnsError()
+    {
+        Assert.Equal(
+            "The OKP curve 'P-256' is not supported; expected 'Ed25519', 'Ed448', 'X25519', 'X448'.",
+            CreateDescriptor()
+                .ValidateGeneration(
+                    new SecretKeyGenerationParameters { KeySizeBits = 256, Curve = "P-256" }
+                )
+        );
+    }
+
+    #endregion
+
     [Fact]
     public void JwkKeyType_IsOkp()
     {

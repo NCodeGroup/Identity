@@ -23,23 +23,27 @@ public interface ISecretValidator
     /// <summary>
     /// Validates that the specified <see cref="CreateSecretRequest"/> describes a coherent secret, and resolves the
     /// parameters the key is generated with. A request that names an algorithm bound to curves, such as <c>ES256K</c>,
-    /// and no curve resolves to the first curve the algorithm accepts that has the requested size, so the key is never
-    /// generated on the curve the key type picks for the size; the caller generates the key with
-    /// <see cref="SecretCreateValidation.GenerationParameters"/>.
+    /// and no curve resolves to the one curve the algorithm accepts that has the requested size, so the key is never
+    /// generated on the curve the key type picks for the size, and a size that two of the algorithm's curves have is
+    /// refused until the request names its curve. A named curve whose keys are not the requested size is refused. The
+    /// caller generates the key with <see cref="SecretCreateValidation.GenerationParameters"/>.
     /// </summary>
     /// <param name="request">The <see cref="CreateSecretRequest"/> to validate.</param>
+    /// <param name="createdWhen">The instant the secret is created at, which its activation cannot precede.</param>
     /// <returns>The <see cref="SecretCreateValidation"/>: the generation parameters, or the first failed
     /// check.</returns>
-    SecretCreateValidation ValidateCreate(CreateSecretRequest request);
+    SecretCreateValidation ValidateCreate(CreateSecretRequest request, DateTimeOffset createdWhen);
 
     /// <summary>
     /// Validates that the specified <see cref="ImportSecretRequest"/> describes a coherent public-key import. The
     /// supplied key material itself is parsed and validated by the importer; this check asserts only the
-    /// parameter-level coherence (recognized <c>format</c>, non-empty material, and supported <c>use</c>).
+    /// parameter-level coherence (recognized <c>format</c>, non-empty material, supported <c>use</c>, and the instants of
+    /// the key's lifecycle in order).
     /// </summary>
     /// <param name="request">The <see cref="ImportSecretRequest"/> to validate.</param>
+    /// <param name="createdWhen">The instant the secret is created at, which its activation cannot precede.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
-    ManagementError? ValidateImport(ImportSecretRequest request);
+    ManagementError? ValidateImport(ImportSecretRequest request, DateTimeOffset createdWhen);
 
     /// <summary>
     /// Validates the metadata an <see cref="UpdateSecretRequest"/> declares for an existing key: the <c>use</c> is

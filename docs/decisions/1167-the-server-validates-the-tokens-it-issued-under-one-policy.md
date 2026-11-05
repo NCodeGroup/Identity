@@ -7,7 +7,9 @@
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md); realizes the
   introspection clause of [ADR-1112](1112-authorization-code-replay-revokes-session.md); amended by
   [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
-  event ID `2019` is free)
+  event ID `2019` is free; and by
+  [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md):
+  the one policy admits only the keys in their validity window)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 

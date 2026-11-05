@@ -52,7 +52,8 @@ public sealed class MasterKeyStoreTests : IDisposable
         string ownerType,
         string ownerId,
         int version,
-        bool retired = false
+        bool retired = false,
+        DateTimeOffset? createdWhen = null
     ) =>
         new()
         {
@@ -60,7 +61,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             OwnerType = ownerType,
             OwnerId = ownerId,
             Version = version,
-            CreatedWhen = CreatedWhen,
+            CreatedWhen = createdWhen ?? CreatedWhen,
             RetiredWhen = retired ? CreatedWhen.AddDays(30) : null,
             RootKeyProvider = KeyWrapperNames.Local,
             RootKeyId = $"root-key-{version}",
@@ -298,8 +299,177 @@ public sealed class MasterKeyStoreTests : IDisposable
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         var store = CreateStore(context);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<StoreConcurrencyException>(() =>
             store.UpdateAsync(masterKey, CancellationToken.None).AsTask()
+        );
+    }
+
+    #endregion
+
+    #region GetPageAsync Tests
+
+    private async Task<PagedResult<PersistedMasterKey>> GetPageAsync(PageRequest page)
+    {
+        using var scope = _provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+        return await CreateStore(context).GetPageAsync(page, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task GetPage_ReturnsEveryOwnersRowsAcrossPages()
+    {
+        var keys = new[]
+        {
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1),
+            CreateMasterKey(SecretOwnerTypes.Server, ServerId, 1),
+        };
+        await AddAsync(keys);
+
+        var seen = new List<Guid>();
+        string? cursor = null;
+        var pages = 0;
+        do
+        {
+            var result = await GetPageAsync(new PageRequest { Limit = 3, Cursor = cursor });
+            seen.AddRange(result.Items.Select(item => item.KeyId));
+            cursor = result.NextCursor;
+            pages++;
+        } while (cursor is not null);
+
+        Assert.Equal(2, pages);
+        Assert.Equal(keys.Select(key => key.KeyId).Order(), seen.Order());
+    }
+
+    [Fact]
+    public async Task GetPage_MalformedCursor_StartsAtTheBeginning()
+    {
+        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+
+        var result = await GetPageAsync(new PageRequest { Limit = 10, Cursor = "!!" });
+
+        Assert.Single(result.Items);
+        Assert.Null(result.NextCursor);
+    }
+
+    #endregion
+
+    #region GetRetiredOwnerPageAsync Tests
+
+    private async Task<List<SecretOwner>> ReadRetiredOwnersAsync(int limit)
+    {
+        var owners = new List<SecretOwner>();
+        string? cursor = null;
+        do
+        {
+            using var scope = _provider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+            var page = await CreateStore(context)
+                .GetRetiredOwnerPageAsync(
+                    new PageRequest { Limit = limit, Cursor = cursor },
+                    CancellationToken.None
+                );
+            owners.AddRange(page.Items);
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+
+        return owners;
+    }
+
+    [Fact]
+    public async Task GetRetiredOwnerPage_RetiredRowsOfSeveralOwners_ReturnsEachOwnerAcrossPages()
+    {
+        await AddAsync(
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 3),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantTwoId, 1, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Server, "server-one", 1, retired: true)
+        );
+
+        var owners = await ReadRetiredOwnersAsync(limit: 1);
+
+        // An owner with two retired keys appears on two pages, so the caller handles each owner once.
+        Assert.Equal(
+            [
+                SecretOwner.ForTenant(TenantOneId),
+                SecretOwner.ForTenant(TenantTwoId),
+                SecretOwner.ForServer("server-one"),
+            ],
+            owners.Distinct()
+        );
+        Assert.Equal(4, owners.Count);
+    }
+
+    [Fact]
+    public async Task GetRetiredOwnerPage_OnlyActiveRows_ReturnsNoOwners()
+    {
+        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1));
+
+        Assert.Empty(await ReadRetiredOwnersAsync(limit: 10));
+    }
+
+    [Fact]
+    public async Task GetRetiredOwnerPage_TwoRetiredRowsOfOneOwnerOnOnePage_ReturnsTheOwnerOnce()
+    {
+        await AddAsync(
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true),
+            CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2, retired: true)
+        );
+
+        var owner = Assert.Single(await ReadRetiredOwnersAsync(limit: 10));
+
+        Assert.Equal(SecretOwner.ForTenant(TenantOneId), owner);
+    }
+
+    #endregion
+
+    #region RemoveAsync Tests
+
+    [Fact]
+    public async Task Remove_DeletesTheRow()
+    {
+        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true));
+        var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+
+        using (var scope = _provider.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+            Assert.True(await CreateStore(context).RemoveAsync(masterKey, CancellationToken.None));
+            await context.SaveChangesAsync();
+        }
+
+        Assert.Empty(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+    }
+
+    [Fact]
+    public async Task Remove_WhenAbsent_ReturnsFalse()
+    {
+        using var scope = _provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+
+        Assert.False(
+            await CreateStore(context)
+                .RemoveAsync(
+                    CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1),
+                    CancellationToken.None
+                )
+        );
+    }
+
+    [Fact]
+    public async Task Remove_WhenTheConcurrencyTokenDiffers_Throws()
+    {
+        await AddAsync(CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1, retired: true));
+        var masterKey = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        masterKey.ConcurrencyToken = "stale";
+
+        using var scope = _provider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
+
+        await Assert.ThrowsAsync<StoreConcurrencyException>(() =>
+            CreateStore(context).RemoveAsync(masterKey, CancellationToken.None).AsTask()
         );
     }
 

@@ -5,6 +5,7 @@ using System.Text.Json;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 
@@ -361,6 +362,20 @@ public interface IManagementAuditRecorder
     ValueTask RecordResourceChangeAsync(
         HttpContext httpContext,
         ResourceChangeAuditEvent auditEvent,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Records that an administrator rekeyed the master key of a tenant or of the server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="rotation">The rotation that the rekey performed.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
+    // See ADR-1407.
+    ValueTask RecordMasterKeyRotatedAsync(
+        HttpContext httpContext,
+        MasterKeyRotation rotation,
         CancellationToken cancellationToken
     );
 }

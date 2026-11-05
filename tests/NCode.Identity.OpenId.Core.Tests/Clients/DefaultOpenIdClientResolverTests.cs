@@ -122,6 +122,8 @@ public class DefaultOpenIdClientResolverTests : BaseTests
             Algorithm = null,
             CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = expiresWhen,
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = expiresWhen,
             SecretType = SecretTypes.Symmetric,
             SecretEncoding = secretEncoding,
             Origin = SecretOrigins.Generated,

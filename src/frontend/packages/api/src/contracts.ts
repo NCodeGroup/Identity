@@ -252,9 +252,20 @@ export type SecretResource = {
   readonly use: string | null;
   readonly algorithm: string | null;
   readonly createdWhen: string;
+  // See ADR-1403.
+  /** When the secret starts to sign or encrypt; a key published ahead of its use carries a future instant. */
+  readonly activatesWhen: string;
+  /** When the secret stops signing or encrypting while it still verifies or decrypts until `expiresWhen`. */
+  readonly retiresWhen: string;
   readonly expiresWhen: string;
   readonly secretType: string;
   readonly keySizeBits: number;
+  // See ADR-1404.
+  /**
+   * The component that manages the secret's lifecycle on its own, such as `tenant_key_rollover` for a key the server
+   * provisioned, or `null` when the secret keeps the lifecycle its creator gave it.
+   */
+  readonly managedBy: string | null;
   // See ADR-1391.
   /**
    * Whether the server holds only a one-way verifier of the shared secret: it authenticates a method that compares the
@@ -478,4 +489,38 @@ export type CreatedInitialAccessTokenResource = {
   readonly resourceServerId?: string | null;
   readonly createdWhen: string;
   readonly expiresWhen: string | null;
+};
+
+// See ADR-1407.
+/**
+ * Mirror of `EncryptionKeyResource` — one master key of a tenant or of the server. It carries no key material, wrapped
+ * key or key check.
+ */
+export type EncryptionKeyResource = {
+  readonly keyId: string;
+  /** The version of the key within its owner, starting at one. */
+  readonly version: number;
+  /** `active` for the key that protects new values, `retired` for an older one; an unknown state counts as retired. */
+  readonly state: string;
+  readonly createdWhen: string;
+  readonly retiredWhen: string | null;
+  /** The name of the root key provider that wraps the key. */
+  readonly rootKeyProvider: string;
+  readonly rootKeyId: string;
+  /** The identifier of the recovery key that also wraps the key, or `null` when no recovery copy exists. */
+  readonly recoveryKeyId: string | null;
+};
+
+/** Mirror of `EncryptionKeysResource` — the master keys of an owner, newest version first. */
+export type EncryptionKeysResource = {
+  readonly keys: readonly EncryptionKeyResource[];
+  /** Whether new keys are also wrapped under a recovery key. */
+  readonly recoveryConfigured: boolean;
+};
+
+/** Mirror of `EncryptionKeyRotationResource` — the result of a rekey. */
+export type EncryptionKeyRotationResource = {
+  readonly activeKey: EncryptionKeyResource;
+  /** The key the rekey retired, or `null` when the owner had no active key. */
+  readonly retiredKey: EncryptionKeyResource | null;
 };

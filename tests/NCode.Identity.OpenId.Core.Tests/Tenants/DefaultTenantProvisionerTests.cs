@@ -1,7 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -61,9 +63,14 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
                 }
             ),
             MockMediator.Object,
-            MockTeamProvisioner.Object
+            MockTeamProvisioner.Object,
+            TimeProvider,
+            NullLogger<DefaultTenantProvisioner>.Instance
         );
     }
+
+    private FakeTimeProvider TimeProvider { get; } =
+        new(new DateTimeOffset(2026, 11, 4, 12, 0, 0, TimeSpan.Zero));
 
     public void Dispose() => Mocks.Verify();
 
@@ -539,6 +546,121 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
             command => Assert.Same(first, command.Context.Tenant),
             command => Assert.Same(second, command.Context.Tenant)
         );
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenAHandlerQueuesAStepForAfterTheCommit_RunsItOnceTheSeedHasCommitted()
+    {
+        var root = CreateTenant(RootTenantId);
+        var seeded = new List<SeedTenantCommand>();
+        var committed = false;
+        var ran = new List<bool>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root);
+        SetupScope();
+        MockMediator
+            .Setup(x => x.SendAsync(It.IsAny<SeedTenantCommand>(), It.IsAny<CancellationToken>()))
+            .Callback(
+                (SeedTenantCommand command, CancellationToken _) =>
+                {
+                    seeded.Add(command);
+                    command.Context.RunAfterCommit(_ =>
+                    {
+                        ran.Add(committed);
+                        return ValueTask.CompletedTask;
+                    });
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                committed = true;
+                return ValueTask.CompletedTask;
+            })
+            .Verifiable();
+
+        await Provisioner.SeedAsync(RootTenantId, CancellationToken.None);
+
+        Assert.Single(seeded);
+        Assert.Equal([true], ran);
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenAStepAfterTheCommitFails_RunsTheRemainingStepsAndReturnsTheSeededTenant()
+    {
+        // The seed has committed, so a failed effect is logged, the later effects still run, and the tenant
+        // materializes with the keys the seed wrote.
+        var root = CreateTenant(RootTenantId);
+        var ran = new List<string>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root);
+        SetupScope();
+        MockMediator
+            .Setup(x => x.SendAsync(It.IsAny<SeedTenantCommand>(), It.IsAny<CancellationToken>()))
+            .Callback(
+                (SeedTenantCommand command, CancellationToken _) =>
+                {
+                    command.Context.RunAfterCommit(_ =>
+                        ValueTask.FromException(new InvalidOperationException("publish failed"))
+                    );
+                    command.Context.RunAfterCommit(_ =>
+                    {
+                        ran.Add("second");
+                        return ValueTask.CompletedTask;
+                    });
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var tenant = await Provisioner.SeedAsync(RootTenantId, CancellationToken.None);
+
+        Assert.Same(root, tenant);
+        Assert.Equal(["second"], ran);
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenCommitLosesToAConcurrentSeed_RunsOnlyTheStepsOfTheSeedThatCommitted()
+    {
+        var first = CreateTenant(RootTenantId);
+        var second = CreateTenant(RootTenantId);
+        var ran = new List<PersistedTenant>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, first, second);
+        SetupScope();
+        MockMediator
+            .Setup(x => x.SendAsync(It.IsAny<SeedTenantCommand>(), It.IsAny<CancellationToken>()))
+            .Callback(
+                (SeedTenantCommand command, CancellationToken _) =>
+                    command.Context.RunAfterCommit(_ =>
+                    {
+                        ran.Add(command.Context.Tenant);
+                        return ValueTask.CompletedTask;
+                    })
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var commits = 0;
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+                ++commits == 1
+                    ? ValueTask.FromException(new InvalidOperationException("concurrency conflict"))
+                    : ValueTask.CompletedTask
+            )
+            .Verifiable();
+
+        await Provisioner.SeedAsync(RootTenantId, CancellationToken.None);
+
+        var tenant = Assert.Single(ran);
+        Assert.Same(second, tenant);
     }
 
     [Fact]

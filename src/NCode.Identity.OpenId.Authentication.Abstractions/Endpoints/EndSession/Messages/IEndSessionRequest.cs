@@ -34,4 +34,10 @@ public interface IEndSessionRequest : IOpenIdRequest
     /// Gets or sets the opaque <c>state</c> value echoed back on the post-logout redirect.
     /// </summary>
     string? State { get; set; }
+
+    /// <summary>
+    /// Gets or sets the <c>ui_locales</c> parameter: the end-user's preferred languages for the user interface, as
+    /// BCP 47 language tags ordered by preference.
+    /// </summary>
+    List<string>? UiLocales { get; set; }
 }

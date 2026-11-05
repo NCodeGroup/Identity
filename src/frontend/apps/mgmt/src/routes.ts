@@ -8,7 +8,7 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
  * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `settings` and `usage`), the team id
  *   percent-encoded as one segment;
  * - `/tenants/{tenantId}/{surface}` — a tenant scope's surfaces (`clients`, `resource-servers`, `grants`, `secrets`,
- *   `settings` and `usage`), the tenant id percent-encoded as one segment (ADR-1255).
+ *   `encryption-keys`, `settings` and `usage`), the tenant id percent-encoded as one segment (ADR-1255).
  *
  * This module is UI-free so the route grammar is unit-tested; `navigation.ts` binds it to the browser history.
  */
@@ -25,6 +25,7 @@ export const TENANT_SURFACES = [
   'resource-servers',
   'grants',
   'secrets',
+  'encryption-keys',
   'settings',
   'usage',
 ] as const;
@@ -36,7 +37,10 @@ export type TenantSurface = (typeof TENANT_SURFACES)[number];
 /**
  * The tenant surfaces that show the tenant's own secrets, settings and usage rather than the resources it holds.
  */
-export type TenantOwnSurface = Extract<TenantSurface, 'secrets' | 'settings' | 'usage'>;
+export type TenantOwnSurface = Extract<
+  TenantSurface,
+  'secrets' | 'encryption-keys' | 'settings' | 'usage'
+>;
 
 export type ConsoleRoute =
   | { readonly kind: 'platform'; readonly surface: PlatformSurface }

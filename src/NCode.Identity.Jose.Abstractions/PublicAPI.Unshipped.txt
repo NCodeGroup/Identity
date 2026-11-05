@@ -128,10 +128,10 @@ const NCode.Identity.Jose.JoseClaimNames.Json.Unprotected = "unprotected" -> str
 const NCode.Identity.Jose.JoseClaimNames.Payload.Acr = "acr" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Act = "act" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Actort = "actort" -> string!
-const NCode.Identity.Jose.JoseClaimNames.Payload.MayAct = "may_act" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Address = "address" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Amr = "amr" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.AtHash = "at_hash" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Ath = "ath" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Aud = "aud" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.AuthTime = "auth_time" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Azp = "azp" -> string!
@@ -146,11 +146,14 @@ const NCode.Identity.Jose.JoseClaimNames.Payload.Exp = "exp" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.FamilyName = "family_name" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Gender = "gender" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.GivenName = "given_name" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Htm = "htm" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Htu = "htu" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Iat = "iat" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Idp = "idp" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Iss = "iss" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Jti = "jti" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Locale = "locale" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.MayAct = "may_act" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.MiddleName = "middle_name" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Name = "name" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.NameId = "nameid" -> string!
@@ -163,12 +166,19 @@ const NCode.Identity.Jose.JoseClaimNames.Payload.Picture = "picture" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.PreferredUsername = "preferred_username" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Profile = "profile" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Role = "role" -> string!
-const NCode.Identity.Jose.JoseClaimNames.Payload.Scope = "scope" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.SHash = "s_hash" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Scope = "scope" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Sd = "_sd" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.SdAlg = "_sd_alg" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.SdArrayElement = "..." -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.SdHash = "sd_hash" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Sid = "sid" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Status = "status" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Sub = "sub" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Tid = "tid" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.UpdatedAt = "updated_at" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.Vct = "vct" -> string!
+const NCode.Identity.Jose.JoseClaimNames.Payload.VctIntegrity = "vct#integrity" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Website = "website" -> string!
 const NCode.Identity.Jose.JoseClaimNames.Payload.Zoneinfo = "zoneinfo" -> string!
 const NCode.Identity.Jose.JoseProtectionTypes.Jwe = "JWE" -> string!
@@ -177,7 +187,9 @@ const NCode.Identity.Jose.JoseTokenTypes.AccessTokenJwt = "at+jwt" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.AuthorizationRequestJwt = "oauth-authz-req+jwt" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.DPoPJwt = "dpop+jwt" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.Jwt = "JWT" -> string!
+const NCode.Identity.Jose.JoseTokenTypes.KeyBindingJwt = "kb+jwt" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.LogoutJwt = "logout+jwt" -> string!
+const NCode.Identity.Jose.JoseTokenTypes.SdJwtVc = "dc+sd-jwt" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.SecurityEventJwt = "secevent+jwt" -> string!
 const NCode.Identity.Jose.JoseTokenTypes.TokenIntrospectionJwt = "token-introspection+jwt" -> string!
 NCode.Identity.Jose.Algorithms.Algorithm
@@ -397,9 +409,6 @@ static NCode.Identity.Jose.JoseTokenTypes.Normalize(string! tokenType) -> string
 virtual NCode.Identity.Jose.Algorithms.KeyedAlgorithm.IsKeyCompatible(NCode.Identity.Secrets.Keys.SecretKey! secretKey) -> bool
 virtual NCode.Identity.Jose.Algorithms.KeyManagementAlgorithm.SupportsKeyWrapping.get -> bool
 virtual NCode.Identity.Jose.Algorithms.SignatureAlgorithm.GetTokenHashFunction(NCode.Identity.Secrets.Keys.SecretKey! secretKey, out int hashSizeBytes) -> NCode.Identity.Jose.Algorithms.HashFunctionDelegate!
-const NCode.Identity.Jose.JoseClaimNames.Payload.Ath = "ath" -> string!
-const NCode.Identity.Jose.JoseClaimNames.Payload.Htm = "htm" -> string!
-const NCode.Identity.Jose.JoseClaimNames.Payload.Htu = "htu" -> string!
 NCode.Identity.Jose.DPoP.DPoPProof
 NCode.Identity.Jose.DPoP.DPoPProof.Algorithm.get -> string!
 NCode.Identity.Jose.DPoP.DPoPProof.Algorithm.init -> void
@@ -450,7 +459,7 @@ NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalCurve(string? curve, int 
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.IsLegalSize(int keySizeBits) -> bool
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyBitSizes.get -> System.Collections.Generic.IReadOnlyList<System.Security.Cryptography.KeySizes!>!
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.KeyClrType.get -> System.Type!
-NCode.Identity.Jose.Algorithms.AlgorithmKeyType.TryGetCurve(int keySizeBits, out NCode.Identity.Jose.Algorithms.AlgorithmCurve? curve) -> bool
+NCode.Identity.Jose.Algorithms.AlgorithmKeyType.GetCurves(int keySizeBits) -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Jose.Algorithms.AlgorithmCurve!>!
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.TryGetCurve(string! name, out NCode.Identity.Jose.Algorithms.AlgorithmCurve? curve) -> bool
 static NCode.Identity.Jose.Algorithms.AlgorithmKeyType.OnCurves(System.Type! keyClrType, System.Collections.Generic.IEnumerable<NCode.Identity.Jose.Algorithms.AlgorithmCurve!>! curves) -> NCode.Identity.Jose.Algorithms.AlgorithmKeyType!
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).TryResolveKeyGeneration(NCode.Identity.Jose.Algorithms.KeyGenerationDeclaration declaration, out NCode.Identity.Jose.Algorithms.ResolvedKeyGeneration? resolved, out string? error) -> bool

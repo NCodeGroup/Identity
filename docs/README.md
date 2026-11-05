@@ -6,7 +6,8 @@ Project documentation for the **NCode.Identity** library family.
 
 [`capabilities/`](./capabilities/README.md) describes what the product does and promises, and why it's built that way:
 an overview for evaluators first, then the architecture, with links to the ADRs and code behind each capability. The
-first page is [Encryption at Rest](./capabilities/encryption-at-rest.md).
+pages are [Encryption at Rest](./capabilities/encryption-at-rest.md), [Key Rollover](./capabilities/key-rollover.md),
+[Selective Disclosure (SD-JWT)](./capabilities/selective-disclosure.md) and [COSE and CWT](./capabilities/cose-and-cwt.md).
 
 ## Architecture Decision Records (ADRs)
 

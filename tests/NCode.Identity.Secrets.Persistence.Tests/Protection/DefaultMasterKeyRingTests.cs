@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Text;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -755,10 +756,10 @@ public class DefaultMasterKeyRingTests : IDisposable
 
     private readonly FakeReferencedKeyWrapper _referenced = new();
 
-    private MasterKeyFactory CreateOwnerRootFactory()
+    private MasterKeyFactory CreateOwnerRootFactory(IReferencedKeyWrapper? referenced = null)
     {
         var catalog = new DefaultKeyWrapperCatalog(
-            [_provider, _referenced],
+            [_provider, referenced ?? _referenced],
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Ephemeral }
             )
@@ -781,7 +782,8 @@ public class DefaultMasterKeyRingTests : IDisposable
 
     private PersistedOwnerRootKey CreateRootKey(
         string state = OwnerRootKeyStates.Active,
-        string keyReference = RootKeyReference
+        string keyReference = RootKeyReference,
+        string? accessIdentity = null
     ) =>
         new()
         {
@@ -789,6 +791,7 @@ public class DefaultMasterKeyRingTests : IDisposable
             OwnerId = NormalizedOwner.OwnerId,
             KeyWrapperName = _referenced.Name,
             KeyReference = keyReference,
+            AccessIdentity = accessIdentity,
             State = state,
             CreatedWhen = _time.GetUtcNow(),
             StateChangedWhen = _time.GetUtcNow(),
@@ -797,13 +800,14 @@ public class DefaultMasterKeyRingTests : IDisposable
     private async Task<PersistedMasterKey> CreateOwnerRootedRowAsync(
         MasterKeyFactory factory,
         int version = 1,
-        string keyReference = RootKeyReference
+        string keyReference = RootKeyReference,
+        string? accessIdentity = null
     )
     {
         var created = await factory.CreateAsync(
             NormalizedOwner,
             version,
-            CreateRootKey(keyReference: keyReference),
+            CreateRootKey(keyReference: keyReference, accessIdentity: accessIdentity),
             CancellationToken.None
         );
         created.Key.Dispose();
@@ -1072,6 +1076,42 @@ public class DefaultMasterKeyRingTests : IDisposable
     }
 
     [Fact]
+    public async Task GetProtector_DueValidationWithRowsUnderTwoAccessIdentities_UnwrapsOnceForEachIdentity()
+    {
+        const string identityA = "test-identity-a";
+        const string identityB = "test-identity-b";
+        var wrapper = new RecordingIdentityWrapper(_referenced);
+        var factory = CreateOwnerRootFactory(wrapper);
+        var row1 = await CreateOwnerRootedRowAsync(factory, version: 1, accessIdentity: identityA);
+        var row2 = await CreateOwnerRootedRowAsync(factory, version: 2, accessIdentity: identityB);
+        var row3 = await CreateOwnerRootedRowAsync(factory, version: 3, accessIdentity: identityA);
+        string[] protectedValues = [CreateEnvelopeFor(row1.KeyId), CreateEnvelopeFor(row2.KeyId)];
+        ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
+        using var ring = CreateOwnerRootRing(factory);
+        await ring.GetProtectorAsync(Owner, protectedValues, CancellationToken.None);
+        Assert.Equal(3, wrapper.UnwrapIdentities.Count);
+        wrapper.UnwrapIdentities.Clear();
+
+        // The active row validates its identity and one row validates the other identity.
+        _time.Advance(TimeSpan.FromHours(1));
+        ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+        string[] expectedIdentities = [identityA, identityB];
+        Assert.Equal(expectedIdentities, wrapper.UnwrapIdentities.Order().ToArray());
+
+        // The entry holds all three keys: no store manager is queued, so a store read fails the test.
+        await ring.GetProtectorAsync(Owner, protectedValues, CancellationToken.None);
+
+        // An identity that is revoked fails the owner closed although the active row's identity works.
+        wrapper.Refuse(identityB);
+        _time.Advance(TimeSpan.FromHours(1));
+        ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
+        await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+    }
+
+    [Fact]
     public async Task GetProtector_DueValidationOfAKeyWhoseRowExists_LogsNoDroppedKey()
     {
         var factory = CreateOwnerRootFactory();
@@ -1196,6 +1236,65 @@ public class DefaultMasterKeyRingTests : IDisposable
         );
 
         wrongProvider.Dispose();
+    }
+
+    // Wraps another referenced wrapper, records the access identity of every unwrap and refuses the unwraps under the
+    // identities that it is told to refuse.
+    private sealed class RecordingIdentityWrapper(IReferencedKeyWrapper inner)
+        : IReferencedKeyWrapper
+    {
+        private readonly HashSet<string> _refused = new(StringComparer.Ordinal);
+
+        public List<string> UnwrapIdentities { get; } = [];
+
+        public void Refuse(string identity) => _refused.Add(identity);
+
+        public string Name => inner.Name;
+
+        public bool TryValidateKeyReference(
+            string keyReference,
+            [NotNullWhen(false)] out string? failure
+        ) => inner.TryValidateKeyReference(keyReference, out failure);
+
+        public bool TryValidateAccessIdentity(
+            string accessIdentity,
+            [NotNullWhen(false)] out string? failure
+        ) => inner.TryValidateAccessIdentity(accessIdentity, out failure);
+
+        public ValueTask<WrappedKey> WrapAsync(
+            ReadOnlyMemory<byte> key,
+            ReadOnlyMemory<byte> context,
+            CancellationToken cancellationToken
+        ) => inner.WrapAsync(key, context, cancellationToken);
+
+        public ValueTask<WrappedKey> WrapAsync(
+            ReferencedKey referencedKey,
+            ReadOnlyMemory<byte> key,
+            ReadOnlyMemory<byte> context,
+            CancellationToken cancellationToken
+        ) => inner.WrapAsync(referencedKey, key, context, cancellationToken);
+
+        public ValueTask UnwrapAsync(
+            WrappedKey wrappedKey,
+            ReadOnlyMemory<byte> context,
+            IBufferWriter<byte> destination,
+            CancellationToken cancellationToken
+        ) => inner.UnwrapAsync(wrappedKey, context, destination, cancellationToken);
+
+        public ValueTask UnwrapAsync(
+            WrappedKey wrappedKey,
+            KeyAccess access,
+            ReadOnlyMemory<byte> context,
+            IBufferWriter<byte> destination,
+            CancellationToken cancellationToken
+        )
+        {
+            UnwrapIdentities.Add(access.Identity);
+
+            return _refused.Contains(access.Identity)
+                ? throw new InvalidOperationException("The access identity is refused.")
+                : inner.UnwrapAsync(wrappedKey, access, context, destination, cancellationToken);
+        }
     }
 
     // Records the identifiers of the events that the ring logs.

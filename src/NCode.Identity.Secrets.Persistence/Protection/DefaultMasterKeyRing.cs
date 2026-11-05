@@ -354,9 +354,9 @@ internal class DefaultMasterKeyRing(
                     Logger.MasterKeyDropped(key, cachedKeyId);
             }
 
-            // The root key references whose root key unwrapped a master key of this load.
+            // The root key references and access identities whose root key unwrapped a master key of this load.
             var unwrappedReferences = validating
-                ? new HashSet<string>(StringComparer.Ordinal)
+                ? new HashSet<(string Reference, string? AccessIdentity)>()
                 : null;
 
             var keys = new Dictionary<Guid, MasterKey>(rows.Count + 1);
@@ -374,13 +374,16 @@ internal class DefaultMasterKeyRing(
                     active = await UnwrapRowAsync(key, activeRow, loaded, cancellationToken);
 
                     if (activeRow.RootKeyReference is not null)
-                        unwrappedReferences?.Add(activeRow.RootKeyReference);
+                        unwrappedReferences?.Add(
+                            (activeRow.RootKeyReference, activeRow.RootKeyAccessIdentity)
+                        );
                 }
             }
 
             keys[activeRow.KeyId] = active;
 
-            // A validation unwraps one row of each root key reference that the active row does not cover.
+            // A validation unwraps one row of each root key reference and access identity that the active row does not
+            // cover.
             if (unwrappedReferences is not null)
             {
                 foreach (var row in rows)
@@ -388,15 +391,17 @@ internal class DefaultMasterKeyRing(
                     if (
                         row.RootKeyReference is not null
                         && !keys.ContainsKey(row.KeyId)
-                        && unwrappedReferences.Add(row.RootKeyReference)
+                        && unwrappedReferences.Add(
+                            (row.RootKeyReference, row.RootKeyAccessIdentity)
+                        )
                     )
                         keys[row.KeyId] = await UnwrapRowAsync(key, row, loaded, cancellationToken);
                 }
             }
 
             // The remaining rows reuse the cached material, which is what a validation does for the rows under a
-            // reference that unwrapped and for the rows under the deployment's root key. A row without cached
-            // material is unwrapped.
+            // reference and access identity that unwrapped and for the rows under the deployment's root key. A row
+            // without cached material is unwrapped.
             foreach (var row in rows)
             {
                 if (keys.ContainsKey(row.KeyId))

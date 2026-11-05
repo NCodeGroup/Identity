@@ -840,6 +840,145 @@ public class TeamManagementTests
 
     #endregion
 
+    #region Limit Tests
+
+    [Fact]
+    public async Task TeamAdmin_CannotChangeItsTeamsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        using var replaced = await SendPatchAsync(
+            teamAdmin,
+            "/api/teams/acme/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = $"/{OpenIdSettingNames.MaxTenants}",
+                    value = 5,
+                },
+            }
+        );
+        var replacedBody = await replaced.Content.ReadAsStringAsync();
+        Assert.True(replaced.StatusCode == HttpStatusCode.Forbidden, replacedBody);
+        Assert.Contains(OpenIdSettingNames.MaxTenants, replacedBody);
+
+        using var removed = await SendPatchAsync(
+            teamAdmin,
+            "/api/teams/acme/settings",
+            new[] { new { op = "remove", path = $"/{OpenIdSettingNames.MaxTenants}" } }
+        );
+        var removedBody = await removed.Content.ReadAsStringAsync();
+        Assert.True(removed.StatusCode == HttpStatusCode.Forbidden, removedBody);
+
+        await PatchAsync(
+            teamAdmin,
+            "/api/teams/acme/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
+                    value = new[] { "RS256" },
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task PlatformAdministrator_ChangesATeamsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+
+        await PatchAsync(
+            administrator,
+            "/api/teams/acme/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = $"/{OpenIdSettingNames.MaxTenants}",
+                    value = 5,
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task TeamAdmin_SetsALimitOnItsTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+
+        await PatchAsync(
+            teamAdmin,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
+                    value = 100,
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task TenantOwner_CannotChangeItsTenantsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var owner = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/owners"
+        );
+
+        using var response = await SendPatchAsync(
+            owner,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
+                    value = 100,
+                },
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
+    }
+
+    #endregion
+
     #region PatchTeamSettings Tests
 
     [Fact]

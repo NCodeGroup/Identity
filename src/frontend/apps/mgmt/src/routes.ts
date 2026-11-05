@@ -4,6 +4,7 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
  * The console's URL is its navigation state (ADR-1174). The path names the security boundary first and the surface
  * within it second, so the platform ↔ team ↔ tenant boundaries (ADR-1064) stay explicit in every address:
  *
+ * - `/home` — the caller's home: the places it holds authority (ADR-1420);
  * - `/teams`, `/settings`, `/encryption-keys` — the platform scope's surfaces;
  * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `settings` and `usage`), the team id
  *   percent-encoded as one segment;
@@ -43,12 +44,19 @@ export type TenantOwnSurface = Extract<
 >;
 
 export type ConsoleRoute =
+  | { readonly kind: 'home' }
   | { readonly kind: 'platform'; readonly surface: PlatformSurface }
   | { readonly kind: 'team'; readonly teamId: string; readonly surface: TeamSurface }
   | { readonly kind: 'tenant'; readonly tenantId: string; readonly surface: TenantSurface };
 
-/** Where the console lands when the path names no route: the platform's team list. */
-export const DEFAULT_ROUTE: ConsoleRoute = { kind: 'platform', surface: 'teams' };
+/** The route of the caller's home: the places it holds authority. */
+export const HOME_ROUTE: ConsoleRoute = { kind: 'home' };
+
+/** A route that addresses a management scope: every route except the caller's home. */
+export type ScopedConsoleRoute = Exclude<ConsoleRoute, { readonly kind: 'home' }>;
+
+/** Where the console lands when the path names no route: the caller's home. */
+export const DEFAULT_ROUTE: ConsoleRoute = HOME_ROUTE;
 
 /** The surface a team opens on when the path names the team but no surface. */
 export const DEFAULT_TEAM_SURFACE: TeamSurface = 'tenants';
@@ -80,7 +88,7 @@ export function tenantRoute(
 }
 
 /** The management scope a route addresses — derived from the route, never held separately. */
-export function routeScope(route: ConsoleRoute): ManagementScope {
+export function routeScope(route: ScopedConsoleRoute): ManagementScope {
   switch (route.kind) {
     case 'platform':
       return PLATFORM_SCOPE;
@@ -94,6 +102,8 @@ export function routeScope(route: ConsoleRoute): ManagementScope {
 /** Formats a route as its canonical path. */
 export function routePath(route: ConsoleRoute): string {
   switch (route.kind) {
+    case 'home':
+      return '/home';
     case 'platform':
       return `/${route.surface}`;
     case 'team':
@@ -136,6 +146,9 @@ export function parseRoute(pathname: string): ConsoleRoute | null {
 
   if (segments.length === 1) {
     const [surface = ''] = segments;
+    if (surface === 'home') {
+      return HOME_ROUTE;
+    }
     return isPlatformSurface(surface) ? platformRoute(surface) : null;
   }
 

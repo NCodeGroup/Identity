@@ -21,10 +21,14 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization;
 /// <summary>
 /// Provides a default implementation of the <see cref="IAuthorizationRequestProcessor"/> abstraction.
 /// </summary>
-internal class DefaultAuthorizationRequestProcessor(IContinueService continueService)
-    : IAuthorizationRequestProcessor
+internal class DefaultAuthorizationRequestProcessor(
+    IContinueService continueService,
+    IEnumerable<IOpenIdExceptionTranslator> exceptionTranslators
+) : IAuthorizationRequestProcessor
 {
     private IContinueService ContinueService { get; } = continueService;
+
+    private IOpenIdExceptionTranslator[] ExceptionTranslators { get; } = [.. exceptionTranslators];
 
     /// <inheritdoc />
     public async ValueTask<ReadOnlyEndpointDisposition> ProcessRequestAsync(
@@ -51,8 +55,7 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         }
         catch (Exception exception)
         {
-            var errorFactory = openIdContext.ErrorFactory;
-            var openIdError = GetOpenIdError(errorFactory, exception, delivery.State);
+            var openIdError = GetOpenIdError(openIdContext, exception, delivery.State);
             var httpResult = new AuthorizationResult(
                 openIdContext,
                 openIdClient,
@@ -63,20 +66,30 @@ internal class DefaultAuthorizationRequestProcessor(IContinueService continueSer
         }
     }
 
-    private static IOpenIdError GetOpenIdError(
-        IOpenIdErrorFactory errorFactory,
+    private IOpenIdError GetOpenIdError(
+        OpenIdContext openIdContext,
         Exception exception,
         string? state
-    ) =>
-        exception switch
-        {
-            OpenIdException openIdException => openIdException.Error.WithState(state),
+    )
+    {
+        if (exception is OpenIdException openIdException)
+            return openIdException.Error.WithState(state);
 
-            _ => errorFactory
-                .Create(OpenIdProtocol.ErrorCodes.ServerError)
-                .WithState(state)
-                .WithException(exception),
-        };
+        if (
+            OpenIdExceptionTranslation.TryTranslate(
+                ExceptionTranslators,
+                openIdContext.Environment,
+                exception,
+                out var translatedError
+            )
+        )
+            return translatedError.WithState(state);
+
+        return openIdContext
+            .ErrorFactory.Create(OpenIdProtocol.ErrorCodes.ServerError)
+            .WithState(state)
+            .WithException(exception);
+    }
 
     private async ValueTask<ReadOnlyEndpointDisposition> CoreProcessRequestAsync(
         OpenIdContext openIdContext,

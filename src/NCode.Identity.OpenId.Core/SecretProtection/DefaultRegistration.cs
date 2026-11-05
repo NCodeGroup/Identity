@@ -21,8 +21,9 @@ internal static class DefaultRegistration
     {
         /// <summary>
         /// Registers the sources of the protected values the family stores (stored secrets and grant payloads), the
-        /// announcement of master key and owner root key changes, the job that rewraps the values of retired keys, and
-        /// the services that maintain master keys and validate the root keys that owners bring.
+        /// announcement of master key and owner root key changes, the job that rewraps the values of retired keys, the
+        /// policy that keeps the control-plane tenant under the deployment's root key, and the services that maintain
+        /// master keys and validate the root keys that owners bring.
         /// </summary>
         /// <returns>The <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
         [PublicAPI]
@@ -58,6 +59,10 @@ internal static class DefaultRegistration
                     IOwnerRootKeyChangeObserver,
                     OwnerRootKeyChangeAnnouncer
                 >()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IOwnerRootKeyPolicy, ControlPlaneTenantRootKeyPolicy>()
             );
 
             serviceCollection.AddHostedService<MasterKeyMaintenanceService>();

@@ -26,8 +26,24 @@ internal static class EncryptionKeyEndpoints
         "The last rotation of this master key has not reached every replica yet; retry after the time in Retry-After.";
 
     /// <summary>
-    /// Answers with the master keys of the owner, the root key it brings and the key wrappers it may choose. The server
-    /// passes no <paramref name="ownerRootKeyManager"/>, because it cannot bring a root key.
+    /// The title of the problem that a refused owner answers with when it sets a root key.
+    /// </summary>
+    internal const string RootKeyNotAllowedTitle = "The tenant cannot bring a root key.";
+
+    /// <summary>
+    /// Answers <c>400 Bad Request</c> for an owner that a registered <see cref="IOwnerRootKeyPolicy"/> refuses.
+    /// </summary>
+    /// <param name="reason">The reason that the policy gave.</param>
+    public static ProblemHttpResult RootKeyNotAllowed(string reason) =>
+        TypedResults.Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: RootKeyNotAllowedTitle,
+            detail: reason
+        );
+
+    /// <summary>
+    /// Answers with the master keys of the owner, the root key it brings and the key wrappers it may choose. The caller
+    /// passes no <paramref name="ownerRootKeyManager"/> for an owner that cannot bring a root key, such as the server.
     /// </summary>
     public static async ValueTask<IResult> GetAsync(
         IMasterKeyManager masterKeyManager,
@@ -92,7 +108,8 @@ internal static class EncryptionKeyEndpoints
 
     /// <summary>
     /// Sets or changes the root key of the owner. The request is checked field by field and answered <c>400</c> with a
-    /// problem that names the field; a key that fails its probe is answered <c>422</c>; a change within twice the
+    /// problem that names the field; an owner that a registered <see cref="IOwnerRootKeyPolicy"/> refuses is answered
+    /// <c>400</c> with the policy's reason; a key that fails its probe is answered <c>422</c>; a change within twice the
     /// refresh interval of the owner's last rotation is answered <c>409 Conflict</c> with a <c>Retry-After</c> header;
     /// one that loses a race throws <see cref="StoreConcurrencyException"/>, which the management route group answers
     /// <c>412</c>.
@@ -123,6 +140,10 @@ internal static class EncryptionKeyEndpoints
         catch (MasterKeyRotationTooSoonException exception)
         {
             return RekeyTooSoon(httpContext, exception);
+        }
+        catch (OwnerRootKeyNotAllowedException exception)
+        {
+            return RootKeyNotAllowed(exception.Reason);
         }
         catch (OwnerRootKeyProbeException exception)
         {

@@ -31,10 +31,14 @@ to take effect within a bounded period across replicas without a KMS call per re
    cascade validates synchronously and value by value, while a root key is accepted only after an asynchronous round trip
    through its provider; changing the key is an operation (rotate, then rewrap every master key row); a server-scope value
    or a security profile must never move a tenant onto a key; the record carries operational state that does not belong in
-   a settings document; and the secrets layer must not depend on the OpenID settings model. The `server` owner cannot bring
+   a settings document; and the secrets layer must not depend on the OpenID settings model. Which owners can bring a key is
+   decided by the registered `IOwnerRootKeyPolicy` implementations, and an owner that any of them refuses cannot set one.
+   The `server` owner cannot bring
    a key, because its master keys protect the deployment's Data Protection ring. The control-plane tenant cannot bring a key
    either, because the management API authenticates against it ([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)),
-   so a revoked key would lock out the administrators who restore it; `PUT` on it answers `400`. The code says "owner root key"; the
+   so a revoked key would lock out the administrators who restore it; `PUT` on it answers `400`. Each rule is a registered
+   policy (`ServerOwnerRootKeyPolicy`, `ControlPlaneTenantRootKeyPolicy`), and a consumer refuses further owners by registering
+   its own `IOwnerRootKeyPolicy`. The code says "owner root key"; the
    management API, the console and the docs say "tenant root key".
 2. **The provider is any registered referenced key wrapper** ([ADR-1412](1412-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)),
    and the operator opts in per provider with `SecretProtection:OwnerRootKeys:Providers`, which is empty by default,

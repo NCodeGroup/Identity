@@ -1773,13 +1773,6 @@ internal class TenantApiEndpointHandler(
         return await store.GetOrDefaultAsync(tenant.TenantId, cancellationToken) ?? tenant;
     }
 
-    private bool IsControlPlaneTenant(PersistedTenant tenant) =>
-        string.Equals(
-            tenant.TenantId,
-            TenantResolver.GetControlPlaneTenantId(),
-            StringComparison.Ordinal
-        );
-
     // An empty issuer means the tenant has none; storing it as empty would put it under the issuer's unique index.
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
 
@@ -1815,14 +1808,14 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        // The control-plane tenant always stays under the deployment's root key, so it reports no root key.
+        // An owner that a registered policy refuses, such as the control-plane tenant, reports no root key providers.
         // See ADR-1411.
-        var isControlPlane = IsControlPlaneTenant(tenant);
+        var owner = SecretOwner.ForTenant(tenant.TenantId);
 
         return await EncryptionKeyEndpoints.GetAsync(
             MasterKeyManager,
-            isControlPlane ? null : OwnerRootKeyManager,
-            SecretOwner.ForTenant(tenant.TenantId),
+            OwnerRootKeyManager.CanBringRootKey(owner, out _) ? OwnerRootKeyManager : null,
+            owner,
             cancellationToken
         );
     }
@@ -1880,7 +1873,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="request">The key wrapper and the reference to the key.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The root key as stored, and the master keys of the rotation onto it.</response>
-    /// <response code="400">The key wrapper is not allowed, the key reference is malformed, or the tenant is the control-plane tenant, which cannot bring a root key.</response>
+    /// <response code="400">The key wrapper is not allowed, the key reference is malformed, or a registered policy refuses the tenant, as it does the control-plane tenant.</response>
     /// <response code="404">The tenant does not exist.</response>
     /// <response code="409">The last rotation is younger than twice the master key refresh interval (the response carries Retry-After).</response>
     /// <response code="412">Another writer changed the root key first.</response>
@@ -1910,21 +1903,18 @@ internal class TenantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        // The management API authenticates against the control-plane tenant; see ADR-1411.
-        if (IsControlPlaneTenant(tenant))
+        // A registered policy decides which tenants can bring a root key; see ADR-1411.
+        var owner = SecretOwner.ForTenant(tenant.TenantId);
+        if (!OwnerRootKeyManager.CanBringRootKey(owner, out var notAllowed))
         {
-            return TypedResults.Problem(
-                statusCode: StatusCodes.Status400BadRequest,
-                title: "The control-plane tenant cannot bring a root key.",
-                detail: "The management API authenticates against the control-plane tenant, so a revoked root key would lock out the administrators who restore it. Its keys stay under the deployment's root key."
-            );
+            return EncryptionKeyEndpoints.RootKeyNotAllowed(notAllowed);
         }
 
         return await EncryptionKeyEndpoints.SetRootKeyAsync(
             OwnerRootKeyManager,
             ManagementAuditRecorder,
             httpContext,
-            SecretOwner.ForTenant(tenant.TenantId),
+            owner,
             request,
             cancellationToken
         );

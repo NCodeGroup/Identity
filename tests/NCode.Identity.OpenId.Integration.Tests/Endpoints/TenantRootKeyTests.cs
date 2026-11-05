@@ -237,7 +237,7 @@ public class TenantRootKeyTests
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
         Assert.Equal(
-            "The control-plane tenant cannot bring a root key.",
+            "The tenant cannot bring a root key.",
             JsonElement.Parse(body).GetProperty("title").GetString()
         );
 

@@ -1,0 +1,219 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using System.Buffers.Text;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Images;
+using NCode.Buffers;
+
+namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
+
+/// <summary>
+/// Keycloak running in a container, as the OpenID Provider that the end-to-end suites run against.
+/// </summary>
+public sealed class KeycloakProvider : IAsyncDisposable
+{
+    private const int HttpsPort = 8443;
+    private const string CertificatePath = "/opt/keycloak/conf/e2e-tls.crt";
+    private const string PrivateKeyPath = "/opt/keycloak/conf/e2e-tls.key";
+    private const string AdminClientId = "e2e-admin";
+
+    /// <summary>
+    /// The name of the realm that the container imports.
+    /// </summary>
+    public const string RealmName = "bff-e2e";
+
+    /// <summary>
+    /// The user name of the realm's test user.
+    /// </summary>
+    public const string UserName = "alice";
+
+    /// <summary>
+    /// The email address of the realm's test user.
+    /// </summary>
+    public const string UserEmail = "alice@example.com";
+
+    private readonly TestCertificate _certificate;
+    private readonly IFutureDockerImage _image;
+    private readonly IContainer _container;
+    private readonly string _adminSecret;
+    private readonly int _port;
+
+    private KeycloakProvider(
+        TestCertificate certificate,
+        IFutureDockerImage image,
+        IContainer container,
+        string adminSecret,
+        string userPassword
+    )
+    {
+        _certificate = certificate;
+        _image = image;
+        _container = container;
+        _adminSecret = adminSecret;
+        _port = container.GetMappedPublicPort(HttpsPort);
+        UserPassword = userPassword;
+    }
+
+    /// <summary>
+    /// Gets the issuer of the realm, which a browser and the host reach through the mapped port.
+    /// </summary>
+    public string Issuer => $"https://127.0.0.1:{_port}/realms/{RealmName}";
+
+    /// <summary>
+    /// Gets the password of the realm's test user, which is random for each run.
+    /// </summary>
+    public string UserPassword { get; }
+
+    /// <summary>
+    /// Builds the image and starts a container that imports the realm.
+    /// </summary>
+    public static async Task<KeycloakProvider> StartAsync(
+        TestCertificate certificate,
+        IReadOnlyDictionary<string, string> realmVariables
+    )
+    {
+        var userPassword = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(24));
+        var adminSecret = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(24));
+
+        var image = new ImageFromDockerfileBuilder()
+            .WithDockerfileDirectory(CommonDirectoryPath.GetProjectDirectory(), "Keycloak")
+            .WithDockerfile("Dockerfile")
+            .WithDeleteIfExists(true)
+            .Build();
+
+        await image.CreateAsync();
+
+        var builder = new ContainerBuilder(image)
+            .WithCommand("start-dev", "--import-realm")
+            .WithPortBinding(HttpsPort, true)
+            .WithEnvironment("KC_HTTP_ENABLED", "false")
+            .WithEnvironment("KC_HTTPS_CERTIFICATE_FILE", CertificatePath)
+            .WithEnvironment("KC_HTTPS_CERTIFICATE_KEY_FILE", PrivateKeyPath)
+            .WithEnvironment("KC_TRUSTSTORE_PATHS", CertificatePath)
+            .WithEnvironment("E2E_USER_PASSWORD", userPassword)
+            .WithEnvironment("E2E_ADMIN_SECRET", adminSecret)
+            .WithResourceMapping(
+                SecureEncoding.UTF8.GetBytes(certificate.CertificatePem),
+                CertificatePath
+            )
+            .WithResourceMapping(
+                SecureEncoding.UTF8.GetBytes(certificate.PrivateKeyPem),
+                PrivateKeyPath
+            )
+            .WithWaitStrategy(
+                Wait.ForUnixContainer().UntilMessageIsLogged("Listening on: .*https://")
+            );
+
+        foreach (var (name, value) in realmVariables)
+        {
+            builder = builder.WithEnvironment(name, value);
+        }
+
+        var container = builder.Build();
+
+        try
+        {
+            await container.StartAsync();
+        }
+        catch
+        {
+            await container.DisposeAsync();
+            await image.DisposeAsync();
+            throw;
+        }
+
+        return new KeycloakProvider(certificate, image, container, adminSecret, userPassword);
+    }
+
+    /// <summary>
+    /// Creates an <see cref="HttpClient"/> that trusts only the test certificate.
+    /// </summary>
+    public HttpClient CreateHttpClient()
+    {
+        var handler = new SocketsHttpHandler();
+        handler.SslOptions.RemoteCertificateValidationCallback = (_, presented, _, _) =>
+            _certificate.IsTrusted(presented);
+
+        return new HttpClient(handler, disposeHandler: true);
+    }
+
+    /// <summary>
+    /// Ends every session of the test user, which makes Keycloak send the back-channel logout requests.
+    /// </summary>
+    public async Task LogOutUserAsync()
+    {
+        using var client = CreateHttpClient();
+        var adminBase = $"https://127.0.0.1:{_port}/admin/realms/{RealmName}";
+
+        using var tokenRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{Issuer}/protocol/openid-connect/token"
+        )
+        {
+            Content = new FormUrlEncodedContent(
+                new Dictionary<string, string> { ["grant_type"] = "client_credentials" }
+            ),
+        };
+        tokenRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Basic",
+            Convert.ToBase64String(SecureEncoding.UTF8.GetBytes($"{AdminClientId}:{_adminSecret}"))
+        );
+
+        using var tokenResponse = await client.SendAsync(tokenRequest);
+        tokenResponse.EnsureSuccessStatusCode();
+        var token = await tokenResponse.Content.ReadFromJsonAsync<TokenResponse>(
+            JsonSerializerOptions.Web
+        );
+        if (token is null)
+            throw new InvalidOperationException("The token response was empty.");
+
+        using var usersRequest = new HttpRequestMessage(
+            HttpMethod.Get,
+            $"{adminBase}/users?username={UserName}&exact=true"
+        );
+        usersRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            token.AccessToken
+        );
+
+        using var usersResponse = await client.SendAsync(usersRequest);
+        usersResponse.EnsureSuccessStatusCode();
+        var users = await usersResponse.Content.ReadFromJsonAsync<List<UserRepresentation>>(
+            JsonSerializerOptions.Web
+        );
+        if (users is not [var user])
+            throw new InvalidOperationException($"Expected exactly one user named '{UserName}'.");
+
+        using var logoutRequest = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"{adminBase}/users/{user.Id}/logout"
+        );
+        logoutRequest.Headers.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            token.AccessToken
+        );
+
+        using var logoutResponse = await client.SendAsync(logoutRequest);
+        logoutResponse.EnsureSuccessStatusCode();
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        await _container.DisposeAsync();
+        await _image.DisposeAsync();
+    }
+
+    private sealed record TokenResponse(
+        [property: JsonPropertyName("access_token")] string AccessToken
+    );
+
+    private sealed record UserRepresentation(string Id);
+}

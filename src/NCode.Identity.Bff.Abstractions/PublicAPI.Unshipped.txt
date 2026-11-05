@@ -195,3 +195,16 @@ const NCode.Identity.Bff.BffTokenRequirementNames.Client = "client" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.Exchange = "exchange" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.None = "none" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.UserOrClient = "user_or_client" -> string!
+NCode.Identity.Bff.BffFrontendSelection
+NCode.Identity.Bff.BffFrontendSelection.BffFrontendSelection(System.Collections.Generic.IReadOnlyList<string!>! values, string! publicOrigin, System.Collections.Generic.IReadOnlyList<string!>! paths) -> void
+NCode.Identity.Bff.BffFrontendSelection.Paths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Bff.BffFrontendSelection.PublicOrigin.get -> string!
+NCode.Identity.Bff.BffFrontendSelection.Values.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Bff.BffFrontendSelectorNames
+const NCode.Identity.Bff.BffFrontendSelectorNames.Host = "host" -> string!
+const NCode.Identity.Bff.BffFrontendSelectorNames.Path = "path" -> string!
+NCode.Identity.Bff.IBffFrontendSelector
+NCode.Identity.Bff.IBffFrontendSelector.IsMatch(Microsoft.AspNetCore.Http.HttpRequest! request, NCode.Identity.Bff.BffFrontendSelection! selection) -> bool
+NCode.Identity.Bff.IBffFrontendSelector.Name.get -> string!
+NCode.Identity.Bff.IBffFrontendSelector.Overlaps(NCode.Identity.Bff.BffFrontendSelection! first, NCode.Identity.Bff.BffFrontendSelection! second) -> bool
+NCode.Identity.Bff.IBffFrontendSelector.Validate(NCode.Identity.Bff.BffFrontendSelection! selection) -> System.Collections.Generic.IReadOnlyList<string!>!

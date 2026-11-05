@@ -65,7 +65,7 @@ export const DEFAULT_TEAM_SURFACE: TeamSurface = 'tenants';
 export const DEFAULT_TENANT_SURFACE: TenantSurface = 'clients';
 
 /** Builds the route of a platform surface. */
-export function platformRoute(surface: PlatformSurface): ConsoleRoute {
+export function platformRoute(surface: PlatformSurface): ScopedConsoleRoute {
   return { kind: 'platform', surface };
 }
 
@@ -73,7 +73,7 @@ export function platformRoute(surface: PlatformSurface): ConsoleRoute {
 export function teamRoute(
   teamId: string,
   surface: TeamSurface = DEFAULT_TEAM_SURFACE,
-): ConsoleRoute {
+): ScopedConsoleRoute {
   teamScope(teamId);
   return { kind: 'team', teamId, surface };
 }
@@ -82,7 +82,7 @@ export function teamRoute(
 export function tenantRoute(
   tenantId: string,
   surface: TenantSurface = DEFAULT_TENANT_SURFACE,
-): ConsoleRoute {
+): ScopedConsoleRoute {
   tenantScope(tenantId);
   return { kind: 'tenant', tenantId, surface };
 }

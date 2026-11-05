@@ -197,7 +197,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     }
 
     [Fact]
-    public async Task RecordMasterKeyRotatedAsync_APlatformRekey_PublishesTheEventWithNoTenant()
+    public async Task RecordMasterKeyRotatedAsync_APlatformRekey_PublishesTheEventInTheControlPlaneTenant()
     {
         var mockPublisher = MockRepository.Create<IEventPublisher>();
         MasterKeyAuditEvent? captured = null;
@@ -217,16 +217,22 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             KeyInfo(owner, 1, retired: true)
         );
 
+        var httpContext = CreateHttpContext("admin-1");
+        httpContext.Features.Set<IOpenIdContextFeature>(
+            Mock.Of<IOpenIdContextFeature>(feature =>
+                feature.OpenIdContext
+                == Mock.Of<OpenIdContext>(context =>
+                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "tenant-1")
+                )
+            )
+        );
+
         await CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false)
-            .RecordMasterKeyRotatedAsync(
-                CreateHttpContext("admin-1"),
-                rotation,
-                CancellationToken.None
-            );
+            .RecordMasterKeyRotatedAsync(httpContext, rotation, CancellationToken.None);
 
         Assert.NotNull(captured);
         Assert.Equal("master_key.rotated", captured.EventName);
-        Assert.Null(captured.TenantId);
+        Assert.Equal("tenant-1", captured.TenantId);
         Assert.Null(captured.TenantEnvironmentType);
         Assert.Equal("platform", captured.OwnerType);
         Assert.Equal("platform", captured.OwnerId);

@@ -27,7 +27,7 @@ public sealed record MasterKeyAuditEvent : AuditEvent, ISupportAuditDetails
     public required string Reason { get; init; }
 
     /// <summary>
-    /// Gets the kind of owner of the master key, such as <c>tenant</c> or <c>server</c>.
+    /// Gets the kind of owner of the master key, such as <c>tenant</c> or <c>platform</c>.
     /// </summary>
     public required string OwnerType { get; init; }
 

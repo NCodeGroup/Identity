@@ -138,7 +138,7 @@ serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 // and injects the 'openiddb' connection string, and a dedicated migration worker applies the schema before this host
 // starts — so the api never bootstraps the database itself. The developer data-protection key ring is persisted in the
 // same database, so one purge resets the OpenID data, the seeded signing key, the tenants' master keys, and the ring
-// together. Stored secrets are encrypted under their owners' master keys and the ring under the server master key,
+// together. Stored secrets are encrypted under their owners' master keys and the ring under the platform master key,
 // whose root key lives outside the database (the 'SecretProtection' section); the production gate refuses to start
 // without a real root key (ADR-1235).
 

@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.OpenApi;
 
 /// <summary>
 /// Fills in human-readable descriptions for the parameters shared across the management API — the path parameters
-/// (tenant, client, server, and so on), the <c>If-Match</c> concurrency header, and the <c>cursor</c>/<c>limit</c>
+/// (team, tenant, client, and so on), the <c>If-Match</c> concurrency header, and the <c>cursor</c>/<c>limit</c>
 /// pagination query parameters — so a renderer such as Scalar shows meaningful parameter help. It also declares any
 /// templated path parameter that is bound by a route group rather than a handler argument (the tenant id), which the
 /// framework would otherwise omit from the operation.
@@ -25,8 +25,8 @@ internal sealed partial class ManagementParameterDocumentTransformer : IOpenApiD
     >(StringComparer.Ordinal)
     {
         ["tenantId"] = "The identifier of the tenant that scopes the request.",
+        ["teamId"] = "The identifier of the team.",
         ["clientId"] = "The identifier of the client.",
-        ["serverId"] = "The identifier of the server.",
         ["resourceServerId"] = "The identifier of the API (resource server).",
         ["secretId"] = "The identifier of the secret.",
         ["scopeValue"] = "The scope value.",

@@ -15,8 +15,8 @@ namespace NCode.Identity.Dispatch.Options;
 public sealed class InProcessJobDispatcherOptions
 {
     /// <summary>
-    /// Gets the name of the configuration section that binds these options; the identity server's configuration binds
-    /// it beneath its OpenID section.
+    /// Gets the name of the configuration section that binds these options; <c>AddIdentityServer</c> binds it beneath
+    /// its OpenID section.
     /// </summary>
     public const string SectionName = "InProcessJobDispatcher";
 

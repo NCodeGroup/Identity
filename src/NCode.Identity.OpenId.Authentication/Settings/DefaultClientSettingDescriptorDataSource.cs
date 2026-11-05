@@ -36,7 +36,7 @@ internal class DefaultClientSettingDescriptorDataSource(
     {
         get
         {
-            // token_endpoint_auth_methods_supported: the client-authentication methods the server, tenant, or security
+            // token_endpoint_auth_methods_supported: the client-authentication methods the platform, team, tenant or security
             // profile permits (default derived from the registered method descriptors). A ceiling over the registered
             // method, never a choice between methods. Ceiling (Intersect): a child narrows the parent's set; unset =
             // unrestricted (ADR-1010).
@@ -53,10 +53,10 @@ internal class DefaultClientSettingDescriptorDataSource(
 
             // token_endpoint_auth_method: the one client-authentication method a client is registered to use (RFC 7591
             // §2); it decides the client type (none = public) and is the only method that authenticates the client.
-            // A client that registers none gets the RFC 7591 default, client_secret_basic, unless its server or tenant
-            // configures another, and every entry point that stores a client writes that method into its document, so
-            // a later change to the server's or tenant's value moves no stored client's method (ADR-1391). Not
-            // advertised. Override (Replace): a child fully replaces the parent value (ADR-1145).
+            // A client that registers none gets the RFC 7591 default, client_secret_basic, unless its platform, team or
+            // tenant configures another, and every entry point that stores a client writes that method into its
+            // document, so a later change to the platform's, team's or tenant's value moves no stored client's method
+            // (ADR-1391). Not advertised. Override (Replace): a child fully replaces the parent value (ADR-1145).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TokenEndpointAuthMethod,

@@ -24,7 +24,7 @@ public class CertificateBoundAccessTokenTests
         new(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:tls_client_certificate_bound_access_tokens"] = "true",
+                ["OpenId:Platform:Settings:tls_client_certificate_bound_access_tokens"] = "true",
             }
         );
 
@@ -46,7 +46,7 @@ public class CertificateBoundAccessTokenTests
             clientId,
             $"{clientId}-rs-api",
             $"https://api.{clientId}.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = CreateClient(factory);
@@ -54,7 +54,7 @@ public class CertificateBoundAccessTokenTests
             new Dictionary<string, string>
             {
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
                 ["client_id"] = clientId,
                 ["client_secret"] = ClientSecret,
             }

@@ -29,7 +29,7 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     private readonly Mock<IMasterKeyRewrapper> _rewrapper;
     private readonly Mock<IOwnerRootKeyChangeObserver> _observer;
     private readonly List<Mock> _verifiables = [];
-    private readonly List<IOwnerRootKeyPolicy> _policies = [new ServerOwnerRootKeyPolicy()];
+    private readonly List<IOwnerRootKeyPolicy> _policies = [new PlatformOwnerRootKeyPolicy()];
     private readonly FakeReferencedKeyWrapper _kms = new();
     private readonly InMemoryOwnerRootKeyStores _stores = new();
     private readonly FakeTimeProvider _time = new(
@@ -434,15 +434,15 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task Set_ServerOwner_ThrowsNotAllowedAndCallsNoWrapper()
+    public async Task Set_PlatformOwner_ThrowsNotAllowedAndCallsNoWrapper()
     {
-        var server = SecretOwner.ForServer("Server-1");
+        var platform = new SecretOwner("Platform", SecretOwner.PlatformOwnerId);
 
         var exception = await Assert.ThrowsAsync<OwnerRootKeyNotAllowedException>(async () =>
-            await CreateManager().SetAsync(server, "fake-kms", Reference, CancellationToken.None)
+            await CreateManager().SetAsync(platform, "fake-kms", Reference, CancellationToken.None)
         );
 
-        Assert.Equal(server.Normalize(), exception.Owner);
+        Assert.Equal(SecretOwner.Platform, exception.Owner);
         Assert.Contains("Data Protection key ring", exception.Reason);
         Assert.Equal(exception.Reason, exception.Message);
         Assert.Empty(_stores.RootKeys);
@@ -720,10 +720,10 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task Validate_ServerOwner_ReturnsNothing()
+    public async Task Validate_PlatformOwner_ReturnsNothing()
     {
         var validation = await CreateManager()
-            .ValidateAsync(SecretOwner.ForServer("server-1"), CancellationToken.None);
+            .ValidateAsync(SecretOwner.Platform, CancellationToken.None);
 
         Assert.Null(validation.RootKey);
         Assert.Null(validation.Change);
@@ -770,13 +770,11 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     [Fact]
-    public void CanBringRootKey_TheServerOwner_ReportsTheServerPolicyReason()
+    public void CanBringRootKey_ThePlatformOwner_ReportsThePlatformPolicyReason()
     {
-        Assert.False(
-            CreateManager().CanBringRootKey(SecretOwner.ForServer("Server-1"), out var reason)
-        );
+        Assert.False(CreateManager().CanBringRootKey(SecretOwner.Platform, out var reason));
         Assert.Equal(
-            "The server's master keys protect the deployment's own Data Protection key ring, so they are always wrapped by the deployment's root key.",
+            "The platform's master keys protect the deployment's Data Protection key ring and the host's own data, so they are always wrapped by the deployment's root key.",
             reason
         );
     }

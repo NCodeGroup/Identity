@@ -6,8 +6,8 @@ using Moq;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Core.Tests;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.SecretProtection;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -20,14 +20,13 @@ namespace NCode.Identity.OpenId.Core.SecretProtection;
 
 public sealed class OwnerRootKeyValidationServiceTests : BaseTests
 {
-    private const string ServerId = "default";
     private static readonly DateTimeOffset Now = new(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("acme");
     private static readonly SecretOwner OtherOwner = SecretOwner.ForTenant("globex");
 
     private readonly OwnerRootKeyOptions _rootKeyOptions = new();
     private readonly FakeTimeProvider _time = new(Now);
-    private readonly Mock<IMaterializedServerAccessor> _serverAccessor;
+    private readonly Mock<IMaterializedPlatformAccessor> _platformAccessor;
     private readonly Mock<IOwnerRootKeyManager> _manager;
     private readonly Mock<IStoreManagerFactory> _storeManagerFactory;
     private readonly Mock<IOwnerRootKeyStore> _store;
@@ -39,7 +38,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
 
     public OwnerRootKeyValidationServiceTests()
     {
-        _serverAccessor = CreateStrictMock<IMaterializedServerAccessor>();
+        _platformAccessor = CreateStrictMock<IMaterializedPlatformAccessor>();
         _manager = CreateStrictMock<IOwnerRootKeyManager>();
         _storeManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         _store = CreateStrictMock<IOwnerRootKeyStore>();
@@ -48,7 +47,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
         _publisher = CreateStrictMock<IEventPublisher>();
 
         _service = new OwnerRootKeyValidationService(
-            _serverAccessor.Object,
+            _platformAccessor.Object,
             _manager.Object,
             _storeManagerFactory.Object,
             _keySet.Object,
@@ -98,7 +97,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
         _keySet
             .Setup(x =>
                 x.TryAddAsync(
-                    $"{OwnerRootKeyValidationService.LeasePurpose}:{ServerId}",
+                    OwnerRootKeyValidationService.LeaseKey,
                     Now + _rootKeyOptions.RetryInterval / 2,
                     It.IsAny<CancellationToken>()
                 )
@@ -154,7 +153,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
     {
         SetupLease(acquired: false);
 
-        await _service.RunAsync(ServerId, CancellationToken.None);
+        await _service.RunAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -182,7 +181,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(ServerId, CancellationToken.None);
+        await _service.RunAsync(CancellationToken.None);
 
         Assert.Empty(_published);
     }
@@ -203,7 +202,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(ServerId, CancellationToken.None);
+        await _service.RunAsync(CancellationToken.None);
 
         var auditEvent = Assert.IsType<RootKeyAuditEvent>(Assert.Single(_published));
         Assert.Equal("root_key.unavailable", auditEvent.EventName);
@@ -231,7 +230,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(ServerId, CancellationToken.None);
+        await _service.RunAsync(CancellationToken.None);
 
         var auditEvent = Assert.IsType<RootKeyAuditEvent>(Assert.Single(_published));
         Assert.Equal("root_key.restored", auditEvent.EventName);
@@ -279,7 +278,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(ServerId, CancellationToken.None);
+        await _service.RunAsync(CancellationToken.None);
 
         var auditEvent = Assert.IsType<MasterKeyAuditEvent>(Assert.Single(_published));
         Assert.Equal("master_key.rotated", auditEvent.EventName);
@@ -304,7 +303,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(ServerId, CancellationToken.None);
+        await _service.RunAsync(CancellationToken.None);
 
         Assert.Empty(_published);
     }
@@ -337,6 +336,6 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             )
         );
 
-        await _service.RunAsync(ServerId, CancellationToken.None);
+        await _service.RunAsync(CancellationToken.None);
     }
 }

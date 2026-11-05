@@ -184,6 +184,56 @@ public sealed class ManagementAuditEventShapeTests
 
     #endregion
 
+    #region TeamChangedAuditEvent Tests
+
+    [Fact]
+    public void Resources_WhenATeamChanges_ListsTheTeam()
+    {
+        var auditEvent = new TeamChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.Management,
+            Outcome = AuditOutcome.Success,
+            ResourceId = "team-1",
+            ChangeType = ResourceChangeTypes.Created,
+        };
+
+        var resource = Assert.Single(auditEvent.Resources);
+
+        Assert.Equal(new AuditResource(ManagementResourceTypes.Team, "team-1"), resource);
+        Assert.Equal("team.created", auditEvent.EventName);
+    }
+
+    #endregion
+
+    #region TenantChangedAuditEvent Tests
+
+    [Fact]
+    public void Resources_WhenATenantChanges_ListsTheTenantThenItsTeam()
+    {
+        var auditEvent = new TenantChangedAuditEvent
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.Management,
+            Outcome = AuditOutcome.Success,
+            TeamId = "team-1",
+            ResourceId = "tenant-1",
+            ChangeType = ResourceChangeTypes.Created,
+        };
+
+        Assert.Equal(
+            [
+                new AuditResource(ManagementResourceTypes.Tenant, "tenant-1"),
+                new AuditResource(ManagementResourceTypes.Team, "team-1"),
+            ],
+            auditEvent.Resources
+        );
+    }
+
+    #endregion
+
     #region TenantSecretChangedAuditEvent Tests
 
     [Fact]
@@ -208,24 +258,6 @@ public sealed class ManagementAuditEventShapeTests
         var resource = Assert.Single(auditEvent.Resources);
 
         Assert.Equal(new AuditResource(ManagementResourceTypes.TenantSecret, "secret-1"), resource);
-    }
-
-    #endregion
-
-    #region ServerSecretChangedAuditEvent Tests
-
-    [Fact]
-    public void Resources_WhenAServerSecretChanges_ListsTheSecretThenTheServer()
-    {
-        var auditEvent = CreateServerSecretChangedEvent();
-
-        Assert.Equal(
-            [
-                new AuditResource(ManagementResourceTypes.ServerSecret, "secret-1"),
-                new AuditResource(ManagementResourceTypes.Server, "server-1"),
-            ],
-            auditEvent.Resources
-        );
     }
 
     #endregion
@@ -295,18 +327,6 @@ public sealed class ManagementAuditEventShapeTests
             EventSource = AuditEventSources.Management,
             Outcome = AuditOutcome.Success,
             TenantId = tenantId,
-            ResourceId = "secret-1",
-            ChangeType = ResourceChangeTypes.Created,
-        };
-
-    private static ServerSecretChangedAuditEvent CreateServerSecretChangedEvent() =>
-        new()
-        {
-            EventId = Guid.NewGuid(),
-            EventTime = DateTimeOffset.UnixEpoch,
-            EventSource = AuditEventSources.Management,
-            Outcome = AuditOutcome.Success,
-            ServerId = "server-1",
             ResourceId = "secret-1",
             ChangeType = ResourceChangeTypes.Created,
         };

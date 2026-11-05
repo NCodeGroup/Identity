@@ -1,4 +1,4 @@
-import type { ManagementOwner, RotateSecretRequest } from '@ncode/api';
+import type { SecretOwner, RotateSecretRequest } from '@ncode/api';
 import {
   useCreateSecretMutation,
   useDeleteSecretMutation,
@@ -9,13 +9,14 @@ import {
 import { SecretsManager } from './SecretsManager.js';
 
 export type OwnerSecretsTabProps = {
-  readonly owner: ManagementOwner;
-  /** The owner noun used in headings and empty/warning copy (e.g. "client", "tenant", "server"). */
+  readonly owner: SecretOwner;
+  /** The owner noun used in headings and empty/warning copy (e.g. "client", "tenant", "resource server"). */
   readonly ownerLabel: string;
 };
 
 /**
- * Container: the secrets of any owner (a server, a tenant, or a client or resource server in a scope; ADR-1257),
+ * Container: the secrets of any secret owner (a tenant, or a client or resource server in a scope; ADR-1257). The platform and a
+ * team hold settings only,
  * wiring the owner-generic secret endpoints to the shared {@link SecretsManager}. Secrets honor the one-time
  * reveal (ADR-1050). The rotate action is offered only for a client owner.
  */

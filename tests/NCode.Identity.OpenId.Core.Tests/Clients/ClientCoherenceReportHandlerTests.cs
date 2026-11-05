@@ -7,8 +7,8 @@ using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -17,7 +17,8 @@ namespace NCode.Identity.OpenId.Core.Tests.Clients;
 
 public sealed class ClientCoherenceReportHandlerTests : BaseTests
 {
-    private const string ServerId = "default";
+    private const string TeamId = "platform";
+    private const string OtherTeamId = "other-team";
     private const string FirstTenantId = "acme";
     private const string SecondTenantId = "globex";
     private const string ClientId = "web";
@@ -28,8 +29,8 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IClientCoherenceReporter> MockReporter { get; }
     private Mock<IClientCoherenceValidator> MockValidator { get; }
-    private IReadOnlySettingCollection ServerSettings { get; }
-    private IReadOnlySettingCollection PreviousServerSettings { get; }
+    private IReadOnlySettingCollection TeamSettings { get; }
+    private IReadOnlySettingCollection PreviousTeamSettings { get; }
 
     public ClientCoherenceReportHandlerTests()
     {
@@ -39,8 +40,8 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         MockEffectiveSettingsResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         MockReporter = CreateStrictMock<IClientCoherenceReporter>();
         MockValidator = CreateStrictMock<IClientCoherenceValidator>();
-        ServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        PreviousServerSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        TeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        PreviousTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
     }
 
     private ClientCoherenceReportHandler CreateHandler(
@@ -104,6 +105,25 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_ReadsOnlyTheTeamsTenants()
+    {
+        // Strict mocks: only the other team's page is set up, so reading the first team's tenants fails the test.
+        var settings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupStores();
+        SetupTeamTenantPage(OtherTeamId, SecondTenantId);
+        SetupTenantSettings(SecondTenantId, settings);
+        SetupReport(SecondTenantId, settings, null, null);
+        var handler = CreateHandler(
+            CreateLooseMock<ILogger<ClientCoherenceReportHandler>>().Object
+        );
+
+        await handler.HandleAsync(
+            new ReconcileTeamSettingsCommand(OtherTeamId, TeamSettings),
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenATenantCannotBeChecked_ContinuesWithTheNextTenant()
     {
         var secondSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
@@ -114,7 +134,7 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    ServerSettings,
+                    TeamSettings,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => IsDocument(e, FirstTenantId))
                 )
@@ -181,7 +201,7 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         SetupStores();
         SetupTenantPage(FirstTenantId);
         SetupTenantSettings(FirstTenantId, currentSettings);
-        SetupTenantSettings(PreviousServerSettings, FirstTenantId, previousSettings);
+        SetupTenantSettings(PreviousTeamSettings, FirstTenantId, previousSettings);
         SetupReadsChangedSetting(previousSettings, currentSettings, changed: false);
 
         // The handler logs a tenant it cannot check and continues, so the quiet logger fails the test when the handler
@@ -202,7 +222,7 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
         SetupStores();
         SetupTenantPage(FirstTenantId);
         SetupTenantSettings(FirstTenantId, currentSettings);
-        SetupTenantSettings(PreviousServerSettings, FirstTenantId, previousSettings);
+        SetupTenantSettings(PreviousTeamSettings, FirstTenantId, previousSettings);
         SetupReadsChangedSetting(previousSettings, currentSettings, changed: true);
         SetupReport(
             FirstTenantId,
@@ -239,10 +259,10 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     private static JsonElement CreateDocument(string name) =>
         JsonElement.Parse($$"""{"name":"{{name}}"}""");
 
-    private ReconcileServerSettingsCommand CreateCommand() => new(ServerId, ServerSettings);
+    private ReconcileTeamSettingsCommand CreateCommand() => new(TeamId, TeamSettings);
 
-    private ReconcileServerSettingsCommand CreateCommandWithPreviousSettings() =>
-        new(ServerId, ServerSettings) { PreviousSettings = PreviousServerSettings };
+    private ReconcileTeamSettingsCommand CreateCommandWithPreviousSettings() =>
+        new(TeamId, TeamSettings) { PreviousSettings = PreviousTeamSettings };
 
     private void SetupReadsChangedSetting(
         IReadOnlySettingCollection previousSettings,
@@ -307,9 +327,13 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     }
 
     private void SetupTenantPage(params string[] tenantIds) =>
+        SetupTeamTenantPage(TeamId, tenantIds);
+
+    private void SetupTeamTenantPage(string teamId, params string[] tenantIds) =>
         MockTenantStore
             .Setup(x =>
                 x.GetSettingsPageAsync(
+                    teamId,
                     It.Is<PageRequest>(page => page.Cursor == null && page.Limit == 100),
                     It.IsAny<CancellationToken>()
                 )
@@ -331,17 +355,17 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
             .Verifiable();
 
     private void SetupTenantSettings(string tenantId, IReadOnlySettingCollection settings) =>
-        SetupTenantSettings(ServerSettings, tenantId, settings);
+        SetupTenantSettings(TeamSettings, tenantId, settings);
 
     private void SetupTenantSettings(
-        IReadOnlySettingCollection serverSettings,
+        IReadOnlySettingCollection teamSettings,
         string tenantId,
         IReadOnlySettingCollection settings
     ) =>
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    serverSettings,
+                    teamSettings,
                     OpenIdSettingScopes.Tenant,
                     It.Is<JsonElement>(e => IsDocument(e, tenantId))
                 )

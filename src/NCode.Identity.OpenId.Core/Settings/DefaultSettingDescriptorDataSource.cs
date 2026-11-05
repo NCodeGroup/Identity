@@ -211,7 +211,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // access_token_lifetime: validity window for issued access tokens (default 5 minutes).
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             // Scopes: the client's and every targeted resource server's lifetimes combine at issuance (ADR-1158).
             yield return new SettingDescriptor<TimeSpan>
             {
@@ -362,7 +362,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // authorization_code_lifetime: validity window for issued authorization codes (default 5 minutes).
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.AuthorizationCodeLifetime,
@@ -450,7 +450,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // client_assertion_max_lifetime: longest lifetime accepted for a private_key_jwt / client_secret_jwt
             // assertion, from its earliest 'iat'/'nbf' to its 'exp' (RFC 7523 §3; default 5 minutes, ADR-1124).
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ClientAssertionMaxLifetime,
@@ -463,7 +463,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // clock_skew: allowed leeway when validating token time claims (default 5 minutes).
-            // Ceiling (Min): a child may only reduce the tolerance; raise the server value to allow more.
+            // Ceiling (Min): a child may only reduce the tolerance; raise the platform value to allow more.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ClockSkew,
@@ -476,7 +476,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // continue_authorization_lifetime: validity window for a paused ("continue") authorization flow (default 15 minutes).
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.ContinueAuthorizationLifetime,
@@ -489,7 +489,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // device_code_lifetime: validity window for a pending device authorization request (default 10 minutes; RFC 8628).
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.DeviceCodeLifetime,
@@ -594,7 +594,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // ciba_request_lifetime: validity window for a pending CIBA request (default 10 minutes).
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.CibaRequestLifetime,
@@ -711,7 +711,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // id_token_lifetime: validity window for issued id tokens (default 5 minutes).
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.IdTokenLifetime,
@@ -725,8 +725,8 @@ internal class DefaultSettingDescriptorDataSource(
 
             // id_token_signed_response_alg: the signature "alg" the client registers for its ID tokens (OpenID Connect
             // Dynamic Client Registration 1.0 §2: RS256 unless registered); also signs its logout tokens.
-            // Override (Replace): a child fully replaces the parent value, so a server or tenant sets the default for
-            // its clients. The effective id_token_signing_alg_values_supported must permit it (ADR-1155).
+            // Override (Replace): a child fully replaces the parent value, so a platform, team or tenant sets the
+            // default for its clients. The effective id_token_signing_alg_values_supported must permit it (ADR-1155).
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.IdTokenSignedResponseAlg,
@@ -1116,7 +1116,7 @@ internal class DefaultSettingDescriptorDataSource(
             // refresh_token_lifetime: the absolute lifetime of a refresh token's rotation family, from the grant that
             // began it, however often its tokens are used or rotated (default 30 days). The token response announces
             // the time left as refresh_token_expires_in. (ADR-1297)
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.RefreshTokenLifetime,
@@ -1131,7 +1131,7 @@ internal class DefaultSettingDescriptorDataSource(
             // refresh_token_sliding_lifetime: under the sliding refresh_token_expiration_policy, how long a refresh token
             // stays valid after it was issued or last used, never past its family's refresh_token_lifetime (default 15
             // days); the absolute policy ignores it. (ADR-1297)
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.RefreshTokenSlidingLifetime,
@@ -1201,7 +1201,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // request_object_max_lifetime: longest lifetime accepted for a signed request object or CIBA authentication
             // request, from its earliest 'iat'/'nbf' to its 'exp' (default 60 minutes, FAPI's bound; ADR-1187).
-            // Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.RequestObjectMaxLifetime,
@@ -1331,7 +1331,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // require_pkce: whether every authorization request whose response type issues an authorization code must
             // bind the code to a PKCE code_challenge (default true; RFC 9700 §2.1.1, OAuth 2.1 §4.1.1). Only the
-            // server's configuration can relax it; where it is relaxed, a confidential client attested by
+            // platform's configuration can relax it; where it is relaxed, a confidential client attested by
             // pkce_nonce_exemption may use the OpenID Connect nonce instead. A public client always uses PKCE
             // (ADR-1144).
             // Floor (Or): once a parent requires it, a child cannot un-require it.
@@ -1399,7 +1399,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // pushed_authorization_request_lifetime: validity window of a pushed authorization request (default 90
-            // seconds; RFC 9126 §2.2). Ceiling (Min): a child may only shorten it; raise the server value to allow longer.
+            // seconds; RFC 9126 §2.2). Ceiling (Min): a child may only shorten it; raise the platform value to allow
+            // longer.
             yield return new SettingDescriptor<TimeSpan>
             {
                 Name = OpenIdSettingNames.PushedAuthorizationRequestLifetime,
@@ -1412,7 +1413,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // dpop_signing_alg_values_supported: JWS algorithms accepted in a DPoP proof JWT (RFC 9449). The baseline
-            // is the server's asymmetric signing set (supplied by the algorithm pipeline); symmetric algorithms are
+            // is the platform's asymmetric signing set (supplied by the algorithm pipeline); symmetric algorithms are
             // never acceptable for a DPoP proof. Ceiling (Intersect): a child narrows the parent's set.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
@@ -1465,7 +1466,7 @@ internal class DefaultSettingDescriptorDataSource(
             // tls_client_certificate_bound_access_tokens: whether the server supports mutual-TLS
             // client-certificate-bound access tokens, which discovery advertises (RFC 8705 §3.3); it never requires a
             // client to bind. Secure-by-default false (only advertise once the deployment has wired certificate
-            // forwarding). Override (Replace): a tenant overrides the server.
+            // forwarding). Override (Replace): a team or tenant overrides the platform.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.TlsClientCertificateBoundAccessTokens,
@@ -1477,8 +1478,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // require_tls_client_certificate_bound_access_tokens: whether the client's access tokens must be bound to
-            // the mutual-TLS certificate it presents (RFC 8705 §3), default false. A server or tenant value is a floor
-            // for every client. Floor (Or): once a parent requires it, a child cannot un-require it.
+            // the mutual-TLS certificate it presents (RFC 8705 §3), default false. A platform, team or tenant value is
+            // a floor for every client. Floor (Or): once a parent requires it, a child cannot un-require it.
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.RequireTlsClientCertificateBoundAccessTokens,
@@ -1670,9 +1671,9 @@ internal class DefaultSettingDescriptorDataSource(
 
             // audit_userinfo_access: audit each answer of the UserInfo endpoint to a request whose access token
             // authenticated, naming the subject, the client and the claims disclosed (default false: the subject is
-            // already audited when the token is issued, and the endpoint is a hot read path). Floor (Or): once a server,
-            // tenant or client turns it on, a narrower scope cannot turn it off, so a client cannot opt out of its
-            // tenant's audit trail. Scopes: the endpoint reads the effective settings of the token's client, and the
+            // already audited when the token is issued, and the endpoint is a hot read path). Floor (Or): once the
+            // platform, a team, a tenant or a client turns it on, a narrower scope cannot turn it off, so a client cannot
+            // opt out of its tenant's audit trail. Scopes: the endpoint reads the effective settings of the token's client, and the
             // tenant's when the token names no client the tenant serves. (ADR-1401)
             yield return new SettingDescriptor<bool>
             {
@@ -1983,7 +1984,7 @@ internal class DefaultSettingDescriptorDataSource(
             // default) selects none, and every value must name a registered profile, because a name that matches none
             // would silently leave the scope without the baseline it asked for. Not advertised. Floor (Union): the
             // profiles accumulate down the cascade, so a child can add a profile but never remove one a parent selects
-            // (a server or tenant can mandate a profile), and every selected profile applies. (ADR-1148)
+            // (a platform, team or tenant can mandate a profile), and every selected profile applies. (ADR-1148)
             // Scopes: a tenant's selection expands into the ceilings discovery advertises, and a client's effective
             // selection is enforced on its requests; a resource server selects none, since no profile governs one. (ADR-1149)
             yield return new SettingDescriptor<IReadOnlyCollection<string>>

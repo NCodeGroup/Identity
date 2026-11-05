@@ -37,11 +37,11 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSettingsReloadRejected,
+        EventId = EventIds.PlatformSettingsReloadRejected,
         Level = LogLevel.Error,
-        Message = "The reloaded server settings in '{SectionPath}' cannot be honored, so the previous settings remain in force: {Errors}"
+        Message = "The reloaded platform settings in '{SectionPath}' cannot be honored, so the previous settings remain in force: {Errors}"
     )]
-    internal static partial void ServerSettingsReloadRejected(
+    internal static partial void PlatformSettingsReloadRejected(
         this ILogger logger,
         string sectionPath,
         string errors
@@ -55,6 +55,17 @@ internal static partial class Log
     internal static partial void TenantKeyRolloverFailed(
         this ILogger logger,
         string tenantId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantKeyRolloverTeamFailed,
+        Level = LogLevel.Warning,
+        Message = "Rolling over the keys of the tenants of the team '{TeamId}' failed; they are rolled over again at the next pass"
+    )]
+    internal static partial void TenantKeyRolloverTeamFailed(
+        this ILogger logger,
+        string teamId,
         Exception exception
     );
 
@@ -100,7 +111,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.TenantKeyReseedFailed,
         Level = LogLevel.Warning,
-        Message = "Re-seeding the tenant '{TenantId}' after a server settings change failed; it is seeded again when it is next materialized"
+        Message = "Re-seeding the tenant '{TenantId}' after a platform settings change failed; it is seeded again when it is next materialized"
     )]
     internal static partial void TenantKeyReseedFailed(
         this ILogger logger,
@@ -120,97 +131,113 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSettingsRefreshFailed,
+        EventId = EventIds.PlatformSettingsRefreshFailed,
         Level = LogLevel.Warning,
-        Message = "Refreshing the server's persisted settings failed; the previous settings remain in force until the next refresh"
+        Message = "Refreshing the platform's persisted settings failed; the previous settings remain in force until the next refresh"
     )]
-    internal static partial void ServerSettingsRefreshFailed(
+    internal static partial void PlatformSettingsRefreshFailed(
         this ILogger logger,
         Exception exception
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSettingsChangeRefreshFailed,
+        EventId = EventIds.PlatformSettingsChangeRefreshFailed,
         Level = LogLevel.Warning,
-        Message = "Reading the settings of the server '{ServerId}' again after a change failed; this replica applies the change at its next poll"
+        Message = "Reading the settings of the platform again after a change failed; this replica applies the change at its next poll"
     )]
-    internal static partial void ServerSettingsChangeRefreshFailed(
+    internal static partial void PlatformSettingsChangeRefreshFailed(
         this ILogger logger,
-        string serverId,
         Exception exception
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSettingsChangeBroadcastFailed,
+        EventId = EventIds.PlatformSettingsChangeBroadcastFailed,
         Level = LogLevel.Warning,
-        Message = "Announcing the change to the settings of the server '{ServerId}' to the other replicas failed; they apply it at their next poll"
+        Message = "Announcing the change to the settings of the platform to the other replicas failed; they apply it at their next poll"
     )]
-    internal static partial void ServerSettingsChangeBroadcastFailed(
+    internal static partial void PlatformSettingsChangeBroadcastFailed(
         this ILogger logger,
-        string serverId,
         Exception exception
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSettingsReconciliationStarted,
+        EventId = EventIds.TeamSettingsReconciliationStarted,
         Level = LogLevel.Information,
-        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the server '{ServerId}' affect"
+        Message = "Reconciling the tenants and clients that the settings '{Fingerprint}' of the team '{TeamId}' affect"
     )]
-    internal static partial void ServerSettingsReconciliationStarted(
+    internal static partial void TeamSettingsReconciliationStarted(
         this ILogger logger,
-        string serverId,
+        string teamId,
         string fingerprint
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSettingsReconciled,
+        EventId = EventIds.TeamSettingsReconciled,
         Level = LogLevel.Information,
-        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the server '{ServerId}' affect"
+        Message = "Reconciled the tenants and clients that the settings '{Fingerprint}' of the team '{TeamId}' affect"
     )]
-    internal static partial void ServerSettingsReconciled(
+    internal static partial void TeamSettingsReconciled(
         this ILogger logger,
-        string serverId,
+        string teamId,
         string fingerprint
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerSettingsReconciliationFailed,
+        EventId = EventIds.TeamSettingsReconciliationFailed,
         Level = LogLevel.Warning,
-        Message = "Reconciling the settings of the server '{ServerId}' failed; it is attempted again when the reconciliation lease expires"
+        Message = "Reconciling the settings of the team '{TeamId}' failed; it is attempted again when the reconciliation lease expires"
     )]
-    internal static partial void ServerSettingsReconciliationFailed(
+    internal static partial void TeamSettingsReconciliationFailed(
         this ILogger logger,
-        string serverId,
+        string teamId,
         Exception exception
     );
 
     [LoggerMessage(
-        EventId = EventIds.ServerMaterializationAtStartFailed,
+        EventId = EventIds.PlatformMaterializationAtStartFailed,
         Level = LogLevel.Warning,
-        Message = "Materializing the server when the replica started failed; its settings are reconciled once a request materializes it"
+        Message = "Materializing the platform when the replica started failed; its settings are reconciled once a request materializes it"
     )]
-    internal static partial void ServerMaterializationAtStartFailed(
+    internal static partial void PlatformMaterializationAtStartFailed(
         this ILogger logger,
         Exception exception
     );
 
     [LoggerMessage(
-        EventId = EventIds.ReconciledServerSettingsUnreadable,
+        EventId = EventIds.ReconciledTeamSettingsUnreadable,
         Level = LogLevel.Warning,
-        Message = "The settings that the server '{ServerId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
+        Message = "The settings that the team '{TeamId}' was last reconciled against cannot be read, so every tenant and client is reconciled"
     )]
-    internal static partial void ReconciledServerSettingsUnreadable(
+    internal static partial void ReconciledTeamSettingsUnreadable(
         this ILogger logger,
-        string serverId,
+        string teamId,
         Exception exception
     );
 
     [LoggerMessage(
         EventId = EventIds.TenantCacheClearFailed,
         Level = LogLevel.Warning,
-        Message = "Evicting the cached tenants after the server's settings changed failed; each tenant applies the change when its cache entry expires"
+        Message = "Evicting the cached tenants after the platform's settings changed failed; each tenant applies the change when its cache entry expires"
     )]
     internal static partial void TenantCacheClearFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.TeamChangeBroadcastFailed,
+        Level = LogLevel.Warning,
+        Message = "Announcing the change to team '{TeamId}' to the other replicas failed; they pick it up through their polls"
+    )]
+    internal static partial void TeamChangeBroadcastFailed(
+        this ILogger logger,
+        string teamId,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TeamCacheClearFailed,
+        Level = LogLevel.Warning,
+        Message = "Evicting the cached teams failed; each team applies the change when its cache entry expires"
+    )]
+    internal static partial void TeamCacheClearFailed(this ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventId = EventIds.ProtectedValuePageConflict,

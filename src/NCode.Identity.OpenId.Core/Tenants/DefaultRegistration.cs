@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Core.ResourceServers;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.OpenId.Tenants.Strategies;
 using NCode.Identity.SharedState;
@@ -50,7 +50,7 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // The materialized tenant (settings + secrets, merged server->tenant) and its cache (ADR-1036).
+            // The materialized tenant (settings + secrets, merged platform->team->tenant) and its cache (ADR-1036).
             serviceCollection.AddMemoryCache();
             serviceCollection.TryAddSingleton<IOpenIdTenantCache, DefaultOpenIdTenantCache>();
 
@@ -99,8 +99,8 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A tenant change announced on the replica broadcast channel evicts the tenant from this replica's cache, so
-            // every replica serves the change rather than only the one that made it (ADR-1205).
+            // A tenant change announced on the replica broadcast channel evicts the tenant from this replica's cache,
+            // so every replica serves the change rather than only the one that made it (ADR-1205).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IReplicaBroadcastHandler,
@@ -108,10 +108,11 @@ internal static class DefaultRegistration
                 >()
             );
 
-            // A change to the server's effective settings seeds every tenant that lacks a key its settings use (ADR-1219).
+            // A change to a team's effective settings seeds every tenant of the team that lacks a key its settings use
+            // (ADR-1219).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    ICommandHandler<ReconcileServerSettingsCommand>,
+                    ICommandHandler<ReconcileTeamSettingsCommand>,
                     TenantKeyReconciliationHandler
                 >()
             );

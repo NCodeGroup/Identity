@@ -16,6 +16,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 // See ADR-1199.
 [Index(nameof(TenantId), nameof(Day), nameof(Meter), IsUnique = true)]
 [Index(nameof(Day))]
+[Index(nameof(TeamId), nameof(Day))]
 public sealed class TenantUsageEntity : ISupportConcurrencyToken
 {
     /// <summary>
@@ -31,6 +32,13 @@ public sealed class TenantUsageEntity : ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
     public required string TenantId { get; init; }
+
+    /// <summary>
+    /// Gets the identifier of the team of the tenant whose usage this is.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string TeamId { get; init; }
 
     /// <summary>
     /// Gets the UTC calendar day the usage was counted on.

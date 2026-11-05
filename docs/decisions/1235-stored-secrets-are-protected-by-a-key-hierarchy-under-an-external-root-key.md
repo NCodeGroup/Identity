@@ -15,6 +15,8 @@
   reload after a refresh interval, which decides decision 11's master key rotation and the rotation the Consequences
   list; amended by
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md): the recovery private key unwraps master keys only inside the offline command, which is the rewrap and recovery tool the Consequences list; amended by
+  [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md): the platform's master key
+  protects the Data Protection key ring and the host's own data, and no stored secret; amended by
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): an owner may wrap its master keys under a root key it controls, with no recovery copy, re-validated periodically)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group

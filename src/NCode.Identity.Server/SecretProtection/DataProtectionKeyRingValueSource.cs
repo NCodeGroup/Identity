@@ -8,24 +8,24 @@ using NCode.Identity.Secrets.Persistence.Protection;
 namespace NCode.Identity.Server.SecretProtection;
 
 /// <summary>
-/// Reports whether the Data Protection key ring still needs a retired master key of the server. Data Protection stores
+/// Reports whether the Data Protection key ring still needs a retired master key of the platform. Data Protection stores
 /// key elements and never rewrites one, so the ring's keys are not re-encrypted and there is nothing to rewrap: the
 /// retired key is kept while a live ring key names it.
 /// </summary>
 /// <remarks>
-/// A key ring that cannot be read is treated as naming every key, so the server's master key is then never destroyed
+/// A key ring that cannot be read is treated as naming every key, so the platform's master key is then never destroyed
 /// automatically.
 /// </remarks>
 // See ADR-1407.
 internal sealed class DataProtectionKeyRingValueSource(
-    ServerSecretProtectorLoader loader,
+    PlatformSecretProtectorLoader loader,
     DataProtectionKeyRingReader keyRingReader,
     ISecretProtectorProvider provider,
     IOptions<SecretProtectionOptions> protectionOptions,
     TimeProvider timeProvider
 ) : IProtectedValueSource
 {
-    private ServerSecretProtectorLoader Loader { get; } = loader;
+    private PlatformSecretProtectorLoader Loader { get; } = loader;
 
     private DataProtectionKeyRingReader KeyRingReader { get; } = keyRingReader;
 

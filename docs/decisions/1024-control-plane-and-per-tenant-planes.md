@@ -1,6 +1,8 @@
 # 1024. Deployment model: one control plane with logical tenant isolation; physical isolation is a separate deployment
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is the
+  deployment root and a team groups a customer's tenants)
 - **Date:** 2026-10-01
 - **Deciders:** NCode Group
 

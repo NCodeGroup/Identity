@@ -111,7 +111,10 @@ public class ManagementControlPlaneTests
         string? host = null
     )
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/tenants")
+        using var request = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants"
+        )
         {
             Content = JsonContent.Create(
                 new

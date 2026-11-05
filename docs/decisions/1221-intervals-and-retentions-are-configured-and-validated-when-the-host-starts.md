@@ -12,7 +12,9 @@
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): `OpenId:OutboundHttp`;
   and by [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md):
   `OpenId:Tenant:KeyRollover`, whose `Interval` is a timer period; and by
-  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): `SecretProtection:MasterKeys`, whose intervals and retentions are validated when the host starts)
+  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md): `SecretProtection:MasterKeys`, whose intervals and retentions are validated when the host starts; amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the team's
+  refresh, cache and reconciliation-lease intervals are configured under `OpenId:Team` and validated at startup)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md), [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md)

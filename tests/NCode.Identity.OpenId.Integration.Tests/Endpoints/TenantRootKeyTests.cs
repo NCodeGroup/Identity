@@ -259,7 +259,7 @@ public class TenantRootKeyTests
     private static async Task CreateTenantAsync(HttpClient administrator)
     {
         using var response = await administrator.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = TenantId,

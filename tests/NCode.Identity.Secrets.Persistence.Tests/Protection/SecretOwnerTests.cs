@@ -49,7 +49,7 @@ public class SecretOwnerTests
     [Theory]
     [InlineData("tenant", "tenant-1", "tenant-1")]
     [InlineData("Tenant", "Tenant-1", "Tenant-1")]
-    [InlineData("server", "server-1", null)]
+    [InlineData("platform", "platform", null)]
     public void TenantId_ByOwnerType_IsTheOwnerIdOfATenant(
         string ownerType,
         string ownerId,
@@ -69,17 +69,17 @@ public class SecretOwnerTests
 
     #endregion
 
-    #region ForServer Tests
+    #region Platform Tests
 
     [Fact]
-    public void ForServer_SetsServerType()
+    public void Platform_IsThePlatformOwner()
     {
-        const string serverId = "server-1";
+        var owner = SecretOwner.Platform;
 
-        var owner = SecretOwner.ForServer(serverId);
-
-        Assert.Equal(SecretOwnerTypes.Server, owner.OwnerType);
-        Assert.Equal(serverId, owner.OwnerId);
+        Assert.Equal(SecretOwnerTypes.Platform, owner.OwnerType);
+        Assert.Equal("platform", owner.OwnerType);
+        Assert.Equal(SecretOwner.PlatformOwnerId, owner.OwnerId);
+        Assert.Equal("platform", owner.OwnerId);
     }
 
     #endregion
@@ -131,7 +131,7 @@ public class SecretOwnerTests
 
     [Theory]
     [InlineData("tenant:tenant-1", "tenant", "tenant-1")]
-    [InlineData("server:a:b", "server", "a:b")]
+    [InlineData("platform:a:b", "platform", "a:b")]
     public void TryParse_ValidText_ReturnsOwner(string text, string ownerType, string ownerId)
     {
         Assert.True(SecretOwner.TryParse(text, out var owner));

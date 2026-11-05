@@ -26,7 +26,7 @@ import {
 
 export type OwnerEncryptionKeysTabProps = {
   readonly owner: EncryptionKeyOwner;
-  /** The owner noun used in headings and copy (e.g. "tenant", "server"). */
+  /** The owner noun used in headings and copy (e.g. "tenant", "platform"). */
   readonly ownerLabel: string;
 };
 
@@ -150,10 +150,13 @@ function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySec
 }
 
 /**
- * Container: the master keys of a tenant or of the server (ADR-1407) with a "Rekey" action. A rekey retires the active
- * key and starts the next version, whose values are then rewrapped in the background, so it is confirmed first. The
- * API returns no key material, and neither does this view. A rekey that loses a race to another rekey shows the
- * server's explanation in the dialog. A tenant also manages the root key it brings (ADR-1414); a server never does.
+ * Container: the master keys of a tenant or of the platform (ADR-1407) with a "Rekey" action. A rekey retires the active
+ * key and starts the next version, so it is confirmed first. A tenant's values are rewrapped under the next version in
+ * the background. The platform's next version protects the Data Protection keys and host data created afterwards,
+ * existing Data Protection keys keep naming the old version until they expire, and the old key is destroyed once
+ * nothing names it. The API returns no key material, and neither does this view. A rekey that loses a race to another
+ * rekey shows the server's explanation in the dialog. A tenant also manages the root key it brings (ADR-1414);
+ * the platform never does.
  */
 export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKeysTabProps) {
   const { data, isLoading, error } = useListEncryptionKeysQuery(owner);
@@ -175,6 +178,11 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
       setRekeyError(apiErrorMessage(failure as ApiError));
     }
   };
+
+  const rekeyMessage =
+    owner.kind === 'platform'
+      ? `Retire the active encryption key of this ${ownerLabel} and start the next version? The next version protects the Data Protection keys and host data created afterwards. Existing Data Protection keys keep naming the old version until they expire, and the old key is destroyed once nothing names it.`
+      : `Retire the active encryption key of this ${ownerLabel} and start the next version? The values the old key protects are rewrapped under the new one in the background, and the old key is destroyed once nothing uses it.`;
 
   return (
     <Stack spacing={2}>
@@ -200,8 +208,8 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
         data &&
         !data.recoveryConfigured && (
           <Alert severity="warning" data-testid="encryption-keys-no-recovery">
-            New keys are not wrapped under a recovery key, so losing the root key loses every secret
-            this {ownerLabel} stores.
+            New keys are not wrapped under a recovery key, so losing the root key loses every value
+            this {ownerLabel} protects.
           </Alert>
         )
       )}
@@ -223,7 +231,7 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
       <ConfirmDialog
         open={confirming}
         title="Rekey"
-        message={`Retire the active encryption key of this ${ownerLabel} and start the next version? The values the old key protects are rewrapped under the new one in the background, and the old key is destroyed once nothing uses it.`}
+        message={rekeyMessage}
         confirmLabel="Rekey"
         confirmColor="primary"
         isBusy={isRekeying}

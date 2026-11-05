@@ -41,7 +41,7 @@
 | 5   | **The KMS is off the hot path.** The KMS is called only to unwrap a master key, roughly once per owner per process, never once per token or request. |
 | 6   | **Secret plaintext never sits on the garbage-collected heap.** It lives in pinned or stack memory and is zeroed when released. A secret is never a `string`. |
 | 7   | **Production refuses an unsafe setup.** It won't start with a throwaway key, a key in a config file, or no decision about recovery.                   |
-| 8   | **A master key rotates every year, and a retired one is destroyed once nothing names it.** Rotation rewraps 32-byte data keys and never touches a payload. |
+| 8   | **A master key rotates every year, and a retired one is destroyed once nothing names it.** Rotation rewraps a tenant's 32-byte data keys and never touches a payload; the platform's next version protects the Data Protection keys and host data created afterwards. |
 | 9   | **A tenant can hold the key to its own data.** Its master keys are wrapped only by a key in its own KMS, with no operator recovery copy, and revoking or destroying that key makes its data unreadable everywhere within an hour by default. |
 
 ## Why this matters
@@ -80,7 +80,7 @@ flowchart TB
         REC["<b>Recovery key</b><br/>RSA ≥ 3072, private half offline"]
     end
     subgraph DB["🛢️ Database: MasterKeys table"]
-        MKS["<b>Server master key</b><br/>AES-256, versioned"]
+        MKS["<b>Platform master key</b><br/>AES-256, versioned"]
         MKA["<b>Tenant A master key</b>"]
         MKB["<b>Tenant B master key</b><br/>wrapped by its own root key"]
     end
@@ -100,7 +100,7 @@ flowchart TB
 
 1. The **root key** wraps master keys. It sits in AWS KMS, Azure Key Vault, Google Cloud KMS or a mounted key file,
    and the server only ever asks it to *wrap* or *unwrap* a key.
-2. Each **owner** (the server, and every tenant) has its own 256-bit **master key**. It is stored in the database,
+2. Each **owner** (the platform, and every tenant) has its own 256-bit **master key**. It is stored in the database,
    wrapped by the root key, and optionally wrapped a second time by an offline recovery key. A tenant can bring a root
    key of its own that wraps its master key in place of the deployment's root key, with no recovery copy
    ([Tenant root keys](#tenant-root-keys-bring-your-own-key)).
@@ -113,12 +113,12 @@ flowchart TB
 
 | Data                                                                                    | Owner                | At rest                                                                                                    |
 | --------------------------------------------------------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Server and tenant **private signing and encryption keys**                               | Server / tenant      | `nce1.` envelope                                                                                           |
+| Tenant **private signing and encryption keys**                                      | Tenant               | `nce1.` envelope                                                                                           |
 | **Client secrets** of a client that only compares its secret (`client_secret_basic`, `client_secret_post`) | Tenant | A one-way verifier in an `nce1.` envelope: the server cannot read the secret back. A supplied secret's PBKDF2 verifier can still be searched by whoever holds the root key and the database, so choose a long random one ([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)) |
 | **Client secrets** of a client that uses its secret as a key (`client_secret_jwt`), and resource-server keys | Tenant | `nce1.` envelope |
 | **Grant payloads**: authorization codes, refresh tokens, sessions, device, CIBA and PAR requests, DCR tokens | Tenant               | `nce1.` envelope ([ADR-1265](../decisions/1265-grant-payloads-are-protected-under-the-tenant-master-key.md))     |
-| ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Server               | Each key in an `nce1.` envelope                                                                            |
-| Your own application's sensitive data                                                   | Server / tenant      | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
+| ASP.NET Core **Data Protection key ring** (sign-in cookies, anti-forgery tokens)        | Platform             | Each key in an `nce1.` envelope                                                                            |
+| Your own application's sensitive data                                                   | Platform / tenant    | `nce1.` envelope ([see below](#protect-your-own-data-with-it))                                             |
 | **Public keys** (`spki`, `x509`)                                                        | n/a                  | Clear text, by design: they are public                                                                     |
 | Local-account **passwords**                                                             | n/a                  | Never encrypted: hashed one way with PBKDF2-HMAC-SHA256, so nothing can recover them                       |
 
@@ -165,7 +165,7 @@ namespace key → data key), so it should feel familiar. It also improves on it 
 - **Sign and decrypt everything inside the KMS.** This is the strongest option against a compromised replica, but it
   adds latency and a fee to every token. It is planned as an opt-in for signing keys
   ([#165](https://github.com/NCodeGroup/Identity/issues/165)).
-- **A server key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
+- **A platform key above the tenant keys.** It adds no protection, because every replica holds every tenant's keys
   anyway, and it would stop a tenant from bringing its own root key.
 
 Full reasoning: [ADR-1235 § Options considered](../decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md#options-considered).
@@ -322,7 +322,8 @@ rewrapped under it unreadable, in the database and in every backup
   restricted.
 - **Who cannot bring a key.** Which owners can bring a key is decided by the registered `IOwnerRootKeyPolicy`
   strategies: an owner that any of them refuses cannot, and setting a key on it answers `400` with the policy's reason.
-  The `server` owner is refused, because its master keys protect the deployment's Data Protection key ring. The
+  The `platform` owner is refused, because its master keys protect the deployment's Data Protection key ring and the
+  host's own data. The
   control-plane tenant is refused too: the management API authenticates every administrator against it
   ([ADR-1191](../decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)), so a revoked
   key would fail every management request, including the ones that restore it, and lock the administrators out. Their
@@ -395,9 +396,14 @@ choose shows no set action. The key table names each master key's root key, or "
 
 A master key does not live forever. Each owner's active master key **rotates** to a new version after
 `SecretProtection:MasterKeys:RotationPeriod` (365 days), or at once when an administrator **rekeys** it. The old version
-retires. The 32-byte data keys it wrapped are **rewrapped** under the new version in the background, and the retired key
-is **destroyed** once its grace has passed and no stored value names it
+retires. A tenant's 32-byte data keys that it wrapped are **rewrapped** under the new version in the background, and the
+retired key is **destroyed** once its grace has passed and no stored value names it
 ([ADR-1407](../decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+The platform's next version protects the Data Protection keys and the host data created afterwards. An existing Data
+Protection key is never re-encrypted, so a retired platform version stays while a live ring key names it; a value that
+a registered protected-value source reports for the platform (a host's own data) is rewrapped like a tenant's, and the
+version is destroyed once its grace has passed and no live ring key and no such value names it
+([ADR-1413](../decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md)).
 
 ```mermaid
 sequenceDiagram
@@ -411,12 +417,12 @@ sequenceDiagram
     M-->>R: master-key-changed (best effort)
     R->>DB: reload the owner's keys (also every RefreshInterval)
     M->>J: rewrap job after twice the refresh interval
-    J->>DB: rewrap each data key under version N+1, payloads untouched
+    J->>DB: rewrap each tenant data key (and each platform value a source reports) under N+1, payloads untouched
     J->>DB: destroy the retired key once past its grace and unreferenced
 ```
 
 - **Rekey through the API.** `GET` and `POST /api/tenants/{tenantId}/encryption-keys[/rekey]` and
-  `/api/servers/{serverId}/encryption-keys[/rekey]` report the keys and rotate them (Auth0's rekey shape). The response
+  `/api/platform/encryption-keys[/rekey]` report the keys and rotate them (Auth0's rekey shape). The response
   names keys by id, version, state, instants, root key provider, root key reference and recovery key id and carries no key material. A rekey
   within twice `RefreshInterval` of the owner's last rotation answers `409` with `Retry-After`, and one that loses a
   race to another rekey answers `412`, as every management write that loses a race does. The management console shows
@@ -430,7 +436,7 @@ sequenceDiagram
   those under a retired key; a value that cannot be rewrapped is logged by record id and keeps its key.
 - **Destroy is conservative.** A retired key is destroyed only after `RetirementGrace` (30 days) and when every
   registered `IProtectedValueSource` reports no value that names it. The sources cover stored secrets, grant payloads and
-  the Data Protection key ring. A ring key is not re-encrypted, so the retired server key stays while a live ring key
+  the Data Protection key ring. A ring key is not re-encrypted, so the retired platform key stays while a live ring key
   names it, and always when the ring cannot be read. `SecretProtection:MasterKeys:DestroyRetired=false` keeps retired
   keys for good.
 - **Every change is audited.** `master_key.rotated` and `master_key.destroyed` are `key` events without material (see
@@ -457,7 +463,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 - **A tenant's own root key has no recovery copy.** A master key wrapped by a key the tenant brings
   ([Tenant root keys](#tenant-root-keys-bring-your-own-key)) is never wrapped by the recovery key, whatever the recovery
   settings say: the tenant's control is the point, so only the tenant's key can unwrap it.
-- **Data Protection key ring gate.** If the server's master key can't decrypt a live key in the Data Protection key
+- **Data Protection key ring gate.** If the platform's master key can't decrypt a live key in the Data Protection key
   ring (for example after a partial restore), the host **stops** instead of silently signing everyone out. The error
   names each affected key, and one setting revokes them
   ([ADR-1247](../decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)).

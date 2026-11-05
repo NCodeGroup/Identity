@@ -1,6 +1,9 @@
 # 1058. Asymmetric public key material is exposed through a dedicated read endpoint (JWK + PEM)
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  singleton with no list, create, delete or secrets, and its management surface is its settings and effective
+  settings under `/api/platform`)
 - **Date:** 2026-10-10
 - **Deciders:** NCode.Identity maintainers
 

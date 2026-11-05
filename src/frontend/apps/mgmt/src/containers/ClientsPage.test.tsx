@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
-import { GLOBAL_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
+import { PLATFORM_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { ClientsPage } from './ClientsPage.js';
 
@@ -100,7 +100,7 @@ describe('ClientsPage (list states and scope)', () => {
     expect(await screen.findByTestId('data-error')).toHaveTextContent('Failed to load clients.');
   });
 
-  it('lists global-scope clients from the global path, never a tenant path', async () => {
+  it('lists platform-scope clients from the platform path, never a tenant path', async () => {
     const calls = installFetch((url, method) => {
       if (url.endsWith('/api/clients') && method === 'GET') {
         return jsonResponse({ items: [{ ...web, clientId: 'system-cli' }] });
@@ -108,7 +108,7 @@ describe('ClientsPage (list states and scope)', () => {
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
-    renderPage(GLOBAL_SCOPE);
+    renderPage(PLATFORM_SCOPE);
 
     expect(await screen.findByText('system-cli')).toBeInTheDocument();
     expect(calls.map((c) => c.url)).toEqual(['https://api.test/api/clients']);

@@ -13,9 +13,9 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 public static class SecretOwnerTypes
 {
     /// <summary>
-    /// Contains the owner type for secrets that belong to the server as a whole.
+    /// Contains the owner type for the platform, the deployment root; its master key protects the Data Protection key ring.
     /// </summary>
-    public const string Server = "server";
+    public const string Platform = "platform";
 
     /// <summary>
     /// Contains the owner type for secrets that belong to a single tenant.

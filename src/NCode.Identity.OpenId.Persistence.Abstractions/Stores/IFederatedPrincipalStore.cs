@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Persistence.Stores;
 
 /// <summary>
 /// Provides an abstraction for a store which persists <see cref="PersistedFederatedPrincipal"/> instances: the global,
-/// server-owned human actors that authority references.
+/// platform-owned human actors that authority references.
 /// </summary>
 [PublicAPI]
 public interface IFederatedPrincipalStore : IStore

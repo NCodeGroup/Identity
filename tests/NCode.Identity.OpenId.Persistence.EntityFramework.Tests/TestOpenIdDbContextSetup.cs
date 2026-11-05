@@ -33,7 +33,48 @@ internal static class TestOpenIdDbContextSetup
             TestUnscopedAmbientTenantAccessor
         >();
         serviceCollection.AddDbContext<OpenIdDbContext>(configureOptions);
+
         return serviceCollection;
+    }
+
+    /// <summary>
+    /// Finds the team with the given identifier, or seeds a minimal one directly into the context and saves it.
+    /// Returns the team entity.
+    /// </summary>
+    public static TeamEntity SeedTeam(
+        this OpenIdDbContext dbContext,
+        IIdGenerator<long> idGenerator,
+        string teamId
+    )
+    {
+        var normalizedTeamId = teamId.ToLowerInvariant();
+        var existing =
+            dbContext
+                .Set<TeamEntity>()
+                .Local.FirstOrDefault(team => team.NormalizedTeamId == normalizedTeamId)
+            ?? dbContext
+                .Set<TeamEntity>()
+                .FirstOrDefault(team => team.NormalizedTeamId == normalizedTeamId);
+        if (existing is not null)
+            return existing;
+
+        var entity = new TeamEntity
+        {
+            Id = idGenerator.CreateId(),
+            TeamId = teamId,
+            NormalizedTeamId = normalizedTeamId,
+            ConcurrencyToken = string.Empty,
+            SettingsConcurrencyToken = string.Empty,
+            IsDisabled = false,
+            DisplayName = "Platform",
+            SettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
+                new Dictionary<string, object>()
+            ),
+            Tenants = new List<TenantEntity>(),
+        };
+        dbContext.Set<TeamEntity>().Add(entity);
+        dbContext.SaveChanges();
+        return entity;
     }
 
     /// <summary>
@@ -46,9 +87,12 @@ internal static class TestOpenIdDbContextSetup
         string tenantId
     )
     {
+        var team = dbContext.SeedTeam(idGenerator, "platform");
         var entity = new TenantEntity
         {
             Id = idGenerator.CreateId(),
+            TeamId = team.Id,
+            Team = team,
             TenantId = tenantId,
             NormalizedTenantId = tenantId.ToLowerInvariant(),
             Issuer = null,

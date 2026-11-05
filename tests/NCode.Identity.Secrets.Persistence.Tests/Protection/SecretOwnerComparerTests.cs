@@ -33,7 +33,7 @@ public class SecretOwnerComparerTests
     public void Equals_DifferentOwnerType_ReturnsFalse()
     {
         var first = new SecretOwner(SecretOwnerTypes.Tenant, "owner-1");
-        var second = new SecretOwner(SecretOwnerTypes.Server, "owner-1");
+        var second = new SecretOwner(SecretOwnerTypes.Platform, "owner-1");
 
         var result = SecretOwnerComparer.Instance.Equals(first, second);
 

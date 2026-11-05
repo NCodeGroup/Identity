@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -17,6 +18,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 public sealed class DefaultTenantValidatorTests : IDisposable
 {
     private const string TenantId = "tenant-1";
+    private const string ControlPlaneTenantId = "platform-root";
     private const string Issuer = "https://example.test";
 
     private MockRepository MockRepository { get; }
@@ -60,15 +62,17 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     private static PersistedTenant CreateTenant(
         string tenantId = TenantId,
         string concurrencyToken = "tenant-ct",
-        string? issuer = Issuer
+        string? issuer = Issuer,
+        string displayName = "Tenant One"
     ) =>
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = concurrencyToken,
             Issuer = issuer,
             IsDisabled = false,
-            DisplayName = "Tenant One",
+            DisplayName = displayName,
             Settings = new PersistedTenantSettings
             {
                 TenantId = tenantId,
@@ -137,6 +141,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -153,6 +158,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: false),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -160,6 +166,28 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task ValidateCreateAsync_WhenTheDisplayNameIsBlank_ReturnsBadRequest(
+        string displayName
+    )
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.ValidateCreateAsync(
+            CreateUser(authenticated: true),
+            ControlPlaneTenantId,
+            CreateTenant(displayName: displayName),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal("The 'displayName' is required.", error.Detail);
     }
 
     [Fact]
@@ -170,6 +198,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -188,6 +217,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -211,6 +241,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -234,6 +265,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -257,6 +289,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         var error = await Validator.ValidateCreateAsync(
             CreateUser(authenticated: true),
+            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -264,6 +297,42 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.Null(error);
     }
+
+    [Fact]
+    public async Task ValidateCreateAsync_AuthorizesCreateOnTheTeamNode()
+    {
+        object? authorizedResource = null;
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
+                        r.Contains(Operations.Create)
+                    )
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, object? resource, IEnumerable<IAuthorizationRequirement> _) =>
+                    authorizedResource = resource
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        await Validator.ValidateCreateAsync(
+            CreateUser(authenticated: true),
+            ControlPlaneTenantId,
+            CreateTenant(),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource);
+        Assert.Equal(ControlPlaneTenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Team, node.ResourceType);
+        Assert.Equal("platform", node.ResourceId);
+    }
+
     #endregion
 
     #region ValidateUpdateAsync Tests
@@ -302,6 +371,25 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status412PreconditionFailed, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenTheDisplayNameIsWhitespace_ReturnsBadRequest()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.ValidateUpdateAsync(
+            CreateUser(authenticated: true),
+            CreateTenant(),
+            new UpdateTenantRequest { DisplayName = "   " },
+            ifMatch: null,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal("The 'displayName' is required.", error.Detail);
     }
 
     [Fact]

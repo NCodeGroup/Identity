@@ -23,24 +23,6 @@ public sealed class OpenIdIntervalsOptionsValidatorTests
     }
 
     [Fact]
-    public void Validate_WhenTheLeaseDurationIsZero_FailsNamingItsKey()
-    {
-        var options = new OpenIdOptions
-        {
-            Server = new OpenIdServerOptions { ReconciliationLeaseDuration = TimeSpan.Zero },
-        };
-
-        var result = Validator.Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Contains(
-            "'Server:ReconciliationLeaseDuration'",
-            result.FailureMessage,
-            StringComparison.Ordinal
-        );
-    }
-
-    [Fact]
     public void Validate_WhenTheTenantCacheLifetimeIsLongerThanATimerAccepts_FailsNamingItsKey()
     {
         var options = new OpenIdOptions
@@ -61,12 +43,36 @@ public sealed class OpenIdIntervalsOptionsValidatorTests
         );
     }
 
+    [Theory]
+    [InlineData(nameof(OpenIdTeamOptions.SettingsPeriodicRefreshInterval), -1.0)]
+    [InlineData(nameof(OpenIdTeamOptions.TeamCacheLifetime), -1.0)]
+    [InlineData(nameof(OpenIdTeamOptions.ReconciliationLeaseDuration), -1.0)]
+    [InlineData(nameof(OpenIdTeamOptions.SettingsPeriodicRefreshInterval), 0.0)]
+    [InlineData(nameof(OpenIdTeamOptions.TeamCacheLifetime), 0.0)]
+    [InlineData(nameof(OpenIdTeamOptions.ReconciliationLeaseDuration), 0.0)]
+    public void Validate_WhenATeamIntervalIsNotPositive_FailsNamingItsKey(
+        string member,
+        double minutes
+    )
+    {
+        var team = new OpenIdTeamOptions();
+        typeof(OpenIdTeamOptions)
+            .GetProperty(member)!
+            .SetValue(team, TimeSpan.FromMinutes(minutes));
+        var options = new OpenIdOptions { Team = team };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains($"'Team:{member}'", result.FailureMessage, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Validate_WhenTwoIntervalsAreNegative_ReportsBoth()
     {
         var options = new OpenIdOptions
         {
-            Server = new OpenIdServerOptions
+            Platform = new OpenIdPlatformOptions
             {
                 SettingsPeriodicRefreshInterval = TimeSpan.FromMinutes(-1),
             },

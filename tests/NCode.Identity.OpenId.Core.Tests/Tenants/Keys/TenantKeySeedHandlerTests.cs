@@ -152,7 +152,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
     public async Task HandleAsync_PlansFromTheTenantsEffectiveSettings()
     {
         // The tenant's settings materialize only after the seed, so the seed resolves the tenant's persisted document
-        // onto the server's committed settings through the resolver, as the materialized tenant will.
+        // onto its team's committed settings through the resolver, as the materialized tenant will.
         var tenant = CreateTenant([]);
         SetupSpecifications(Rs256);
         SetupSettings();
@@ -225,15 +225,15 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
 
     private void SetupSettings()
     {
-        var mockServerSettings = CreateStrictMock<IReadOnlySettingCollection>();
+        var mockTeamSettings = CreateStrictMock<IReadOnlySettingCollection>();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServerSettings.Object)
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockTeamSettings.Object)
             .Verifiable();
         MockEffectiveSettingsResolver
             .Setup(x =>
                 x.Resolve(
-                    mockServerSettings.Object,
+                    mockTeamSettings.Object,
                     OpenIdSettingScopes.Tenant,
                     It.IsAny<JsonElement>()
                 )
@@ -334,6 +334,7 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             Issuer = "https://op.example/acme",
             ConcurrencyToken = "token",
             IsDisabled = false,

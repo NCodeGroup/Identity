@@ -22,12 +22,17 @@ public sealed class OpenIdOptions
     /// <summary>
     /// Gets or sets the configurable options for server features.
     /// </summary>
-    public OpenIdServerOptions Server { get; set; } = new();
+    public OpenIdPlatformOptions Platform { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the configurable options for tenant features.
     /// </summary>
     public OpenIdTenantOptions Tenant { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the configurable options for team features.
+    /// </summary>
+    public OpenIdTeamOptions Team { get; set; } = new();
 
     /// <summary>
     /// Gets or sets a delegate that extracts a <see cref="ClaimsIdentity"/> from a <see cref="ClaimsPrincipal"/>.

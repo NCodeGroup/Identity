@@ -16,4 +16,16 @@ public sealed record TenantChangedAuditEvent : ResourceChangeAuditEvent
 {
     /// <inheritdoc />
     public override string ResourceType => ManagementResourceTypes.Tenant;
+
+    /// <summary>
+    /// Gets the identifier of the team the tenant belongs to.
+    /// </summary>
+    public required string TeamId { get; init; }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Lists the team the tenant belongs to.
+    /// </remarks>
+    protected override IEnumerable<AuditResource> ParentResources =>
+        [new AuditResource(ManagementResourceTypes.Team, TeamId)];
 }

@@ -41,6 +41,22 @@ internal class TenantResolutionOptionsValidator : IValidateOptions<TenantResolut
             return;
         }
 
+        var rootTeamId = root.TeamId;
+        if (string.IsNullOrEmpty(rootTeamId))
+        {
+            failures.Add($"{prefix}:{nameof(root.TeamId)} is required.");
+        }
+        else if (!TenantAddressRules.IsValidTenantId(rootTeamId))
+        {
+            failures.Add(
+                $"{prefix}:{nameof(root.TeamId)} '{rootTeamId}' must be "
+                    + $"{TenantAddressRules.TenantIdRequirement}."
+            );
+        }
+
+        if (string.IsNullOrEmpty(root.TeamDisplayName))
+            failures.Add($"{prefix}:{nameof(root.TeamDisplayName)} is required.");
+
         var rootTenantId = root.TenantId;
         if (string.IsNullOrEmpty(rootTenantId))
         {

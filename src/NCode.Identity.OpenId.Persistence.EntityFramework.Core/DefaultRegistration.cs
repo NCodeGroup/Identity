@@ -41,8 +41,9 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IOpenIdModelContributor, CoreModelContributor>()
             );
 
-            serviceCollection.AddStore<TDbContext, IServerStore, ServerStore>();
+            serviceCollection.AddStore<TDbContext, IPlatformStore, PlatformStore>();
             serviceCollection.AddStore<TDbContext, ITenantStore, TenantStore>();
+            serviceCollection.AddStore<TDbContext, ITeamStore, TeamStore>();
             serviceCollection.AddStore<TDbContext, IClientStore, ClientStore>();
             serviceCollection.AddStore<TDbContext, IGrantStore, GrantStore>();
             serviceCollection.AddStore<TDbContext, IConsentStore, ConsentStore>();

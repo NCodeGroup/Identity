@@ -7,19 +7,26 @@
 # previous response's 'continuationToken' back as '?cursor=' to fetch the next page. A null
 # 'continuationToken' means there are no more pages.
 #
-# Authorization: every build enforces authentication. These require a GlobalAdmin token
-# (servers, tenants) or a GlobalAdmin/TenantAdmin token for the request's tenant (clients).
-# Obtain one by exchanging the configuration-seeded bootstrap administrator credential at the
-# token endpoint (see ADR-1044).
+# Authorization: every build enforces authentication. The platform settings and master keys, creating, deleting,
+# disabling and restoring a team, listing teams and listing tenants across teams need GlobalAdmin
+# (or an assignment at the platform node). A team's own get, settings, effective settings, usage,
+# owners and admins list need authority at the team node: an Owner or TeamAdmin assignment at it,
+# or at the platform. A team's own update (its display name and settings) needs the same
+# authority, while disabling or restoring it needs the platform node. Granting or revoking
+# TeamAdmin needs create authority on the team. Creating a tenant and previewing a new tenant's
+# address need create authority on the team (TeamAdmin or GlobalAdmin). The per-tenant endpoints
+# need authority on that tenant: an assignment at it, its team or the platform, or a
+# TenantAdmin/GlobalAdmin token for the request's tenant. Obtain a token by exchanging the
+# configuration-seeded bootstrap administrator credential at the token endpoint (see ADR-1044).
 #
-# First-run bootstrap: the OpenID server and the static-single tenant are provisioned LAZILY by the
+# First-run bootstrap: the platform and the static-single tenant are provisioned LAZILY by the
 # OpenID runtime on first resolution, not at startup and not by these management endpoints (the list
-# endpoints only read the store). On a fresh database 'GET /api/servers' and 'GET /api/tenants'
+# endpoints only read the store). On a fresh database 'GET /api/teams' and 'GET /api/tenants'
 # therefore return empty until something resolves them. Invoke the discovery endpoint below once to
-# build an OpenIdContext, which materializes the server (DefaultOpenIdServerFactory) and the tenant
-# (StaticSingleTenantStrategy); after that they appear in the corresponding list endpoints.
+# build an OpenIdContext, which materializes the platform (DefaultOpenIdPlatformFactory) and the
+# tenant (StaticSingleTenantStrategy); after that they appear in the corresponding list endpoints.
 
-### Discovery — materializes the server + static-single tenant on first call (run this before the lists)
+### Discovery — materializes the platform + static-single tenant on first call (run this before the lists)
 GET {{host}}/.well-known/openid-configuration
 Accept: application/json
 
@@ -31,16 +38,43 @@ Accept: application/json
 GET {{host}}/api/tenants/{{tenantId}}/clients?limit=50&cursor=REPLACE_WITH_continuationToken
 Accept: application/json
 
-### List servers (central-admin)
-GET {{host}}/api/servers?limit=50
+### Get the platform settings (central-admin)
+GET {{host}}/api/platform/settings
 Accept: application/json
 
-### List tenants (central-admin)
+### List teams (central-admin)
+GET {{host}}/api/teams?limit=50
+Accept: application/json
+
+### Create a tenant under a team (the caller needs create access on the team)
+POST {{host}}/api/teams/platform/tenants
+Content-Type: application/json
+
+{
+  "tenantId": "acme-dev",
+  "displayName": "Acme (development)",
+  "isDisabled": false,
+  "settings": {}
+}
+
+### List a team's tenants
+GET {{host}}/api/teams/platform/tenants?limit=50
+Accept: application/json
+
+### Get a team's usage — the daily count of each meter of each of its tenants
+GET {{host}}/api/teams/platform/usage
+Accept: application/json
+
+### List tenants across every team (central-admin)
 GET {{host}}/api/tenants?limit=50
 Accept: application/json
 
 ### Preview a new tenant's address — the issuer it would be created with, whether the name is taken, and every
-### reason it could not be served there (add &issuer=... to check an explicit issuer instead of the derived one)
+### reason it could not be served there (add ?issuer=... to check an explicit issuer instead of the derived one)
+GET {{host}}/api/teams/platform/tenants/acme-dev/address
+Accept: application/json
+
+### Preview an existing tenant's address — the issuer it has, or would have with a proposed ?issuer=...; 404 when the tenant does not exist
 GET {{host}}/api/tenants/acme-dev/address
 Accept: application/json
 
@@ -166,10 +200,10 @@ Accept: application/json
 POST {{host}}/api/tenants/{{tenantId}}/encryption-keys/rekey
 Accept: application/json
 
-### List the server's master keys (read:server_encryption_keys, central-admin)
-GET {{host}}/api/servers/REPLACE_WITH_ServerId/encryption-keys
+### List the platform's master keys (read:platform_encryption_keys, central-admin)
+GET {{host}}/api/platform/encryption-keys
 Accept: application/json
 
-### Rekey the server (update:server_encryption_keys, central-admin)
-POST {{host}}/api/servers/REPLACE_WITH_ServerId/encryption-keys/rekey
+### Rekey the platform (update:platform_encryption_keys, central-admin)
+POST {{host}}/api/platform/encryption-keys/rekey
 Accept: application/json

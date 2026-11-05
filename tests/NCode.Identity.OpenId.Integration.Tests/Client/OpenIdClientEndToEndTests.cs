@@ -75,7 +75,7 @@ public class OpenIdClientEndToEndTests
             clientId,
             clientId + "-rs",
             ResourceServerUri,
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
     private static ClientRegistration CreateSecretPostRegistration(string clientId) =>
@@ -132,7 +132,7 @@ public class OpenIdClientEndToEndTests
             .GetRequiredService<ITokenClient>()
             .RequestTokenAsync(
                 registration,
-                new ClientCredentialsTokenRequest { Scope = TestServerSettingsProvider.ApiScope },
+                new ClientCredentialsTokenRequest { Scope = TestPlatformSettingsProvider.ApiScope },
                 CancellationToken.None
             );
 
@@ -159,7 +159,7 @@ public class OpenIdClientEndToEndTests
             .GetRequiredService<ITokenClient>()
             .RequestTokenAsync(
                 CreateSecretPostRegistration(clientId),
-                new ClientCredentialsTokenRequest { Scope = TestServerSettingsProvider.ApiScope },
+                new ClientCredentialsTokenRequest { Scope = TestPlatformSettingsProvider.ApiScope },
                 CancellationToken.None
             );
 
@@ -187,7 +187,7 @@ public class OpenIdClientEndToEndTests
             .GetRequiredService<ITokenClient>()
             .RequestTokenAsync(
                 registration,
-                new ClientCredentialsTokenRequest { Scope = TestServerSettingsProvider.ApiScope },
+                new ClientCredentialsTokenRequest { Scope = TestPlatformSettingsProvider.ApiScope },
                 CancellationToken.None
             );
         Assert.True(tokenResult.IsSuccess, tokenResult.Error?.ToString());

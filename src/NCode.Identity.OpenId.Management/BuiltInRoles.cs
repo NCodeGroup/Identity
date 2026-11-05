@@ -14,6 +14,13 @@ public static class BuiltInRoles
     public const string GlobalAdmin = "GlobalAdmin";
 
     /// <summary>
+    /// The role name for team administrators who have full authority over a team and everything beneath it, including
+    /// creating its tenants.
+    /// </summary>
+    // See ADR-1411
+    public const string TeamAdmin = "TeamAdmin";
+
+    /// <summary>
     /// The role name for tenant administrators who have administrative access within a specific tenant.
     /// </summary>
     public const string TenantAdmin = "TenantAdmin";

@@ -43,6 +43,7 @@ internal sealed class TestClientSecretIssuer(
     public List<string?> IssuedMethods { get; } = [];
 
     public ValueTask<string?> GetTokenEndpointAuthMethodAsync(
+        string teamId,
         string tenantId,
         JsonElement? tenantSettings,
         string clientId,

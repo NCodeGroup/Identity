@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 
 /// <summary>
-/// Represents the REST resource that describes one master key of a tenant or of the server. It carries no key
+/// Represents the REST resource that describes one master key of a tenant or of the platform. It carries no key
 /// material, wrapped key or key check.
 /// </summary>
 // See ADR-1407.

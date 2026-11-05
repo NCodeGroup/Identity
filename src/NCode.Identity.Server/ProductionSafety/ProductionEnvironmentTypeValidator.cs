@@ -9,14 +9,14 @@ using NCode.Identity.OpenId.Tenants;
 namespace NCode.Identity.Server.ProductionSafety;
 
 /// <summary>
-/// Refuses a Production host whose configured server settings select a non-production environment type, because the
-/// server-wide type is the default of every tenant that declares none, so it would silently drop their production
+/// Refuses a Production host whose configured platform settings select a non-production environment type, because the
+/// platform-wide type is the default of every tenant that declares none, so it would silently drop their production
 /// guardrails. A development overlay copied into a Production deployment is the case this catches.
 /// </summary>
 /// <remarks>
 /// The registered <see cref="ITenantEnvironmentType"/> strategies decide what is production, so a type a package adds is
 /// judged by its own <see cref="ITenantEnvironmentType.IsProduction"/>. A value that names no registered type is left to
-/// the server settings validation, which refuses it in every environment.
+/// the platform settings validation, which refuses it in every environment.
 /// </remarks>
 // See ADR-1289.
 internal class ProductionEnvironmentTypeValidator(IEnumerable<ITenantEnvironmentType> types)
@@ -26,7 +26,7 @@ internal class ProductionEnvironmentTypeValidator(IEnumerable<ITenantEnvironment
     /// The configuration key that the message names.
     /// </summary>
     internal const string ConfigurationKey =
-        $"OpenId:Server:Settings:{OpenIdSettingNames.EnvironmentType}";
+        $"OpenId:Platform:Settings:{OpenIdSettingNames.EnvironmentType}";
 
     private IEnumerable<ITenantEnvironmentType> Types { get; } = types;
 
@@ -35,7 +35,7 @@ internal class ProductionEnvironmentTypeValidator(IEnumerable<ITenantEnvironment
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var typeName = options.Server.Settings?[OpenIdSettingNames.EnvironmentType];
+        var typeName = options.Platform.Settings?[OpenIdSettingNames.EnvironmentType];
         if (string.IsNullOrEmpty(typeName))
             return ValidateOptionsResult.Success;
 

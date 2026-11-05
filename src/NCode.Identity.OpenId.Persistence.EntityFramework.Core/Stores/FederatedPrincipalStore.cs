@@ -162,7 +162,7 @@ internal class FederatedPrincipalStore(
         }
 
         // The role assignments of the principal, ownership included, are removed with it in every tenant: a principal is
-        // a server-owned actor that may hold assignments at the nodes of any tenant. See ADR-1212.
+        // a platform-owned actor that may hold assignments at the nodes of any tenant. See ADR-1212.
         DbContext.RoleAssignments.RemoveRange(
             await DbContext
                 .RoleAssignments.IgnoreQueryFilters()

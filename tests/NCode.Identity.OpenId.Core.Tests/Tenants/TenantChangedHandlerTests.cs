@@ -101,6 +101,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
         new()
         {
             TenantId = TenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

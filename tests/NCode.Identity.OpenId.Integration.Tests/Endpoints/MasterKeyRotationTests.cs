@@ -126,23 +126,22 @@ public class MasterKeyRotationTests
     }
 
     [Fact]
-    public async Task Rekey_OfTheServer_KeepsTheHostServingTheManagementApi()
+    public async Task Rekey_OfThePlatform_KeepsTheHostServingTheManagementApi()
     {
         using var factory = new BootstrapAdminHostApplicationFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
 
-        // The discovery request materializes the server, so the store holds it.
+        // The discovery request materializes the platform, so the store holds it.
         using var discovery = await CreateHttpClient(factory)
             .GetAsync("/.well-known/openid-configuration");
         Assert.Equal(HttpStatusCode.OK, discovery.StatusCode);
 
-        var serverId = OpenIdServerOptions.DefaultServerId;
-        var serverPath = $"/api/servers/{serverId}";
-        var before = await GetKeysAsync(administrator, serverPath);
+        const string platformPath = "/api/platform";
+        var before = await GetKeysAsync(administrator, platformPath);
         Assert.Equal(1, before.GetProperty("keys").GetArrayLength());
 
         using var rekey = await administrator.PostAsync(
-            $"{serverPath}/encryption-keys/rekey",
+            $"{platformPath}/encryption-keys/rekey",
             content: null
         );
         var rekeyBody = await rekey.Content.ReadAsStringAsync();
@@ -152,7 +151,7 @@ public class MasterKeyRotationTests
             JsonElement.Parse(rekeyBody).GetProperty("activeKey").GetProperty("version").GetInt32()
         );
 
-        var after = await GetKeysAsync(administrator, serverPath);
+        var after = await GetKeysAsync(administrator, platformPath);
         Assert.Equal(2, after.GetProperty("keys").GetArrayLength());
 
         // The management API still answers, and so does the tenant plane.

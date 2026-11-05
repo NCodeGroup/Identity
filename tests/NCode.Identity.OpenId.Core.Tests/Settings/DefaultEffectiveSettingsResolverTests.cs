@@ -6,7 +6,7 @@ using Moq;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Settings;
@@ -17,11 +17,9 @@ namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
 public class DefaultEffectiveSettingsResolverTests : BaseTests
 {
-    private const string ServerId = "default";
-
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
-    private Mock<IOpenIdServerProvider> MockServerProvider { get; }
+    private Mock<IOpenIdPlatformProvider> MockPlatformProvider { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<ITenantEnvironmentCatalog> MockTenantEnvironmentCatalog { get; }
@@ -32,7 +30,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     {
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
         MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
-        MockServerProvider = CreateStrictMock<IOpenIdServerProvider>();
+        MockPlatformProvider = CreateStrictMock<IOpenIdPlatformProvider>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockSettingSerializer = CreateStrictMock<ISettingSerializer>();
         MockTenantEnvironmentCatalog = CreateStrictMock<ITenantEnvironmentCatalog>();
@@ -40,7 +38,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
 
         Resolver = new DefaultEffectiveSettingsResolver(
             MockEnvironmentProvider.Object,
-            MockServerProvider.Object,
+            MockPlatformProvider.Object,
             MockStoreManagerFactory.Object,
             MockSettingSerializer.Object,
             MockTenantEnvironmentCatalog.Object,
@@ -168,21 +166,21 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
 
     #endregion
 
-    #region ResolveServerAsync Tests
+    #region ResolvePlatformAsync Tests
 
     [Fact]
-    public async Task ResolveServerAsync_WithADocument_MergesItOntoTheConfiguredSettings()
+    public async Task ResolvePlatformAsync_WithADocument_MergesItOntoTheConfiguredSettings()
     {
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
         IReadOnlyCollection<Setting> expanded = new List<Setting>();
-        SetupExpand(OpenIdSettingScopes.Server, "proposed", jsonOptions, expanded);
+        SetupExpand(OpenIdSettingScopes.Platform, "proposed", jsonOptions, expanded);
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockConfigured = CreateStrictMock<IReadOnlySettingCollection>();
         mockConfigured.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
-        SetupServer(mockConfigured.Object);
+        SetupPlatform(mockConfigured.Object);
 
-        var result = await Resolver.ResolveServerAsync(
+        var result = await Resolver.ResolvePlatformAsync(
             CreateDocument("proposed"),
             CancellationToken.None
         );
@@ -191,59 +189,55 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
     }
 
     [Fact]
-    public async Task ResolveServerAsync_ReadsTheCommittedDocumentFromTheStore()
+    public async Task ResolvePlatformAsync_ReadsTheCommittedDocumentFromTheStore()
     {
-        // The server's polled settings provider is strict with no setup: reading it fails the test.
+        // The platform's polled settings provider is strict with no setup: reading it fails the test.
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
         IReadOnlyCollection<Setting> expanded = new List<Setting>();
-        SetupExpand(OpenIdSettingScopes.Server, "committed", jsonOptions, expanded);
+        SetupExpand(OpenIdSettingScopes.Platform, "committed", jsonOptions, expanded);
         var effective = CreateLooseMock<ISettingCollection>().Object;
         var mockConfigured = CreateStrictMock<IReadOnlySettingCollection>();
         mockConfigured.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
-        var mockServer = SetupServer(mockConfigured.Object);
-        mockServer.SetupGet(x => x.ServerId).Returns(ServerId).Verifiable();
-        var mockServerStore = SetupServerStore();
-        mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+        SetupPlatform(mockConfigured.Object);
+        var mockPlatformStore = SetupPlatformStore();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(
-                new PersistedServerSettings
+                new PersistedPlatformSettings
                 {
-                    ServerId = ServerId,
                     ConcurrencyToken = "token",
                     Value = CreateDocument("committed"),
                 }
             )
             .Verifiable();
 
-        var result = await Resolver.ResolveServerAsync(CancellationToken.None);
+        var result = await Resolver.ResolvePlatformAsync(CancellationToken.None);
 
         Assert.Same(effective, result);
     }
 
     [Fact]
-    public async Task ResolveServerAsync_WhenTheCommittedDocumentCannotBeHonored_ThrowsNamingTheServer()
+    public async Task ResolvePlatformAsync_WhenTheCommittedDocumentCannotBeHonored_ThrowsNamingThePlatform()
     {
-        // The server's polled settings provider is strict with no setup, and so is its Merge: neither is reached.
+        // The platform's polled settings provider is strict with no setup, and so is its Merge: neither is reached.
         const string documentError = "boom";
         var jsonOptions = new JsonSerializerOptions();
         SetupEnvironment(jsonOptions);
         SetupExpandThrows(
-            OpenIdSettingScopes.Server,
+            OpenIdSettingScopes.Platform,
             "committed",
             jsonOptions,
             new JsonException(documentError)
         );
         var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        var mockServer = SetupServer(configured);
-        mockServer.SetupGet(x => x.ServerId).Returns(ServerId).Verifiable();
-        var mockServerStore = SetupServerStore();
-        mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
+        SetupPlatform(configured);
+        var mockPlatformStore = SetupPlatformStore();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(
-                new PersistedServerSettings
+                new PersistedPlatformSettings
                 {
-                    ServerId = ServerId,
                     ConcurrencyToken = "token",
                     Value = CreateDocument("committed"),
                 }
@@ -251,36 +245,176 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .Verifiable();
 
         var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
-            await Resolver.ResolveServerAsync(CancellationToken.None)
+            await Resolver.ResolvePlatformAsync(CancellationToken.None)
         );
 
-        Assert.Equal(OpenIdSettingScopes.Server, exception.ScopeName);
-        Assert.Equal(ServerId, exception.OwnerId);
+        Assert.Equal(OpenIdSettingScopes.Platform, exception.ScopeName);
+        Assert.Equal(OpenIdConstants.PlatformResourceId, exception.OwnerId);
         Assert.Equal(documentError, exception.DocumentError);
     }
 
     [Fact]
-    public async Task ResolveServerAsync_WhenTheStoreHoldsNoSettings_ReturnsTheConfiguredSettings()
+    public async Task ResolvePlatformAsync_WhenTheStoreHoldsNoSettings_ReturnsTheConfiguredSettings()
     {
         // The catalog is strict with no setup: expanding a document fails the test.
         SetupEnvironment();
         var configured = CreateStrictMock<IReadOnlySettingCollection>().Object;
-        var mockServer = SetupServer(configured);
-        mockServer.SetupGet(x => x.ServerId).Returns(ServerId).Verifiable();
-        var mockServerStore = SetupServerStore();
-        mockServerStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(ServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedServerSettings?)null)
+        SetupPlatform(configured);
+        var mockPlatformStore = SetupPlatformStore();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
 
-        var result = await Resolver.ResolveServerAsync(CancellationToken.None);
+        var result = await Resolver.ResolvePlatformAsync(CancellationToken.None);
 
         Assert.Same(configured, result);
     }
 
     #endregion
 
+    #region ResolveTeamAsync Tests
+
+    [Fact]
+    public async Task ResolveTeamAsync_MergesTheCommittedTeamDocumentOntoThePlatform()
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> expanded = new List<Setting>();
+        SetupExpand(OpenIdSettingScopes.Team, "committed", jsonOptions, expanded);
+        var effective = CreateLooseMock<ISettingCollection>().Object;
+        var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
+        mockPlatform.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
+        SetupPlatform(mockPlatform.Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTeamSettings("team-1", "committed"))
+            .Verifiable();
+
+        var result = await Resolver.ResolveTeamAsync("team-1", CancellationToken.None);
+
+        Assert.Same(effective, result);
+    }
+
+    [Fact]
+    public async Task ResolveTeamAsync_WhenTheTeamDocumentCannotBeHonored_ThrowsNamingTheTeam()
+    {
+        const string documentError = "boom";
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        SetupExpandThrows(
+            OpenIdSettingScopes.Team,
+            "committed",
+            jsonOptions,
+            new JsonException(documentError)
+        );
+        SetupPlatform(CreateStrictMock<IReadOnlySettingCollection>().Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTeamSettings("team-1", "committed"))
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
+            await Resolver.ResolveTeamAsync("team-1", CancellationToken.None)
+        );
+
+        Assert.Equal(OpenIdSettingScopes.Team, exception.ScopeName);
+        Assert.Equal("team-1", exception.OwnerId);
+        Assert.Equal(documentError, exception.DocumentError);
+    }
+
+    [Fact]
+    public async Task ResolveTeamAsync_WhenTheTeamIsMissing_Throws()
+    {
+        SetupEnvironment();
+        SetupPlatform(CreateStrictMock<IReadOnlySettingCollection>().Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedTeamSettings?)null)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
+            await Resolver.ResolveTeamAsync("team-1", CancellationToken.None)
+        );
+
+        Assert.Equal("The team 'team-1' does not exist.", exception.Message);
+    }
+
+    [Fact]
+    public async Task ResolveTeamAsync_WithADocument_MergesItOntoTheCommittedPlatform()
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> expanded = new List<Setting>();
+        SetupExpand(OpenIdSettingScopes.Team, "proposed", jsonOptions, expanded);
+        var effective = CreateLooseMock<ISettingCollection>().Object;
+        var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
+        mockPlatform.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
+        SetupPlatform(mockPlatform.Object);
+        var mockPlatformStore = SetupPlatformStore();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+
+        var result = await Resolver.ResolveTeamAsync(
+            "team-1",
+            CreateDocument("proposed"),
+            CancellationToken.None
+        );
+
+        Assert.Same(effective, result);
+    }
+
+    #endregion
+
     #region Helpers
+
+    private static PersistedTeamSettings CreateTeamSettings(string teamId, string propertyName) =>
+        new()
+        {
+            TeamId = teamId,
+            ConcurrencyToken = "token",
+            Value = CreateDocument(propertyName),
+        };
+
+    private (Mock<IPlatformStore> Platform, Mock<ITeamStore> Team) SetupPlatformAndTeamStores()
+    {
+        var mockPlatformStore = CreateStrictMock<IPlatformStore>();
+        var mockTeamStore = CreateStrictMock<ITeamStore>();
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IPlatformStore>())
+            .Returns(mockPlatformStore.Object)
+            .Verifiable();
+        mockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(mockTeamStore.Object)
+            .Verifiable();
+        mockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(mockStoreManager.Object)
+            .Verifiable();
+
+        return (mockPlatformStore, mockTeamStore);
+    }
 
     private static JsonElement CreateDocument(string propertyName) =>
         JsonSerializer.SerializeToElement(
@@ -361,32 +495,32 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .Throws(exception)
             .Verifiable();
 
-    private Mock<OpenIdServer> SetupServer(IReadOnlySettingCollection configuredSettings)
+    private Mock<OpenIdPlatform> SetupPlatform(IReadOnlySettingCollection configuredSettings)
     {
         var mockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         mockSettingsProvider.SetupGet(x => x.Collection).Returns(configuredSettings).Verifiable();
 
-        var mockServer = CreateStrictMock<OpenIdServer>();
-        mockServer
+        var mockPlatform = CreateStrictMock<OpenIdPlatform>();
+        mockPlatform
             .SetupGet(x => x.ConfiguredSettingsProvider)
             .Returns(mockSettingsProvider.Object)
             .Verifiable();
 
-        MockServerProvider
+        MockPlatformProvider
             .Setup(x => x.GetAsync(MockEnvironment.Object, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(mockServer.Object)
+            .ReturnsAsync(mockPlatform.Object)
             .Verifiable();
 
-        return mockServer;
+        return mockPlatform;
     }
 
-    private Mock<IServerStore> SetupServerStore()
+    private Mock<IPlatformStore> SetupPlatformStore()
     {
-        var mockServerStore = CreateStrictMock<IServerStore>();
+        var mockPlatformStore = CreateStrictMock<IPlatformStore>();
         var mockStoreManager = CreateStrictMock<IStoreManager>();
         mockStoreManager
-            .Setup(x => x.GetStore<IServerStore>())
-            .Returns(mockServerStore.Object)
+            .Setup(x => x.GetStore<IPlatformStore>())
+            .Returns(mockPlatformStore.Object)
             .Verifiable();
         mockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
 
@@ -395,7 +529,7 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .ReturnsAsync(mockStoreManager.Object)
             .Verifiable();
 
-        return mockServerStore;
+        return mockPlatformStore;
     }
 
     #endregion

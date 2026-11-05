@@ -36,7 +36,7 @@ public class TenantKeyProvisioningTests
     private static string BootstrapClientSecretConfig { get; } =
         Base64Url.EncodeToString(SecureEncoding.UTF8.GetBytes(BootstrapClientSecret));
 
-    // The signing lists of the server's settings, each of which names the algorithms a tenant uses.
+    // The signing lists of the platform's settings, each of which names the algorithms a tenant uses.
     private static string[] SigningListNames { get; } =
     [
         OpenIdSettingNames.IdTokenSigningAlgValuesSupported,
@@ -60,9 +60,9 @@ public class TenantKeyProvisioningTests
     private static ProductionKeysApplicationFactory CreateDynamicFactory() =>
         CreateDynamicFactory(new Dictionary<string, string?>());
 
-    // The server settings are configuration keys beneath OpenId:Server:Settings, merged into the dynamic configuration.
+    // The platform settings are configuration keys beneath OpenId:Platform:Settings, merged into the dynamic configuration.
     private static ProductionKeysApplicationFactory CreateDynamicFactory(
-        IReadOnlyDictionary<string, string?> serverSettings
+        IReadOnlyDictionary<string, string?> platformSettings
     )
     {
         var configuration = new Dictionary<string, string?>
@@ -76,7 +76,7 @@ public class TenantKeyProvisioningTests
             ["BootstrapAdmin:ClientSecret"] = BootstrapClientSecretConfig,
             ["BootstrapAdmin:TenantId"] = "root",
         };
-        foreach (var (key, value) in serverSettings)
+        foreach (var (key, value) in platformSettings)
         {
             configuration[key] = value;
         }
@@ -173,7 +173,7 @@ public class TenantKeyProvisioningTests
         );
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -207,7 +207,7 @@ public class TenantKeyProvisioningTests
         );
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -232,7 +232,7 @@ public class TenantKeyProvisioningTests
     }
 
     [Fact]
-    public async Task UpdateServerSettings_WhenTheChangePermitsAConfiguredAlgorithm_ProvisionsItsKeyForEveryTenant()
+    public async Task UpdatePlatformSettings_WhenTheChangePermitsAConfiguredAlgorithm_ProvisionsItsKeyForEveryTenant()
     {
         using var factory = CreateDynamicFactory();
         using var client = factory.CreateClient();
@@ -243,11 +243,11 @@ public class TenantKeyProvisioningTests
             accessToken
         );
 
-        // The server stops permitting ES256, so a tenant created now is provisioned without its key.
-        await PatchServerSettingsAsync(client, operation: "add", value: ["RS256", "PS256"]);
+        // The platform stops permitting ES256, so a tenant created now is provisioned without its key.
+        await PatchPlatformSettingsAsync(client, operation: "add", value: ["RS256", "PS256"]);
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -260,26 +260,26 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
         Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
 
-        // Restoring the default lists permits ES256 again; the reconciliation of the server's settings seeds it for the
+        // Restoring the default lists permits ES256 again; the reconciliation of the platform's settings seeds it for the
         // tenant (ADR-1219), so the key arrives after the PATCH returns.
-        await PatchServerSettingsAsync(client, operation: "remove", value: null);
+        await PatchPlatformSettingsAsync(client, operation: "remove", value: null);
 
         var secretIds = await WaitForSecretIdsAsync(factory, "acme", count: 3);
         Assert.Equal(3, secretIds.Count);
     }
 
     [Fact]
-    public async Task ReloadServerConfiguration_WhenItPermitsAConfiguredAlgorithm_ProvisionsItsKeyForEveryTenant()
+    public async Task ReloadPlatformConfiguration_WhenItPermitsAConfiguredAlgorithm_ProvisionsItsKeyForEveryTenant()
     {
-        // The server's configuration lists RS256 and PS256 only, so a tenant created now is provisioned without ES256.
-        var serverSettings = new Dictionary<string, string?>();
+        // The platform's configuration lists RS256 and PS256 only, so a tenant created now is provisioned without ES256.
+        var platformSettings = new Dictionary<string, string?>();
         foreach (var name in SigningListNames)
         {
-            serverSettings[$"OpenId:Server:Settings:{name}:0"] = "RS256";
-            serverSettings[$"OpenId:Server:Settings:{name}:1"] = "PS256";
+            platformSettings[$"OpenId:Platform:Settings:{name}:0"] = "RS256";
+            platformSettings[$"OpenId:Platform:Settings:{name}:1"] = "PS256";
         }
 
-        using var factory = CreateDynamicFactory(serverSettings);
+        using var factory = CreateDynamicFactory(platformSettings);
         using var client = factory.CreateClient();
 
         var accessToken = await GetBootstrapTokenAsync(client);
@@ -289,7 +289,7 @@ public class TenantKeyProvisioningTests
         );
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -302,13 +302,13 @@ public class TenantKeyProvisioningTests
         Assert.True(createResponse.StatusCode == HttpStatusCode.Created, createBody);
         Assert.Equal(2, (await GetSecretIdsAsync(factory, "acme")).Count);
 
-        // A configuration reload that adds ES256 to every list permits it; the reconciliation of the server's settings
+        // A configuration reload that adds ES256 to every list permits it; the reconciliation of the platform's settings
         // seeds the key for the tenant (ADR-1219), though nothing was written through the management API.
         var configuration = (IConfigurationRoot)
             factory.Services.GetRequiredService<IConfiguration>();
         foreach (var name in SigningListNames)
         {
-            configuration[$"OpenId:Server:Settings:{name}:2"] = "ES256";
+            configuration[$"OpenId:Platform:Settings:{name}:2"] = "ES256";
         }
 
         configuration.Reload();
@@ -330,7 +330,7 @@ public class TenantKeyProvisioningTests
         );
 
         using var createResponse = await client.PostAsJsonAsync(
-            "/api/tenants",
+            $"/api/teams/{HostApplicationFactory.TeamId}/tenants",
             new
             {
                 tenantId = "acme",
@@ -411,9 +411,9 @@ public class TenantKeyProvisioningTests
     private static JsonElement DecodeJwtHeader(string jwt) =>
         JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[0]));
 
-    // One operation per signing list of the server's settings: an "add" replaces the list with the value, a "remove"
+    // One operation per signing list of the platform's settings: an "add" replaces the list with the value, a "remove"
     // drops it so the default applies again.
-    private static async Task PatchServerSettingsAsync(
+    private static async Task PatchPlatformSettingsAsync(
         HttpClient client,
         string operation,
         string[]? value
@@ -430,10 +430,7 @@ public class TenantKeyProvisioningTests
                 }
         );
 
-        using var request = new HttpRequestMessage(
-            HttpMethod.Patch,
-            $"/api/servers/{OpenIdServerOptions.DefaultServerId}/settings"
-        )
+        using var request = new HttpRequestMessage(HttpMethod.Patch, "/api/platform/settings")
         {
             Content = new StringContent(
                 JsonSerializer.Serialize(operations),
@@ -447,7 +444,7 @@ public class TenantKeyProvisioningTests
         Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
     }
 
-    // The reconciliation of the server's settings runs in the background, so the keys of the other tenants arrive after
+    // The reconciliation of the platform's settings runs in the background, so the keys of the other tenants arrive after
     // the change that permits them returns.
     private static async Task<List<string>> WaitForSecretIdsAsync(
         HostApplicationFactory factory,

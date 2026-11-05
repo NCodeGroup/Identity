@@ -69,7 +69,12 @@ public sealed class StaticSingleTenantStrategyTests
 
         provisioner
             .Setup(x =>
-                x.EnsureCreatedAsync("tenant-1", "Tenant One", It.IsAny<CancellationToken>())
+                x.EnsureCreatedAsync(
+                    RootTenantOptions.DefaultTeamId,
+                    "tenant-1",
+                    "Tenant One",
+                    It.IsAny<CancellationToken>()
+                )
             )
             .ReturnsAsync(persistedTenant)
             .Verifiable();
@@ -96,7 +101,12 @@ public sealed class StaticSingleTenantStrategyTests
 
         provisioner
             .Setup(x =>
-                x.EnsureCreatedAsync("tenant-1", "Tenant One", It.IsAny<CancellationToken>())
+                x.EnsureCreatedAsync(
+                    RootTenantOptions.DefaultTeamId,
+                    "tenant-1",
+                    "Tenant One",
+                    It.IsAny<CancellationToken>()
+                )
             )
             .ReturnsAsync(CreateTenant(isDisabled: true))
             .Verifiable();
@@ -153,7 +163,12 @@ public sealed class StaticSingleTenantStrategyTests
 
         provisioner
             .Setup(x =>
-                x.EnsureCreatedAsync("tenant-1", "Tenant One", It.IsAny<CancellationToken>())
+                x.EnsureCreatedAsync(
+                    RootTenantOptions.DefaultTeamId,
+                    "tenant-1",
+                    "Tenant One",
+                    It.IsAny<CancellationToken>()
+                )
             )
             .ReturnsAsync(persistedTenant)
             .Verifiable();
@@ -394,6 +409,7 @@ public sealed class StaticSingleTenantStrategyTests
         new()
         {
             TenantId = "tenant-1",
+            TeamId = "platform",
             Issuer = "https://op.example",
             ConcurrencyToken = "token",
             IsDisabled = isDisabled,

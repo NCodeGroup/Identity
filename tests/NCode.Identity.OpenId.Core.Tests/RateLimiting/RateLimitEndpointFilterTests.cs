@@ -16,6 +16,7 @@ namespace NCode.Identity.OpenId.Core.Tests.RateLimiting;
 public sealed class RateLimitEndpointFilterTests : BaseTests
 {
     private const string TenantId = "tenant-1";
+    private const string TeamId = "team-1";
 
     private Mock<IRequestRateLimiter> MockRateLimiter { get; }
 
@@ -48,6 +49,7 @@ public sealed class RateLimitEndpointFilterTests : BaseTests
     {
         var mockTenant = CreateStrictMock<OpenIdTenant>();
         mockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
+        mockTenant.Setup(x => x.TeamId).Returns(TeamId).Verifiable();
         MockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
     }
 
@@ -124,9 +126,11 @@ public sealed class RateLimitEndpointFilterTests : BaseTests
         SetupFeature();
         SetupTenant();
         SetupRequestStage(RateLimitDecision.Admitted, TenantUsageMeters.Requests);
-        MockUsageRecorder.Setup(x => x.Record(TenantId, TenantUsageMeters.Requests)).Verifiable();
         MockUsageRecorder
-            .Setup(x => x.Record(TenantId, TenantUsageMeters.TokenRequests))
+            .Setup(x => x.Record(TeamId, TenantId, TenantUsageMeters.Requests))
+            .Verifiable();
+        MockUsageRecorder
+            .Setup(x => x.Record(TeamId, TenantId, TenantUsageMeters.TokenRequests))
             .Verifiable();
         var expected = new object();
 

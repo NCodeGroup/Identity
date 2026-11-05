@@ -340,9 +340,9 @@ function Initialize-Fapi1Run {
     # Request client certificates at the handshake, and advertise certificate-bound access tokens and the hybrid
     # response type the plain_response variant uses; a FAPI client's security profile narrows both to itself.
     Set-RunEnvironment 'Kestrel__EndpointDefaults__ClientCertificateMode' 'AllowCertificate'
-    Set-RunEnvironment 'OpenId__Server__Settings__tls_client_certificate_bound_access_tokens' 'true'
-    Set-RunEnvironment 'OpenId__Server__Settings__response_types_supported__0' 'code'
-    Set-RunEnvironment 'OpenId__Server__Settings__response_types_supported__1' 'code id_token'
+    Set-RunEnvironment 'OpenId__Platform__Settings__tls_client_certificate_bound_access_tokens' 'true'
+    Set-RunEnvironment 'OpenId__Platform__Settings__response_types_supported__0' 'code'
+    Set-RunEnvironment 'OpenId__Platform__Settings__response_types_supported__1' 'code id_token'
 
     $templateText = Get-Content (Join-Path $ConfigDir $Fapi1Template) -Raw
     foreach ($configuration in $Fapi1Configurations) {

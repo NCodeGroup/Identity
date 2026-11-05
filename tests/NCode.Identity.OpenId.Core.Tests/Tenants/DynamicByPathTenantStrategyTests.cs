@@ -342,6 +342,7 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
         provisioner
             .Setup(x =>
                 x.EnsureCreatedAsync(
+                    RootTenantOptions.DefaultTeamId,
                     rootTenantId,
                     RootTenantOptions.DefaultDisplayName,
                     It.IsAny<CancellationToken>()
@@ -408,6 +409,7 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
         provisioner
             .Setup(x =>
                 x.EnsureCreatedAsync(
+                    RootTenantOptions.DefaultTeamId,
                     rootTenantId,
                     RootTenantOptions.DefaultDisplayName,
                     It.IsAny<CancellationToken>()
@@ -475,6 +477,7 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = $"https://op.example/{tenantId}",
             ConcurrencyToken = "token",
             IsDisabled = isDisabled,

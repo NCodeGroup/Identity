@@ -98,4 +98,70 @@ public interface IResourceOwnershipService
         string principalId,
         CancellationToken cancellationToken
     );
+
+    // See ADR-1411
+    /// <summary>
+    /// Gets the assignments of the specified role at the resource node.
+    /// </summary>
+    /// <param name="storeManager">The unit of work to read through.</param>
+    /// <param name="resourceType">The type of the resource node (a <see cref="ResourceNodeTypes"/> value).</param>
+    /// <param name="resourceId">The identifier of the resource node.</param>
+    /// <param name="roleName">The name of the role.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the assignments
+    /// of the role at the node.</returns>
+    ValueTask<IReadOnlyList<PersistedRoleAssignment>> GetAssignmentsAsync(
+        IStoreManager storeManager,
+        string resourceType,
+        string resourceId,
+        string roleName,
+        CancellationToken cancellationToken
+    );
+
+    // See ADR-1411
+    /// <summary>
+    /// Grants the specified principal a role at the resource node, enlisted in the supplied unit of work. The
+    /// operation is idempotent: when the principal already holds the role at the node, the existing assignment is
+    /// returned unchanged.
+    /// </summary>
+    /// <param name="storeManager">The unit of work to enlist in.</param>
+    /// <param name="tenantId">The identifier of the tenant that owns the resource.</param>
+    /// <param name="resourceType">The type of the resource node (a <see cref="ResourceNodeTypes"/> value).</param>
+    /// <param name="resourceId">The identifier of the resource node.</param>
+    /// <param name="principalId">The identifier of the principal to grant the role to.</param>
+    /// <param name="roleName">The name of the role.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// assignment.</returns>
+    ValueTask<PersistedRoleAssignment> AddAssignmentAsync(
+        IStoreManager storeManager,
+        string tenantId,
+        string resourceType,
+        string resourceId,
+        string principalId,
+        string roleName,
+        CancellationToken cancellationToken
+    );
+
+    // See ADR-1411
+    /// <summary>
+    /// Removes the specified principal's assignment of a role from the resource node, enlisted in the supplied unit
+    /// of work.
+    /// </summary>
+    /// <param name="storeManager">The unit of work to enlist in.</param>
+    /// <param name="resourceType">The type of the resource node (a <see cref="ResourceNodeTypes"/> value).</param>
+    /// <param name="resourceId">The identifier of the resource node.</param>
+    /// <param name="principalId">The identifier of the principal to remove the role from.</param>
+    /// <param name="roleName">The name of the role.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <see langword="true"/>
+    /// when an assignment was removed and <see langword="false"/> when the principal did not hold the role.</returns>
+    ValueTask<bool> RemoveAssignmentAsync(
+        IStoreManager storeManager,
+        string resourceType,
+        string resourceId,
+        string principalId,
+        string roleName,
+        CancellationToken cancellationToken
+    );
 }

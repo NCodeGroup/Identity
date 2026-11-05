@@ -41,6 +41,11 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 
 /*
 
+POST  api/teams/{teamId}/tenants
+GET   api/teams/{teamId}/tenants
+GET   api/teams/{teamId}/tenants/{tenantId}/address
+
+GET   api/tenants
 GET   api/tenants/{tenantId}
 GET   api/tenants/{tenantId}/address
 
@@ -140,10 +145,19 @@ internal class TenantApiEndpointHandler(
     {
         var tenants = endpoints.MapGroup("/tenants").WithTags(OpenIdConstants.EndpointTags.Tenants);
 
-        tenants
+        var teamTenants = endpoints
+            .MapGroup("/teams/{teamId}/tenants")
+            .WithTags(OpenIdConstants.EndpointTags.Tenants);
+
+        teamTenants
             .MapPost("", CreateTenantAsync)
             .Produces<TenantResource>(StatusCodes.Status201Created)
             .ProducesValidationProblem();
+        teamTenants.MapGet("", ListTeamTenantsAsync).Produces<CollectionResource<TenantResource>>();
+        teamTenants
+            .MapGet("/{tenantId}/address", GetTeamTenantAddressAsync)
+            .Produces<TenantAddressResource>();
+
         tenants.MapGet("", ListTenantsAsync).Produces<CollectionResource<TenantResource>>();
         tenants.MapGet("/{tenantId}", GetTenantAsync).Produces<TenantResource>();
         tenants.MapPatch("/{tenantId}", UpdateTenantAsync).Produces(StatusCodes.Status204NoContent);
@@ -246,6 +260,7 @@ internal class TenantApiEndpointHandler(
         new()
         {
             TenantId = tenant.TenantId,
+            TeamId = tenant.TeamId,
             ConcurrencyToken = tenant.ConcurrencyToken,
             Issuer = tenant.Issuer,
             MtlsEndpointAliasAuthority = tenant.MtlsEndpointAliasAuthority,
@@ -256,40 +271,61 @@ internal class TenantApiEndpointHandler(
 
     /// <summary>
     /// Creates a mapper from a <see cref="PersistedTenant"/> to its <see cref="TenantResource"/> that resolves each
-    /// tenant's effective environment under the server's effective settings, which it reads once. When the server's
-    /// stored settings cannot be honored, the mapper leaves every environment unset rather than failing the request.
+    /// tenant's effective environment under its team's effective settings, which it reads once for each team the
+    /// tenants belong to. When a team's stored settings cannot be honored, the mapper leaves the environment of that
+    /// team's tenants unset rather than failing the request.
     /// </summary>
+    /// <param name="tenants">The tenants the mapper will map.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The mapper.</returns>
     // See ADR-1289.
     internal virtual async ValueTask<
         Func<PersistedTenant, TenantResource>
-    > CreateTenantResourceMapperAsync(CancellationToken cancellationToken)
+    > CreateTenantResourceMapperAsync(
+        IEnumerable<PersistedTenant> tenants,
+        CancellationToken cancellationToken
+    )
     {
-        IReadOnlySettingCollection serverSettings;
-        try
+        var teamSettings = new Dictionary<string, IReadOnlySettingCollection?>(
+            StringComparer.Ordinal
+        );
+        foreach (var teamId in tenants.Select(tenant => tenant.TeamId))
         {
-            serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
-        }
-        catch (UnreadableSettingsException exception)
-        {
-            LogEnvironmentUnresolved(exception);
-            return ToTenantResource;
+            if (teamSettings.ContainsKey(teamId))
+            {
+                continue;
+            }
+
+            try
+            {
+                teamSettings[teamId] = await EffectiveSettingsResolver.ResolveTeamAsync(
+                    teamId,
+                    cancellationToken
+                );
+            }
+            catch (UnreadableSettingsException exception)
+            {
+                LogEnvironmentUnresolved(exception);
+                teamSettings[teamId] = null;
+            }
         }
 
-        return tenant => ToTenantResource(tenant, ResolveEnvironment(serverSettings, tenant));
+        return tenant =>
+            teamSettings.TryGetValue(tenant.TeamId, out var settings) && settings is not null
+                ? ToTenantResource(tenant, ResolveEnvironment(settings, tenant))
+                : ToTenantResource(tenant);
     }
 
     /// <summary>
-    /// Resolves a tenant's effective environment from its stored settings under the server's effective settings.
+    /// Resolves a tenant's effective environment from its stored settings under its team's effective settings.
     /// </summary>
-    /// <param name="serverSettings">The server's effective settings.</param>
+    /// <param name="teamSettings">The tenant's team's effective settings.</param>
     /// <param name="tenant">The tenant whose environment to resolve.</param>
     /// <returns>The tenant's environment, or <see langword="null"/> when its stored settings cannot be honored or name a
     /// type that is not registered.</returns>
     // A tenant whose settings need repair is still listed, so its environment is best-effort (ADR-1245, ADR-1289).
     internal virtual TenantEnvironmentResource? ResolveEnvironment(
-        IReadOnlySettingCollection serverSettings,
+        IReadOnlySettingCollection teamSettings,
         PersistedTenant tenant
     )
     {
@@ -297,7 +333,7 @@ internal class TenantApiEndpointHandler(
         try
         {
             tenantSettings = EffectiveSettingsResolver.ResolveStored(
-                serverSettings,
+                teamSettings,
                 OpenIdSettingScopes.Tenant,
                 tenant.TenantId,
                 tenant.Settings.Value
@@ -405,29 +441,95 @@ internal class TenantApiEndpointHandler(
     {
         var effectiveLimit = NormalizeLimit(limit);
 
-        // The page is fetched only after authorization, so the server's settings are read with it, never for a caller
+        // The page is fetched only after authorization, so the teams' settings are read with it, never for a caller
         // who may not list tenants.
         Func<PersistedTenant, TenantResource> toTenantResource = ToTenantResource;
 
-        // Tenant administration is central-admin; a null authorization resource restricts this to global admins.
+        // Listing tenants across teams is platform authority: a global admin or an assignment at the platform node
+        // lists them, and nothing beneath the platform does.
         return await ProcessListAsync(
             httpContext,
-            authorizationResource: null,
+            GetPlatformNode(httpContext),
             async () =>
             {
-                toTenantResource = await CreateTenantResourceMapperAsync(cancellationToken);
                 await using var storeManager = await StoreManagerFactory.CreateAsync(
                     cancellationToken
                 );
                 var store = storeManager.GetStore<ITenantStore>();
-                return await store.GetPageAsync(
+                var page = await store.GetPageAsync(
                     new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
                 );
+                toTenantResource = await CreateTenantResourceMapperAsync(
+                    page.Items,
+                    cancellationToken
+                );
+                return page;
             },
             tenant => toTenantResource(tenant)
         );
     }
+
+    /// <summary>
+    /// Lists the OpenID tenants of a team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of tenants to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">A page of the team's tenants.</response>
+    [EndpointName("api/teams/tenants/list")]
+    internal virtual async ValueTask<IResult> ListTeamTenantsAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var effectiveLimit = NormalizeLimit(limit);
+        Func<PersistedTenant, TenantResource> toTenantResource = ToTenantResource;
+
+        return await ProcessListAsync(
+            httpContext,
+            GetTeamNode(httpContext, teamId),
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<ITenantStore>();
+                var page = await store.GetPageAsync(
+                    teamId,
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
+                    cancellationToken
+                );
+                toTenantResource = await CreateTenantResourceMapperAsync(
+                    page.Items,
+                    cancellationToken
+                );
+                return page;
+            },
+            tenant => toTenantResource(tenant)
+        );
+    }
+
+    // The platform's authority node, addressed from the control-plane tenant the request runs under.
+    private static ResourceNode GetPlatformNode(HttpContext httpContext) =>
+        ResourceNode.For(
+            httpContext.GetOpenIdContext().Tenant.TenantId,
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId
+        );
+
+    // The team's authority node, addressed from the control-plane tenant the request runs under.
+    private static ResourceNode GetTeamNode(HttpContext httpContext, string teamId) =>
+        ResourceNode.For(
+            httpContext.GetOpenIdContext().Tenant.TenantId,
+            ResourceNodeTypes.Team,
+            teamId
+        );
 
     /// <summary>
     /// Gets an OpenID tenant.
@@ -458,7 +560,10 @@ internal class TenantApiEndpointHandler(
             Operations.Read,
             async (persistedTenant, token) =>
             {
-                var toTenantResource = await CreateTenantResourceMapperAsync(token);
+                var toTenantResource = await CreateTenantResourceMapperAsync(
+                    [persistedTenant],
+                    token
+                );
                 return toTenantResource(persistedTenant);
             },
             cancellationToken
@@ -466,15 +571,19 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Creates an OpenID tenant.
+    /// Creates an OpenID tenant under a team.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team that will hold the tenant.</param>
     /// <param name="request">The <see cref="CreateTenantRequest"/> describing the tenant to create.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created tenant.</response>
-    [EndpointName("api/tenants/create")]
+    /// <response code="404">The team does not exist.</response>
+    /// <response code="409">The team holds its maximum number of tenants.</response>
+    [EndpointName("api/teams/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
+        [FromRoute] string teamId,
         [FromBody] CreateTenantRequest request,
         CancellationToken cancellationToken
     )
@@ -483,6 +592,15 @@ internal class TenantApiEndpointHandler(
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
+        var teamStore = storeManager.GetStore<ITeamStore>();
+
+        var team = await teamStore.GetOrDefaultAsync(teamId, cancellationToken);
+        if (team is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var controlPlaneTenantId = openIdContext.Tenant.TenantId;
 
         // A tenant is named by its creator (ADR-1159); the validator checks the name with the rest of its address.
         var tenantId = request.TenantId;
@@ -502,6 +620,7 @@ internal class TenantApiEndpointHandler(
         var tenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = teamId,
             ConcurrencyToken = string.Empty,
             Issuer = issuer,
             MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,
@@ -525,6 +644,7 @@ internal class TenantApiEndpointHandler(
         // (ADR-1014, ADR-1160).
         var error = await TenantValidator.ValidateCreateAsync(
             httpContext.User,
+            controlPlaneTenantId,
             tenant,
             storeManager,
             cancellationToken
@@ -532,6 +652,25 @@ internal class TenantApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        // A team holds at most its 'max_tenants' tenants; unset means unlimited (ADR-1411).
+        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            teamId,
+            cancellationToken
+        );
+        if (
+            teamSettings.TryGetValue(OpenIdSettingKeys.MaxTenants, out var maxTenants)
+            && await store.CountAsync(teamId, cancellationToken) >= maxTenants
+        )
+        {
+            return ToErrorResult(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = $"The team holds its maximum of {maxTenants} tenants.",
+                }
+            );
         }
 
         // Setting names are a closed vocabulary (ADR-1139), and a tenant carries only the settings that apply within it
@@ -579,13 +718,14 @@ internal class TenantApiEndpointHandler(
         // derived from its settings and stamps the audit event itself (ADR-1289).
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
+            tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Created,
             ToResourceValues(ToTenantResource(tenant)),
             cancellationToken
         );
 
-        var toTenantResource = await CreateTenantResourceMapperAsync(cancellationToken);
+        var toTenantResource = await CreateTenantResourceMapperAsync([tenant], cancellationToken);
         var resource = toTenantResource(tenant);
 
         httpContext.Response.Headers.ETag = tenant.ConcurrencyToken;
@@ -593,18 +733,19 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Previews the address of an OpenID tenant: the issuer and mutual-TLS endpoint-alias authority it has, or would have,
-    /// and every reason it could not be served there. A caller checks a tenant's name and addresses with it before creating
-    /// the tenant or changing them; the same rules judge the write itself.
+    /// Previews the address of an existing OpenID tenant: the issuer and mutual-TLS endpoint-alias authority it has, and
+    /// every reason it could not be served there. A caller checks a change to a tenant's addresses with it before making
+    /// the change; the same rules judge the write itself.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="tenantId">The identifier of the OpenID Tenant, whether or not it exists.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="issuer">The proposed issuer; when omitted, the tenant's current issuer, or for a tenant without one
     /// the issuer its strategy derives for it.</param>
     /// <param name="mtlsEndpointAliasAuthority">The proposed mutual-TLS endpoint-alias authority; when omitted, the
     /// tenant's current alias, or for a tenant without one the alias its strategy derives for it.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's address and the reasons it cannot be served there, if any.</response>
+    /// <response code="404">The tenant does not exist.</response>
     // See ADR-1165 (the address is previewed through the seam that judges it).
     [EndpointName("api/tenants/address")]
     internal virtual async ValueTask<IResult> GetAddressAsync(
@@ -619,21 +760,106 @@ internal class TenantApiEndpointHandler(
         var store = storeManager.GetStore<ITenantStore>();
 
         var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
-        var exists = tenant is not null;
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
 
-        // Previewing an existing tenant's address reads it; previewing a new one is part of creating it, which is
-        // authority at the parent node rather than ownership (ADR-1034).
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
-            exists ? Operations.Read : Operations.Create
+            Operations.Read
         );
         if (!authorizationResult.Succeeded)
         {
             return AuthorizationFailed(httpContext);
         }
 
+        return await PreviewAddressAsync(
+            tenant,
+            true,
+            tenantId,
+            issuer,
+            mtlsEndpointAliasAuthority,
+            storeManager,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Previews the address an OpenID tenant would have if a team created it: the issuer and mutual-TLS endpoint-alias
+    /// authority it would have, and every reason it could not be served there. A caller checks a new tenant's name and
+    /// addresses with it before creating the tenant.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team that would hold the tenant.</param>
+    /// <param name="tenantId">The identifier the tenant would have.</param>
+    /// <param name="issuer">The proposed issuer; when omitted, the issuer the tenant's strategy derives for it.</param>
+    /// <param name="mtlsEndpointAliasAuthority">The proposed mutual-TLS endpoint-alias authority; when omitted, the alias
+    /// the tenant's strategy derives for it.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The address the tenant would have and the reasons it cannot be served there, if any.</response>
+    /// <response code="404">The team does not exist.</response>
+    // See ADR-1165 (the address is previewed through the seam that judges it).
+    [EndpointName("api/teams/tenants/address/get")]
+    internal virtual async ValueTask<IResult> GetTeamTenantAddressAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromRoute] string tenantId,
+        [FromQuery] string? issuer,
+        [FromQuery] string? mtlsEndpointAliasAuthority,
+        CancellationToken cancellationToken
+    )
+    {
+        // Previewing a new tenant is part of creating it, which is authority at the team node (ADR-1034).
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            GetTeamNode(httpContext, teamId),
+            Operations.Create
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+
+        var team = await storeManager
+            .GetStore<ITeamStore>()
+            .GetOrDefaultAsync(teamId, cancellationToken);
+        if (team is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var exists =
+            await storeManager
+                .GetStore<ITenantStore>()
+                .GetOrDefaultAsync(tenantId, cancellationToken)
+            is not null;
+
+        return await PreviewAddressAsync(
+            null,
+            exists,
+            tenantId,
+            issuer,
+            mtlsEndpointAliasAuthority,
+            storeManager,
+            cancellationToken
+        );
+    }
+
+    private async ValueTask<IResult> PreviewAddressAsync(
+        PersistedTenant? tenant,
+        bool exists,
+        string tenantId,
+        string? issuer,
+        string? mtlsEndpointAliasAuthority,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
         var proposedIssuer = NullIfEmpty(issuer) ?? NullIfEmpty(tenant?.Issuer);
         var effectiveIssuer =
             proposedIssuer
@@ -763,6 +989,7 @@ internal class TenantApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
+            tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Updated,
             ToResourceValues(ToTenantResource(tenant)),
@@ -816,6 +1043,7 @@ internal class TenantApiEndpointHandler(
         }
 
         var effectiveSettings = await MergeTenantSettingsAsync(
+            tenant.TeamId,
             tenant.TenantId,
             tenant.Settings.Value,
             cancellationToken
@@ -846,6 +1074,7 @@ internal class TenantApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
+            tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Deleted,
             resourceValues,
@@ -993,8 +1222,8 @@ internal class TenantApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
-        var tenantSettings = await store.GetSettingsOrDefaultAsync(tenantId, cancellationToken);
-        if (tenantSettings is null)
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
         {
             return TypedResults.NotFound();
         }
@@ -1006,12 +1235,17 @@ internal class TenantApiEndpointHandler(
         // See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            tenantSettings.Value,
+            tenant.Settings.Value,
             node,
             Operations.Read,
             async (settings, token) =>
             {
-                var effectiveSettings = await MergeTenantSettingsAsync(tenantId, settings, token);
+                var effectiveSettings = await MergeTenantSettingsAsync(
+                    tenant.TeamId,
+                    tenantId,
+                    settings,
+                    token
+                );
                 return ToTenantEffectiveSettingsResource(tenantId, effectiveSettings);
             },
             cancellationToken
@@ -1019,26 +1253,31 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Merges a tenant's persisted settings onto the server's effective settings through the
+    /// Merges a tenant's persisted settings onto its team's effective settings through the
     /// <see cref="IEffectiveSettingsResolver"/>, producing the same effective <see cref="IReadOnlySettingCollection"/>
     /// the authorization server resolves for the tenant at runtime — including the ceilings of the security profiles the
     /// tenant selects. A document that cannot be honored fails naming the tenant.
     /// </summary>
+    /// <param name="teamId">The identifier of the team that owns the tenant.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant that owns the settings document.</param>
     /// <param name="tenantSettings">The tenant's settings document to merge.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>.</returns>
-    /// <exception cref="UnreadableSettingsException">The tenant's document, or the server's, cannot be honored.</exception>
+    /// <exception cref="UnreadableSettingsException">The tenant's document, or its team's, cannot be honored.</exception>
     // See ADR-1204 and ADR-1245.
     internal virtual async ValueTask<IReadOnlySettingCollection> MergeTenantSettingsAsync(
+        string teamId,
         string tenantId,
         JsonElement tenantSettings,
         CancellationToken cancellationToken
     )
     {
-        var serverEffective = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var teamEffective = await EffectiveSettingsResolver.ResolveTeamAsync(
+            teamId,
+            cancellationToken
+        );
         return EffectiveSettingsResolver.ResolveStored(
-            serverEffective,
+            teamEffective,
             OpenIdSettingScopes.Tenant,
             tenantId,
             tenantSettings
@@ -1051,6 +1290,7 @@ internal class TenantApiEndpointHandler(
     /// change leaves the effective value of every setting a rule reads unchanged. When the replaced document cannot be
     /// honored, no client is checked, because none was coherent under it.
     /// </summary>
+    /// <param name="teamId">The identifier of the team that owns the tenant.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant whose settings change.</param>
     /// <param name="currentSettings">The tenant's current settings document.</param>
     /// <param name="newSettings">The tenant's new settings document.</param>
@@ -1060,6 +1300,7 @@ internal class TenantApiEndpointHandler(
     /// an empty list.</returns>
     // See ADR-1206 and ADR-1241.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
+        string teamId,
         string tenantId,
         JsonElement currentSettings,
         JsonElement newSettings,
@@ -1067,9 +1308,12 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var serverSettings = await EffectiveSettingsResolver.ResolveServerAsync(cancellationToken);
+        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            teamId,
+            cancellationToken
+        );
         var newEffective = EffectiveSettingsResolver.Resolve(
-            serverSettings,
+            teamSettings,
             OpenIdSettingScopes.Tenant,
             newSettings
         );
@@ -1078,7 +1322,7 @@ internal class TenantApiEndpointHandler(
         try
         {
             currentEffective = EffectiveSettingsResolver.Resolve(
-                serverSettings,
+                teamSettings,
                 OpenIdSettingScopes.Tenant,
                 currentSettings
             );
@@ -1179,7 +1423,14 @@ internal class TenantApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
         var coherenceErrors = await ValidateClientCoherenceAsync(
+            tenant.TeamId,
             tenantId,
             tenantSettings.Value,
             settingsValue,
@@ -1199,6 +1450,7 @@ internal class TenantApiEndpointHandler(
 
         await ManagementAuditRecorder.RecordTenantChangedAsync(
             httpContext,
+            tenant.TeamId,
             tenantSettings.TenantId,
             ResourceChangeTypes.SettingsUpdated,
             ToResourceValues(ToTenantSettingsResource(tenantSettings)),

@@ -189,6 +189,7 @@ internal class GrantStore(
             && entity.RevokedWhen == null
             && entity.ExpiresWhen <= cutoff
             && !entity.Tenant.IsDisabled
+            && !entity.Tenant.Team.IsDisabled
         );
 
         // Fetch one extra row so a full page signals that another page exists.

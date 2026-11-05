@@ -21,6 +21,7 @@ public interface ITenantProvisioner
     /// issuer (<see cref="ITenantResolver.GetDefaultIssuerAsync"/>), judged by
     /// <see cref="ITenantResolver.ValidateTenantAsync"/> like any other tenant written. It does not seed the tenant.
     /// </summary>
+    /// <param name="teamId">The identifier of the team the tenant belongs to; the team is created when it does not exist.</param>
     /// <param name="tenantId">The identifier of the tenant to create.</param>
     /// <param name="displayName">The display name applied when the tenant is created; an existing tenant keeps its own.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -29,6 +30,7 @@ public interface ITenantProvisioner
     /// <exception cref="InvalidOperationException">The tenant does not exist and cannot be created at its default
     /// address.</exception>
     ValueTask<PersistedTenant> EnsureCreatedAsync(
+        string teamId,
         string tenantId,
         string displayName,
         CancellationToken cancellationToken

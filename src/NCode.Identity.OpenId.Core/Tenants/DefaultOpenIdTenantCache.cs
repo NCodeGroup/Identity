@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -28,16 +29,29 @@ internal class DefaultOpenIdTenantCache(
     // Cancelled by ClearAsync, so every entry cached before the call expires.
     private CancellationTokenSource Generation { get; set; } = new();
 
+    // The cached tenant identifiers of each team (compared without regard to case, as the team cache keys them), so
+    // RemoveTeamAsync finds a team's tenants without scanning the cache. Each value is the token of the cache entry
+    // that registered the identifier, so an eviction callback removes only its own entry.
+    private ConcurrentDictionary<
+        string,
+        ConcurrentDictionary<string, object>
+    > TenantIdsByTeam { get; } = new(StringComparer.OrdinalIgnoreCase);
+
     private static string GetCacheKey(string tenantId) =>
         $"NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantCache:{tenantId}";
 
-    private static void EvictionCallback(
-        object key,
-        object? value,
-        EvictionReason reason,
-        object? state
-    )
+    private void EvictionCallback(object key, object? value, EvictionReason reason, object? state)
     {
+        // The index entry is removed only while it still holds this cache entry's token, so a late callback of a
+        // removed or expired entry never deletes its live replacement.
+        if (
+            state is ValueTuple<string, string, object>(var teamId, var tenantId, var token)
+            && TenantIdsByTeam.TryGetValue(teamId, out var tenantIds)
+        )
+        {
+            tenantIds.TryRemove(new KeyValuePair<string, object>(tenantId, token));
+        }
+
         if (value is not IAsyncDisposable asyncDisposable)
             return;
 
@@ -78,24 +92,33 @@ internal class DefaultOpenIdTenantCache(
     {
         var key = GetCacheKey(tenantId);
         var newLease = tenant.AddReference();
+        var teamId = tenant.Value.TeamId;
+        var token = new object();
 
-        CancellationToken generation;
+        // The generation token, the index write and the cache write share one lock, so two concurrent calls for the
+        // same tenant leave the index holding the token of the entry the cache holds, and a replaced entry's callback
+        // never removes the survivor's index entry. The eviction callback does not take the lock.
         lock (Gate)
         {
-            generation = Generation.Token;
-        }
-
-        var entryOptions = new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = Lifetime,
-            ExpirationTokens = { new CancellationChangeToken(generation) },
-            PostEvictionCallbacks =
+            var entryOptions = new MemoryCacheEntryOptions
             {
-                new PostEvictionCallbackRegistration { EvictionCallback = EvictionCallback },
-            },
-        };
+                AbsoluteExpirationRelativeToNow = Lifetime,
+                ExpirationTokens = { new CancellationChangeToken(Generation.Token) },
+                PostEvictionCallbacks =
+                {
+                    new PostEvictionCallbackRegistration
+                    {
+                        EvictionCallback = EvictionCallback,
+                        State = (teamId, tenantId, token),
+                    },
+                },
+            };
 
-        MemoryCache.Set(key, newLease, entryOptions);
+            TenantIdsByTeam.GetOrAdd(teamId, _ => new ConcurrentDictionary<string, object>())[
+                tenantId
+            ] = token;
+            MemoryCache.Set(key, newLease, entryOptions);
+        }
 
         return ValueTask.CompletedTask;
     }
@@ -111,6 +134,22 @@ internal class DefaultOpenIdTenantCache(
         MemoryCache.Remove(GetCacheKey(tenantId));
 
         return ValueTask.CompletedTask;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RemoveTeamAsync(
+        string teamId,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!TenantIdsByTeam.TryGetValue(teamId, out var tenantIds))
+            return;
+
+        foreach (var tenantId in tenantIds.Keys)
+        {
+            await RemoveAsync(tenantId, propertyBag, cancellationToken);
+        }
     }
 
     /// <inheritdoc />

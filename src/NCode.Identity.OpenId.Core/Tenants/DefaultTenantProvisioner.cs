@@ -9,6 +9,7 @@ using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Persistence;
 using NCode.Identity.Results;
 using NCode.Mediator;
@@ -31,6 +32,7 @@ internal sealed class DefaultTenantProvisioner(
     ITenantResolver tenantResolver,
     IOptions<TenantResolutionOptions> optionsAccessor,
     IMediator mediator,
+    ITeamProvisioner teamProvisioner,
     TimeProvider timeProvider,
     ILogger<DefaultTenantProvisioner> logger
 ) : ITenantProvisioner
@@ -42,6 +44,7 @@ internal sealed class DefaultTenantProvisioner(
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
     private ITenantResolver TenantResolver { get; } = tenantResolver;
     private IMediator Mediator { get; } = mediator;
+    private ITeamProvisioner TeamProvisioner { get; } = teamProvisioner;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<DefaultTenantProvisioner> Logger { get; } = logger;
 
@@ -49,11 +52,21 @@ internal sealed class DefaultTenantProvisioner(
 
     /// <inheritdoc />
     public async ValueTask<PersistedTenant> EnsureCreatedAsync(
+        string teamId,
         string tenantId,
         string displayName,
         CancellationToken cancellationToken
     )
     {
+        // The tenant's team exists before the tenant, so the tenant's foreign key to it holds (ADR-1411).
+        await TeamProvisioner.EnsureCreatedAsync(
+            teamId,
+            string.Equals(teamId, RootOptions.TeamId, StringComparison.Ordinal)
+                ? RootOptions.TeamDisplayName
+                : teamId,
+            cancellationToken
+        );
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITenantStore>();
 
@@ -85,6 +98,7 @@ internal sealed class DefaultTenantProvisioner(
         }
 
         var persistedTenant = CreateEmptyPersistedTenant(
+            teamId,
             tenantId,
             displayName,
             issuer,
@@ -125,7 +139,12 @@ internal sealed class DefaultTenantProvisioner(
         // are seeded identically.
         if (!isRootTenant)
         {
-            await EnsureCreatedAsync(rootTenantId, RootOptions.DisplayName, cancellationToken);
+            await EnsureCreatedAsync(
+                RootOptions.TeamId,
+                rootTenantId,
+                RootOptions.DisplayName,
+                cancellationToken
+            );
             await SeedAsync(rootTenantId, cancellationToken);
         }
 
@@ -204,6 +223,7 @@ internal sealed class DefaultTenantProvisioner(
     }
 
     private static PersistedTenant CreateEmptyPersistedTenant(
+        string teamId,
         string tenantId,
         string displayName,
         string? issuer,
@@ -227,6 +247,7 @@ internal sealed class DefaultTenantProvisioner(
         return new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = teamId,
             // The tenant's request-independent identity; only a tenant its strategy does not serve has none.
             Issuer = issuer,
             MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,

@@ -157,7 +157,9 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -472,7 +474,9 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<ForbidHttpResult>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion

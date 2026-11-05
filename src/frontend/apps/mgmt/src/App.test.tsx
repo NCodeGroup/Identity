@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
-import { act, render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
 import type { RuntimeConfig } from '@ncode/config';
@@ -9,9 +9,10 @@ import { App } from './App.js';
 import './containers/ClientsPage.js';
 import './containers/GrantsPage.js';
 import './containers/ResourceServersPage.js';
-import './containers/ServersPage.js';
+import './containers/PlatformSettingsPage.js';
+import './containers/TeamDetailPage.js';
+import './containers/TeamsPage.js';
 import './containers/TenantDetailPage.js';
-import './containers/TenantsPage.js';
 
 const runtime: RuntimeConfig = {
   apiBaseUrl: 'https://api.test',
@@ -49,8 +50,16 @@ function jsonResponse(body: unknown) {
   );
 }
 
+const acmeTeam = {
+  teamId: 'acme',
+  concurrencyToken: 'tc',
+  displayName: 'Acme team',
+  isDisabled: false,
+};
+
 const acmeTenant = {
   tenantId: 'acme',
+  teamId: 'acme',
   displayName: 'Acme',
   issuer: null,
   mtlsEndpointAliasAuthority: null,
@@ -58,13 +67,32 @@ const acmeTenant = {
   concurrencyToken: 'c',
 };
 
-describe('App (global ↔ tenant boundary)', () => {
+const acmeDevTenant = { ...acmeTenant, tenantId: 'acme-dev', displayName: 'Acme dev' };
+
+/** Serves the directory the console browses to reach a tenant: the teams, a team's tenants and one tenant. */
+function directoryResponse(url: string): Promise<Response> | undefined {
+  if (url.endsWith('/api/teams/acme/tenants')) {
+    return jsonResponse({ items: [acmeTenant, acmeDevTenant] });
+  }
+  if (url.endsWith('/api/teams')) {
+    return jsonResponse({ items: [acmeTeam] });
+  }
+  if (url.endsWith('/api/tenants/acme')) {
+    return jsonResponse(acmeTenant);
+  }
+  if (url.endsWith('/api/tenants/acme-dev')) {
+    return jsonResponse(acmeDevTenant);
+  }
+  return undefined;
+}
+
+describe('App (platform ↔ team ↔ tenant boundary)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     window.history.replaceState(null, '', '/');
   });
 
-  it('browses tenants globally, then crosses into a tenant scope', async () => {
+  it('browses teams on the platform, then crosses into a team and a tenant scope', async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url =
         input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
@@ -80,19 +108,9 @@ describe('App (global ↔ tenant boundary)', () => {
           ],
         });
       }
-      if (url.endsWith('/api/tenants')) {
-        return jsonResponse({
-          items: [
-            {
-              tenantId: 'acme',
-              displayName: 'Acme',
-              issuer: null,
-              mtlsEndpointAliasAuthority: null,
-              isDisabled: false,
-              concurrencyToken: 'c',
-            },
-          ],
-        });
+      const directory = directoryResponse(url);
+      if (directory) {
+        return directory;
       }
       throw new Error(`Unexpected fetch: ${url}`);
     });
@@ -100,15 +118,26 @@ describe('App (global ↔ tenant boundary)', () => {
 
     renderApp();
 
-    // Global scope: the tenant list renders and the badge reads "Global".
-    expect(await screen.findByText('Acme')).toBeInTheDocument();
-    expect(screen.getByTestId('scope-badge')).toHaveTextContent('Global');
+    // Platform scope: the team list renders and the badge reads "Platform".
+    expect(await screen.findByText('Acme team')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('Platform');
 
-    // Cross the boundary into the tenant.
+    // Cross into the team: its tenants render and the badge names the team.
+    fireEvent.click(screen.getByTestId('team-row-acme'));
+    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+    // The team and the tenant share an id, so the badge's icon tells the scopes apart.
+    expect(within(screen.getByTestId('scope-badge')).getByTestId('GroupsIcon')).toBeInTheDocument();
+
+    // Cross into the tenant.
     fireEvent.click(screen.getByTestId('tenant-row-acme'));
 
-    await waitFor(() => expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme'));
     expect(await screen.findByText('web')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+    expect(
+      within(screen.getByTestId('scope-badge')).getByTestId('BusinessIcon'),
+    ).toBeInTheDocument();
+    expect(within(screen.getByTestId('scope-badge')).queryByTestId('GroupsIcon')).toBeNull();
     const requestedUrls = fetchMock.mock.calls.map(([input]) =>
       input instanceof Request ? input.url : String(input),
     );
@@ -140,24 +169,15 @@ describe('App (global ↔ tenant boundary)', () => {
           items: [{ clientId: 'web', tenantId: 'acme', isDisabled: false, concurrencyToken: 'c' }],
         });
       }
-      if (url.endsWith('/api/tenants')) {
-        return jsonResponse({
-          items: [
-            {
-              tenantId: 'acme',
-              displayName: 'Acme',
-              issuer: null,
-              mtlsEndpointAliasAuthority: null,
-              isDisabled: false,
-              concurrencyToken: 'c',
-            },
-          ],
-        });
+      const directory = directoryResponse(url);
+      if (directory) {
+        return directory;
       }
       throw new Error(`Unexpected fetch: ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
 
+    window.history.replaceState(null, '', '/teams/acme/tenants');
     renderApp();
 
     fireEvent.click(await screen.findByTestId('tenant-row-acme'));
@@ -172,17 +192,19 @@ describe('App (global ↔ tenant boundary)', () => {
     expect(requestedUrls).toContain('https://api.test/api/tenants/acme/resource-servers');
   });
 
-  it('switches to the global Servers surface and lists servers', async () => {
+  it('switches to the platform Settings surface', async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url =
         input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
-      if (url.endsWith('/api/servers')) {
-        return jsonResponse({
-          items: [{ serverId: 'root', concurrencyToken: 'c', displayName: 'Root server' }],
-        });
+      if (url.endsWith('/api/platform/settings')) {
+        return jsonResponse({ concurrencyToken: 'st', settings: { a: 1 } });
       }
-      if (url.endsWith('/api/tenants')) {
-        return jsonResponse({ items: [] });
+      if (url.endsWith('/api/platform/effective-settings')) {
+        return jsonResponse({ settings: { a: 1 } });
+      }
+      const directory = directoryResponse(url);
+      if (directory) {
+        return directory;
       }
       throw new Error(`Unexpected fetch: ${url}`);
     });
@@ -190,40 +212,214 @@ describe('App (global ↔ tenant boundary)', () => {
 
     renderApp();
 
-    fireEvent.click(await screen.findByTestId('global-tab-servers'));
-    expect(await screen.findByText('Root server')).toBeInTheDocument();
+    fireEvent.click(await screen.findByTestId('platform-tab-settings'));
+    expect(await screen.findByRole('heading', { name: 'Platform settings' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/settings');
 
     const requestedUrls = fetchMock.mock.calls.map(([input]) =>
       input instanceof Request ? input.url : String(input),
     );
-    expect(requestedUrls).toContain('https://api.test/api/servers');
+    expect(requestedUrls).toContain('https://api.test/api/platform/settings');
   });
 
-  it('exits a tenant back to the global scope', async () => {
+  it('switches to the platform Encryption keys surface', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url =
+        input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+      if (url.endsWith('/api/platform/encryption-keys')) {
+        return jsonResponse({
+          recoveryConfigured: true,
+          rootKey: null,
+          rootKeyProviders: [],
+          keys: [
+            {
+              keyId: 'k-1',
+              version: 1,
+              state: 'active',
+              createdWhen: '2026-10-01T09:00:00Z',
+              retiredWhen: null,
+              rootKeyProvider: 'local',
+              rootKeyId: 'root-1',
+              recoveryKeyId: null,
+              rootKeyReference: null,
+            },
+          ],
+        });
+      }
+      const directory = directoryResponse(url);
+      if (directory) {
+        return directory;
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('platform-tab-encryption-keys'));
+    expect(await screen.findByTestId('encryption-key-row-k-1')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/encryption-keys');
+  });
+
+  it('lists teams and crosses into a team scope', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((input: RequestInfo | URL) => {
         const url = (input as Request).url;
-        if (url.endsWith('/api/tenants/acme/clients')) {
-          return jsonResponse({ items: [] });
-        }
-        if (url.endsWith('/api/tenants')) {
-          return jsonResponse({ items: [acmeTenant] });
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
         }
         throw new Error(`Unexpected fetch: ${url}`);
       }),
     );
 
     renderApp();
-    fireEvent.click(await screen.findByTestId('tenant-row-acme'));
-    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('exit-tenant'));
+    fireEvent.click(await screen.findByTestId('team-row-acme'));
+
+    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams/acme/tenants');
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('acme');
+    expect(screen.getByRole('tab', { name: 'Tenants' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByTestId('exit-scope')).toHaveTextContent('Platform');
+
+    fireEvent.click(screen.getByTestId('exit-scope'));
+
+    expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('Platform');
+    expect(window.location.pathname).toBe('/teams');
+  });
+
+  it('switches between the surfaces of a team scope', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/teams/acme/usage')) {
+          return jsonResponse({ from: '2026-09-21', to: '2026-10-21', entries: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('team-row-acme'));
+    fireEvent.click(await screen.findByTestId('team-tab-usage'));
+
+    expect(await screen.findByTestId('usage-range')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams/acme/usage');
+  });
+
+  it('exits a tenant back to its team, then the team back to the platform', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/acme-dev/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    window.history.replaceState(null, '', '/teams/acme/tenants');
+    renderApp();
+    fireEvent.click(await screen.findByTestId('tenant-row-acme-dev'));
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    // Once the tenant loads, the exit names its team.
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Team'));
+
+    fireEvent.click(screen.getByTestId('exit-scope'));
 
     // Swapping the scope's tab set re-measures the tab indicator asynchronously; await the settled UI.
-    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
-    expect(screen.getByTestId('scope-badge')).toHaveTextContent('Global');
-    expect(screen.queryByTestId('exit-tenant')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('tenant-row-acme-dev')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams/acme/tenants');
+    expect(screen.getByTestId('exit-scope')).toHaveTextContent('Platform');
+
+    fireEvent.click(screen.getByTestId('exit-scope'));
+
+    expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();
+    expect(screen.getByTestId('scope-badge')).toHaveTextContent('Platform');
+    expect(screen.queryByTestId('exit-scope')).not.toBeInTheDocument();
+  });
+
+  it('exits a tenant that has not loaded to the platform team list', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/acme-dev')) {
+          return new Promise<Response>(() => undefined);
+        }
+        if (url.endsWith('/api/tenants/acme-dev/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    window.history.replaceState(null, '', '/tenants/acme-dev/clients');
+    renderApp();
+
+    expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('scope-badge')).getByTestId('BusinessIcon'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('exit-scope')).toHaveTextContent('Platform');
+
+    fireEvent.click(screen.getByTestId('exit-scope'));
+
+    expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams');
+  });
+
+  it('labels the exit from the current tenant only, not from a tenant viewed before it', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        if (url.endsWith('/api/tenants/globex-dev')) {
+          return new Promise<Response>(() => undefined);
+        }
+        if (url.endsWith('/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    window.history.replaceState(null, '', '/tenants/acme-dev/clients');
+    renderApp();
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Team'));
+
+    act(() => {
+      window.history.pushState(null, '', '/tenants/globex-dev/clients');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Platform'));
+    fireEvent.click(screen.getByTestId('exit-scope'));
+
+    expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams');
   });
 
   it('reaches the grants and tenant surfaces, and re-enters a tenant on its clients', async () => {
@@ -241,13 +437,15 @@ describe('App (global ↔ tenant boundary)', () => {
       if (url.endsWith('/api/tenants/acme/clients')) {
         return jsonResponse({ items: [] });
       }
-      if (url.endsWith('/api/tenants')) {
-        return jsonResponse({ items: [acmeTenant] });
+      const directory = directoryResponse(url);
+      if (directory) {
+        return directory;
       }
       throw new Error(`Unexpected fetch: ${url}`);
     });
     vi.stubGlobal('fetch', fetchMock);
 
+    window.history.replaceState(null, '', '/teams/acme/tenants');
     renderApp();
     fireEvent.click(await screen.findByTestId('tenant-row-acme'));
     expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
@@ -260,8 +458,9 @@ describe('App (global ↔ tenant boundary)', () => {
     expect(window.location.pathname).toBe('/tenants/acme/secrets');
 
     // Leaving and re-entering a tenant starts again on its clients, not the last surface visited.
-    fireEvent.click(screen.getByTestId('exit-tenant'));
-    fireEvent.click(screen.getByTestId('tenant-row-acme'));
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Team'));
+    fireEvent.click(screen.getByTestId('exit-scope'));
+    fireEvent.click(await screen.findByTestId('tenant-row-acme'));
     // Swapping the scope's tab set re-measures the tab indicator asynchronously; await the settled UI.
     expect(await screen.findByText('No clients in this scope yet.')).toBeInTheDocument();
 
@@ -288,24 +487,22 @@ describe('App (routing)', () => {
         if (url.endsWith('/api/tenants/acme/clients')) {
           return jsonResponse({ items: [] });
         }
-        if (url.endsWith('/api/servers')) {
-          return jsonResponse({ items: [] });
-        }
-        if (url.endsWith('/api/tenants')) {
-          return jsonResponse({ items: [acmeTenant] });
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
         }
         throw new Error(`Unexpected fetch: ${url}`);
       }),
     );
   }
 
-  it('rewrites the bare origin to the global tenant list', async () => {
+  it('rewrites the bare origin to the platform team list', async () => {
     stubTenantApi();
 
     renderApp();
 
-    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/tenants');
+    expect(await screen.findByTestId('team-row-acme')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams');
   });
 
   it('opens a deep link on its tenant scope and surface', async () => {
@@ -331,6 +528,10 @@ describe('App (routing)', () => {
             entries: [],
           });
         }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
         throw new Error(`Unexpected fetch: ${url}`);
       }),
     );
@@ -345,6 +546,7 @@ describe('App (routing)', () => {
 
   it('records each navigation in the address bar and restores it on back', async () => {
     stubTenantApi();
+    window.history.replaceState(null, '', '/teams/acme/tenants');
 
     renderApp();
     fireEvent.click(await screen.findByTestId('tenant-row-acme'));
@@ -360,9 +562,9 @@ describe('App (routing)', () => {
     expect(window.location.pathname).toBe('/tenants/acme/clients');
   });
 
-  it('crosses back to the global scope when the history leaves the tenant', async () => {
+  it('crosses back to the platform scope when the history leaves the tenant', async () => {
     stubTenantApi();
-    window.history.replaceState(null, '', '/servers');
+    window.history.replaceState(null, '', '/teams');
     window.history.pushState(null, '', '/tenants/acme/clients');
 
     renderApp();
@@ -370,8 +572,8 @@ describe('App (routing)', () => {
 
     act(() => window.history.back());
 
-    await waitFor(() => expect(screen.getByTestId('scope-badge')).toHaveTextContent('Global'));
-    expect(screen.queryByTestId('exit-tenant')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('scope-badge')).toHaveTextContent('Platform'));
+    expect(screen.queryByTestId('exit-scope')).not.toBeInTheDocument();
   });
 });
 
@@ -387,7 +589,7 @@ describe('App (sign-out)', () => {
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const url =
         input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams')) {
         return jsonResponse({ items: [] });
       }
       throw new Error(`Unexpected fetch: ${url}`);
@@ -446,7 +648,7 @@ describe('App (sign-out)', () => {
       'fetch',
       vi.fn((input: RequestInfo | URL) => {
         const url = (input as Request).url;
-        if (url.endsWith('/api/tenants')) {
+        if (url.endsWith('/api/teams')) {
           return jsonResponse({ items: [] });
         }
         throw new Error(`Unexpected fetch: ${url}`);
@@ -479,7 +681,7 @@ describe('App (sign-out)', () => {
       { ...runtime, clientId: 'mgmt-spa' },
       { accessToken: 'token', subject: 'admin' },
     );
-    expect(await screen.findByText('No tenants exist yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('sign-out'));
 
@@ -491,8 +693,8 @@ describe('App (sign-out)', () => {
 
   it('clears local tokens without a redirect when no runtime config is loaded', async () => {
     const { store, assign } = renderSession(null, { accessToken: 'token', subject: 'admin' });
-    // Without discovered config there is no API base URL, so the tenant list cannot load.
-    expect(await screen.findByTestId('data-error')).toHaveTextContent('Failed to load tenants.');
+    // Without discovered config there is no API base URL, so the team list cannot load.
+    expect(await screen.findByTestId('data-error')).toHaveTextContent('Failed to load teams.');
 
     fireEvent.click(screen.getByTestId('sign-out'));
 
@@ -502,7 +704,7 @@ describe('App (sign-out)', () => {
 
   it('offers sign-out without a subject label when the session has no subject', async () => {
     renderSession(runtime, { accessToken: 'token', subject: null });
-    expect(await screen.findByText('No tenants exist yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
 
     expect(screen.getByTestId('sign-out')).toBeInTheDocument();
     expect(screen.queryByTestId('session-subject')).not.toBeInTheDocument();
@@ -510,7 +712,7 @@ describe('App (sign-out)', () => {
 
   it('hides the session controls when no one is signed in', async () => {
     renderSession(runtime, { accessToken: null, subject: 'admin' });
-    expect(await screen.findByText('No tenants exist yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
 
     expect(screen.queryByTestId('sign-out')).not.toBeInTheDocument();
     expect(screen.queryByTestId('session-subject')).not.toBeInTheDocument();

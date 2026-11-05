@@ -8,7 +8,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 
 /// <summary>
 /// A <see cref="HostApplicationFactory"/> that allows anonymous dynamic client registration (RFC 7591) through the
-/// server's configured <c>registration_endpoint_allow_anonymous</c> setting, so a test can register a client without
+/// platform's configured <c>registration_endpoint_allow_anonymous</c> setting, so a test can register a client without
 /// first minting an initial access token.
 /// </summary>
 public sealed class AnonymousRegistrationApplicationFactory : HostApplicationFactory
@@ -22,7 +22,7 @@ public sealed class AnonymousRegistrationApplicationFactory : HostApplicationFac
             configurationBuilder.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+                    ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
                 }
             )
         );

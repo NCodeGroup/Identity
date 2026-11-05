@@ -106,7 +106,7 @@ public class TokenEndpointClientAssertionTests
             new Dictionary<string, string>
             {
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
                 ["client_assertion_type"] = OpenIdProtocol.ClientAssertionTypes.JwtBearer,
                 ["client_assertion"] = assertion,
             }
@@ -135,7 +135,7 @@ public class TokenEndpointClientAssertionTests
             ClientId,
             "it-assert-rs-api",
             "https://api.assert.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
         return factory;
     }
@@ -380,7 +380,7 @@ public class TokenEndpointClientAssertionTests
             privateKeyClientId,
             "it-assert-pk-rs-api",
             "https://api.assert-pk.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         var client = CreateClient(factory);

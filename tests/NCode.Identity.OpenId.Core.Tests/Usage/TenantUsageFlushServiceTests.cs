@@ -89,8 +89,8 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
                 x.AddAsync(
@@ -117,7 +117,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
                 x.AddAsync(
@@ -146,7 +146,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
     {
         var cancellationToken = CancellationToken.None;
         SetupStores();
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
                 x.AddAsync(
@@ -164,7 +164,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             .Verifiable(Times.Exactly(2));
 
         await Service.FlushAsync(cancellationToken);
-        Recorder.Record("tenant-2", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-2", TenantUsageMeters.Requests);
         await Service.FlushAsync(cancellationToken);
 
         Assert.Equal("tenant-2", Assert.Single(Recorder.Drain()).Key.TenantId);
@@ -178,7 +178,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         SetupStores();
         for (var index = 0; index <= TenantUsageFlushService.BatchSize; ++index)
         {
-            Recorder.Record($"tenant-{index:D4}", TenantUsageMeters.Requests);
+            Recorder.Record("team-1", $"tenant-{index:D4}", TenantUsageMeters.Requests);
         }
 
         MockTenantUsageStore
@@ -218,7 +218,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         SetupStores();
         for (var index = 0; index <= TenantUsageFlushService.BatchSize; ++index)
         {
-            Recorder.Record($"tenant-{index:D4}", TenantUsageMeters.Requests);
+            Recorder.Record("team-1", $"tenant-{index:D4}", TenantUsageMeters.Requests);
         }
 
         MockTenantUsageStore
@@ -263,7 +263,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
         var cancellationToken = CancellationToken.None;
         var save = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         SetupStores();
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
                 x.AddAsync(
@@ -324,7 +324,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             mockLogger.Object
         );
         SetupStores();
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
         MockTenantUsageStore
             .Setup(x =>
                 x.AddAsync(
@@ -379,10 +379,10 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             .Setup(x => x.SaveChangesAsync(cancellationToken))
             .Returns(ValueTask.CompletedTask)
             .Verifiable(Times.Exactly(2));
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
 
         var flush = Service.FlushAsync(cancellationToken).AsTask();
-        Recorder.Record("tenant-2", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-2", TenantUsageMeters.Requests);
         var stop = Service.StopAsync(cancellationToken);
 
         Assert.False(stop.IsCompleted);
@@ -417,7 +417,7 @@ public sealed class TenantUsageFlushServiceTests : IDisposable
             TimeProvider,
             mockLogger.Object
         );
-        Recorder.Record("tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelAsync();
 

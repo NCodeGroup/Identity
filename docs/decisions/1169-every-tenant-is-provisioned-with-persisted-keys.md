@@ -18,7 +18,9 @@
   stored without a readable public key is provisioned; by
   [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md): a provisioned
   key has a lifetime, its successor is generated ahead of its retirement, a key the tenant's settings no longer use is
-  retired, and an expired key the server generated is removed)
+  retired, and an expired key the server generated is removed; amended by
+  [ADR-1412](1412-settings-are-reconciled-per-team.md): a team's reconciliation seeds the keys of that team's tenants
+  only)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

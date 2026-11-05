@@ -4,6 +4,7 @@ import type {
   CreatedSecretResource,
   EncryptionKeyOwner,
   ManagementOwner,
+  SecretOwner,
 } from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { createAppStore, type AppStore } from './store.js';
@@ -87,8 +88,7 @@ async function settle(store: AppStore): Promise<void> {
 }
 
 type ManagementTag = {
-  readonly type:
-    'Tenant' | 'Server' | 'Client' | 'ResourceServer' | 'Grant' | 'Secret' | 'Settings';
+  readonly type: 'Tenant' | 'Team' | 'Client' | 'ResourceServer' | 'Grant' | 'Secret' | 'Settings';
   readonly id: string;
 };
 
@@ -101,7 +101,7 @@ function invalidatedBy(store: AppStore, tags: readonly ManagementTag[]): string[
 
 const acme = { kind: 'tenant', tenantId: 'acme' } as const;
 const other = { kind: 'tenant', tenantId: 'other' } as const;
-const globalScope = { kind: 'global' } as const;
+const platformScope = { kind: 'platform' } as const;
 
 const secretRequest: CreateSecretRequest = {
   secretType: 'symmetric',
@@ -135,18 +135,21 @@ describe('managementApi tenant mutations', () => {
 
     const result = await store.dispatch(
       managementApi.endpoints.createTenant.initiate({
-        tenantId: 'new',
-        issuer: 'https://new.auth.test',
-        mtlsEndpointAliasAuthority: 'https://new.mtls.test',
-        displayName: 'New',
-        isDisabled: false,
-        settings: {},
+        teamId: 'acme',
+        body: {
+          tenantId: 'new',
+          issuer: 'https://new.auth.test',
+          mtlsEndpointAliasAuthority: 'https://new.mtls.test',
+          displayName: 'New',
+          isDisabled: false,
+          settings: {},
+        },
       }),
     );
 
     expect('data' in result && result.data?.tenantId).toBe('new');
     expect(captured).toHaveLength(1);
-    expect(captured[0]?.url).toBe('https://api.test/api/tenants');
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme/tenants');
     expect(captured[0]?.method).toBe('POST');
     expect(captured[0]?.authorization).toBe('Bearer token-123');
     expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({
@@ -165,6 +168,7 @@ describe('managementApi tenant mutations', () => {
 
     await store.dispatch(
       managementApi.endpoints.updateTenant.initiate({
+        teamId: 'acme',
         tenantId: 'acme/1',
         concurrencyToken: 'etag-7',
         fields: {
@@ -192,7 +196,9 @@ describe('managementApi tenant mutations', () => {
     const captured = mockFetch(new Response(null, { status: 204 }));
     const store = createStore();
 
-    await store.dispatch(managementApi.endpoints.deleteTenant.initiate({ tenantId: 'acme' }));
+    await store.dispatch(
+      managementApi.endpoints.deleteTenant.initiate({ teamId: 'acme', tenantId: 'acme' }),
+    );
 
     expect(captured).toHaveLength(1);
     expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme');
@@ -568,58 +574,133 @@ describe('managementApi tenant usage', () => {
   });
 });
 
-describe('managementApi server CRUD endpoints (global scope)', () => {
+describe('managementApi team CRUD endpoints (platform scope)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it('createServer POSTs the request body under the server path', async () => {
+  it('createTeam POSTs the request body under the team path', async () => {
     const captured = mockFetch(
       new Response(
-        JSON.stringify({ serverId: 's-new', concurrencyToken: 'c1', displayName: 'New server' }),
+        JSON.stringify({
+          teamId: 'acme',
+          concurrencyToken: 'c1',
+          displayName: 'Acme',
+          isDisabled: false,
+        }),
         { status: 201, headers: { 'content-type': 'application/json' } },
       ),
     );
     const store = createStore();
 
     const result = await store.dispatch(
-      managementApi.endpoints.createServer.initiate({ displayName: 'New server', settings: {} }),
+      managementApi.endpoints.createTeam.initiate({
+        teamId: 'acme',
+        displayName: 'Acme',
+        isDisabled: false,
+        settings: {},
+      }),
     );
 
-    expect('data' in result && result.data?.serverId).toBe('s-new');
-    expect(captured[0]?.url).toBe('https://api.test/api/servers');
+    expect('data' in result && result.data?.teamId).toBe('acme');
+    expect(captured[0]?.url).toBe('https://api.test/api/teams');
     expect(captured[0]?.method).toBe('POST');
   });
 
-  it('updateServer PATCHes a replace patch with If-Match', async () => {
+  it('getTeam GETs the team by encoded id', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          teamId: 'acme/1',
+          concurrencyToken: 'c1',
+          displayName: 'Acme',
+          isDisabled: false,
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.getTeam.initiate('acme/1'));
+
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme%2F1');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('updateTeam PATCHes a replace patch with If-Match', async () => {
     const captured = mockFetch(new Response(null, { status: 204 }));
     const store = createStore();
 
     await store.dispatch(
-      managementApi.endpoints.updateServer.initiate({
-        serverId: 'root',
+      managementApi.endpoints.updateTeam.initiate({
+        teamId: 'acme',
         concurrencyToken: 'etag-7',
-        fields: { displayName: 'Renamed' },
+        fields: { displayName: 'Renamed', isDisabled: true },
       }),
     );
 
-    expect(captured[0]?.url).toBe('https://api.test/api/servers/root');
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme');
     expect(captured[0]?.method).toBe('PATCH');
     expect(captured[0]?.ifMatch).toBe('etag-7');
     expect(JSON.parse(captured[0]?.body ?? '[]')).toEqual([
       { op: 'replace', path: '/displayName', value: 'Renamed' },
+      { op: 'replace', path: '/isDisabled', value: true },
     ]);
   });
 
-  it('deleteServer DELETEs under the server path', async () => {
+  it('deleteTeam DELETEs under the team path', async () => {
     const captured = mockFetch(new Response(null, { status: 204 }));
     const store = createStore();
 
-    await store.dispatch(managementApi.endpoints.deleteServer.initiate({ serverId: 'root' }));
+    await store.dispatch(managementApi.endpoints.deleteTeam.initiate({ teamId: 'acme' }));
 
-    expect(captured[0]?.url).toBe('https://api.test/api/servers/root');
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme');
     expect(captured[0]?.method).toBe('DELETE');
+  });
+});
+
+describe('managementApi team usage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('getTeamUsage GETs the team usage path without a range by default', async () => {
+    const captured = mockFetch(
+      new Response(JSON.stringify({ teamId: 'acme', from: '', to: '', entries: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.getTeamUsage.initiate({ teamId: 'acme' }));
+
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme/usage');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('getTeamUsage sends the range as from/to query parameters', async () => {
+    const captured = mockFetch(
+      new Response(JSON.stringify({ teamId: 'acme', from: '', to: '', entries: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.getTeamUsage.initiate({
+        teamId: 'acme',
+        from: '2026-10-01',
+        to: '2026-10-21',
+      }),
+    );
+
+    expect(captured[0]?.url).toBe(
+      'https://api.test/api/teams/acme/usage?from=2026-10-01&to=2026-10-21',
+    );
   });
 });
 
@@ -707,9 +788,14 @@ const queryRequestCases: readonly QueryRequestCase[] = [
     run: (s) => s.dispatch(managementApi.endpoints.getCapabilities.initiate()),
   },
   {
+    name: 'listTeams',
+    url: 'https://api.test/api/teams',
+    run: (s) => s.dispatch(managementApi.endpoints.listTeams.initiate()),
+  },
+  {
     name: 'listTenants',
-    url: 'https://api.test/api/tenants',
-    run: (s) => s.dispatch(managementApi.endpoints.listTenants.initiate()),
+    url: 'https://api.test/api/teams/acme/tenants',
+    run: (s) => s.dispatch(managementApi.endpoints.listTenants.initiate({ teamId: 'acme' })),
   },
   {
     name: 'getTenant',
@@ -756,14 +842,54 @@ const queryRequestCases: readonly QueryRequestCase[] = [
       ),
   },
   {
-    name: 'listServers',
-    url: 'https://api.test/api/servers',
-    run: (s) => s.dispatch(managementApi.endpoints.listServers.initiate()),
+    name: 'getNewTenantAddress (derived issuer)',
+    url: 'https://api.test/api/teams/acme/tenants/acme/address',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getNewTenantAddress.initiate({ teamId: 'acme', tenantId: 'acme' }),
+      ),
   },
   {
-    name: 'listClients (global scope)',
+    name: 'getNewTenantAddress (proposed issuer)',
+    url: 'https://api.test/api/teams/acme/tenants/acme/address?issuer=https%3A%2F%2Facme.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getNewTenantAddress.initiate({
+          teamId: 'acme',
+          tenantId: 'acme',
+          issuer: 'https://acme.example',
+        }),
+      ),
+  },
+  {
+    name: 'getNewTenantAddress (proposed issuer and mTLS endpoint alias)',
+    url: 'https://api.test/api/teams/acme/tenants/acme/address?issuer=https%3A%2F%2Facme.example&mtlsEndpointAliasAuthority=https%3A%2F%2Facme.mtls.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getNewTenantAddress.initiate({
+          teamId: 'acme',
+          tenantId: 'acme',
+          issuer: 'https://acme.example',
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+        }),
+      ),
+  },
+  {
+    name: 'getNewTenantAddress (proposed mTLS endpoint alias only)',
+    url: 'https://api.test/api/teams/acme/tenants/acme/address?mtlsEndpointAliasAuthority=https%3A%2F%2Facme.mtls.example',
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.getNewTenantAddress.initiate({
+          teamId: 'acme',
+          tenantId: 'acme',
+          mtlsEndpointAliasAuthority: 'https://acme.mtls.example',
+        }),
+      ),
+  },
+  {
+    name: 'listClients (platform scope)',
     url: 'https://api.test/api/clients',
-    run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: globalScope })),
+    run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: platformScope })),
   },
   {
     name: 'listClients (tenant scope)',
@@ -782,10 +908,10 @@ const queryRequestCases: readonly QueryRequestCase[] = [
       ),
   },
   {
-    name: 'listResourceServers (global scope)',
+    name: 'listResourceServers (platform scope)',
     url: 'https://api.test/api/resource-servers',
     run: (s) =>
-      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: globalScope })),
+      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: platformScope })),
   },
   {
     name: 'listResourceServers (tenant scope)',
@@ -826,7 +952,7 @@ type MutationRequestCase = {
   readonly run: (store: AppStore) => PromiseLike<unknown>;
 };
 
-const globalScopeMutationCases: readonly MutationRequestCase[] = [
+const platformScopeMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'createClient',
     method: 'POST',
@@ -834,7 +960,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.createClient.initiate({
-          scope: globalScope,
+          scope: platformScope,
           body: { isDisabled: false, settings: {} },
         }),
       ),
@@ -846,7 +972,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.updateClient.initiate({
-          scope: globalScope,
+          scope: platformScope,
           clientId: 'web',
           concurrencyToken: 'etag',
           fields: { isDisabled: true },
@@ -859,7 +985,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     url: 'https://api.test/api/clients/web',
     run: (s) =>
       s.dispatch(
-        managementApi.endpoints.deleteClient.initiate({ scope: globalScope, clientId: 'web' }),
+        managementApi.endpoints.deleteClient.initiate({ scope: platformScope, clientId: 'web' }),
       ),
   },
   {
@@ -869,7 +995,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.createResourceServer.initiate({
-          scope: globalScope,
+          scope: platformScope,
           body: { identifier: 'urn:api', name: 'API', isDisabled: false, settings: {} },
         }),
       ),
@@ -881,7 +1007,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.updateResourceServer.initiate({
-          scope: globalScope,
+          scope: platformScope,
           resourceServerId: 'rs-1',
           concurrencyToken: 'etag',
           fields: { name: 'API', isDisabled: false },
@@ -895,7 +1021,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.deleteResourceServer.initiate({
-          scope: globalScope,
+          scope: platformScope,
           resourceServerId: 'rs-1',
         }),
       ),
@@ -907,7 +1033,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.createScope.initiate({
-          scope: globalScope,
+          scope: platformScope,
           resourceServerId: 'rs-1',
           body: { value: 'read:x', description: null },
         }),
@@ -920,7 +1046,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.updateScope.initiate({
-          scope: globalScope,
+          scope: platformScope,
           resourceServerId: 'rs-1',
           scopeValue: 'read:x',
           body: { description: null },
@@ -934,7 +1060,7 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.deleteScope.initiate({
-          scope: globalScope,
+          scope: platformScope,
           resourceServerId: 'rs-1',
           scopeValue: 'read:x',
         }),
@@ -942,13 +1068,13 @@ const globalScopeMutationCases: readonly MutationRequestCase[] = [
   },
 ];
 
-describe('managementApi scope-prefixed mutations (global scope)', () => {
+describe('managementApi scope-prefixed mutations (platform scope)', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it.each(globalScopeMutationCases)(
+  it.each(platformScopeMutationCases)(
     '$name sends $method $url outside any tenant',
     async ({ method, url, run }) => {
       const captured = mockFetch(new Response(null, { status: 204 }));
@@ -975,19 +1101,19 @@ type ListTagCase = {
 const listTagCases: readonly ListTagCase[] = [
   {
     name: 'listTenants',
-    path: '/api/tenants',
-    body: { items: [{ tenantId: 'acme' }] },
-    run: (s) => s.dispatch(managementApi.endpoints.listTenants.initiate()),
-    collectionTag: { type: 'Tenant', id: 'global:LIST' },
-    itemTag: { type: 'Tenant', id: 'global:acme' },
+    path: '/api/teams/acme/tenants',
+    body: { items: [{ tenantId: 'acme-dev' }] },
+    run: (s) => s.dispatch(managementApi.endpoints.listTenants.initiate({ teamId: 'acme' })),
+    collectionTag: { type: 'Tenant', id: 'team:acme:LIST' },
+    itemTag: { type: 'Tenant', id: 'platform:acme-dev' },
   },
   {
-    name: 'listServers',
-    path: '/api/servers',
-    body: { items: [{ serverId: 'root' }] },
-    run: (s) => s.dispatch(managementApi.endpoints.listServers.initiate()),
-    collectionTag: { type: 'Server', id: 'global:LIST' },
-    itemTag: { type: 'Server', id: 'global:root' },
+    name: 'listTeams',
+    path: '/api/teams',
+    body: { items: [{ teamId: 'acme' }] },
+    run: (s) => s.dispatch(managementApi.endpoints.listTeams.initiate()),
+    collectionTag: { type: 'Team', id: 'platform:LIST' },
+    itemTag: { type: 'Team', id: 'platform:acme' },
   },
   {
     name: 'listClients',
@@ -1060,7 +1186,7 @@ type CachedQuery = {
 
 /**
  * One subscribed cache entry per tagged (and a few untagged) query, spanning both scopes. The same
- * resource ids recur in the global scope and in a second tenant, so every mutation also proves that it
+ * resource ids recur in the platform scope and in a second tenant, so every mutation also proves that it
  * leaves the other scopes' caches alone.
  */
 const cachedQueries: readonly CachedQuery[] = [
@@ -1072,9 +1198,16 @@ const cachedQueries: readonly CachedQuery[] = [
   },
   {
     label: 'tenants',
-    path: '/api/tenants',
-    body: { items: [{ tenantId: 'acme' }, { tenantId: 'other' }] },
-    subscribe: (s) => s.dispatch(managementApi.endpoints.listTenants.initiate()),
+    path: '/api/teams/acme/tenants',
+    body: { items: [{ tenantId: 'acme' }, { tenantId: 'acme-dev' }, { tenantId: 'other' }] },
+    subscribe: (s) => s.dispatch(managementApi.endpoints.listTenants.initiate({ teamId: 'acme' })),
+  },
+  {
+    label: 'tenants:globex',
+    path: '/api/teams/globex/tenants',
+    body: { items: [{ tenantId: 'globex-dev' }] },
+    subscribe: (s) =>
+      s.dispatch(managementApi.endpoints.listTenants.initiate({ teamId: 'globex' })),
   },
   {
     label: 'tenant:acme',
@@ -1083,16 +1216,34 @@ const cachedQueries: readonly CachedQuery[] = [
     subscribe: (s) => s.dispatch(managementApi.endpoints.getTenant.initiate('acme')),
   },
   {
+    label: 'tenant:acme-dev',
+    path: '/api/tenants/acme-dev',
+    body: { tenantId: 'acme-dev' },
+    subscribe: (s) => s.dispatch(managementApi.endpoints.getTenant.initiate('acme-dev')),
+  },
+  {
     label: 'tenant:other',
     path: '/api/tenants/other',
     body: { tenantId: 'other' },
     subscribe: (s) => s.dispatch(managementApi.endpoints.getTenant.initiate('other')),
   },
   {
-    label: 'servers',
-    path: '/api/servers',
-    body: { items: [{ serverId: 'root' }] },
-    subscribe: (s) => s.dispatch(managementApi.endpoints.listServers.initiate()),
+    label: 'teams',
+    path: '/api/teams',
+    body: { items: [{ teamId: 'acme' }, { teamId: 'globex' }] },
+    subscribe: (s) => s.dispatch(managementApi.endpoints.listTeams.initiate()),
+  },
+  {
+    label: 'team:acme',
+    path: '/api/teams/acme',
+    body: { teamId: 'acme' },
+    subscribe: (s) => s.dispatch(managementApi.endpoints.getTeam.initiate('acme')),
+  },
+  {
+    label: 'team:globex',
+    path: '/api/teams/globex',
+    body: { teamId: 'globex' },
+    subscribe: (s) => s.dispatch(managementApi.endpoints.getTeam.initiate('globex')),
   },
   {
     label: 'clients',
@@ -1101,11 +1252,11 @@ const cachedQueries: readonly CachedQuery[] = [
     subscribe: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: acme })),
   },
   {
-    label: 'clients:global',
+    label: 'clients:platform',
     path: '/api/clients',
     body: { items: [{ clientId: 'web' }] },
     subscribe: (s) =>
-      s.dispatch(managementApi.endpoints.listClients.initiate({ scope: globalScope })),
+      s.dispatch(managementApi.endpoints.listClients.initiate({ scope: platformScope })),
   },
   {
     label: 'clients:other',
@@ -1121,11 +1272,11 @@ const cachedQueries: readonly CachedQuery[] = [
       s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: acme })),
   },
   {
-    label: 'resourceServers:global',
+    label: 'resourceServers:platform',
     path: '/api/resource-servers',
     body: { items: [{ resourceServerId: 'rs-1' }] },
     subscribe: (s) =>
-      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: globalScope })),
+      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: platformScope })),
   },
   {
     label: 'grants',
@@ -1155,12 +1306,15 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.createTenant.initiate({
-          tenantId: 'new',
-          issuer: null,
-          mtlsEndpointAliasAuthority: null,
-          displayName: 'New',
-          isDisabled: false,
-          settings: {},
+          teamId: 'acme',
+          body: {
+            tenantId: 'new',
+            issuer: null,
+            mtlsEndpointAliasAuthority: null,
+            displayName: 'New',
+            isDisabled: false,
+            settings: {},
+          },
         }),
       ),
     refetches: ['tenants'],
@@ -1170,7 +1324,8 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.updateTenant.initiate({
-          tenantId: 'acme',
+          teamId: 'acme',
+          tenantId: 'acme-dev',
           concurrencyToken: 'etag',
           fields: {
             issuer: null,
@@ -1180,35 +1335,45 @@ const invalidationCases: readonly InvalidationCase[] = [
           },
         }),
       ),
-    refetches: ['tenants', 'tenant:acme'],
+    refetches: ['tenants', 'tenant:acme-dev'],
   },
   {
     name: 'deleteTenant',
-    mutate: (s) => s.dispatch(managementApi.endpoints.deleteTenant.initiate({ tenantId: 'acme' })),
-    refetches: ['tenants', 'tenant:acme'],
-  },
-  {
-    name: 'createServer',
-    mutate: (s) =>
-      s.dispatch(managementApi.endpoints.createServer.initiate({ displayName: 'S', settings: {} })),
-    refetches: ['servers'],
-  },
-  {
-    name: 'updateServer',
     mutate: (s) =>
       s.dispatch(
-        managementApi.endpoints.updateServer.initiate({
-          serverId: 'root',
-          concurrencyToken: 'etag',
-          fields: { displayName: 'Root' },
-        }),
+        managementApi.endpoints.deleteTenant.initiate({ teamId: 'acme', tenantId: 'acme-dev' }),
       ),
-    refetches: ['servers'],
+    refetches: ['tenants', 'tenant:acme-dev'],
   },
   {
-    name: 'deleteServer',
-    mutate: (s) => s.dispatch(managementApi.endpoints.deleteServer.initiate({ serverId: 'root' })),
-    refetches: ['servers'],
+    name: 'createTeam',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.createTeam.initiate({
+          teamId: 'new',
+          displayName: 'New',
+          isDisabled: false,
+          settings: {},
+        }),
+      ),
+    refetches: ['teams'],
+  },
+  {
+    name: 'updateTeam',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.updateTeam.initiate({
+          teamId: 'acme',
+          concurrencyToken: 'etag',
+          fields: { displayName: 'Acme', isDisabled: false },
+        }),
+      ),
+    refetches: ['teams', 'team:acme'],
+  },
+  {
+    name: 'deleteTeam',
+    mutate: (s) => s.dispatch(managementApi.endpoints.deleteTeam.initiate({ teamId: 'acme' })),
+    refetches: ['teams', 'team:acme'],
   },
   {
     name: 'createClient',
@@ -1340,15 +1505,15 @@ const invalidationCases: readonly InvalidationCase[] = [
     refetches: ['grants'],
   },
   {
-    name: 'createClient in the global scope',
+    name: 'createClient in the platform scope',
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.createClient.initiate({
-          scope: globalScope,
+          scope: platformScope,
           body: { isDisabled: false, settings: {} },
         }),
       ),
-    refetches: ['clients:global'],
+    refetches: ['clients:platform'],
   },
   {
     name: 'deleteClient in another tenant',
@@ -1357,17 +1522,17 @@ const invalidationCases: readonly InvalidationCase[] = [
     refetches: ['clients:other'],
   },
   {
-    name: 'updateResourceServer in the global scope',
+    name: 'updateResourceServer in the platform scope',
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.updateResourceServer.initiate({
-          scope: globalScope,
+          scope: platformScope,
           resourceServerId: 'rs-1',
           concurrencyToken: 'etag',
           fields: { name: 'API', isDisabled: true },
         }),
       ),
-    refetches: ['resourceServers:global'],
+    refetches: ['resourceServers:platform'],
   },
   {
     name: 'revokeGrant in another tenant',
@@ -1419,7 +1584,8 @@ describe('managementApi cache invalidation', () => {
 
     const result = await store.dispatch(
       managementApi.endpoints.updateTenant.initiate({
-        tenantId: 'acme',
+        teamId: 'acme',
+        tenantId: 'acme-dev',
         concurrencyToken: 'stale',
         fields: {
           issuer: null,
@@ -1432,8 +1598,10 @@ describe('managementApi cache invalidation', () => {
     await settle(store);
 
     expect('error' in result && result.error).toMatchObject({ status: 412 });
-    expect(fetches.count('GET', '/api/tenants')).toBe(2);
-    expect(fetches.count('GET', '/api/tenants/acme')).toBe(2);
+    expect(fetches.count('GET', '/api/teams/acme/tenants')).toBe(2);
+    expect(fetches.count('GET', '/api/teams/globex/tenants')).toBe(1);
+    expect(fetches.count('GET', '/api/tenants/acme-dev')).toBe(2);
+    expect(fetches.count('GET', '/api/tenants/acme')).toBe(1);
     expect(fetches.count('GET', '/api/tenants/other')).toBe(1);
   });
 });
@@ -1444,9 +1612,13 @@ type OwnerCase = {
   readonly path: string;
 };
 
-/** One owner of every kind, in the global scope and in a tenant, with the API path its requests use. */
-const ownerCases: readonly OwnerCase[] = [
-  { key: 'server', owner: { kind: 'server', serverId: 'root' }, path: '/api/servers/root' },
+type SecretOwnerCase = OwnerCase & { readonly owner: SecretOwner };
+
+/**
+ * One secret-holding owner of every kind, in the platform scope and in a tenant, with the API path its requests
+ * use.
+ */
+const secretOwnerCases: readonly SecretOwnerCase[] = [
   { key: 'tenant', owner: { kind: 'tenant', tenantId: 'acme' }, path: '/api/tenants/acme' },
   {
     key: 'tenant-client',
@@ -1454,8 +1626,8 @@ const ownerCases: readonly OwnerCase[] = [
     path: '/api/tenants/acme/clients/web',
   },
   {
-    key: 'global-client',
-    owner: { kind: 'client', scope: globalScope, clientId: 'web' },
+    key: 'platform-client',
+    owner: { kind: 'client', scope: platformScope, clientId: 'web' },
     path: '/api/clients/web',
   },
   {
@@ -1464,15 +1636,22 @@ const ownerCases: readonly OwnerCase[] = [
     path: '/api/tenants/acme/resource-servers/rs-1',
   },
   {
-    key: 'global-resource-server',
-    owner: { kind: 'resource-server', scope: globalScope, resourceServerId: 'rs-1' },
+    key: 'platform-resource-server',
+    owner: { kind: 'resource-server', scope: platformScope, resourceServerId: 'rs-1' },
     path: '/api/resource-servers/rs-1',
   },
 ];
 
+/** Every owner of settings: the platform and a team, which hold settings only, and the secret-holding owners. */
+const ownerCases: readonly OwnerCase[] = [
+  { key: 'platform', owner: { kind: 'platform' }, path: '/api/platform' },
+  { key: 'team', owner: { kind: 'team', teamId: 'acme' }, path: '/api/teams/acme' },
+  ...secretOwnerCases,
+];
+
 const encryptionKeyOwnerCases = ownerCases.filter(
   (c): c is OwnerCase & { readonly owner: EncryptionKeyOwner } =>
-    c.owner.kind === 'server' || c.owner.kind === 'tenant',
+    c.owner.kind === 'platform' || c.owner.kind === 'tenant',
 );
 
 describe('managementApi encryption key requests', () => {
@@ -1500,9 +1679,7 @@ describe('managementApi encryption key requests', () => {
     'rekeyEncryptionKeys POSTs the rekey of the $key owner and refetches only its keys',
     async ({ owner, path }) => {
       const otherOwner: EncryptionKeyOwner =
-        owner.kind === 'server'
-          ? { kind: 'tenant', tenantId: 'other' }
-          : { kind: 'server', serverId: 'other' };
+        owner.kind === 'platform' ? { kind: 'tenant', tenantId: 'other' } : { kind: 'platform' };
       const captured = mockFetch(
         jsonResponse({ keys: [], recoveryConfigured: true, rootKey: null, rootKeyProviders: [] }),
       );
@@ -1630,17 +1807,20 @@ describe('managementApi owner-generic secrets and settings requests', () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(ownerCases)('listSecrets GETs the secrets of the $key owner', async ({ owner, path }) => {
-    const captured = mockFetch(jsonResponse({ secrets: [] }));
-    const store = createStore();
+  it.each(secretOwnerCases)(
+    'listSecrets GETs the secrets of the $key owner',
+    async ({ owner, path }) => {
+      const captured = mockFetch(jsonResponse({ secrets: [] }));
+      const store = createStore();
 
-    await store.dispatch(managementApi.endpoints.listSecrets.initiate(owner));
+      await store.dispatch(managementApi.endpoints.listSecrets.initiate(owner));
 
-    expect(captured[0]?.url).toBe(`https://api.test${path}/secrets`);
-    expect(captured[0]?.method).toBe('GET');
-  });
+      expect(captured[0]?.url).toBe(`https://api.test${path}/secrets`);
+      expect(captured[0]?.method).toBe('GET');
+    },
+  );
 
-  it.each(ownerCases)(
+  it.each(secretOwnerCases)(
     'getSecretPublicKey GETs the public key of a secret of the $key owner',
     async ({ owner, path }) => {
       const captured = mockFetch(jsonResponse({}));
@@ -1681,7 +1861,7 @@ describe('managementApi owner-generic secrets and settings requests', () => {
     },
   );
 
-  it.each(ownerCases)(
+  it.each(secretOwnerCases)(
     'createSecret POSTs the request body under the $key owner',
     async ({ owner, path }) => {
       const captured = mockFetch(jsonResponse({ secretId: 's-1' }, 201));
@@ -1697,7 +1877,7 @@ describe('managementApi owner-generic secrets and settings requests', () => {
     },
   );
 
-  it.each(ownerCases)(
+  it.each(secretOwnerCases)(
     'deleteSecret DELETEs the secret by id under the $key owner',
     async ({ owner, path }) => {
       const captured = mockFetch(new Response(null, { status: 204 }));
@@ -1799,14 +1979,14 @@ describe('managementApi owner-generic secrets and settings requests', () => {
  * For every owner of {@link ownerCases}: its secrets, its settings and its effective settings. The same
  * ids recur across owners and scopes, so every mutation also proves that it leaves the other owners' caches alone.
  */
-const ownerCachedQueries: readonly CachedQuery[] = ownerCases.flatMap(
-  ({ key, owner, path }): CachedQuery[] => [
-    {
-      label: `secrets:${key}`,
-      path: `${path}/secrets`,
-      body: { secrets: [{ secretId: `${key}-secret` }] },
-      subscribe: (s) => s.dispatch(managementApi.endpoints.listSecrets.initiate(owner)),
-    },
+const ownerCachedQueries: readonly CachedQuery[] = [
+  ...secretOwnerCases.map(({ key, owner, path }): CachedQuery => ({
+    label: `secrets:${key}`,
+    path: `${path}/secrets`,
+    body: { secrets: [{ secretId: `${key}-secret` }] },
+    subscribe: (s) => s.dispatch(managementApi.endpoints.listSecrets.initiate(owner)),
+  })),
+  ...ownerCases.flatMap(({ key, owner, path }): CachedQuery[] => [
     {
       label: `settings:${key}`,
       path: `${path}/settings`,
@@ -1819,8 +1999,8 @@ const ownerCachedQueries: readonly CachedQuery[] = ownerCases.flatMap(
       body: {},
       subscribe: (s) => s.dispatch(managementApi.endpoints.getEffectiveSettings.initiate(owner)),
     },
-  ],
-);
+  ]),
+];
 
 /** Subscribes every owner cache entry, runs the mutation, and returns the labels that were fetched again. */
 async function refetchedByOwnerMutation(
@@ -1848,7 +2028,7 @@ describe('managementApi owner-generic cache invalidation', () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(ownerCases)(
+  it.each(secretOwnerCases)(
     'createSecret for the $key owner refetches only its secrets',
     async ({ key, owner }) => {
       const refetched = await refetchedByOwnerMutation((s) =>
@@ -1859,7 +2039,7 @@ describe('managementApi owner-generic cache invalidation', () => {
     },
   );
 
-  it.each(ownerCases)(
+  it.each(secretOwnerCases)(
     'deleteSecret for the $key owner refetches only its secrets',
     async ({ key, owner }) => {
       const refetched = await refetchedByOwnerMutation((s) =>
@@ -1886,9 +2066,11 @@ describe('managementApi owner-generic cache invalidation', () => {
         ),
       );
 
-      // A client's settings change can issue or convert its secrets, so the owner's secrets are refetched too.
+      // A client's settings change can issue or convert its secrets, so the owner's secrets are refetched too; the
+      // platform and a team hold no secrets.
+      const holdsSecrets = secretOwnerCases.some((c) => c.key === key);
       expect([...refetched].sort()).toEqual(
-        [`effective:${key}`, `secrets:${key}`, `settings:${key}`].sort(),
+        [`effective:${key}`, `settings:${key}`, ...(holdsSecrets ? [`secrets:${key}`] : [])].sort(),
       );
     },
   );
@@ -1912,11 +2094,11 @@ describe('managementApi owner-generic cache invalidation', () => {
     const store = createStore();
 
     const result = await store.dispatch(
-      managementApi.endpoints.listSecrets.initiate({ kind: 'server', serverId: 'root' }),
+      managementApi.endpoints.listSecrets.initiate({ kind: 'tenant', tenantId: 'acme' }),
     );
 
     expect(result.isError).toBe(true);
-    expect(invalidatedBy(store, [{ type: 'Secret', id: 'global:server:root' }])).toEqual([
+    expect(invalidatedBy(store, [{ type: 'Secret', id: 'tenant:acme:tenant:acme' }])).toEqual([
       'listSecrets',
     ]);
   });

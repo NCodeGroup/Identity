@@ -17,7 +17,7 @@ export {
   type TenantEnvironmentFilterProps,
 } from './components/TenantEnvironmentFilter.js';
 export { ClientTable, type ClientRow, type ClientTableProps } from './components/ClientTable.js';
-export { ServerTable, type ServerRow, type ServerTableProps } from './components/ServerTable.js';
+export { TeamTable, type TeamRow, type TeamTableProps } from './components/TeamTable.js';
 export { GrantTable, type GrantRow, type GrantTableProps } from './components/GrantTable.js';
 export {
   ResourceServerTable,
@@ -41,11 +41,16 @@ export {
   type TenantFormValues,
 } from './components/TenantFormDialog.js';
 export {
-  ServerFormDialog,
-  emptyServerFormValues,
-  type ServerFormDialogProps,
-  type ServerFormValues,
-} from './components/ServerFormDialog.js';
+  TeamFormDialog,
+  emptyTeamFormValues,
+  type TeamFormDialogProps,
+  type TeamFormValues,
+} from './components/TeamFormDialog.js';
+export {
+  TeamUsageTable,
+  type TeamUsageRow,
+  type TeamUsageTableProps,
+} from './components/TeamUsageTable.js';
 export {
   ClientFormDialog,
   emptyClientFormValues,

@@ -36,7 +36,7 @@ public class TokenEndpointPasswordTests
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
         var localAccountId = await factory.SeedLocalAccountAsync(UserName, Password);
 
@@ -54,7 +54,7 @@ public class TokenEndpointPasswordTests
                     ["client_secret"] = ClientSecret,
                     ["username"] = UserName,
                     ["password"] = Password,
-                    ["scope"] = TestServerSettingsProvider.ApiScope,
+                    ["scope"] = TestPlatformSettingsProvider.ApiScope,
                 }
             );
             using var response = await client.PostAsync("/oauth2/token", content);
@@ -102,7 +102,7 @@ public class TokenEndpointPasswordTests
             ClientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
         await factory.SeedLocalAccountAsync(UserName, Password);
 
@@ -118,7 +118,7 @@ public class TokenEndpointPasswordTests
                 ["client_secret"] = ClientSecret,
                 ["username"] = UserName,
                 ["password"] = "wrong-password",
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 

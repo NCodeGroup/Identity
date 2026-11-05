@@ -73,6 +73,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = "ct",
             Issuer = $"https://{IssuerHost}",
             IsDisabled = false,
@@ -459,6 +460,7 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
         provisioner
             .Setup(x =>
                 x.EnsureCreatedAsync(
+                    RootTenantOptions.DefaultTeamId,
                     RootTenantOptions.DefaultTenantId,
                     RootTenantOptions.DefaultDisplayName,
                     It.IsAny<CancellationToken>()

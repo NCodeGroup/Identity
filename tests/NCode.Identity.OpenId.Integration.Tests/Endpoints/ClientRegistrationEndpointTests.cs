@@ -43,7 +43,7 @@ public class ClientRegistrationEndpointTests
                 ["contacts"] = new[] { "ops@example.com" },
                 ["software_id"] = "integration-tests",
                 ["software_version"] = "1.0",
-                ["scope"] = $"openid {TestServerSettingsProvider.ApiScope}",
+                ["scope"] = $"openid {TestPlatformSettingsProvider.ApiScope}",
             }
         );
 
@@ -63,13 +63,13 @@ public class ClientRegistrationEndpointTests
         // requested 'api' scope is not among them.
         var scopes = root.GetProperty("scope").GetString()?.Split(' ') ?? [];
         Assert.Contains(OpenIdProtocol.ScopeTypes.OpenId, scopes);
-        Assert.DoesNotContain(TestServerSettingsProvider.ApiScope, scopes);
+        Assert.DoesNotContain(TestPlatformSettingsProvider.ApiScope, scopes);
 
         await factory.SeedResourceServerWithClientGrantAsync(
             clientId,
             "it-rs-api",
             "https://api.integration.test",
-            TestServerSettingsProvider.ApiScope
+            TestPlatformSettingsProvider.ApiScope
         );
 
         // Authenticating the client loads its persisted settings (every registered metadata key included) through the
@@ -80,7 +80,7 @@ public class ClientRegistrationEndpointTests
                 ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
                 ["client_id"] = clientId,
                 ["client_secret"] = clientSecret,
-                ["scope"] = TestServerSettingsProvider.ApiScope,
+                ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
 
@@ -147,7 +147,7 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WhenTheTenantIsProduction_RefusesAnonymousRegistrationEvenWhenTheServerAllowsIt()
+    public async Task PostRegister_WhenTheTenantIsProduction_RefusesAnonymousRegistrationEvenWhenThePlatformAllowsIt()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         using var productionFactory = factory.WithWebHostBuilder(builder =>
@@ -155,7 +155,7 @@ public class ClientRegistrationEndpointTests
                 configurationBuilder.AddInMemoryCollection(
                     new Dictionary<string, string?>
                     {
-                        ["OpenId:Server:Settings:environment_type"] = OpenIdConstants
+                        ["OpenId:Platform:Settings:environment_type"] = OpenIdConstants
                             .TenantEnvironmentTypes
                             .Production,
                     }
@@ -184,7 +184,7 @@ public class ClientRegistrationEndpointTests
         var developmentBody = await developmentResponse.Content.ReadAsStringAsync();
         Assert.True(developmentResponse.StatusCode == HttpStatusCode.Created, developmentBody);
 
-        // The production profile's ceiling turns anonymous registration off for the tenant, whatever the server says.
+        // The production profile's ceiling turns anonymous registration off for the tenant, whatever the platform says.
         using var productionResponse = await productionClient.PostAsJsonAsync(
             "/oauth2/register",
             metadata
@@ -278,7 +278,7 @@ public class ClientRegistrationEndpointTests
     public async Task PostRegister_WithAHybridResponseType_RegistersAClientTheAuthorizationEndpointHonors()
     {
         using var factory = new ConfiguredHostApplicationFactory(
-            CreateServerConfiguration(
+            CreatePlatformConfiguration(
                 [OpenIdProtocol.ResponseTypes.Code, OpenIdProtocol.ResponseTypes.CodeIdToken],
                 [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
             )
@@ -327,7 +327,7 @@ public class ClientRegistrationEndpointTests
             "Expected an interactive challenge, not an error redirected back to the client."
         );
 
-        // The server supports 'code', but the client did not register it.
+        // The platform supports 'code', but the client did not register it.
         using var codeResponse = await client.GetAsync(
             CreateAuthorizeUri(clientId, OpenIdProtocol.ResponseTypes.Code)
         );
@@ -339,10 +339,10 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WhenTheServerDoesNotSupportAResponseType_ReturnsInvalidClientMetadata()
+    public async Task PostRegister_WhenThePlatformDoesNotSupportAResponseType_ReturnsInvalidClientMetadata()
     {
         using var factory = new ConfiguredHostApplicationFactory(
-            CreateServerConfiguration(
+            CreatePlatformConfiguration(
                 [OpenIdProtocol.ResponseTypes.Code],
                 [OpenIdProtocol.GrantTypes.AuthorizationCode, OpenIdProtocol.GrantTypes.Implicit]
             )
@@ -368,16 +368,15 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WhenTheServerDoesNotPermitTheAuthMethod_ReturnsInvalidClientMetadata()
+    public async Task PostRegister_WhenThePlatformDoesNotPermitTheAuthMethod_ReturnsInvalidClientMetadata()
     {
-        // A client whose registered method the server's ceiling excludes could never authenticate.
+        // A client whose registered method the platform's ceiling excludes could never authenticate.
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
-                ["OpenId:Server:Settings:token_endpoint_auth_methods_supported:0"] = OpenIdProtocol
-                    .ClientAuthenticationMethods
-                    .ClientSecretBasic,
+                ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
+                ["OpenId:Platform:Settings:token_endpoint_auth_methods_supported:0"] =
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic,
             }
         );
         var client = factory.CreateClient(
@@ -427,20 +426,20 @@ public class ClientRegistrationEndpointTests
         );
     }
 
-    private static Dictionary<string, string?> CreateServerConfiguration(
+    private static Dictionary<string, string?> CreatePlatformConfiguration(
         string[] responseTypesSupported,
         string[] grantTypesSupported
     )
     {
         var configuration = new Dictionary<string, string?>
         {
-            ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
+            ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
         };
         for (var index = 0; index < responseTypesSupported.Length; ++index)
-            configuration[$"OpenId:Server:Settings:response_types_supported:{index}"] =
+            configuration[$"OpenId:Platform:Settings:response_types_supported:{index}"] =
                 responseTypesSupported[index];
         for (var index = 0; index < grantTypesSupported.Length; ++index)
-            configuration[$"OpenId:Server:Settings:grant_types_supported:{index}"] =
+            configuration[$"OpenId:Platform:Settings:grant_types_supported:{index}"] =
                 grantTypesSupported[index];
         return configuration;
     }
@@ -1288,7 +1287,7 @@ public class ClientRegistrationEndpointTests
         if (notificationEndpoint is not null)
             metadata["backchannel_client_notification_endpoint"] = notificationEndpoint;
 
-        // The server does not support the user_code parameter by default, so no client may claim it.
+        // The platform does not support the user_code parameter by default, so no client may claim it.
         if (expectedQuotedName == OpenIdSettingNames.BackchannelUserCodeParameterSupported)
             metadata["backchannel_user_code_parameter"] = true;
 
@@ -1306,7 +1305,7 @@ public class ClientRegistrationEndpointTests
     #region Certificate-Bound Access Tokens
 
     [Fact]
-    public async Task PostRegister_WithCertificateBoundTokens_WhenTheServerDoesNotSupportThem_ReturnsInvalidClientMetadata()
+    public async Task PostRegister_WithCertificateBoundTokens_WhenThePlatformDoesNotSupportThem_ReturnsInvalidClientMetadata()
     {
         using var factory = new AnonymousRegistrationApplicationFactory();
         var client = factory.CreateClient(
@@ -1333,13 +1332,13 @@ public class ClientRegistrationEndpointTests
     }
 
     [Fact]
-    public async Task PostRegister_WithCertificateBoundTokens_WhenTheServerSupportsThem_StoresAndReportsThem()
+    public async Task PostRegister_WithCertificateBoundTokens_WhenThePlatformSupportsThem_StoresAndReportsThem()
     {
         using var factory = new ConfiguredHostApplicationFactory(
             new Dictionary<string, string?>
             {
-                ["OpenId:Server:Settings:registration_endpoint_allow_anonymous"] = "true",
-                ["OpenId:Server:Settings:tls_client_certificate_bound_access_tokens"] = "true",
+                ["OpenId:Platform:Settings:registration_endpoint_allow_anonymous"] = "true",
+                ["OpenId:Platform:Settings:tls_client_certificate_bound_access_tokens"] = "true",
             }
         );
         var client = factory.CreateClient(

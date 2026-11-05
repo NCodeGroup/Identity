@@ -21,9 +21,11 @@ internal static class CoreDbContextExtensions
 
         public DbSet<OwnerRootKeyEntity> OwnerRootKeys => context.Set<OwnerRootKeyEntity>();
 
-        public DbSet<ServerEntity> Servers => context.Set<ServerEntity>();
+        public DbSet<PlatformEntity> Platforms => context.Set<PlatformEntity>();
 
-        public DbSet<ServerSecretEntity> ServerSecrets => context.Set<ServerSecretEntity>();
+        public DbSet<TeamEntity> Teams => context.Set<TeamEntity>();
+
+        public DbSet<RetiredTeamEntity> RetiredTeams => context.Set<RetiredTeamEntity>();
 
         public DbSet<TenantEntity> Tenants => context.Set<TenantEntity>();
 

@@ -25,16 +25,15 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// The settings that govern an access token are the client's effective settings combined with the settings that apply
 /// to resource servers of every resource server the token targets, by their lattice merges
 /// (<see cref="IReadOnlySettingCollection.Combine"/>): a requirement any of them states holds, and a list permits only
-/// what all of them permit, in the server's order. Every audience of a multi-audience token binds it.
+/// what all of them permit, in the platform's order. Every audience of a multi-audience token binds it.
 /// </para>
 /// <para>
 /// An encrypted access token is encrypted to the party that reads it. A resource server that holds a key it can decrypt
-/// with under its own effective settings decrypts the tokens issued for it, so a token for it alone is encrypted to that
-/// key, and a token for it together with another resource server is refused, because a compact JWE has one recipient.
-/// A system resource server is read by the server itself and never decrypts its own tokens. Any other token is
-/// encrypted to the tenant's key, and its resource servers introspect it. Access tokens are always signed with the
-/// tenant's key.
-/// </para>
+/// with under its own effective settings decrypts the tokens issued for it, so a token for it alone is encrypted to
+/// that key, and a token for it together with another resource server is refused, because a compact JWE has one
+/// recipient. A system resource server is read by the server itself and never decrypts its own tokens. Any other token
+/// is encrypted to the tenant's key, and its resource servers introspect it. Access tokens are always signed with the
+/// tenant's key. </para>
 /// </remarks>
 // See ADR-1158 (amending ADR-1075).
 internal class DefaultAccessTokenPolicyService(
@@ -75,8 +74,8 @@ internal class DefaultAccessTokenPolicyService(
         };
     }
 
-    // The client is the left operand of every combination, so a list keeps the client's order — the server's, for every
-    // list the server's settings set, since Intersect keeps its left operand's order down the whole cascade.
+    // The client is the left operand of every combination, so a list keeps the client's order — the platform's, for
+    // every list the platform's settings set, since Intersect keeps its left operand's order down the whole cascade.
     private IReadOnlySettingCollection CombineSettings(
         IReadOnlySettingCollection clientSettings,
         ResourceServerCredentialResolution resolution
@@ -216,10 +215,10 @@ internal class DefaultAccessTokenPolicyService(
         );
     }
 
-    // A resource server decrypts the tokens issued for it when it holds a key it can decrypt with under its own effective
-    // settings — the opt-in to per-audience encryption (ADR-1075). A system resource server never does: its tokens are
-    // read by the server's own endpoints, which decrypt with the tenant's keys (ADR-1167). The server never compresses
-    // what it encrypts.
+    // A resource server decrypts the tokens issued for it when it holds a key it can decrypt with under its own
+    // effective settings — the opt-in to per-audience encryption (ADR-1075). A system resource server never does: its
+    // tokens are read by the OpenID Provider's own endpoints, which decrypt with the tenant's keys (ADR-1167). The
+    // server never compresses what it encrypts.
     private bool DecryptsItsOwnTokens(ResolvedResourceServer resourceServer)
     {
         if (resourceServer.IsSystem)

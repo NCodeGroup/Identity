@@ -51,7 +51,7 @@ public sealed class RootKeyAuditEventsTests
     [Fact]
     public void Create_ForAnOwnerThatIsNotATenant_HasNoTenantId()
     {
-        var rootKey = CreateRootKey(SecretOwner.ForServer("server-1"));
+        var rootKey = CreateRootKey(SecretOwner.Platform);
 
         var auditEvent = RootKeyAuditEvents.Create(
             rootKey,
@@ -63,7 +63,7 @@ public sealed class RootKeyAuditEventsTests
         );
 
         Assert.Null(auditEvent.TenantId);
-        Assert.Equal(SecretOwnerTypes.Server, auditEvent.OwnerType);
+        Assert.Equal(SecretOwnerTypes.Platform, auditEvent.OwnerType);
     }
 
     [Fact]

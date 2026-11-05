@@ -1,6 +1,11 @@
 # 1407. A master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it
 
-- **Status:** Accepted (amended by
+- **Status:** Accepted (amended by [ADR-1413](1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md):
+  the owners are the platform and each tenant, the platform's master key rotates and protects only the Data Protection
+  key ring and the host's own data, its retired versions are destroyed once their grace has passed and no live ring key
+  and no value that a registered protected-value source reports for the platform names them, the lease is
+  `master-key-maintenance:platform`, and the platform's keys are reported and rekeyed under
+  `/api/platform/encryption-keys` with the `platform_encryption_keys` scope family; amended by
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): rotation wraps the successor under the owner's root key, the status reports it, and an owner-rooted cache entry is re-validated)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group

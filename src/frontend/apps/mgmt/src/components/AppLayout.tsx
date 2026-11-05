@@ -13,7 +13,10 @@ export type AppLayoutProps = {
   readonly title: string;
   readonly scopeKind: ScopeKind;
   readonly scopeLabel?: string;
-  readonly onExitTenant?: () => void;
+  /** Leaves the active scope for the one that contains it; the back control is rendered only when provided. */
+  readonly onExitScope?: () => void;
+  /** The label of the back control: the name of the scope it returns to. */
+  readonly exitLabel?: string;
   /** The signed-in subject, shown in the header when a session is active. */
   readonly subject?: string;
   /** Sign-out handler; the sign-out control is only rendered when provided. */
@@ -22,15 +25,16 @@ export type AppLayoutProps = {
 };
 
 /**
- * Stateless console chrome. The security boundary (global vs tenant) is rendered prominently in the
- * header via {@link ScopeBadge}; the "exit tenant" control is only shown when a tenant scope is
- * active, and the subject + sign-out control only when a session is active. Holds no state.
+ * Stateless console chrome. The security boundary (platform, team or tenant) is rendered prominently in the
+ * header via {@link ScopeBadge}; the back control is only shown when the active scope has an enclosing
+ * scope to return to, and the subject + sign-out control only when a session is active. Holds no state.
  */
 export function AppLayout({
   title,
   scopeKind,
   scopeLabel,
-  onExitTenant,
+  onExitScope,
+  exitLabel,
   subject,
   onSignOut,
   children,
@@ -39,14 +43,14 @@ export function AppLayout({
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="static" color="default" elevation={1}>
         <Toolbar sx={{ gap: 2 }}>
-          {onExitTenant && (
+          {onExitScope && (
             <Button
               size="small"
               startIcon={<ArrowBackIcon />}
-              onClick={onExitTenant}
-              data-testid="exit-tenant"
+              onClick={onExitScope}
+              data-testid="exit-scope"
             >
-              Global
+              {exitLabel}
             </Button>
           )}
           <Typography variant="h6" component="h1" sx={{ flexGrow: 1 }}>

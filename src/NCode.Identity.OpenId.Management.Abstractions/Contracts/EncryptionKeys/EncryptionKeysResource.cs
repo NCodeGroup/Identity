@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 
 /// <summary>
-/// Represents the REST resource that lists the master keys of a tenant or of the server, newest version first.
+/// Represents the REST resource that lists the master keys of a tenant or of the platform, newest version first.
 /// </summary>
 // See ADR-1407.
 [PublicAPI]

@@ -91,7 +91,7 @@ var api = builder
 // A SECOND, conformance-only OP instance: the same host project launched under the Conformance environment
 // (the ConformanceAspire launch profile, ASPNETCORE_ENVIRONMENT=Conformance) on its own ports
 // (https://localhost:5003, http://localhost:5002), sharing the one Postgres. Its appsettings.Conformance.json overlay
-// defines its own OpenId:Server:Settings root ceiling that advertises the available-but-off-by-default capabilities
+// defines its own OpenId:Platform:Settings root ceiling that advertises the available-but-off-by-default capabilities
 // (Session Management, Front-Channel Logout, the client_credentials grant — ADR-1088) so the conformance dashboard
 // reports them, while the `api` above stays the locked-down secure default. The same overlay sets Cors:AllowedOrigins
 // (the Development CORS default does not apply outside Development) so the 5175 dashboard can read its discovery

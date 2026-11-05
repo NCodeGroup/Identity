@@ -138,7 +138,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
         var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         mockResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockCollection.Object)
             .Verifiable();
         mockResolver
@@ -169,7 +169,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
 
         var mockResolver = CreateStrictMock<IEffectiveSettingsResolver>();
         mockResolver
-            .Setup(x => x.ResolveServerAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamAsync("platform", It.IsAny<CancellationToken>()))
             .ReturnsAsync(mockCollection.Object)
             .Verifiable();
         mockResolver
@@ -210,6 +210,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         var persistedTenant = new PersistedTenant
         {
             TenantId = tenantId,
+            TeamId = "platform",
             Issuer = null,
             ConcurrencyToken = "token",
             IsDisabled = false,

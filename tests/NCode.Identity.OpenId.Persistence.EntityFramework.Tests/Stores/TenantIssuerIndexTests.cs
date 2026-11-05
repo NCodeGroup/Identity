@@ -47,6 +47,7 @@ public sealed class TenantIssuerIndexTests : IDisposable
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         var store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, context);
 
+        context.SeedTeam(idGenerator, "platform");
         await store.AddAsync(CreatePersistedTenant(tenantId, issuer), CancellationToken.None);
         await context.SaveChangesAsync();
     }
@@ -55,6 +56,7 @@ public sealed class TenantIssuerIndexTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = issuer,
             IsDisabled = false,

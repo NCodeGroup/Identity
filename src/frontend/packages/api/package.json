@@ -2,7 +2,7 @@
   "name": "@ncode/api",
   "version": "0.0.0",
   "private": true,
-  "description": "Management REST API wire contracts and the global/tenant scope boundary model (UI- and Redux-free).",
+  "description": "Management REST API wire contracts and the platform/team/tenant scope boundary model (UI- and Redux-free).",
   "type": "module",
   "exports": {
     ".": {

@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Management.Endpoints.Capabilities;
-using NCode.Identity.OpenId.Management.Endpoints.Servers;
+using NCode.Identity.OpenId.Management.Endpoints.Platform;
+using NCode.Identity.OpenId.Management.Endpoints.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
 using NCode.Registration.AspNetCore;
 
@@ -14,7 +15,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// <summary>
 /// The root management route group (<c>/api</c>). It materializes the OpenID request environment for every management
 /// endpoint via <see cref="ManagementEnvironmentEndpointFilter"/> but opens no tenant scope, so control-plane
-/// families (servers, tenant provisioning) act on unscoped rows.
+/// families (platform, teams, tenant provisioning) act on unscoped rows.
 /// </summary>
 internal sealed class ManagementRootGroup : IEndpointGroup
 {
@@ -43,7 +44,8 @@ internal sealed class ManagementRootGroup : IEndpointGroup
     public void ConfigureServices(IEndpointGroupBuilder builder)
     {
         builder.AddCapabilitiesEndpoint();
-        builder.AddServerEndpoint();
+        builder.AddPlatformEndpoint();
+        builder.AddTeamEndpoint();
         builder.AddTenantEndpoint();
         builder.AddGroup<TenantManagementGroup>();
     }

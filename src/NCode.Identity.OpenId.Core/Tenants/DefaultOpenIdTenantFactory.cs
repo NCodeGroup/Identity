@@ -13,8 +13,9 @@ using NCode.Identity.Models;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Servers;
+using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Results;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.Keys;
@@ -44,7 +45,8 @@ public class DefaultOpenIdTenantFactory(
     ISecretProtectorProvider secretProtectorProvider,
     ISecretKeyCollectionProviderFactory secretKeyCollectionProviderFactory,
     ICollectionDataSourceFactory collectionDataSourceFactory,
-    IEffectiveSettingsResolver effectiveSettingsResolver
+    IEffectiveSettingsResolver effectiveSettingsResolver,
+    IOpenIdTeamProvider teamProvider
 ) : IOpenIdTenantFactory
 {
     /// <summary>
@@ -106,13 +108,18 @@ public class DefaultOpenIdTenantFactory(
     protected IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
 
+    /// <summary>
+    /// Gets the <see cref="IOpenIdTeamProvider"/> used to get the team a tenant belongs to.
+    /// </summary>
+    protected IOpenIdTeamProvider TeamProvider { get; } = teamProvider;
+
     /// <inheritdoc />
     public virtual async ValueTask<
         AsyncSharedReferenceLease<OpenIdTenant>
     > CreateTenantForRequestAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
@@ -150,8 +157,8 @@ public class DefaultOpenIdTenantFactory(
         return await MaterializeTenantAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
-            persistedTenant.TenantId,
+            openIdPlatform,
+            persistedTenant,
             propertyBag,
             cancellationToken
         );
@@ -163,7 +170,7 @@ public class DefaultOpenIdTenantFactory(
     > CreateControlPlaneTenantAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
@@ -192,8 +199,8 @@ public class DefaultOpenIdTenantFactory(
         return await MaterializeTenantAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
-            persistedTenant.TenantId,
+            openIdPlatform,
+            persistedTenant,
             propertyBag,
             cancellationToken
         );
@@ -202,24 +209,36 @@ public class DefaultOpenIdTenantFactory(
     private async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> MaterializeTenantAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
-        string tenantId,
+        OpenIdPlatform openIdPlatform,
+        PersistedTenant resolvedTenant,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
+        var tenantId = resolvedTenant.TenantId;
+        var tenantPropertyBag = propertyBag.Clone();
+
+        // The team is checked before the tenant is seeded: a disabled team answers 404 without running the seed
+        // pipeline, so a suspended customer's rows are not written and repeated requests cost no seed. A tenant never
+        // moves between teams, so the team taken here stays the tenant's team once the seed returns.
+        await using var team = await GetEnabledTeamAsync(
+            openIdEnvironment,
+            openIdPlatform,
+            resolvedTenant,
+            tenantPropertyBag,
+            cancellationToken
+        );
+
         // A tenant is seeded whenever it is materialized: the bootstrap of a tenant created on demand, and the
         // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-1166). The provisioner
         // is scoped (its mediator is request-scoped), so it is resolved from the request's services.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         var persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
 
-        var tenantPropertyBag = propertyBag.Clone();
-
         await using var tenantSettings = await GetTenantSettingsAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            team.Value,
             persistedTenant,
             tenantPropertyBag,
             cancellationToken
@@ -244,8 +263,6 @@ public class DefaultOpenIdTenantFactory(
 
         await using var tenantSecrets = await GetTenantSecretsAsync(
             httpContext,
-            openIdEnvironment,
-            openIdServer,
             persistedTenant,
             tenantIssuer,
             tenantBaseAddress,
@@ -257,6 +274,7 @@ public class DefaultOpenIdTenantFactory(
         await using var newTenantReference = await CreateOpenIdTenantAsync(
             httpContext,
             persistedTenant,
+            team,
             tenantIssuer,
             tenantBaseAddress,
             tenantSettings,
@@ -279,7 +297,7 @@ public class DefaultOpenIdTenantFactory(
     public virtual async ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateTenantByIdAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdPlatform openIdPlatform,
         string tenantId,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
@@ -292,10 +310,18 @@ public class DefaultOpenIdTenantFactory(
 
         var tenantPropertyBag = propertyBag.Clone();
 
+        await using var team = await GetEnabledTeamAsync(
+            openIdEnvironment,
+            openIdPlatform,
+            persistedTenant,
+            tenantPropertyBag,
+            cancellationToken
+        );
+
         await using var tenantSettings = await GetTenantSettingsAsync(
             httpContext,
             openIdEnvironment,
-            openIdServer,
+            team.Value,
             persistedTenant,
             tenantPropertyBag,
             cancellationToken
@@ -321,8 +347,6 @@ public class DefaultOpenIdTenantFactory(
 
         await using var tenantSecrets = await GetTenantSecretsAsync(
             httpContext,
-            openIdEnvironment,
-            openIdServer,
             persistedTenant,
             tenantIssuer,
             tenantBaseAddress,
@@ -334,6 +358,7 @@ public class DefaultOpenIdTenantFactory(
         await using var tenantReference = await CreateOpenIdTenantAsync(
             httpContext,
             persistedTenant,
+            team,
             tenantIssuer,
             tenantBaseAddress,
             tenantSettings,
@@ -343,6 +368,34 @@ public class DefaultOpenIdTenantFactory(
         );
 
         return tenantReference.AddReference();
+    }
+
+    // A disabled team disables every tenant beneath it, with the same outcome as a disabled tenant.
+    private async ValueTask<AsyncSharedReferenceLease<OpenIdTeam>> GetEnabledTeamAsync(
+        OpenIdEnvironment openIdEnvironment,
+        OpenIdPlatform openIdPlatform,
+        PersistedTenant persistedTenant,
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        var team = await TeamProvider.GetTeamAsync(
+            openIdEnvironment,
+            openIdPlatform,
+            persistedTenant.TeamId,
+            propertyBag,
+            cancellationToken
+        );
+
+        if (team.Value.IsDisabled)
+        {
+            await team.DisposeAsync();
+            throw TypedResults
+                .NotFound()
+                .AsException($"The tenant with id '{persistedTenant.TenantId}' is disabled.");
+        }
+
+        return team;
     }
 
     private async ValueTask<PersistedTenant> LoadPersistedTenantAsync(
@@ -399,7 +452,7 @@ public class DefaultOpenIdTenantFactory(
 
     /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with current request.</param>
     /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> instance associated with the current request.</param>
+    /// <param name="openIdTeam">The <see cref="OpenIdTeam"/> the current tenant belongs to; its settings are the parent of the tenant's settings.</param>
     /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -409,20 +462,20 @@ public class DefaultOpenIdTenantFactory(
     > GetTenantSettingsAsync(
         HttpContext httpContext,
         OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
+        OpenIdTeam openIdTeam,
         PersistedTenant persistedTenant,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
         var initialSettings = EffectiveSettingsResolver.ReadScopeSettings(
-            openIdServer.SettingsProvider.Collection,
+            openIdTeam.SettingsProvider.Collection,
             OpenIdSettingScopes.Tenant,
             persistedTenant.Settings.Value
         );
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            new RefreshSettingsState(openIdEnvironment, openIdServer, persistedTenant),
+            new RefreshSettingsState(openIdEnvironment, openIdTeam, persistedTenant),
             initialSettings,
             OpenIdOptions.Tenant.SettingsPeriodicRefreshInterval,
             RefreshSettingsAsync
@@ -430,7 +483,7 @@ public class DefaultOpenIdTenantFactory(
 
         var dataSources = new List<ICollectionDataSource<Setting>>
         {
-            openIdServer.SettingsProvider.AsDataSource(),
+            openIdTeam.SettingsProvider.AsDataSource(),
             periodicPollingSource,
         };
 
@@ -441,7 +494,7 @@ public class DefaultOpenIdTenantFactory(
 
     private readonly record struct RefreshSettingsState(
         OpenIdEnvironment OpenIdEnvironment,
-        OpenIdServer OpenIdServer,
+        OpenIdTeam OpenIdTeam,
         PersistedTenant PersistedTenant
     );
 
@@ -468,7 +521,7 @@ public class DefaultOpenIdTenantFactory(
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
         var settings = EffectiveSettingsResolver.ReadScopeSettings(
-            state.OpenIdServer.SettingsProvider.Collection,
+            state.OpenIdTeam.SettingsProvider.Collection,
             OpenIdSettingScopes.Tenant,
             newSettings.Value
         );
@@ -528,8 +581,6 @@ public class DefaultOpenIdTenantFactory(
     /// The default implementation uses a periodic polling collection data source to periodically refresh the collection of secrets.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> instance associated with the current request.</param>
-    /// <param name="openIdEnvironment">The <see cref="OpenIdEnvironment"/> instance associated with the current request.</param>
-    /// <param name="openIdServer">The <see cref="OpenIdServer"/> instance associated with the current request.</param>
     /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
@@ -542,8 +593,6 @@ public class DefaultOpenIdTenantFactory(
         AsyncSharedReferenceLease<ISecretKeyCollectionProvider>
     > GetTenantSecretsAsync(
         HttpContext httpContext,
-        OpenIdEnvironment openIdEnvironment,
-        OpenIdServer openIdServer,
         PersistedTenant persistedTenant,
         string tenantIssuer,
         UriDescriptor tenantBaseAddress,
@@ -638,6 +687,7 @@ public class DefaultOpenIdTenantFactory(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current HTTP request.</param>
     /// <param name="persistedTenant">The <see cref="PersistedTenant"/> for the current tenant.</param>
+    /// <param name="team">The lease on the <see cref="OpenIdTeam"/> the current tenant belongs to.</param>
     /// <param name="tenantIssuer">The <c>issuer identifier</c> for the current tenant.</param>
     /// <param name="tenantBaseAddress">The <see cref="UriDescriptor"/> instance for the current tenant.</param>
     /// <param name="tenantSettings">The <see cref="IReadOnlySettingCollectionProvider"/> instance for the current tenant.</param>
@@ -648,6 +698,7 @@ public class DefaultOpenIdTenantFactory(
     protected virtual ValueTask<AsyncSharedReferenceLease<OpenIdTenant>> CreateOpenIdTenantAsync(
         HttpContext httpContext,
         PersistedTenant persistedTenant,
+        AsyncSharedReferenceLease<OpenIdTeam> team,
         string tenantIssuer,
         UriDescriptor tenantBaseAddress,
         AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> tenantSettings,
@@ -658,12 +709,14 @@ public class DefaultOpenIdTenantFactory(
     {
         OpenIdTenant tenant = new DefaultOpenIdTenant(
             persistedTenant.TenantId,
+            persistedTenant.TeamId,
             persistedTenant.DisplayName,
             tenantIssuer,
             persistedTenant.MtlsEndpointAliasAuthority,
             tenantBaseAddress,
             tenantSettings,
             tenantSecrets,
+            team.AddReference(),
             propertyBag
         );
 

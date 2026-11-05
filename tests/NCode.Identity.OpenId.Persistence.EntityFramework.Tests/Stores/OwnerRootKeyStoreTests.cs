@@ -118,7 +118,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
 
         Assert.NotNull(await FindAsync(new SecretOwner("TENANT", "tenant-one")));
         Assert.Null(await FindAsync(SecretOwner.ForTenant("tenant-two")));
-        Assert.Null(await FindAsync(SecretOwner.ForServer("tenant-one")));
+        Assert.Null(await FindAsync(new SecretOwner(SecretOwnerTypes.Platform, "tenant-one")));
     }
 
     [Fact]

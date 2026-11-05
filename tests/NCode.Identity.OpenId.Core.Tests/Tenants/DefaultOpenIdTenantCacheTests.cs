@@ -30,9 +30,13 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         MemoryCache.Dispose();
     }
 
-    private static Mock<OpenIdTenant> CreateMockTenant(TaskCompletionSource? disposed = null)
+    private static Mock<OpenIdTenant> CreateMockTenant(
+        TaskCompletionSource? disposed = null,
+        string teamId = "platform"
+    )
     {
         var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Strict);
+        mockTenant.SetupGet(x => x.TeamId).Returns(teamId);
         mockTenant
             .Protected()
             .Setup<ValueTask>("DisposeAsyncCore")
@@ -101,6 +105,166 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
 
     #endregion
 
+    #region RemoveTeamAsync Tests
+
+    [Fact]
+    public async Task RemoveTeamAsync_EvictsOnlyTheTeamsTenants()
+    {
+        const string otherTenantId = "globex";
+        const string thirdTenantId = "initech";
+        var firstDisposed = CreateCompletionSource();
+        var secondDisposed = CreateCompletionSource();
+        var firstTenant = CreateMockTenant(firstDisposed, "team-a");
+        var secondTenant = CreateMockTenant(secondDisposed, "team-a");
+        var thirdTenant = CreateMockTenant(teamId: "team-b");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+        await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+        await using (var third = AsyncSharedReference.Create(thirdTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, first, propertyBag, CancellationToken.None);
+            await Cache.SetAsync(otherTenantId, second, propertyBag, CancellationToken.None);
+            await Cache.SetAsync(thirdTenantId, third, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+        foreach (var evictedId in new[] { TenantId, otherTenantId })
+        {
+            await using var evicted = await Cache.TryGetAsync(
+                evictedId,
+                propertyBag,
+                CancellationToken.None
+            );
+            Assert.False(evicted.IsActive);
+        }
+
+        await using (
+            var kept = await Cache.TryGetAsync(thirdTenantId, propertyBag, CancellationToken.None)
+        )
+        {
+            Assert.True(kept.IsActive);
+            Assert.Same(thirdTenant.Object, kept.Value);
+        }
+
+        await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+        await secondDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RemoveTeamAsync_WithAnotherCasing_EvictsTheTeamsTenants()
+    {
+        var disposed = CreateCompletionSource();
+        var mockTenant = CreateMockTenant(disposed, "Team-A");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var owner = AsyncSharedReference.Create(mockTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+        await using (
+            var evicted = await Cache.TryGetAsync(TenantId, propertyBag, CancellationToken.None)
+        )
+        {
+            Assert.False(evicted.IsActive);
+        }
+
+        await disposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task SetAsync_AfterRemoveAsync_KeepsTheReplacementInTheTeamIndex()
+    {
+        var firstDisposed = CreateCompletionSource();
+        var firstTenant = CreateMockTenant(firstDisposed, "team-a");
+        var secondDisposed = CreateCompletionSource();
+        var secondTenant = CreateMockTenant(secondDisposed, "team-a");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, first, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveAsync(TenantId, propertyBag, CancellationToken.None);
+
+        await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, second, propertyBag, CancellationToken.None);
+        }
+
+        // The first entry's eviction callback has run once its lease is disposed; it must not drop the replacement.
+        await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+        await using (
+            var evicted = await Cache.TryGetAsync(TenantId, propertyBag, CancellationToken.None)
+        )
+        {
+            Assert.False(evicted.IsActive);
+        }
+
+        await secondDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task SetAsync_WhenTwoMaterializationsRace_KeepsTheCachedEntryInTheTeamIndex()
+    {
+        var propertyBag = PropertyBagFactory.Create();
+
+        for (var iteration = 0; iteration < 200; iteration++)
+        {
+            var tenantId = $"race-{iteration}";
+            var firstDisposed = CreateCompletionSource();
+            var firstTenant = CreateMockTenant(firstDisposed, "team-a");
+            var secondDisposed = CreateCompletionSource();
+            var secondTenant = CreateMockTenant(secondDisposed, "team-a");
+            var start = CreateCompletionSource();
+
+            await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+            await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+            {
+                var firstSet = Task.Run(async () =>
+                {
+                    await start.Task;
+                    await Cache.SetAsync(tenantId, first, propertyBag, CancellationToken.None);
+                });
+                var secondSet = Task.Run(async () =>
+                {
+                    await start.Task;
+                    await Cache.SetAsync(tenantId, second, propertyBag, CancellationToken.None);
+                });
+
+                start.SetResult();
+                await Task.WhenAll(firstSet, secondSet)
+                    .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+            }
+
+            // Exactly one entry was replaced; its lease is disposed once its eviction callback has run.
+            await Task.WhenAny(firstDisposed.Task, secondDisposed.Task)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+
+            await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+            await using (
+                var evicted = await Cache.TryGetAsync(tenantId, propertyBag, CancellationToken.None)
+            )
+            {
+                Assert.False(evicted.IsActive);
+            }
+
+            await Task.WhenAll(firstDisposed.Task, secondDisposed.Task)
+                .WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+        }
+    }
+
+    #endregion
+
     #region ClearAsync Tests
 
     [Fact]
@@ -148,6 +312,54 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         // The eviction releases the cache's references, so each tenant is disposed.
         await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
         await secondDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ClearAsync_EmptiesTheTeamIndex()
+    {
+        const string otherTenantId = "globex";
+        var clearedDisposed = CreateCompletionSource();
+        var clearedTenant = CreateMockTenant(clearedDisposed, "team-a");
+        var replacementDisposed = CreateCompletionSource();
+        var replacementTenant = CreateMockTenant(replacementDisposed, "team-a");
+        var otherTenant = CreateMockTenant(teamId: "team-b");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var owner = AsyncSharedReference.Create(clearedTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.ClearAsync(propertyBag, CancellationToken.None);
+
+        // The eviction callbacks run off the calling thread; the disposal follows the callback.
+        await clearedDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        await using (var owner = AsyncSharedReference.Create(replacementTenant.Object))
+        await using (var other = AsyncSharedReference.Create(otherTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
+            await Cache.SetAsync(otherTenantId, other, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+        await using (
+            var evicted = await Cache.TryGetAsync(TenantId, propertyBag, CancellationToken.None)
+        )
+        {
+            Assert.False(evicted.IsActive);
+        }
+
+        await replacementDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        await using var kept = await Cache.TryGetAsync(
+            otherTenantId,
+            propertyBag,
+            CancellationToken.None
+        );
+        Assert.True(kept.IsActive);
+        Assert.Same(otherTenant.Object, kept.Value);
     }
 
     [Fact]

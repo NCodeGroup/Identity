@@ -126,7 +126,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Match a `JsonElement` argument by content** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques).
 - 👁 **Make one call of a strict setup fail by adding a narrower setup after the general one** — template
-  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ServerApiEndpointHandlerTests`,
+  [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`PlatformApiEndpointHandlerTests`,
   `DefaultTenantClientCoherenceCheckerTests`).
 - 👁 **Answer a call differently each time from one counted setup, not `SetupSequence`.** Moq 4.21 has no
   `.Verifiable()` on `SetupSequence`, so a sequence escapes the repository's verification and an answer it lists but
@@ -158,7 +158,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`ValkeyReplicaBroadcastSubscriberTests`).
 - 👁 **A change-token producer in a test returns a fresh token after each change** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques): swap in a new `CancellationTokenSource` before
-  cancelling the old one (`ServerSettingsReconciliationServiceTests`).
+  cancelling the old one (`TeamSettingsReconciliationServiceTests`).
 - 👁 **Test the rate limiter with descriptors of the test's own.** `DefaultRequestRateLimiterTests` mocks
   `IRateLimitDescriptorCatalog` and declares sliding and fixed descriptors, so the built-in table is tested only in
   `DefaultRateLimitDescriptorDataSourceTests`; match the batch with
@@ -264,7 +264,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `appsettings.Development.json`, never `launchSettings.json`, whose environment variables pin each launch profile's
   issuer and bootstrap administrator.
 - 👁 **The integration host seeds no developer clients unless a test opts in.** The developer clients are public and use
-  `http` redirect URIs, and the seeder checks them for coherence, so with them seeded a test that narrows the server's
+  `http` redirect URIs, and the seeder checks them for coherence, so with them seeded a test that narrows the platform's, the team's
   or the tenant's ceilings (a FAPI profile, `token_endpoint_auth_methods_supported`, `redirect_uri_kinds_supported`)
   would stop the static tenant from being served. `HostApplicationFactory.SeedsDeveloperClients` is `false`, and a test
   that exercises the developer clients uses `DeveloperSeedingHostApplicationFactory`, which returns `true`

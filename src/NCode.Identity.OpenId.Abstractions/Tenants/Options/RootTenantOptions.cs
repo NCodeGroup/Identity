@@ -23,6 +23,28 @@ public sealed class RootTenantOptions
     public const string DefaultDisplayName = "Root Tenant";
 
     /// <summary>
+    /// Contains the default value for the platform team's identifier.
+    /// </summary>
+    public const string DefaultTeamId = "platform";
+
+    /// <summary>
+    /// Contains the default value for the platform team's display name.
+    /// </summary>
+    public const string DefaultTeamDisplayName = "Platform";
+
+    /// <summary>
+    /// Gets or sets the identifier of the platform's own team, which holds the root tenant and every tenant a strategy
+    /// creates on demand. The default value is <see cref="DefaultTeamId"/>.
+    /// </summary>
+    public string TeamId { get; set; } = DefaultTeamId;
+
+    /// <summary>
+    /// Gets or sets the display name the platform's own team is created with. The default value is
+    /// <see cref="DefaultTeamDisplayName"/>.
+    /// </summary>
+    public string TeamDisplayName { get; set; } = DefaultTeamDisplayName;
+
+    /// <summary>
     /// Gets or sets the identifier of the root tenant, into which the control-plane management resource server is
     /// seeded. The default value is <see cref="DefaultTenantId"/>.
     /// </summary>

@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Core.Tests.Settings;
 
 public class RootSettingsCollectionDataSourceTests : BaseTests
 {
-    private const string SectionPath = "OpenId:Server:Settings";
+    private const string SectionPath = "OpenId:Platform:Settings";
 
     private static IChangeToken NeverChanges { get; } =
         new CancellationChangeToken(CancellationToken.None);
@@ -32,7 +32,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
             .Setup(x =>
                 x.Expand(
                     It.IsAny<IReadOnlyCollection<Setting>>(),
-                    OpenIdSettingScopes.Server,
+                    OpenIdSettingScopes.Platform,
                     It.IsAny<IReadOnlyCollection<Setting>>()
                 )
             )
@@ -53,7 +53,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
     {
         var options = new OpenIdOptions
         {
-            Server = { Settings = configuration.GetSection(SectionPath) },
+            Platform = { Settings = configuration.GetSection(SectionPath) },
         };
 
         var mockAlgorithmCollection = CreateStrictMock<IAlgorithmCollection>();
@@ -113,7 +113,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
     #region Collection Property Tests
 
     [Fact]
-    public void Collection_IsTheServerSettingsExpandedWithTheProfilesTheySelect()
+    public void Collection_IsThePlatformSettingsExpandedWithTheProfilesTheySelect()
     {
         IReadOnlyCollection<Setting> expanded = [];
         IReadOnlyCollection<Setting>? capturedScope = null;
@@ -123,7 +123,7 @@ public class RootSettingsCollectionDataSourceTests : BaseTests
             .Setup(x =>
                 x.Expand(
                     It.IsAny<IReadOnlyCollection<Setting>>(),
-                    OpenIdSettingScopes.Server,
+                    OpenIdSettingScopes.Platform,
                     It.IsAny<IReadOnlyCollection<Setting>>()
                 )
             )

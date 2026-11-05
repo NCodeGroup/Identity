@@ -1,18 +1,23 @@
-import { GLOBAL_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
+import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@ncode/api';
 
 /**
  * The console's URL is its navigation state (ADR-1174). The path names the security boundary first and the surface
- * within it second, so the global ↔ tenant boundary (ADR-1064) stays explicit in every address:
+ * within it second, so the platform ↔ team ↔ tenant boundaries (ADR-1064) stay explicit in every address:
  *
- * - `/tenants`, `/servers` — the global scope's surfaces;
+ * - `/teams`, `/settings`, `/encryption-keys` — the platform scope's surfaces;
+ * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `settings` and `usage`), the team id
+ *   percent-encoded as one segment;
  * - `/tenants/{tenantId}/{surface}` — a tenant scope's surfaces (`clients`, `resource-servers`, `grants`, `secrets`,
  *   `encryption-keys`, `settings` and `usage`), the tenant id percent-encoded as one segment (ADR-1255).
  *
  * This module is UI-free so the route grammar is unit-tested; `navigation.ts` binds it to the browser history.
  */
 
-/** The surfaces of the global scope, in tab order. */
-export const GLOBAL_SURFACES = ['tenants', 'servers'] as const;
+/** The surfaces of the platform scope, in tab order. */
+export const PLATFORM_SURFACES = ['teams', 'settings', 'encryption-keys'] as const;
+
+/** The surfaces of a team scope, in tab order. */
+export const TEAM_SURFACES = ['tenants', 'settings', 'usage'] as const;
 
 /** The surfaces of a tenant scope, in tab order. */
 export const TENANT_SURFACES = [
@@ -25,7 +30,8 @@ export const TENANT_SURFACES = [
   'usage',
 ] as const;
 
-export type GlobalSurface = (typeof GLOBAL_SURFACES)[number];
+export type PlatformSurface = (typeof PLATFORM_SURFACES)[number];
+export type TeamSurface = (typeof TEAM_SURFACES)[number];
 export type TenantSurface = (typeof TENANT_SURFACES)[number];
 
 /**
@@ -37,18 +43,31 @@ export type TenantOwnSurface = Extract<
 >;
 
 export type ConsoleRoute =
-  | { readonly kind: 'global'; readonly surface: GlobalSurface }
+  | { readonly kind: 'platform'; readonly surface: PlatformSurface }
+  | { readonly kind: 'team'; readonly teamId: string; readonly surface: TeamSurface }
   | { readonly kind: 'tenant'; readonly tenantId: string; readonly surface: TenantSurface };
 
-/** Where the console lands when the path names no route: the global tenant list. */
-export const DEFAULT_ROUTE: ConsoleRoute = { kind: 'global', surface: 'tenants' };
+/** Where the console lands when the path names no route: the platform's team list. */
+export const DEFAULT_ROUTE: ConsoleRoute = { kind: 'platform', surface: 'teams' };
+
+/** The surface a team opens on when the path names the team but no surface. */
+export const DEFAULT_TEAM_SURFACE: TeamSurface = 'tenants';
 
 /** The surface a tenant opens on when the path names the tenant but no surface. */
 export const DEFAULT_TENANT_SURFACE: TenantSurface = 'clients';
 
-/** Builds the route of a global surface. */
-export function globalRoute(surface: GlobalSurface): ConsoleRoute {
-  return { kind: 'global', surface };
+/** Builds the route of a platform surface. */
+export function platformRoute(surface: PlatformSurface): ConsoleRoute {
+  return { kind: 'platform', surface };
+}
+
+/** Builds the route of a team surface, rejecting an empty/blank team id. */
+export function teamRoute(
+  teamId: string,
+  surface: TeamSurface = DEFAULT_TEAM_SURFACE,
+): ConsoleRoute {
+  teamScope(teamId);
+  return { kind: 'team', teamId, surface };
 }
 
 /** Builds the route of a tenant surface, rejecting an empty/blank tenant id. */
@@ -62,18 +81,34 @@ export function tenantRoute(
 
 /** The management scope a route addresses — derived from the route, never held separately. */
 export function routeScope(route: ConsoleRoute): ManagementScope {
-  return route.kind === 'global' ? GLOBAL_SCOPE : tenantScope(route.tenantId);
+  switch (route.kind) {
+    case 'platform':
+      return PLATFORM_SCOPE;
+    case 'team':
+      return teamScope(route.teamId);
+    case 'tenant':
+      return tenantScope(route.tenantId);
+  }
 }
 
 /** Formats a route as its canonical path. */
 export function routePath(route: ConsoleRoute): string {
-  return route.kind === 'global'
-    ? `/${route.surface}`
-    : `/tenants/${encodeURIComponent(route.tenantId)}/${route.surface}`;
+  switch (route.kind) {
+    case 'platform':
+      return `/${route.surface}`;
+    case 'team':
+      return `/teams/${encodeURIComponent(route.teamId)}/${route.surface}`;
+    case 'tenant':
+      return `/tenants/${encodeURIComponent(route.tenantId)}/${route.surface}`;
+  }
 }
 
-function isGlobalSurface(value: string): value is GlobalSurface {
-  return (GLOBAL_SURFACES as readonly string[]).includes(value);
+function isPlatformSurface(value: string): value is PlatformSurface {
+  return (PLATFORM_SURFACES as readonly string[]).includes(value);
+}
+
+function isTeamSurface(value: string): value is TeamSurface {
+  return (TEAM_SURFACES as readonly string[]).includes(value);
 }
 
 function isTenantSurface(value: string): value is TenantSurface {
@@ -90,7 +125,7 @@ function decodeSegment(segment: string): string | null {
 
 /**
  * Parses a path into the route it names, or `null` when it names none. A single trailing slash is tolerated, and a
- * tenant path without a surface names the tenant's default surface.
+ * team or tenant path without a surface names that scope's default surface.
  */
 export function parseRoute(pathname: string): ConsoleRoute | null {
   if (!pathname.startsWith('/')) {
@@ -101,18 +136,28 @@ export function parseRoute(pathname: string): ConsoleRoute | null {
 
   if (segments.length === 1) {
     const [surface = ''] = segments;
-    return isGlobalSurface(surface) ? globalRoute(surface) : null;
+    return isPlatformSurface(surface) ? platformRoute(surface) : null;
   }
 
-  const [root, encodedTenantId = '', surface = DEFAULT_TENANT_SURFACE, ...rest] = segments;
-  if (root !== 'tenants' || rest.length > 0 || !isTenantSurface(surface)) {
+  const [root, encodedId = '', surface, ...rest] = segments;
+  if (rest.length > 0) {
     return null;
   }
-  const tenantId = decodeSegment(encodedTenantId);
-  if (tenantId === null || tenantId.trim().length === 0) {
+  const id = decodeSegment(encodedId);
+  if (id === null || id.trim().length === 0) {
     return null;
   }
-  return { kind: 'tenant', tenantId, surface };
+  if (root === 'teams') {
+    const teamSurface = surface ?? DEFAULT_TEAM_SURFACE;
+    return isTeamSurface(teamSurface) ? { kind: 'team', teamId: id, surface: teamSurface } : null;
+  }
+  if (root === 'tenants') {
+    const tenantSurface = surface ?? DEFAULT_TENANT_SURFACE;
+    return isTenantSurface(tenantSurface)
+      ? { kind: 'tenant', tenantId: id, surface: tenantSurface }
+      : null;
+  }
+  return null;
 }
 
 /**

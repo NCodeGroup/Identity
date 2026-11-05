@@ -157,7 +157,7 @@ to wrap every master key under the configured root key provider and recovery pub
 |--------------------------------------------------|------------------------------------------------------------------------------------------------------|
 | `secretProtection.rewrapJob.enabled`             | Renders the Job. Set it for the release that needs the run, and unset it afterwards.                 |
 | `secretProtection.rewrapJob.command`             | `rewrap` (the default) or `rewrap-recovery`, which replaces only the recovery copies.                |
-| `secretProtection.rewrapJob.owner`               | Limits the run to one owner such as `tenant:acme` or `server:default`; empty rewraps every owner.    |
+| `secretProtection.rewrapJob.owner`               | Limits the run to one owner such as `tenant:acme` or `platform:platform`; empty rewraps every owner.    |
 | `secretProtection.rewrapJob.dryRun`              | `true` unwraps and verifies every master key and writes nothing.                                     |
 | `secretProtection.rewrapJob.recoveryPrivateKeySecret` | A Secret holding the recovery private key under `recovery-private.pem`, mounted into the Job only. |
 | `secretProtection.rewrapJob.backoffLimit`, `activeDeadlineSeconds` | How often the Job retries and how long it may run (`0` and `3600`).              |
@@ -190,11 +190,13 @@ key; the root wraps stay as they are. Keep the old private key until the Job has
 ### Rotating master keys
 
 Master keys rotate on their own: after `SecretProtection:MasterKeys:RotationPeriod` (365 days by default) the active key
-of the server and of each tenant retires and the next version takes over, the values the retired key protected are
-rewrapped under the new one, and a retired key is destroyed once its grace has passed and nothing names it
+of the platform and of each tenant retires and the next version takes over, a tenant's values, and a platform value that
+a registered protected-value source reports, are rewrapped under the new version, and a retired key is destroyed once
+its grace has passed and nothing names it: the platform's retired version stays while a live Data Protection key
+names it, because an existing Data Protection key is never re-encrypted
 ([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
 An administrator rekeys at once with `POST /api/tenants/{tenantId}/encryption-keys/rekey` or
-`POST /api/servers/{serverId}/encryption-keys/rekey`, and reads the keys with `GET .../encryption-keys`. Tune the
+`POST /api/platform/encryption-keys/rekey`, and reads the keys with `GET .../encryption-keys`. Tune the
 lifecycle with environment variables in `extraEnv`: `SecretProtection__MasterKeys__RotationPeriod`,
 `SecretProtection__MasterKeys__RefreshInterval`, `SecretProtection__MasterKeys__RetirementGrace`,
 `SecretProtection__MasterKeys__MaintenanceInterval` and `SecretProtection__MasterKeys__DestroyRetired` (`false` keeps
@@ -412,7 +414,7 @@ without removing it first, loses every value written or rewrapped under it, in t
 ### A key the master key cannot decrypt
 
 The host refuses to start while the Data Protection key ring holds a live key, one that is not revoked and has not
-expired, that the server's master key cannot decrypt, and it names each such key in the error
+expired, that the platform's master key cannot decrypt, and it names each such key in the error
 ([ADR-1247](../../docs/decisions/1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md)). It happens when the
 master key rows are lost or recreated while the key ring survives, such as after restoring part of a backup.
 

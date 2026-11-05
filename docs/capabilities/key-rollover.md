@@ -77,7 +77,7 @@ timeline
 
 ## The lifecycle of a stored secret
 
-Every stored secret, a tenant's key, a client's key or shared secret, a server's or a resource server's key, carries
+Every stored secret, a tenant's key, a client's key or shared secret, or a resource server's key, carries
 four instants: `CreatedWhen`, `ActivatesWhen`, `RetiresWhen` and `ExpiresWhen`, in that order. The active window, from
 activation to retirement, is when the key signs or encrypts; the validity window, from creation to expiry, is when it
 verifies, decrypts and is published. A secret with no lifecycle of its own, such as a client's shared secret, is active
@@ -121,8 +121,10 @@ changes at an instant: the keys to generate, the published keys to activate at o
 whose expiry moves to the end of a raised grace, and the expired keys to remove. It touches only the keys the rollover
 provisioned, which carry `managedBy: tenant_key_rollover`. The seed contributor applies the plan whenever the tenant is
 materialized, in the seed's unit of work, and `TenantKeyRolloverService` applies it in the background: one replica per
-interval takes a lease on the shared-state port, for half the interval so the next tick finds it free, and walks every
-seeded tenant, each in its own unit of work under the tenant's optimistic concurrency, so an overlapping seed or pass
+interval takes one platform-wide lease on the shared-state port, for half the interval so the next tick finds it free,
+and walks each enabled team in turn, judging that team's seeded tenants, and only those, against that team's effective
+settings. A disabled team is skipped, and a team the pass cannot handle is logged before the next one runs. Each
+tenant is changed in its own unit of work under the tenant's optimistic concurrency, so an overlapping seed or pass
 loses the race for that tenant and leaves it to the winner. The audit events of a change are published once its unit
 of work has committed, so a lost race records nothing; they are the one record of the change, and the publishing and
 the announcement that follow a commit run on their own bounded token, so a stopping host or a failed publish leaves
@@ -131,6 +133,7 @@ as they are.
 
 > [!TIP]
 > [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
+> [ADR-1412](../decisions/1412-settings-are-reconciled-per-team.md),
 > `DefaultTenantKeyRolloverPlanner`, `DefaultTenantKeyRollover`, `TenantKeyRolloverService`, `TenantKeySeedHandler`.
 
 ## The audit trail
@@ -144,7 +147,7 @@ change is committed. See [audit records](../audit-records.md).
 
 - **A compromised key is retired by deleting it.** The management API's `DELETE` retires a key at once; the next seed
   or pass generates its replacement. There is no endpoint that rotates a tenant key on demand with a chosen hand-over.
-- **Only a tenant's provisioned keys roll over on their own.** A server's or a resource server's keys, and the keys an
+- **Only a tenant's provisioned keys roll over on their own.** A resource server's keys, and the keys an
   operator generates or imports through the management API, keep the instants their creator gave them; the windows are
   honored, the successors are not generated.
 - **A short lifetime means many published keys.** A tenant whose key lifetime is shorter than its activation delay
@@ -155,6 +158,7 @@ change is committed. See [audit records](../audit-records.md).
 
 - Decisions: [ADR-1403](../decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
+  [ADR-1412](../decisions/1412-settings-are-reconciled-per-team.md),
   [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1320](../decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md)
 - Code: [`Tenants/Keys`](../../src/NCode.Identity.OpenId.Core/Tenants/Keys),

@@ -4,28 +4,33 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.PrincipalResolution;
-using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
 
 /// <summary>
-/// An <see cref="AuthorizationHandler{TRequirement,TResource}"/> that grants a principal authority over an
-/// <see cref="IResourceNode"/> when the principal holds a role assignment at that node or an ancestor (its tenant, or
-/// the server root). This realizes ownership: an <c>Owner</c> assignment at an instance lets the principal manage that
-/// instance (and everything beneath it) without any tenant-wide role. Ownership grants every operation except
-/// <see cref="Operations.Create"/> — creating a new resource is authority at the parent node.
+/// An <see cref="AuthorizationHandler{TRequirement,TResource}"/> that grants a principal authority over a tenant-plane
+/// resource. Any <see cref="ISupportTenantId"/> resource is judged at its <see cref="IResourceNode"/>; a persisted
+/// entity or a <see cref="TenantScopeResource"/> is judged at its tenant's node, and any other node type inherits the
+/// tenant's and the team's assignments. A principal holds authority when it has a role assignment at that node or an ancestor (its tenant, its
+/// team, or the platform root). The platform, team and tenant nodes have globally unique identifiers and match on
+/// type and identifier; any other node's identifier is unique only within its tenant, so an assignment at it counts
+/// only when it belongs to the node's tenant. This realizes ownership: an <c>Owner</c> assignment at an instance lets the principal
+/// manage that instance (and everything beneath it) without any tenant-wide role. Ownership grants every operation
+/// except <see cref="Operations.Create"/>; creating a new resource is authority at the parent node, held by a
+/// <c>TeamAdmin</c> or <c>GlobalAdmin</c> assignment at the node or an ancestor.
 /// </summary>
 internal class OwnershipHandler(
     IStoreManagerFactory storeManagerFactory,
     IPrincipalResolver principalResolver,
     IHttpContextAccessor httpContextAccessor,
-    IOptions<TenantResolutionOptions> optionsAccessor
-) : AuthorizationHandler<IAuthorizationRequirement, IResourceNode>
+    IAmbientTenantAccessor ambientTenantAccessor
+) : AuthorizationHandler<IAuthorizationRequirement, ISupportTenantId>
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
@@ -33,23 +38,19 @@ internal class OwnershipHandler(
     // ASP.NET Core authorization handlers are invoked by the framework without the request's OpenIdContext in hand, so
     // this is the one blessed place that reads the ambient context from the request rather than receiving it threaded.
     private IHttpContextAccessor HttpContextAccessor { get; } = httpContextAccessor;
-    private IOptions<TenantResolutionOptions> OptionsAccessor { get; } = optionsAccessor;
+    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         IAuthorizationRequirement requirement,
-        IResourceNode resource
+        ISupportTenantId resource
     )
     {
-        // Ownership never grants creation of a new resource; that is authority at the parent node (ADR-1034).
-        if (
-            requirement is OperationAuthorizationRequirement operation
-            && string.Equals(operation.Name, Operations.Create.Name, StringComparison.Ordinal)
-        )
-        {
-            return;
-        }
+        // A node is judged where it is; any other tenant-plane resource is judged at its tenant's node.
+        var node =
+            resource as IResourceNode
+            ?? ResourceNode.For(resource.TenantId, ResourceNodeTypes.Tenant, resource.TenantId);
 
         var openIdContext = HttpContextAccessor.HttpContext?.GetOpenIdContextOrDefault();
         if (openIdContext is null)
@@ -57,7 +58,16 @@ internal class OwnershipHandler(
             return;
         }
 
-        var ancestorNodes = GetAncestorNodes(resource, OptionsAccessor.Value.Root.TenantId);
+        // Creating a resource is authority at the parent node, which is the node passed here (ADR-1034, ADR-1411).
+        var isCreate =
+            requirement is OperationAuthorizationRequirement operation
+            && string.Equals(operation.Name, Operations.Create.Name, StringComparison.Ordinal);
+
+        // The principal and the node chain are read in the request's tenant scope.
+        // See ADR-1411
+        using var controlPlaneScope = AmbientTenantAccessor.BeginScope(
+            openIdContext.Tenant.TenantId
+        );
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(
             CancellationToken.None
@@ -76,17 +86,33 @@ internal class OwnershipHandler(
             return;
         }
 
+        var ancestorNodes = await GetAncestorNodesAsync(node, storeManager, CancellationToken.None);
+
         var store = storeManager.GetStore<IRoleAssignmentStore>();
         var assignments = await store.GetByPrincipalAsync(principalId, CancellationToken.None);
 
         foreach (var assignment in assignments)
         {
-            if (
-                IsManagementRole(assignment.RoleName)
-                && ancestorNodes.Contains(
-                    (assignment.ResourceType, Normalize(assignment.ResourceId))
-                )
-            )
+            var isAuthorizingRole = isCreate
+                ? IsCreationRole(assignment.RoleName)
+                : IsManagementRole(assignment.RoleName);
+            if (!isAuthorizingRole)
+            {
+                continue;
+            }
+
+            // An ancestor (platform, team or tenant) matches on type and identifier. Any other node's identifier is
+            // unique only within its tenant, so an assignment at it counts only when it belongs to the node's tenant.
+            // See ADR-1411
+            var normalizedResourceId = Normalize(assignment.ResourceId);
+            var isAncestor = ancestorNodes.Contains(
+                (assignment.ResourceType, normalizedResourceId)
+            );
+            var isTheNode =
+                string.Equals(assignment.ResourceType, node.ResourceType, StringComparison.Ordinal)
+                && normalizedResourceId == Normalize(node.ResourceId)
+                && Normalize(assignment.TenantId) == Normalize(node.TenantId);
+            if (isAncestor || isTheNode)
             {
                 context.Succeed(requirement);
                 return;
@@ -94,19 +120,66 @@ internal class OwnershipHandler(
         }
     }
 
-    private static HashSet<(string ResourceType, string NormalizedResourceId)> GetAncestorNodes(
+    // See ADR-1411
+    private static async ValueTask<
+        HashSet<(string ResourceType, string NormalizedResourceId)>
+    > GetAncestorNodesAsync(
         IResourceNode resource,
-        string rootTenantId
-    ) =>
-        // A resource's authority chain is fixed: the node itself, its tenant, then the server root (ADR-1034).
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        // A resource's authority chain is fixed: the node itself, its tenant, its team, then the platform root. The
+        // platform, team and tenant nodes have globally unique identifiers, so the node itself joins this set only
+        // when it is one of them; any other node is matched within its tenant by the caller.
+        HashSet<(string ResourceType, string NormalizedResourceId)> nodes =
         [
-            (resource.ResourceType, Normalize(resource.ResourceId)),
-            (ResourceNodeTypes.Tenant, Normalize(resource.TenantId)),
-            (ResourceNodeTypes.Server, Normalize(rootTenantId)),
+            (ResourceNodeTypes.Platform, Normalize(OpenIdConstants.PlatformResourceId)),
         ];
+
+        if (IsGloballyUniqueNodeType(resource.ResourceType))
+        {
+            nodes.Add((resource.ResourceType, Normalize(resource.ResourceId)));
+        }
+
+        if (string.Equals(resource.ResourceType, ResourceNodeTypes.Team, StringComparison.Ordinal))
+        {
+            nodes.Add((ResourceNodeTypes.Team, Normalize(resource.ResourceId)));
+        }
+        else if (
+            !string.Equals(
+                resource.ResourceType,
+                ResourceNodeTypes.Platform,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            nodes.Add((ResourceNodeTypes.Tenant, Normalize(resource.TenantId)));
+
+            // An unknown tenant adds no team node.
+            var tenantStore = storeManager.GetStore<ITenantStore>();
+            var tenant = await tenantStore.GetOrDefaultAsync(resource.TenantId, cancellationToken);
+            if (tenant is not null)
+            {
+                nodes.Add((ResourceNodeTypes.Team, Normalize(tenant.TeamId)));
+            }
+        }
+
+        return nodes;
+    }
+
+    private static bool IsGloballyUniqueNodeType(string resourceType) =>
+        string.Equals(resourceType, ResourceNodeTypes.Platform, StringComparison.Ordinal)
+        || string.Equals(resourceType, ResourceNodeTypes.Team, StringComparison.Ordinal)
+        || string.Equals(resourceType, ResourceNodeTypes.Tenant, StringComparison.Ordinal);
+
+    private static bool IsCreationRole(string roleName) =>
+        string.Equals(roleName, BuiltInRoles.TeamAdmin, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(roleName, BuiltInRoles.GlobalAdmin, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsManagementRole(string roleName) =>
         string.Equals(roleName, BuiltInRoles.Owner, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(roleName, BuiltInRoles.TeamAdmin, StringComparison.OrdinalIgnoreCase)
         || string.Equals(roleName, BuiltInRoles.TenantAdmin, StringComparison.OrdinalIgnoreCase)
         || string.Equals(roleName, BuiltInRoles.GlobalAdmin, StringComparison.OrdinalIgnoreCase);
 

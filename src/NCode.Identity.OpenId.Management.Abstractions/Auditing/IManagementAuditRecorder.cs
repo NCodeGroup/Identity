@@ -154,9 +154,35 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
+    /// Records that an administrator created, updated, or deleted a team, or updated its settings.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the affected team.</param>
+    /// <param name="changeType">
+    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
+    /// </param>
+    /// <param name="resourceValues">
+    /// A non-sensitive snapshot of the team's values, or <c>null</c> when none is captured.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    ValueTask RecordTeamChangedAsync(
+        HttpContext httpContext,
+        string teamId,
+        string changeType,
+        JsonElement? resourceValues,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Records that an administrator created, updated, or deleted an OpenID tenant, or updated its settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team the affected tenant belongs to.</param>
     /// <param name="tenantId">The identifier of the affected tenant.</param>
     /// <param name="changeType">
     /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
@@ -172,6 +198,7 @@ public interface IManagementAuditRecorder
     /// </returns>
     ValueTask RecordTenantChangedAsync(
         HttpContext httpContext,
+        string teamId,
         string tenantId,
         string changeType,
         JsonElement? resourceValues,
@@ -207,15 +234,15 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
-    /// Records that an administrator created, updated, or deleted an OpenID server, or updated its settings.
+    /// Records that an administrator updated the platform's settings. The event carries the tenant the request runs
+    /// under and the platform's identifier, <c>platform</c>.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the affected server.</param>
     /// <param name="changeType">
     /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
     /// </param>
     /// <param name="resourceValues">
-    /// A non-sensitive snapshot of the server's values, or <c>null</c> when none is captured.
+    /// A non-sensitive snapshot of the resource's values, or <c>null</c> when none is captured.
     /// </param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
@@ -223,37 +250,8 @@ public interface IManagementAuditRecorder
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
-    ValueTask RecordServerChangedAsync(
+    ValueTask RecordPlatformChangedAsync(
         HttpContext httpContext,
-        string serverId,
-        string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    );
-
-    /// <summary>
-    /// Records that an administrator created, updated, or deleted a secret belonging to an OpenID server.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="serverId">The identifier of the server the secret belongs to.</param>
-    /// <param name="secretId">The identifier of the affected secret.</param>
-    /// <param name="changeType">
-    /// The lifecycle transition that occurred; one of the <see cref="ResourceChangeTypes"/> values.
-    /// </param>
-    /// <param name="resourceValues">
-    /// A non-sensitive snapshot of the secret's metadata, or <c>null</c> when none is captured. Never
-    /// contains secret material.
-    /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
-    /// <returns>
-    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
-    /// </returns>
-    ValueTask RecordServerSecretChangedAsync(
-        HttpContext httpContext,
-        string serverId,
-        string secretId,
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
@@ -369,8 +367,8 @@ public interface IManagementAuditRecorder
     );
 
     /// <summary>
-    /// Records that an administrator rotated the master key of a tenant or of the server, by a rekey or by setting a
-    /// root key.
+    /// Records that an administrator rotated the master key of a tenant or of the platform, by a rekey or by setting a
+    /// tenant's root key.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
     /// <param name="rotation">The rotation that was performed.</param>

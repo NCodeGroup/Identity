@@ -38,6 +38,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
 
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         _dbContext.Database.EnsureCreated();
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
 
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _store = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
@@ -97,6 +98,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         new()
         {
             TenantId = tenantId,
+            TeamId = "platform",
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,
@@ -418,6 +420,48 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
             .OrderBy(assignmentId => assignmentId)
             .ToListAsync();
         Assert.Equal(["assign-tenant-2"], remaining);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_KeepsTheTenantsUsageRows()
+    {
+        await SeedTenantWithSystemRowsAsync(TenantOneId);
+        var day = new DateOnly(2026, 10, 21);
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var usageStore = new TenantUsageStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        await usageStore.AddAsync(
+            Guid.NewGuid(),
+            1,
+            [
+                new PersistedTenantUsage
+                {
+                    TenantId = TenantOneId,
+                    TeamId = "platform",
+                    Day = day,
+                    Meter = "requests",
+                    Count = 7,
+                },
+            ],
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var removed = await _store.RemoveAsync(TenantOneId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.True(removed);
+        Assert.Empty(await _dbContext.Tenants.ToListAsync());
+        var entries = await usageStore.ListByTeamAsync(
+            "platform",
+            day,
+            day,
+            CancellationToken.None
+        );
+        var entry = Assert.Single(entries);
+        Assert.Equal(TenantOneId, entry.TenantId);
+        Assert.Equal(7, entry.Count);
     }
 
     #endregion

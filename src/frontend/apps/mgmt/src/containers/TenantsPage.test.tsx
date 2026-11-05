@@ -28,6 +28,7 @@ function renderPage(onOpenTenant = vi.fn(), addressPreviewDelayMs?: number) {
   render(
     <Provider store={store}>
       <TenantsPage
+        teamId="acme"
         onOpenTenant={onOpenTenant}
         {...(addressPreviewDelayMs !== undefined ? { addressPreviewDelayMs } : {})}
       />
@@ -37,7 +38,8 @@ function renderPage(onOpenTenant = vi.fn(), addressPreviewDelayMs?: number) {
 }
 
 const acme = {
-  tenantId: 'acme',
+  tenantId: 'acme-dev',
+  teamId: 'acme',
   displayName: 'Acme',
   issuer: null,
   mtlsEndpointAliasAuthority: null,
@@ -46,7 +48,8 @@ const acme = {
 };
 
 const globex = {
-  tenantId: 'globex',
+  tenantId: 'globex-dev',
+  teamId: 'acme',
   displayName: 'Globex',
   issuer: 'https://globex.auth.test',
   mtlsEndpointAliasAuthority: 'https://globex.mtls.test',
@@ -117,25 +120,27 @@ describe('TenantsPage (list states)', () => {
     );
 
     renderPage();
-    expect(await screen.findByTestId('tenant-row-acme')).toBeInTheDocument();
-    expect(screen.getByTestId('tenant-row-globex')).toBeInTheDocument();
+    expect(await screen.findByTestId('tenant-row-acme-dev')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-row-globex-dev')).toBeInTheDocument();
 
     fireEvent.change(screen.getByTestId('tenant-environment-filter'), {
       target: { value: 'development' },
     });
 
-    expect(screen.queryByTestId('tenant-row-acme')).not.toBeInTheDocument();
-    expect(screen.getByTestId('tenant-row-globex')).toBeInTheDocument();
-    expect(screen.getByTestId('tenant-environment-globex')).toHaveTextContent('Dev (development)');
+    expect(screen.queryByTestId('tenant-row-acme-dev')).not.toBeInTheDocument();
+    expect(screen.getByTestId('tenant-row-globex-dev')).toBeInTheDocument();
+    expect(screen.getByTestId('tenant-environment-globex-dev')).toHaveTextContent(
+      'Dev (development)',
+    );
   });
 
   it('crosses into a tenant when its row is selected', async () => {
     installFetch(() => jsonResponse({ items: [acme] }));
 
     const onOpenTenant = renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-row-acme'));
+    fireEvent.click(await screen.findByTestId('tenant-row-acme-dev'));
 
-    expect(onOpenTenant).toHaveBeenCalledWith('acme');
+    expect(onOpenTenant).toHaveBeenCalledWith('acme-dev');
   });
 });
 
@@ -149,7 +154,7 @@ describe('TenantsPage (CRUD wiring)', () => {
       if (url.includes('/address')) {
         return jsonResponse(address);
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -186,13 +191,15 @@ describe('TenantsPage (CRUD wiring)', () => {
       'placeholder',
       'https://new-co.mtls.test',
     );
-    expect(calls.some((c) => c.url === 'https://api.test/api/tenants/new-co/address')).toBe(true);
+    expect(
+      calls.some((c) => c.url === 'https://api.test/api/teams/acme/tenants/new-co/address'),
+    ).toBe(true);
   });
 
   it('blocks creating a tenant whose ID is already taken', async () => {
     installFetch(
       addressHandler({
-        tenantId: 'acme',
+        tenantId: 'acme-dev',
         issuer: 'https://acme.auth.test',
         isIssuerDerived: true,
         mtlsEndpointAliasAuthority: null,
@@ -205,7 +212,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     renderPage(vi.fn(), 0);
     expect(await screen.findByText('Acme')).toBeInTheDocument();
     fireEvent.click(screen.getByTestId('create-tenant'));
-    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'acme' } });
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'acme-dev' } });
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: 'Acme 2' } });
 
     expect(await screen.findByText('A tenant with this ID already exists.')).toBeInTheDocument();
@@ -245,17 +252,18 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(
       calls.some(
         (c) =>
-          c.url === 'https://api.test/api/tenants/new-co/address?issuer=https%3A%2F%2Ftaken.test',
+          c.url ===
+          'https://api.test/api/teams/acme/tenants/new-co/address?issuer=https%3A%2F%2Ftaken.test',
       ),
     ).toBe(true);
   });
 
   it('creates a tenant through the form dialog', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'POST') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'POST') {
         return jsonResponse({ ...acme, tenantId: 'new-co', displayName: 'New Co' }, 201);
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -272,7 +280,7 @@ describe('TenantsPage (CRUD wiring)', () => {
 
     await waitFor(() => expect(screen.queryByTestId('tenant-form-submit')).not.toBeInTheDocument());
     const post = calls.find((c) => c.method === 'POST');
-    expect(post?.url).toBe('https://api.test/api/tenants');
+    expect(post?.url).toBe('https://api.test/api/teams/acme/tenants');
     expect(JSON.parse(post?.body ?? '{}')).toEqual({
       tenantId: 'new-co',
       issuer: null,
@@ -286,11 +294,11 @@ describe('TenantsPage (CRUD wiring)', () => {
   it('edits a tenant through the form dialog with an If-Match JSON Patch', async () => {
     let renamed = false;
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants/acme') && method === 'PATCH') {
+      if (url.endsWith('/api/tenants/acme-dev') && method === 'PATCH') {
         renamed = true;
         return new Response(null, { status: 204 });
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({
           items: [renamed ? { ...acme, displayName: 'Acme Corp' } : acme, globex],
         });
@@ -299,10 +307,10 @@ describe('TenantsPage (CRUD wiring)', () => {
     });
 
     renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-edit-acme'));
+    fireEvent.click(await screen.findByTestId('tenant-edit-acme-dev'));
 
     expect(screen.getByRole('dialog', { name: 'Edit tenant' })).toBeInTheDocument();
-    expect(screen.getByTestId('tenant-id')).toHaveValue('acme');
+    expect(screen.getByTestId('tenant-id')).toHaveValue('acme-dev');
     expect(screen.getByTestId('tenant-id')).toBeDisabled();
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Acme');
     expect(screen.getByTestId('tenant-issuer')).toHaveValue('');
@@ -324,7 +332,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(await screen.findByText('Acme Corp')).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByTestId('tenant-form-submit')).not.toBeInTheDocument());
     const patch = calls.find((c) => c.method === 'PATCH');
-    expect(patch?.url).toBe('https://api.test/api/tenants/acme');
+    expect(patch?.url).toBe('https://api.test/api/tenants/acme-dev');
     expect(patch?.ifMatch).toBe('c1');
     expect(JSON.parse(patch?.body ?? '[]')).toEqual([
       { op: 'replace', path: '/issuer', value: 'https://acme.auth.test' },
@@ -336,14 +344,14 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('prefills the edit form from a tenant with an issuer and discards it on cancel', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'GET') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme, globex] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
     renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-edit-globex'));
+    fireEvent.click(await screen.findByTestId('tenant-edit-globex-dev'));
 
     expect(screen.getByTestId('tenant-display-name')).toHaveValue('Globex');
     expect(screen.getByTestId('tenant-issuer')).toHaveValue('https://globex.auth.test');
@@ -362,7 +370,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     const calls = installFetch((url, method) => {
       if (url.includes('/address')) {
         return jsonResponse({
-          tenantId: 'globex',
+          tenantId: 'globex-dev',
           issuer: 'https://globex.auth.test',
           isIssuerDerived: false,
           mtlsEndpointAliasAuthority: 'https://globex.auth.test',
@@ -377,14 +385,14 @@ describe('TenantsPage (CRUD wiring)', () => {
           ],
         });
       }
-      if (url.endsWith('/api/tenants') && method === 'GET') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme, globex] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
     renderPage(vi.fn(), 0);
-    fireEvent.click(await screen.findByTestId('tenant-edit-globex'));
+    fireEvent.click(await screen.findByTestId('tenant-edit-globex-dev'));
     fireEvent.change(screen.getByTestId('tenant-mtls-endpoint-alias'), {
       target: { value: 'https://globex.auth.test' },
     });
@@ -397,14 +405,14 @@ describe('TenantsPage (CRUD wiring)', () => {
       calls.some(
         (c) =>
           c.url ===
-          'https://api.test/api/tenants/globex/address?issuer=https%3A%2F%2Fglobex.auth.test&mtlsEndpointAliasAuthority=https%3A%2F%2Fglobex.auth.test',
+          'https://api.test/api/tenants/globex-dev/address?issuer=https%3A%2F%2Fglobex.auth.test&mtlsEndpointAliasAuthority=https%3A%2F%2Fglobex.auth.test',
       ),
     ).toBe(true);
   });
 
   it('ignores a submit fired while the form dialog is closing', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'GET') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -426,10 +434,10 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('deletes a tenant after confirmation', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants/acme') && method === 'DELETE') {
+      if (url.endsWith('/api/tenants/acme-dev') && method === 'DELETE') {
         return new Response(null, { status: 204 });
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -438,7 +446,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     renderPage();
     expect(await screen.findByText('Acme')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('tenant-delete-acme'));
+    fireEvent.click(screen.getByTestId('tenant-delete-acme-dev'));
     expect(await screen.findByTestId('confirm-accept')).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Delete tenant' })).toHaveTextContent(
       'Delete “Acme”? This cannot be undone.',
@@ -446,25 +454,25 @@ describe('TenantsPage (CRUD wiring)', () => {
     fireEvent.click(screen.getByTestId('confirm-accept'));
 
     await waitFor(() =>
-      expect(calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/api/tenants/acme'))).toBe(
-        true,
-      ),
+      expect(
+        calls.some((c) => c.method === 'DELETE' && c.url.endsWith('/api/tenants/acme-dev')),
+      ).toBe(true),
     );
   });
 
   it('keeps the delete dialog open with the server problem detail when the delete is rejected', async () => {
     installFetch((url, method) => {
-      if (url.endsWith('/api/tenants/acme') && method === 'DELETE') {
+      if (url.endsWith('/api/tenants/acme-dev') && method === 'DELETE') {
         return jsonResponse({ detail: 'The tenant still has clients.' }, 409);
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
     renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-delete-acme'));
+    fireEvent.click(await screen.findByTestId('tenant-delete-acme-dev'));
     fireEvent.click(screen.getByTestId('confirm-accept'));
 
     expect(await screen.findByTestId('confirm-error')).toHaveTextContent(
@@ -478,14 +486,14 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('ignores a confirm fired while the delete dialog is closing', async () => {
     const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'GET') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'GET') {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
 
     renderPage();
-    fireEvent.click(await screen.findByTestId('tenant-delete-acme'));
+    fireEvent.click(await screen.findByTestId('tenant-delete-acme-dev'));
     fireEvent.click(screen.getByTestId('confirm-cancel'));
     // The dialog stays mounted for its exit transition; a stray click on it must not delete anything.
     fireEvent.click(screen.getByTestId('confirm-accept'));
@@ -496,13 +504,13 @@ describe('TenantsPage (CRUD wiring)', () => {
 
   it('surfaces a server error in the form and keeps it open', async () => {
     installFetch((url, method) => {
-      if (url.endsWith('/api/tenants') && method === 'POST') {
+      if (url.endsWith('/api/teams/acme/tenants') && method === 'POST') {
         return jsonResponse(
           { detail: 'A tenant with the specified identifier already exists.' },
           409,
         );
       }
-      if (url.endsWith('/api/tenants')) {
+      if (url.endsWith('/api/teams/acme/tenants')) {
         return jsonResponse({ items: [acme] });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -512,7 +520,7 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(await screen.findByText('Acme')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('create-tenant'));
-    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'acme' } });
+    fireEvent.change(screen.getByTestId('tenant-id'), { target: { value: 'acme-dev' } });
     fireEvent.change(screen.getByTestId('tenant-display-name'), { target: { value: 'Dup' } });
     fireEvent.click(screen.getByTestId('tenant-form-submit'));
 

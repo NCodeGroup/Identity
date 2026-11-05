@@ -4,7 +4,7 @@
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 1
-  (an owner other than the server may name its own root key, which wraps its master keys in place of the deployment
+  (an owner other than the platform may name its own root key, which wraps its master keys in place of the deployment
   root), decision 2 (such a master key has no recovery copy), decision 9 (revoking or destroying the owner's key shreds
   its data wherever a copy is) and decision 13 (an owner-rooted cache entry is unwrapped again every validation interval
   and refused while its key is unavailable);
@@ -29,15 +29,15 @@ to take effect within a bounded period across replicas without a KMS call per re
    beside the master keys (table `OwnerRootKeys`). It is set and removed through `IOwnerRootKeyManager` and the endpoints
    `PUT` and `DELETE /api/tenants/{tenantId}/encryption-keys/root-key`. It is not a setting of the settings cascade: the
    cascade validates synchronously and value by value, while a root key is accepted only after an asynchronous round trip
-   through its provider; changing the key is an operation (rotate, then rewrap every master key row); a server-scope value
+   through its provider; changing the key is an operation (rotate, then rewrap every master key row); a platform-scope value
    or a security profile must never move a tenant onto a key; the record carries operational state that does not belong in
    a settings document; and the secrets layer must not depend on the OpenID settings model. Which owners can bring a key is
    decided by the registered `IOwnerRootKeyPolicy` implementations, and an owner that any of them refuses cannot set one.
-   The `server` owner cannot bring
-   a key, because its master keys protect the deployment's Data Protection ring. The control-plane tenant cannot bring a key
+   The `platform` owner cannot bring
+   a key, because its master keys protect the deployment's Data Protection key ring and the host's own data. The control-plane tenant cannot bring a key
    either, because the management API authenticates against it ([ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)),
    so a revoked key would lock out the administrators who restore it; `PUT` on it answers `400`. Each rule is a registered
-   policy (`ServerOwnerRootKeyPolicy`, `ControlPlaneTenantRootKeyPolicy`), and a consumer refuses further owners by registering
+   policy (`PlatformOwnerRootKeyPolicy`, `ControlPlaneTenantRootKeyPolicy`), and a consumer refuses further owners by registering
    its own `IOwnerRootKeyPolicy`. The code says "owner root key"; the
    management API, the console and the docs say "tenant root key".
 2. **The provider is any registered referenced key wrapper** ([ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)),
@@ -110,7 +110,8 @@ to take effect within a bounded period across replicas without a KMS call per re
   provider because the deployment's identity makes the calls.
 - **Destroying the master keys when the key becomes unavailable.** The tenant may restore its key, and the KMS already
   shreds.
-- **A bring-your-own key for the server owner.** Its master keys protect the deployment's Data Protection ring.
+- **A bring-your-own key for the platform owner.** Its master keys protect the deployment's Data Protection key ring and the
+  host's own data.
 
 ## Consequences
 

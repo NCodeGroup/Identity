@@ -20,7 +20,7 @@ public interface ISecretEnvelopeStore : IStore
     /// <summary>
     /// Gets a single page of the protected values of the secrets that an owner holds, ordered by their identifier,
     /// using keyset (cursor) pagination. A tenant owner holds the secrets of the tenant, of its clients and of its
-    /// resource servers; a server owner holds the secrets of the server; any other owner type holds none.
+    /// resource servers; any other owner type, the platform included, holds none.
     /// </summary>
     /// <param name="owner">The <see cref="SecretOwner"/> whose secrets are read.</param>
     /// <param name="valuePrefixes">The texts that a protected value must start with to be returned, so that only the

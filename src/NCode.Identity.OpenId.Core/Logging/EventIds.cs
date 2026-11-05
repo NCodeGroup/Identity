@@ -18,29 +18,33 @@ internal static class EventIds
 
     public const int ClientError = Base + 2;
 
-    public const int ServerSettingsReloadRejected = Base + 3;
+    public const int PlatformSettingsReloadRejected = Base + 3;
 
     public const int TenantKeyReseedFailed = Base + 5;
 
     public const int TenantChangeBroadcastFailed = Base + 6;
 
-    public const int ServerSettingsRefreshFailed = Base + 7;
+    public const int PlatformSettingsRefreshFailed = Base + 7;
 
-    public const int ServerSettingsChangeRefreshFailed = Base + 8;
+    public const int PlatformSettingsChangeRefreshFailed = Base + 8;
 
-    public const int ServerSettingsChangeBroadcastFailed = Base + 9;
+    public const int PlatformSettingsChangeBroadcastFailed = Base + 9;
 
-    public const int ServerSettingsReconciliationStarted = Base + 10;
+    public const int TeamSettingsReconciliationStarted = Base + 10;
 
-    public const int ServerSettingsReconciled = Base + 11;
+    public const int TeamSettingsReconciled = Base + 11;
 
-    public const int ServerSettingsReconciliationFailed = Base + 12;
+    public const int TeamSettingsReconciliationFailed = Base + 12;
 
-    public const int ReconciledServerSettingsUnreadable = Base + 13;
+    public const int ReconciledTeamSettingsUnreadable = Base + 13;
 
     public const int TenantCacheClearFailed = Base + 14;
 
-    public const int ServerMaterializationAtStartFailed = Base + 15;
+    public const int PlatformMaterializationAtStartFailed = Base + 15;
+
+    public const int TeamChangeBroadcastFailed = Base + 16;
+
+    public const int TeamCacheClearFailed = Base + 17;
 
     public const int TenantKeyRolloverFailed = Base + 19;
 
@@ -70,9 +74,11 @@ internal static class EventIds
 
     public const int ProtectedValuePageUnreadable = Base + 32;
 
-    public const int OwnerRootKeyValidationPassFailed = Base + 33;
+    public const int TenantKeyRolloverTeamFailed = Base + 33;
 
-    public const int OwnerRootKeyValidationOwnerFailed = Base + 34;
+    public const int OwnerRootKeyValidationPassFailed = Base + 34;
 
-    public const int OwnerRootKeyAuditPublishFailed = Base + 35;
+    public const int OwnerRootKeyValidationOwnerFailed = Base + 35;
+
+    public const int OwnerRootKeyAuditPublishFailed = Base + 36;
 }

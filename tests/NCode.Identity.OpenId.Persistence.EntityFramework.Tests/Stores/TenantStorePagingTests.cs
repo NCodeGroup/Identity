@@ -35,10 +35,15 @@ public sealed class TenantStorePagingTests : IDisposable
         _provider.Dispose();
     }
 
-    private static PersistedTenant CreateTenant(string tenantId, int index) =>
+    private static PersistedTenant CreateTenant(
+        string tenantId,
+        int index,
+        string teamId = "platform"
+    ) =>
         new()
         {
             TenantId = tenantId,
+            TeamId = teamId,
             ConcurrencyToken = string.Empty,
             Issuer = null,
             IsDisabled = false,
@@ -61,6 +66,7 @@ public sealed class TenantStorePagingTests : IDisposable
 
     private async Task SeedAsync(int count)
     {
+        _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
         for (var index = 1; index <= count; index++)
         {
             await _store.AddAsync(CreateTenant($"tenant-{index}", index), CancellationToken.None);
@@ -68,6 +74,117 @@ public sealed class TenantStorePagingTests : IDisposable
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }
+
+    private async Task SeedTwoTeamsAsync()
+    {
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        _dbContext.SeedTeam(idGenerator, "team-a");
+        _dbContext.SeedTeam(idGenerator, "team-b");
+        for (var index = 1; index <= 3; index++)
+        {
+            await _store.AddAsync(
+                CreateTenant($"a-tenant-{index}", index, "team-a"),
+                CancellationToken.None
+            );
+        }
+        for (var index = 1; index <= 2; index++)
+        {
+            await _store.AddAsync(
+                CreateTenant($"b-tenant-{index}", index, "team-b"),
+                CancellationToken.None
+            );
+        }
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
+    #region GetOrDefaultAsync Tests
+
+    [Fact]
+    public async Task GetOrDefaultAsync_WhenTheTrackerHoldsTheTenantWithoutItsTeam_LoadsTheTeam()
+    {
+        await SeedAsync(1);
+        _ = _dbContext
+            .Tenants.AsTracking()
+            .Single(tenant => tenant.NormalizedTenantId == "tenant-1");
+
+        var tenant = await _store.GetOrDefaultAsync("tenant-1", CancellationToken.None);
+
+        Assert.NotNull(tenant);
+        Assert.Equal("platform", tenant.TeamId);
+    }
+
+    #endregion
+
+    #region Team Tests
+
+    [Fact]
+    public async Task GetPageAsync_WithATeam_ReturnsOnlyItsTenants()
+    {
+        await SeedTwoTeamsAsync();
+
+        var seen = new List<string>();
+        string? cursor = null;
+        do
+        {
+            var page = await _store.GetPageAsync(
+                "TEAM-A",
+                new PageRequest { Cursor = cursor, Limit = 2 },
+                CancellationToken.None
+            );
+            foreach (var tenant in page.Items)
+            {
+                Assert.Equal("team-a", tenant.TeamId);
+                seen.Add(tenant.TenantId);
+            }
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+
+        Assert.Equal(["a-tenant-1", "a-tenant-2", "a-tenant-3"], seen);
+    }
+
+    [Fact]
+    public async Task GetSettingsPageAsync_WithATeam_TraversesOnlyItsTenants()
+    {
+        await SeedTwoTeamsAsync();
+
+        var seen = new List<string>();
+        string? cursor = null;
+        do
+        {
+            var page = await _store.GetSettingsPageAsync(
+                "team-b",
+                new PageRequest { Cursor = cursor, Limit = 1 },
+                CancellationToken.None
+            );
+            seen.AddRange(page.Items.Select(settings => settings.TenantId));
+            cursor = page.NextCursor;
+        } while (cursor is not null);
+
+        Assert.Equal(["b-tenant-1", "b-tenant-2"], seen);
+    }
+
+    [Fact]
+    public async Task CountAsync_CountsTheTeamsTenants()
+    {
+        await SeedTwoTeamsAsync();
+
+        Assert.Equal(3, await _store.CountAsync("team-a", CancellationToken.None));
+        Assert.Equal(2, await _store.CountAsync("team-b", CancellationToken.None));
+        Assert.Equal(0, await _store.CountAsync("team-c", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AddAsync_WhenTheTeamIsMissing_Throws()
+    {
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await _store.AddAsync(CreateTenant("orphan", 1, "missing"), CancellationToken.None)
+        );
+
+        Assert.Equal("The team with TeamId='missing' does not exist.", exception.Message);
+    }
+
+    #endregion
 
     #region GetSettingsPageAsync Tests
 

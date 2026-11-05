@@ -91,11 +91,11 @@ public class SecretProtectionCommandLineTests : BaseTests
             "rewrap",
             "--dry-run",
             "--owner",
-            "server:default"
+            "platform:platform"
         );
 
         Assert.True(command.DryRun);
-        Assert.Equal(SecretOwner.ForServer("default"), command.Owner);
+        Assert.Equal(SecretOwner.Platform, command.Owner);
     }
 
     [Theory]

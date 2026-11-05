@@ -13,6 +13,7 @@ namespace NCode.Identity.OpenId.Teams;
 // See ADR-1411
 internal class DefaultOpenIdTeam(
     string teamId,
+    string concurrencyToken,
     string displayName,
     bool isDisabled,
     AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> settingsReference,
@@ -24,6 +25,9 @@ internal class DefaultOpenIdTeam(
 
     /// <inheritdoc />
     public override string TeamId { get; } = teamId;
+
+    /// <inheritdoc />
+    public override string ConcurrencyToken { get; } = concurrencyToken;
 
     /// <inheritdoc />
     public override string DisplayName { get; } = displayName;

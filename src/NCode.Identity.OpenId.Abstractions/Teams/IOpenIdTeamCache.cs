@@ -65,4 +65,15 @@ public interface IOpenIdTeamCache
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     ValueTask ClearAsync(IPropertyBag propertyBag, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Gets the revision of every cached team.
+    /// </summary>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="TeamRevision"/> of each cached team.</returns>
+    ValueTask<IReadOnlyCollection<TeamRevision>> GetRevisionsAsync(
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    );
 }

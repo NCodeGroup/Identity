@@ -6,7 +6,10 @@
   [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) and
-  [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md))
+  [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md); amended by
+  [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md): a
+  replica that may have missed a `team-changed` announcement evicts only the teams whose row changed, with their
+  tenants)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)

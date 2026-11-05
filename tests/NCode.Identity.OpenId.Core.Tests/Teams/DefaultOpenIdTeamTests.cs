@@ -29,6 +29,7 @@ public sealed class DefaultOpenIdTeamTests
 
         var team = new DefaultOpenIdTeam(
             "acme",
+            "team-ct",
             "Acme",
             isDisabled: false,
             owner,

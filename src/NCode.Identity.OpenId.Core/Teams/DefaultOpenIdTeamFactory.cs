@@ -72,6 +72,7 @@ internal class DefaultOpenIdTeamFactory(
 
         OpenIdTeam team = new DefaultOpenIdTeam(
             persistedTeam.TeamId,
+            persistedTeam.ConcurrencyToken,
             persistedTeam.DisplayName,
             persistedTeam.IsDisabled,
             settingsReference,

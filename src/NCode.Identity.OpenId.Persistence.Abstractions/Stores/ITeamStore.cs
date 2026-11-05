@@ -37,6 +37,19 @@ public interface ITeamStore : IStore<PersistedTeam>
     ValueTask<PersistedTeam?> GetOrDefaultAsync(string teamId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Gets the concurrency token of each listed team that exists, keyed by its identifier compared without regard
+    /// to case; a team that does not exist has no entry.
+    /// </summary>
+    /// <param name="teamIds">The identifiers of the teams whose concurrency tokens to read.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the concurrency
+    /// token of each listed team that exists.</returns>
+    ValueTask<IReadOnlyDictionary<string, string>> GetConcurrencyTokensAsync(
+        IReadOnlyCollection<string> teamIds,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets the <see cref="PersistedTeamSettings"/> instance from the store with the specified identifier.
     /// </summary>
     /// <param name="teamId">The identifier of the OpenId Team.</param>

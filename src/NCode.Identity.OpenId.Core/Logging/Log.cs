@@ -240,6 +240,27 @@ internal static partial class Log
     internal static partial void TeamCacheClearFailed(this ILogger logger, Exception exception);
 
     [LoggerMessage(
+        EventId = EventIds.TeamCacheRevalidationFailed,
+        Level = LogLevel.Warning,
+        Message = "Reading the revisions of the teams this replica serves failed; every cached team and tenant is evicted instead"
+    )]
+    internal static partial void TeamCacheRevalidationFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TeamCacheEvictionFailed,
+        Level = LogLevel.Warning,
+        Message = "Evicting the cached team {TeamId} and its tenants after a possibly missed announcement failed; every cached team and tenant is evicted instead"
+    )]
+    internal static partial void TeamCacheEvictionFailed(
+        this ILogger logger,
+        Exception exception,
+        string teamId
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ProtectedValuePageConflict,
         Level = LogLevel.Debug,
         Message = "Another writer changed a page of the protected values of '{Owner}' while it was rewrapped; reading the page again (attempt {Attempt})"

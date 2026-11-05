@@ -3,6 +3,7 @@
 
 using JetBrains.Annotations;
 using NCode.Identity.Models;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
@@ -24,6 +25,12 @@ public abstract class OpenIdTenant : IAsyncDisposable
     /// Gets the identifier of the team the tenant belongs to. A tenant never moves between teams.
     /// </summary>
     public abstract string TeamId { get; }
+
+    /// <summary>
+    /// Gets the team the tenant belongs to, as this replica materialized it; its settings are the parent of the
+    /// tenant's settings.
+    /// </summary>
+    public abstract OpenIdTeam Team { get; }
 
     /// <summary>
     /// Gets the display name for the tenant.

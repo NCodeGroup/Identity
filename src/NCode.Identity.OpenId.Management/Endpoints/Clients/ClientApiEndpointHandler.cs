@@ -1063,6 +1063,16 @@ internal class ClientApiEndpointHandler(
             return SettingsValidationProblem(settingErrors);
         }
 
+        var limitRefusal = await AuthorizeLimitChangesOrDefaultAsync(
+            httpContext,
+            SettingSerializer.GetChangedLimits(clientSettings.Value, settingsValue),
+            ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId)
+        );
+        if (limitRefusal is not null)
+        {
+            return limitRefusal;
+        }
+
         if (HasJwksUri(settingsValue) && HasPublicKeys(client.Secrets.Value))
         {
             return KeySourceConflict();

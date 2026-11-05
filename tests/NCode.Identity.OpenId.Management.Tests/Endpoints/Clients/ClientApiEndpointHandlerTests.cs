@@ -295,6 +295,12 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Returns([])
             .Verifiable();
 
+    private void SetupNoChangedLimits() =>
+        MockSettingSerializer
+            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
+            .Returns([])
+            .Verifiable();
+
     private void SetupInvalidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -1322,6 +1328,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupClientChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1403,6 +1410,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task UpdateSettingsAsync_WhenARegisteredAlgorithmIsNotPermitted_ReturnsValidationProblem()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1457,6 +1465,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task UpdateSettingsAsync_WhenJwksUriIsAddedToAClientWithPublicKeys_ReturnsConflict()
     {
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1486,6 +1495,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupClientChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1616,6 +1626,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupClientChangedAudit();
         SetupClientSecretChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1671,6 +1682,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupClientChangedAudit();
         SetupClientSecretChangedAudit();
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1717,6 +1729,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Issuing a secret is creating one, which needs the authority creating a secret needs.
         var issued = CreatePersistedSecret("issued-1");
         SetupValidSettings();
+        SetupNoChangedLimits();
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1770,6 +1783,48 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 ),
             Times.Exactly(2)
         );
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenALimitChangesAndTheTenantRefuses_ReturnsForbiddenWithoutWriting()
+    {
+        SetupValidSettings();
+        MockSettingSerializer
+            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
+            .Returns([OpenIdSettingNames.RateLimitClientPerMinute])
+            .Verifiable();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Tenant
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        // Strict mocks: no effective-settings or store-write setup, so continuing past the refusal would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.RateLimitClientPerMinute, "10"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+        Assert.Contains("'rate_limit_client_per_minute'", problem.ProblemDetails.Detail);
     }
 
     #endregion

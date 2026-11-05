@@ -772,6 +772,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Property<DateTimeOffset?>("RetiredWhen")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("RootKeyAccessIdentity")
+                        .HasMaxLength(1024)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(1024)");
+
                     b.Property<string>("RootKeyId")
                         .IsRequired()
                         .HasMaxLength(2048)
@@ -818,6 +823,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 {
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("AccessIdentity")
+                        .HasMaxLength(1024)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(1024)");
 
                     b.Property<string>("ConcurrencyToken")
                         .IsConcurrencyToken()

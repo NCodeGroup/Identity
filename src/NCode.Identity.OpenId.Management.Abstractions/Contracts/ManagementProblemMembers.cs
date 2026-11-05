@@ -42,6 +42,11 @@ public static class ManagementProblemMembers
     public const string SettingsScope = "settingsScope";
 
     /// <summary>
+    /// The identity that reaches the key that the problem concerns.
+    /// </summary>
+    public const string AccessIdentity = "accessIdentity";
+
+    /// <summary>
     /// The description of the document error that the problem concerns.
     /// </summary>
     public const string DocumentError = "documentError";

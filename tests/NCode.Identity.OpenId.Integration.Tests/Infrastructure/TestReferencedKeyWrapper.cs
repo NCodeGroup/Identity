@@ -13,7 +13,8 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// <summary>
 /// A key wrapper that stands in for a key management service a tenant controls: every key reference names its own
 /// AES-256-GCM key, which a test can revoke and restore. A revoked key wraps and unwraps nothing, as a key that its
-/// owner disabled or whose grant the owner withdrew.
+/// owner disabled or whose grant the owner withdrew. A key that denies the deployment's identity is reached only
+/// through an access identity that the test granted on it.
 /// </summary>
 public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
 {
@@ -27,6 +28,11 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
     /// </summary>
     public const string ReferencePrefix = "test-key-";
 
+    /// <summary>
+    /// The prefix that every access identity starts with.
+    /// </summary>
+    public const string AccessIdentityPrefix = "test-identity-";
+
     private const int KeySizeBytes = 32;
     private const int NonceSizeBytes = 12;
     private const int TagSizeBytes = 16;
@@ -36,8 +42,37 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
     private ConcurrentDictionary<string, bool> RevokedReferences { get; } =
         new(StringComparer.Ordinal);
 
+    private ConcurrentDictionary<string, bool> DeniedDeploymentReferences { get; } =
+        new(StringComparer.Ordinal);
+
+    private ConcurrentDictionary<(string KeyReference, string Identity), bool> Grants { get; } =
+        new();
+
+    private ConcurrentQueue<string> SeenBindings { get; } = new();
+
     /// <inheritdoc />
     public string Name => WrapperName;
+
+    /// <summary>
+    /// Gets every access binding that a wrap or an unwrap through an access identity presented, in order.
+    /// </summary>
+    public IReadOnlyList<string> Bindings => [.. SeenBindings];
+
+    /// <summary>
+    /// Denies the deployment's own identity on a key, so that wrapping and unwrapping without an access identity
+    /// fails.
+    /// </summary>
+    /// <param name="keyReference">The reference to the key.</param>
+    public void DenyDeploymentIdentity(string keyReference) =>
+        DeniedDeploymentReferences[keyReference] = true;
+
+    /// <summary>
+    /// Grants an access identity on a key, so that wrapping and unwrapping through the identity succeeds.
+    /// </summary>
+    /// <param name="keyReference">The reference to the key.</param>
+    /// <param name="identity">The access identity.</param>
+    public void Grant(string keyReference, string identity) =>
+        Grants[(keyReference, identity)] = true;
 
     /// <summary>
     /// Revokes a key, so that wrapping and unwrapping through it fails until it is restored.
@@ -71,6 +106,25 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
     }
 
     /// <inheritdoc />
+    public bool TryValidateAccessIdentity(
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (
+            string.IsNullOrEmpty(accessIdentity)
+            || !accessIdentity.StartsWith(AccessIdentityPrefix, StringComparison.Ordinal)
+        )
+        {
+            failure = $"must start with '{AccessIdentityPrefix}'";
+            return false;
+        }
+
+        failure = null;
+        return true;
+    }
+
+    /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
@@ -82,16 +136,31 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
 
     /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
-        string keyReference,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
+        ArgumentNullException.ThrowIfNull(referencedKey);
+
+        var keyReference = referencedKey.KeyReference;
         if (!TryValidateKeyReference(keyReference, out var failure))
-            throw new ArgumentException($"The key reference {failure}.", nameof(keyReference));
+            throw new ArgumentException($"The key reference {failure}.", nameof(referencedKey));
+
+        if (
+            referencedKey.Access is { } access
+            && !TryValidateAccessIdentity(access.Identity, out var accessFailure)
+        )
+        {
+            throw new ArgumentException(
+                $"The access identity {accessFailure}.",
+                nameof(referencedKey)
+            );
+        }
 
         ThrowIfRevoked(keyReference);
+        ThrowIfNotReachable(keyReference, referencedKey.Access);
 
         var aesKey = Keys.GetOrAdd(keyReference, _ => RandomNumberGenerator.GetBytes(KeySizeBytes));
 
@@ -120,12 +189,34 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
         ReadOnlyMemory<byte> context,
         IBufferWriter<byte> destination,
         CancellationToken cancellationToken
+    ) => UnwrapCoreAsync(wrappedKey, access: null, context, destination);
+
+    /// <inheritdoc />
+    public ValueTask UnwrapAsync(
+        WrappedKey wrappedKey,
+        KeyAccess access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        return UnwrapCoreAsync(wrappedKey, access, context, destination);
+    }
+
+    private ValueTask UnwrapCoreAsync(
+        WrappedKey wrappedKey,
+        KeyAccess? access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination
     )
     {
         ArgumentNullException.ThrowIfNull(wrappedKey);
         ArgumentNullException.ThrowIfNull(destination);
 
         ThrowIfRevoked(wrappedKey.KeyId);
+        ThrowIfNotReachable(wrappedKey.KeyId, access);
 
         if (!Keys.TryGetValue(wrappedKey.KeyId, out var aesKey))
             throw new CryptographicException($"The key '{wrappedKey.KeyId}' does not exist.");
@@ -159,5 +250,29 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
     {
         if (RevokedReferences.ContainsKey(keyReference))
             throw new CryptographicException($"The key '{keyReference}' is revoked.");
+    }
+
+    private void ThrowIfNotReachable(string keyReference, KeyAccess? access)
+    {
+        if (access is null)
+        {
+            if (DeniedDeploymentReferences.ContainsKey(keyReference))
+            {
+                throw new CryptographicException(
+                    $"The key '{keyReference}' denies the deployment's identity."
+                );
+            }
+
+            return;
+        }
+
+        SeenBindings.Enqueue(access.Binding);
+
+        if (!Grants.ContainsKey((keyReference, access.Identity)))
+        {
+            throw new CryptographicException(
+                $"The key '{keyReference}' does not grant the identity '{access.Identity}'."
+            );
+        }
     }
 }

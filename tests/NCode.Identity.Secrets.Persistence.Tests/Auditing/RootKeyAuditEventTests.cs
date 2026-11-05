@@ -17,7 +17,8 @@ public sealed class RootKeyAuditEventTests
     private static RootKeyAuditEvent CreateEvent(
         string change = RootKeyChanges.Set,
         string outcome = AuditOutcome.Success,
-        string? failure = null
+        string? failure = null,
+        string? accessIdentity = null
     ) =>
         new()
         {
@@ -33,6 +34,7 @@ public sealed class RootKeyAuditEventTests
             OwnerId = "acme",
             KeyWrapperName = "aws-kms",
             KeyReference = KeyReference,
+            AccessIdentity = accessIdentity,
             State = OwnerRootKeyStates.Active,
             Failure = failure,
         };
@@ -83,6 +85,27 @@ public sealed class RootKeyAuditEventTests
             """{"reason":"requested","provider":"aws-kms","key_reference":"arn:aws:kms:us-west-2:111122223333:key/abcd","state":"active"}""",
             record.GetProperty("details").GetRawText()
         );
+    }
+
+    [Fact]
+    public void Serialize_WithAnAccessIdentity_WritesItAfterTheKeyReference()
+    {
+        var record = ParseRecord(
+            CreateEvent(accessIdentity: "arn:aws:iam::111122223333:role/tenant-access")
+        );
+
+        Assert.Equal(
+            """{"reason":"requested","provider":"aws-kms","key_reference":"arn:aws:kms:us-west-2:111122223333:key/abcd","access_identity":"arn:aws:iam::111122223333:role/tenant-access","state":"active"}""",
+            record.GetProperty("details").GetRawText()
+        );
+    }
+
+    [Fact]
+    public void Serialize_WithoutAnAccessIdentity_OmitsIt()
+    {
+        var record = ParseRecord(CreateEvent());
+
+        Assert.False(record.GetProperty("details").TryGetProperty("access_identity", out _));
     }
 
     [Fact]

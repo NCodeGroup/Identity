@@ -14,6 +14,7 @@ const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Resource
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Platform = "platform" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.TenantSecret = "tenant.secret" -> string!
+const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.AccessIdentity = "accessIdentity" -> string!
 const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.DocumentError = "documentError" -> string!
 const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.KeyReference = "keyReference" -> string!
 const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.OwnerId = "ownerId" -> string!
@@ -915,3 +916,11 @@ NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RootKeyProviders.init -> void
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyReference.get -> string?
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyReference.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyRequest.AccessIdentity.get -> string?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyRequest.AccessIdentity.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.AccessIdentity.get -> string?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionRootKeyResource.AccessIdentity.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RootKeyAccessBinding.get -> string?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RootKeyAccessBinding.init -> void
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyAccessIdentity.get -> string?
+NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyAccessIdentity.init -> void

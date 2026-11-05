@@ -26,6 +26,12 @@ public sealed class EncryptionRootKeyResource
     public required string KeyReference { get; init; }
 
     /// <summary>
+    /// Gets the identity that the server takes on to reach the key, or <c>null</c> when the deployment's own identity
+    /// reaches it.
+    /// </summary>
+    public string? AccessIdentity { get; init; }
+
+    /// <summary>
     /// Gets the state of the key: one of the values in <see cref="EncryptionRootKeyStates"/>.
     /// </summary>
     public required string State { get; init; }

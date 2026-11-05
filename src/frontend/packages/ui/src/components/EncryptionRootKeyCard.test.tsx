@@ -34,6 +34,28 @@ describe('EncryptionRootKeyCard', () => {
     expect(screen.queryByTestId('root-key-unavailable')).not.toBeInTheDocument();
   });
 
+  it('shows the access identity of the root key when it is set, and no row otherwise', () => {
+    const { unmount } = render(
+      <EncryptionRootKeyCard
+        rootKey={{ ...active, accessIdentity: 'arn:aws:iam::111122223333:role/tenant' }}
+        canSet={true}
+        onSet={vi.fn()}
+        onValidate={vi.fn()}
+        onRemove={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Access identity')).toBeInTheDocument();
+    expect(screen.getByTestId('root-key-access-identity')).toHaveTextContent(
+      'arn:aws:iam::111122223333:role/tenant',
+    );
+    unmount();
+
+    renderCard({ ...active, accessIdentity: null });
+
+    expect(screen.queryByTestId('root-key-access-identity')).not.toBeInTheDocument();
+  });
+
   it('shows a dash for a root key that has not been validated', () => {
     renderCard({ ...active, validatedWhen: null });
 

@@ -33,6 +33,12 @@ public sealed record OwnerRootKeyInfo(
 )
 {
     /// <summary>
+    /// Gets the identity the server takes on to reach the root key, or <see langword="null"/> when the deployment's own
+    /// identity reaches it.
+    /// </summary>
+    public string? AccessIdentity { get; init; }
+
+    /// <summary>
     /// Describes a persisted owner root key.
     /// </summary>
     /// <param name="rootKey">The persisted owner root key.</param>
@@ -51,6 +57,9 @@ public sealed record OwnerRootKeyInfo(
             rootKey.ValidatedWhen,
             rootKey.FailedWhen,
             rootKey.Failure
-        );
+        )
+        {
+            AccessIdentity = rootKey.AccessIdentity,
+        };
     }
 }

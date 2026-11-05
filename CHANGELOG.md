@@ -3631,38 +3631,51 @@ describes the family as it is rather than its changes
 - **A tenant brings its own root key.** A tenant names a root key it controls, a key wrapper name (`aws-kms`,
   `azure-key-vault` or `google-cloud-kms`) and a key reference (a KMS key or alias ARN, a crypto key name without a
   version, or a key id), and its master keys are wrapped only by that key, with no operator recovery copy, in place of
-  the deployment's root key. `PUT`, `DELETE` and `POST .../validate` on
-  `/api/tenants/{tenantId}/encryption-keys/root-key` set or change, remove and validate it (scope
-  `update:encryption_keys`), and `GET .../encryption-keys` reports the root key and the providers a tenant may choose
-  (scope `read:encryption_keys`). A `PUT` answers `400` for a field that is blank, not allowed, not registered or
-  malformed, `409` with `Retry-After` and `retryAfterSeconds` within twice `SecretProtection:MasterKeys:RefreshInterval`
-  of the tenant's last
-  rotation, `412` when it loses a race and `422` when the probe fails; a `DELETE` answers `204` once every master key
-  is under the deployment's root key and `202` while master keys remain under the tenant's key. The server validates a
-  key by wrapping 32 random bytes through it under a context label of its own, unwrapping them and comparing the two in
-  constant time, which proves that the key exists, is enabled and grants both the encrypt and the decrypt permission
-  through any provider. Setting or changing the key rotates the tenant's master key so that the successor is created
-  under it and rewraps every retired master key under it, because earlier material exists in backups under the
-  deployment's root key; removing it moves the master keys back under the deployment's root key without a rotation.
-  An Azure Key Vault key reference names a host under the deployment's Key Vault or Managed HSM host suffixes
+  the deployment's root key. A tenant whose key cannot grant the deployment's own identity also names an access identity
+  it controls — an IAM role ARN that the server assumes with the external ID the encryption keys resource reports as
+  `rootKeyAccessBinding` (such as `tenant:acme`), a service account email it impersonates, or a Microsoft Entra tenant
+  ID it requests tokens for — and the server reaches the key through that identity with no stored secret; every master
+  key records the identity that reaches it (`rootKeyAccessIdentity`, and the `root_key_access_identity` detail of
+  `master_key.*` audit events), and changing only the identity rewraps the master keys without a rotation.
+  `KeyAccessClientCache<TClient>` keeps a client for an access identity once a call through it succeeds and drops one
+  that never worked. `PUT`, `DELETE` and `POST .../validate` on `/api/tenants/{tenantId}/encryption-keys/root-key` set or
+  change, remove and validate it (scope `update:encryption_keys`), and `GET .../encryption-keys` reports the root key and
+  the providers a tenant may choose (scope `read:encryption_keys`). A `PUT` answers `400` for a field that is blank, not
+  allowed, not registered or malformed, `409` with `Retry-After` and `retryAfterSeconds` within twice
+  `SecretProtection:MasterKeys:RefreshInterval` of the tenant's last rotation, `412` when it loses a race and `422` when
+  the probe fails; a `DELETE` answers `204` once every master key is under the deployment's root key and `202` while
+  master keys remain under the tenant's key. The server validates a key by wrapping 32 random bytes through it under a
+  context label of its own, unwrapping them and comparing the two in constant time, which proves that the key exists, is
+  enabled and grants both the encrypt and the decrypt permission through any provider. Setting or changing the key
+  rotates the tenant's master key so that the successor is created under it and rewraps every retired master key under
+  it, because earlier material exists in backups under the deployment's root key; removing it moves the master keys back
+  under the deployment's root key without a rotation. An Azure Key Vault key reference names a host under the
+  deployment's Key Vault or Managed HSM host suffixes
   (`SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes`, by default the public, China and US
-  government cloud domains). Which owners can bring a key is a registered `IOwnerRootKeyPolicy`: the `platform` owner and
-  the control-plane tenant, which the management API authenticates against, are refused, a consumer registers its own,
-  and a `PUT` for a refused owner answers `400`. A root key is `active`, `unavailable` or `removing`, and an
+  government cloud domains). Which owners can bring a key is a registered `IOwnerRootKeyPolicy`: the `platform` owner
+  and the control-plane tenant, which the management API authenticates against, are refused, a consumer registers its
+  own, and a `PUT` for a refused owner answers `400`. A root key is `active`, `unavailable` or `removing`, and an
   unknown state reads as `unavailable`. `SecretProtection:OwnerRootKeys:Providers` (empty by default, so no tenant can
-  bring a key), `ValidationInterval` (one hour, between one minute and one day) and `RetryInterval` (one minute,
-  between one second and the validation interval) tune it, and a listed provider that is not a registered referenced
-  key wrapper stops the host as it starts. The Helm chart's `secretProtection.ownerRootKeys.providers` lists the
-  providers and mounts a listed provider's workload credentials. The management console's tenant encryption keys tab
-  sets, validates and removes the key, shows its state and the master keys' root keys, and warns when it is
-  `unavailable`. `root_key.set`, `root_key.removed`, `root_key.unavailable` and `root_key.restored` are `key` audit
-  events without material, a rotation onto the key records `master_key.rotated` with the reason `root_key_changed`,
-  and a master key's `root_key_reference` detail names the key that wraps it. `IReferencedKeyWrapper` is a key wrapper
-  that wraps under a key the caller names, implemented by the AWS KMS, Google Cloud KMS and Azure Key Vault wrappers,
-  and `IOwnerRootKeyManager` sets, removes and validates a root key
-  ([#174](https://github.com/NCodeGroup/Identity/issues/174),
+  bring a key), `ValidationInterval` (one hour, between one minute and one day) and `RetryInterval` (one minute, between
+  one second and the validation interval) tune it, and a listed provider that is not a registered referenced key wrapper
+  stops the host as it starts. The Helm chart's `secretProtection.ownerRootKeys.providers` lists the providers and
+  mounts a listed provider's workload credentials. The management console's tenant encryption keys tab sets, validates
+  and removes the key, shows its state and the master keys' root keys, and warns when it is `unavailable`.
+  `root_key.set`, `root_key.removed`, `root_key.unavailable` and `root_key.restored` are `key` audit events without
+  material, a rotation onto the key records `master_key.rotated` with the reason `root_key_changed`, and a master key's
+  `root_key_reference` detail names the key that wraps it. `IReferencedKeyWrapper` is a key wrapper that wraps under a
+  key the caller names, implemented by the AWS KMS, Google Cloud KMS and Azure Key Vault wrappers, and
+  `IOwnerRootKeyManager` sets, removes and validates a root key
+  ([#174](https://github.com/NCodeGroup/Identity/issues/174), [#574](https://github.com/NCodeGroup/Identity/issues/574),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
+  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
+  [ADR-1429](docs/decisions/1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md)).
+
+- **A package maps the exceptions it owns to protocol errors.** `IOpenIdExceptionTranslator` implementations, registered
+  as a collection, turn an exception into the error a protocol endpoint answers with; the endpoint filters and the
+  authorization endpoint consult them, and an exception none answers is `server_error`
+  ([#573](https://github.com/NCodeGroup/Identity/issues/573),
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
 
 ### Security
 
@@ -5285,11 +5298,19 @@ describes the family as it is rather than its changes
   or rewrapped under it unreadable, in the database and in every backup. The key is re-validated every hour by default,
   and a replica unwraps a tenant-keyed master key again at least that often, so a revocation takes effect within that
   period on every replica. While the key is `unavailable` the server reads and writes none of the tenant's secrets: the
-  management API answers `503` with `Retry-After` and `retryAfterSeconds`, the host logs the failure, and
-  `root_key.unavailable` is audited;
-  development pruning never deletes the master keys of such a tenant
+  management API answers `503` with `Retry-After` and `retryAfterSeconds`, a protocol endpoint answers
+  `temporarily_unavailable` with `503`, `Retry-After` and `Cache-Control: no-store`, and the authorization endpoint
+  returns it to the client's redirect URI, the host logs the failure, and `root_key.unavailable` is audited; development
+  pruning never deletes the master keys of such a tenant
   ([#174](https://github.com/NCodeGroup/Identity/issues/174),
+  [#573](https://github.com/NCodeGroup/Identity/issues/573),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md)).
+  [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
+- **An imported elliptic-curve public key is checked against its curve.** A JWK's `x` and `y` must each be the curve's
+  field length, below its prime and satisfy its curve equation before the platform imports the point, so an off-curve or
+  invalid-curve point is rejected with the same error on every platform
+  ([#575](https://github.com/NCodeGroup/Identity/issues/575),
+  [ADR-1427](docs/decisions/1427-an-imported-elliptic-curve-point-is-checked-against-its-curve-before-the-platform-imports-it.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

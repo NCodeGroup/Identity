@@ -187,8 +187,22 @@ NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.Name.get -> string!
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.UnwrapAsync(NCode.Identity.Secrets.KeyWrapping.WrappedKey! wrappedKey, System.ReadOnlyMemory<byte> context, System.Buffers.IBufferWriter<byte>! destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.WrapAsync(System.ReadOnlyMemory<byte> key, System.ReadOnlyMemory<byte> context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.KeyWrapping.WrappedKey!>
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper
+NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.TryValidateAccessIdentity(string! accessIdentity, out string? failure) -> bool
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.TryValidateKeyReference(string! keyReference, out string? failure) -> bool
-NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.WrapAsync(string! keyReference, System.ReadOnlyMemory<byte> key, System.ReadOnlyMemory<byte> context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.KeyWrapping.WrappedKey!>
+NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.UnwrapAsync(NCode.Identity.Secrets.KeyWrapping.WrappedKey! wrappedKey, NCode.Identity.Secrets.KeyWrapping.KeyAccess! access, System.ReadOnlyMemory<byte> context, System.Buffers.IBufferWriter<byte>! destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.WrapAsync(NCode.Identity.Secrets.KeyWrapping.ReferencedKey! referencedKey, System.ReadOnlyMemory<byte> key, System.ReadOnlyMemory<byte> context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.KeyWrapping.WrappedKey!>
+NCode.Identity.Secrets.KeyWrapping.KeyAccess
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.Binding.get -> string!
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.Binding.init -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.Identity.get -> string!
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.Identity.init -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccess.KeyAccess(string! Identity, string! Binding) -> void
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.Access.get -> NCode.Identity.Secrets.KeyWrapping.KeyAccess?
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.Access.init -> void
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.KeyReference.get -> string!
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.KeyReference.init -> void
+NCode.Identity.Secrets.KeyWrapping.ReferencedKey.ReferencedKey(string! KeyReference, NCode.Identity.Secrets.KeyWrapping.KeyAccess? Access) -> void
 NCode.Identity.Secrets.KeyWrapping.WrappedKey
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.Ciphertext.get -> string!
 NCode.Identity.Secrets.KeyWrapping.WrappedKey.Ciphertext.init -> void
@@ -251,3 +265,21 @@ NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secre
 NCode.Identity.Secrets.Keys.KeyLifecycle
 static NCode.Identity.Secrets.Keys.KeyLifecycle.IsActive(System.DateTimeOffset? activatesWhen, System.DateTimeOffset? retiresWhen, System.DateTimeOffset? expiresWhen, System.DateTimeOffset now) -> bool
 static NCode.Identity.Secrets.Keys.KeyLifecycle.IsExpired(System.DateTimeOffset? expiresWhen, System.DateTimeOffset now) -> bool
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.A.get -> System.Numerics.BigInteger
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.A.init -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.B.get -> System.Numerics.BigInteger
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.B.init -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.ContainsPoint(System.ReadOnlySpan<byte> x, System.ReadOnlySpan<byte> y) -> bool
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.EccCurveDomain() -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FieldSizeBytes.get -> int
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.Prime.get -> System.Numerics.BigInteger
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.Prime.init -> void
+static NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FromHex(string! prime, string! a, string! b) -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!
+static NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FromCurve(System.Security.Cryptography.ECCurve curve) -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.Domain.get -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!
+NCode.Identity.Secrets.KeyTypes.EccCurveSpecification.Domain.init -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>
+NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.Dispose() -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.KeyAccessClientCache(System.TimeProvider! timeProvider, System.TimeSpan idleTimeout) -> void
+NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.UseAsync<TResult>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TClient!>>! create, System.Func<TClient!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResult>>! operation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TResult>

@@ -152,6 +152,30 @@ public class KeyAccessClientCacheTests
     }
 
     [Fact]
+    public async Task UseAsync_WhenCreationCompletesAfterTheEntryIsReleased_DisposesTheClient()
+    {
+        var cache = CreateCache();
+        var gate = new TaskCompletionSource<FakeDisposableClient>();
+        var client = new FakeDisposableClient();
+        using var cts = new CancellationTokenSource();
+
+        async ValueTask<FakeDisposableClient> CreateGated(CancellationToken cancellationToken) =>
+            await gate.Task.ConfigureAwait(false);
+
+        var use = cache.UseAsync("key", CreateGated, Succeed, cts.Token).AsTask();
+        await cts.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await use);
+
+        cache.Dispose();
+
+        Assert.Equal(0, client.DisposeCount);
+
+        gate.SetResult(client);
+
+        Assert.Equal(1, client.DisposeCount);
+    }
+
+    [Fact]
     public async Task UseAsync_WhenCreationFails_DoesNotCacheTheFailure()
     {
         using var cache = CreateCache();

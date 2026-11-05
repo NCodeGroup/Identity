@@ -23,9 +23,8 @@ internal sealed class KeyAccessClientEntry<TClient>(
     private int _disposed;
     private long _lastUse = timeProvider.GetTimestamp();
     private TClient? _client;
-
-    private Lazy<Task<TClient>> Client { get; } =
-        new(() => CreateAsync(create), LazyThreadSafetyMode.ExecutionAndPublication);
+    private Task<TClient>? _creation;
+    private object? _creationLock;
 
     /// <summary>
     /// Gets a value indicating whether an operation has succeeded with the client.
@@ -46,13 +45,8 @@ internal sealed class KeyAccessClientEntry<TClient>(
     /// Gets the task that creates the client on its first request and is shared by every use.
     /// </summary>
     /// <returns>The task that completes with the client.</returns>
-    public async Task<TClient> GetClientAsync()
-    {
-        var client = await Client.Value.ConfigureAwait(false);
-        Volatile.Write(ref _client, client);
-        DisposeWhenReleased();
-        return client;
-    }
+    public Task<TClient> GetClientAsync() =>
+        LazyInitializer.EnsureInitialized(ref _creation, ref _creationLock, CreateAsync);
 
     /// <summary>
     /// Registers a use of the entry.
@@ -92,7 +86,9 @@ internal sealed class KeyAccessClientEntry<TClient>(
     /// </summary>
     public void Release()
     {
-        Volatile.Write(ref _released, 1);
+        if (Interlocked.Exchange(ref _released, 1) != 0)
+            return;
+
         if (!IsInFlight)
             DisposeWhenReleased();
     }
@@ -118,11 +114,17 @@ internal sealed class KeyAccessClientEntry<TClient>(
     }
 
     /// <summary>
-    /// Creates the client without a caller's cancellation, so that the shared creation is never faulted by one caller.
+    /// Creates the client without a caller's cancellation, so that the shared creation is never faulted by one caller,
+    /// publishes it, and disposes it at once when the entry was released while it was being created.
     /// </summary>
-    /// <param name="create">Creates the client.</param>
     /// <returns>The client.</returns>
-    private static async Task<TClient> CreateAsync(
-        Func<CancellationToken, ValueTask<TClient>> create
-    ) => await create(CancellationToken.None).ConfigureAwait(false);
+    private async Task<TClient> CreateAsync()
+    {
+        var client = await create(CancellationToken.None).ConfigureAwait(false);
+
+        // a full fence, so that this publication and a concurrent release can never both miss each other
+        Interlocked.Exchange(ref _client, client);
+        DisposeWhenReleased();
+        return client;
+    }
 }

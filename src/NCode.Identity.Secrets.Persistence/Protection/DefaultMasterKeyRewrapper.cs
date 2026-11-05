@@ -197,10 +197,12 @@ internal sealed class DefaultMasterKeyRewrapper(
                     return new MasterKeyRewrapResult(1, 0, 1, 0);
                 }
 
-                // A recovery-only run on an owner root key only removes a recovery copy that a row still carries.
+                // A recovery-only run on an owner root key only removes a recovery copy that a row under that key still
+                // carries; a row still under the deployment's root key keeps, or gains, its recovery copy.
                 if (
                     request is { RecoveryOnly: true }
                     && ownerRooted
+                    && row.RootKeyReference is not null
                     && row.RecoveryWrappedKey is null
                     && row.RecoveryKeyId is null
                 )
@@ -267,7 +269,9 @@ internal sealed class DefaultMasterKeyRewrapper(
     {
         if (request.RecoveryOnly)
         {
-            if (MasterKeyFactory.IsOwnerRooted(rootKey))
+            // A row still under the deployment's root key keeps its recovery copy, even for an owner that has a root
+            // key, until the row is rewrapped under it.
+            if (MasterKeyFactory.IsOwnerRooted(rootKey) && row.RootKeyReference is not null)
             {
                 row.RecoveryKeyId = null;
                 row.RecoveryWrappedKey = null;

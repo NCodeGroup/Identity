@@ -37,6 +37,18 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.TemporarilyUnavailable,
+        Level = LogLevel.Warning,
+        Message = "The request {DisplayName} was answered with a temporary error: {ErrorCode}"
+    )]
+    internal static partial void TemporarilyUnavailable(
+        this ILogger logger,
+        Exception exception,
+        string displayName,
+        string errorCode
+    );
+
+    [LoggerMessage(
         EventId = EventIds.PlatformSettingsReloadRejected,
         Level = LogLevel.Error,
         Message = "The reloaded platform settings in '{SectionPath}' cannot be honored, so the previous settings remain in force: {Errors}"

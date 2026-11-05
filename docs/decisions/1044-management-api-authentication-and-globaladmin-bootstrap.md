@@ -4,7 +4,9 @@
   `ICommandHandler<SeedTenantCommand>` by [ADR-1045](1045-tenant-provisioning-and-seeding-pipeline.md); amended by
   [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md): the bootstrap client is seeded
   into exactly the tenant `BootstrapAdmin:TenantId` names — required, and allowed to be the root tenant — and the
-  `GlobalAdmin` role is conferred only on the bootstrap client in that tenant)
+  `GlobalAdmin` role is conferred only on the bootstrap client in that tenant; amended by
+  [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): a tenant administrator is a
+  `TenantAdmin` assignment at the tenant's node)
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group
 

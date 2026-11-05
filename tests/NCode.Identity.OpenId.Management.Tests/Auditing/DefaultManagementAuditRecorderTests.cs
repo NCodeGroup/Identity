@@ -149,6 +149,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             retired ? DateTimeOffset.UnixEpoch.AddDays(1) : null,
             "local",
             "root-key",
+            null,
             null
         );
 
@@ -177,6 +178,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .RecordMasterKeyRotatedAsync(
                 CreateHttpContext("admin-1"),
                 rotation,
+                MasterKeyChangeReasons.Requested,
                 CancellationToken.None
             );
 
@@ -191,6 +193,104 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(rotation.ActiveKey.KeyId, captured.KeyId);
         Assert.Equal(rotation.RetiredKey?.KeyId, captured.RetiredKeyId);
         Assert.Equal(1, captured.RetiredVersion);
+        Assert.Equal(7, captured.EventId.Version);
+    }
+
+    [Fact]
+    public async Task RecordMasterKeyRotatedAsync_ARootKeyRotation_CarriesTheReasonAndTheRootKeyReference()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        MasterKeyAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<MasterKeyAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (MasterKeyAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var owner = SecretOwner.ForTenant("tenant-1");
+        var rotation = new MasterKeyRotation(
+            owner,
+            KeyInfo(owner, 2, retired: false) with
+            {
+                RootKeyReference = "kms://tenant-1/root",
+            },
+            null
+        );
+
+        await CreateRecorder(mockPublisher.Object)
+            .RecordMasterKeyRotatedAsync(
+                CreateHttpContext("admin-1"),
+                rotation,
+                MasterKeyChangeReasons.RootKeyChanged,
+                CancellationToken.None
+            );
+
+        Assert.NotNull(captured);
+        Assert.Equal("root_key_changed", captured.Reason);
+        Assert.Equal("kms://tenant-1/root", captured.RootKeyReference);
+    }
+
+    [Theory]
+    [InlineData(RootKeyChanges.Set, OwnerRootKeyStates.Active, "success", null)]
+    [InlineData(RootKeyChanges.Removed, OwnerRootKeyStates.Removing, "success", null)]
+    [InlineData(RootKeyChanges.Restored, OwnerRootKeyStates.Active, "success", null)]
+    [InlineData(
+        RootKeyChanges.Unavailable,
+        OwnerRootKeyStates.Unavailable,
+        "failure",
+        "AccessDenied"
+    )]
+    public async Task RecordRootKeyChangedAsync_ATenantChange_PublishesTheEventWithTheAdministratorAndEnvironment(
+        string change,
+        string state,
+        string expectedOutcome,
+        string? failure
+    )
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        RootKeyAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<RootKeyAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback((RootKeyAuditEvent auditEvent, CancellationToken _) => captured = auditEvent)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var rootKey = new OwnerRootKeyInfo(
+            SecretOwner.ForTenant("tenant-1"),
+            "aws-kms",
+            "kms://tenant-1/root",
+            state,
+            DateTimeOffset.UnixEpoch,
+            DateTimeOffset.UnixEpoch,
+            null,
+            null,
+            failure
+        );
+
+        await CreateRecorder(mockPublisher.Object)
+            .RecordRootKeyChangedAsync(
+                CreateHttpContext("admin-1"),
+                rootKey,
+                change,
+                RootKeyChangeReasons.Requested,
+                CancellationToken.None
+            );
+
+        Assert.NotNull(captured);
+        Assert.Equal($"root_key.{change}", captured.EventName);
+        Assert.Equal(AuditEventSources.Management, captured.EventSource);
+        Assert.Equal(expectedOutcome, captured.Outcome);
+        Assert.Equal("tenant-1", captured.TenantId);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
+        Assert.Equal("admin-1", captured.Actor.Id);
+        Assert.Equal("kms://tenant-1/root", captured.KeyReference);
+        Assert.Equal("aws-kms", captured.KeyWrapperName);
+        Assert.Equal(state, captured.State);
+        Assert.Equal(failure, captured.Failure);
         Assert.Equal(7, captured.EventId.Version);
     }
 

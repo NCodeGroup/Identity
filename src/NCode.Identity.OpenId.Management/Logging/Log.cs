@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.Secrets.Persistence.Protection;
 
 namespace NCode.Identity.OpenId.Management.Logging;
 
@@ -118,4 +119,11 @@ internal static partial class Log
         string ownerId,
         string documentError
     );
+
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyUnavailable,
+        Level = LogLevel.Warning,
+        Message = "The root key of owner '{Owner}' is unavailable, so a management request was answered 503"
+    )]
+    internal static partial void OwnerRootKeyUnavailable(this ILogger logger, SecretOwner owner);
 }

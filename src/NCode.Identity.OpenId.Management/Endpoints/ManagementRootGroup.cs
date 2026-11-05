@@ -36,7 +36,8 @@ internal sealed class ManagementRootGroup : IEndpointGroup
             .AddEndpointFilter<RouteGroupBuilder, ManagementEnvironmentEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, ManagementAuthenticationEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, StoreConcurrencyEndpointFilter>()
-            .AddEndpointFilter<RouteGroupBuilder, UnreadableSettingsEndpointFilter>();
+            .AddEndpointFilter<RouteGroupBuilder, UnreadableSettingsEndpointFilter>()
+            .AddEndpointFilter<RouteGroupBuilder, OwnerRootKeyUnavailableEndpointFilter>();
 
     /// <inheritdoc />
     public void ConfigureServices(IEndpointGroupBuilder builder)

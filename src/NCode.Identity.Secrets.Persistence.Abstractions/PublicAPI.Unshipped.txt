@@ -492,7 +492,8 @@ NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyUnavailableException.O
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyUnavailableException.OwnerRootKeyUnavailableException(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Exception? innerException) -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyUnavailableException.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException
-NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.OwnerRootKeyProbeException(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, string! keyWrapperName, string! keyReference, string! failure) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.OwnerRootKeyProbeException(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, string! keyWrapperName, string! keyReference, string! failure, NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo? unavailableRootKey = null) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.UnavailableRootKey.get -> NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo?
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.Failure.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.KeyReference.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyProbeException.KeyWrapperName.get -> string!

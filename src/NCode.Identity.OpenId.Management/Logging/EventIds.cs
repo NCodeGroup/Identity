@@ -25,4 +25,5 @@ internal static class EventIds
     public const int StoredSettingsUnreadable = Base + 9;
     public const int TenantEnvironmentTypeUnreadable = Base + 10;
     public const int TenantEnvironmentUnresolved = Base + 11;
+    public const int OwnerRootKeyUnavailable = Base + 12;
 }

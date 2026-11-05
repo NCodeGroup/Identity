@@ -26,6 +26,7 @@ using NCode.Identity.OpenId.Servers;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
@@ -2525,7 +2526,8 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
             retired ? DateTimeOffset.UnixEpoch.AddDays(1) : null,
             "local",
             "root-key",
-            "recovery-key"
+            "recovery-key",
+            null
         );
 
     [Fact]
@@ -2645,6 +2647,7 @@ public sealed class ServerApiEndpointHandlerTests : IDisposable
                 x.RecordMasterKeyRotatedAsync(
                     It.IsAny<HttpContext>(),
                     rotation,
+                    MasterKeyChangeReasons.Requested,
                     It.IsAny<CancellationToken>()
                 )
             )

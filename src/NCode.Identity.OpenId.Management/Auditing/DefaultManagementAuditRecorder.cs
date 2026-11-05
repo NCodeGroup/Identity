@@ -460,6 +460,7 @@ internal class DefaultManagementAuditRecorder(
     public async ValueTask RecordMasterKeyRotatedAsync(
         HttpContext httpContext,
         MasterKeyRotation rotation,
+        string reason,
         CancellationToken cancellationToken
     )
     {
@@ -490,14 +491,64 @@ internal class DefaultManagementAuditRecorder(
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             Change = MasterKeyChanges.Rotated,
-            Reason = MasterKeyChangeReasons.Requested,
+            Reason = reason,
             OwnerType = owner.OwnerType,
             OwnerId = owner.OwnerId,
             KeyId = rotation.ActiveKey.KeyId,
             Version = rotation.ActiveKey.Version,
             RootKeyProvider = rotation.ActiveKey.RootKeyProvider,
+            RootKeyReference = rotation.ActiveKey.RootKeyReference,
             RetiredKeyId = rotation.RetiredKey?.KeyId,
             RetiredVersion = rotation.RetiredKey?.Version,
+        };
+
+        await EventPublisher.PublishAsync(auditEvent, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask RecordRootKeyChangedAsync(
+        HttpContext httpContext,
+        OwnerRootKeyInfo rootKey,
+        string change,
+        string reason,
+        CancellationToken cancellationToken
+    )
+    {
+        var now = TimeProvider.GetUtcNow();
+        var owner = rootKey.Owner;
+        var tenantId = string.Equals(
+            owner.OwnerType,
+            SecretOwnerTypes.Tenant,
+            StringComparison.OrdinalIgnoreCase
+        )
+            ? owner.OwnerId
+            : null;
+        var failed = string.Equals(change, RootKeyChanges.Unavailable, StringComparison.Ordinal);
+
+        var auditEvent = new RootKeyAuditEvent
+        {
+            EventId = Guid.CreateVersion7(now),
+            EventTime = now,
+            EventSource = AuditEventSources.Management,
+            TenantId = tenantId,
+            TenantEnvironmentType = tenantId is null
+                ? null
+                : await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
+                    httpContext,
+                    tenantId,
+                    cancellationToken
+                ),
+            Actor = GetActor(httpContext),
+            Request = CreateRequest(httpContext),
+            Outcome = failed ? AuditOutcome.Failure : AuditOutcome.Success,
+            Change = change,
+            Reason = reason,
+            OwnerType = owner.OwnerType,
+            OwnerId = owner.OwnerId,
+            KeyWrapperName = rootKey.KeyWrapperName,
+            KeyReference = rootKey.KeyReference,
+            State = rootKey.State,
+            Failure = failed ? rootKey.Failure : null,
         };
 
         await EventPublisher.PublishAsync(auditEvent, cancellationToken);

@@ -319,10 +319,11 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
         ExpectEvictAndNotify(Times.Once());
         _kms.Revoke(Reference);
 
-        await Assert.ThrowsAsync<OwnerRootKeyProbeException>(async () =>
+        var exception = await Assert.ThrowsAsync<OwnerRootKeyProbeException>(async () =>
             await CreateManager().SetAsync(Owner, "fake-kms", Reference, CancellationToken.None)
         );
 
+        Assert.Equal(OwnerRootKeyStates.Unavailable, exception.UnavailableRootKey?.State);
         var stored = Assert.Single(_stores.RootKeys);
         Assert.Equal(OwnerRootKeyStates.Unavailable, stored.State);
         Assert.Equal(_time.GetUtcNow(), stored.FailedWhen);

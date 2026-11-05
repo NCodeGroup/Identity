@@ -166,10 +166,24 @@ internal sealed class DefaultOwnerRootKeyManager(
             Logger.OwnerRootKeyProbeFailed(key, keyWrapperName, keyReference, probeFailure);
 
             // The key the owner already uses failed, so the owner fails closed as a validation would make it.
+            OwnerRootKeyInfo? unavailable = null;
             if (sameKey && binding is not null)
-                await RecordProbeFailureAsync(key, binding, probeFailure, cancellationToken);
+            {
+                unavailable = await RecordProbeFailureAsync(
+                    key,
+                    binding,
+                    probeFailure,
+                    cancellationToken
+                );
+            }
 
-            throw new OwnerRootKeyProbeException(key, keyWrapperName, keyReference, probeFailure);
+            throw new OwnerRootKeyProbeException(
+                key,
+                keyWrapperName,
+                keyReference,
+                probeFailure,
+                unavailable
+            );
         }
 
         var wasUnavailable = binding is not null && !IsUsable(binding);
@@ -454,8 +468,8 @@ internal sealed class DefaultOwnerRootKeyManager(
     }
 
     // Records that the key the owner already uses failed a probe, as a validation would, without hiding the failure that
-    // the caller reports.
-    private async ValueTask RecordProbeFailureAsync(
+    // the caller reports. Returns the stored key when the failure made it unavailable.
+    private async ValueTask<OwnerRootKeyInfo?> RecordProbeFailureAsync(
         SecretOwner key,
         PersistedOwnerRootKey binding,
         string failure,
@@ -479,15 +493,17 @@ internal sealed class DefaultOwnerRootKeyManager(
         catch (StoreConcurrencyException)
         {
             // Another writer changed the binding at the same time, so its state stands.
-            return;
+            return null;
         }
 
-        if (changed)
-        {
-            Logger.OwnerRootKeyStateChanged(key, binding.State);
-            ProtectorProvider.Evict(key);
-            await NotifyAsync(key);
-        }
+        if (!changed)
+            return null;
+
+        Logger.OwnerRootKeyStateChanged(key, binding.State);
+        ProtectorProvider.Evict(key);
+        await NotifyAsync(key);
+
+        return OwnerRootKeyInfo.From(binding);
     }
 
     // Rotates the owner's master key onto its root key when the active one does not sit under it, and conforms every

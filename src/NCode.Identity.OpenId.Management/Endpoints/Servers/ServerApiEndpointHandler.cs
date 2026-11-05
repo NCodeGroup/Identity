@@ -1306,6 +1306,7 @@ internal class ServerApiEndpointHandler(
 
         return await EncryptionKeyEndpoints.GetAsync(
             MasterKeyManager,
+            ownerRootKeyManager: null,
             SecretOwner.ForServer(server.ServerId),
             cancellationToken
         );

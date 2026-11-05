@@ -14,6 +14,9 @@
       "emailVerified": true,
       "firstName": "Alice",
       "lastName": "Example",
+      "realmRoles": [
+        "default-roles-bff-e2e"
+      ],
       "credentials": [
         {
           "type": "password",

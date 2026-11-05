@@ -37,10 +37,8 @@ public sealed class EccCurveDomain
     /// </summary>
     /// <param name="curve">The curve to read the domain of.</param>
     /// <returns>The curve domain.</returns>
-    /// <exception cref="CryptographicException">
-    /// The platform does not support the curve; the platform's own exception is thrown, such as
-    /// <see cref="PlatformNotSupportedException"/>.
-    /// </exception>
+    /// <exception cref="CryptographicException">The platform rejects the curve.</exception>
+    /// <exception cref="PlatformNotSupportedException">The platform does not support the curve.</exception>
     public static EccCurveDomain FromCurve(ECCurve curve)
     {
         if (curve.IsPrime)

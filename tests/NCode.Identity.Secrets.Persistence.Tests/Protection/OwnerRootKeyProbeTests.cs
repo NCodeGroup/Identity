@@ -125,8 +125,10 @@ public class OwnerRootKeyProbeTests : IDisposable
             >(
                 (_, _, _, destination, _) =>
                 {
-                    probe.AsSpan().CopyTo(destination.GetSpan(probe!.Length));
-                    destination.Advance(probe.Length);
+                    var bytes =
+                        probe ?? throw new InvalidOperationException("The wrap did not run.");
+                    bytes.AsSpan().CopyTo(destination.GetSpan(bytes.Length));
+                    destination.Advance(bytes.Length);
                 }
             )
             .Returns(ValueTask.CompletedTask)

@@ -37,7 +37,7 @@ public class EccSecretKeyTypeDescriptorTests : BaseTests
         return (parameters.Q.X!, parameters.Q.Y!);
     }
 
-    #region ImportPublicKeyMaterial
+    #region ImportPublicKeyMaterial Tests
 
     [Fact]
     public void ImportPublicKeyMaterial_WhenPointIsOnTheCurve_ImportsTheKey()

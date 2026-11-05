@@ -3619,8 +3619,10 @@ describes the family as it is rather than its changes
   `rootKeyAccessBinding` (such as `tenant:acme`), a service account email it impersonates, or a Microsoft Entra tenant
   ID it requests tokens for — and the server reaches the key through that identity with no stored secret; every master
   key records the identity that reaches it (`rootKeyAccessIdentity`, and the `root_key_access_identity` detail of
-  `master_key.*` audit events), and changing only the identity rewraps the master keys without a rotation. `PUT`,
-  `DELETE` and `POST .../validate` on `/api/tenants/{tenantId}/encryption-keys/root-key` set or change, remove and
+  `master_key.*` audit events), and changing only the identity rewraps the master keys without a rotation.
+  `KeyAccessClientCache<TClient>` keeps a client for an access identity once a call through it succeeds and drops one
+  that never worked. `PUT`, `DELETE` and `POST .../validate` on
+  `/api/tenants/{tenantId}/encryption-keys/root-key` set or change, remove and
   validate it (scope `update:encryption_keys`), and `GET .../encryption-keys` reports the root key and the providers a
   tenant may choose (scope `read:encryption_keys`). A `PUT` answers `400` for a field that is blank, not allowed, not
   registered or malformed, `409` with `Retry-After` within twice `SecretProtection:MasterKeys:RefreshInterval` of the

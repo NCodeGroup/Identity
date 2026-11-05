@@ -63,6 +63,15 @@ directory.
    `master_key.*` events carry `root_key_access_identity`. `PUT` accepts `accessIdentity` in its body and the root key
    resource reports it, each master key reports `rootKeyAccessIdentity`, and `GET` reports `rootKeyAccessBinding`. The
    console's tenant encryption keys tab has an optional "Access identity" field.
+8. **A client reached through an access identity lives in a cache that keeps only identities that work.**
+   `KeyAccessClientCache<TClient>` in `NCode.Identity.Secrets.Abstractions` holds one entry per key. The client is
+   created once per entry, and a failed creation is not cached. The first successful call through an entry confirms it,
+   and the entry is kept from then on. A call that fails before any call succeeded, other than by cancellation, removes
+   the entry and disposes its client once the calls in flight through it end. An entry unused for one day expires and
+   its client is disposed, and disposing the factory disposes the rest. Identities that a tenant names and that never
+   work leave nothing behind, and a working identity is not churned by a transient failure. The AWS, Google Cloud and
+   Azure factories each run their access-bound calls through the cache with `ExecuteAsync`, and a third-party
+   referenced wrapper uses the same cache.
 
 ## Options considered
 

@@ -338,6 +338,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             SecretOwner.ForTenant("tenant-1"),
             "aws-kms",
             "kms://tenant-1/root",
+            null,
             state,
             DateTimeOffset.UnixEpoch,
             DateTimeOffset.UnixEpoch,

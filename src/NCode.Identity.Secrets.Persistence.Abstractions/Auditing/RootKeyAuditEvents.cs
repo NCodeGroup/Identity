@@ -59,6 +59,7 @@ public static class RootKeyAuditEvents
             OwnerId = rootKey.Owner.OwnerId,
             KeyWrapperName = rootKey.KeyWrapperName,
             KeyReference = rootKey.KeyReference,
+            AccessIdentity = rootKey.AccessIdentity,
             State = rootKey.State,
             Failure = failed ? rootKey.Failure : null,
         };

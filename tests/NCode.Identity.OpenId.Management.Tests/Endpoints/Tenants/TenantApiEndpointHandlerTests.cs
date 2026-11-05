@@ -3529,6 +3529,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             TenantOwner,
             "aws-kms",
             RootKeyReference,
+            null,
             state,
             DateTimeOffset.UnixEpoch,
             DateTimeOffset.UnixEpoch.AddHours(1),

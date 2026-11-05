@@ -85,6 +85,7 @@ public sealed class OwnerRootKeyValidationServiceTests : BaseTests
             owner,
             "aws-kms",
             "arn:aws:kms:us-west-2:111122223333:key/abcd",
+            null,
             state,
             Now.AddDays(-1),
             Now,

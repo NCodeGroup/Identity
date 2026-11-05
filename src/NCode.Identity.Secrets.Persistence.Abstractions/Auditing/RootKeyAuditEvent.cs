@@ -47,6 +47,12 @@ public sealed record RootKeyAuditEvent : AuditEvent, ISupportAuditDetails
     public required string KeyReference { get; init; }
 
     /// <summary>
+    /// Gets the identity the server takes on to reach the root key, or <c>null</c> when the deployment's own identity
+    /// reaches it.
+    /// </summary>
+    public string? AccessIdentity { get; init; }
+
+    /// <summary>
     /// Gets the state of the root key after the change: one of the values in
     /// <see cref="Protection.OwnerRootKeyStates"/>.
     /// </summary>
@@ -76,8 +82,8 @@ public sealed record RootKeyAuditEvent : AuditEvent, ISupportAuditDetails
 
     /// <inheritdoc />
     /// <remarks>
-    /// Writes the <c>reason</c>, the <c>provider</c>, the <c>key_reference</c> and the <c>state</c>, and the
-    /// <c>failure</c> when there is one.
+    /// Writes the <c>reason</c>, the <c>provider</c>, the <c>key_reference</c>, the <c>access_identity</c> when there
+    /// is one and the <c>state</c>, and the <c>failure</c> when there is one.
     /// </remarks>
     public void WriteAuditDetails(Utf8JsonWriter writer)
     {
@@ -86,6 +92,8 @@ public sealed record RootKeyAuditEvent : AuditEvent, ISupportAuditDetails
         writer.WriteString("reason", Reason);
         writer.WriteString("provider", KeyWrapperName);
         writer.WriteString("key_reference", KeyReference);
+        if (AccessIdentity is { } accessIdentity)
+            writer.WriteString("access_identity", accessIdentity);
         writer.WriteString("state", State);
         if (Failure is { } failure)
             writer.WriteString("failure", failure);

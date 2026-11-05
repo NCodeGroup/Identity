@@ -396,6 +396,13 @@ NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey
 const NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxFailureLength = 1024 -> int
 const NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxKeyReferenceLength = 2048 -> int
+const NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxAccessIdentityLength = 1024 -> int
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.AccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.AccessIdentity.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootKeyAccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootKeyAccessIdentity.set -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RootKeyAccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RootKeyAccessIdentity.init -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.ConcurrencyToken.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.ConcurrencyToken.set -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.CreatedWhen.get -> System.DateTimeOffset
@@ -427,7 +434,7 @@ const NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyStates.Active = 
 const NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyStates.Removing = "removing" -> string!
 const NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyStates.Unavailable = "unavailable" -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo
-NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.OwnerRootKeyInfo(NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, string! KeyWrapperName, string! KeyReference, string! State, System.DateTimeOffset CreatedWhen, System.DateTimeOffset StateChangedWhen, System.DateTimeOffset? ValidatedWhen, System.DateTimeOffset? FailedWhen, string? Failure) -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.OwnerRootKeyInfo(NCode.Identity.Secrets.Persistence.Protection.SecretOwner Owner, string! KeyWrapperName, string! KeyReference, string? AccessIdentity, string! State, System.DateTimeOffset CreatedWhen, System.DateTimeOffset StateChangedWhen, System.DateTimeOffset? ValidatedWhen, System.DateTimeOffset? FailedWhen, string? Failure) -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.CreatedWhen.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.FailedWhen.get -> System.DateTimeOffset?
@@ -436,6 +443,8 @@ NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.Failure.get -> st
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.Failure.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.KeyReference.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.KeyReference.init -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.AccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.AccessIdentity.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.KeyWrapperName.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.KeyWrapperName.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
@@ -555,6 +564,8 @@ NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.Failure.get -> str
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.Failure.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.KeyReference.get -> string!
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.KeyReference.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.AccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.AccessIdentity.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.KeyWrapperName.get -> string!
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.KeyWrapperName.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.OwnerId.get -> string!

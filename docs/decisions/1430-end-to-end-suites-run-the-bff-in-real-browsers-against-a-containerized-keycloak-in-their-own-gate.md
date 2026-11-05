@@ -80,8 +80,8 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
     revokes on reuse, so two calls with different token fingerprints prove rotation.
 
 11. **An imported user is granted its default roles.** Keycloak gives a user imported from a realm file no default
-    roles, so the realm grants `alice` `default-roles-bff-e2e` explicitly. A user without it is refused the
-        `offline_access` scope with `not_allowed`.
+    roles, so the realm grants `alice` `default-roles-bff-e2e` explicitly. She then holds what a registered user
+    holds, and a login that requests the `offline_access` scope succeeds.
 
 12. **A form post waits for the response, not a navigation.** `BrowserFlows.SubmitFormAsync` waits for the response to
     its `POST`. Firefox turns an error response with an empty body into a failed navigation, so a navigation wait
@@ -118,6 +118,8 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 - A Keycloak bump arrives as a Dependabot pull request that the check validates.
 - WebKit is proven only off Windows; CI covers it on Linux.
 - Adding the check to the `main` and `release-lines` rulesets is an administrator's action on the repository.
+- The `main` and `release-lines` rulesets enforce the check once they list `End-to-end`, tracked in
+  [#591](https://github.com/NCodeGroup/Identity/issues/591).
 - A test that shows the BFF failing against Keycloak or a browser is a finding about the BFF.
 
 ## References

@@ -14,6 +14,13 @@ const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Resource
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Platform = "platform" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.TenantSecret = "tenant.secret" -> string!
+const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.DocumentError = "documentError" -> string!
+const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.KeyReference = "keyReference" -> string!
+const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.OwnerId = "ownerId" -> string!
+const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.OwnerType = "ownerType" -> string!
+const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.Provider = "provider" -> string!
+const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.RetryAfterSeconds = "retryAfterSeconds" -> string!
+const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.SettingsScope = "settingsScope" -> string!
 const NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.DefaultPageSize = 50 -> int
 const NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.MaxPageSize = 100 -> int
 const NCode.Identity.OpenId.Management.Endpoints.ManagementEndpointGroups.Tenant = "api/tenant" -> string!
@@ -314,6 +321,7 @@ NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.SessionRevocationResult() -> void
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.Revoked.get -> long
 NCode.Identity.OpenId.Management.Contracts.Sessions.SessionRevocationResult.Revoked.init -> void
+NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers
 NCode.Identity.OpenId.Management.Contracts.OwnerResource
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.init -> void

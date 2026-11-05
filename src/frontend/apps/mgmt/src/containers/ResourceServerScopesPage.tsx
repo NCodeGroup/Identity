@@ -13,7 +13,7 @@ import {
   emptyScopeFormValues,
   type ScopeFormValues,
 } from '@ncode/ui';
-import type { ManagementScope, ResourceServerResource, ScopeResource } from '@ncode/api';
+import type { ResourceServerResource, ScopeResource } from '@ncode/api';
 import {
   apiErrorMessage,
   useCreateScopeMutation,
@@ -23,7 +23,7 @@ import {
 } from '@ncode/store';
 
 export type ResourceServerScopesPageProps = {
-  readonly scope: ManagementScope;
+  readonly tenantId: string;
   readonly resourceServer: ResourceServerResource;
   readonly onBack?: () => void;
   /** When true, the parent detail page supplies the back button + header, so this renders only the scopes panel. */
@@ -46,7 +46,7 @@ const closed: DialogState = { kind: 'none' };
  * dialog/error state. A scope update is a whole-resource PUT (the value is immutable).
  */
 export function ResourceServerScopesPage({
-  scope,
+  tenantId,
   resourceServer,
   onBack,
   embedded = false,
@@ -95,13 +95,13 @@ export function ResourceServerScopesPage({
     try {
       if (dialog.kind === 'create') {
         await createScope({
-          scope,
+          tenantId,
           resourceServerId,
           body: { value: values.value, description },
         }).unwrap();
       } else if (dialog.kind === 'edit') {
         await updateScope({
-          scope,
+          tenantId,
           resourceServerId,
           scopeValue: dialog.scope.value,
           body: { description },
@@ -119,7 +119,7 @@ export function ResourceServerScopesPage({
     }
     setDeleteError(undefined);
     try {
-      await deleteScope({ scope, resourceServerId, scopeValue: dialog.scope.value }).unwrap();
+      await deleteScope({ tenantId, resourceServerId, scopeValue: dialog.scope.value }).unwrap();
       setDialog(closed);
     } catch (removeError) {
       setDeleteError(apiErrorMessage(removeError as ApiError));

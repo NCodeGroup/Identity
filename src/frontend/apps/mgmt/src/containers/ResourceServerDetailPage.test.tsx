@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
-import { tenantScope, type CreatedSecretResource, type ResourceServerResource } from '@ncode/api';
+import { type CreatedSecretResource, type ResourceServerResource } from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { ResourceServerDetailPage } from './ResourceServerDetailPage.js';
 
@@ -40,7 +40,7 @@ function renderPage(onBack = vi.fn(), overrides: Partial<ResourceServerResource>
   render(
     <Provider store={store}>
       <ResourceServerDetailPage
-        scope={tenantScope('acme')}
+        tenantId="acme"
         resourceServer={{ ...resourceServer, ...overrides }}
         onBack={onBack}
       />

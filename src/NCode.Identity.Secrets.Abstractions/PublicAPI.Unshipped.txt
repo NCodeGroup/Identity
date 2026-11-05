@@ -251,3 +251,14 @@ NCode.Identity.Secrets.Keys.KeyMetadataExtensions.extension(NCode.Identity.Secre
 NCode.Identity.Secrets.Keys.KeyLifecycle
 static NCode.Identity.Secrets.Keys.KeyLifecycle.IsActive(System.DateTimeOffset? activatesWhen, System.DateTimeOffset? retiresWhen, System.DateTimeOffset? expiresWhen, System.DateTimeOffset now) -> bool
 static NCode.Identity.Secrets.Keys.KeyLifecycle.IsExpired(System.DateTimeOffset? expiresWhen, System.DateTimeOffset now) -> bool
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.A.get -> System.Numerics.BigInteger
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.A.init -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.B.get -> System.Numerics.BigInteger
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.B.init -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.ContainsPoint(System.ReadOnlySpan<byte> x, System.ReadOnlySpan<byte> y) -> bool
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.EccCurveDomain() -> void
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FieldSizeBytes.get -> int
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.Prime.get -> System.Numerics.BigInteger
+NCode.Identity.Secrets.KeyTypes.EccCurveDomain.Prime.init -> void
+static NCode.Identity.Secrets.KeyTypes.EccCurveDomain.FromHex(string! prime, string! a, string! b) -> NCode.Identity.Secrets.KeyTypes.EccCurveDomain!

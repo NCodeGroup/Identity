@@ -71,7 +71,7 @@ public static class BrowserFlows
     }
 
     /// <summary>
-    /// Submits a <c>POST</c> form of hidden fields to the action and waits for the navigation to commit.
+    /// Submits a <c>POST</c> form of hidden fields to the action and waits for the response to that <c>POST</c>.
     /// </summary>
     public static async Task SubmitFormAsync(
         IPage page,
@@ -79,11 +79,9 @@ public static class BrowserFlows
         IReadOnlyDictionary<string, string> fields
     )
     {
-#pragma warning disable CS0612 // Playwright marks it obsolete without a replacement that waits for whatever URL the redirects reach.
-        await page.RunAndWaitForNavigationAsync(
+        await page.RunAndWaitForResponseAsync(
             () => page.EvaluateAsync(SubmitFormScript, new object[] { action, fields }),
-            new PageRunAndWaitForNavigationOptions { WaitUntil = WaitUntilState.Commit }
+            response => response.Request.Method == "POST" && response.Url == action
         );
-#pragma warning restore CS0612
     }
 }

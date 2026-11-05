@@ -1,11 +1,13 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Logging;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Persistence.Stores;
 
@@ -25,6 +27,7 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     private readonly Mock<IMasterKeyManager> _masterKeys;
     private readonly Mock<IMasterKeyRewrapper> _rewrapper;
     private readonly Mock<IOwnerRootKeyChangeObserver> _observer;
+    private readonly List<Mock> _verifiables = [];
     private readonly FakeReferencedKeyWrapper _kms = new();
     private readonly InMemoryOwnerRootKeyStores _stores = new();
     private readonly FakeTimeProvider _time = new(
@@ -46,9 +49,13 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     public void Dispose()
     {
         _mocks.Verify();
+        foreach (var verifiable in _verifiables)
+            verifiable.Verify();
     }
 
-    private DefaultOwnerRootKeyManager CreateManager()
+    private DefaultOwnerRootKeyManager CreateManager(
+        ILogger<DefaultOwnerRootKeyManager>? logger = null
+    )
     {
         var catalog = new DefaultKeyWrapperCatalog(
             [_kms],
@@ -63,8 +70,46 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
             [_observer.Object],
             Microsoft.Extensions.Options.Options.Create(_options),
             _time,
-            NullLogger<DefaultOwnerRootKeyManager>.Instance
+            logger ?? NullLogger<DefaultOwnerRootKeyManager>.Instance
         );
+    }
+
+    // The logger is loose because the manager logs other events on the way; only the deferred completion is verified.
+    private Mock<ILogger<DefaultOwnerRootKeyManager>> ExpectCompletionDeferredLog()
+    {
+        var logger = new Mock<ILogger<DefaultOwnerRootKeyManager>>(MockBehavior.Loose);
+        logger.Setup(x => x.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+        logger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(id => id.Id == EventIds.OwnerRootKeyCompletionDeferred),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<InvalidOperationException>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()
+                )
+            )
+            .Verifiable(Times.Once());
+        _verifiables.Add(logger);
+        return logger;
+    }
+
+    // The observer runs after the commit, so cancelling the caller's token from it models a caller that disconnects
+    // right after the change is committed.
+    private void ExpectEvictAndCancelTheCaller(CancellationTokenSource caller)
+    {
+        _protectors.Setup(x => x.Evict(NormalizedOwner)).Verifiable(Times.AtLeastOnce());
+        _observer
+            .Setup(x => x.ChangedAsync(NormalizedOwner, It.IsAny<CancellationToken>()))
+            .Callback(
+                (SecretOwner _, CancellationToken token) =>
+                {
+                    Assert.NotEqual(caller.Token, token);
+                    caller.Cancel();
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.AtLeastOnce());
     }
 
     private PersistedOwnerRootKey CreateRootKey(
@@ -313,6 +358,59 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
     }
 
     [Fact]
+    public async Task Set_TheCallersTokenIsCancelledAfterTheCommit_StillCompletesOnATokenOfItsOwn()
+    {
+        _stores.Seed(CreateRow(1, _time.GetUtcNow().AddDays(-400)));
+        using var caller = new CancellationTokenSource();
+        ExpectEvictAndCancelTheCaller(caller);
+        var rotation = CreateRotation();
+        var rotateToken = CancellationToken.None;
+        _masterKeys
+            .Setup(x => x.RotateAsync(NormalizedOwner, It.IsAny<CancellationToken>()))
+            .Callback((SecretOwner _, CancellationToken token) => rotateToken = token)
+            .Returns(new ValueTask<MasterKeyRotation>(rotation))
+            .Verifiable();
+        ExpectRewrap(new MasterKeyRewrapResult(1, 1, 0, 0));
+
+        var change = await CreateManager().SetAsync(Owner, "fake-kms", Reference, caller.Token);
+
+        Assert.True(caller.IsCancellationRequested);
+        Assert.Same(rotation, change.Rotation);
+        Assert.Equal(new MasterKeyRewrapResult(1, 1, 0, 0), change.Rewrap);
+        Assert.NotEqual(caller.Token, rotateToken);
+        Assert.False(rotateToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task Set_TheCompletionThrows_ReturnsTheCommittedBindingWithNoRotationAndLogsIt()
+    {
+        _stores.Seed(CreateRow(1, _time.GetUtcNow().AddDays(-400)));
+        ExpectEvictAndNotify();
+        _masterKeys
+            .Setup(x => x.RotateAsync(NormalizedOwner, It.IsAny<CancellationToken>()))
+            .Returns(
+                new ValueTask<MasterKeyRotation>(
+                    Task.FromException<MasterKeyRotation>(
+                        new InvalidOperationException("The completion failed.")
+                    )
+                )
+            )
+            .Verifiable();
+        var logger = ExpectCompletionDeferredLog();
+
+        var change = await CreateManager(logger.Object)
+            .SetAsync(Owner, "fake-kms", Reference, CancellationToken.None);
+
+        Assert.Null(change.Rotation);
+        Assert.Equal(new MasterKeyRewrapResult(0, 0, 0, 0), change.Rewrap);
+        Assert.Equal(RootKeyChanges.Set, change.Change);
+        Assert.Equal(Reference, change.RootKey.KeyReference);
+        var stored = Assert.Single(_stores.RootKeys);
+        Assert.Equal(OwnerRootKeyStates.Active, stored.State);
+        Assert.Equal(Reference, stored.KeyReference);
+    }
+
+    [Fact]
     public async Task Set_SameKeyFailingItsProbe_RecordsTheOwnerUnavailableAndThrows()
     {
         _stores.Seed(CreateRootKey());
@@ -370,6 +468,49 @@ public class DefaultOwnerRootKeyManagerTests : IDisposable
         Assert.Null(removal.Remaining);
         Assert.Empty(_stores.RootKeys);
         Assert.Equal(new MasterKeyRewrapResult(2, 2, 0, 0), removal.Rewrap);
+    }
+
+    [Fact]
+    public async Task Remove_TheCallersTokenIsCancelledAfterTheCommit_StillCompletesTheRemoval()
+    {
+        _stores.Seed(CreateRootKey());
+        using var caller = new CancellationTokenSource();
+        ExpectEvictAndCancelTheCaller(caller);
+        ExpectRewrap(new MasterKeyRewrapResult(2, 2, 0, 0));
+
+        var removal = await CreateManager().RemoveAsync(Owner, caller.Token);
+
+        Assert.True(caller.IsCancellationRequested);
+        Assert.True(removal.Removed);
+        Assert.Null(removal.Remaining);
+        Assert.Empty(_stores.RootKeys);
+    }
+
+    [Fact]
+    public async Task Remove_TheCompletionThrows_ReturnsTheRemovingBindingWithZeroCountsAndLogsIt()
+    {
+        _stores.Seed(CreateRootKey());
+        ExpectEvictAndNotify();
+        _rewrapper
+            .Setup(x =>
+                x.RewrapAsync(It.IsAny<MasterKeyRewrapRequest>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(
+                new ValueTask<MasterKeyRewrapResult>(
+                    Task.FromException<MasterKeyRewrapResult>(
+                        new InvalidOperationException("The completion failed.")
+                    )
+                )
+            )
+            .Verifiable();
+        var logger = ExpectCompletionDeferredLog();
+
+        var removal = await CreateManager(logger.Object).RemoveAsync(Owner, CancellationToken.None);
+
+        Assert.True(removal.Removed);
+        Assert.Equal(OwnerRootKeyStates.Removing, removal.Remaining?.State);
+        Assert.Equal(new MasterKeyRewrapResult(0, 0, 0, 0), removal.Rewrap);
+        Assert.Equal(OwnerRootKeyStates.Removing, Assert.Single(_stores.RootKeys).State);
     }
 
     [Fact]

@@ -126,4 +126,15 @@ internal static partial class Log
         Message = "The root key of owner '{Owner}' is unavailable, so a management request was answered 503"
     )]
     internal static partial void OwnerRootKeyUnavailable(this ILogger logger, SecretOwner owner);
+
+    [LoggerMessage(
+        EventId = EventIds.AuditPublishFailed,
+        Level = LogLevel.Warning,
+        Message = "The audit event '{EventType}' of a committed management change could not be published"
+    )]
+    internal static partial void AuditPublishFailed(
+        this ILogger logger,
+        Exception exception,
+        string eventType
+    );
 }

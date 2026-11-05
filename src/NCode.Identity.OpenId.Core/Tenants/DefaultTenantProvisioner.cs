@@ -9,6 +9,7 @@ using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.Persistence;
 using NCode.Identity.Results;
 using NCode.Mediator;
 using NCode.Persistence.Stores;

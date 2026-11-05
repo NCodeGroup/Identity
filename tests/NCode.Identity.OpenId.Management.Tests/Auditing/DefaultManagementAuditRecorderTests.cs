@@ -5,9 +5,12 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
 
@@ -47,7 +50,8 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     // already stamped with one does not.
     private DefaultManagementAuditRecorder CreateRecorder(
         IEventPublisher eventPublisher,
-        bool resolvesTenantEnvironment = true
+        bool resolvesTenantEnvironment = true,
+        ILogger<DefaultManagementAuditRecorder>? logger = null
     )
     {
         var mockEnvironment = MockRepository.Create<OpenIdEnvironment>();
@@ -84,9 +88,79 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             eventPublisher,
             mockEnvironmentProvider.Object,
             mockTenantEnvironmentResolver.Object,
-            TimeProvider.System
+            TimeProvider.System,
+            logger ?? NullLogger<DefaultManagementAuditRecorder>.Instance
         );
     }
+
+    #region PublishAsync Tests
+
+    [Fact]
+    public async Task RecordGrantRevokedAsync_WhenThePublisherThrows_LogsItAndDoesNotThrow()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<GrantRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Throws(new InvalidOperationException("The publisher failed."))
+            .Verifiable();
+        var mockLogger = MockRepository.Create<ILogger<DefaultManagementAuditRecorder>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true);
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(id => id.Id == EventIds.AuditPublishFailed),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<InvalidOperationException>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()
+                )
+            )
+            .Verifiable();
+        var recorder = CreateRecorder(mockPublisher.Object, logger: mockLogger.Object);
+
+        await recorder.RecordGrantRevokedAsync(
+            CreateHttpContext("admin-1"),
+            "tenant-1",
+            "subject-1",
+            "client-1",
+            "authorization_code",
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task RecordGrantRevokedAsync_WhenTheRequestIsCancelled_PublishesOnATokenThatIsNotTheRequests()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        var publishToken = CancellationToken.None;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<GrantRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback((GrantRevokedAuditEvent _, CancellationToken token) => publishToken = token)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var recorder = CreateRecorder(mockPublisher.Object);
+        using var request = new CancellationTokenSource();
+        await request.CancelAsync();
+
+        await recorder.RecordGrantRevokedAsync(
+            CreateHttpContext("admin-1"),
+            "tenant-1",
+            "subject-1",
+            "client-1",
+            "authorization_code",
+            request.Token
+        );
+
+        Assert.NotEqual(request.Token, publishToken);
+        Assert.True(publishToken.CanBeCanceled);
+        Assert.False(publishToken.IsCancellationRequested);
+    }
+
+    #endregion
 
     #region RecordGrantRevokedAsync Tests
 

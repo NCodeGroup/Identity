@@ -8,6 +8,7 @@ using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Servers;
+using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;

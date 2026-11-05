@@ -427,4 +427,21 @@ internal static partial class Log
         Exception exception,
         SecretOwner owner
     );
+
+    /// <summary>
+    /// Logs that the completion of a committed owner root key change is left to the validation service.
+    /// </summary>
+    /// <param name="logger">The logger.</param>
+    /// <param name="exception">The reason the completion is deferred.</param>
+    /// <param name="owner">The owner whose root key changed.</param>
+    [LoggerMessage(
+        EventId = EventIds.OwnerRootKeyCompletionDeferred,
+        Level = LogLevel.Warning,
+        Message = "The completion of the root key change of owner '{Owner}' is deferred to the validation service"
+    )]
+    internal static partial void OwnerRootKeyCompletionDeferred(
+        this ILogger logger,
+        Exception exception,
+        SecretOwner owner
+    );
 }

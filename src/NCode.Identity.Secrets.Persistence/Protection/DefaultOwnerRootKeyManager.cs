@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Logging;
@@ -25,7 +26,9 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// </para>
 /// <para>
 /// The binding is committed before the completion, and the completion is repeated by <see cref="ValidateAsync"/>, so a
-/// rotation that is too soon, lost to a race or cut short is finished by the next validation.
+/// rotation that is too soon, lost to a race or cut short is finished by the next validation. The observers and the
+/// completion of a set or a removal run on a bounded token of their own, never the caller's, so a cancelled caller
+/// leaves neither unannounced nor unfinished; a completion that fails is logged and left to the validation.
 /// </para>
 /// </remarks>
 // See ADR-1411.
@@ -41,9 +44,6 @@ internal sealed class DefaultOwnerRootKeyManager(
     ILogger<DefaultOwnerRootKeyManager> logger
 ) : IOwnerRootKeyManager
 {
-    // An observer runs on its own token so that the caller's cancellation cannot leave a committed change unannounced.
-    private static readonly TimeSpan ObserverTimeout = TimeSpan.FromSeconds(30);
-
     private static readonly MasterKeyRewrapResult NoRewrap = new(0, 0, 0, 0);
 
     private IKeyWrapperCatalog Catalog { get; } = catalog;
@@ -206,7 +206,7 @@ internal sealed class DefaultOwnerRootKeyManager(
             : wasUnavailable ? RootKeyChanges.Restored
             : null;
 
-        var (rotation, rewrap) = await CompleteAsync(key, stored, cancellationToken);
+        var (rotation, rewrap) = await CompleteSetAsync(key, stored);
 
         return new OwnerRootKeyChange(OwnerRootKeyInfo.From(stored), change, rotation, rewrap);
     }
@@ -236,7 +236,7 @@ internal sealed class DefaultOwnerRootKeyManager(
             await NotifyAsync(key);
         }
 
-        var (remaining, rewrap) = await CompleteRemovalAsync(key, cancellationToken);
+        var (remaining, rewrap) = await CompleteRemovalOnItsOwnTokenAsync(key, binding);
 
         return new OwnerRootKeyRemoval(remaining, removed, rewrap);
     }
@@ -609,15 +609,74 @@ internal sealed class DefaultOwnerRootKeyManager(
         return (null, rewrap);
     }
 
+    // Completes a committed set on a bounded token of its own, so that the caller's cancellation cannot cut it short. A
+    // completion that fails leaves the committed binding as it is, and the validation service finishes it.
+    private async ValueTask<(
+        MasterKeyRotation? Rotation,
+        MasterKeyRewrapResult Rewrap
+    )> CompleteSetAsync(SecretOwner key, PersistedOwnerRootKey binding)
+    {
+        (MasterKeyRotation? Rotation, MasterKeyRewrapResult Rewrap) completion = (null, NoRewrap);
+        try
+        {
+            await PostCommitWork.RunAsync(
+                TimeProvider,
+                async (state, cancellationToken) =>
+                    completion = await CompleteAsync(state.Key, state.Binding, cancellationToken),
+                (Key: key, Binding: binding)
+            );
+        }
+        catch (Exception exception)
+        {
+            Logger.OwnerRootKeyCompletionDeferred(exception, key);
+            return (null, NoRewrap);
+        }
+
+        return completion;
+    }
+
+    // Completes a committed removal on a bounded token of its own, so that the caller's cancellation cannot cut it
+    // short. A completion that fails leaves the committed binding as it is, and the validation service finishes it.
+    private async ValueTask<(
+        OwnerRootKeyInfo? Remaining,
+        MasterKeyRewrapResult Rewrap
+    )> CompleteRemovalOnItsOwnTokenAsync(SecretOwner key, PersistedOwnerRootKey binding)
+    {
+        (OwnerRootKeyInfo? Remaining, MasterKeyRewrapResult Rewrap) completion = (
+            OwnerRootKeyInfo.From(binding),
+            NoRewrap
+        );
+        try
+        {
+            await PostCommitWork.RunAsync(
+                TimeProvider,
+                async (state, cancellationToken) =>
+                    completion = await CompleteRemovalAsync(state, cancellationToken),
+                key
+            );
+        }
+        catch (Exception exception)
+        {
+            Logger.OwnerRootKeyCompletionDeferred(exception, key);
+            return (OwnerRootKeyInfo.From(binding), NoRewrap);
+        }
+
+        return completion;
+    }
+
     // Calls every observer on a bounded token of its own and swallows each failure, since the change is committed.
     private async ValueTask NotifyAsync(SecretOwner key)
     {
         foreach (var observer in Observers)
         {
-            using var timeout = new CancellationTokenSource(ObserverTimeout, TimeProvider);
             try
             {
-                await observer.ChangedAsync(key, timeout.Token);
+                await PostCommitWork.RunAsync(
+                    TimeProvider,
+                    static (state, cancellationToken) =>
+                        state.Observer.ChangedAsync(state.Key, cancellationToken),
+                    (Observer: observer, Key: key)
+                );
             }
             catch (Exception exception)
             {

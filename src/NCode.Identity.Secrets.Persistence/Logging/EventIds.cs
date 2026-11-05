@@ -133,4 +133,9 @@ internal static class EventIds
     /// An observer of owner root key changes failed.
     /// </summary>
     public const int OwnerRootKeyObserverFailed = Base + 24;
+
+    /// <summary>
+    /// The completion of a committed owner root key change is left to the validation service.
+    /// </summary>
+    public const int OwnerRootKeyCompletionDeferred = Base + 25;
 }

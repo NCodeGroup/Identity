@@ -116,9 +116,10 @@ internal sealed class TeamSettingsReconciliationService(
         }
     }
 
-    private async Task<(bool Triggered, TeamSettingsReconciliationRequest Request)> WaitForTriggerAsync(
-        CancellationToken stoppingToken
-    )
+    private async Task<(
+        bool Triggered,
+        TeamSettingsReconciliationRequest Request
+    )> WaitForTriggerAsync(CancellationToken stoppingToken)
     {
         if (Unsettled.Count == 0 && !EveryTeamUnsettled)
             return (true, await Queue.TakeAsync(stoppingToken));

@@ -2099,6 +2099,16 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var client = await storeManager
             .GetStore<IClientStore>()
@@ -2141,6 +2151,16 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var client = await storeManager
             .GetStore<IClientStore>()

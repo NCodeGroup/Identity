@@ -3790,6 +3790,93 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
+    #region AddOwnerAsync / RemoveOwnerAsync Tests
+
+    // The authorization of the client's node, which the caller's own authority to update the client decides.
+    private void SetupClientNodeAuthorization(AuthorizationResult result) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Client
+                        && ((ResourceNode)resource).ResourceId == ClientId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutAddingTheOwner()
+    {
+        SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupStore();
+        SetupClientLookup();
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupRoleNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no ResourceOwnershipService setup, so an owner change would fail the test.
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddOwnerRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task RemoveOwnerAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutRemovingTheOwner()
+    {
+        SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupStore();
+        SetupClientLookup();
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupRoleNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no ResourceOwnershipService setup, so an owner change would fail the test.
+        var result = await Handler.RemoveOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenTheCallerIsNotAuthorizedAtTheClient_ReturnsForbiddenBeforeReadingTheClient()
+    {
+        SetupClientNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store manager factory setup, so reading the client would fail the test.
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddOwnerRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
     #region DeleteClientAsync Tests
 
     [Fact]

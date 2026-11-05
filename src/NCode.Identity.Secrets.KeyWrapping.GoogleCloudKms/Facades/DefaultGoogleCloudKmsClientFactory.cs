@@ -24,7 +24,8 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
 /// A service account that the holder of the key grants through an identity gets its own client, whose credential
 /// impersonates the service account with the Application Default Credentials as the source, so the service account
 /// must grant the source the Service Account Token Creator role. The SDK refreshes the impersonated tokens. A failure
-/// to create the client is not cached either.
+/// to create the client is not cached either, and a client that the wrapper releases after a failed call is removed,
+/// so the next call creates it again.
 /// </para>
 /// </remarks>
 // See ADR-1260 and ADR-1429.
@@ -78,12 +79,21 @@ internal sealed class DefaultGoogleCloudKmsClientFactory : IGoogleCloudKmsClient
             }
         );
 
-        // Two first calls can race; the loser's client is discarded, which is safe because the SDK shares its
-        // channels.
+        // Two first calls can race; the loser's client is discarded. A client built with its own credential has its
+        // own channel, which nothing else references, so a discarded client is reclaimed with its channel.
         var created = await new KeyManagementServiceClientBuilder
         {
             GoogleCredential = credential,
         }.BuildAsync(cancellationToken);
         return ImpersonatedClients.GetOrAdd(access.Identity, created);
+    }
+
+    /// <inheritdoc />
+    public void Release(KeyAccess access)
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        // A released client has its own channel, which nothing else references, so it is reclaimed with its channel.
+        ImpersonatedClients.TryRemove(access.Identity, out _);
     }
 }

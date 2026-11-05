@@ -180,7 +180,19 @@ internal class GoogleCloudKmsKeyWrapper(
         };
 
         var client = await ClientFactory.GetClientAsync(access, cancellationToken);
-        var response = await client.EncryptAsync(request, cancellationToken);
+
+        EncryptResponse response;
+        try
+        {
+            response = await client.EncryptAsync(request, cancellationToken);
+        }
+        catch (Exception exception)
+            when (access is not null && exception is not OperationCanceledException)
+        {
+            // An identity that fails must leave no client cached.
+            ClientFactory.Release(access);
+            throw;
+        }
 
         if (
             !response.VerifiedPlaintextCrc32C
@@ -307,7 +319,19 @@ internal class GoogleCloudKmsKeyWrapper(
         };
 
         var client = await ClientFactory.GetClientAsync(access, cancellationToken);
-        var response = await DecryptAsync(client, request, cancellationToken);
+
+        DecryptResponse response;
+        try
+        {
+            response = await DecryptAsync(client, request, cancellationToken);
+        }
+        catch (Exception exception)
+            when (access is not null && exception is not OperationCanceledException)
+        {
+            // An identity that fails must leave no client cached.
+            ClientFactory.Release(access);
+            throw;
+        }
 
         CopyPlaintext(response, destination);
     }

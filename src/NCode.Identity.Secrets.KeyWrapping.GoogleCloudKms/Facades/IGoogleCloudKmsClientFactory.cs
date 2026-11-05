@@ -26,4 +26,10 @@ internal interface IGoogleCloudKmsClientFactory
         KeyAccess? access,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Removes the client for the specified access, so the next call with the same access creates a client again.
+    /// </summary>
+    /// <param name="access">The access whose client is removed. Nothing happens when it has no client.</param>
+    void Release(KeyAccess access);
 }

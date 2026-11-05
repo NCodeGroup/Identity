@@ -899,7 +899,7 @@ public class TeamManagementTests
     }
 
     [Fact]
-    public async Task MachineClient_CredentialsAreManagedOnlyWithTheAuthorityItHolds()
+    public async Task PostClientSecret_WhenTheCallerLacksTheAuthorityOfTheClientsRoles_ReturnsForbidden()
     {
         using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
@@ -910,24 +910,50 @@ public class TeamManagementTests
             administrator
         );
         await GrantTeamAdminAsync(administrator, "platform", managerPrincipalId);
+        using var manager = await factory.CreateManagementClientAsync(
+            managerClientId,
+            managerSecret
+        );
+
+        using var response = await PostClientSecretAsync(manager, teamClientId);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostClientSecret_WhenTheClientHoldsNoRole_ReturnsCreated()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (managerClientId, managerSecret, managerPrincipalId) = await CreateMachineClientAsync(
+            administrator
+        );
+        await GrantTeamAdminAsync(administrator, "platform", managerPrincipalId);
         var (plainClientId, _, _) = await CreateMachineClientAsync(administrator);
         using var manager = await factory.CreateManagementClientAsync(
             managerClientId,
             managerSecret
         );
 
-        // The manager administers the team of the control-plane tenant, so it manages the clients of that tenant that
-        // hold no role.
-        using var plain = await PostClientSecretAsync(manager, plainClientId);
-        Assert.Equal(HttpStatusCode.Created, plain.StatusCode);
+        using var response = await PostClientSecretAsync(manager, plainClientId);
 
-        // It cannot mint a secret for a client that administers a team it does not administer.
-        using var refused = await PostClientSecretAsync(manager, teamClientId);
-        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
 
-        using var granted = await PostClientSecretAsync(administrator, teamClientId);
-        var grantedBody = await granted.Content.ReadAsStringAsync();
-        Assert.True(granted.StatusCode == HttpStatusCode.Created, grantedBody);
+    [Fact]
+    public async Task PostClientSecret_WhenTheCallerIsAGlobalAdmin_ReturnsCreated()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(administrator);
+        await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId);
+
+        using var response = await PostClientSecretAsync(administrator, teamClientId);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
     #endregion
@@ -948,7 +974,7 @@ public class TeamManagementTests
     }
 
     [Fact]
-    public async Task GetCaller_AsATeamAdmin_ReportsItsTeamOnly()
+    public async Task GetCaller_WhenTheCallerIsATeamAdmin_ReportsItsAssignment()
     {
         using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
@@ -962,6 +988,7 @@ public class TeamManagementTests
         );
 
         using var caller = await teamAdmin.GetAsync("/api/me");
+
         var callerBody = await caller.Content.ReadAsStringAsync();
         Assert.True(caller.StatusCode == HttpStatusCode.OK, callerBody);
         var callerJson = JsonElement.Parse(callerBody);
@@ -973,8 +1000,24 @@ public class TeamManagementTests
                 && assignment.GetProperty("resourceType").GetString() == "team"
                 && assignment.GetProperty("resourceId").GetString() == "acme"
         );
+    }
+
+    [Fact]
+    public async Task GetCallerTeams_WhenTheCallerIsATeamAdmin_ListsItsTeamOnly()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
 
         using var teams = await teamAdmin.GetAsync("/api/me/teams");
+
         var teamsBody = await teams.Content.ReadAsStringAsync();
         Assert.True(teams.StatusCode == HttpStatusCode.OK, teamsBody);
         Assert.Equal(
@@ -986,8 +1029,23 @@ public class TeamManagementTests
                 .Select(team => team.GetProperty("teamId").GetString())
                 .ToList()
         );
+    }
+
+    [Fact]
+    public async Task ListTeams_WhenTheCallerIsATeamAdmin_IsForbidden()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
 
         using var allTeams = await teamAdmin.GetAsync("/api/teams");
+
         Assert.Equal(HttpStatusCode.Forbidden, allTeams.StatusCode);
     }
 

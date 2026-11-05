@@ -30,11 +30,16 @@ public static class BrowserFlows
         await page.GotoAsync($"{bff.Origin}/bff/login?returnUrl=%2F");
         await page.FillAsync("#username", KeycloakProvider.UserName);
         await page.FillAsync("#password", keycloak.UserPassword);
-        await page.ClickAsync("#kc-login");
-        await page.WaitForURLAsync(
-            $"{bff.Origin}/",
-            new PageWaitForURLOptions { WaitUntil = WaitUntilState.Commit }
+#pragma warning disable CS0612 // Playwright marks it obsolete without a replacement that waits for a navigation the page has not started yet.
+        await page.RunAndWaitForNavigationAsync(
+            () => page.ClickAsync("#kc-login"),
+            new PageRunAndWaitForNavigationOptions
+            {
+                UrlFunc = url => new Uri(url).GetLeftPart(UriPartial.Path) == $"{bff.Origin}/",
+                WaitUntil = WaitUntilState.Commit,
+            }
         );
+#pragma warning restore CS0612
         await WaitForDocumentAsync(page);
     }
 

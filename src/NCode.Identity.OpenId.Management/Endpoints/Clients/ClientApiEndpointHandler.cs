@@ -639,13 +639,20 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
-        return await ProcessGetAsync(httpContext, client, node, Operations.Read, ToClientResource);
+        return await ProcessGetAsync(
+            httpContext,
+            node,
+            Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+                return await store.GetOrDefaultAsync(clientId, token);
+            },
+            ToClientResource,
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -928,19 +935,22 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        // The client store has no dedicated settings getter; the client is loaded whole (settings included).
-        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
-            client?.Settings,
             node,
             Operations.Read,
-            ToClientSettingsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+
+                // The client store has no dedicated settings getter; the client is loaded whole (settings included).
+                var client = await store.GetOrDefaultAsync(clientId, token);
+                return client?.Settings;
+            },
+            ToClientSettingsResource,
+            cancellationToken
         );
     }
 
@@ -960,31 +970,30 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
-        if (client is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
 
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
-        // A null projection is the absent tenant, answered 404. See ADR-1245.
+        // A null read is the absent client or the absent tenant, answered 404. See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            client.Settings.Value,
             node,
             Operations.Read,
-            async (settings, token) =>
+            async token =>
             {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+
+                var client = await store.GetOrDefaultAsync(clientId, token);
+                if (client is null)
+                {
+                    return null;
+                }
+
                 var effectiveSettings = await MergeClientSettingsAsync(
                     tenantId,
                     clientId,
-                    settings,
+                    client.Settings.Value,
                     storeManager,
                     token
                 );
@@ -992,6 +1001,7 @@ internal class ClientApiEndpointHandler(
                     ? null
                     : ToClientEffectiveSettingsResource(client, effectiveSettings);
             },
+            resource => resource,
             cancellationToken
         );
     }
@@ -1255,18 +1265,19 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
-            clientSecrets,
             node,
             Operations.Read,
-            ToClientSecretsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+                return await store.GetSecretsOrDefaultAsync(clientId, token);
+            },
+            ToClientSecretsResource,
+            cancellationToken
         );
     }
 
@@ -1579,27 +1590,24 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        // The discrete getter resolves the secret together with its owning TenantId, which scopes authorization.
-        var clientSecret = await store.GetSecretOrDefaultAsync(
-            clientId,
-            secretId,
-            cancellationToken
-        );
-
-        var scoped = clientSecret is null
-            ? null
-            : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
-            scoped,
             node,
             Operations.Read,
-            x => ToSecretResource(x.Value)
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+
+                // The discrete getter resolves the secret together with its owning TenantId.
+                var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
+                return clientSecret is null
+                    ? null
+                    : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+            },
+            x => ToSecretResource(x.Value),
+            cancellationToken
         );
     }
 
@@ -1621,31 +1629,25 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        // The discrete getter resolves the secret together with its owning TenantId, which scopes authorization.
-        var clientSecret = await store.GetSecretOrDefaultAsync(
-            clientId,
-            secretId,
-            cancellationToken
-        );
-
-        if (clientSecret is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var scoped = TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
-            scoped,
             node,
             Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+
+                // The discrete getter resolves the secret together with its owning TenantId.
+                var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
+                return clientSecret is null
+                    ? null
+                    : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+            },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            x => SecretPublicKeyConverter.Convert(x.Value),
+            cancellationToken
         );
     }
 

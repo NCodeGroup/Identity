@@ -19,6 +19,9 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
     private const string CryptoKeyName =
         "projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root";
 
+    private const string TenantCryptoKeyName =
+        "projects/tenant-project/locations/europe-west1/keyRings/tenants/cryptoKeys/tenant-root";
+
     private const string CryptoKeyVersionName = CryptoKeyName + "/cryptoKeyVersions/3";
 
     private const string OtherCryptoKeyVersionName =
@@ -219,6 +222,114 @@ public class GoogleCloudKmsKeyWrapperTests : IDisposable
         await Assert.ThrowsAsync<IOException>(() =>
             provider.WrapAsync(key, context, CancellationToken.None).AsTask()
         );
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKey_SendsReferenceAndReturnsItsVersion()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var ciphertext = RandomNumberGenerator.GetBytes(64);
+        SetupClient(CancellationToken.None);
+        SetupEncrypt(
+            CreateEncryptResponse(TenantCryptoKeyName + "/cryptoKeyVersions/7", ciphertext),
+            CancellationToken.None
+        );
+        var provider = CreateProvider(CryptoKeyName);
+
+        var wrappedKey = await provider.WrapAsync(
+            TenantCryptoKeyName,
+            key,
+            context,
+            CancellationToken.None
+        );
+
+        var request = Assert.IsType<CapturedRequest>(EncryptCall);
+        Assert.Equal(TenantCryptoKeyName, request.Name);
+        Assert.Equal(key, request.Data);
+        Assert.Equal(context, request.AdditionalAuthenticatedData);
+        Assert.Equal(KeyWrapperNames.GoogleCloudKms, wrappedKey.WrapperName);
+        Assert.Equal(TenantCryptoKeyName + "/cryptoKeyVersions/7", wrappedKey.KeyId);
+    }
+
+    [Fact]
+    public async Task WrapAsync_ReferencedKeyReportsVersionOfAnotherCryptoKey_ThrowsIOException()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var ciphertext = RandomNumberGenerator.GetBytes(64);
+        SetupClient(CancellationToken.None);
+        SetupEncrypt(
+            CreateEncryptResponse(CryptoKeyVersionName, ciphertext),
+            CancellationToken.None
+        );
+        var provider = CreateProvider(CryptoKeyName);
+
+        await Assert.ThrowsAsync<IOException>(() =>
+            provider.WrapAsync(TenantCryptoKeyName, key, context, CancellationToken.None).AsTask()
+        );
+    }
+
+    [Theory]
+    [InlineData(CryptoKeyVersionName)]
+    [InlineData("not-a-key")]
+    public async Task WrapAsync_ReferencedKeyInvalid_ThrowsWithoutCallingTheClient(string reference)
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var provider = CreateProvider(CryptoKeyName);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider.WrapAsync(reference, key, context, CancellationToken.None).AsTask()
+        );
+
+        Assert.Equal("keyReference", exception.ParamName);
+    }
+
+    [Fact]
+    public async Task UnwrapAsync_KeyWrappedUnderReference_UnwrapsThroughItsVersion()
+    {
+        var key = RandomNumberGenerator.GetBytes(32);
+        var context = "root-context"u8.ToArray();
+        var ciphertext = RandomNumberGenerator.GetBytes(64);
+        SetupClient(CancellationToken.None);
+        SetupEncrypt(
+            CreateEncryptResponse(TenantCryptoKeyName + "/cryptoKeyVersions/7", ciphertext),
+            CancellationToken.None
+        );
+        SetupClient(CancellationToken.None);
+        SetupDecrypt(CreateDecryptResponse(key), CancellationToken.None);
+        var provider = CreateProvider(keyName: null);
+        var wrappedKey = await provider.WrapAsync(
+            TenantCryptoKeyName,
+            key,
+            context,
+            CancellationToken.None
+        );
+        var destination = new ArrayBufferWriter<byte>();
+
+        await provider.UnwrapAsync(wrappedKey, context, destination, CancellationToken.None);
+
+        var request = Assert.IsType<CapturedRequest>(DecryptCall);
+        Assert.Equal(TenantCryptoKeyName, request.Name);
+        Assert.Equal(key, destination.WrittenSpan.ToArray());
+    }
+
+    [Theory]
+    [InlineData(CryptoKeyName, true)]
+    [InlineData(CryptoKeyVersionName, false)]
+    [InlineData("not-a-key", false)]
+    [InlineData("", false)]
+    public void TryValidateKeyReference_Reference_ReportsSyntax(string reference, bool expected)
+    {
+        var provider = CreateProvider(keyName: null);
+
+        var valid = provider.TryValidateKeyReference(reference, out var failure);
+
+        Assert.Equal(expected, valid);
+        Assert.Equal(expected, failure is null);
+        if (!expected)
+            Assert.StartsWith("must be the resource name of a Cloud KMS crypto key", failure);
     }
 
     #endregion

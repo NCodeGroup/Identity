@@ -26,6 +26,7 @@ export type {
   GrantRevocationResult,
   KeyBitSizes,
   ManagementCapabilitiesResource,
+  ManagementProblem,
   PublicKeyResource,
   ResourceServerResource,
   ScopeResource,

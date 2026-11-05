@@ -99,10 +99,6 @@ function invalidatedBy(store: AppStore, tags: readonly ManagementTag[]): string[
     .map((entry) => entry.endpointName);
 }
 
-const acme = { kind: 'tenant', tenantId: 'acme' } as const;
-const other = { kind: 'tenant', tenantId: 'other' } as const;
-const platformScope = { kind: 'platform' } as const;
-
 const secretRequest: CreateSecretRequest = {
   secretType: 'symmetric',
   keySizeBits: 256,
@@ -208,7 +204,7 @@ describe('managementApi tenant mutations', () => {
 });
 
 describe('managementApi client mutations (tenant scope)', () => {
-  const scope = { kind: 'tenant', tenantId: 'acme' } as const;
+  const tenantId = 'acme';
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -231,7 +227,7 @@ describe('managementApi client mutations (tenant scope)', () => {
 
     await store.dispatch(
       managementApi.endpoints.createClient.initiate({
-        scope,
+        tenantId,
         body: { isDisabled: false, settings: {} },
       }),
     );
@@ -258,7 +254,7 @@ describe('managementApi client mutations (tenant scope)', () => {
 
     await store.dispatch(
       managementApi.endpoints.createClient.initiate({
-        scope,
+        tenantId,
         body: { isDisabled: false, resourceServerId: 'rs-orders', settings: {} },
       }),
     );
@@ -277,7 +273,7 @@ describe('managementApi client mutations (tenant scope)', () => {
 
     await store.dispatch(
       managementApi.endpoints.updateClient.initiate({
-        scope,
+        tenantId,
         clientId: 'web',
         concurrencyToken: 'etag-2',
         fields: { isDisabled: true },
@@ -296,7 +292,9 @@ describe('managementApi client mutations (tenant scope)', () => {
     const captured = mockFetch(new Response(null, { status: 204 }));
     const store = createStore();
 
-    await store.dispatch(managementApi.endpoints.deleteClient.initiate({ scope, clientId: 'web' }));
+    await store.dispatch(
+      managementApi.endpoints.deleteClient.initiate({ tenantId, clientId: 'web' }),
+    );
 
     expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/clients/web');
     expect(captured[0]?.method).toBe('DELETE');
@@ -304,7 +302,7 @@ describe('managementApi client mutations (tenant scope)', () => {
 });
 
 describe('managementApi resource-server + scope mutations (tenant scope)', () => {
-  const scope = { kind: 'tenant', tenantId: 'acme' } as const;
+  const tenantId = 'acme';
 
   afterEach(() => {
     vi.restoreAllMocks();
@@ -331,7 +329,7 @@ describe('managementApi resource-server + scope mutations (tenant scope)', () =>
 
     const result = await store.dispatch(
       managementApi.endpoints.createResourceServer.initiate({
-        scope,
+        tenantId,
         body: { identifier: 'urn:api', name: 'API', isDisabled: false, settings: {} },
       }),
     );
@@ -353,7 +351,7 @@ describe('managementApi resource-server + scope mutations (tenant scope)', () =>
 
     await store.dispatch(
       managementApi.endpoints.updateResourceServer.initiate({
-        scope,
+        tenantId,
         resourceServerId: 'rs-1',
         concurrencyToken: 'etag-3',
         fields: { name: 'Renamed', isDisabled: true },
@@ -374,7 +372,7 @@ describe('managementApi resource-server + scope mutations (tenant scope)', () =>
     const store = createStore();
 
     await store.dispatch(
-      managementApi.endpoints.deleteResourceServer.initiate({ scope, resourceServerId: 'rs-1' }),
+      managementApi.endpoints.deleteResourceServer.initiate({ tenantId, resourceServerId: 'rs-1' }),
     );
 
     expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/resource-servers/rs-1');
@@ -392,7 +390,7 @@ describe('managementApi resource-server + scope mutations (tenant scope)', () =>
 
     await store.dispatch(
       managementApi.endpoints.createScope.initiate({
-        scope,
+        tenantId,
         resourceServerId: 'rs-1',
         body: { value: 'read:x', description: 'Read X' },
       }),
@@ -412,7 +410,7 @@ describe('managementApi resource-server + scope mutations (tenant scope)', () =>
 
     await store.dispatch(
       managementApi.endpoints.updateScope.initiate({
-        scope,
+        tenantId,
         resourceServerId: 'rs-1',
         scopeValue: 'read:x',
         body: { description: 'Read all X' },
@@ -433,7 +431,7 @@ describe('managementApi resource-server + scope mutations (tenant scope)', () =>
 
     await store.dispatch(
       managementApi.endpoints.deleteScope.initiate({
-        scope,
+        tenantId,
         resourceServerId: 'rs-1',
         scopeValue: 'read:x',
       }),
@@ -887,14 +885,9 @@ const queryRequestCases: readonly QueryRequestCase[] = [
       ),
   },
   {
-    name: 'listClients (platform scope)',
-    url: 'https://api.test/api/clients',
-    run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: platformScope })),
-  },
-  {
     name: 'listClients (tenant scope)',
     url: 'https://api.test/api/tenants/acme/clients',
-    run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: acme })),
+    run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ tenantId: 'acme' })),
   },
   {
     name: 'listClients (resource server filter)',
@@ -902,21 +895,16 @@ const queryRequestCases: readonly QueryRequestCase[] = [
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.listClients.initiate({
-          scope: acme,
+          tenantId: 'acme',
           resourceServerId: 'rs-orders',
         }),
       ),
   },
   {
-    name: 'listResourceServers (platform scope)',
-    url: 'https://api.test/api/resource-servers',
-    run: (s) =>
-      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: platformScope })),
-  },
-  {
     name: 'listResourceServers (tenant scope)',
     url: 'https://api.test/api/tenants/acme/resource-servers',
-    run: (s) => s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: acme })),
+    run: (s) =>
+      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ tenantId: 'acme' })),
   },
   {
     name: 'listGrants (subject filter)',
@@ -952,15 +940,15 @@ type MutationRequestCase = {
   readonly run: (store: AppStore) => PromiseLike<unknown>;
 };
 
-const platformScopeMutationCases: readonly MutationRequestCase[] = [
+const tenantResourceMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'createClient',
     method: 'POST',
-    url: 'https://api.test/api/clients',
+    url: 'https://api.test/api/tenants/acme/clients',
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.createClient.initiate({
-          scope: platformScope,
+          tenantId: 'acme',
           body: { isDisabled: false, settings: {} },
         }),
       ),
@@ -968,11 +956,11 @@ const platformScopeMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'updateClient',
     method: 'PATCH',
-    url: 'https://api.test/api/clients/web',
+    url: 'https://api.test/api/tenants/acme/clients/web',
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.updateClient.initiate({
-          scope: platformScope,
+          tenantId: 'acme',
           clientId: 'web',
           concurrencyToken: 'etag',
           fields: { isDisabled: true },
@@ -982,20 +970,20 @@ const platformScopeMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'deleteClient',
     method: 'DELETE',
-    url: 'https://api.test/api/clients/web',
+    url: 'https://api.test/api/tenants/acme/clients/web',
     run: (s) =>
       s.dispatch(
-        managementApi.endpoints.deleteClient.initiate({ scope: platformScope, clientId: 'web' }),
+        managementApi.endpoints.deleteClient.initiate({ tenantId: 'acme', clientId: 'web' }),
       ),
   },
   {
     name: 'createResourceServer',
     method: 'POST',
-    url: 'https://api.test/api/resource-servers',
+    url: 'https://api.test/api/tenants/acme/resource-servers',
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.createResourceServer.initiate({
-          scope: platformScope,
+          tenantId: 'acme',
           body: { identifier: 'urn:api', name: 'API', isDisabled: false, settings: {} },
         }),
       ),
@@ -1003,11 +991,11 @@ const platformScopeMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'updateResourceServer',
     method: 'PATCH',
-    url: 'https://api.test/api/resource-servers/rs-1',
+    url: 'https://api.test/api/tenants/acme/resource-servers/rs-1',
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.updateResourceServer.initiate({
-          scope: platformScope,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
           concurrencyToken: 'etag',
           fields: { name: 'API', isDisabled: false },
@@ -1017,11 +1005,11 @@ const platformScopeMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'deleteResourceServer',
     method: 'DELETE',
-    url: 'https://api.test/api/resource-servers/rs-1',
+    url: 'https://api.test/api/tenants/acme/resource-servers/rs-1',
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.deleteResourceServer.initiate({
-          scope: platformScope,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
         }),
       ),
@@ -1029,11 +1017,11 @@ const platformScopeMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'createScope',
     method: 'POST',
-    url: 'https://api.test/api/resource-servers/rs-1/scopes',
+    url: 'https://api.test/api/tenants/acme/resource-servers/rs-1/scopes',
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.createScope.initiate({
-          scope: platformScope,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
           body: { value: 'read:x', description: null },
         }),
@@ -1042,11 +1030,11 @@ const platformScopeMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'updateScope',
     method: 'PUT',
-    url: 'https://api.test/api/resource-servers/rs-1/scopes/read%3Ax',
+    url: 'https://api.test/api/tenants/acme/resource-servers/rs-1/scopes/read%3Ax',
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.updateScope.initiate({
-          scope: platformScope,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
           scopeValue: 'read:x',
           body: { description: null },
@@ -1056,11 +1044,11 @@ const platformScopeMutationCases: readonly MutationRequestCase[] = [
   {
     name: 'deleteScope',
     method: 'DELETE',
-    url: 'https://api.test/api/resource-servers/rs-1/scopes/read%3Ax',
+    url: 'https://api.test/api/tenants/acme/resource-servers/rs-1/scopes/read%3Ax',
     run: (s) =>
       s.dispatch(
         managementApi.endpoints.deleteScope.initiate({
-          scope: platformScope,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
           scopeValue: 'read:x',
         }),
@@ -1068,14 +1056,14 @@ const platformScopeMutationCases: readonly MutationRequestCase[] = [
   },
 ];
 
-describe('managementApi scope-prefixed mutations (platform scope)', () => {
+describe('managementApi tenant resource mutations', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
-  it.each(platformScopeMutationCases)(
-    '$name sends $method $url outside any tenant',
+  it.each(tenantResourceMutationCases)(
+    '$name sends $method $url under the tenant',
     async ({ method, url, run }) => {
       const captured = mockFetch(new Response(null, { status: 204 }));
 
@@ -1119,7 +1107,7 @@ const listTagCases: readonly ListTagCase[] = [
     name: 'listClients',
     path: '/api/tenants/acme/clients',
     body: { items: [{ clientId: 'web' }] },
-    run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: acme })),
+    run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ tenantId: 'acme' })),
     collectionTag: { type: 'Client', id: 'tenant:acme:LIST' },
     itemTag: { type: 'Client', id: 'tenant:acme:web' },
   },
@@ -1127,7 +1115,8 @@ const listTagCases: readonly ListTagCase[] = [
     name: 'listResourceServers',
     path: '/api/tenants/acme/resource-servers',
     body: { items: [{ resourceServerId: 'rs-1' }] },
-    run: (s) => s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: acme })),
+    run: (s) =>
+      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ tenantId: 'acme' })),
     collectionTag: { type: 'ResourceServer', id: 'tenant:acme:LIST' },
     itemTag: { type: 'ResourceServer', id: 'tenant:acme:rs-1' },
   },
@@ -1186,7 +1175,7 @@ type CachedQuery = {
 
 /**
  * One subscribed cache entry per tagged (and a few untagged) query, spanning both scopes. The same
- * resource ids recur in the platform scope and in a second tenant, so every mutation also proves that it
+ * resource ids recur in a second tenant, so every mutation also proves that it
  * leaves the other scopes' caches alone.
  */
 const cachedQueries: readonly CachedQuery[] = [
@@ -1249,34 +1238,29 @@ const cachedQueries: readonly CachedQuery[] = [
     label: 'clients',
     path: '/api/tenants/acme/clients',
     body: { items: [{ clientId: 'web' }] },
-    subscribe: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: acme })),
-  },
-  {
-    label: 'clients:platform',
-    path: '/api/clients',
-    body: { items: [{ clientId: 'web' }] },
     subscribe: (s) =>
-      s.dispatch(managementApi.endpoints.listClients.initiate({ scope: platformScope })),
+      s.dispatch(managementApi.endpoints.listClients.initiate({ tenantId: 'acme' })),
   },
   {
     label: 'clients:other',
     path: '/api/tenants/other/clients',
     body: { items: [{ clientId: 'web' }] },
-    subscribe: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ scope: other })),
+    subscribe: (s) =>
+      s.dispatch(managementApi.endpoints.listClients.initiate({ tenantId: 'other' })),
   },
   {
     label: 'resourceServers',
     path: '/api/tenants/acme/resource-servers',
     body: { items: [{ resourceServerId: 'rs-1' }] },
     subscribe: (s) =>
-      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: acme })),
+      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ tenantId: 'acme' })),
   },
   {
-    label: 'resourceServers:platform',
-    path: '/api/resource-servers',
+    label: 'resourceServers:other',
+    path: '/api/tenants/other/resource-servers',
     body: { items: [{ resourceServerId: 'rs-1' }] },
     subscribe: (s) =>
-      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ scope: platformScope })),
+      s.dispatch(managementApi.endpoints.listResourceServers.initiate({ tenantId: 'other' })),
   },
   {
     label: 'grants',
@@ -1380,7 +1364,7 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.createClient.initiate({
-          scope: acme,
+          tenantId: 'acme',
           body: { isDisabled: false, settings: {} },
         }),
       ),
@@ -1391,7 +1375,7 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.updateClient.initiate({
-          scope: acme,
+          tenantId: 'acme',
           clientId: 'web',
           concurrencyToken: 'etag',
           fields: { isDisabled: true },
@@ -1402,7 +1386,9 @@ const invalidationCases: readonly InvalidationCase[] = [
   {
     name: 'deleteClient',
     mutate: (s) =>
-      s.dispatch(managementApi.endpoints.deleteClient.initiate({ scope: acme, clientId: 'web' })),
+      s.dispatch(
+        managementApi.endpoints.deleteClient.initiate({ tenantId: 'acme', clientId: 'web' }),
+      ),
     refetches: ['clients'],
   },
   {
@@ -1410,7 +1396,7 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.createResourceServer.initiate({
-          scope: acme,
+          tenantId: 'acme',
           body: { identifier: 'urn:api', name: 'API', isDisabled: false, settings: {} },
         }),
       ),
@@ -1421,7 +1407,7 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.updateResourceServer.initiate({
-          scope: acme,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
           concurrencyToken: 'etag',
           fields: { name: 'API', isDisabled: true },
@@ -1434,7 +1420,7 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.deleteResourceServer.initiate({
-          scope: acme,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
         }),
       ),
@@ -1445,7 +1431,7 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.createScope.initiate({
-          scope: acme,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
           body: { value: 'read:x', description: null },
         }),
@@ -1457,7 +1443,7 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.updateScope.initiate({
-          scope: acme,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
           scopeValue: 'read:x',
           body: { description: 'Read X' },
@@ -1470,7 +1456,7 @@ const invalidationCases: readonly InvalidationCase[] = [
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.deleteScope.initiate({
-          scope: acme,
+          tenantId: 'acme',
           resourceServerId: 'rs-1',
           scopeValue: 'read:x',
         }),
@@ -1505,34 +1491,25 @@ const invalidationCases: readonly InvalidationCase[] = [
     refetches: ['grants'],
   },
   {
-    name: 'createClient in the platform scope',
-    mutate: (s) =>
-      s.dispatch(
-        managementApi.endpoints.createClient.initiate({
-          scope: platformScope,
-          body: { isDisabled: false, settings: {} },
-        }),
-      ),
-    refetches: ['clients:platform'],
-  },
-  {
     name: 'deleteClient in another tenant',
     mutate: (s) =>
-      s.dispatch(managementApi.endpoints.deleteClient.initiate({ scope: other, clientId: 'web' })),
+      s.dispatch(
+        managementApi.endpoints.deleteClient.initiate({ tenantId: 'other', clientId: 'web' }),
+      ),
     refetches: ['clients:other'],
   },
   {
-    name: 'updateResourceServer in the platform scope',
+    name: 'updateResourceServer in another tenant',
     mutate: (s) =>
       s.dispatch(
         managementApi.endpoints.updateResourceServer.initiate({
-          scope: platformScope,
+          tenantId: 'other',
           resourceServerId: 'rs-1',
           concurrencyToken: 'etag',
           fields: { name: 'API', isDisabled: true },
         }),
       ),
-    refetches: ['resourceServers:platform'],
+    refetches: ['resourceServers:other'],
   },
   {
     name: 'revokeGrant in another tenant',
@@ -1615,30 +1592,20 @@ type OwnerCase = {
 type SecretOwnerCase = OwnerCase & { readonly owner: SecretOwner };
 
 /**
- * One secret-holding owner of every kind, in the platform scope and in a tenant, with the API path its requests
+ * One secret-holding owner of every kind, in a tenant, with the API path its requests
  * use.
  */
 const secretOwnerCases: readonly SecretOwnerCase[] = [
   { key: 'tenant', owner: { kind: 'tenant', tenantId: 'acme' }, path: '/api/tenants/acme' },
   {
     key: 'tenant-client',
-    owner: { kind: 'client', scope: acme, clientId: 'web' },
+    owner: { kind: 'client', tenantId: 'acme', clientId: 'web' },
     path: '/api/tenants/acme/clients/web',
   },
   {
-    key: 'platform-client',
-    owner: { kind: 'client', scope: platformScope, clientId: 'web' },
-    path: '/api/clients/web',
-  },
-  {
     key: 'tenant-resource-server',
-    owner: { kind: 'resource-server', scope: acme, resourceServerId: 'rs-1' },
+    owner: { kind: 'resource-server', tenantId: 'acme', resourceServerId: 'rs-1' },
     path: '/api/tenants/acme/resource-servers/rs-1',
-  },
-  {
-    key: 'platform-resource-server',
-    owner: { kind: 'resource-server', scope: platformScope, resourceServerId: 'rs-1' },
-    path: '/api/resource-servers/rs-1',
   },
 ];
 
@@ -1943,7 +1910,7 @@ describe('managementApi owner-generic secrets and settings requests', () => {
     const issued = await store
       .dispatch(
         managementApi.endpoints.updateSettings.initiate({
-          owner: { kind: 'client', scope: acme, clientId: 'web' },
+          owner: { kind: 'client', tenantId: 'acme', clientId: 'web' },
           concurrencyToken: 'etag',
           original: {},
           desired: { token_endpoint_auth_method: 'client_secret_jwt' },
@@ -1961,7 +1928,7 @@ describe('managementApi owner-generic secrets and settings requests', () => {
 
     await store.dispatch(
       managementApi.endpoints.rotateSecret.initiate({
-        owner: { kind: 'client', scope: acme, clientId: 'web' },
+        owner: { kind: 'client', tenantId: 'acme', clientId: 'web' },
         secretId: 's-1',
         body,
       }),
@@ -2079,7 +2046,7 @@ describe('managementApi owner-generic cache invalidation', () => {
     const refetched = await refetchedByOwnerMutation((s) =>
       s.dispatch(
         managementApi.endpoints.rotateSecret.initiate({
-          owner: { kind: 'client', scope: acme, clientId: 'web' },
+          owner: { kind: 'client', tenantId: 'acme', clientId: 'web' },
           secretId: 'tenant-client-secret',
           body: { expiresWhen: '2027-01-01T00:00:00Z' },
         }),

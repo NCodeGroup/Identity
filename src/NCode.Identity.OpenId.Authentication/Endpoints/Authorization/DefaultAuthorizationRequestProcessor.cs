@@ -83,7 +83,11 @@ internal class DefaultAuthorizationRequestProcessor(
                 out var translatedError
             )
         )
-            return translatedError.WithState(state);
+        {
+            // The authorization endpoint returns an error to the client's redirect URI (RFC 6749 section 4.1.2.1), so
+            // the status code the translator gives for a direct answer is cleared.
+            return translatedError.WithStatusCode(null).WithState(state);
+        }
 
         return openIdContext
             .ErrorFactory.Create(OpenIdProtocol.ErrorCodes.ServerError)

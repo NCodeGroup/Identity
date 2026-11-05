@@ -111,6 +111,42 @@ public class DefaultAuthorizationRequestProcessorTests : BaseTests
     }
 
     [Fact]
+    public async Task ProcessRequestAsync_WhenTranslatedErrorHasStatusCode_DeliversErrorWithoutStatusCode()
+    {
+        var thrown = new OwnerRootKeyUnavailableException(SecretOwner.ForTenant("acme"));
+        SetupMediatorThrows(thrown);
+        MockContext.SetupGet(x => x.Environment).Returns(MockEnvironment.Object).Verifiable();
+
+        var mockError = SetupErrorProperties(
+            CreateLooseMock<IOpenIdError>(),
+            OpenIdProtocol.ErrorCodes.TemporarilyUnavailable
+        );
+        mockError.Object.StatusCode = 503;
+
+        var mockTranslator = CreateStrictMock<IOpenIdExceptionTranslator>();
+        var translatedError = mockError.Object;
+        mockTranslator
+            .Setup(x => x.TryTranslate(MockEnvironment.Object, thrown, out translatedError))
+            .Returns(true)
+            .Verifiable();
+
+        var processor = CreateProcessor(mockTranslator.Object);
+
+        var disposition = await processor.ProcessRequestAsync(
+            MockContext.Object,
+            MockClient.Object,
+            MockAuthorizationRequest.Object,
+            Delivery,
+            CancellationToken.None
+        );
+
+        var result = Assert.IsType<AuthorizationResult>(disposition.HttpResult);
+        Assert.Same(mockError.Object, result.Error);
+        Assert.Null(result.Error!.StatusCode);
+        Assert.Equal(State, result.Error!.State);
+    }
+
+    [Fact]
     public async Task ProcessRequestAsync_WhenNoTranslatorAnswersForException_DeliversServerErrorWithState()
     {
         var thrown = new InvalidOperationException("failure");

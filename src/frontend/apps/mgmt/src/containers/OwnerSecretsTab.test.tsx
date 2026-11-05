@@ -41,16 +41,12 @@ const cases: readonly OwnerCase[] = [
   { key: 'tenant', owner: { kind: 'tenant', tenantId: 'acme' }, rotates: false },
   {
     key: 'client',
-    owner: { kind: 'client', scope: { kind: 'tenant', tenantId: 'acme' }, clientId: 'web' },
+    owner: { kind: 'client', tenantId: 'acme', clientId: 'web' },
     rotates: true,
   },
   {
     key: 'resource-server',
-    owner: {
-      kind: 'resource-server',
-      scope: { kind: 'tenant', tenantId: 'acme' },
-      resourceServerId: 'rs-1',
-    },
+    owner: { kind: 'resource-server', tenantId: 'acme', resourceServerId: 'rs-1' },
     rotates: false,
   },
 ];

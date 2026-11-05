@@ -26,4 +26,17 @@ public static class RootKeyChangeReasons
     /// A probe of the key succeeded after an earlier one failed.
     /// </summary>
     public const string ValidationSucceeded = "validation_succeeded";
+
+    /// <summary>
+    /// Gets the reason that a probe of the key gives for a change.
+    /// </summary>
+    /// <param name="change">The change: one of the values in <see cref="RootKeyChanges"/>.</param>
+    /// <returns>
+    /// <see cref="ValidationFailed"/> when the change is <see cref="RootKeyChanges.Unavailable"/>; otherwise
+    /// <see cref="ValidationSucceeded"/>.
+    /// </returns>
+    public static string ForValidation(string change) =>
+        string.Equals(change, RootKeyChanges.Unavailable, StringComparison.Ordinal)
+            ? ValidationFailed
+            : ValidationSucceeded;
 }

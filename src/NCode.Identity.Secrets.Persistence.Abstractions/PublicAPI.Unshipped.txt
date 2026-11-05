@@ -185,6 +185,7 @@ NCode.Identity.Secrets.Persistence.Protection.SecretOwner.OwnerId.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.SecretOwner.OwnerType.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.SecretOwner.SecretOwner() -> void
 NCode.Identity.Secrets.Persistence.Protection.SecretOwner.SecretOwner(string! ownerType, string! ownerId) -> void
+NCode.Identity.Secrets.Persistence.Protection.SecretOwner.TenantId.get -> string?
 NCode.Identity.Secrets.Persistence.Protection.SecretOwnerTypes
 NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext
 NCode.Identity.Secrets.Persistence.Protection.SecretProtectionContext.ItemId.get -> string!
@@ -534,6 +535,9 @@ NCode.Identity.Secrets.Persistence.Auditing.RootKeyChangeReasons
 const NCode.Identity.Secrets.Persistence.Auditing.RootKeyChangeReasons.Requested = "requested" -> string!
 const NCode.Identity.Secrets.Persistence.Auditing.RootKeyChangeReasons.ValidationFailed = "validation_failed" -> string!
 const NCode.Identity.Secrets.Persistence.Auditing.RootKeyChangeReasons.ValidationSucceeded = "validation_succeeded" -> string!
+static NCode.Identity.Secrets.Persistence.Auditing.RootKeyChangeReasons.ForValidation(string! change) -> string!
+NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvents
+static NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvents.Create(NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo! rootKey, string! change, string! reason, string! eventSource, NCode.Identity.Events.Audit.AuditActor! actor, System.DateTimeOffset now) -> NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent!
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames
 const NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames.Prefix = "root_key" -> string!
 const NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames.Removed = "root_key.removed" -> string!

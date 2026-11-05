@@ -173,43 +173,28 @@ internal sealed class OwnerRootKeyValidationService(
 
         if (validation is { RootKey: { } rootKey, Change: { } change })
         {
-            var failed = string.Equals(
-                change,
-                RootKeyChanges.Unavailable,
-                StringComparison.Ordinal
-            );
             events.Add(
-                new RootKeyAuditEvent
-                {
-                    EventId = Guid.CreateVersion7(TimeProvider.GetUtcNow()),
-                    EventTime = TimeProvider.GetUtcNow(),
-                    EventSource = AuditEventSources.OpenId,
-                    TenantId = GetTenantId(rootKey.Owner),
-                    Actor = AuditActor.System,
-                    Outcome = failed ? AuditOutcome.Failure : AuditOutcome.Success,
-                    Change = change,
-                    Reason = failed
-                        ? RootKeyChangeReasons.ValidationFailed
-                        : RootKeyChangeReasons.ValidationSucceeded,
-                    OwnerType = rootKey.Owner.OwnerType,
-                    OwnerId = rootKey.Owner.OwnerId,
-                    KeyWrapperName = rootKey.KeyWrapperName,
-                    KeyReference = rootKey.KeyReference,
-                    State = rootKey.State,
-                    Failure = failed ? rootKey.Failure : null,
-                }
+                RootKeyAuditEvents.Create(
+                    rootKey,
+                    change,
+                    RootKeyChangeReasons.ForValidation(change),
+                    AuditEventSources.OpenId,
+                    AuditActor.System,
+                    TimeProvider.GetUtcNow()
+                )
             );
         }
 
         if (validation.Rotation is { } rotation)
         {
+            var now = TimeProvider.GetUtcNow();
             events.Add(
                 new MasterKeyAuditEvent
                 {
-                    EventId = Guid.CreateVersion7(TimeProvider.GetUtcNow()),
-                    EventTime = TimeProvider.GetUtcNow(),
+                    EventId = Guid.CreateVersion7(now),
+                    EventTime = now,
                     EventSource = AuditEventSources.OpenId,
-                    TenantId = GetTenantId(rotation.Owner),
+                    TenantId = rotation.Owner.TenantId,
                     Actor = AuditActor.System,
                     Outcome = AuditOutcome.Success,
                     Change = MasterKeyChanges.Rotated,
@@ -228,11 +213,6 @@ internal sealed class OwnerRootKeyValidationService(
 
         return events;
     }
-
-    private static string? GetTenantId(SecretOwner owner) =>
-        string.Equals(owner.OwnerType, SecretOwnerTypes.Tenant, StringComparison.OrdinalIgnoreCase)
-            ? owner.OwnerId
-            : null;
 
     // A change is audited once it is committed. No caller token reaches the publishing, so every failure, its timeout
     // included, is logged: the change stands, and the audit trail is the one record that lacks it.

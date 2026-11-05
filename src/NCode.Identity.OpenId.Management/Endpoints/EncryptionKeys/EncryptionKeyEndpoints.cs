@@ -257,18 +257,11 @@ internal static class EncryptionKeyEndpoints
 
         if (validation.Change is { } change)
         {
-            var failed = string.Equals(
-                change,
-                RootKeyChanges.Unavailable,
-                StringComparison.Ordinal
-            );
             await auditRecorder.RecordRootKeyChangedAsync(
                 httpContext,
                 rootKey,
                 change,
-                failed
-                    ? RootKeyChangeReasons.ValidationFailed
-                    : RootKeyChangeReasons.ValidationSucceeded,
+                RootKeyChangeReasons.ForValidation(change),
                 cancellationToken
             );
         }

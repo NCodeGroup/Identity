@@ -22,7 +22,7 @@ internal sealed class PersistedSecretValueSource(
 {
     /// <inheritdoc />
     protected override bool Handles(SecretOwner owner) =>
-        string.Equals(owner.OwnerType, SecretOwnerTypes.Tenant, StringComparison.OrdinalIgnoreCase)
+        owner.TenantId is not null
         || string.Equals(
             owner.OwnerType,
             SecretOwnerTypes.Server,

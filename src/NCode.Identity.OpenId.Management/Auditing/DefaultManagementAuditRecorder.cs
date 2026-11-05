@@ -471,13 +471,7 @@ internal class DefaultManagementAuditRecorder(
     {
         var now = TimeProvider.GetUtcNow();
         var owner = rotation.Owner;
-        var tenantId = string.Equals(
-            owner.OwnerType,
-            SecretOwnerTypes.Tenant,
-            StringComparison.OrdinalIgnoreCase
-        )
-            ? owner.OwnerId
-            : null;
+        var tenantId = owner.TenantId;
 
         var auditEvent = new MasterKeyAuditEvent
         {
@@ -520,22 +514,18 @@ internal class DefaultManagementAuditRecorder(
     )
     {
         var now = TimeProvider.GetUtcNow();
-        var owner = rootKey.Owner;
-        var tenantId = string.Equals(
-            owner.OwnerType,
-            SecretOwnerTypes.Tenant,
-            StringComparison.OrdinalIgnoreCase
-        )
-            ? owner.OwnerId
-            : null;
-        var failed = string.Equals(change, RootKeyChanges.Unavailable, StringComparison.Ordinal);
+        var tenantId = rootKey.Owner.TenantId;
 
-        var auditEvent = new RootKeyAuditEvent
+        var auditEvent = RootKeyAuditEvents.Create(
+            rootKey,
+            change,
+            reason,
+            AuditEventSources.Management,
+            GetActor(httpContext),
+            now
+        );
+        auditEvent = auditEvent with
         {
-            EventId = Guid.CreateVersion7(now),
-            EventTime = now,
-            EventSource = AuditEventSources.Management,
-            TenantId = tenantId,
             TenantEnvironmentType = tenantId is null
                 ? null
                 : await TenantEnvironmentResolver.GetEnvironmentTypeAsync(
@@ -543,17 +533,7 @@ internal class DefaultManagementAuditRecorder(
                     tenantId,
                     cancellationToken
                 ),
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
-            Outcome = failed ? AuditOutcome.Failure : AuditOutcome.Success,
-            Change = change,
-            Reason = reason,
-            OwnerType = owner.OwnerType,
-            OwnerId = owner.OwnerId,
-            KeyWrapperName = rootKey.KeyWrapperName,
-            KeyReference = rootKey.KeyReference,
-            State = rootKey.State,
-            Failure = failed ? rootKey.Failure : null,
         };
 
         await PublishAsync(auditEvent);

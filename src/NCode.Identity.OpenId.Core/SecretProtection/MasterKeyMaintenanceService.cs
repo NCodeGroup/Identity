@@ -256,13 +256,7 @@ internal sealed class MasterKeyMaintenanceService(
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.OpenId,
-            TenantId = string.Equals(
-                owner.OwnerType,
-                SecretOwnerTypes.Tenant,
-                StringComparison.OrdinalIgnoreCase
-            )
-                ? owner.OwnerId
-                : null,
+            TenantId = owner.TenantId,
             Actor = AuditActor.System,
             Outcome = AuditOutcome.Success,
             Change = change,

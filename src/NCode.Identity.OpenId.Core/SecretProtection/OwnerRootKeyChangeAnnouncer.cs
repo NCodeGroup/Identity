@@ -32,13 +32,7 @@ internal sealed class OwnerRootKeyChangeAnnouncer(
     /// <inheritdoc />
     public async ValueTask ChangedAsync(SecretOwner owner, CancellationToken cancellationToken)
     {
-        if (
-            !string.Equals(
-                owner.OwnerType,
-                SecretOwnerTypes.Tenant,
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
+        if (owner.TenantId is null)
         {
             await ReplicaBroadcaster.PublishAsync(
                 MasterKeyBroadcast.ChannelName,

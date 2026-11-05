@@ -44,6 +44,31 @@ public class SecretOwnerTests
 
     #endregion
 
+    #region TenantId Tests
+
+    [Theory]
+    [InlineData("tenant", "tenant-1", "tenant-1")]
+    [InlineData("Tenant", "Tenant-1", "Tenant-1")]
+    [InlineData("server", "server-1", null)]
+    public void TenantId_ByOwnerType_IsTheOwnerIdOfATenant(
+        string ownerType,
+        string ownerId,
+        string? expected
+    )
+    {
+        var owner = new SecretOwner(ownerType, ownerId);
+
+        Assert.Equal(expected, owner.TenantId);
+    }
+
+    [Fact]
+    public void TenantId_DefaultOwner_IsNull()
+    {
+        Assert.Null(default(SecretOwner).TenantId);
+    }
+
+    #endregion
+
     #region ForServer Tests
 
     [Fact]

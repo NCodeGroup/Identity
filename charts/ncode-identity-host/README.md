@@ -396,11 +396,12 @@ with `SecretProtection__OwnerRootKeys__ValidationInterval` and `SecretProtection
 example `01:00:00` and `00:01:00`.
 
 **Revocation.** When the tenant revokes, disables or destroys its key, or the deployment's identity loses its grant, the
-next probe, or the next unwrap after a replica's reuse period, fails. The tenant's key then reads `unavailable`: the
-tenant's data is unreadable on every replica, the host writes a log entry and an audit event, the management API
-answers `503` with `Retry-After` for that tenant, and the console shows a banner. The server fails closed, so nothing
-reads or writes the tenant's secrets until the key is restored; restoring the grant makes the next retry succeed and the
-tenant readable again. Removing the key moves the tenant's master keys back under the deployment's root key.
+next unwrap through it fails on a replica, and that replica logs the failure and refuses the tenant for the retry
+interval. The next failed probe marks the key `unavailable`: the tenant's data is unreadable on every replica, the host
+writes an audit event, the management API answers `503` with `Retry-After` for that tenant, and the console shows a
+banner. The server fails closed, so nothing reads or writes the tenant's secrets until the key is restored; restoring
+the grant makes the next retry succeed and the tenant readable again. Removing the key moves the tenant's master keys
+back under the deployment's root key.
 
 **No recovery copy.** A master key under a tenant key has no recovery copy: the recovery public key and the recovery
 private key never touch it, so the operator cannot read the tenant's data without the tenant's key. Destroying the key,

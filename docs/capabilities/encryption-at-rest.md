@@ -338,7 +338,7 @@ rewrapped under it unreadable, in the database and in every backup
 | State         | Meaning                                                                                                          |
 | ------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `active`      | The key wraps every master key of the tenant, and new ones.                                                      |
-| `unavailable` | The last probe failed, or an unwrap through the key failed. The tenant fails closed until a probe succeeds.     |
+| `unavailable` | The last probe failed. The tenant fails closed until a probe succeeds.                                           |
 | `removing`    | The key is being removed: new master keys are wrapped by the deployment's root key while the rest move back.     |
 
 A state the server does not know reads as `unavailable`. The management API and the console report the reference, the
@@ -354,7 +354,9 @@ material.
 **Failing closed.** One replica, under a lease, probes each key that comes due, and every state change reaches every
 replica through the tenant-change broadcast. A replica also unwraps a tenant-keyed master key again at least every
 `ValidationInterval`, with no cached material reused, so a revoked or destroyed key stops it within that interval even
-when no probe runs. While a tenant's key is `unavailable`, the host reads and writes none of the tenant's secrets: the
+when no probe runs. A replica whose unwrap through the key fails logs the failure and refuses the tenant for
+`RetryInterval`; only a failed probe sets the stored state to `unavailable`. While a tenant's key is `unavailable`, the
+host reads and writes none of the tenant's secrets: the
 management API answers `503 Service Unavailable` with a `Retry-After` for that tenant, a protocol request answers as for
 any unhandled failure, the host logs the failure, and the audit trail records `root_key.unavailable` (see
 [Audit records](../audit-records.md#root-keys)). The next successful probe restores the key

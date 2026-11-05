@@ -56,6 +56,15 @@ internal sealed class CoreModelContributor : IOpenIdModelContributor
             .HasFilter("\"RetiredWhen\" IS NULL")
             .HasDatabaseName("IX_MasterKeys_OwnerType_NormalizedOwnerId_Active");
 
+        // The background re-validation scan pages the owner root keys that are due by state and by the time of the last
+        // successful or failed probe, so index each of those two reads on the state first.
+        modelBuilder
+            .Entity<OwnerRootKeyEntity>()
+            .HasIndex(entity => new { entity.State, entity.ValidatedWhen });
+        modelBuilder
+            .Entity<OwnerRootKeyEntity>()
+            .HasIndex(entity => new { entity.State, entity.FailedWhen });
+
         // A tenant's issuer is optional (a tenant without one derives its origin from the request), so enforce
         // uniqueness only over non-null values (a filtered index). Two tenants sharing an issuer is a protocol-level
         // collision: the issuer IS the tenant's identity, and every token it mints asserts it. The in-memory provider

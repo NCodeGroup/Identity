@@ -22,9 +22,14 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 public sealed class OwnerRootKeyEntity : ISupportConcurrencyToken
 {
     /// <summary>
-    /// Specifies the maximum length of <see cref="OwnerType"/> and <see cref="State"/>.
+    /// Specifies the maximum length of <see cref="OwnerType"/>.
     /// </summary>
     private const int OwnerTypeMaxLength = 50;
+
+    /// <summary>
+    /// Specifies the maximum length of <see cref="State"/>.
+    /// </summary>
+    private const int StateMaxLength = 50;
 
     /// <summary>
     /// Specifies the maximum length of <see cref="KeyWrapperName"/>.
@@ -78,7 +83,7 @@ public sealed class OwnerRootKeyEntity : ISupportConcurrencyToken
     /// Gets or sets the state of the root key.
     /// </summary>
     [Unicode(false)]
-    [MaxLength(OwnerTypeMaxLength)]
+    [MaxLength(StateMaxLength)]
     public required string State { get; set; }
 
     /// <summary>

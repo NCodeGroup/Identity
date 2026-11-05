@@ -33,8 +33,11 @@ internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
         IOptions<SecretProtectionOptions> options
     )
     {
-        ProvidersByName = IndexByName(providers);
-        ReferencedByName = providers
+        // The registrations are enumerated once, so a lazy sequence is not resolved twice.
+        var buffered = providers.ToArray();
+
+        ProvidersByName = IndexByName(buffered);
+        ReferencedByName = buffered
             .OfType<IReferencedKeyWrapper>()
             .ToFrozenDictionary(wrapper => wrapper.Name, StringComparer.Ordinal);
         ProtectionOptions = options;

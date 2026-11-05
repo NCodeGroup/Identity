@@ -928,6 +928,16 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_OwnerRootKeys_State_FailedWhen",
+                table: "OwnerRootKeys",
+                columns: new[] { "State", "FailedWhen" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OwnerRootKeys_State_ValidatedWhen",
+                table: "OwnerRootKeys",
+                columns: new[] { "State", "ValidatedWhen" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ResourceServers_TenantId_NormalizedIdentifier",
                 table: "ResourceServers",
                 columns: new[] { "TenantId", "NormalizedIdentifier" },

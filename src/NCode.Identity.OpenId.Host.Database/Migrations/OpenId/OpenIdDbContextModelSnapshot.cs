@@ -883,6 +883,10 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.HasIndex("OwnerType", "NormalizedOwnerId")
                         .IsUnique();
 
+                    b.HasIndex("State", "FailedWhen");
+
+                    b.HasIndex("State", "ValidatedWhen");
+
                     b.ToTable("OwnerRootKeys", (string)null);
                 });
 

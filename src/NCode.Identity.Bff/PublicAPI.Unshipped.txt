@@ -166,3 +166,55 @@ NCode.Identity.Bff.Tokens.BffHttpClientBuilderExtensions.extension(Microsoft.Ext
 const NCode.Identity.Bff.BffTelemetry.ActivitySourceName = "NCode.Identity.Bff" -> string!
 const NCode.Identity.Bff.BffTelemetry.MeterName = "NCode.Identity.Bff" -> string!
 NCode.Identity.Bff.BffTelemetry
+NCode.Identity.Bff.Options.BffFrontendSelectionOptions
+NCode.Identity.Bff.Options.BffFrontendSelectionOptions.BffFrontendSelectionOptions() -> void
+NCode.Identity.Bff.Options.BffFrontendSelectionOptions.Rule.get -> string?
+NCode.Identity.Bff.Options.BffFrontendSelectionOptions.Rule.set -> void
+NCode.Identity.Bff.Options.BffFrontendSelectionOptions.Values.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffFrontendSelectionOptions.Values.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions
+NCode.Identity.Bff.Options.BffFrontendOptions.Authority.get -> string!
+NCode.Identity.Bff.Options.BffFrontendOptions.Authority.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.BackchannelLogoutSessionRequired.get -> bool
+NCode.Identity.Bff.Options.BffFrontendOptions.BackchannelLogoutSessionRequired.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.BffFrontendOptions() -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.ClientAuthentication.get -> NCode.Identity.Bff.Options.BffClientAuthenticationOptions!
+NCode.Identity.Bff.Options.BffFrontendOptions.ClientAuthentication.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.ClientId.get -> string!
+NCode.Identity.Bff.Options.BffFrontendOptions.ClientId.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.DPoP.get -> NCode.Identity.Bff.Options.BffDPoPOptions!
+NCode.Identity.Bff.Options.BffFrontendOptions.DPoP.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.ErrorPath.get -> string!
+NCode.Identity.Bff.Options.BffFrontendOptions.ErrorPath.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.IdToken.get -> NCode.Identity.Bff.Options.BffIdTokenOptions!
+NCode.Identity.Bff.Options.BffFrontendOptions.IdToken.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.Jwks.get -> NCode.Identity.Bff.Options.BffJwksOptions!
+NCode.Identity.Bff.Options.BffFrontendOptions.Jwks.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.LoginParameters.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffFrontendOptions.LoginParameters.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.PathPrefix.get -> string!
+NCode.Identity.Bff.Options.BffFrontendOptions.PathPrefix.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.PublicOrigin.get -> string!
+NCode.Identity.Bff.Options.BffFrontendOptions.PublicOrigin.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.RemoteApis.get -> System.Collections.Generic.Dictionary<string!, NCode.Identity.Bff.Options.BffRemoteApiOptions!>!
+NCode.Identity.Bff.Options.BffFrontendOptions.RemoteApis.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.Resources.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffFrontendOptions.Resources.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.ReturnUrls.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffFrontendOptions.ReturnUrls.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.Scopes.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffFrontendOptions.Scopes.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.SecurityHeaders.get -> NCode.Identity.Bff.Options.BffSecurityHeadersOptions!
+NCode.Identity.Bff.Options.BffFrontendOptions.SecurityHeaders.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.Selection.get -> NCode.Identity.Bff.Options.BffFrontendSelectionOptions!
+NCode.Identity.Bff.Options.BffFrontendOptions.Selection.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.Session.get -> NCode.Identity.Bff.Options.BffSessionOptions!
+NCode.Identity.Bff.Options.BffFrontendOptions.Session.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.TrustedOrigins.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffFrontendOptions.TrustedOrigins.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.UserClaims.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.Bff.Options.BffFrontendOptions.UserClaims.set -> void
+NCode.Identity.Bff.Options.BffFrontendOptions.UserInfo.get -> NCode.Identity.Bff.Options.BffUserInfoOptions!
+NCode.Identity.Bff.Options.BffFrontendOptions.UserInfo.set -> void
+NCode.Identity.Bff.Options.BffOptions.Frontends.get -> System.Collections.Generic.Dictionary<string!, NCode.Identity.Bff.Options.BffFrontendOptions!>!
+NCode.Identity.Bff.Options.BffOptions.Frontends.set -> void

@@ -12,6 +12,12 @@ namespace NCode.Identity.Bff.Options;
 public sealed class BffOptions
 {
     /// <summary>
+    /// Gets or sets the frontends that the BFF serves, by name. The configuration section is <c>Bff:Frontends</c>.
+    /// </summary>
+    public Dictionary<string, BffFrontendOptions> Frontends { get; set; } =
+        new(StringComparer.Ordinal);
+
+    /// <summary>
     /// Gets or sets the issuer URL of the OpenID Provider. The configuration key is <c>Bff:Authority</c>.
     /// </summary>
     public string Authority { get; set; } = string.Empty;

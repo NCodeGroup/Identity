@@ -519,7 +519,8 @@ public class MasterKeyFactoryTests : IDisposable
 
     private static PersistedOwnerRootKey CreateRootKey(
         string state = OwnerRootKeyStates.Active,
-        string reference = "kms://tenant-a/root"
+        string reference = "kms://tenant-a/root",
+        string? accessIdentity = null
     ) =>
         new()
         {
@@ -527,10 +528,94 @@ public class MasterKeyFactoryTests : IDisposable
             OwnerId = Owner.OwnerId,
             KeyWrapperName = "fake-kms",
             KeyReference = reference,
+            AccessIdentity = accessIdentity,
             State = state,
             CreatedWhen = Now,
             StateChangedWhen = Now,
         };
+
+    [Fact]
+    public async Task Create_OwnerRootKeyWithAnAccessIdentity_WrapsThroughTheBindingAndRecordsTheIdentity()
+    {
+        var fake = new FakeReferencedKeyWrapper();
+        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        var factory = CreateFactory(_disabledRecovery);
+
+        var created = await factory.CreateAsync(
+            SecretOwner.ForTenant("Acme"),
+            version: 1,
+            CreateRootKey(accessIdentity: "test-identity-acme"),
+            CancellationToken.None
+        );
+        using var key = created.Key;
+
+        Assert.Equal("test-identity-acme", created.Row.RootKeyAccessIdentity);
+        Assert.Equal(new KeyAccess("test-identity-acme", "tenant:acme"), fake.LastWrapAccess);
+    }
+
+    [Fact]
+    public async Task Create_OwnerRootKeyWithoutAnAccessIdentity_WrapsWithoutAccess()
+    {
+        var fake = new FakeReferencedKeyWrapper();
+        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        var factory = CreateFactory(_disabledRecovery);
+
+        var created = await factory.CreateAsync(
+            Owner.Normalize(),
+            version: 1,
+            CreateRootKey(),
+            CancellationToken.None
+        );
+        using var key = created.Key;
+
+        Assert.Null(created.Row.RootKeyAccessIdentity);
+        Assert.Null(fake.LastWrapAccess);
+    }
+
+    [Fact]
+    public async Task Unwrap_RowWithAnAccessIdentity_UnwrapsThroughTheAccessOverload()
+    {
+        var fake = new FakeReferencedKeyWrapper();
+        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        var factory = CreateFactory(_disabledRecovery);
+        var created = await factory.CreateAsync(
+            SecretOwner.ForTenant("Acme"),
+            version: 1,
+            CreateRootKey(accessIdentity: "test-identity-acme"),
+            CancellationToken.None
+        );
+        using var createdKey = created.Key;
+
+        using var unwrapped = await factory.UnwrapAsync(created.Row, CancellationToken.None);
+
+        Assert.Equal(createdKey.Material.ToArray(), unwrapped.Material.ToArray());
+        Assert.Equal(new KeyAccess("test-identity-acme", "tenant:acme"), fake.LastUnwrapAccess);
+    }
+
+    [Fact]
+    public async Task Wrap_OwnerRootKeyWithAnAccessIdentity_ReturnsTheIdentity()
+    {
+        var fake = new FakeReferencedKeyWrapper();
+        _catalog.Setup(x => x.GetReferenced("fake-kms")).Returns(fake).Verifiable();
+        ExpectCreate();
+        var factory = CreateFactory(_disabledRecovery);
+        var created = await factory.CreateAsync(
+            Owner.Normalize(),
+            1,
+            rootKey: null,
+            CancellationToken.None
+        );
+        using var key = created.Key;
+
+        var wraps = await factory.WrapAsync(
+            key,
+            CreateRootKey(accessIdentity: "test-identity-a"),
+            CancellationToken.None
+        );
+
+        Assert.Equal("test-identity-a", wraps.RootKeyAccessIdentity);
+        Assert.Equal(new KeyAccess("test-identity-a", "tenant:tenant-a"), fake.LastWrapAccess);
+    }
 
     [Fact]
     public async Task Create_ActiveOwnerRootKey_WrapsUnderItWithNoRecoveryCopy()
@@ -674,6 +759,72 @@ public class MasterKeyFactoryTests : IDisposable
         Assert.False(MasterKeyFactory.Conforms(withRecovery, rootKey));
     }
 
+    [Fact]
+    public void Conforms_OwnerRootKeyWithAnAccessIdentity_RequiresTheSameIdentity()
+    {
+        var rootKey = CreateRootKey(accessIdentity: "test-identity-a");
+
+        Assert.True(
+            MasterKeyFactory.Conforms(
+                CreateRow("kms://tenant-a/root", accessIdentity: "test-identity-a"),
+                rootKey
+            )
+        );
+        Assert.False(
+            MasterKeyFactory.Conforms(
+                CreateRow("kms://tenant-a/root", accessIdentity: "test-identity-b"),
+                rootKey
+            )
+        );
+        Assert.False(MasterKeyFactory.Conforms(CreateRow("kms://tenant-a/root"), rootKey));
+        Assert.False(
+            MasterKeyFactory.Conforms(
+                CreateRow("kms://tenant-a/root", accessIdentity: "test-identity-a"),
+                CreateRootKey()
+            )
+        );
+    }
+
+    [Fact]
+    public void Conforms_NoOwnerRootKey_RequiresNoAccessIdentity()
+    {
+        Assert.False(
+            MasterKeyFactory.Conforms(
+                CreateRow(rootKeyReference: null, accessIdentity: "test-identity-a"),
+                rootKey: null
+            )
+        );
+    }
+
+    [Fact]
+    public void IsUnderKey_OwnerRootKey_IgnoresTheAccessIdentity()
+    {
+        var rootKey = CreateRootKey(accessIdentity: "test-identity-a");
+
+        Assert.True(
+            MasterKeyFactory.IsUnderKey(
+                CreateRow("kms://tenant-a/root", accessIdentity: "test-identity-b"),
+                rootKey
+            )
+        );
+        Assert.True(MasterKeyFactory.IsUnderKey(CreateRow("kms://tenant-a/root"), rootKey));
+        Assert.False(MasterKeyFactory.IsUnderKey(CreateRow("kms://tenant-a/other"), rootKey));
+        Assert.False(
+            MasterKeyFactory.IsUnderKey(
+                CreateRow("kms://tenant-a/root", provider: "other-kms"),
+                rootKey
+            )
+        );
+        Assert.False(MasterKeyFactory.IsUnderKey(CreateRow(null), rootKey));
+        Assert.False(MasterKeyFactory.IsUnderKey(CreateRow("kms://tenant-a/root"), null));
+        Assert.False(
+            MasterKeyFactory.IsUnderKey(
+                CreateRow("kms://tenant-a/root"),
+                CreateRootKey(OwnerRootKeyStates.Removing)
+            )
+        );
+    }
+
     [Theory]
     [InlineData(OwnerRootKeyStates.Active, true)]
     [InlineData(OwnerRootKeyStates.Unavailable, true)]
@@ -687,7 +838,8 @@ public class MasterKeyFactoryTests : IDisposable
 
     private static PersistedMasterKey CreateRow(
         string? rootKeyReference,
-        string provider = "fake-kms"
+        string provider = "fake-kms",
+        string? accessIdentity = null
     ) =>
         new()
         {
@@ -699,6 +851,7 @@ public class MasterKeyFactoryTests : IDisposable
             RootKeyProvider = provider,
             RootKeyId = "id",
             RootKeyReference = rootKeyReference,
+            RootKeyAccessIdentity = accessIdentity,
             RootWrappedKey = "wrapped",
             KeyCheck = "check",
         };

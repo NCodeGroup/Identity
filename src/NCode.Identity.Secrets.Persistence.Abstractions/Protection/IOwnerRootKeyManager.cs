@@ -70,12 +70,41 @@ public interface IOwnerRootKeyManager
     ValueTask<OwnerRootKeyInfo?> GetAsync(SecretOwner owner, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Sets or changes the root key of an owner. The key is probed first; the owner's master key rotates onto it and
-    /// every retired master key is rewrapped under it.
+    /// Checks that a key wrapper may be chosen and that it accepts the syntax of an access identity, which is at most
+    /// <see cref="NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxAccessIdentityLength"/>
+    /// characters.
+    /// </summary>
+    /// <param name="keyWrapperName">The name of the key wrapper.</param>
+    /// <param name="accessIdentity">The identity that the server takes on to reach the key.</param>
+    /// <param name="failure">
+    /// When this method returns <see langword="false"/>, a sentence that describes why the identity is refused;
+    /// otherwise <see langword="null"/>.
+    /// </param>
+    /// <returns><see langword="true"/> when the identity is acceptable; otherwise, <see langword="false"/>.</returns>
+    // See ADR-1429.
+    bool TryValidateAccessIdentity(
+        string keyWrapperName,
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    );
+
+    /// <summary>
+    /// Gets the access binding of an owner: its normalized <c>type:id</c>, such as <c>tenant:acme</c>. The trust of an
+    /// access identity can require it, as the trust policy of an AWS role requires it as the external ID.
     /// </summary>
     /// <param name="owner">The owner that brings the key.</param>
-    /// <param name="keyWrapperName">The name of the key wrapper, which has to be allowed.</param>
-    /// <param name="keyReference">The reference to the key.</param>
+    /// <returns>The access binding of the owner.</returns>
+    /// <exception cref="ArgumentException">Thrown when the owner is the default value of <see cref="SecretOwner"/>.</exception>
+    // See ADR-1429.
+    string GetAccessBinding(SecretOwner owner);
+
+    /// <summary>
+    /// Sets or changes the root key of an owner. The key is probed first, through the access identity when the request
+    /// has one. A different key rotates the owner's master key onto it, and every retired master key is rewrapped under
+    /// it; a different access identity for the same key rewraps the master keys without rotating.
+    /// </summary>
+    /// <param name="owner">The owner that brings the key.</param>
+    /// <param name="request">The key wrapper, the key reference and the access identity.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the result.</returns>
     /// <exception cref="OwnerRootKeyNotAllowedException">
@@ -83,7 +112,8 @@ public interface IOwnerRootKeyManager
     /// owner.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// Thrown when the key wrapper is not allowed or rejects the reference, or the reference is too long.
+    /// Thrown when the key wrapper is not allowed or rejects the reference or the access identity, or either is too
+    /// long.
     /// </exception>
     /// <exception cref="OwnerRootKeyProbeException">Thrown when the key fails its probe.</exception>
     /// <exception cref="MasterKeyRotationTooSoonException">
@@ -91,10 +121,10 @@ public interface IOwnerRootKeyManager
     /// key.
     /// </exception>
     /// <exception cref="StoreConcurrencyException">Thrown when another writer stored a root key first.</exception>
+    // See ADR-1429.
     ValueTask<OwnerRootKeyChange> SetAsync(
         SecretOwner owner,
-        string keyWrapperName,
-        string keyReference,
+        OwnerRootKeyRequest request,
         CancellationToken cancellationToken
     );
 

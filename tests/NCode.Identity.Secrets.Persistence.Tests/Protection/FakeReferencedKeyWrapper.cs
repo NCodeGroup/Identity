@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 
 /// <summary>
 /// An in-memory key wrapper that wraps under a key the caller names, with AES-GCM and one random key per reference. A
-/// revoked reference fails to wrap and to unwrap. It counts its calls.
+/// revoked reference fails to wrap and to unwrap. It counts its calls and records the access of its last wrap and unwrap.
 /// </summary>
 public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IReferencedKeyWrapper
 {
@@ -25,6 +25,20 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
     private int _wrapCount;
 
     private int _unwrapCount;
+
+    private KeyAccess? _lastWrapAccess;
+
+    private KeyAccess? _lastUnwrapAccess;
+
+    /// <summary>
+    /// Gets the access of the last wrap, or <see langword="null"/> when it had none.
+    /// </summary>
+    public KeyAccess? LastWrapAccess => Volatile.Read(ref _lastWrapAccess);
+
+    /// <summary>
+    /// Gets the access of the last unwrap, or <see langword="null"/> when it had none.
+    /// </summary>
+    public KeyAccess? LastUnwrapAccess => Volatile.Read(ref _lastUnwrapAccess);
 
     /// <summary>
     /// Gets the number of wraps.
@@ -75,6 +89,22 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
     }
 
     /// <inheritdoc />
+    public bool TryValidateAccessIdentity(
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (accessIdentity.StartsWith("test-identity-", StringComparison.Ordinal))
+        {
+            failure = null;
+            return true;
+        }
+
+        failure = "must start with test-identity-";
+        return false;
+    }
+
+    /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
@@ -83,13 +113,15 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
 
     /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
-        string keyReference,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
+        var keyReference = referencedKey.KeyReference;
         Interlocked.Increment(ref _wrapCount);
+        Volatile.Write(ref _lastWrapAccess, referencedKey.Access);
         ThrowIfRevoked(keyReference);
 
         var kek = Keys.GetOrAdd(keyReference, static _ => RandomNumberGenerator.GetBytes(32));
@@ -119,9 +151,26 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
         ReadOnlyMemory<byte> context,
         IBufferWriter<byte> destination,
         CancellationToken cancellationToken
+    ) => UnwrapCoreAsync(wrappedKey, access: null, context, destination);
+
+    /// <inheritdoc />
+    public ValueTask UnwrapAsync(
+        WrappedKey wrappedKey,
+        KeyAccess access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    ) => UnwrapCoreAsync(wrappedKey, access, context, destination);
+
+    private ValueTask UnwrapCoreAsync(
+        WrappedKey wrappedKey,
+        KeyAccess? access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination
     )
     {
         Interlocked.Increment(ref _unwrapCount);
+        Volatile.Write(ref _lastUnwrapAccess, access);
 
         var keyReference = wrappedKey.KeyId[..wrappedKey.KeyId.LastIndexOf('/')];
         ThrowIfRevoked(keyReference);

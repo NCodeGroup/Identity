@@ -755,10 +755,10 @@ public class DefaultMasterKeyRingTests : IDisposable
 
     private readonly FakeReferencedKeyWrapper _referenced = new();
 
-    private MasterKeyFactory CreateOwnerRootFactory()
+    private MasterKeyFactory CreateOwnerRootFactory(IReferencedKeyWrapper? referenced = null)
     {
         var catalog = new DefaultKeyWrapperCatalog(
-            [_provider, _referenced],
+            [_provider, referenced ?? _referenced],
             Microsoft.Extensions.Options.Options.Create(
                 new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Ephemeral }
             )
@@ -781,7 +781,8 @@ public class DefaultMasterKeyRingTests : IDisposable
 
     private PersistedOwnerRootKey CreateRootKey(
         string state = OwnerRootKeyStates.Active,
-        string keyReference = RootKeyReference
+        string keyReference = RootKeyReference,
+        string? accessIdentity = null
     ) =>
         new()
         {
@@ -789,6 +790,7 @@ public class DefaultMasterKeyRingTests : IDisposable
             OwnerId = NormalizedOwner.OwnerId,
             KeyWrapperName = _referenced.Name,
             KeyReference = keyReference,
+            AccessIdentity = accessIdentity,
             State = state,
             CreatedWhen = _time.GetUtcNow(),
             StateChangedWhen = _time.GetUtcNow(),
@@ -797,13 +799,14 @@ public class DefaultMasterKeyRingTests : IDisposable
     private async Task<PersistedMasterKey> CreateOwnerRootedRowAsync(
         MasterKeyFactory factory,
         int version = 1,
-        string keyReference = RootKeyReference
+        string keyReference = RootKeyReference,
+        string? accessIdentity = null
     )
     {
         var created = await factory.CreateAsync(
             NormalizedOwner,
             version,
-            CreateRootKey(keyReference: keyReference),
+            CreateRootKey(keyReference: keyReference, accessIdentity: accessIdentity),
             CancellationToken.None
         );
         created.Key.Dispose();
@@ -1066,6 +1069,42 @@ public class DefaultMasterKeyRingTests : IDisposable
         _referenced.Revoke(otherReference);
         _time.Advance(TimeSpan.FromHours(1));
         ExpectLoadWithRows(row4, CreateRootKey(), row1, row2, row3);
+        await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
+            await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task GetProtector_DueValidationWithRowsUnderTwoAccessIdentities_UnwrapsOnceForEachIdentity()
+    {
+        const string identityA = "test-identity-a";
+        const string identityB = "test-identity-b";
+        var wrapper = new IdentityRecordingKeyWrapper(_referenced);
+        var factory = CreateOwnerRootFactory(wrapper);
+        var row1 = await CreateOwnerRootedRowAsync(factory, version: 1, accessIdentity: identityA);
+        var row2 = await CreateOwnerRootedRowAsync(factory, version: 2, accessIdentity: identityB);
+        var row3 = await CreateOwnerRootedRowAsync(factory, version: 3, accessIdentity: identityA);
+        string[] protectedValues = [CreateEnvelopeFor(row1.KeyId), CreateEnvelopeFor(row2.KeyId)];
+        ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
+        using var ring = CreateOwnerRootRing(factory);
+        await ring.GetProtectorAsync(Owner, protectedValues, CancellationToken.None);
+        Assert.Equal(3, wrapper.UnwrapAccesses.Count);
+
+        // The active row validates its identity and one row validates the other identity.
+        _time.Advance(TimeSpan.FromHours(1));
+        ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
+        await ring.GetProtectorAsync(Owner, [], CancellationToken.None);
+        string[] expectedIdentities = [identityA, identityB];
+        var validated = wrapper.UnwrapAccesses.Skip(3).Select(access => access.Identity);
+        Assert.Equal(expectedIdentities, validated.Order().ToArray());
+
+        // The entry holds all three keys: no store manager is queued, so a store read fails the test.
+        await ring.GetProtectorAsync(Owner, protectedValues, CancellationToken.None);
+
+        // An identity that is revoked fails the owner closed although the active row's identity works.
+        wrapper.Refuse(identityB);
+        _time.Advance(TimeSpan.FromHours(1));
+        ExpectLoadWithRows(row3, CreateRootKey(accessIdentity: identityA), row1, row2);
         await Assert.ThrowsAsync<OwnerRootKeyUnavailableException>(async () =>
             await ring.GetProtectorAsync(Owner, [], CancellationToken.None)
         );

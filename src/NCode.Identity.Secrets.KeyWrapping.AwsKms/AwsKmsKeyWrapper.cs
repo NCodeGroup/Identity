@@ -18,7 +18,8 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms;
 /// <summary>
 /// Provides an implementation of <see cref="IReferencedKeyWrapper"/> that wraps keys with a symmetric encryption key
 /// held in AWS Key Management Service, so the root key never leaves the service. It wraps under the configured key, or
-/// under the key or alias ARN that the caller names.
+/// under the key or alias ARN that the caller names, reaching a named key through the IAM role that the holder of the
+/// key grants when the caller names one.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -73,7 +74,12 @@ internal class AwsKmsKeyWrapper(
             );
         }
 
-        return await WrapUnderAsync(keyArn, key, context, cancellationToken);
+        return await WrapUnderAsync(
+            new ReferencedKey(keyArn, Access: null),
+            key,
+            context,
+            cancellationToken
+        );
     }
 
     /// <inheritdoc />
@@ -94,31 +100,67 @@ internal class AwsKmsKeyWrapper(
     }
 
     /// <inheritdoc />
+    public bool TryValidateAccessIdentity(
+        string accessIdentity,
+        [NotNullWhen(false)] out string? failure
+    )
+    {
+        if (AwsIamRoleArn.IsValid(accessIdentity))
+        {
+            failure = null;
+            return true;
+        }
+
+        failure =
+            "must be the ARN of an IAM role, such as arn:aws:iam::111122223333:role/ncode-identity-tenant-root";
+        return false;
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
+    /// Thrown when the key reference of <paramref name="referencedKey"/> is not the ARN of a KMS key or alias, or its
+    /// access identity is set and is not the ARN of an IAM role.
+    /// </exception>
     public async ValueTask<WrappedKey> WrapAsync(
-        string keyReference,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
-        if (!AwsKmsKeyArn.IsValid(keyReference))
+        ArgumentNullException.ThrowIfNull(referencedKey);
+
+        if (!AwsKmsKeyArn.IsValid(referencedKey.KeyReference))
         {
             throw new ArgumentException(
                 "The key reference is not the ARN of a KMS key or alias.",
-                nameof(keyReference)
+                nameof(referencedKey)
             );
         }
 
-        return await WrapUnderAsync(keyReference, key, context, cancellationToken);
+        if (
+            referencedKey.Access is { } access
+            && !TryValidateAccessIdentity(access.Identity, out _)
+        )
+        {
+            throw new ArgumentException(
+                "The access identity is not the ARN of an IAM role.",
+                nameof(referencedKey)
+            );
+        }
+
+        return await WrapUnderAsync(referencedKey, key, context, cancellationToken);
     }
 
     private async ValueTask<WrappedKey> WrapUnderAsync(
-        string keyArn,
+        ReferencedKey referencedKey,
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,
         CancellationToken cancellationToken
     )
     {
+        var keyArn = referencedKey.KeyReference;
+
         // The SDK demands a stream, so the key is copied into a sensitive rental that the stream reads from; the
         // rental is zeroed when it is disposed.
         using var plaintextLease = BufferFactory.Rent(
@@ -137,8 +179,14 @@ internal class AwsKmsKeyWrapper(
             EncryptionContext = CreateEncryptionContext(context),
         };
 
-        var client = ClientFactory.GetClient(AwsKmsKeyArn.GetRegion(keyArn));
-        var response = await client.EncryptAsync(request, cancellationToken);
+        var region = AwsKmsKeyArn.GetRegion(keyArn);
+
+        var response = await ClientFactory.ExecuteAsync(
+            region,
+            referencedKey.Access,
+            (client, token) => new ValueTask<EncryptResponse>(client.EncryptAsync(request, token)),
+            cancellationToken
+        );
 
         return new WrappedKey
         {
@@ -156,8 +204,44 @@ internal class AwsKmsKeyWrapper(
     /// Thrown when the wrapped key does not name a KMS key, is empty or not valid base64url text, or was rejected by
     /// the service as altered or as wrapped under another key or context.
     /// </exception>
-    public async ValueTask UnwrapAsync(
+    public ValueTask UnwrapAsync(
         WrappedKey wrappedKey,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    ) => UnwrapCoreAsync(wrappedKey, access: null, context, destination, cancellationToken);
+
+    /// <summary>
+    /// Unwraps a key that was wrapped under a KMS key, reaching the KMS key through the IAM role that the access names.
+    /// </summary>
+    /// <param name="wrappedKey">The wrapped key to unwrap.</param>
+    /// <param name="access">The IAM role to assume to reach the KMS key, and the external ID to assume it with.</param>
+    /// <param name="context">The context that binds the wrapped key.</param>
+    /// <param name="destination">The writer that receives the unwrapped key.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="wrappedKey"/> or <paramref name="access"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the wrapped key does not name a KMS key, is empty or not valid base64url text, or was rejected by
+    /// the service as altered or as wrapped under another key or context.
+    /// </exception>
+    public ValueTask UnwrapAsync(
+        WrappedKey wrappedKey,
+        KeyAccess access,
+        ReadOnlyMemory<byte> context,
+        IBufferWriter<byte> destination,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(access);
+
+        return UnwrapCoreAsync(wrappedKey, access, context, destination, cancellationToken);
+    }
+
+    private async ValueTask UnwrapCoreAsync(
+        WrappedKey wrappedKey,
+        KeyAccess? access,
         ReadOnlyMemory<byte> context,
         IBufferWriter<byte> destination,
         CancellationToken cancellationToken
@@ -192,23 +276,33 @@ internal class AwsKmsKeyWrapper(
             EncryptionContext = CreateEncryptionContext(context),
         };
 
-        var client = ClientFactory.GetClient(AwsKmsKeyArn.GetRegion(keyId));
+        var region = AwsKmsKeyArn.GetRegion(keyId);
 
         DecryptResponse response;
         try
         {
-            response = await client.DecryptAsync(request, cancellationToken);
+            response = await ClientFactory.ExecuteAsync(
+                region,
+                access,
+                (client, token) =>
+                    new ValueTask<DecryptResponse>(client.DecryptAsync(request, token)),
+                cancellationToken
+            );
         }
         catch (Exception exception)
-            when (exception is InvalidCiphertextException or IncorrectKeyException)
         {
             // Only a ciphertext or key that the service rejects is a cryptographic failure. Anything else
             // propagates unchanged. An outage must not look like a wrong key: callers delete keys on
             // CryptographicException in Development.
-            throw new CryptographicException(
-                $"AWS KMS key '{keyId}' did not unwrap the master key: the ciphertext or its encryption context does not match.",
-                exception
-            );
+            if (exception is InvalidCiphertextException or IncorrectKeyException)
+            {
+                throw new CryptographicException(
+                    $"AWS KMS key '{keyId}' did not unwrap the master key: the ciphertext or its encryption context does not match.",
+                    exception
+                );
+            }
+
+            throw;
         }
 
         CopyPlaintext(response.Plaintext, destination);

@@ -66,6 +66,19 @@ internal class DefaultOpenIdExceptionHandler(ILogger<DefaultOpenIdExceptionHandl
     {
         var requestToString = HttpContextDebugFormatter.RequestToString(httpContext.Request);
 
+        // The owner of the outage (such as the key ring for an unavailable root key) already logs and audits it, so
+        // each refused request is a Warning rather than an Error.
+        if (
+            exception is OpenIdException
+            {
+                Error.Code: OpenIdProtocol.ErrorCodes.TemporarilyUnavailable
+            } temporaryError
+        )
+        {
+            Logger.TemporarilyUnavailable(exception, requestToString, temporaryError.Error.Code);
+            return;
+        }
+
         // A client-facing 4xx OpenIdException (e.g. an invalid redirect_uri or malformed request) is an expected
         // validation outcome, not a server fault; log it at Warning so genuine 5xx faults stay the only Error entries.
         if (exception is OpenIdException { Error: { StatusCode: >= 400 and < 500 } error })

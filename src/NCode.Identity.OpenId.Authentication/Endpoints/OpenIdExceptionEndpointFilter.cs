@@ -59,6 +59,19 @@ internal sealed class OpenIdExceptionEndpointFilter : IEndpointFilter
             var openIdContext = feature.OpenIdContext;
             var openIdEnvironment = openIdContext.Environment;
 
+            // An exception that a package owns is mapped to its protocol error before auditing and handler
+            // selection, so every handler sees a protocol exception.
+            // See ADR-1428.
+            if (
+                exception is not OpenIdException
+                && httpContext
+                    .RequestServices.GetServices<IOpenIdExceptionTranslator>()
+                    .TryTranslate(openIdEnvironment, exception, out var translatedError)
+            )
+            {
+                exception = new OpenIdException(translatedError, exception);
+            }
+
             // A protocol exception already carries its error; audit it before rendering so the record
             // survives even if the handler throws. The sentinel de-dupes the disposition publish below.
             if (exception is OpenIdException openIdException)

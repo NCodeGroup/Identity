@@ -56,6 +56,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
             OwnerId = ownerId,
             KeyWrapperName = "aws-kms",
             KeyReference = $"arn:aws:kms:us-west-2:111122223333:key/{ownerId}",
+            AccessIdentity = $"arn:aws:iam::111122223333:role/{ownerId}",
             State = state,
             CreatedWhen = Now.AddDays(-1),
             StateChangedWhen = Now.AddHours(-3),
@@ -101,6 +102,8 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
         Assert.Equal("Tenant-One", actual.OwnerId);
         Assert.Equal(expected.KeyWrapperName, actual.KeyWrapperName);
         Assert.Equal(expected.KeyReference, actual.KeyReference);
+        Assert.Equal(expected.AccessIdentity, actual.AccessIdentity);
+        Assert.NotNull(actual.AccessIdentity);
         Assert.Equal(expected.State, actual.State);
         Assert.Equal(expected.CreatedWhen, actual.CreatedWhen);
         Assert.Equal(expected.StateChangedWhen, actual.StateChangedWhen);
@@ -149,6 +152,7 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
             current.State = OwnerRootKeyStates.Unavailable;
             current.FailedWhen = Now;
             current.Failure = "AccessDenied: revoked";
+            current.AccessIdentity = null;
             await CreateStore(context).UpdateAsync(current, CancellationToken.None);
             await context.SaveChangesAsync();
         }
@@ -157,6 +161,8 @@ public sealed class OwnerRootKeyStoreTests : IDisposable
         Assert.Equal(OwnerRootKeyStates.Unavailable, updated?.State);
         Assert.Equal(Now, updated?.FailedWhen);
         Assert.Equal("AccessDenied: revoked", updated?.Failure);
+        Assert.NotNull(updated);
+        Assert.Null(updated.AccessIdentity);
         Assert.NotEqual(originalToken, updated?.ConcurrencyToken);
     }
 

@@ -34,6 +34,7 @@ internal static class EccSignatureAlgorithmFactory
                 CurveName = curve.Oid.FriendlyName ?? curve.Oid.Value ?? code,
                 CurveSizeBits = curveSizeBits,
                 Curve = curve,
+                Domain = EccCurveDomain.FromCurve(curve),
             };
 
         return new EccSignatureAlgorithm(

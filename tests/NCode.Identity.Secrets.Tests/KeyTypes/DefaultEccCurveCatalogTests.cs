@@ -73,6 +73,7 @@ public class DefaultEccCurveCatalogTests
             CurveName = "secp256k1",
             CurveSizeBits = 256,
             Curve = ECCurve.NamedCurves.nistP256,
+            Domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.nistP256),
         };
         var catalog = new DefaultEccCurveCatalog([custom]);
 

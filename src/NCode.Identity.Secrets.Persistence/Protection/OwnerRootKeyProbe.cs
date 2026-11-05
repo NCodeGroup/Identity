@@ -27,20 +27,20 @@ internal static class OwnerRootKeyProbe
     /// Wraps and unwraps a random value through the named key.
     /// </summary>
     /// <param name="wrapper">The key wrapper.</param>
-    /// <param name="keyReference">The reference to the key.</param>
+    /// <param name="referencedKey">The reference to the key and the optional identity that reaches it.</param>
     /// <param name="owner">The owner that names the key.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns><see langword="null"/> when the key passes, otherwise the description of the failure.</returns>
     /// <exception cref="OperationCanceledException">Thrown when the token is cancelled.</exception>
     public static async ValueTask<string?> ProbeAsync(
         IReferencedKeyWrapper wrapper,
-        string keyReference,
+        ReferencedKey referencedKey,
         SecretOwner owner,
         CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(wrapper);
-        ArgumentNullException.ThrowIfNull(keyReference);
+        ArgumentNullException.ThrowIfNull(referencedKey);
 
         using var probeLease = BufferFactory.Rent(
             ProbeSizeBytes,
@@ -63,13 +63,20 @@ internal static class OwnerRootKeyProbe
 
         try
         {
-            var wrapped = await wrapper.WrapAsync(keyReference, probe, context, cancellationToken);
+            var wrapped = await wrapper.WrapAsync(referencedKey, probe, context, cancellationToken);
 
             using var destination = BufferFactory.CreatePooledBufferWriter(
                 isSensitive: true,
                 ProbeSizeBytes
             );
-            await wrapper.UnwrapAsync(wrapped, context, destination, cancellationToken);
+            if (referencedKey.Access is { } access)
+            {
+                await wrapper.UnwrapAsync(wrapped, access, context, destination, cancellationToken);
+            }
+            else
+            {
+                await wrapper.UnwrapAsync(wrapped, context, destination, cancellationToken);
+            }
 
             using var unwrapped = destination.GetSpanLease(isSensitive: true);
 

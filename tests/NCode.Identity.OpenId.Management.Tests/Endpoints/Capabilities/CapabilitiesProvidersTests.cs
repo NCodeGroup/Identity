@@ -65,6 +65,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
                     CurveName = "P-256",
                     CurveSizeBits = 256,
                     Curve = ECCurve.NamedCurves.nistP256,
+                    Domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.nistP256),
                 },
             ])
             .Verifiable();

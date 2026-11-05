@@ -14,7 +14,6 @@ using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
@@ -29,7 +28,7 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
-    private Mock<IPrincipalResolver> MockPrincipalResolver { get; }
+    private Mock<ICallerPrincipalResolver> MockCallerPrincipalResolver { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private CallerApiEndpointHandler Handler { get; }
 
@@ -39,13 +38,13 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
         MockStoreManagerFactory = MockRepository.Create<IStoreManagerFactory>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
-        MockPrincipalResolver = MockRepository.Create<IPrincipalResolver>();
+        MockCallerPrincipalResolver = MockRepository.Create<ICallerPrincipalResolver>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
 
         Handler = new CallerApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
-            MockPrincipalResolver.Object,
+            MockCallerPrincipalResolver.Object,
             MockAmbientTenantAccessor.Object
         );
     }
@@ -94,9 +93,9 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
     }
 
     private void SetupPrincipal(string? principalId) =>
-        MockPrincipalResolver
+        MockCallerPrincipalResolver
             .Setup(x =>
-                x.ResolvePrincipalIdOrDefaultAsync(
+                x.ResolveCallerPrincipalIdOrDefaultAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     MockStoreManager.Object,

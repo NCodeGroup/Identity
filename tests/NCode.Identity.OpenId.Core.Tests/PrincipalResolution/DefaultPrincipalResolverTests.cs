@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
@@ -25,8 +24,6 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
     private const string Issuer = "https://issuer.example";
     private const string Subject = "upstream-subject-1";
     private const string GeneratedId = "generated-id";
-    private const string ClientId = "client-1";
-    private const string ClientPrincipalId = "client-principal-1";
 
     // A subject that is not a principal id is read as an upstream identity through the tenant's issuer claim, and only a
     // resolution that provisions reads the tenant id.
@@ -87,30 +84,6 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
             Subject = Subject,
             JoinKey = null,
             ConcurrencyToken = string.Empty,
-        };
-
-    private static PersistedClient CreateClient(bool isDisabled = false) =>
-        new()
-        {
-            TenantId = TenantId,
-            ClientId = ClientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = isDisabled,
-            PrincipalId = ClientPrincipalId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
         };
 
     [Fact]
@@ -467,117 +440,5 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         );
 
         Assert.Equal(Subject, result);
-    }
-
-    [Fact]
-    public async Task ResolvePrincipalIdOrDefaultAsync_WhenAClientActsForItself_ReturnsTheClientsPrincipalId()
-    {
-        var manager = CreateStrictMock<IStoreManager>();
-        var clientStore = CreateStrictMock<IClientStore>();
-
-        manager.Setup(x => x.GetStore<IClientStore>()).Returns(clientStore.Object).Verifiable();
-        clientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateClient())
-            .Verifiable();
-
-        var resolver = new DefaultPrincipalResolver(
-            CreateStrictMock<IStoreManagerFactory>().Object,
-            CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
-        );
-
-        var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
-            CreateOpenIdContext(),
-            CreateUser(new Claim("client_id", ClientId)),
-            manager.Object,
-            CancellationToken.None
-        );
-
-        Assert.Equal(ClientPrincipalId, result);
-    }
-
-    [Fact]
-    public async Task ResolvePrincipalIdOrDefaultAsync_WhenTheClientIsDisabled_ReturnsNull()
-    {
-        var manager = CreateStrictMock<IStoreManager>();
-        var clientStore = CreateStrictMock<IClientStore>();
-
-        manager.Setup(x => x.GetStore<IClientStore>()).Returns(clientStore.Object).Verifiable();
-        clientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateClient(isDisabled: true))
-            .Verifiable();
-
-        var resolver = new DefaultPrincipalResolver(
-            CreateStrictMock<IStoreManagerFactory>().Object,
-            CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
-        );
-
-        var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
-            CreateOpenIdContext(),
-            CreateUser(new Claim("client_id", ClientId)),
-            manager.Object,
-            CancellationToken.None
-        );
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task ResolvePrincipalIdOrDefaultAsync_WhenTheClientIsUnknown_ReturnsNull()
-    {
-        var manager = CreateStrictMock<IStoreManager>();
-        var clientStore = CreateStrictMock<IClientStore>();
-
-        manager.Setup(x => x.GetStore<IClientStore>()).Returns(clientStore.Object).Verifiable();
-        clientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedClient?)null)
-            .Verifiable();
-
-        var resolver = new DefaultPrincipalResolver(
-            CreateStrictMock<IStoreManagerFactory>().Object,
-            CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
-        );
-
-        var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
-            CreateOpenIdContext(),
-            CreateUser(new Claim("client_id", ClientId)),
-            manager.Object,
-            CancellationToken.None
-        );
-
-        Assert.Null(result);
-    }
-
-    [Fact]
-    public async Task ResolvePrincipalIdAsync_WhenAClientActsForItself_ReturnsItsPrincipalWithoutProvisioning()
-    {
-        var manager = CreateStrictMock<IStoreManager>();
-        var clientStore = CreateStrictMock<IClientStore>();
-
-        manager.Setup(x => x.GetStore<IClientStore>()).Returns(clientStore.Object).Verifiable();
-        clientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateClient())
-            .Verifiable();
-
-        var resolver = new DefaultPrincipalResolver(
-            CreateStrictMock<IStoreManagerFactory>().Object,
-            CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
-        );
-
-        var result = await resolver.ResolvePrincipalIdAsync(
-            CreateOpenIdContext(),
-            CreateUser(new Claim("client_id", ClientId)),
-            manager.Object,
-            CancellationToken.None
-        );
-
-        Assert.Equal(ClientPrincipalId, result);
     }
 }

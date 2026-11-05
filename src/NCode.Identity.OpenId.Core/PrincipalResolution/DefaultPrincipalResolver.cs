@@ -3,7 +3,6 @@
 
 using System.Security.Claims;
 using NCode.Identity.Cryptography;
-using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -16,8 +15,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// Provides the default implementation of <see cref="IPrincipalResolver"/>, which resolves an authenticated caller to
 /// a federated principal: the subject claim is interpreted first as a server-owned <c>PrincipalId</c> and, when that
 /// does not match, as an upstream <c>(issuer, subject)</c> external connection identity. The subject is derived through
-/// the environment's host-configured <c>GetSubjectId</c>; the issuer claim name is a per-tenant setting. A caller whose
-/// token names no subject but a <c>client_id</c> resolves to that client's principal.
+/// the environment's host-configured <c>GetSubjectId</c>; the issuer claim name is a per-tenant setting.
 /// </summary>
 // See ADR-1053.
 internal class DefaultPrincipalResolver(
@@ -41,13 +39,7 @@ internal class DefaultPrincipalResolver(
         var subject = openIdContext.GetSubjectId(user);
         if (string.IsNullOrEmpty(subject))
         {
-            // A token a client obtains for itself names no subject: the client is the caller, and a disabled or unknown client holds no authority.
-            // See ADR-1419.
-            return await ResolveClientPrincipalIdOrDefaultAsync(
-                user,
-                storeManager,
-                cancellationToken
-            );
+            return null;
         }
 
         // The subject may already be a server-owned PrincipalId (the steady state, where the server issued the token).
@@ -73,23 +65,6 @@ internal class DefaultPrincipalResolver(
             cancellationToken
         );
         return identity?.PrincipalId;
-    }
-
-    private static async ValueTask<string?> ResolveClientPrincipalIdOrDefaultAsync(
-        ClaimsPrincipal user,
-        IStoreManager storeManager,
-        CancellationToken cancellationToken
-    )
-    {
-        var clientId = user.FindFirstValue(JoseClaimNames.Payload.ClientId);
-        if (string.IsNullOrEmpty(clientId))
-        {
-            return null;
-        }
-
-        var clientStore = storeManager.GetStore<IClientStore>();
-        var client = await clientStore.GetOrDefaultAsync(clientId, cancellationToken);
-        return client is { IsDisabled: false } ? client.PrincipalId : null;
     }
 
     /// <inheritdoc />

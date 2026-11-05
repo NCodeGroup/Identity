@@ -25,11 +25,14 @@ fails least privilege.
    The client store generates the identifier when it adds the client, overwrites any value the caller supplies, and
    never changes it. No caller can pick another actor's principal, and a client recreated with the same `client_id`
    holds a fresh principal and none of the earlier client's authority.
-2. **A request without a subject resolves through its client.** `DefaultPrincipalResolver` reads the `client_id` claim
-   when the token has no subject and returns that client's `PrincipalId` in the ambient tenant. A missing or disabled
-   client resolves to no principal, so disabling a client withdraws its authority at once. The token's shape is
-   unchanged, and the `IPrincipalResolver` seam is the extension point
-   [ADR-1035](1035-federated-principals-and-identity-resolution.md) reserves.
+2. **The management API resolves a caller without a subject through its client.** The management API authenticates the
+   caller's own access token, so a token with no subject and a `client_id` claim names a client acting for itself.
+   `DefaultCallerPrincipalResolver` returns that client's `PrincipalId` in the ambient tenant. A missing or disabled
+   client resolves to no principal, so disabling a client withdraws its authority at once. A caller that names a
+   subject resolves through `IPrincipalResolver`, the seam [ADR-1035](1035-federated-principals-and-identity-resolution.md)
+   reserves. Subject resolution of a presented token, such as the `subject_token` of a token exchange, never maps a
+   client: `DefaultPrincipalResolver` reads the subject only, so a `client_credentials` access token presented as a
+   `subject_token` is refused with `invalid_grant`. The token's shape is unchanged.
 3. **Grants use the existing endpoints.** `POST /api/teams/{teamId}/admins` and `POST /api/teams/{teamId}/owners` accept
    `ClientResource.principalId`. A client that creates a team or tenant becomes its owner, as a person does.
 4. **Removing a client removes every assignment its principal holds.**
@@ -68,7 +71,8 @@ fails least privilege.
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
   [ADR-1035](1035-federated-principals-and-identity-resolution.md),
   [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md)
-- `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`,
+- `src/NCode.Identity.OpenId.Management/Authorization/DefaultCallerPrincipalResolver.cs`,
+  `src/NCode.Identity.OpenId.Core/PrincipalResolution/DefaultPrincipalResolver.cs`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/ClientStore.cs`,
   `src/NCode.Identity.OpenId.Management/Auditing/DefaultManagementAuditRecorder.cs`
 - Issue [#557](https://github.com/NCodeGroup/Identity/issues/557)

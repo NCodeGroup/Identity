@@ -15,7 +15,6 @@ using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 
@@ -39,13 +38,13 @@ GET api/me/tenants
 internal class CallerApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
-    IPrincipalResolver principalResolver,
+    ICallerPrincipalResolver callerPrincipalResolver,
     IAmbientTenantAccessor ambientTenantAccessor
 ) : IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IAuthorizationService AuthorizationService { get; } = authorizationService;
-    private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
+    private ICallerPrincipalResolver CallerPrincipalResolver { get; } = callerPrincipalResolver;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
@@ -244,7 +243,7 @@ internal class CallerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var principalId = await PrincipalResolver.ResolvePrincipalIdOrDefaultAsync(
+        var principalId = await CallerPrincipalResolver.ResolveCallerPrincipalIdOrDefaultAsync(
             openIdContext,
             user,
             storeManager,

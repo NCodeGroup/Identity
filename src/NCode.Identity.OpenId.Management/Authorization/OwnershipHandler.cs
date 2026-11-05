@@ -8,7 +8,6 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
@@ -27,13 +26,13 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// </summary>
 internal class OwnershipHandler(
     IStoreManagerFactory storeManagerFactory,
-    IPrincipalResolver principalResolver,
+    ICallerPrincipalResolver callerPrincipalResolver,
     IHttpContextAccessor httpContextAccessor,
     IAmbientTenantAccessor ambientTenantAccessor
 ) : AuthorizationHandler<IAuthorizationRequirement, ISupportTenantId>
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
+    private ICallerPrincipalResolver CallerPrincipalResolver { get; } = callerPrincipalResolver;
 
     // ASP.NET Core authorization handlers are invoked by the framework without the request's OpenIdContext in hand, so
     // this is the one blessed place that reads the ambient context from the request rather than receiving it threaded.
@@ -75,7 +74,7 @@ internal class OwnershipHandler(
 
         // Resolve the caller to a stable principal id (ADR-1035); a caller that has never been provisioned has no
         // authority, so there is nothing to look up.
-        var principalId = await PrincipalResolver.ResolvePrincipalIdOrDefaultAsync(
+        var principalId = await CallerPrincipalResolver.ResolveCallerPrincipalIdOrDefaultAsync(
             openIdContext,
             context.User,
             storeManager,

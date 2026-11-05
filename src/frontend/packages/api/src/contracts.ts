@@ -493,7 +493,7 @@ export type CreatedInitialAccessTokenResource = {
 
 // See ADR-1407.
 /**
- * Mirror of `EncryptionKeyResource` — one master key of a tenant or of the server. It carries no key material, wrapped
+ * Mirror of `EncryptionKeyResource` — one master key of a tenant or of the platform. It carries no key material, wrapped
  * key or key check.
  */
 export type EncryptionKeyResource = {

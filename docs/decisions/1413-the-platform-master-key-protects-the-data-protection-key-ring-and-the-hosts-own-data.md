@@ -1,7 +1,8 @@
 # 1413. The platform master key protects the Data Protection key ring and the host's own data
 
-- **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
-  and [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md))
+- **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md) and
+  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md))
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)
@@ -34,6 +35,9 @@ application data a host protects under the platform, and no stored secret of the
 4. **The protector is loaded before the ring is judged.** `PlatformSecretProtectorWarmup` loads the platform's
    protector before `DataProtectionKeyRingGate` judges the ring, so a ring the platform key cannot decrypt stops the
    host as ADR-1247 records.
+5. **The platform's master key rotates and is rewrapped like a tenant's.** Its maintenance lease is
+   `master-key-maintenance:platform`, and it is reported and rekeyed under `GET` and `POST
+   /api/platform/encryption-keys[/rekey]` with the `platform_encryption_keys` scope family (ADR-1407).
 
 ## Options considered
 

@@ -312,7 +312,7 @@ sequenceDiagram
 ```
 
 - **Rekey through the API.** `GET` and `POST /api/tenants/{tenantId}/encryption-keys[/rekey]` and
-  `/api/servers/{serverId}/encryption-keys[/rekey]` report the keys and rotate them (Auth0's rekey shape). The response
+  `/api/platform/encryption-keys[/rekey]` report the keys and rotate them (Auth0's rekey shape). The response
   names keys by id, version, state, instants, root key provider and recovery key id and carries no key material. A rekey
   within twice `RefreshInterval` of the owner's last rotation answers `409` with `Retry-After`, and one that loses a
   race to another rekey answers `412`, as every management write that loses a race does. The management console shows
@@ -326,7 +326,7 @@ sequenceDiagram
   those under a retired key; a value that cannot be rewrapped is logged by record id and keeps its key.
 - **Destroy is conservative.** A retired key is destroyed only after `RetirementGrace` (30 days) and when every
   registered `IProtectedValueSource` reports no value that names it. The sources cover stored secrets, grant payloads and
-  the Data Protection key ring. A ring key is not re-encrypted, so the retired server key stays while a live ring key
+  the Data Protection key ring. A ring key is not re-encrypted, so the retired platform key stays while a live ring key
   names it, and always when the ring cannot be read. `SecretProtection:MasterKeys:DestroyRetired=false` keeps retired
   keys for good.
 - **Every change is audited.** `master_key.rotated` and `master_key.destroyed` are `key` events without material (see

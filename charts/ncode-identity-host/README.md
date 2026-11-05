@@ -157,7 +157,7 @@ to wrap every master key under the configured root key provider and recovery pub
 |--------------------------------------------------|------------------------------------------------------------------------------------------------------|
 | `secretProtection.rewrapJob.enabled`             | Renders the Job. Set it for the release that needs the run, and unset it afterwards.                 |
 | `secretProtection.rewrapJob.command`             | `rewrap` (the default) or `rewrap-recovery`, which replaces only the recovery copies.                |
-| `secretProtection.rewrapJob.owner`               | Limits the run to one owner such as `tenant:acme` or `server:default`; empty rewraps every owner.    |
+| `secretProtection.rewrapJob.owner`               | Limits the run to one owner such as `tenant:acme` or `platform:platform`; empty rewraps every owner.    |
 | `secretProtection.rewrapJob.dryRun`              | `true` unwraps and verifies every master key and writes nothing.                                     |
 | `secretProtection.rewrapJob.recoveryPrivateKeySecret` | A Secret holding the recovery private key under `recovery-private.pem`, mounted into the Job only. |
 | `secretProtection.rewrapJob.backoffLimit`, `activeDeadlineSeconds` | How often the Job retries and how long it may run (`0` and `3600`).              |
@@ -190,11 +190,11 @@ key; the root wraps stay as they are. Keep the old private key until the Job has
 ### Rotating master keys
 
 Master keys rotate on their own: after `SecretProtection:MasterKeys:RotationPeriod` (365 days by default) the active key
-of the server and of each tenant retires and the next version takes over, the values the retired key protected are
+of the platform and of each tenant retires and the next version takes over, the values the retired key protected are
 rewrapped under the new one, and a retired key is destroyed once its grace has passed and nothing names it
 ([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
 An administrator rekeys at once with `POST /api/tenants/{tenantId}/encryption-keys/rekey` or
-`POST /api/servers/{serverId}/encryption-keys/rekey`, and reads the keys with `GET .../encryption-keys`. Tune the
+`POST /api/platform/encryption-keys/rekey`, and reads the keys with `GET .../encryption-keys`. Tune the
 lifecycle with environment variables in `extraEnv`: `SecretProtection__MasterKeys__RotationPeriod`,
 `SecretProtection__MasterKeys__RefreshInterval`, `SecretProtection__MasterKeys__RetirementGrace`,
 `SecretProtection__MasterKeys__MaintenanceInterval` and `SecretProtection__MasterKeys__DestroyRetired` (`false` keeps

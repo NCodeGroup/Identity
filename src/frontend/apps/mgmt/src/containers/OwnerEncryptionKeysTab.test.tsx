@@ -94,13 +94,13 @@ describe('OwnerEncryptionKeysTab', () => {
     expect(screen.queryByTestId('encryption-keys-no-recovery')).not.toBeInTheDocument();
   });
 
-  it('lists the keys of the server from its encryption-keys path', async () => {
+  it('lists the keys of the platform from its encryption-keys path', async () => {
     const calls = installFetch(() => jsonResponse(keys));
 
-    renderTab({ kind: 'server', serverId: 'root' }, 'server');
+    renderTab({ kind: 'platform' }, 'platform');
 
     expect(await screen.findByTestId('encryption-key-row-k-2')).toBeInTheDocument();
-    expect(calls[0]?.url).toBe('https://api.test/api/servers/root/encryption-keys');
+    expect(calls[0]?.url).toBe('https://api.test/api/platform/encryption-keys');
   });
 
   it('warns when new keys are not wrapped under a recovery key', async () => {
@@ -109,7 +109,7 @@ describe('OwnerEncryptionKeysTab', () => {
     renderTab({ kind: 'tenant', tenantId: 'acme' }, 'tenant');
 
     expect(await screen.findByTestId('encryption-keys-no-recovery')).toHaveTextContent(
-      'this tenant stores',
+      'this tenant protects',
     );
   });
 
@@ -189,7 +189,7 @@ describe('OwnerEncryptionKeysTab', () => {
       return jsonResponse(keys);
     });
 
-    renderTab({ kind: 'server', serverId: 'root' }, 'server');
+    renderTab({ kind: 'platform' }, 'platform');
     await screen.findByTestId('encryption-key-row-k-2');
 
     fireEvent.click(screen.getByTestId('encryption-keys-rekey'));

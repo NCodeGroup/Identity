@@ -4,7 +4,7 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
  * The console's URL is its navigation state (ADR-1174). The path names the security boundary first and the surface
  * within it second, so the platform ↔ team ↔ tenant boundaries (ADR-1064) stay explicit in every address:
  *
- * - `/teams`, `/settings` — the platform scope's surfaces;
+ * - `/teams`, `/settings`, `/encryption-keys` — the platform scope's surfaces;
  * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `settings` and `usage`), the team id
  *   percent-encoded as one segment;
  * - `/tenants/{tenantId}/{surface}` — a tenant scope's surfaces (`clients`, `resource-servers`, `grants`, `secrets`,
@@ -14,7 +14,7 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
  */
 
 /** The surfaces of the platform scope, in tab order. */
-export const PLATFORM_SURFACES = ['teams', 'settings'] as const;
+export const PLATFORM_SURFACES = ['teams', 'settings', 'encryption-keys'] as const;
 
 /** The surfaces of a team scope, in tab order. */
 export const TEAM_SURFACES = ['tenants', 'settings', 'usage'] as const;

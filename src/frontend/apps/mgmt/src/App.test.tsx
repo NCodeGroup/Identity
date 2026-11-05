@@ -222,6 +222,42 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     expect(requestedUrls).toContain('https://api.test/api/platform/settings');
   });
 
+  it('switches to the platform Encryption keys surface', async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url =
+        input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+      if (url.endsWith('/api/platform/encryption-keys')) {
+        return jsonResponse({
+          recoveryConfigured: true,
+          keys: [
+            {
+              keyId: 'k-1',
+              version: 1,
+              state: 'active',
+              createdWhen: '2026-10-01T09:00:00Z',
+              retiredWhen: null,
+              rootKeyProvider: 'local',
+              rootKeyId: 'root-1',
+              recoveryKeyId: null,
+            },
+          ],
+        });
+      }
+      const directory = directoryResponse(url);
+      if (directory) {
+        return directory;
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('platform-tab-encryption-keys'));
+    expect(await screen.findByTestId('encryption-key-row-k-1')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/encryption-keys');
+  });
+
   it('lists teams and crosses into a team scope', async () => {
     vi.stubGlobal(
       'fetch',

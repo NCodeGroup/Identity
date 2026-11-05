@@ -15,11 +15,11 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ITeamValidator"/>. A team is created under the platform node and
-/// updated or deleted under its own node, authorized in the control-plane tenant that serves the request. A team's
-/// identifier follows the form of a tenant identifier, is never reused after the team is deleted, and the platform's own
-/// team can be neither disabled nor deleted. Disabling or enabling a team is also authorized at the platform node, so
-/// only the platform suspends and restores a team.
+/// Provides the default implementation of <see cref="ITeamValidator"/>. A team is created and deleted under the
+/// platform node and updated under its own node, authorized in the control-plane tenant that serves the request. A
+/// team's identifier follows the form of a tenant identifier, is never reused after the team is deleted, and the
+/// platform's own team can be neither disabled nor deleted. Disabling or restoring a team is also authorized at the
+/// platform node, so only the platform suspends and restores a team.
 /// </summary>
 // See ADR-1403
 internal class DefaultTeamValidator(

@@ -250,8 +250,9 @@ public abstract class ManagementApiEndpointHandler
     /// touches the store.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="authorizationResource">The resource evaluated by <see cref="Operations.List"/> authorization — a
-    /// tenant-scoped marker for a tenant-bound family, or <c>null</c> for a central-admin family.</param>
+    /// <param name="authorizationResource">The node the list is authorized at with <see cref="Operations.List"/>,
+    /// such as the tenant scope for a tenant's own family or the platform node for a platform-wide list, so a list is
+    /// never authorized without a node.</param>
     /// <param name="fetchPageAsync">A function that fetches the page once authorization has succeeded.</param>
     /// <param name="mapper">A function that maps a persisted item to its response representation.</param>
     /// <typeparam name="TItem">The type of the persisted item.</typeparam>
@@ -259,7 +260,7 @@ public abstract class ManagementApiEndpointHandler
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     protected internal virtual async ValueTask<IResult> ProcessListAsync<TItem, TResource>(
         HttpContext httpContext,
-        object? authorizationResource,
+        object authorizationResource,
         Func<ValueTask<PagedResult<TItem>>> fetchPageAsync,
         Func<TItem, TResource> mapper
     )

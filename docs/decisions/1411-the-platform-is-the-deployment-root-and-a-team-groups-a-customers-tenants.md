@@ -92,8 +92,9 @@ the platform and its tenants in the settings cascade and in authority.**
    disabled nor deleted.
 6. **Audit and usage carry the team.** Usage rows and tenant audit events carry the team. Team and platform audit
    events are recorded in the control-plane tenant with the resource types `team` and `platform`.
-7. **The console addresses the tiers.** Its routes are `/teams`, `/settings`, `/teams/{teamId}/{tenants|settings|usage}`
-   and `/tenants/{tenantId}/…`. The owner kinds `platform` and `team` carry settings only.
+7. **The console addresses the tiers.** Its routes are `/teams`, `/settings`, `/encryption-keys`,
+   `/teams/{teamId}/{tenants|settings|usage}` and `/tenants/{tenantId}/…`. The owner kinds `platform` and `team` carry
+   settings only.
 8. **The words.** "Platform" is the deployment root; ADR-1131's platform environments (`production`, `lab`, `ci`) are
    where a platform runs. "Team" is the grouping. "Organization" stays free for the in-tenant B2B feature
    ([ADR-1035](1035-federated-principals-and-identity-resolution.md)).

@@ -56,7 +56,10 @@ application data a host protects under the platform, and no stored secret of the
 - Rotating the platform master key protects the ring keys and host data created afterwards under the new version and
   touches no tenant's secrets; a ring key written earlier keeps naming the retired version until Data Protection
   retires that key.
-- A retired platform key version is destroyed only once no live ring key names it and its grace has passed.
+- A retired platform key version is destroyed only once no live ring key and no value that a registered
+  protected-value source reports for the platform names it, and its grace has passed. A host that protects its own data
+  under `SecretOwner.Platform` registers a source for that data, or the data becomes unreadable once the version is
+  destroyed.
 - A tenant's secrets never depend on the platform master key, so a tenant's data stays decryptable through the root key
   and its own master key alone.
 - A team is created and deleted without any key material.

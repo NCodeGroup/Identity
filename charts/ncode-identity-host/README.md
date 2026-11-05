@@ -190,8 +190,9 @@ key; the root wraps stay as they are. Keep the old private key until the Job has
 ### Rotating master keys
 
 Master keys rotate on their own: after `SecretProtection:MasterKeys:RotationPeriod` (365 days by default) the active key
-of the platform and of each tenant retires and the next version takes over, the values the retired key protected are
-rewrapped under the new one, and a retired key is destroyed once its grace has passed and nothing names it
+of the platform and of each tenant retires and the next version takes over, a tenant's values are rewrapped under the
+new version, and a retired key is destroyed once its grace has passed and nothing names it: the platform's retired
+version stays until no live Data Protection key names it
 ([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
 An administrator rekeys at once with `POST /api/tenants/{tenantId}/encryption-keys/rekey` or
 `POST /api/platform/encryption-keys/rekey`, and reads the keys with `GET .../encryption-keys`. Tune the

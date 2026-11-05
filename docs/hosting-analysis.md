@@ -319,7 +319,7 @@ No production load data exists yet, so these are **planning estimates**; confirm
 - **Bandwidth is not a cost driver.** Token responses are a few KB; even 1M interactive logins/month at ~500 KB of
   assets each is ~0.5 TB, below every vendor's included transfer.
 - **Multi-replica readiness:** Data Protection keys already persist to Postgres
-  ([ADR-1073](decisions/1073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the server
+  ([ADR-1073](decisions/1073-postgres-dev-database-and-aspire-migration-worker.md); each key is encrypted under the platform
   master key, whose root key lives outside the database —
   [ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
   and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`

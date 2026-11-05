@@ -857,6 +857,7 @@ describes the family as it is rather than its changes
   pass publishes after its save, and a seed queues its events on `TenantSeedContext.RunAfterCommit`, whose steps the
   provisioner runs once the seed has committed
   ([ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
+  [ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
   [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
   [#166](https://github.com/NCodeGroup/Identity/issues/166)).
 
@@ -2204,10 +2205,10 @@ describes the family as it is rather than its changes
   builds the logout URL.
 
 - **The management console's address bar is its navigation state.** The console routes by scope and surface:
-  `/teams` and `/settings` in the platform scope, `/teams/{teamId}/tenants`, `…/settings` and `…/usage` within a team,
-  and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`, `…/secrets`, `…/settings` and `…/usage` within a
-  tenant, each tenant surface with its own tab. A view can be bookmarked, shared and
-  reloaded, back and forward move between surfaces and scopes, and a deep link that lands on the sign-in screen returns
+  `/teams`, `/settings` and `/encryption-keys` in the platform scope, `/teams/{teamId}/tenants`, `…/settings` and
+  `…/usage` within a team, and `/tenants/{tenantId}/clients`, `…/resource-servers`, `…/grants`, `…/secrets`,
+  `…/encryption-keys`, `…/settings` and `…/usage` within a tenant, each tenant surface with its own tab. A view can be
+  bookmarked, shared and reloaded, back and forward move between surfaces and scopes, and a deep link that lands on the sign-in screen returns
   to the same page once signed in. The management scope is derived from the route, and a host that serves the console
   answers every console path with `index.html`
   ([ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md),
@@ -3537,8 +3538,9 @@ describes the family as it is rather than its changes
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
 - **The management console manages teams and the platform's settings.** The platform scope has a Teams surface
-  (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete) and a Settings surface; a team scope has its
-  tenants, settings and usage (`TeamUsageTable`); the console routes `/teams`, `/settings`,
+  (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete), a Settings surface and an Encryption keys surface;
+  a team scope has its
+  tenants, settings and usage (`TeamUsageTable`); the console routes `/teams`, `/settings`, `/encryption-keys`,
   `/teams/{teamId}/{tenants|settings|usage}` and `/tenants/{tenantId}/…`
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
@@ -3887,12 +3889,14 @@ describes the family as it is rather than its changes
   ([ADR-1266](docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
 
 - **Stored secrets are protected by a key hierarchy under an external root key.** Stored private and symmetric secrets
-  are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an HKDF-derived purpose key of the owner's
-  master key (the platform's or the tenant's), which is wrapped by a root key held by a root key provider (`ephemeral`,
-  `local`, or a registered one) and, optionally, by an offline recovery RSA key. The public contracts are
+  are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an HKDF-derived purpose key of the owning
+  tenant's master key, which is wrapped by a root key held by a root key provider (`ephemeral`, `local`, or a registered
+  one) and, optionally, by an offline recovery RSA key. The platform's master key protects the Data Protection key ring
+  and the application data a host protects under the platform, and no stored secret. The public contracts are
   `ISecretProtectorProvider`, `ISecretProtector`, `IRootKeyProvider`, `IMasterKeyStore`, `SecretOwner` and
   `SecretProtectionOptions`, and master keys are kept in the `MasterKeys` table. Deleting a tenant deletes
   its master keys ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
+  [ADR-1413](docs/decisions/1413-the-platform-master-key-protects-the-data-protection-key-ring-and-the-hosts-own-data.md),
   [#167](https://github.com/NCodeGroup/Identity/issues/167)).
 
 - **A database dump or backup reveals no secret material without the root key, and every host names its root key
@@ -5167,8 +5171,9 @@ describes the family as it is rather than its changes
   with `git rebase origin/main --exec "git commit --amend --no-edit --reset-author"` and `git push --force-with-lease`
   ([ADR-1128](docs/decisions/1128-commits-are-attributed-to-people-not-agents.md)).
 - **A master key is bounded in time and destroyed once nothing names it.** An owner's master key rotates every year, the
-  values it protected are rewrapped without their payloads being touched, a retired key is destroyed only after its grace
-  and when no stored secret, grant payload or live Data Protection key names it, and the recovery private key that can
+  values a tenant's key protected are rewrapped under the new version without their payloads being touched, a retired key
+  is destroyed only after its grace and when no stored secret, grant payload or live Data Protection key names it, so a
+  retired platform version stays while a live Data Protection key names it, and the recovery private key that can
   unwrap every master key exists only inside the offline rewrap command
   ([#171](https://github.com/NCodeGroup/Identity/issues/171),
   [#172](https://github.com/NCodeGroup/Identity/issues/172),

@@ -102,6 +102,8 @@ internal sealed class BffTestHost : IAsyncDisposable
                     .ClientSecretBasic,
                 ["Bff:ClientAuthentication:KeyRing"] = KeyRing,
                 ["Bff:ReturnUrls:0"] = "/",
+                // The NCode OP issues a refresh token only when offline_access is granted.
+                ["Bff:Scopes:0"] = OpenIdProtocol.ScopeTypes.OfflineAccess,
                 ["Bff:LoginParameters:0"] = OpenIdProtocol.Parameters.Prompt,
                 ["Bff:UserClaims:0"] = "email",
             }

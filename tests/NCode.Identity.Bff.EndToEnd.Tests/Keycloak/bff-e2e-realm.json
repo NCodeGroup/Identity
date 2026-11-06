@@ -1,0 +1,104 @@
+{
+  "realm": "bff-e2e",
+  "enabled": true,
+  "sslRequired": "all",
+  "accessTokenLifespan": 60,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "defaultSignatureAlgorithm": "PS256",
+  "users": [
+    {
+      "username": "alice",
+      "enabled": true,
+      "email": "alice@example.com",
+      "emailVerified": true,
+      "firstName": "Alice",
+      "lastName": "Example",
+      "realmRoles": [
+        "default-roles-bff-e2e"
+      ],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${E2E_USER_PASSWORD}",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "service-account-e2e-admin",
+      "enabled": true,
+      "serviceAccountClientId": "e2e-admin",
+      "clientRoles": {
+        "realm-management": [
+          "view-users",
+          "manage-users"
+        ]
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "bff-strict",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "clientAuthenticatorType": "client-jwt",
+      "redirectUris": [
+        "${BFF_STRICT_ORIGIN}/bff/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "use.jwks.url": "true",
+        "jwks.url": "${BFF_STRICT_CONTAINER_ORIGIN}/bff/jwks",
+        "pkce.code.challenge.method": "S256",
+        "require.pushed.authorization.requests": "true",
+        "dpop.bound.access.tokens": "true",
+        "id.token.signed.response.alg": "PS256",
+        "backchannel.logout.url": "${BFF_STRICT_CONTAINER_ORIGIN}/bff/backchannel-logout",
+        "backchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "${BFF_STRICT_ORIGIN}/*"
+      }
+    },
+    {
+      "clientId": "bff-lax",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "clientAuthenticatorType": "client-jwt",
+      "redirectUris": [
+        "${BFF_LAX_ORIGIN}/bff/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "use.jwks.url": "true",
+        "jwks.url": "${BFF_LAX_CONTAINER_ORIGIN}/bff/jwks",
+        "pkce.code.challenge.method": "S256",
+        "require.pushed.authorization.requests": "true",
+        "dpop.bound.access.tokens": "true",
+        "id.token.signed.response.alg": "PS256",
+        "backchannel.logout.url": "${BFF_LAX_CONTAINER_ORIGIN}/bff/backchannel-logout",
+        "backchannel.logout.session.required": "true",
+        "post.logout.redirect.uris": "${BFF_LAX_ORIGIN}/*"
+      }
+    },
+    {
+      "clientId": "e2e-admin",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${E2E_ADMIN_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    }
+  ]
+}

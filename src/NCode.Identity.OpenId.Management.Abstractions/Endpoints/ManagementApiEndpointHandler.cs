@@ -14,7 +14,9 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Provides the common, backing-store-agnostic functionality for OpenID management API endpoint handlers — resource-based
-/// authorization and the standard <c>GET</c>/collection response processing. It is public so capability packages that
+/// authorization and the standard <c>GET</c>/collection response processing. A <c>GET</c> authorizes against a
+/// node and only then reads the value, so an unauthorized caller never touches the store. It is public so
+/// capability packages that
 /// plug into the management slice (for example, local accounts) can author their own endpoints without taking a
 /// dependency on the management implementation package.
 /// </summary>
@@ -88,98 +90,78 @@ public abstract class ManagementApiEndpointHandler
     }
 
     /// <summary>
-    /// Processes an HTTP <c>GET</c> request for the specified value, returning the value as-is when found and authorized.
+    /// Authorizes the caller against the specified resource, returning the failure result when the caller is not
+    /// authorized so a route can refuse before it reads anything.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="valueOrNull">The value to return, or <c>null</c> when not found.</param>
-    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate against the value.</param>
-    /// <typeparam name="TValue">The type of the value to return.</typeparam>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
-    protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue>(
+    /// <param name="authorizationResource">The resource, such as a node, to authorize against.</param>
+    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <c>401</c> or <c>403</c> <see cref="IResult"/> when the caller is not authorized; otherwise
+    /// <c>null</c>.</returns>
+    protected internal virtual async ValueTask<IResult?> GetAuthorizationFailureAsync(
         HttpContext httpContext,
-        TValue? valueOrNull,
-        IAuthorizationRequirement authorizationRequirement
+        object authorizationResource,
+        IAuthorizationRequirement authorizationRequirement,
+        CancellationToken cancellationToken
     )
     {
-        return await ProcessGetAsync(
-            httpContext,
-            valueOrNull,
-            authorizationRequirement,
-            value => value
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            authorizationResource,
+            authorizationRequirement
         );
+
+        return authorizationResult.Succeeded ? null : AuthorizationFailed(httpContext);
     }
 
     /// <summary>
-    /// Processes an HTTP <c>GET</c> request for the specified value, mapping it to a response when found and authorized.
-    /// Emits an <c>ETag</c> and honors <c>If-None-Match</c> when the value supports a concurrency token.
+    /// Processes an HTTP <c>GET</c> request: authorizes the caller against the specified resource, and only then reads
+    /// the value and maps it to a response. The value is read only after authorization succeeds, so an unauthorized
+    /// request never touches the store. Emits an <c>ETag</c> and honors <c>If-None-Match</c> when the value supports a
+    /// concurrency token. When <paramref name="readAsync"/> returns <c>null</c> the request returns <c>404 Not
+    /// Found</c>.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="valueOrNull">The value to map and return, or <c>null</c> when not found.</param>
-    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate against the value.</param>
-    /// <param name="mapper">A function that maps the value to the response representation.</param>
-    /// <typeparam name="TValue">The type of the value being processed.</typeparam>
-    /// <typeparam name="TResponse">The type of the response representation.</typeparam>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
-    protected internal virtual ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
-        HttpContext httpContext,
-        TValue? valueOrNull,
-        IAuthorizationRequirement authorizationRequirement,
-        Func<TValue, TResponse> mapper
-    ) =>
-        ProcessGetAsync(
-            httpContext,
-            valueOrNull,
-            authorizationResource: null,
-            authorizationRequirement,
-            mapper
-        );
-
-    /// <summary>
-    /// Processes an HTTP <c>GET</c> request for the specified value, authorizing against a separately-supplied
-    /// resource (such as the owning resource node) while mapping and returning the value. Emits an <c>ETag</c> and
-    /// honors <c>If-None-Match</c> when the value supports a concurrency token. When <paramref name="mapper"/> returns
-    /// <c>null</c>, the mapped sub-resource is treated as absent and the request returns <c>404 Not Found</c> (for
-    /// example, a symmetric secret has no public key to project).
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="valueOrNull">The value to map and return, or <c>null</c> when not found.</param>
-    /// <param name="authorizationResource">The resource to authorize against, or <c>null</c> to authorize against the
-    /// value itself.</param>
+    /// <param name="authorizationResource">The resource, such as a node, to authorize against.</param>
     /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate.</param>
+    /// <param name="readAsync">A function that reads the value, or returns <c>null</c> when not found. It runs only
+    /// after authorization succeeds.</param>
     /// <param name="mapper">A function that maps the value to the response representation, or returns <c>null</c> to
     /// report the mapped sub-resource as absent.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <typeparam name="TValue">The type of the value being processed.</typeparam>
     /// <typeparam name="TResponse">The type of the response representation.</typeparam>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     protected internal virtual ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
         HttpContext httpContext,
-        TValue? valueOrNull,
-        object? authorizationResource,
+        object authorizationResource,
         IAuthorizationRequirement authorizationRequirement,
-        Func<TValue, TResponse> mapper
+        Func<CancellationToken, ValueTask<TValue?>> readAsync,
+        Func<TValue, TResponse> mapper,
+        CancellationToken cancellationToken
     ) =>
         ProcessGetAsync(
             httpContext,
-            valueOrNull,
             authorizationResource,
             authorizationRequirement,
+            readAsync,
             (value, _) => ValueTask.FromResult(mapper(value)),
-            CancellationToken.None
+            cancellationToken
         );
 
     /// <summary>
-    /// Processes an HTTP <c>GET</c> request for the specified value, authorizing against a separately-supplied
-    /// resource (such as the owning resource node) while mapping and returning the value. Emits an <c>ETag</c> and
-    /// honors <c>If-None-Match</c> when the value supports a concurrency token. When <paramref name="mapperAsync"/>
-    /// returns <c>null</c>, the mapped sub-resource is treated as absent and the request returns <c>404 Not Found</c>
-    /// (for example, a symmetric secret has no public key to project). The mapper runs only after authorization
-    /// succeeds, so it may do work an unauthorized caller must not cause (such as loading key material).
+    /// Processes an HTTP <c>GET</c> request: authorizes the caller against the specified resource, and only then reads
+    /// the value and maps it to a response. The value is read only after authorization succeeds, so an unauthorized
+    /// request never touches the store. Emits an <c>ETag</c> and honors <c>If-None-Match</c> when the value supports a
+    /// concurrency token. When <paramref name="readAsync"/> returns <c>null</c> or <paramref name="mapperAsync"/>
+    /// returns <c>null</c>, the request returns <c>404 Not Found</c>.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="valueOrNull">The value to map and return, or <c>null</c> when not found.</param>
-    /// <param name="authorizationResource">The resource to authorize against, or <c>null</c> to authorize against the
-    /// value itself.</param>
+    /// <param name="authorizationResource">The resource, such as a node, to authorize against.</param>
     /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate.</param>
+    /// <param name="readAsync">A function that reads the value, or returns <c>null</c> when not found. It runs only
+    /// after authorization succeeds.</param>
     /// <param name="mapperAsync">A function that asynchronously maps the value to the response representation, or
     /// returns <c>null</c> to report the mapped sub-resource as absent. It runs only after authorization succeeds.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -188,52 +170,51 @@ public abstract class ManagementApiEndpointHandler
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
     protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
         HttpContext httpContext,
-        TValue? valueOrNull,
-        object? authorizationResource,
+        object authorizationResource,
         IAuthorizationRequirement authorizationRequirement,
+        Func<CancellationToken, ValueTask<TValue?>> readAsync,
         Func<TValue, CancellationToken, ValueTask<TResponse>> mapperAsync,
         CancellationToken cancellationToken
     )
     {
-        if (valueOrNull is null)
+        var failure = await GetAuthorizationFailureAsync(
+            httpContext,
+            authorizationResource,
+            authorizationRequirement,
+            cancellationToken
+        );
+
+        if (failure is not null)
+        {
+            return failure;
+        }
+
+        var value = await readAsync(cancellationToken);
+        if (value is null)
         {
             return TypedResults.NotFound();
         }
 
-        // https://learn.microsoft.com/en-us/aspnet/core/security/authorization/resourcebased?view=aspnetcore-9.0
-        var user = httpContext.User;
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            user,
-            authorizationResource ?? valueOrNull,
-            authorizationRequirement
-        );
-
-        if (authorizationResult.Succeeded)
+        // Project first so an absent sub-resource short-circuits to 404 before emitting an ETag or a 304.
+        var response = await mapperAsync(value, cancellationToken);
+        if (response is null)
         {
-            // Project first so an absent sub-resource short-circuits to 404 before emitting an ETag or a 304.
-            var response = await mapperAsync(valueOrNull, cancellationToken);
-            if (response is null)
-            {
-                // A null projection signals an absent sub-resource (e.g. a symmetric secret has no public key).
-                return TypedResults.NotFound();
-            }
-
-            if (valueOrNull is ISupportConcurrencyToken supportConcurrencyToken)
-            {
-                var concurrencyToken = supportConcurrencyToken.ConcurrencyToken;
-                httpContext.Response.Headers.ETag = concurrencyToken;
-
-                var ifNoneMatch = httpContext.Request.Headers.IfNoneMatch;
-                if (string.Equals(ifNoneMatch, concurrencyToken, StringComparison.Ordinal))
-                {
-                    return TypedResults.StatusCode(StatusCodes.Status304NotModified);
-                }
-            }
-
-            return TypedResults.Json(response);
+            return TypedResults.NotFound();
         }
 
-        return AuthorizationFailed(httpContext);
+        if (value is ISupportConcurrencyToken supportConcurrencyToken)
+        {
+            var concurrencyToken = supportConcurrencyToken.ConcurrencyToken;
+            httpContext.Response.Headers.ETag = concurrencyToken;
+
+            var ifNoneMatch = httpContext.Request.Headers.IfNoneMatch;
+            if (string.Equals(ifNoneMatch, concurrencyToken, StringComparison.Ordinal))
+            {
+                return TypedResults.StatusCode(StatusCodes.Status304NotModified);
+            }
+        }
+
+        return TypedResults.Json(response);
     }
 
     /// <summary>

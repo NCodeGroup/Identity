@@ -15,6 +15,9 @@
     browsable report). On GitHub Actions each stage is a collapsible log group, a failure is annotated with the stage
     that broke, and the job summary shows the stage table, the test results, and the coverage summary (ADR-1143).
 
+    The test stage tests every test project under tests/ except the end-to-end suites (the *.EndToEnd.Tests projects),
+    which ./build/e2e.ps1 runs.
+
 .PARAMETER Configuration
     The build configuration. Defaults to Release.
 
@@ -170,6 +173,10 @@ try {
         & (Join-Path $PSScriptRoot 'tests\affected-tests.tests.ps1')
         $global:LASTEXITCODE = 0
     }
+    Invoke-Step 'test-projects lister' {
+        & (Join-Path $PSScriptRoot 'tests\test-projects.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
     Invoke-Step 'build script help' {
         & (Join-Path $PSScriptRoot 'tests\script-help.tests.ps1')
         $global:LASTEXITCODE = 0
@@ -243,7 +250,8 @@ try {
             if (Test-Path -LiteralPath $testResults) {
                 Remove-Item -LiteralPath $testResults -Recurse -Force
             }
-            $testTarget = $solution
+            # The end-to-end suites (the *.EndToEnd.Tests projects) are not part of this gate; ./build/e2e.ps1 runs them.
+            $projects = (& (Join-Path $PSScriptRoot 'test-projects.ps1') -Root $repoRoot).Tests
             if ($Affected) {
                 $selection = & (Join-Path $PSScriptRoot 'affected-tests.ps1') -Root $repoRoot -Base $Base
                 foreach ($reason in $selection.Reasons) {
@@ -256,21 +264,22 @@ try {
                         $global:LASTEXITCODE = 0
                         return
                     }
-                    # A solution filter narrows `dotnet test` to the selected projects; its solution path is relative
-                    # to the filter itself, which lives in artifacts/.
-                    $artifacts = Join-Path $repoRoot 'artifacts'
-                    New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
-                    $testTarget = Join-Path $artifacts 'affected.slnf'
-                    $solutionFilter = @{
-                        solution = @{
-                            path     = '../NCode.Identity.slnx'
-                            projects = [string[]]@($selection.Projects | ForEach-Object { $_.Replace('/', '\') })
-                        }
-                    }
-                    $json = ConvertTo-Json -InputObject $solutionFilter -Depth 4
-                    [IO.File]::WriteAllText($testTarget, $json, [System.Text.UTF8Encoding]::new($false))
+                    $projects = $selection.Projects
                 }
             }
+            # A solution filter narrows `dotnet test` to the selected projects; its solution path is relative
+            # to the filter itself, which lives in artifacts/.
+            $artifacts = Join-Path $repoRoot 'artifacts'
+            New-Item -ItemType Directory -Force -Path $artifacts | Out-Null
+            $testTarget = Join-Path $artifacts 'tests.slnf'
+            $solutionFilter = @{
+                solution = @{
+                    path     = '../NCode.Identity.slnx'
+                    projects = [string[]]@($projects | ForEach-Object { $_.Replace('/', '\') })
+                }
+            }
+            $json = ConvertTo-Json -InputObject $solutionFilter -Depth 4
+            [IO.File]::WriteAllText($testTarget, $json, [System.Text.UTF8Encoding]::new($false))
             $junitLogger = "junit;LogFilePath=$(Join-Path $testResults '{assembly}-{framework}.junit.xml')"
             $testArguments = @(
                 $testTarget,

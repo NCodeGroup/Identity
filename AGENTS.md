@@ -24,6 +24,9 @@ It holds until the first stable release.
 Production projects live under `src/`; test projects (the `*Tests` projects) live under `tests/`.
 Benchmark projects (the `*.Benchmarks` projects) live under `benchmarks/`; the build compiles them and nothing runs
 them ([ADR-1386](docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)).
+End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./build/dod.ps1` never runs them, and
+`./build/e2e.ps1` and the `End-to-end` CI check do
+([ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 - **JOSE / JWT** — `NCode.Identity.Jose(.Abstractions)`, `NCode.Identity.Jwt(.Abstractions)`, and the opt-in algorithm
   packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the
@@ -90,7 +93,7 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Nine family records override template records:
+so a bare ADR number names one record. Ten family records override template records:
 
 - [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
@@ -122,6 +125,9 @@ so a bare ADR number names one record. Nine family records override template rec
   the family stores is an envelope from its first document, so one without it is malformed and rejected; and, until the
   first stable release, its additive-by-default rule, because no stored shape is one a reader must keep: a payload's
   shape changes in place, with no version bump or upcaster.
+- [ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
+  supersedes project-template ADR-0129's decision 6 for the management API, which answers a caller without authority
+  `403` for any identifier, because it authorizes at a node before it reads, so the answer discloses nothing.
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's
 own sweeps for `/audit-conventions`.
@@ -315,7 +321,8 @@ pre-push gate** (the push protocol's final check): it runs only the test project
 base with `origin/main`, while still building the whole solution. The plain `./build/dod.ps1` is the full gate, which
 runs in the merge queue, on `main` and on the release lines; a pull request into `main` runs it with `-Affected`
 ([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
-available locally for a thorough clean Release check. Package versions are centrally managed in
+available locally for a thorough clean Release check. The end-to-end suites are not part of it: `./build/e2e.ps1` runs
+them and needs a running Docker engine. Package versions are centrally managed in
 [`Directory.Packages.props`](Directory.Packages.props); versioning is stamped in lockstep by Nerdbank.GitVersioning
 from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the full workflow and
 [`GOVERNANCE.md`](GOVERNANCE.md) for ownership, versioning, and publishing. For a full conventions sweep, run the

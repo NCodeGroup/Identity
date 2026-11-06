@@ -26,7 +26,7 @@ any one host feature.
   Bug fixes, patches, and small changes go straight to a PR that references the issue.
 - `main` is the single trunk and accepts changes only through a pull request. A repository ruleset requires the pull
   request, the `Definition of Done`, `Lint, typecheck, test, build`, `Lint and render the host chart`,
-  `Build host image` and `Commit attribution` status checks, resolved review threads, and linear history; it forbids
+  `Build host image`, `End-to-end` and `Commit attribution` status checks, resolved review threads, and linear history; it forbids
   force pushes and deletion, and nobody bypasses it. A pull request runs the fast gate: its `Definition of Done` check
   runs only the tests its change reaches. A merge goes through the **merge queue**, which runs the full gate on the
   merged result and squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added

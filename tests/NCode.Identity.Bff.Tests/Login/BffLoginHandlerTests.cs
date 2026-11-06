@@ -155,7 +155,7 @@ public class BffLoginHandlerTests : BaseTests
             httpContext.Response.Headers.Location.ToString()
         );
         Assert.NotNull(captured);
-        Assert.Equal("openid profile offline_access", captured.Scope);
+        Assert.Equal("openid profile", captured.Scope);
         Assert.False(string.IsNullOrEmpty(captured.Nonce));
         Assert.Equal(OpenIdProtocol.ResponseModes.Query, captured.ResponseMode);
         Assert.Equal("https://app.example.com/bff/callback", captured.RedirectUri);
@@ -165,6 +165,57 @@ public class BffLoginHandlerTests : BaseTests
         var prompt = Assert.Single(additional);
         Assert.Equal(OpenIdProtocol.Parameters.Prompt, prompt.Key);
         Assert.Equal("login", prompt.Value);
+    }
+
+    [Theory]
+    [InlineData(new[] { "profile" }, "openid profile")]
+    [InlineData(
+        new[] { "openid", "profile", "offline_access", "profile" },
+        "openid profile offline_access"
+    )]
+    public async Task HandleAsync_ConfiguredScopes_RequestsOpenIdAndEachConfiguredScopeOnce(
+        string[] configuredScopes,
+        string expectedScope
+    )
+    {
+        var bffOptions = CreateOptions();
+        bffOptions.Scopes = [.. configuredScopes];
+        var httpContext = CreateHttpContext("?returnUrl=/app");
+        AuthorizationRequest? captured = null;
+        _client
+            .Setup(x =>
+                x.CreateAuthorizationUriAsync(
+                    It.IsAny<ClientRegistration>(),
+                    It.IsAny<AuthorizationRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<ClientRegistration, AuthorizationRequest, CancellationToken>(
+                (_, request, _) => captured = request
+            )
+            .Returns(
+                new ValueTask<AuthorizationRequestResult>(
+                    new AuthorizationRequestResult(
+                        new ProtocolError(OpenIdProtocol.ErrorCodes.InvalidRequest, 400)
+                    )
+                )
+            )
+            .Verifiable();
+        _auditRecorder
+            .Setup(x =>
+                x.LoginFailedAsync(
+                    httpContext,
+                    BffLoginFailureReasons.AuthorizationRequestFailed,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await CreateHandler(bffOptions).HandleAsync(httpContext);
+
+        Assert.NotNull(captured);
+        Assert.Equal(expectedScope, captured.Scope);
     }
 
     [Fact]

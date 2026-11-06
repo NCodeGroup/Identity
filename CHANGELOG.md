@@ -2462,8 +2462,10 @@ describes the family as it is rather than its changes
   `IBffSessionStore`. `IBffTokenAccessor` and `AddBffAccessTokenHandler` attach the user's access token, refreshed
   single-flight across replicas under a lease on the refresh token, and DPoP-bound when the provider supports it;
   `BffAccessToken.TokenType` is `Bearer` when the provider's token response omits the `token_type` that RFC 6749 §5.1
-  requires. `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and back-channel
-  logout ends sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD only.
+  requires. The login requests `openid` and the scopes `Bff:Scopes` lists, never `offline_access` on its own, so by
+  default the grant stays inside the provider's login session and the provider's logout reaches the BFF.
+  `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and back-channel logout ends
+  sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD only.
   A won refresh and a logout are never cancelled by the browser, so a rotated refresh token is kept and a session always
   ends. `AddIdentityBff` validates the refresh lease against the client's request timeout, and the protocol client's
   `IdTokenValidationResult` exposes the validated `Identity` ([#394](https://github.com/NCodeGroup/Identity/issues/394),
@@ -2471,7 +2473,8 @@ describes the family as it is rather than its changes
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
-  [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)).
+  [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
+  [ADR-1431](docs/decisions/1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
 
 - **A BFF is composed in one call.** The `NCode.Identity.Bff.Server` package is the BFF's composition root:
   `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,
@@ -2538,6 +2541,17 @@ describes the family as it is rather than its changes
   keys from its `jwks_uri`; it is off by default and validated when the host starts
   ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+
+- **The BFF is proven in real browsers and against a second OpenID Provider.** The `End-to-end` check runs
+  `./build/e2e.ps1`, which drives the BFF with Playwright in Chromium, Firefox and WebKit against Keycloak in a
+  container. The session cookie is host-only, `HttpOnly`, `Secure` and `SameSite=Strict` (or `Lax` when chosen). A
+  cross-site navigation carries it only under `Lax`, a cross-origin `fetch` stops at its CORS preflight, and Fetch
+  Metadata refuses a cross-site or untrusted same-site request even when CORS admits it. Login with PAR, PKCE,
+  `private_key_jwt` through `/bff/jwks`, DPoP, RFC 9207 and PS256 ID tokens works, and so do refresh-token
+  rotation, RP-initiated logout and back-channel logout, all from Keycloak's discovery metadata alone.
+  `./build/dod.ps1` never runs these `*.EndToEnd.Tests` suites
+  ([#418](https://github.com/NCodeGroup/Identity/issues/418), [#419](https://github.com/NCodeGroup/Identity/issues/419),
+  [ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 - **Entity Framework persistence is a reusable framework plus domain slices.** The framework package
   `NCode.Identity.OpenId.Persistence.EntityFramework` provides a `DbSet`-less `OpenIdDbContext` that slices plug into
@@ -3559,6 +3573,19 @@ describes the family as it is rather than its changes
   are unique only within a tenant
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
+- **A team promotes one tenant's configuration to another.** `POST /api/teams/{teamId}/promotions/preview` reports what
+  a promotion would create, update or leave unchanged and `POST /api/teams/{teamId}/promotions` applies it: the
+  tenant's settings, its resource servers and scopes, its clients (keeping their `client_id`) and client grants, never
+  secrets, keys, grants, principals, role assignments, a client the host configures, or a setting whose value belongs
+  to the environment (`SettingDescriptor.IsEnvironmentBound`, such as `redirect_uris`), whose target values the request
+  may supply. It needs read authority on the source and creation authority on the target, and a promoted limit needs
+  the authority that sets it (`403` naming the limit). A promotion that changes a client holding role assignments needs
+  creation authority at each node that holds them, as changing that client does
+  ([ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)). It
+  records each change and `tenant.promoted`, and the console offers it on a team's tenants page
+  ([ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
+  [#565](https://github.com/NCodeGroup/Identity/issues/565)).
+
 - **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
   `TenantAdmin` role at the tenant's node, which manages the tenant and everything beneath it and creates its clients,
   resource servers and other resources; granting or revoking it is creation authority at the tenant
@@ -3717,6 +3744,16 @@ describes the family as it is rather than its changes
   the limits its team sets. A client's registration update keeps the limits its settings carry
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
+
+- **A team or tenant route answers a caller without authority the same for any identifier.** It authorizes at the team
+  or tenant its route names before it reads, so a `401` or `403` never depends on whether the team, tenant, setting,
+  secret, key, owner or administrator exists, and no row is read for the caller
+  ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
+  [#558](https://github.com/NCodeGroup/Identity/issues/558)).
+
+- **A unit of work resolves a tracked row only in its ambient tenant.** A store's lookup that the change tracker answers
+  applies the same tenant scope as the query filter, so a row tracked for one tenant is never returned in another
+  tenant's scope ([#565](https://github.com/NCodeGroup/Identity/issues/565)).
 
 - **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's and a
   resource server's keys all carry an active window inside a validity window: a key that is not yet

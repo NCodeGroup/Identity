@@ -137,7 +137,6 @@ internal class BffLoginHandler
 
         var scopes = new List<string> { OpenIdProtocol.ScopeTypes.OpenId };
         scopes.AddRange(bffOptions.Scopes);
-        scopes.Add(OpenIdProtocol.ScopeTypes.OfflineAccess);
         var scope = string.Join(' ', scopes.Distinct(StringComparer.Ordinal));
 
         var authorizationRequest = new AuthorizationRequest(redirectUri, state, verifier)

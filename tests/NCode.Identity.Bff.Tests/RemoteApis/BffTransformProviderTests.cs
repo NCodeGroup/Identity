@@ -143,7 +143,7 @@ public sealed class BffTransformProviderTests : BaseTests
     }
 
     [Fact]
-    public void ValidateRoute_ConfiguredFrontend_AddsNoError()
+    public void ValidateRoute_ValidFrontendName_AddsNoError()
     {
         var context = new TransformRouteValidationContext
         {
@@ -162,7 +162,29 @@ public sealed class BffTransformProviderTests : BaseTests
     }
 
     [Fact]
-    public void ValidateRoute_UnknownFrontend_AddsAnError()
+    public void ValidateRoute_InvalidFrontendName_AddsAnError()
+    {
+        var context = new TransformRouteValidationContext
+        {
+            Services = Services,
+            Route = CreateRoute(
+                new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "Shop" }
+            ),
+        };
+
+        CreateProvider().ValidateRoute(context);
+
+        var error = Assert.Single(context.Errors);
+        Assert.IsType<ArgumentException>(error);
+        Assert.Contains(
+            "'Shop' is not a valid BFF frontend name",
+            error.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ValidateRoute_FrontendTheSetLacks_AddsNoError()
     {
         var context = new TransformRouteValidationContext
         {
@@ -174,13 +196,7 @@ public sealed class BffTransformProviderTests : BaseTests
 
         CreateProvider().ValidateRoute(context);
 
-        var error = Assert.Single(context.Errors);
-        Assert.IsType<ArgumentException>(error);
-        Assert.Contains(
-            "'other' is not a configured BFF frontend",
-            error.Message,
-            StringComparison.Ordinal
-        );
+        Assert.Empty(context.Errors);
     }
 
     #endregion

@@ -15,10 +15,6 @@ public sealed class BffReverseProxyRoutesTests
         BffTokenRequirementNames.None,
     ];
 
-    private static readonly HashSet<string> Frontends = ["default", "admin"];
-
-    private static BffReverseProxyRouteNames Names { get; } = new(Requirements, Frontends);
-
     private static RouteConfig CreateRoute(Dictionary<string, string>? metadata) =>
         new()
         {
@@ -31,7 +27,7 @@ public sealed class BffReverseProxyRoutesTests
     private static List<Exception> Validate(Dictionary<string, string>? metadata)
     {
         List<Exception> errors = [];
-        BffReverseProxyRoutes.Validate(CreateRoute(metadata), Names, errors);
+        BffReverseProxyRoutes.Validate(CreateRoute(metadata), Requirements, errors);
         return errors;
     }
 
@@ -255,7 +251,7 @@ public sealed class BffReverseProxyRoutesTests
     }
 
     [Fact]
-    public void Validate_ConfiguredFrontend_AddsNoError()
+    public void Validate_ValidFrontendName_AddsNoError()
     {
         var errors = Validate(
             new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "admin" }
@@ -279,15 +275,15 @@ public sealed class BffReverseProxyRoutesTests
     }
 
     [Fact]
-    public void Validate_UnknownFrontend_AddsAnError()
+    public void Validate_InvalidFrontendName_AddsAnError()
     {
         var errors = Validate(
-            new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "other" }
+            new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "Shop" }
         );
 
         var error = Assert.Single(errors);
         Assert.Equal(
-            "The metadata of route 'orders' is invalid: BffFrontend 'other' is not a configured BFF frontend.",
+            "The metadata of route 'orders' is invalid: BffFrontend 'Shop' is not a valid BFF frontend name.",
             error.Message
         );
     }

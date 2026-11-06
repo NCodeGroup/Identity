@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.Identity.Bff.Frontends;
 using Yarp.ReverseProxy.Configuration;
 
 namespace NCode.Identity.Bff.RemoteApis;
@@ -66,19 +67,21 @@ internal static class BffReverseProxyRoutes
 
     /// <summary>
     /// Checks the route's BFF metadata: a token requirement must be registered, a resource or a scope needs a token
-    /// requirement and must not be blank, and a frontend must be configured.
+    /// requirement and must not be blank, and a frontend must be a valid frontend name; whether the frontends
+    /// configure it is the endpoint check's to say, because YARP and the BFF apply one configuration change
+    /// separately (ADR-1442).
     /// </summary>
     /// <param name="route">The route to check.</param>
-    /// <param name="names">The names that the route's metadata may refer to.</param>
+    /// <param name="requirements">The names of the registered token requirements.</param>
     /// <param name="errors">The list that each failure is added to.</param>
     public static void Validate(
         RouteConfig route,
-        BffReverseProxyRouteNames names,
+        IReadOnlySet<string> requirements,
         ICollection<Exception> errors
     )
     {
         ArgumentNullException.ThrowIfNull(route);
-        ArgumentNullException.ThrowIfNull(names);
+        ArgumentNullException.ThrowIfNull(requirements);
         ArgumentNullException.ThrowIfNull(errors);
 
         var metadata = route.Metadata;
@@ -87,7 +90,7 @@ internal static class BffReverseProxyRoutes
 
         if (
             metadata.TryGetValue(BffReverseProxyMetadataKeys.Frontend, out var frontend)
-            && CheckFrontend(route, frontend, names.Frontends) is { } frontendFailure
+            && CheckFrontend(route, frontend) is { } frontendFailure
         )
         {
             errors.Add(frontendFailure);
@@ -99,7 +102,7 @@ internal static class BffReverseProxyRoutes
         );
         if (
             hasRequirement
-            && CheckRequirement(route, requirement, names.Requirements) is { } requirementFailure
+            && CheckRequirement(route, requirement, requirements) is { } requirementFailure
         )
         {
             errors.Add(requirementFailure);
@@ -123,22 +126,18 @@ internal static class BffReverseProxyRoutes
         }
     }
 
-    private static ArgumentException? CheckFrontend(
-        RouteConfig route,
-        string? frontend,
-        IReadOnlySet<string> frontends
-    )
+    private static ArgumentException? CheckFrontend(RouteConfig route, string? frontend)
     {
         if (string.IsNullOrWhiteSpace(frontend))
         {
             return Failure(route, $"{BffReverseProxyMetadataKeys.Frontend} must not be blank.");
         }
 
-        if (!frontends.Contains(frontend))
+        if (!BffFrontendNames.IsValid(frontend))
         {
             return Failure(
                 route,
-                $"{BffReverseProxyMetadataKeys.Frontend} '{frontend}' is not a configured BFF frontend."
+                $"{BffReverseProxyMetadataKeys.Frontend} '{frontend}' is not a valid BFF frontend name."
             );
         }
 

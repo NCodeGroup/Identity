@@ -42,23 +42,14 @@ internal sealed class BffTransformProvider : ITransformProvider
             );
         }
 
-        var requirementNames = requirements
+        RequirementNames = requirements
             .Select(requirement => requirement.Name)
             .ToFrozenSet(StringComparer.Ordinal);
         Tokens = tokens;
         Frontends = frontends;
-        RouteNames = new Lazy<BffReverseProxyRouteNames>(() =>
-            new BffReverseProxyRouteNames(
-                requirementNames,
-                frontends
-                    .Frontends.Select(frontend => frontend.Name)
-                    .ToFrozenSet(StringComparer.Ordinal)
-            )
-        );
     }
 
-    // The frontends are read on first use, so constructing the provider never reads the BFF options.
-    private Lazy<BffReverseProxyRouteNames> RouteNames { get; }
+    private FrozenSet<string> RequirementNames { get; }
 
     private IBffTokenAccessor Tokens { get; }
 
@@ -69,7 +60,7 @@ internal sealed class BffTransformProvider : ITransformProvider
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        BffReverseProxyRoutes.Validate(context.Route, RouteNames.Value, context.Errors);
+        BffReverseProxyRoutes.Validate(context.Route, RequirementNames, context.Errors);
     }
 
     /// <inheritdoc />

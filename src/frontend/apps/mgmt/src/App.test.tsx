@@ -56,6 +56,14 @@ const acmeTeam = {
   concurrencyToken: 'tc',
   displayName: 'Acme team',
   isDisabled: false,
+  parentTeamId: null,
+};
+
+const acmeWebTeam = {
+  ...acmeTeam,
+  teamId: 'acme-web',
+  displayName: 'Acme web team',
+  parentTeamId: 'acme',
 };
 
 const acmeTenant = {
@@ -121,6 +129,18 @@ function directoryResponse(
   }
   if (url.endsWith('/api/teams/acme/tenants')) {
     return jsonResponse({ items: [acmeTenant, acmeDevTenant] });
+  }
+  if (url.endsWith('/api/teams/acme/teams')) {
+    return jsonResponse({ items: [acmeWebTeam] });
+  }
+  if (url.endsWith('/api/teams/acme-web/tenants')) {
+    return jsonResponse({ items: [] });
+  }
+  if (url.endsWith('/api/teams/acme-web')) {
+    return jsonResponse(acmeWebTeam);
+  }
+  if (url.endsWith('/api/teams/acme')) {
+    return jsonResponse(acmeTeam);
   }
   if (url.endsWith('/api/teams')) {
     return jsonResponse({ items: [acmeTeam] });
@@ -362,6 +382,52 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
 
     expect(await screen.findByTestId('usage-range')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/teams/acme/usage');
+  });
+
+  it("switches to a team's child teams", async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('team-row-acme'));
+    fireEvent.click(await screen.findByTestId('team-tab-teams'));
+
+    expect(await screen.findByTestId('team-row-acme-web')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams/acme/teams');
+  });
+
+  it('exits a child team to its parent team', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = (input as Request).url;
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    window.history.replaceState(null, '', '/teams/acme-web/tenants');
+    renderApp();
+
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Team'));
+
+    fireEvent.click(screen.getByTestId('exit-scope'));
+
+    expect(await screen.findByTestId('team-row-acme-web')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/teams/acme/teams');
   });
 
   it('exits a tenant back to its team, then the team back to the platform', async () => {

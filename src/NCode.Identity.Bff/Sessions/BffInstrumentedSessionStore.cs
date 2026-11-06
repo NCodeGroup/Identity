@@ -81,13 +81,21 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
     /// <inheritdoc />
     public ValueTask<IReadOnlyList<BffSessionClient>> FindClientsAsync(
         CancellationToken cancellationToken
-    ) => _inner.FindClientsAsync(cancellationToken);
+    ) =>
+        MeasureAsync(
+            BffMetrics.FindClientsOperation,
+            () => _inner.FindClientsAsync(cancellationToken)
+        );
 
     /// <inheritdoc />
     public ValueTask<IReadOnlyList<string>> FindByClientAsync(
         BffSessionClient client,
         CancellationToken cancellationToken
-    ) => _inner.FindByClientAsync(client, cancellationToken);
+    ) =>
+        MeasureAsync(
+            BffMetrics.FindByClientOperation,
+            () => _inner.FindByClientAsync(client, cancellationToken)
+        );
 
     /// <inheritdoc />
     public ValueTask<bool> TryAddTransactionAsync(

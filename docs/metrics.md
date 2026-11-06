@@ -122,7 +122,7 @@ several round trips.
 
 | Attribute                                    | Values                                                                                                                                                                                          |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ncode.identity.bff.session_store.operation` | `create`, `get`, `replace`, `remove`, `find_by_session_id`, `find_by_subject`, `add_transaction`, `take_transaction`, `acquire_refresh_lease`, `is_refresh_lease_held`, `release_refresh_lease` |
+| `ncode.identity.bff.session_store.operation` | `create`, `get`, `replace`, `remove`, `find_by_session_id`, `find_by_subject`, `find_clients`, `find_by_client`, `add_transaction`, `take_transaction`, `acquire_refresh_lease`, `is_refresh_lease_held`, `release_refresh_lease` |
 | `error.type`                                 | On failure only: the full type name of the exception                                                                                                                                            |
 
 ### `ncode.identity.outbound_http.retries` and `ncode.identity.openid_client.retries`

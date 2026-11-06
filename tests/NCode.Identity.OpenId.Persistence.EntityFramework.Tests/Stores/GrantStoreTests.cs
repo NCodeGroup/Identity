@@ -81,6 +81,50 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         _dbContext.ChangeTracker.Clear();
     }
 
+    private async Task AddTenantAsync(string tenantId, string teamId)
+    {
+        await _tenantStore.AddAsync(
+            new PersistedTenant
+            {
+                TenantId = tenantId,
+                TeamId = teamId,
+                ConcurrencyToken = string.Empty,
+                Issuer = null,
+                IsDisabled = false,
+                DisplayName = tenantId,
+                Settings = new PersistedTenantSettings
+                {
+                    TenantId = tenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = EmptyObject(),
+                },
+                Secrets = new PersistedTenantSecrets
+                {
+                    TenantId = tenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = [],
+                },
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
+    private async Task AddExpiredSessionGrantAsync(string grantId, string tenantId)
+    {
+        var grant = CreateGrant(
+            hashedKey: $"hk-{grantId}",
+            grantId: grantId,
+            grantType: SessionGrantType,
+            tenantId: tenantId
+        );
+        grant.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+        await _store.AddAsync(grant, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+    }
+
     private static PersistedGrant CreateGrant(
         string hashedKey = HashedKey,
         string grantId = "grant-1",
@@ -485,6 +529,56 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         );
 
         Assert.Equal("grant-enabled", Assert.Single(page.Items).GrantId);
+    }
+
+    [Fact]
+    public async Task GetUnrevokedExpiredPageAsync_SkipsTheGrantsOfATenantBeneathADisabledGrandparentTeam()
+    {
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var grandparent = _dbContext.SeedTeam(idGenerator, "acme");
+        grandparent.IsDisabled = true;
+        await _dbContext.SaveChangesAsync();
+        var parent = _dbContext.SeedChildTeam(idGenerator, grandparent, "acme-web");
+        _dbContext.SeedChildTeam(idGenerator, parent, "acme-web-eu");
+        _dbContext.SeedTeam(idGenerator, "other");
+        _dbContext.ChangeTracker.Clear();
+
+        await AddTenantAsync("tenant-beneath-grandparent", "acme-web-eu");
+        await AddTenantAsync("tenant-of-other-team", "other");
+        await AddExpiredSessionGrantAsync("grant-skipped", "tenant-beneath-grandparent");
+        await AddExpiredSessionGrantAsync("grant-enabled", "tenant-of-other-team");
+
+        var page = await _store.GetUnrevokedExpiredPageAsync(
+            SessionGrantType,
+            DateTimeOffset.UnixEpoch.AddDays(10),
+            new PageRequest { Limit = 50 },
+            CancellationToken.None
+        );
+
+        Assert.Equal("grant-enabled", Assert.Single(page.Items).GrantId);
+    }
+
+    [Fact]
+    public async Task GetUnrevokedExpiredPageAsync_ReturnsTheGrantsOfATeamWhoseIdentifierExtendsADisabledTeams()
+    {
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var disabled = _dbContext.SeedTeam(idGenerator, "acme");
+        disabled.IsDisabled = true;
+        await _dbContext.SaveChangesAsync();
+        _dbContext.SeedTeam(idGenerator, "acme-x");
+        _dbContext.ChangeTracker.Clear();
+
+        await AddTenantAsync("tenant-of-acme-x", "acme-x");
+        await AddExpiredSessionGrantAsync("grant-returned", "tenant-of-acme-x");
+
+        var page = await _store.GetUnrevokedExpiredPageAsync(
+            SessionGrantType,
+            DateTimeOffset.UnixEpoch.AddDays(10),
+            new PageRequest { Limit = 50 },
+            CancellationToken.None
+        );
+
+        Assert.Equal("grant-returned", Assert.Single(page.Items).GrantId);
     }
 
     [Fact]

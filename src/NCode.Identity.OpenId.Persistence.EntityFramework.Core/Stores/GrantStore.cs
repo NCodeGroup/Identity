@@ -172,10 +172,7 @@ internal class GrantStore(
     {
         var afterId = DecodeCursor(page.Cursor);
 
-        var disabledTeamPaths = await DbContext
-            .Teams.Where(team => team.IsDisabled)
-            .Select(team => team.Path)
-            .ToListAsync(cancellationToken);
+        var teams = DbContext.Teams;
 
         var query = DbContext
             .Grants.Include(entity => entity.Tenant)
@@ -197,10 +194,9 @@ internal class GrantStore(
         );
 
         // A tenant of a disabled team, or of a team beneath one, is not served (ADR-1426).
-        foreach (var disabledTeamPath in disabledTeamPaths)
-        {
-            query = query.Where(entity => !entity.Tenant.Team.Path.StartsWith(disabledTeamPath));
-        }
+        query = query.Where(entity =>
+            !teams.Any(team => team.IsDisabled && entity.Tenant.Team.Path.StartsWith(team.Path))
+        );
 
         // Fetch one extra row so a full page signals that another page exists.
         var entities = await query

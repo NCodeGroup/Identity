@@ -1,10 +1,9 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
 - **Status:** In progress. SharedState, the protocol client, the `NCode.Identity.Bff` core, remote APIs, browser
-  hardening and multiple frontends are implemented; serving the management console through the BFF is pending
+  hardening, multiple frontends and the management console are implemented
   ([§9](#9-implementation-status)). The library is tracked as issue
-  [#123](https://github.com/NCodeGroup/Identity/issues/123), and the management console as
-  [#158](https://github.com/NCodeGroup/Identity/issues/158). Each implemented area's decisions
+  [#123](https://github.com/NCodeGroup/Identity/issues/123). Each implemented area's decisions
   ([§8](#8-decisions-and-options-considered)) are ADRs.
 - **Date:** 2026-10-20
 - **Scope:** a **server-side** library that turns an ASP.NET Core application into the Backend for Frontend (BFF)
@@ -104,11 +103,10 @@ The **OpenID Provider side** already provides everything a BFF needs:
 | Sessions the server can end                  | `sid`, RP-initiated logout, and back-channel logout ([ADR-1074](decisions/1074-session-management-and-logout.md), [ADR-1077](decisions/1077-session-scoped-grant-revocation-on-logout.md)) |
 | Revocation and exchange                      | Refresh-token revocation ([ADR-1028](decisions/1028-token-revocation-refresh-tokens-only.md)) and token exchange ([ADR-1101](decisions/1101-oauth-token-exchange-rfc8693.md))   |
 
-The family has **no relying-party library**, though: no package helps an application consume the OP. Its own
-management console (`src/frontend/apps/mgmt`) is a browser public client. `@ncode/auth` runs authorization code +
-PKCE in JavaScript, the access token and refresh token live in the Redux store, and `@ncode/store` attaches
-`Authorization: Bearer` to every management API call. That is the shape RFC 10017 discourages, and it guards the most
-privileged surface the family has.
+The family's relying-party library is `NCode.Identity.Bff`, which helps an application consume the OP. Its own
+management console (`src/frontend/apps/mgmt`) is a BFF frontend served by `NCode.Identity.ManagementConsole.Host`, so
+the most privileged surface the family has holds no token in the browser
+([§5.14](#514-the-management-console)).
 
 ---
 
@@ -252,6 +250,8 @@ The flow follows RFC 10017 Figure 1:
 | `NCode.Identity.Bff.Abstractions`               | the ASP.NET Core shared framework, `NCode.Identity.OpenId.Client.Abstractions`, `NCode.Identity.Events.Abstractions`, `NCode.Registration` | BFF contracts: the session record and `IBffSessionStore`, token requirements and `IBffTokenAccessor`, login gates and session validators, `[BffApi]`, the audit event, problem types and name constants ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)). |
 | `NCode.Identity.Bff`                            | the above, `NCode.Identity.SharedState.Abstractions` (abstractions only, ADR-1016), the `NCode.Identity.Jwk` model ([ADR-1119](decisions/1119-first-class-jwk-jwks-and-thumbprint.md)), YARP | The ASP.NET Core authentication scheme, the `/bff` endpoints (with the optional `/bff/jwks`), `UseBff()` with the cookie-acceptance checks, the token manager and `AddBffAccessTokenHandler`, local-API endpoint metadata (`AsBffApi`), the back-channel logout receiver, the remote-API forwarder on YARP's `IHttpForwarder` (`MapBffRemoteApi`), token attachment for routes in YARP configuration (`AddBffTransforms()`, `AsBffRemoteApis()`), and the opt-in `UseBffSecurityHeaders()`. Composed with `AddBffLibrary(events)` on the protocol client's builder and `AddBffConfiguration(configuration)`; the host registers the protocol client, events and shared-state implementations. |
 | `NCode.Identity.Bff.Server`                     | `NCode.Identity.Bff`, and the protocol client, events, secrets, JOSE, JWT and shared-state implementations | The turnkey composition root: `AddIdentityBff(configuration)` composes every library a BFF needs in one call, with in-process shared state by default, and exposes each library's builder (`IIdentityBffBuilder`), as `AddIdentityServer()` does for the OP. The host still registers the key rings its configuration names and, with several replicas, a shared-state adapter. |
+| `NCode.Identity.ManagementConsole`              | `NCode.Identity.Bff.Server`, `NCode.AspNetCore`                 | The management console's server: `AddManagementConsole` and `MapManagementConsole`, the console's bootstrap document, its page under a nonce CSP and its assets ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)). |
+| `NCode.Identity.ManagementConsole.Host`         | `NCode.Identity.ManagementConsole`                              | The console's reference host: a composition-only `Program.cs` that serves the console's bundle, its `/bff/*` endpoints and the forwarded management API on one origin.                                                                                                      |
 | `NCode.Identity.SharedState(.Abstractions/.Valkey)` | (existing)                                                   | **Extended** with a versioned, expiring value primitive and expiring membership indexes ([§5.4](#54-state-every-replica-sees)).                                                                                                                                             |
 
 Dependencies point one way: `Bff` → `OpenId.Client` → JOSE, Secrets, and SharedState. Nothing depends on the OP
@@ -930,7 +930,7 @@ The sketch below shows the composition. `AddIdentityBff` composes the shared-sta
 ```csharp
 var bff = builder.Services.AddIdentityBff(builder.Configuration); // NCode.Identity.Bff.Server; binds "Bff" strictly
 bff.SharedStateLibraryBuilder.AddValkey(builder.Configuration);    // only when running several replicas
-builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the key ring "ClientAuthentication:KeyRing" names
+builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the seam for a key ring held elsewhere, such as a KMS
     "orders-web-client-key", (serviceProvider, _) => LoadClientKeys(serviceProvider));
 
 var app = builder.Build();
@@ -983,6 +983,25 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 }
 ```
 
+A BFF reads the key rings its frontends name from PEM files. `Bff:KeyRings:{name}:PemFiles` lists the files of the key
+ring `{name}`, and `AddIdentityBff` registers a keyed `ISecretKeyCollectionProvider` under that name, which a frontend's
+`ClientAuthentication:KeyRing` or `DPoP:KeyRing` refers to. Each file holds one EC or RSA private key (PKCS#8, SEC1 or
+PKCS#1), read through sensitive buffers, and a key's `kid` is its file name without the extension. A relative path
+resolves against the content root. A host that holds a key ring elsewhere, in a KMS for example, registers the keyed
+provider in code and configures no entry for it
+([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+
+```jsonc
+{
+  "Bff": {
+    "KeyRings": {
+      "orders-web-client-key": { "PemFiles": ["/run/secrets/orders-web-client-key.pem"] }, // kid: orders-web-client-key
+      "orders-web-dpop": { "PemFiles": ["/run/secrets/orders-web-dpop.pem"] },
+    },
+  },
+}
+```
+
 **Startup validation** (`ValidateOnStart`) fails when:
 
 - `Bff:Frontends` has no entry, or a frontend's name is not 1 to 63 lowercase letters, digits and hyphens that start
@@ -1006,6 +1025,8 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 - A frontend's `IdToken` or `UserInfo` algorithm list has a blank entry, `none` or a duplicate; content encryption is
   listed without key management; UserInfo encryption is listed without UserInfo signing; or encryption is listed without
   `ClientAuthentication:KeyRing`, which holds the decryption keys.
+- `Bff:KeyRings` has a key ring without a name, or a key ring's `PemFiles` lists no file, has a blank entry or names a
+  file that does not exist.
 - `Bff:Antiforgery:HeaderName` or `HeaderValue` is blank, or the header name is one that skips a CORS preflight or
   carries credentials, or a `Bff:Tokens` duration is out of range.
 - `Bff:Frontends:{name}:DPoP:Mode` is `required` and the OP does not support DPoP. This check runs when discovery is

@@ -17,8 +17,8 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
-using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
+using NCode.Identity.OpenId.Management.Endpoints.Teams;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -57,14 +57,14 @@ internal class PlatformApiEndpointHandler(
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator,
-    ITenantClientCoherenceChecker tenantClientCoherenceChecker,
+    ITeamClientCoherenceChecker teamClientCoherenceChecker,
     IMasterKeyManager masterKeyManager,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<PlatformApiEndpointHandler> logger
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
-    // The number of tenants read per page when a settings write is checked against every tenant's clients.
-    private const int TenantPageSize = 100;
+    // The number of teams read per page when a settings write is checked against every team's tenants' clients.
+    private const int TeamPageSize = 100;
 
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -75,8 +75,8 @@ internal class PlatformApiEndpointHandler(
         effectiveSettingsResolver;
 
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
-    private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
-        tenantClientCoherenceChecker;
+    private ITeamClientCoherenceChecker TeamClientCoherenceChecker { get; } =
+        teamClientCoherenceChecker;
     private IMasterKeyManager MasterKeyManager { get; } = masterKeyManager;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ILogger<PlatformApiEndpointHandler> Logger { get; } = logger;
@@ -498,15 +498,14 @@ internal class PlatformApiEndpointHandler(
 
     /// <summary>
     /// Verifies that replacing the platform's settings document leaves every value each client of every tenant
-    /// registers permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The walk
-    /// follows the settings cascade (host configuration, platform, team, tenant): the current and new platform settings
-    /// are each resolved through the <see cref="IEffectiveSettingsResolver"/>, each team's document is resolved onto
-    /// both, and each of the team's tenants' documents is resolved onto those. The teams are paged (<see
-    /// cref="ITeamStore.GetPageAsync(PageRequest, CancellationToken)"/>), and each team's tenants are read as an
-    /// untracked, secret-free projection (<see cref="ITenantStore.GetSettingsPageAsync(string, PageRequest,
-    /// CancellationToken)"/>). The walk runs only when the effective value of a setting a coherence rule reads changed
-    /// (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>). A team or tenant whose settings document cannot
-    /// be honored is logged and skipped, because none of its clients is coherent under either settings.
+    /// registers permitted by every client coherence rule. The walk follows the settings cascade (host configuration,
+    /// platform, team, tenant): the current and new platform settings are each resolved through the
+    /// <see cref="IEffectiveSettingsResolver"/>, each top-level team's document is resolved onto both, and each
+    /// top-level team's subtree is checked through the <see cref="ITeamClientCoherenceChecker"/>. The teams are paged
+    /// (<see cref="ITeamStore.GetPageAsync(PageRequest, CancellationToken)"/>). The walk runs only when the effective
+    /// value of a setting a coherence rule reads changed (<see cref="IClientCoherenceValidator.ReadsChangedSetting"/>).
+    /// A team whose settings document cannot be honored is logged and skipped, because none of its clients is coherent
+    /// under either settings.
     /// </summary>
     /// <param name="currentPlatformSettings">The platform's effective settings with its current settings
     /// document.</param>
@@ -525,14 +524,19 @@ internal class PlatformApiEndpointHandler(
     {
         List<SettingError> errors = [];
         var teamStore = storeManager.GetStore<ITeamStore>();
-        var tenantStore = storeManager.GetStore<ITenantStore>();
 
-        var teamPage = new PageRequest { Limit = TenantPageSize };
+        var teamPage = new PageRequest { Limit = TeamPageSize };
         do
         {
             var teamResult = await teamStore.GetPageAsync(teamPage, cancellationToken);
             foreach (var team in teamResult.Items)
             {
+                // A team beneath another is checked within its top-level team's subtree.
+                if (team.ParentTeamId is not null)
+                {
+                    continue;
+                }
+
                 IReadOnlySettingCollection currentTeamSettings;
                 IReadOnlySettingCollection newTeamSettings;
                 try
@@ -554,59 +558,15 @@ internal class PlatformApiEndpointHandler(
                     continue;
                 }
 
-                var page = new PageRequest { Limit = TenantPageSize };
-                do
-                {
-                    var result = await tenantStore.GetSettingsPageAsync(
+                errors.AddRange(
+                    await TeamClientCoherenceChecker.FindIntroducedViolationsAsync(
+                        storeManager,
                         team.TeamId,
-                        page,
+                        currentTeamSettings,
+                        newTeamSettings,
                         cancellationToken
-                    );
-                    foreach (var tenantSettings in result.Items)
-                    {
-                        IReadOnlySettingCollection currentTenantSettings;
-                        IReadOnlySettingCollection newTenantSettings;
-                        try
-                        {
-                            currentTenantSettings = EffectiveSettingsResolver.Resolve(
-                                currentTeamSettings,
-                                OpenIdSettingScopes.Tenant,
-                                tenantSettings.Value
-                            );
-                            newTenantSettings = EffectiveSettingsResolver.Resolve(
-                                newTeamSettings,
-                                OpenIdSettingScopes.Tenant,
-                                tenantSettings.Value
-                            );
-                        }
-                        catch (JsonException exception)
-                        {
-                            Logger.TenantSettingsUnreadable(
-                                tenantSettings.TenantId,
-                                exception.Message
-                            );
-                            continue;
-                        }
-
-                        var findings =
-                            await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
-                                storeManager,
-                                tenantSettings.TenantId,
-                                currentTenantSettings,
-                                newTenantSettings,
-                                cancellationToken
-                            );
-
-                        errors.AddRange(
-                            findings.Select(finding => new SettingError(
-                                finding.Violation.GoverningSettingName,
-                                $"The change would make the client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' incoherent: {finding.Violation.Description}"
-                            ))
-                        );
-                    }
-
-                    page = page with { Cursor = result.NextCursor };
-                } while (page.Cursor is not null);
+                    )
+                );
             }
 
             teamPage = teamPage with { Cursor = teamResult.NextCursor };

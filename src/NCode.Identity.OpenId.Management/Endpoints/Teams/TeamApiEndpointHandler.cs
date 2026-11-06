@@ -18,7 +18,6 @@ using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
-using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -71,15 +70,12 @@ internal class TeamApiEndpointHandler(
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator,
-    ITenantClientCoherenceChecker tenantClientCoherenceChecker,
+    ITeamClientCoherenceChecker teamClientCoherenceChecker,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<TeamApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
-    // The number of tenants read per page when a settings write is checked against the team's tenants' clients.
-    private const int TenantPageSize = 100;
-
     /// <summary>
     /// Gets the most days one read of a team's usage spans: a year of the ledger's retention.
     /// </summary>
@@ -102,8 +98,8 @@ internal class TeamApiEndpointHandler(
         effectiveSettingsResolver;
 
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
-    private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
-        tenantClientCoherenceChecker;
+    private ITeamClientCoherenceChecker TeamClientCoherenceChecker { get; } =
+        teamClientCoherenceChecker;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -806,13 +802,10 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that replacing the team's settings document leaves every value each client of each of the team's tenants
-    /// registers permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The current and
-    /// new team settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
-    /// document is resolved onto both. Only the team's tenants are read, as an untracked, secret-free projection
-    /// (<see cref="ITenantStore.GetSettingsPageAsync(string, PageRequest, CancellationToken)"/>). A tenant whose
-    /// settings document cannot be honored is logged and skipped, because none of its clients is coherent under either
-    /// settings.
+    /// Verifies that replacing the team's settings document leaves every value each client registers permitted by every
+    /// client coherence rule, in every tenant of the team and of every team beneath it, through the
+    /// <see cref="ITeamClientCoherenceChecker"/>. The current and new team settings are each resolved through the
+    /// <see cref="IEffectiveSettingsResolver"/>.
     /// </summary>
     /// <param name="teamId">The identifier of the team whose settings change.</param>
     /// <param name="currentTeamSettings">The team's effective settings with its current settings document.</param>
@@ -830,56 +823,13 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        List<SettingError> errors = [];
-        var tenantStore = storeManager.GetStore<ITenantStore>();
-
-        var page = new PageRequest { Limit = TenantPageSize };
-        do
-        {
-            var result = await tenantStore.GetSettingsPageAsync(teamId, page, cancellationToken);
-            foreach (var tenantSettings in result.Items)
-            {
-                IReadOnlySettingCollection currentTenantSettings;
-                IReadOnlySettingCollection newTenantSettings;
-                try
-                {
-                    currentTenantSettings = EffectiveSettingsResolver.Resolve(
-                        currentTeamSettings,
-                        OpenIdSettingScopes.Tenant,
-                        tenantSettings.Value
-                    );
-                    newTenantSettings = EffectiveSettingsResolver.Resolve(
-                        newTeamSettings,
-                        OpenIdSettingScopes.Tenant,
-                        tenantSettings.Value
-                    );
-                }
-                catch (JsonException exception)
-                {
-                    Logger.TenantSettingsUnreadable(tenantSettings.TenantId, exception.Message);
-                    continue;
-                }
-
-                var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
-                    storeManager,
-                    tenantSettings.TenantId,
-                    currentTenantSettings,
-                    newTenantSettings,
-                    cancellationToken
-                );
-
-                errors.AddRange(
-                    findings.Select(finding => new SettingError(
-                        finding.Violation.GoverningSettingName,
-                        $"The change would make the client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' incoherent: {finding.Violation.Description}"
-                    ))
-                );
-            }
-
-            page = page with { Cursor = result.NextCursor };
-        } while (page.Cursor is not null);
-
-        return errors;
+        return await TeamClientCoherenceChecker.FindIntroducedViolationsAsync(
+            storeManager,
+            teamId,
+            currentTeamSettings,
+            newTeamSettings,
+            cancellationToken
+        );
     }
 
     /// <summary>

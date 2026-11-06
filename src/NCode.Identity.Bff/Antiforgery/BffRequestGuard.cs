@@ -35,21 +35,24 @@ internal static class BffRequestGuard
     /// Checks a request to a BFF-protected endpoint.
     /// </summary>
     /// <param name="request">The request to check.</param>
-    /// <param name="options">The BFF options.</param>
+    /// <param name="antiforgery">The anti-forgery options.</param>
+    /// <param name="trustedOrigins">
+    /// The origins of the request's frontend that may send same-site requests.
+    /// </param>
     /// <returns>
     /// <c>null</c> when the request passes; otherwise the reason it is refused.
     /// </returns>
-    public static string? Check(HttpRequest request, BffOptions options)
+    public static string? Check(
+        HttpRequest request,
+        BffAntiforgeryOptions antiforgery,
+        IReadOnlyList<string> trustedOrigins
+    )
     {
-        var headerName = options.Antiforgery.HeaderName;
+        var headerName = antiforgery.HeaderName;
         var headerValues = request.Headers[headerName];
         if (
             headerValues.Count != 1
-            || !string.Equals(
-                headerValues[0],
-                options.Antiforgery.HeaderValue,
-                StringComparison.Ordinal
-            )
+            || !string.Equals(headerValues[0], antiforgery.HeaderValue, StringComparison.Ordinal)
         )
         {
             return AntiforgeryHeaderMissing;
@@ -76,7 +79,7 @@ internal static class BffRequestGuard
             var origin = request.Headers.Origin;
             if (origin.Count == 1 && origin[0] is { } originValue)
             {
-                foreach (var trusted in options.TrustedOrigins)
+                foreach (var trusted in trustedOrigins)
                 {
                     if (string.Equals(trusted, originValue, StringComparison.Ordinal))
                         return null;

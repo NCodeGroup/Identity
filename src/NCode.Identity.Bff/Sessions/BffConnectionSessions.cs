@@ -11,7 +11,7 @@ namespace NCode.Identity.Bff.Sessions;
 /// <param name="resolver">Loads and validates the session.</param>
 internal class BffConnectionSessions(BffSessionResolver resolver)
 {
-    private readonly BffSessionResolver _resolver = resolver;
+    private BffSessionResolver Resolver { get; } = resolver;
 
     /// <summary>
     /// Creates the connection session of a session handle.
@@ -29,6 +29,6 @@ internal class BffConnectionSessions(BffSessionResolver resolver)
         ArgumentException.ThrowIfNullOrEmpty(handle);
         ArgumentNullException.ThrowIfNull(logoutUrl);
 
-        return new DefaultBffConnectionSession(frontend, handle, logoutUrl, _resolver);
+        return new DefaultBffConnectionSession(frontend, handle, logoutUrl, Resolver);
     }
 }

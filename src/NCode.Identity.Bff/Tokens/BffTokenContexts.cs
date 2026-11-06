@@ -21,9 +21,9 @@ internal class BffTokenContexts(
     BffCookies cookies
 )
 {
-    private readonly BffFrontendCatalog _frontends = frontends;
-    private readonly BffSessionResolver _resolver = resolver;
-    private readonly BffCookies _cookies = cookies;
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffSessionResolver Resolver { get; } = resolver;
+    private BffCookies Cookies { get; } = cookies;
 
     /// <summary>
     /// Creates the session scope of a request to an endpoint that the BFF guards. A request to a hub whose principal
@@ -42,6 +42,6 @@ internal class BffTokenContexts(
             return connection;
         }
 
-        return new BffRequestTokenContext(httpContext, _frontends, _resolver, _cookies);
+        return new BffRequestTokenContext(httpContext, Frontends, Resolver, Cookies);
     }
 }

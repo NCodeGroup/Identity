@@ -27,12 +27,12 @@ internal class BffMiddleware(
     IBffAuditRecorder recorder
 )
 {
-    private readonly RequestDelegate _next = next;
-    private readonly IOptions<BffOptions> _options = options;
-    private readonly BffFrontendCatalog _frontends = frontends;
-    private readonly BffSessionResolver _resolver = resolver;
-    private readonly IAntiforgery _antiforgery = antiforgery;
-    private readonly IBffAuditRecorder _recorder = recorder;
+    private RequestDelegate Next { get; } = next;
+    private IOptions<BffOptions> Options { get; } = options;
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffSessionResolver Resolver { get; } = resolver;
+    private IAntiforgery Antiforgery { get; } = antiforgery;
+    private IBffAuditRecorder Recorder { get; } = recorder;
 
     /// <summary>
     /// Runs the middleware for a request.
@@ -59,7 +59,7 @@ internal class BffMiddleware(
             var refusal = await GetRefusalAsync(context, endpoint, feature, context.RequestAborted);
             if (refusal is { } refused)
             {
-                await _recorder.AntiforgeryRejectedAsync(
+                await Recorder.AntiforgeryRejectedAsync(
                     context,
                     refused.Reason,
                     context.RequestAborted
@@ -74,7 +74,7 @@ internal class BffMiddleware(
                 return;
             }
 
-            await _next(context);
+            await Next(context);
         }
         catch (BffStoreUnavailableException) when (!context.Response.HasStarted)
         {
@@ -105,10 +105,10 @@ internal class BffMiddleware(
     {
         if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
         {
-            var trustedOrigins = _frontends.Resolve(context)?.Options.TrustedOrigins ?? [];
+            var trustedOrigins = Frontends.Resolve(context)?.Options.TrustedOrigins ?? [];
             var reason = BffRequestGuard.Check(
                 context.Request,
-                _options.Value.Antiforgery,
+                Options.Value.Antiforgery,
                 trustedOrigins
             );
             if (reason is null)
@@ -128,7 +128,7 @@ internal class BffMiddleware(
 
         if (BffGuardedEndpoints.IsHub(endpoint))
         {
-            var frontend = _frontends.Resolve(context);
+            var frontend = Frontends.Resolve(context);
             var reason = BffRequestGuard.CheckHub(
                 context.Request,
                 frontend?.Options.PublicOrigin,
@@ -150,7 +150,7 @@ internal class BffMiddleware(
             if (BffRequestGuard.IsSafeMethod(context.Request.Method))
                 return null;
 
-            var frontend = _frontends.Resolve(context);
+            var frontend = Frontends.Resolve(context);
             var reason = BffRequestGuard.CheckFetchMetadata(
                 context.Request,
                 frontend?.Options.TrustedOrigins ?? []
@@ -166,7 +166,7 @@ internal class BffMiddleware(
             }
 
             // Resolving the session sets the request feature's principal, which the antiforgery token is bound to.
-            var session = await _resolver.ResolveAsync(context, cancellationToken);
+            var session = await Resolver.ResolveAsync(context, cancellationToken);
             var principal = session is null ? null : feature.Principal;
 
             if (await IsAntiforgeryTokenValidAsync(context, principal, cancellationToken))
@@ -194,7 +194,7 @@ internal class BffMiddleware(
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            return await _antiforgery.IsRequestValidAsync(context);
+            return await Antiforgery.IsRequestValidAsync(context);
         }
         catch (AntiforgeryValidationException)
         {

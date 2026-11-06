@@ -13,8 +13,8 @@ internal sealed class BffConnectionSessionRestore(
     IBffConnectionSession? previous
 ) : IDisposable
 {
-    private readonly DefaultBffConnectionSessionAccessor _accessor = accessor;
-    private readonly IBffConnectionSession? _previous = previous;
+    private DefaultBffConnectionSessionAccessor Accessor { get; } = accessor;
+    private IBffConnectionSession? Previous { get; } = previous;
 
     private int _disposed;
 
@@ -24,6 +24,6 @@ internal sealed class BffConnectionSessionRestore(
         if (Interlocked.Exchange(ref _disposed, 1) != 0)
             return;
 
-        _accessor.Restore(_previous);
+        Accessor.Restore(Previous);
     }
 }

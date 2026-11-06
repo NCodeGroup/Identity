@@ -34,9 +34,9 @@ internal class BffAuthenticationHandler(
 {
     private const string LoginPath = "/login";
 
-    private readonly BffSessionResolver _resolver = resolver;
-    private readonly BffFrontendCatalog _frontends = frontends;
-    private readonly BffConnectionSessions _connections = connections;
+    private BffSessionResolver Resolver { get; } = resolver;
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffConnectionSessions Connections { get; } = connections;
 
     /// <inheritdoc />
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -45,7 +45,7 @@ internal class BffAuthenticationHandler(
         if (!BffGuardedEndpoints.IsGuarded(endpoint))
             return AuthenticateResult.NoResult();
 
-        var session = await _resolver.ResolveAsync(Context, Context.RequestAborted);
+        var session = await Resolver.ResolveAsync(Context, Context.RequestAborted);
         if (session is null)
             return AuthenticateResult.NoResult();
 
@@ -70,8 +70,8 @@ internal class BffAuthenticationHandler(
             ?? throw new InvalidOperationException(
                 "The BFF session principal has no logout URL claim."
             );
-        var frontend = _frontends.GetRequired(Context);
-        var connection = _connections.Create(frontend, session.Handle, logoutUrl);
+        var frontend = Frontends.GetRequired(Context);
+        var connection = Connections.Create(frontend, session.Handle, logoutUrl);
         return new ClaimsPrincipal(
             new BffConnectionIdentity(principal.Identities.Single(), connection)
         );
@@ -100,7 +100,7 @@ internal class BffAuthenticationHandler(
             );
         }
 
-        var frontend = _frontends.Resolve(Context);
+        var frontend = Frontends.Resolve(Context);
         if (frontend is null)
         {
             return BffResponses.WriteProblemAsync(
@@ -132,7 +132,7 @@ internal class BffAuthenticationHandler(
             );
         }
 
-        var session = await _resolver.ResolveAsync(Context, Context.RequestAborted);
+        var session = await Resolver.ResolveAsync(Context, Context.RequestAborted);
         if (session is null)
             return;
 

@@ -23,26 +23,26 @@ internal sealed class DefaultBffConnectionSession(
     BffSessionResolver resolver
 ) : IBffConnectionSession, IBffSessionScope
 {
-    private readonly BffFrontend _frontend = frontend;
-    private readonly string _handle = handle;
-    private readonly string _logoutUrl = logoutUrl;
-    private readonly BffSessionResolver _resolver = resolver;
+    private BffFrontend SessionFrontend { get; } = frontend;
+    private string Handle { get; } = handle;
+    private string LogoutUrl { get; } = logoutUrl;
+    private BffSessionResolver Resolver { get; } = resolver;
 
     /// <inheritdoc />
-    public string? Frontend => _frontend.Name;
+    public string? Frontend => SessionFrontend.Name;
 
     /// <inheritdoc />
     public HttpContext? HttpContext => null;
 
     /// <inheritdoc />
-    public BffFrontend? SelectedFrontend => _frontend;
+    public BffFrontend? SelectedFrontend => SessionFrontend;
 
     /// <inheritdoc />
-    public TimeSpan RevalidationInterval => _frontend.Options.Session.RevalidationInterval;
+    public TimeSpan RevalidationInterval => SessionFrontend.Options.Session.RevalidationInterval;
 
     /// <inheritdoc />
     public ValueTask<BffSessionState?> ResolveAsync(CancellationToken cancellationToken) =>
-        _resolver.ValidateAsync(_frontend, _handle, null, null, cancellationToken);
+        Resolver.ValidateAsync(SessionFrontend, Handle, null, null, cancellationToken);
 
     /// <inheritdoc />
     public async ValueTask<ClaimsPrincipal?> ValidateAsync(
@@ -50,14 +50,14 @@ internal sealed class DefaultBffConnectionSession(
         CancellationToken cancellationToken
     )
     {
-        var state = await _resolver.ValidateAsync(
-            _frontend,
-            _handle,
+        var state = await Resolver.ValidateAsync(
+            SessionFrontend,
+            Handle,
             null,
             lastActivityAt,
             cancellationToken
         );
-        return state is null ? null : BffSessionPrincipal.Create(state, _logoutUrl);
+        return state is null ? null : BffSessionPrincipal.Create(state, LogoutUrl);
     }
 
     /// <inheritdoc />

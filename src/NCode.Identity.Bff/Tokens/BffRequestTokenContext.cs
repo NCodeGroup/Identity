@@ -22,9 +22,9 @@ internal sealed class BffRequestTokenContext(
     BffCookies cookies
 ) : IBffSessionScope
 {
-    private readonly BffFrontendCatalog _frontends = frontends;
-    private readonly BffSessionResolver _resolver = resolver;
-    private readonly BffCookies _cookies = cookies;
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffSessionResolver Resolver { get; } = resolver;
+    private BffCookies Cookies { get; } = cookies;
 
     /// <inheritdoc />
     public string? Frontend => SelectedFrontend?.Name;
@@ -33,16 +33,16 @@ internal sealed class BffRequestTokenContext(
     public HttpContext HttpContext { get; } = httpContext;
 
     /// <inheritdoc />
-    public BffFrontend? SelectedFrontend => _frontends.Resolve(HttpContext);
+    public BffFrontend? SelectedFrontend => Frontends.Resolve(HttpContext);
 
     /// <inheritdoc />
     public ValueTask<BffSessionState?> ResolveAsync(CancellationToken cancellationToken) =>
-        _resolver.ResolveAsync(HttpContext, cancellationToken);
+        Resolver.ResolveAsync(HttpContext, cancellationToken);
 
     /// <inheritdoc />
     public void OnSessionEnded()
     {
         if (SelectedFrontend is { } frontend)
-            _cookies.DeleteSession(HttpContext.Response, frontend);
+            Cookies.DeleteSession(HttpContext.Response, frontend);
     }
 }

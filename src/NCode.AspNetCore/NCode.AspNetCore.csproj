@@ -15,4 +15,8 @@
         <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
         <PackageReference Include="NCode.Buffers" />
     </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+    </ItemGroup>
 </Project>

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Stores;
+using NCode.Identity.OpenId.Management;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Accounts.Management;
@@ -78,6 +80,27 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
             .Verifiable();
     }
 
+    private Func<object?> SetupAuthorizationCapturingTheResource(
+        IAuthorizationRequirement requirement
+    )
+    {
+        object? authorizedResource = null;
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r => r.Contains(requirement))
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, object? resource, IEnumerable<IAuthorizationRequirement> _) =>
+                    authorizedResource = resource
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+        return () => authorizedResource;
+    }
     private void SetupUserNameLookup(PersistedLocalAccount? existing)
     {
         MockStoreManager
@@ -92,18 +115,30 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
 
     #endregion
 
-    #region ValidateCreateAsync
+    #region AuthorizeCreateAsync Tests
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenForbiddenAndAuthenticated_Returns403()
+    public async Task AuthorizeCreateAsync_WhenAuthorized_ReturnsNull()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeCreateAsync_WhenForbiddenAndAuthenticated_Returns403()
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await Validator.ValidateCreateAsync(
+        var error = await Validator.AuthorizeCreateAsync(
             CreateUser(authenticated: true),
             TenantId,
-            UserName,
-            MockStoreManager.Object,
             CancellationToken.None
         );
 
@@ -112,15 +147,13 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenForbiddenAndAnonymous_Returns401()
+    public async Task AuthorizeCreateAsync_WhenForbiddenAndAnonymous_Returns401()
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await Validator.ValidateCreateAsync(
+        var error = await Validator.AuthorizeCreateAsync(
             CreateUser(authenticated: false),
             TenantId,
-            UserName,
-            MockStoreManager.Object,
             CancellationToken.None
         );
 
@@ -129,14 +162,153 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenUserNameTaken_Returns409()
+    public async Task AuthorizeCreateAsync_AuthorizesCreateOnTheTenantScope()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheResource(Operations.Create);
+
+        await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var scope = Assert.IsType<TenantScopeResource>(authorizedResource());
+        Assert.Equal(TenantId, scope.TenantId);
+    }
+
+    #endregion
+    #region AuthorizeUpdateAsync Tests
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenAuthorized_ReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenForbiddenAndAuthenticated_Returns403()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenForbiddenAndAnonymous_Returns401()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: false),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_AuthorizesUpdateOnTheTenantScope()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheResource(Operations.Update);
+
+        await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var scope = Assert.IsType<TenantScopeResource>(authorizedResource());
+        Assert.Equal(TenantId, scope.TenantId);
+    }
+
+    #endregion
+    #region AuthorizeDeleteAsync Tests
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenAuthorized_ReturnsNull()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenForbiddenAndAuthenticated_Returns403()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenForbiddenAndAnonymous_Returns401()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: false),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_AuthorizesDeleteOnTheTenantScope()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheResource(Operations.Delete);
+
+        await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var scope = Assert.IsType<TenantScopeResource>(authorizedResource());
+        Assert.Equal(TenantId, scope.TenantId);
+    }
+
+    #endregion
+    #region ValidateCreateAsync Tests
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenUserNameTaken_Returns409()
+    {
         SetupUserNameLookup(CreateAccount());
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            TenantId,
             UserName,
             MockStoreManager.Object,
             CancellationToken.None
@@ -149,12 +321,9 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenValid_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupUserNameLookup(existing: null);
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            TenantId,
             UserName,
             MockStoreManager.Object,
             CancellationToken.None
@@ -165,16 +334,12 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
 
     #endregion
 
-    #region ValidateUpdateAsync
+    #region ValidateUpdateAsync Tests
 
     [Fact]
     public async Task ValidateUpdateAsync_WhenIfMatchMismatch_Returns412()
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
-            TenantId,
             LocalAccountId,
             UserName,
             concurrencyToken: "current-ct",
@@ -190,12 +355,9 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenUserNameTakenByAnotherAccount_Returns409()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupUserNameLookup(CreateAccount(localAccountId: "other-account"));
 
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
-            TenantId,
             LocalAccountId,
             UserName,
             concurrencyToken: "current-ct",
@@ -211,12 +373,9 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenUserNameUnchangedOnSameAccount_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupUserNameLookup(CreateAccount(localAccountId: LocalAccountId));
 
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
-            TenantId,
             LocalAccountId,
             UserName,
             concurrencyToken: "current-ct",
@@ -230,33 +389,12 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
 
     #endregion
 
-    #region ValidateDeleteAsync
+    #region ValidateDeleteAsync Tests
 
     [Fact]
-    public async Task ValidateDeleteAsync_WhenForbiddenAndAuthenticated_Returns403()
+    public async Task ValidateDeleteAsync_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Failed());
-
         var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
-            TenantId,
-            LocalAccountId,
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
-    }
-
-    [Fact]
-    public async Task ValidateDeleteAsync_WhenAuthorized_ReturnsNull()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-
-        var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
-            TenantId,
             LocalAccountId,
             MockStoreManager.Object,
             CancellationToken.None

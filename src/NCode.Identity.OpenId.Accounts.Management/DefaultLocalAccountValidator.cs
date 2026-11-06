@@ -1,4 +1,4 @@
-// Copyright © NCode Group
+﻿// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
@@ -20,38 +20,57 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
         ILocalAccountValidator
 {
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateCreateAsync(
+    public ValueTask<ManagementError?> AuthorizeCreateAsync(
         ClaimsPrincipal user,
         string tenantId,
-        string userName,
-        IStoreManager storeManager,
         CancellationToken cancellationToken
-    )
-    {
-        var error = await AuthorizeAsync(
+    ) =>
+        AuthorizeAsync(
             user,
             TenantScopeResource.For(tenantId),
             Operations.Create,
             "The caller is not authorized to create local accounts in this tenant.",
             "Authentication is required to create local accounts in this tenant."
         );
-        if (error is not null)
-        {
-            return error;
-        }
-
-        return await CheckUserNameAvailableAsync(
-            storeManager,
-            userName,
-            localAccountId: null,
-            cancellationToken
-        );
-    }
 
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateUpdateAsync(
+    public ValueTask<ManagementError?> AuthorizeUpdateAsync(
         ClaimsPrincipal user,
         string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            TenantScopeResource.For(tenantId),
+            Operations.Update,
+            "The caller is not authorized to update this local account.",
+            "Authentication is required to update this local account."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            TenantScopeResource.For(tenantId),
+            Operations.Delete,
+            "The caller is not authorized to delete this local account.",
+            "Authentication is required to delete this local account."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> ValidateCreateAsync(
+        string userName,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    ) =>
+        CheckUserNameAvailableAsync(storeManager, userName, localAccountId: null, cancellationToken);
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> ValidateUpdateAsync(
         string localAccountId,
         string userName,
         string concurrencyToken,
@@ -60,56 +79,29 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            TenantScopeResource.For(tenantId),
-            Operations.Update,
-            "The caller is not authorized to update this local account.",
-            "Authentication is required to update this local account."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         if (
             !string.IsNullOrEmpty(ifMatch)
             && !string.Equals(ifMatch, concurrencyToken, StringComparison.Ordinal)
         )
         {
-            return new ManagementError
-            {
-                StatusCode = StatusCodes.Status412PreconditionFailed,
-                Detail = "The supplied If-Match token does not match the current local account.",
-            };
+            return ValueTask.FromResult<ManagementError?>(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status412PreconditionFailed,
+                    Detail = "The supplied If-Match token does not match the current local account.",
+                }
+            );
         }
 
-        return await CheckUserNameAvailableAsync(
-            storeManager,
-            userName,
-            localAccountId,
-            cancellationToken
-        );
+        return CheckUserNameAvailableAsync(storeManager, userName, localAccountId, cancellationToken);
     }
 
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateDeleteAsync(
-        ClaimsPrincipal user,
-        string tenantId,
+    public ValueTask<ManagementError?> ValidateDeleteAsync(
         string localAccountId,
         IStoreManager storeManager,
         CancellationToken cancellationToken
-    )
-    {
-        return await AuthorizeAsync(
-            user,
-            TenantScopeResource.For(tenantId),
-            Operations.Delete,
-            "The caller is not authorized to delete this local account.",
-            "Authentication is required to delete this local account."
-        );
-    }
-
+    ) => ValueTask.FromResult<ManagementError?>(null);
     // A username is unique within the tenant; a match against a different account (or any account, on create) conflicts.
     private static async ValueTask<ManagementError?> CheckUserNameAvailableAsync(
         IStoreManager storeManager,

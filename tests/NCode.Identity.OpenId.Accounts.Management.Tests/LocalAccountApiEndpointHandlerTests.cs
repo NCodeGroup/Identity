@@ -90,19 +90,54 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
 
     #region Helpers
 
-    private void SetupAuthorizationSucceeds()
+    private void SetupAuthorizeCreate(ManagementError? error)
     {
-        MockAuthorizationService
+        MockLocalAccountValidator
             .Setup(x =>
-                x.AuthorizeAsync(
+                x.AuthorizeCreateAsync(
                     It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<object?>(),
-                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                    TenantId,
+                    It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(AuthorizationResult.Success())
+            .ReturnsAsync(error)
             .Verifiable();
     }
+
+    private void SetupAuthorizeUpdate(ManagementError? error)
+    {
+        MockLocalAccountValidator
+            .Setup(x =>
+                x.AuthorizeUpdateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+    }
+
+    private void SetupAuthorizeDelete(ManagementError? error)
+    {
+        MockLocalAccountValidator
+            .Setup(x =>
+                x.AuthorizeDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+    }
+
+    private static ManagementError CreateForbiddenError() =>
+        new()
+        {
+            StatusCode = StatusCodes.Status403Forbidden,
+            Detail = "The caller is not authorized.",
+        };
 
     // Mocks the store manager and reads the account; the store manager is only created once authorization succeeded.
     private void SetupAccount(PersistedLocalAccount? account)
@@ -127,8 +162,6 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         MockLocalAccountValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    TenantId,
                     LocalAccountId,
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -252,7 +285,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task SetEnabledAsync_WhenDisablingAndTheTenantIsNotServed_RefusesBeforeWriting()
     {
-        SetupAuthorizationSucceeds();
+        SetupAuthorizeUpdate(error: null);
         SetupAccount(CreateAccount());
         SetupTenantIsNotServed();
         var httpContext = CreateHttpContext();
@@ -274,7 +307,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     {
         var account = CreateAccount();
         account.IsEnabled = false;
-        SetupAuthorizationSucceeds();
+        SetupAuthorizeUpdate(error: null);
         SetupAccount(account);
         MockLocalAccountStore
             .Setup(x =>
@@ -321,7 +354,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task ResetPasswordAsync_WhenTheTenantIsNotServed_RefusesBeforeWriting()
     {
-        SetupAuthorizationSucceeds();
+        SetupAuthorizeUpdate(error: null);
         SetupAccount(CreateAccount());
         SetupPasswordAccepted();
         SetupTenantIsNotServed();
@@ -342,11 +375,69 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
 
     #endregion
 
+    #region CreateLocalAccountAsync Tests
+
+    [Fact]
+    public async Task CreateLocalAccountAsync_WhenUnauthorized_ReturnsTheErrorWithoutOpeningTheStore()
+    {
+        SetupAuthorizeCreate(CreateForbiddenError());
+
+        var result = await Handler.CreateLocalAccountAsync(
+            CreateHttpContext(),
+            TenantId,
+            new CreateLocalAccountRequest { UserName = UserName, Password = Password },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region UpdateLocalAccountAsync Tests
+
+    [Fact]
+    public async Task UpdateLocalAccountAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheAccount()
+    {
+        SetupAuthorizeUpdate(CreateForbiddenError());
+
+        var result = await Handler.UpdateLocalAccountAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            new UpdateLocalAccountRequest { UserName = UserName },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
     #region DeleteLocalAccountAsync Tests
+
+    [Fact]
+    public async Task DeleteLocalAccountAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheAccount()
+    {
+        SetupAuthorizeDelete(CreateForbiddenError());
+
+        var result = await Handler.DeleteLocalAccountAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
 
     [Fact]
     public async Task DeleteLocalAccountAsync_WhenTheTenantIsNotServed_RefusesBeforeWriting()
     {
+        SetupAuthorizeDelete(error: null);
         SetupAccount(CreateAccount());
         SetupDeleteValidated();
         SetupTenantIsNotServed();

@@ -114,6 +114,8 @@ NCode.Identity.Bff.IBffSessionFeature.Principal.get -> System.Security.Claims.Cl
 NCode.Identity.Bff.IBffTokenContext
 NCode.Identity.Bff.IBffTokenContext.Frontend.get -> string?
 NCode.Identity.Bff.IBffTokenContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext?
+NCode.Identity.Bff.IBffConnectionRevalidator
+NCode.Identity.Bff.IBffConnectionRevalidator.WaitUntilEndedAsync(NCode.Identity.Bff.IBffConnectionSession! connection, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Bff.IBffConnectionSession
 NCode.Identity.Bff.IBffConnectionSession.RevalidationInterval.get -> System.TimeSpan
 NCode.Identity.Bff.IBffConnectionSession.ValidateAsync(System.DateTimeOffset? lastActivityAt, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>

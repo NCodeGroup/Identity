@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logout;
@@ -19,7 +20,8 @@ namespace NCode.Identity.Bff.Authentication;
 
 /// <summary>
 /// Authenticates the requests to the endpoints the BFF guards from the BFF session cookie, and answers challenges and
-/// forbids.
+/// forbids. A page navigation that reaches a <c>SameSite=Strict</c> frontend without its session cookie is answered
+/// once with a same-origin reload page before the challenge redirects to login.
 /// </summary>
 internal class BffAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> schemeOptions,
@@ -27,16 +29,31 @@ internal class BffAuthenticationHandler(
     UrlEncoder encoder,
     BffSessionResolver resolver,
     BffFrontendCatalog frontends,
-    BffConnectionSessions connections
+    BffConnectionSessions connections,
+    BffCookies cookies
 )
     : AuthenticationHandler<AuthenticationSchemeOptions>(schemeOptions, loggerFactory, encoder),
         IAuthenticationSignOutHandler
 {
     private const string LoginPath = "/login";
 
+    private const string SecFetchModeHeaderName = "Sec-Fetch-Mode";
+    private const string NavigateFetchMode = "navigate";
+    private const string ReferrerPolicyHeaderName = "Referrer-Policy";
+    private const string ReloadContentType = "text/html; charset=utf-8";
+    private const string ReloadCacheControl = "no-store";
+    private const string ReloadReferrerPolicy = "no-referrer";
+    private const string ReloadNoSniff = "nosniff";
+    private const string ReloadContentSecurityPolicy =
+        "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+    private const string ReloadUrlPlaceholder = "{url}";
+    private const string ReloadPageTemplate =
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url={url}\"><title>Continue</title></head><body><a href=\"{url}\">Continue</a></body></html>";
+
     private BffSessionResolver Resolver { get; } = resolver;
     private BffFrontendCatalog Frontends { get; } = frontends;
     private BffConnectionSessions Connections { get; } = connections;
+    private BffCookies Cookies { get; } = cookies;
 
     /// <inheritdoc />
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -112,6 +129,12 @@ internal class BffAuthenticationHandler(
         }
 
         var request = Request;
+        if (IsSameSiteReload(frontend))
+            return WriteSameSiteReloadAsync(frontend, Context.RequestAborted).AsTask();
+
+        if (Cookies.HasPageReload(request, frontend))
+            Cookies.DeletePageReload(Response, frontend);
+
         var returnUrl = $"{request.Path}{request.QueryString}";
         if (!BffReturnUrls.IsLocalUrl(returnUrl, frontend.Options.ReturnUrls))
             returnUrl = "/";
@@ -120,6 +143,67 @@ internal class BffAuthenticationHandler(
         var escaped = Uri.EscapeDataString(returnUrl);
         Response.Redirect($"{loginUrl}?returnUrl={escaped}");
         return Task.CompletedTask;
+    }
+
+    private bool IsSameSiteReload(BffFrontend frontend)
+    {
+        var request = Request;
+        if (!HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method))
+            return false;
+
+        var fetchMode = request.Headers[SecFetchModeHeaderName].ToString();
+        if (
+            fetchMode.Length != 0
+            && !string.Equals(fetchMode, NavigateFetchMode, StringComparison.OrdinalIgnoreCase)
+        )
+            return false;
+
+        return frontend.Options.Session.SameSite == SameSiteMode.Strict
+            && Cookies.ReadSessionHandle(request, frontend) is null
+            && !Cookies.HasPageReload(request, frontend);
+    }
+
+    /// <summary>
+    /// Answers the request with a same-origin reload page and sets the marker cookie that limits the reload to once.
+    /// </summary>
+    /// <remarks>
+    /// A <c>SameSite=Strict</c> session cookie is withheld on a top-level navigation that a cross-site page or
+    /// redirect chain starts, such as the redirect from the callback endpoint to the return URL, which a browser
+    /// labels as <c>Sec-Fetch-Site: cross-site</c> or <c>none</c> depending on the browser, so Fetch Metadata cannot
+    /// tell it apart. The page answers once with a reload page that points at the request's own URL, which the browser
+    /// follows as a same-origin navigation that carries the cookie, and the <c>SameSite=Lax</c> marker cookie limits the
+    /// reload to once. A <c>HEAD</c> request gets the headers and no body.
+    /// </remarks>
+    /// <param name="frontend">The frontend that the request belongs to.</param>
+    /// <param name="cancellationToken">The token that cancels the write.</param>
+    private async ValueTask WriteSameSiteReloadAsync(
+        BffFrontend frontend,
+        CancellationToken cancellationToken
+    )
+    {
+        var request = Request;
+        var response = Response;
+        Cookies.SetPageReload(response, frontend);
+
+        response.StatusCode = StatusCodes.Status200OK;
+        response.ContentType = ReloadContentType;
+        response.Headers.CacheControl = ReloadCacheControl;
+        response.Headers[ReferrerPolicyHeaderName] = ReloadReferrerPolicy;
+        response.Headers.XContentTypeOptions = ReloadNoSniff;
+        response.Headers.ContentSecurityPolicy = ReloadContentSecurityPolicy;
+
+        if (HttpMethods.IsHead(request.Method))
+            return;
+
+        var url =
+            $"{request.PathBase.ToUriComponent()}{request.Path.ToUriComponent()}{request.QueryString.ToUriComponent()}";
+        var encoded = HtmlEncoder.Default.Encode(url);
+        var body = ReloadPageTemplate.Replace(
+            ReloadUrlPlaceholder,
+            encoded,
+            StringComparison.Ordinal
+        );
+        await response.WriteAsync(body, cancellationToken);
     }
 
     /// <inheritdoc />

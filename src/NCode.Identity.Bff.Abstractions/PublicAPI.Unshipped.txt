@@ -10,6 +10,7 @@ const NCode.Identity.Bff.BffDefaults.AuthenticationScheme = "Bff" -> string!
 const NCode.Identity.Bff.BffDefaults.EndpointPrefix = "/bff" -> string!
 const NCode.Identity.Bff.BffDefaults.SessionCookieName = "__Host-Http-bff" -> string!
 const NCode.Identity.Bff.BffDefaults.LoginCookieName = "__Host-Http-bff-login" -> string!
+const NCode.Identity.Bff.BffDefaults.PageReloadCookieName = "__Host-Http-bff-reload" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryCookieName = "__Host-Http-bff-antiforgery" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderName = "X-CSRF" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderValue = "1" -> string!

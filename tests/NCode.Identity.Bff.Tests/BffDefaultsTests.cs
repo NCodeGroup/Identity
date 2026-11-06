@@ -12,5 +12,16 @@ public class BffDefaultsTests : BaseTests
     {
         Assert.StartsWith("__Host-Http-", BffDefaults.SessionCookieName, StringComparison.Ordinal);
         Assert.StartsWith("__Host-Http-", BffDefaults.LoginCookieName, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "__Host-Http-",
+            BffDefaults.PageReloadCookieName,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void PageReloadCookieName_Value_IsTheReloadMarkerName()
+    {
+        Assert.Equal("__Host-Http-bff-reload", BffDefaults.PageReloadCookieName);
     }
 }

@@ -104,6 +104,7 @@ public class BffFrontendTests : BaseTests
 
         Assert.Equal($"{BffDefaults.SessionCookieName}.web", frontend.SessionCookieName);
         Assert.Equal($"{BffDefaults.LoginCookieName}.web", frontend.LoginCookieName);
+        Assert.Equal($"{BffDefaults.PageReloadCookieName}.web", frontend.PageReloadCookieName);
     }
 
     #endregion

@@ -1,10 +1,12 @@
 import {
   mergeRuntimeConfig,
+  parseBffBootstrapDocument,
   parseBootstrapDocument,
   parseOpenIdDiscovery,
   RuntimeConfigError,
+  toBffRuntimeConfig,
 } from './parse.js';
-import type { RuntimeConfig, SurfaceKind } from './types.js';
+import type { BffRuntimeConfig, OpenIdRuntimeConfig, RuntimeConfig, SurfaceKind } from './types.js';
 
 /** Well-known path, relative to the serving host, of the bootstrap document. */
 export const BOOTSTRAP_PATH = '/config/bootstrap.json';
@@ -47,13 +49,11 @@ async function fetchJson(fetchFn: FetchLike, url: string, signal?: AbortSignal):
   return response.json();
 }
 
-/**
- * Discovers runtime configuration at boot. Fetches the host bootstrap document, then the OpenID
- * discovery metadata for the advertised issuer, and merges them into a validated {@link RuntimeConfig}.
- */
-export async function loadRuntimeConfig(
-  options: LoadRuntimeConfigOptions = {},
-): Promise<RuntimeConfig> {
+/** Resolves the injected or global fetch and the serving origin (without a trailing slash) a load reads from. */
+function resolveSource(options: Omit<LoadRuntimeConfigOptions, 'surface'>): {
+  readonly fetchFn: FetchLike;
+  readonly origin: string;
+} {
   const fetchFn = options.fetchFn ?? (globalThis.fetch as FetchLike | undefined);
   if (!fetchFn) {
     throw new RuntimeConfigError('No fetch implementation available to load runtime config.');
@@ -67,6 +67,17 @@ export async function loadRuntimeConfig(
   }
 
   const origin = servingOrigin.endsWith('/') ? servingOrigin.slice(0, -1) : servingOrigin;
+  return { fetchFn, origin };
+}
+
+/**
+ * Discovers runtime configuration at boot. Fetches the host bootstrap document, then the OpenID
+ * discovery metadata for the advertised issuer, and merges them into a validated {@link OpenIdRuntimeConfig}.
+ */
+export async function loadRuntimeConfig(
+  options: LoadRuntimeConfigOptions = {},
+): Promise<OpenIdRuntimeConfig> {
+  const { fetchFn, origin } = resolveSource(options);
   const bootstrapUrl = options.surface
     ? `${origin}${BOOTSTRAP_PATH}?surface=${encodeURIComponent(options.surface)}`
     : `${origin}${BOOTSTRAP_PATH}`;
@@ -84,6 +95,19 @@ export async function loadRuntimeConfig(
 }
 
 /**
+ * Loads the runtime configuration of a surface its own BFF host serves. Fetches only the host bootstrap document,
+ * which names the surface's BFF, and resolves it into a validated {@link BffRuntimeConfig}: there is no surface
+ * parameter and no OpenID discovery, because the browser holds no client and never talks to the issuer.
+ */
+export async function loadBffRuntimeConfig(
+  options: Omit<LoadRuntimeConfigOptions, 'surface'> = {},
+): Promise<BffRuntimeConfig> {
+  const { fetchFn, origin } = resolveSource(options);
+  const raw = await fetchJson(fetchFn, `${origin}${BOOTSTRAP_PATH}`, options.signal);
+  return toBffRuntimeConfig(parseBffBootstrapDocument(raw));
+}
+
+/**
  * Loads one bundle's runtime configuration, abandoning the load when the signal aborts. The boot gate takes one as a
  * dependency, so a bundle binds its surface in its composition root and a test injects its own.
  */
@@ -94,4 +118,11 @@ export function createRuntimeConfigLoader(
   options: Omit<LoadRuntimeConfigOptions, 'signal'> = {},
 ): RuntimeConfigLoader {
   return (signal) => loadRuntimeConfig({ ...options, signal });
+}
+
+/** Binds {@link loadBffRuntimeConfig} to a BFF-served bundle's options — typically none — as a loader. */
+export function createBffRuntimeConfigLoader(
+  options: Omit<LoadRuntimeConfigOptions, 'surface' | 'signal'> = {},
+): RuntimeConfigLoader {
+  return (signal) => loadBffRuntimeConfig({ ...options, signal });
 }

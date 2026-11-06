@@ -310,7 +310,7 @@ public sealed class DefaultRegistrationTests
     public void AddIdentityServer_RegistersTheTeamSettingsReconciliationService()
     {
         // Without this service a change to a team's effective settings, or to the platform's, reaches the team's tenants
-        // and clients only when each is next used (ADR-1219).
+        // and clients only when each is next used (ADR-1412).
         using var host = BuildHost([]);
 
         Assert.Contains(
@@ -537,8 +537,8 @@ public sealed class DefaultRegistrationTests
     [Fact]
     public void AddIdentityServer_RegistersTheClientCoherenceReportHandler()
     {
-        // Without this handler a change to the platform's settings that is not a write leaves the stored clients that it
-        // makes incoherent unreported until they fail at their next request (ADR-1219).
+        // Without this handler a change to a team's effective settings that is not a write leaves the stored clients it
+        // makes incoherent unreported until they fail at their next request (ADR-1412).
         using var host = BuildHost([]);
 
         var handlers = host.Services.GetServices<ICommandHandler<ReconcileTeamSettingsCommand>>();

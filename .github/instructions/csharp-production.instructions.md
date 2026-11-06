@@ -329,7 +329,7 @@ than inlining the rationale.
   its input, discard the compared input when a second change arrives before the first was reconciled, write the
   record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
   version so one replica runs each pass
-  ([ADR-1219](../../docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md),
   [ADR-1234](../../docs/decisions/1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
 - 👁 **Build a protocol endpoint to the canonical shape** per [ADR-1086](../../docs/decisions/1086-canonical-openid-endpoint-shape.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →

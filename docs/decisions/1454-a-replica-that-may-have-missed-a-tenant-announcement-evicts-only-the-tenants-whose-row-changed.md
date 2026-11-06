@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) decision 2,
-  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) decision 10,
+  [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md))
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
@@ -66,6 +66,9 @@ the store's and evicts only the tenants whose token differs or whose row is gone
 - A root key change makes every replica's secrets poll read the tenant's secrets again.
 - A management write that read the tenant row before a root key change is answered `412`
   ([ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md)) and a retry succeeds.
+- When marking a tenant's secrets changed fails, the announcement still goes out, so a replica that receives it evicts
+  the tenant. A replica that misses it finds the row token unchanged and serves the cached tenant until
+  `TenantCacheLifetime` expires it, which bounds that window.
 - A custom implementation of `OpenIdTenant`, `IOpenIdTenantCache` or `ITenantStore` implements the added members.
 
 ## References

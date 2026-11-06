@@ -124,10 +124,56 @@ internal class BffOptionsValidator(
         ValidateFrontends(options.Frontends, isDevelopment, failures);
         ValidateAntiforgery(options.Antiforgery, failures);
         ValidateTokens(options.Tokens, failures);
+        ValidateKeyRings(options.KeyRings, failures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail(failures);
+    }
+
+    private void ValidateKeyRings(
+        Dictionary<string, BffKeyRingOptions>? keyRings,
+        List<string> failures
+    )
+    {
+        if (keyRings is null)
+        {
+            failures.Add($"{Key}:KeyRings must be set.");
+            return;
+        }
+
+        foreach (var (name, keyRing) in keyRings.OrderBy(x => x.Key, StringComparer.Ordinal))
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                failures.Add($"{Key}:KeyRings has a key ring without a name.");
+                continue;
+            }
+
+            var keyRingKey = $"{Key}:KeyRings:{name}";
+            if (keyRing?.PemFiles is not { Count: > 0 } pemFiles)
+            {
+                failures.Add($"{keyRingKey}:PemFiles must list at least one file.");
+                continue;
+            }
+
+            for (var i = 0; i < pemFiles.Count; i++)
+            {
+                var path = pemFiles[i];
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    failures.Add($"{keyRingKey}:PemFiles:{i} must not be blank.");
+                    continue;
+                }
+
+                if (!File.Exists(Path.GetFullPath(path, environment.ContentRootPath)))
+                {
+                    failures.Add(
+                        $"{keyRingKey}:PemFiles:{i} names '{path}', which does not exist."
+                    );
+                }
+            }
+        }
     }
 
     private void ValidateSelectors(List<string> failures)

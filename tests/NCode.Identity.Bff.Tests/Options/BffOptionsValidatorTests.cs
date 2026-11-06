@@ -12,10 +12,21 @@ namespace NCode.Identity.Bff.Tests.Options;
 
 public class BffOptionsValidatorTests : BaseTests
 {
+    private DirectoryInfo KeysDirectory { get; } = Directory.CreateTempSubdirectory("bff-keys-");
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            KeysDirectory.Delete(true);
+
+        base.Dispose(disposing);
+    }
+
     private BffOptionsValidator CreateValidator(string environmentName = "Production")
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
+        mockEnvironment.Setup(x => x.ContentRootPath).Returns(KeysDirectory.FullName);
         return new BffOptionsValidator(
             mockEnvironment.Object,
             [new HostBffFrontendSelector(), new PathBffFrontendSelector()]
@@ -1045,6 +1056,143 @@ public class BffOptionsValidatorTests : BaseTests
             "Bff:Frontends:shop and Bff:Frontends:web have the same PublicOrigin and PathPrefix; each frontend needs its own callback URI.",
             result.Failures ?? []
         );
+    }
+
+    #endregion
+
+    #region KeyRings Tests
+
+    [Fact]
+    public void Validate_WhenKeyRingsNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:KeyRings must be set.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenKeyRingHasNoName_Fails()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings[" "] = new BffKeyRingOptions { PemFiles = ["a.pem"] };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:KeyRings has a key ring without a name.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenKeyRingNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:KeyRings:client:PemFiles must list at least one file.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenPemFilesEmpty_Fails()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = [] };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:KeyRings:client:PemFiles must list at least one file.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenPemFilesNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = null! };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:KeyRings:client:PemFiles must list at least one file.",
+            result.Failures ?? []
+        );
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Validate_WhenPemFileBlank_Fails(string? path)
+    {
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = [path!] };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:KeyRings:client:PemFiles:0 must not be blank.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenPemFileMissing_Fails()
+    {
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = ["missing.pem"] };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:KeyRings:client:PemFiles:0 names 'missing.pem', which does not exist.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenOnlyTheSecondPemFileIsMissing_FailsWithItsIndex()
+    {
+        var existing = Path.Combine(KeysDirectory.FullName, "client.pem");
+        File.WriteAllBytes(existing, []);
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = [existing, "missing.pem"] };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Equal(
+            ["Bff:KeyRings:client:PemFiles:1 names 'missing.pem', which does not exist."],
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WithExistingPemFiles_Succeeds()
+    {
+        File.WriteAllBytes(Path.Combine(KeysDirectory.FullName, "relative.pem"), []);
+        var absolute = Path.Combine(KeysDirectory.FullName, "absolute.pem");
+        File.WriteAllBytes(absolute, []);
+        var options = CreateValidOptions();
+        options.KeyRings["client"] = new BffKeyRingOptions
+        {
+            PemFiles = ["relative.pem", absolute],
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
     }
 
     #endregion

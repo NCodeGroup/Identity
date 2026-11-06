@@ -83,6 +83,10 @@ keys, principals and environment-bound values stay with their environment.**
    ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)). Creating
    clients and resource servers is creation authority: `TeamAdmin` at the team, the target's `TenantAdmin`, or
    `GlobalAdmin`. Then both tenants must exist and belong to `{teamId}`, else `404`, and then the limit rule applies.
+   Then a promotion that changes an existing target client whose principal holds role assignments needs `Create` at
+   each node those assignments are held at, the authority any change to that client needs
+   ([ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)); without it, preview and
+   promote answer `403` and nothing is written.
 9. **Contributors.** The public strategy collection `ITenantPromotionContributor` (`Order`, `PlanAsync`, `ApplyAsync`)
    over `TenantPromotionContext` is open by registration
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
@@ -142,6 +146,8 @@ keys, principals and environment-bound values stay with their environment.**
   deployment root and a team groups a customer's tenants
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
   role assignment at the tenant's node
+- [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) — a client acting for
+  itself is a principal that holds role assignments
 - [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) — a limit is set by
   the authority above the scope whose document carries it
 - [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — a management

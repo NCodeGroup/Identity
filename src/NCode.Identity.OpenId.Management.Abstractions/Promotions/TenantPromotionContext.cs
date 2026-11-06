@@ -73,7 +73,9 @@ public sealed class TenantPromotionContext
     public required IReadOnlyList<TenantPromotionEnvironmentSettings> EnvironmentSettings { get; init; }
 
     /// <summary>
-    /// Gets or sets the settings document the target tenant holds once promoted.
+    /// Gets or sets the settings document the target tenant holds once promoted. It starts as the target's stored
+    /// document; the tenant settings contributor sets it while planning, and a contributor that runs after it, such as
+    /// the clients' contributor, checks what it promotes against it.
     /// </summary>
     public required JsonElement TargetTenantSettings { get; set; }
 

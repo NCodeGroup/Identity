@@ -35,8 +35,6 @@ internal class BffAuthenticationHandler(
     : AuthenticationHandler<AuthenticationSchemeOptions>(schemeOptions, loggerFactory, encoder),
         IAuthenticationSignOutHandler
 {
-    private const string LoginPath = "/login";
-
     private const string SecFetchModeHeaderName = "Sec-Fetch-Mode";
     private const string NavigateFetchMode = "navigate";
     private const string ReferrerPolicyHeaderName = "Referrer-Policy";
@@ -139,7 +137,10 @@ internal class BffAuthenticationHandler(
         if (!BffReturnUrls.IsLocalUrl(returnUrl, frontend.Options.ReturnUrls))
             returnUrl = "/";
 
-        var loginUrl = BffNavigation.LocalUrl(request, frontend.Options.PathPrefix + LoginPath);
+        var loginUrl = BffNavigation.LocalUrl(
+            request,
+            frontend.Options.PathPrefix + BffEndpointPaths.Login
+        );
         var escaped = Uri.EscapeDataString(returnUrl);
         Response.Redirect($"{loginUrl}?returnUrl={escaped}");
         return Task.CompletedTask;

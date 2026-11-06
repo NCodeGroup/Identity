@@ -123,7 +123,7 @@ public static class BffEndpointRouteBuilderExtensions
     {
         group
             .MapGet(
-                "/login",
+                BffEndpointPaths.Login,
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffLoginHandler>()
@@ -133,7 +133,7 @@ public static class BffEndpointRouteBuilderExtensions
 
         group
             .MapGet(
-                "/callback",
+                BffEndpointPaths.Callback,
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffCallbackHandler>()
@@ -143,7 +143,7 @@ public static class BffEndpointRouteBuilderExtensions
 
         group
             .MapGet(
-                "/user",
+                BffEndpointPaths.User,
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffUserHandler>()
@@ -154,7 +154,7 @@ public static class BffEndpointRouteBuilderExtensions
 
         group
             .MapPost(
-                "/logout",
+                BffEndpointPaths.Logout,
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffLogoutHandler>()
@@ -164,7 +164,7 @@ public static class BffEndpointRouteBuilderExtensions
 
         group
             .MapPost(
-                "/backchannel-logout",
+                BffEndpointPaths.BackChannelLogout,
                 static (HttpContext context) =>
                     context
                         .RequestServices.GetRequiredService<BffBackChannelLogoutHandler>()
@@ -176,7 +176,7 @@ public static class BffEndpointRouteBuilderExtensions
         {
             group
                 .MapGet(
-                    "/jwks",
+                    BffEndpointPaths.Jwks,
                     static (HttpContext context) =>
                         context
                             .RequestServices.GetRequiredService<BffJwksHandler>()

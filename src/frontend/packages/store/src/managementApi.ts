@@ -35,6 +35,7 @@ import {
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
+  type PromoteTenantRequest,
   type PublicKeyResource,
   type ResourceServerResource,
   type ScopeResource,
@@ -44,6 +45,7 @@ import {
   type TeamResource,
   type TeamUsageResource,
   type TenantAddressResource,
+  type TenantPromotionResource,
   type TenantResource,
   type TenantUsageResource,
   type UpdateClientFields,
@@ -272,6 +274,61 @@ export const managementApi = createApi({
         { type: 'Tenant', id: platformTag(tenantId) },
         { type: 'Caller', id: callerTag },
       ],
+    }),
+    previewTenantPromotion: build.mutation<
+      TenantPromotionResource,
+      { teamId: string; body: PromoteTenantRequest }
+    >({
+      query: ({ teamId, body }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}/promotions/preview`,
+        method: 'POST',
+        body,
+      }),
+    }),
+    // A promotion writes the target tenant's settings, clients and resource servers, so it refreshes the
+    // target's own tags and, for every client and resource server it reports, the item and its settings.
+    promoteTenant: build.mutation<
+      TenantPromotionResource,
+      { teamId: string; body: PromoteTenantRequest }
+    >({
+      query: ({ teamId, body }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}/promotions`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, _error, { body }) => {
+        const tenantId = body.targetTenantId;
+        const tags: { type: 'Tenant' | 'Client' | 'ResourceServer' | 'Settings'; id: string }[] = [
+          { type: 'Tenant', id: platformTag(tenantId) },
+          { type: 'Settings', id: ownerTagId({ kind: 'tenant', tenantId }) },
+          { type: 'Client', id: tenantTag(tenantId, LIST_TAG) },
+          { type: 'ResourceServer', id: tenantTag(tenantId, LIST_TAG) },
+        ];
+        for (const change of result?.changes ?? []) {
+          if (change.resourceType === 'client') {
+            tags.push(
+              { type: 'Client', id: tenantTag(tenantId, change.resourceId) },
+              {
+                type: 'Settings',
+                id: ownerTagId({ kind: 'client', tenantId, clientId: change.resourceId }),
+              },
+            );
+          } else if (change.resourceType === 'resource_server') {
+            tags.push(
+              { type: 'ResourceServer', id: tenantTag(tenantId, change.resourceId) },
+              {
+                type: 'Settings',
+                id: ownerTagId({
+                  kind: 'resource-server',
+                  tenantId,
+                  resourceServerId: change.resourceId,
+                }),
+              },
+            );
+          }
+        }
+        return tags;
+      },
     }),
     createClient: build.mutation<ClientResource, { tenantId: string; body: CreateClientRequest }>({
       query: ({ tenantId, body }) => ({
@@ -660,6 +717,8 @@ export const {
   useCreateTenantMutation,
   useUpdateTenantMutation,
   useDeleteTenantMutation,
+  usePreviewTenantPromotionMutation,
+  usePromoteTenantMutation,
   useCreateClientMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,

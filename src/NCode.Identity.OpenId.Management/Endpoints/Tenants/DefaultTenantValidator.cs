@@ -27,27 +27,56 @@ internal class DefaultTenantValidator(
     private ITenantResolver TenantResolver { get; } = tenantResolver;
 
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateCreateAsync(
+    // Creating a tenant is authority at its team's node (ADR-1411).
+    public ValueTask<ManagementError?> AuthorizeCreateAsync(
         ClaimsPrincipal user,
         string controlPlaneTenantId,
+        string teamId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, teamId),
+            Operations.Create,
+            "The caller is not authorized to create this tenant.",
+            "Authentication is required to create this tenant."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeUpdateAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId),
+            Operations.Update,
+            "The caller is not authorized to update this tenant.",
+            "Authentication is required to update this tenant."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId),
+            Operations.Delete,
+            "The caller is not authorized to delete this tenant.",
+            "Authentication is required to delete this tenant."
+        );
+
+    /// <inheritdoc />
+    public async ValueTask<ManagementError?> ValidateCreateAsync(
         PersistedTenant tenant,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        // Creating a tenant is authority at its team's node (ADR-1411).
-        var error = await AuthorizeAsync(
-            user,
-            ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, tenant.TeamId),
-            Operations.Create,
-            "The caller is not authorized to create this tenant.",
-            "Authentication is required to create this tenant."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         if (string.IsNullOrWhiteSpace(tenant.DisplayName))
         {
             return new ManagementError
@@ -88,7 +117,6 @@ internal class DefaultTenantValidator(
 
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateUpdateAsync(
-        ClaimsPrincipal user,
         PersistedTenant tenant,
         UpdateTenantRequest model,
         string? ifMatch,
@@ -96,18 +124,6 @@ internal class DefaultTenantValidator(
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            ResourceNode.For(tenant.TenantId, ResourceNodeTypes.Tenant, tenant.TenantId),
-            Operations.Update,
-            "The caller is not authorized to update this tenant.",
-            "Authentication is required to update this tenant."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         if (
             !string.IsNullOrEmpty(ifMatch)
             && !string.Equals(ifMatch, tenant.ConcurrencyToken, StringComparison.Ordinal)
@@ -160,24 +176,11 @@ internal class DefaultTenantValidator(
 
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateDeleteAsync(
-        ClaimsPrincipal user,
         PersistedTenant tenant,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            ResourceNode.For(tenant.TenantId, ResourceNodeTypes.Tenant, tenant.TenantId),
-            Operations.Delete,
-            "The caller is not authorized to delete this tenant.",
-            "Authentication is required to delete this tenant."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         // Retired tenant identifiers are never reissued, so a deleted root or static tenant could never be recreated and
         // every request needing it would fail.
         if (TenantResolver.IsRequiredTenant(tenant.TenantId))

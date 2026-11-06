@@ -1,6 +1,7 @@
 # 1015. Management core validation via replaceable validators
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md):
+  a validator authorizes the route's node before the row is read)
 - **Date:** 2026-09-29
 - **Deciders:** NCode Group
 

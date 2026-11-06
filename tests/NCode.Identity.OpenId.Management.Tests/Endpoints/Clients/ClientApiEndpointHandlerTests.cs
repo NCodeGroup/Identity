@@ -123,7 +123,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
             MockClientKeyImporter.Object,
-            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
             MockSecretPublicKeyConverter.Object,
             MockSecretProtectorProvider.Object,
             TimeProvider.System,
@@ -136,7 +135,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockClientSecretIssuer.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
-            hostManagedClientPolicies,
+            new DefaultHostManagedClientChecker(hostManagedClientPolicies),
+            new DefaultClientKeySourceChecker(
+                ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+            ),
             NullLogger<ClientApiEndpointHandler>.Instance
         );
 
@@ -1158,6 +1160,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedClient?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1169,6 +1172,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetClientAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheClient()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetClientAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -1228,6 +1247,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedClient?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1239,6 +1259,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheClient()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -1309,6 +1345,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedClient?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1323,13 +1360,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings()
+    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheClient()
     {
-        SetupStore();
-        MockClientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateClient("client-ct"))
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -1341,8 +1373,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CancellationToken.None
         );
 
-        // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
-        // authorization.
+        // No store or resolver is set up, so a strict-mock failure would mean the client was read or the settings were
+        // resolved before authorization.
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
@@ -2219,6 +2251,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.GetSecretsOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedClientSecrets?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -2230,6 +2263,22 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSecretsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheClient()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSecretsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion
@@ -3025,6 +3074,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .ReturnsAsync((PersistedClientSecret?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -3040,15 +3090,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbidWithoutProtector()
+    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheClient()
     {
-        SetupStore();
-        MockClientStore
-            .Setup(x =>
-                x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
-            )
-            .ReturnsAsync(CreateClientSecret())
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -3155,6 +3198,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             )
             .ReturnsAsync((PersistedClientSecret?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -3167,6 +3211,23 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheClient()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]

@@ -44,7 +44,7 @@ internal sealed class BffClientSession(
 
     /// <summary>
     /// Occurs when a probe finds that the session's user signed in, signed out or became another user. The argument is
-    /// the new authentication state.
+    /// the resulting authentication state.
     /// </summary>
     public event Action<Task<AuthenticationState>>? Changed;
 

@@ -953,6 +953,8 @@ runs.
 | Session claim contributors (`IBffSessionClaimContributor`) | Strategy collection | Shape the session principal **once**, at login, before the login gates. A good place for an expensive lookup. `iss`, `sub`, `sid`, `auth_time`, `acr` and `amr` cannot be added or removed. |
 | Session validators (`IBffSessionValidator`) | Strategy collection        | Per-request checks that can only end a session, for example re-checking account status at an interval.                        |
 | `/bff/user` contributors (`IBffUserContributor`) | Strategy collection | Add computed fields to the session probe, never into the reserved keys (`sub`, `name`, `claims`, `session`, `logoutUrl`, `logoutSid`). |
+| Connection sessions (`IBffConnectionSession`) | Service                  | The session a hub connection holds: it revalidates, slides and obtains tokens without an `HttpContext` ([§5.6](#56-accepting-the-bff-cookie-on-apis)). A request's principal carries one. |
+| User documents (`IBffUserDocumentFactory`) | Service                     | Builds the `/bff/user` document from a request, so `GET /bff/user` and a Blazor host that persists the user for WebAssembly answer alike ([§5.14](#514-server-rendered-and-blazor-hosts)). |
 | Events                                   | `NCode.Identity.Events`       | Lifecycle events go through the family's `IEventPublisher`, and audit-worthy ones are `IAuditEvent`s.                        |
 
 **Invariants that no seam can break.** No seam can skip the callback binding, the cookie attributes, the CSRF checks,
@@ -1042,6 +1044,10 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 - A frontend's `IdToken` or `UserInfo` algorithm list has a blank entry, `none` or a duplicate; content encryption is
   listed without key management; UserInfo encryption is listed without UserInfo signing; or encryption is listed without
   `ClientAuthentication:KeyRing`, which holds the decryption keys.
+- `Bff:Frontends:{name}:Session:RevalidationInterval` is not a valid timer period, or is longer than half of
+  `IdleTimeout`.
+- The antiforgery cookie's name does not start with `__Host-`, or the cookie is not `Secure`, has a `Path` other than
+  `/`, or has a `Domain`.
 - `Bff:Antiforgery:HeaderName` or `HeaderValue` is blank, or the header name is one that skips a CORS preflight or
   carries credentials, or a `Bff:Tokens` duration is out of range.
 - `Bff:Frontends:{name}:DPoP:Mode` is `required` and the OP does not support DPoP. This check runs when discovery is
@@ -1083,6 +1089,68 @@ Tags are low-cardinality constants: operation, result, reason, and error type. T
 tokens, client ids, or paths. [`docs/metrics.md`](metrics.md) catalogs every instrument and span.
 
 **Logs** use source-generated `LoggerMessage`, and never write a token, handle, or cookie value.
+
+### 5.14 Server-rendered and Blazor hosts
+
+A host that renders on the server uses the same session as a single-page application. Razor Pages, MVC and Blazor
+static rendering need no package: a page carries `[BffPage]` or `AsBffPage()` and reads `HttpContext.User`,
+`IBffTokenAccessor` hands out its tokens, and `AddBffAccessTokenHandler` attaches them to its outbound calls. Two
+opt-in packages serve Blazor's interactive render modes over hubs and connections
+([ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)):
+
+| Render mode                                   | How it uses the session                                                                                                                                                                                  |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Razor Pages, MVC and static Blazor rendering  | The core alone. The page is an ordinary request: `HttpContext.User` is the session principal, and a form post carries the antiforgery token ([§5.6](#56-accepting-the-bff-cookie-on-apis)).             |
+| Interactive server                            | A circuit over a BFF hub. The server `AuthenticationStateProvider` revalidates the circuit's connection every `RevalidationInterval` and signs the circuit out when the session ended. Tokens come through the connection. |
+| WebAssembly and Auto                          | The persisted `/bff/user` document or a `GET /bff/user` probe seeds the client's `AuthenticationStateProvider`. The component calls BFF APIs with the anti-forgery header and never holds a token.        |
+
+`AddBffBlazorLibrary()` registers the server half: the revalidating `AuthenticationStateProvider`, which persists the
+`/bff/user` document for WebAssembly while a page renders, and a `CircuitHandler` that makes the circuit's connection
+current for inbound activity. `AsBffComponents()` marks component pages as BFF pages and the Blazor hub as a BFF hub
+that admits anonymous circuits. It attaches an `IBffEndpointStartupRequirement` as endpoint metadata, so a host that
+maps it without `AddBffBlazorLibrary()` refuses to start
+([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)). Blazor's own
+framework endpoints stay outside the BFF.
+
+```csharp
+var bff = builder.Services.AddIdentityBff(builder.Configuration);
+bff.BffLibraryBuilder.AddBffBlazorLibrary();                  // NCode.Identity.Bff.Blazor
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents()
+    .AddInteractiveWebAssemblyComponents();
+builder.Services.AddCascadingAuthenticationState();
+
+var app = builder.Build();
+app.UseBff();                                                 // before UseAuthentication()
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseAntiforgery();
+
+app.MapBffEndpoints();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode()
+    .AddInteractiveWebAssemblyRenderMode()
+    .AsBffComponents();                                       // pages and the Blazor hub
+```
+
+The `.Client` project, which Blazor compiles to WebAssembly, references `NCode.Identity.Bff.Blazor.Client` alone. It
+holds no token, and it references neither `Microsoft.AspNetCore.App` nor `NCode.Identity.Bff.Abstractions`:
+
+```csharp
+builder.Services.AddBffBlazorClient();                        // the WebAssembly AuthenticationStateProvider
+builder.Services.AddHttpClient("api", client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+    .AddBffAntiforgeryHeader();                               // the static header on same-origin calls
+```
+
+The client's provider reads the persisted document or probes `GET /bff/user`, and probes again every `ProbeInterval`,
+at the idle expiry and after a `401`
+([ADR-1434](decisions/1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md)). The
+document carries only the frontend's allow-listed claims, the logout URL and the guard.
+
+**Logout.** The session principal carries `bff_logout_url` and `bff_logout_sid`, and the client principal carries the
+same two claims from the document. A page renders the logout form from them in every render mode: a `POST` to
+`bff_logout_url` with a hidden `sid` input that holds `bff_logout_sid`
+([§5.8](#58-logout-and-back-channel-logout)).
 
 ---
 
@@ -1249,6 +1317,20 @@ tokens, client ids, or paths. [`docs/metrics.md`](metrics.md) catalogs every ins
 - **Decision:** `/bff`, a reserved sibling of `/api` and relocatable. It matches RFC 10017's examples, and
   keeps API-scoped middleware (versioning, JSON challenges) away from navigation endpoints.
 
+### D10. Server-rendered and Blazor hosts
+
+- **Options:**
+  - (a) Guidance only, over the pieces the core already has.
+  - (b) Blazor support in the core package.
+  - (c) Two opt-in packages over hubs and connections.
+- **Decision: (c)**, [ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md).
+- **Why:**
+  - (a) leaves forms, logout and every Blazor render mode to each host.
+  - (b) makes a host that serves a single-page application carry Blazor services, and the WebAssembly half cannot
+    reference the ASP.NET Core shared framework.
+  - (c) keeps Razor Pages, MVC and static rendering on the core, gives a circuit a connection that holds the session
+    because it has no `HttpContext`, and keeps tokens out of the browser.
+
 ---
 
 ## 9. Implementation status
@@ -1264,6 +1346,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 | Browser hardening              | `UseBffSecurityHeaders()` and the `/bff/jwks` endpoint ([ADR-1382](decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Multiple frontends             | One `Bff:Frontends:{name}` entry per frontend, selected per request by the open `IBffFrontendSelector` rules `host` and `path`, with its own cookies, client registration, endpoints, tokens and security headers, validated as a whole at startup ([§5.10](#510-frontends), [ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). |
 | Endpoint startup check         | The host refuses to start when an endpoint's BFF metadata is incomplete, such as a YARP route that names a token requirement without `AsBffRemoteApis()`; the per-request `502` stays the backstop ([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)). |
+| Server-rendered and Blazor hosts | Pages that accept a form post with the antiforgery token, hubs as a guarded endpoint kind with connection sessions, and the opt-in `NCode.Identity.Bff.Blazor` and `NCode.Identity.Bff.Blazor.Client` packages ([§5.14](#514-server-rendered-and-blazor-hosts), [ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md), [ADR-1436](decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)). |
 | Pending                        | Serving the management console through the BFF as a confidential client of the reference host's root tenant, which takes token custody out of the console's `@ncode/auth` ([#158](https://github.com/NCodeGroup/Identity/issues/158)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---

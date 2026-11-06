@@ -143,6 +143,10 @@ those two files win. Claude Code ignores `applyTo`, so
 [`.claude/rules/csharp-production.md`](.claude/rules/csharp-production.md) and
 [`.claude/rules/csharp-testing.md`](.claude/rules/csharp-testing.md) point it at them by path.
 
+The build scripts' PowerShell conventions are in
+[`powershell.instructions.md`](.github/instructions/powershell.instructions.md), which applies to every `.ps1` file;
+[`.claude/rules/powershell.md`](.claude/rules/powershell.md) points Claude Code at it.
+
 ## Known pending work
 
 Pending work — deferred decisions, feature gaps, follow-ups and review findings — is tracked as

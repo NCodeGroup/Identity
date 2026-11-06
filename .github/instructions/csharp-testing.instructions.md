@@ -406,3 +406,14 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   ([ADR-1430](../../docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 - 👁 **`localhost` and `127.0.0.1` are different sites;** a port never changes a site
   ([ADR-1430](../../docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+- 👁 **A test reads its files, such as an image's build context, from the output directory.** Copy them there with
+  `CopyToOutputDirectory` and resolve them from `AppContext.BaseDirectory`. A CI build (`CI=true`) is a
+  `ContinuousIntegrationBuild` that maps source paths to `/_/`, so a path found from the source, such as
+  `[CallerFilePath]` or Testcontainers' `CommonDirectoryPath.GetProjectDirectory()`, exists only on a developer's
+  machine.
+- 👁 **Reproduce a pull request's `End-to-end` failure on its merge with `main`.** The check runs on that merge, and
+  Dependabot moves the provider image there, so a branch can pass locally against an older provider than the one CI
+  runs.
+- 👁 **A client that calls Keycloak's Admin API requests the `kc-admin-api` scope.** Keycloak accepts only a token whose
+  audience is the realm's Admin API, which that client scope adds, so the realm lists it among the client's
+  `optionalClientScopes` and the token request asks for it.

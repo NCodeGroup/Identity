@@ -420,6 +420,13 @@ sequenceDiagram
 | `Domain`   | Never set                                                 | Required by `__Host-`. It also stops a sibling subdomain from fixing the session.                                            |
 | `Max-Age`  | The time left until the session's absolute expiry         | The session survives a browser restart but never outlives its server-side record.                                           |
 
+A browser withholds a `Strict` cookie on a top-level navigation that a cross-site page or a redirect chain starts, such
+as the return from the provider through `/bff/callback` or a link from another site. A page that is challenged on such a
+navigation answers once with a same-origin reload page, under a `SameSite=Lax` marker cookie of 60 seconds, so the
+browser follows it with the session cookie instead of looping through the provider
+([§5.14](#514-server-rendered-and-blazor-hosts),
+[ADR-1444](decisions/1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md)).
+
 **The record** is stored under `store key = HKDF-SHA-256(handle, "ncode.bff.session.id")` and has two parts:
 
 - **Metadata, in plaintext.** It is needed without the handle: the frontend, `iss`, `sub`, the OP `sid`, creation and
@@ -1112,6 +1119,15 @@ opt-in packages serve Blazor's interactive render modes over hubs and connection
 | Razor Pages, MVC and static Blazor rendering  | The core alone. The page is an ordinary request: `HttpContext.User` is the session principal, and a form post carries the antiforgery token ([§5.6](#56-accepting-the-bff-cookie-on-apis)).                                                                                                  |
 | Interactive server                            | A circuit over a BFF hub. The server `AuthenticationStateProvider` revalidates the circuit's connection every `RevalidationInterval` through `IBffConnectionRevalidator` and signs the circuit out when the session ended or its revalidation fails for any reason but an unavailable store. Tokens come through the connection. |
 | WebAssembly and Auto                          | The persisted `/bff/user` document or a `GET /bff/user` probe seeds the client's `AuthenticationStateProvider`. The component calls BFF APIs with the anti-forgery header and never holds a token.                                                                                           |
+
+A page that the session's `Strict` cookie does not reach is not challenged into a login loop. When a `GET` or `HEAD`
+navigation (`Sec-Fetch-Mode` absent or `navigate`) to a page of a `Strict` frontend carries neither the session cookie
+nor the reload marker, the page challenge answers `200` with a same-origin reload page: a meta refresh and a link to the
+request's own URL, under a strict CSP and `Cache-Control: no-store`. It sets the marker, a `SameSite=Lax` cookie of 60
+seconds, so the reload happens once, and the login redirect deletes the marker. The browser follows the reload as a
+same-site navigation that carries the session cookie, so the return from the provider and a link from another site
+reach the page with the session. APIs, hubs and `Lax` frontends keep their challenge
+([ADR-1444](decisions/1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md)).
 
 `AddBffBlazorLibrary()` registers the server half: the revalidating `AuthenticationStateProvider`, which persists the
 `/bff/user` document for WebAssembly while a page renders, and a `CircuitHandler` that makes the circuit's connection

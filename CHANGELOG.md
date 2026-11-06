@@ -5143,15 +5143,19 @@ describes the family as it is rather than its changes
   `AsBffApi`/`AsBffPage` endpoints and `/bff/user`. A page form post needs Fetch Metadata that shows no cross-site
   request and a valid antiforgery token in the `__Host-Http-bff-antiforgery` cookie, a hub refuses a cross-site request
   or a foreign `Origin`, a hub connection ends once its session ends, idle or not, and a WebAssembly client never
-  receives a token
+  receives a token. A page navigation that arrives without its Strict session cookie is answered once, under a
+  60-second marker cookie, with a same-origin reload page (strict CSP, `no-store`), so the login's return and links
+  from other sites reach the page with its session
   ([#394](https://github.com/NCodeGroup/Identity/issues/394),
   [#524](https://github.com/NCodeGroup/Identity/issues/524),
+  [#603](https://github.com/NCodeGroup/Identity/issues/603),
   [#604](https://github.com/NCodeGroup/Identity/issues/604),
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-1292](docs/decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
   [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
   [ADR-1436](docs/decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md),
-  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
+  [ADR-1444](docs/decisions/1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md)).
 
 - **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body and is the only logout
   method; `/bff/user` returns `logoutUrl` as the path alone and the logout guard as `logoutSid`, a reserved field

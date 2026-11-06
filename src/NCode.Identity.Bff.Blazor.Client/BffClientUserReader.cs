@@ -17,43 +17,42 @@ internal static class BffClientUserReader
     private const string NameClaimType = "name";
     private const string RoleClaimType = "role";
 
+    private const string SubjectPropertyName = "sub";
+    private const string NamePropertyName = "name";
+    private const string ClaimsPropertyName = "claims";
+    private const string LogoutUrlPropertyName = "logoutUrl";
+    private const string LogoutSidPropertyName = "logoutSid";
+    private const string SessionPropertyName = "session";
+    private const string IdleExpiresAtPropertyName = "idleExpiresAt";
+
     /// <summary>
-    /// Reads <paramref name="document"/> into a user.
+    /// Reads <paramref name="userDocument"/> into a user.
     /// </summary>
-    /// <param name="document">The user document.</param>
+    /// <param name="userDocument">The user document.</param>
     /// <param name="user">The user, when the document is an object with a string <c>sub</c>.</param>
     /// <returns>
     /// <see langword="true"/> when the document describes a user; otherwise, <see langword="false"/>.
     /// </returns>
-    public static bool TryRead(JsonElement document, [NotNullWhen(true)] out BffClientUser? user)
+    public static bool TryRead(
+        JsonElement userDocument,
+        [NotNullWhen(true)] out BffClientUser? user
+    )
     {
         user = null;
 
-        if (document.ValueKind != JsonValueKind.Object)
+        if (userDocument.ValueKind != JsonValueKind.Object)
             return false;
 
-        if (
-            !document.TryGetProperty(SubjectClaimType, out var subject)
-            || subject.ValueKind != JsonValueKind.String
-            || subject.GetString() is not { } subjectValue
-        )
-        {
+        if (!userDocument.TryGetPropertyValue<string>(SubjectPropertyName, out var subjectValue))
             return false;
-        }
 
         List<Claim> claims = [new Claim(SubjectClaimType, subjectValue)];
 
-        if (
-            document.TryGetProperty(NameClaimType, out var name)
-            && name.ValueKind == JsonValueKind.String
-            && name.GetString() is { } nameValue
-        )
-        {
+        if (userDocument.TryGetPropertyValue<string>(NamePropertyName, out var nameValue))
             claims.Add(new Claim(NameClaimType, nameValue));
-        }
 
         if (
-            document.TryGetProperty("claims", out var claimsElement)
+            userDocument.TryGetPropertyValue<JsonElement>(ClaimsPropertyName, out var claimsElement)
             && claimsElement.ValueKind == JsonValueKind.Object
         )
         {
@@ -73,8 +72,8 @@ internal static class BffClientUserReader
             }
         }
 
-        AddString(document, "logoutUrl", BffClientClaimTypes.LogoutUrl, claims);
-        AddString(document, "logoutSid", BffClientClaimTypes.LogoutSid, claims);
+        AddString(userDocument, LogoutUrlPropertyName, BffClientClaimTypes.LogoutUrl, claims);
+        AddString(userDocument, LogoutSidPropertyName, BffClientClaimTypes.LogoutSid, claims);
 
         var identity = new ClaimsIdentity(
             claims,
@@ -83,41 +82,30 @@ internal static class BffClientUserReader
             RoleClaimType
         );
 
-        user = new BffClientUser(new ClaimsPrincipal(identity), ReadIdleExpiresAt(document));
+        user = new BffClientUser(new ClaimsPrincipal(identity), ReadIdleExpiresAt(userDocument));
         return true;
     }
 
     private static string ValueOf(JsonElement element) =>
-        element.ValueKind == JsonValueKind.String
-            ? element.GetString() ?? string.Empty
-            : element.GetRawText();
+        element.TryGetValue<string>(out var value) ? value : element.GetRawText();
 
     private static void AddString(
-        JsonElement document,
+        JsonElement userDocument,
         string propertyName,
         string claimType,
         List<Claim> claims
     )
     {
-        if (
-            document.TryGetProperty(propertyName, out var property)
-            && property.ValueKind == JsonValueKind.String
-            && property.GetString() is { } value
-        )
-        {
+        if (userDocument.TryGetPropertyValue<string>(propertyName, out var value))
             claims.Add(new Claim(claimType, value));
-        }
     }
 
-    private static DateTimeOffset? ReadIdleExpiresAt(JsonElement document)
+    private static DateTimeOffset? ReadIdleExpiresAt(JsonElement userDocument)
     {
         if (
-            document.TryGetProperty("session", out var session)
+            userDocument.TryGetPropertyValue<JsonElement>(SessionPropertyName, out var session)
             && session.ValueKind == JsonValueKind.Object
-            && session.TryGetProperty("idleExpiresAt", out var idleExpiresAt)
-            && idleExpiresAt.ValueKind == JsonValueKind.Number
-            && idleExpiresAt.TryGetInt64(out var seconds)
-            && DateCoercion.TryFromNumericDate(seconds, out var instant)
+            && session.TryGetPropertyNumericDate(IdleExpiresAtPropertyName, out var instant)
         )
         {
             return instant;

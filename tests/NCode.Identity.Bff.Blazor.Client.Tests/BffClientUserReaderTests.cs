@@ -82,6 +82,34 @@ public class BffClientUserReaderTests : BaseTests
     }
 
     [Fact]
+    public void TryRead_NumericSub_ReturnsFalse()
+    {
+        var document = JsonElement.Parse("""{ "sub": 42 }""");
+
+        var result = BffClientUserReader.TryRead(document, out var user);
+
+        Assert.False(result);
+        Assert.Null(user);
+    }
+
+    [Fact]
+    public void TryRead_FractionalIdleExpiry_ReadsInstant()
+    {
+        var document = JsonElement.Parse(
+            """{ "sub": "user-1", "session": { "idleExpiresAt": 1700000600.5 } }"""
+        );
+
+        var result = BffClientUserReader.TryRead(document, out var user);
+
+        Assert.True(result);
+        Assert.NotNull(user);
+        Assert.Equal(
+            new DateTimeOffset(2023, 11, 14, 22, 23, 20, 500, TimeSpan.Zero),
+            user.IdleExpiresAt
+        );
+    }
+
+    [Fact]
     public void TryRead_NotAnObject_ReturnsFalse()
     {
         var document = JsonElement.Parse("""["user-1"]""");

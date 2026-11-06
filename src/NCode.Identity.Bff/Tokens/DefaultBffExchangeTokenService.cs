@@ -24,6 +24,7 @@ internal class DefaultBffExchangeTokenService(
     BffGrantClient grantClient,
     BffFrontendCatalog frontends,
     BffRefreshLocks locks,
+    BffTokenContexts contexts,
     IOptions<BffOptions> options,
     TimeProvider timeProvider
 ) : IBffExchangeTokenService
@@ -34,6 +35,7 @@ internal class DefaultBffExchangeTokenService(
     private readonly BffGrantClient _grantClient = grantClient;
     private readonly BffFrontendCatalog _frontends = frontends;
     private readonly BffRefreshLocks _locks = locks;
+    private readonly BffTokenContexts _contexts = contexts;
     private readonly IOptions<BffOptions> _options = options;
     private readonly TimeProvider _timeProvider = timeProvider;
 
@@ -98,7 +100,7 @@ internal class DefaultBffExchangeTokenService(
     {
         // a failure to get the user's token, such as a refresh that ended the session, is the exchange's failure
         var subject = await _userTokenService.GetAccessTokenAsync(
-            httpContext,
+            _contexts.ForRequest(httpContext),
             SubjectTokenRequest,
             cancellationToken
         );

@@ -16,16 +16,13 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private static BffSessionResolver CreateResolver(Mock<IBffSessionManager> manager)
+    private static BffTokenContexts CreateContexts(Mock<IBffSessionManager> manager)
     {
         var timeProvider = new FakeTimeProvider(Now);
-        return new BffSessionResolver(
-            manager.Object,
-            new BffCookies(timeProvider),
-            [],
-            BffTestFrontends.CreateCatalog(),
-            timeProvider
-        );
+        var cookies = new BffCookies(timeProvider);
+        var frontends = BffTestFrontends.CreateCatalog();
+        var resolver = new BffSessionResolver(manager.Object, cookies, [], frontends, timeProvider);
+        return new BffTokenContexts(frontends, resolver, cookies);
     }
 
     private static DefaultHttpContext CreateHttpContext(bool hasSession)
@@ -66,7 +63,7 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
         MockUserService = CreateStrictMock<IBffUserTokenService>();
         MockClientService = CreateStrictMock<IBffClientTokenService>();
         Requirement = new BffUserOrClientTokenRequirement(
-            CreateResolver(CreateStrictMock<IBffSessionManager>()),
+            CreateContexts(CreateStrictMock<IBffSessionManager>()),
             MockUserService.Object,
             MockClientService.Object
         );
@@ -95,7 +92,9 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
         var httpContext = CreateHttpContext(true);
         var request = CreateRequest();
         MockUserService
-            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
+            .Setup(x =>
+                x.GetAccessTokenAsync(It.IsAny<IBffSessionScope>(), request, CancellationToken.None)
+            )
             .ReturnsAsync(Token)
             .Verifiable();
 
@@ -118,7 +117,9 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
             BffTokenFailureReasons.RefreshFailed
         );
         MockUserService
-            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
+            .Setup(x =>
+                x.GetAccessTokenAsync(It.IsAny<IBffSessionScope>(), request, CancellationToken.None)
+            )
             .ReturnsAsync(failure)
             .Verifiable();
 

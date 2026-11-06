@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Bff.Sessions;
 
 namespace NCode.Identity.Bff.Tokens;
 
@@ -13,12 +12,12 @@ namespace NCode.Identity.Bff.Tokens;
 // The choice is made on the session alone: a session whose user token cannot be served fails with that token's
 // failure and never falls back to the BFF's own token, which would act with other rights. See ADR-1381.
 internal class BffUserOrClientTokenRequirement(
-    BffSessionResolver sessionResolver,
+    BffTokenContexts contexts,
     IBffUserTokenService userService,
     IBffClientTokenService clientService
 ) : IBffTokenRequirement
 {
-    private readonly BffSessionResolver _sessionResolver = sessionResolver;
+    private readonly BffTokenContexts _contexts = contexts;
     private readonly IBffUserTokenService _userService = userService;
     private readonly IBffClientTokenService _clientService = clientService;
 
@@ -35,9 +34,10 @@ internal class BffUserOrClientTokenRequirement(
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(request);
 
-        var state = await _sessionResolver.ResolveAsync(httpContext, cancellationToken);
+        var scope = _contexts.ForRequest(httpContext);
+        var state = await scope.ResolveAsync(cancellationToken);
         if (state is not null)
-            return await _userService.GetAccessTokenAsync(httpContext, request, cancellationToken);
+            return await _userService.GetAccessTokenAsync(scope, request, cancellationToken);
 
         return await _clientService.GetAccessTokenAsync(httpContext, request, cancellationToken);
     }

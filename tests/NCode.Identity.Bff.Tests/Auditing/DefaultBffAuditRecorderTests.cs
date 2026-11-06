@@ -93,6 +93,33 @@ public class DefaultBffAuditRecorderTests : BaseTests
 
     #endregion
 
+    #region TokenRefreshFailedAsync Tests
+
+    [Fact]
+    public async Task TokenRefreshFailedAsync_WithoutHttpContext_PublishesWithoutRequest()
+    {
+        SetupPublish();
+
+        await Recorder.TokenRefreshFailedAsync(
+            null,
+            "sub-1",
+            "provider_unavailable",
+            CancellationToken.None
+        );
+
+        var auditEvent = Assert.IsType<BffAuditEvent>(Captured);
+        Assert.Equal(BffAuditEventNames.TokenRefreshFailed, auditEvent.Name);
+        Assert.Equal(AuditEventCategories.Token, auditEvent.Category);
+        Assert.Equal(AuditOutcome.Failure, auditEvent.Outcome);
+        Assert.Equal(AuditActor.EndUser("sub-1"), auditEvent.Actor);
+        Assert.Equal("sub-1", auditEvent.SubjectId);
+        Assert.Equal("provider_unavailable", auditEvent.Error?.Code);
+        Assert.Null(auditEvent.ClientId);
+        Assert.Null(auditEvent.Request);
+    }
+
+    #endregion
+
     #region AntiforgeryRejectedAsync Tests
 
     [Fact]

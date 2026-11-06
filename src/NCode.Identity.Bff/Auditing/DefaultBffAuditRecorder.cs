@@ -85,7 +85,7 @@ internal class DefaultBffAuditRecorder(
 
     /// <inheritdoc />
     public ValueTask TokenRefreshFailedAsync(
-        HttpContext httpContext,
+        HttpContext? httpContext,
         string subject,
         string reason,
         CancellationToken cancellationToken

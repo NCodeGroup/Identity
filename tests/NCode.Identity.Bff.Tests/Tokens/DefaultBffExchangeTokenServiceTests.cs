@@ -50,9 +50,10 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         );
         var timeProvider = new FakeTimeProvider(Now);
         var frontends = BffTestFrontends.CreateCatalog();
+        var cookies = new BffCookies(timeProvider);
         var resolver = new BffSessionResolver(
             MockManager.Object,
-            new BffCookies(timeProvider),
+            cookies,
             [],
             frontends,
             timeProvider
@@ -69,6 +70,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             grantClient,
             frontends,
             Locks,
+            new BffTokenContexts(frontends, resolver, cookies),
             options,
             timeProvider
         );
@@ -126,7 +128,11 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
     private void SetupSubject(HttpContext httpContext, BffTokenResult result) =>
         MockUserTokens
             .Setup(x =>
-                x.GetAccessTokenAsync(httpContext, IsSubjectRequest(), CancellationToken.None)
+                x.GetAccessTokenAsync(
+                    It.Is<IBffSessionScope>(s => s.HttpContext == httpContext),
+                    IsSubjectRequest(),
+                    CancellationToken.None
+                )
             )
             .ReturnsAsync(result)
             .Verifiable();
@@ -145,13 +151,13 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         MockUserTokens
             .Setup(x =>
                 x.GetAccessTokenAsync(
-                    It.IsAny<HttpContext>(),
+                    It.IsAny<IBffSessionScope>(),
                     IsSubjectRequest(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Returns(
-                (HttpContext _, BffTokenRequest _, CancellationToken cancellationToken) =>
+                (IBffSessionScope _, BffTokenRequest _, CancellationToken cancellationToken) =>
                     new ValueTask<BffTokenResult>(release.Task.WaitAsync(cancellationToken))
             )
             .Verifiable(times);

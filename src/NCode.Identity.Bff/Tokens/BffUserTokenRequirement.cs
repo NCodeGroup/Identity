@@ -8,9 +8,11 @@ namespace NCode.Identity.Bff.Tokens;
 /// <summary>
 /// The <see cref="IBffTokenRequirement"/> named <c>user</c>, which serves the access token of the signed-in user.
 /// </summary>
-internal class BffUserTokenRequirement(IBffUserTokenService service) : IBffTokenRequirement
+internal class BffUserTokenRequirement(IBffUserTokenService service, BffTokenContexts contexts)
+    : IBffTokenRequirement
 {
     private readonly IBffUserTokenService _service = service;
+    private readonly BffTokenContexts _contexts = contexts;
 
     /// <inheritdoc />
     public string Name => BffTokenRequirementNames.User;
@@ -25,6 +27,10 @@ internal class BffUserTokenRequirement(IBffUserTokenService service) : IBffToken
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(request);
 
-        return _service.GetAccessTokenAsync(httpContext, request, cancellationToken);
+        return _service.GetAccessTokenAsync(
+            _contexts.ForRequest(httpContext),
+            request,
+            cancellationToken
+        );
     }
 }

@@ -421,6 +421,73 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
+    public async Task GetUnrevokedExpiredPageAsync_SkipsTheGrantsOfATenantBeneathADisabledTeam()
+    {
+        const string childTeamId = "disabled-parent-web";
+        const string tenantId = "tenant-beneath-disabled-team";
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var parent = _dbContext.SeedTeam(idGenerator, "disabled-parent");
+        parent.IsDisabled = true;
+        await _dbContext.SaveChangesAsync();
+        _dbContext.SeedChildTeam(idGenerator, parent, childTeamId);
+
+        await _tenantStore.AddAsync(
+            new PersistedTenant
+            {
+                TenantId = tenantId,
+                TeamId = childTeamId,
+                ConcurrencyToken = string.Empty,
+                Issuer = null,
+                IsDisabled = false,
+                DisplayName = "Tenant Beneath Disabled Team",
+                Settings = new PersistedTenantSettings
+                {
+                    TenantId = tenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = EmptyObject(),
+                },
+                Secrets = new PersistedTenantSecrets
+                {
+                    TenantId = tenantId,
+                    ConcurrencyToken = string.Empty,
+                    Value = [],
+                },
+            },
+            CancellationToken.None
+        );
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var enabledGrant = CreateGrant(
+            hashedKey: "hk-enabled",
+            grantId: "grant-enabled",
+            grantType: SessionGrantType
+        );
+        enabledGrant.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+        var skippedGrant = CreateGrant(
+            hashedKey: "hk-skipped",
+            grantId: "grant-skipped",
+            grantType: SessionGrantType,
+            tenantId: tenantId
+        );
+        skippedGrant.ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(1);
+
+        await _store.AddAsync(enabledGrant, CancellationToken.None);
+        await _store.AddAsync(skippedGrant, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var page = await _store.GetUnrevokedExpiredPageAsync(
+            SessionGrantType,
+            DateTimeOffset.UnixEpoch.AddDays(10),
+            new PageRequest { Limit = 50 },
+            CancellationToken.None
+        );
+
+        Assert.Equal("grant-enabled", Assert.Single(page.Items).GrantId);
+    }
+
+    [Fact]
     public async Task GetUnrevokedExpiredPageAsync_KeysetPaginatesInOrder()
     {
         for (var index = 0; index < 3; index++)

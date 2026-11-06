@@ -343,8 +343,9 @@ internal class GrantApiEndpointHandler(
 
     // A token scoped to a resource server registers a client that introspects for it and reads every token issued to
     // it, so minting one is a change to the resource server, exactly like binding a client through the management API:
-    // the resource server must exist in the tenant, must not be a system resource server, and the caller must be
-    // authorized to update it (ADR-1168, ADR-1192).
+    // the caller must be authorized to update the resource server at the node the request names before it is read,
+    // and the resource server must exist in the tenant and must not be a system resource server (ADR-1168, ADR-1192,
+    // ADR-1451).
     private async ValueTask<IResult?> AuthorizeResourceServerScopeAsync(
         HttpContext httpContext,
         string tenantId,
@@ -352,6 +353,16 @@ internal class GrantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Update
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var resourceServer = await storeManager
             .GetStore<IResourceServerStore>()
@@ -365,16 +376,6 @@ internal class GrantApiEndpointHandler(
                 detail: "The resource server the token is scoped to does not exist in the tenant.",
                 statusCode: StatusCodes.Status400BadRequest
             );
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
-            Operations.Update
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         if (resourceServer.IsSystem)

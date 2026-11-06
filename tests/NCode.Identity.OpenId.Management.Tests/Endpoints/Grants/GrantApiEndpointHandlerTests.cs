@@ -837,7 +837,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateInitialAccessTokenAsync_WhenNotAuthorizedToUpdateResourceServer_ReturnsForbid()
+    public async Task CreateInitialAccessTokenAsync_WhenNotAuthorizedToUpdateResourceServer_ReturnsForbiddenWithoutReadingTheResourceServer()
     {
         MockAuthorizationService
             .Setup(x =>
@@ -859,8 +859,8 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync(AuthorizationResult.Failed())
             .Verifiable(Times.Once);
-        SetupResourceServer(TenantId, isSystem: false);
 
+        // No resource-server store setup: a strict-mock failure would mean the resource server was read first.
         var result = await Handler.CreateInitialAccessTokenAsync(
             CreateHttpContext(authenticated: true),
             TenantId,

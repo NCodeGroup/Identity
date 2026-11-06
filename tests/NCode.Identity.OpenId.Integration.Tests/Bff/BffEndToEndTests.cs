@@ -52,7 +52,10 @@ public class BffEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            extraConfiguration: new Dictionary<string, string?> { ["Bff:UserInfo:Load"] = "true" },
+            extraConfiguration: new Dictionary<string, string?>
+            {
+                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:Load"] = "true",
+            },
             exchanges: exchanges
         );
 
@@ -98,8 +101,8 @@ public class BffEndToEndTests
             indexSet,
             extraConfiguration: new Dictionary<string, string?>
             {
-                ["Bff:UserInfo:Load"] = "true",
-                ["Bff:UserInfo:SigningAlgorithms:0"] = "RS256",
+                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:Load"] = "true",
+                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:SigningAlgorithms:0"] = "RS256",
             },
             exchanges: exchanges
         );

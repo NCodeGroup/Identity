@@ -19,7 +19,7 @@ const ConformanceDashboard = lazy(() =>
 export function App() {
   const runtime = useAppSelector((state) => state.config.runtime);
 
-  if (!runtime) {
+  if (runtime?.kind !== 'openid') {
     return null;
   }
 

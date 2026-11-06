@@ -29,7 +29,14 @@ const PROBE_FAILED = 'Unable to check your session.';
  * While signed in, the gate probes the session on an interval, shortly after the session's expiry and when a hidden
  * tab becomes visible, and it shares an end of the session with the console's other tabs (ADR-1434, ADR-1438).
  */
-export function SessionGate({ children }: { children: ReactNode }) {
+export function SessionGate({
+  children,
+  probeUser = fetchBffUser,
+}: {
+  children: ReactNode;
+  /** Probes the BFF's user endpoint; defaults to `fetchBffUser`. */
+  probeUser?: typeof fetchBffUser;
+}) {
   const dispatch = useAppDispatch();
   const runtime = useAppSelector((state) => state.config.runtime);
   const status = useAppSelector((state) => state.session.status);
@@ -56,7 +63,7 @@ export function SessionGate({ children }: { children: ReactNode }) {
   const probe = useCallback(
     async (target: BffRuntimeConfig) => {
       try {
-        const probed = await fetchBffUser(target);
+        const probed = await probeUser(target);
         if (!mountedRef.current) {
           return;
         }
@@ -67,7 +74,7 @@ export function SessionGate({ children }: { children: ReactNode }) {
         }
       }
     },
-    [dispatch],
+    [dispatch, probeUser],
   );
 
   useEffect(() => {
@@ -89,7 +96,12 @@ export function SessionGate({ children }: { children: ReactNode }) {
     }
 
     const intervalId = window.setInterval(() => void probe(bff), SESSION_POLL_INTERVAL_MS);
-    const timeoutId = window.setTimeout(() => void probe(bff), nextProbeDelayMs(user));
+    // A delay at the poll interval is the interval's own tick, so only an earlier expiry needs a timer.
+    const expiryDelay = nextProbeDelayMs(user);
+    const timeoutId =
+      expiryDelay < SESSION_POLL_INTERVAL_MS
+        ? window.setTimeout(() => void probe(bff), expiryDelay)
+        : undefined;
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         void probe(bff);

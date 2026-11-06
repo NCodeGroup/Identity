@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Fragment, StrictMode, type ComponentType, type ReactNode } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { createAppStore, sessionEnded, sessionStarted } from '@ncode/store';
+import { createAppStore, sessionEnded, sessionStarted, type fetchBffUser } from '@ncode/store';
 import type { BffRuntimeConfig, OpenIdRuntimeConfig } from '@ncode/config';
 import { SessionGate } from './SessionGate.js';
 import { SESSION_CHANNEL_NAME, SESSION_ENDED_MESSAGE } from './session.js';
@@ -93,12 +93,13 @@ function openChannels() {
 function renderGate(
   preloadedRuntime: BffRuntimeConfig | OpenIdRuntimeConfig | null = runtime,
   Wrapper: ComponentType<{ children: ReactNode }> = Fragment,
+  probeUser?: typeof fetchBffUser,
 ) {
   const store = createAppStore(preloadedRuntime ? { config: { runtime: preloadedRuntime } } : {});
   const view = render(
     <Wrapper>
       <Provider store={store}>
-        <SessionGate>
+        <SessionGate {...(probeUser ? { probeUser } : {})}>
           <div data-testid="protected">protected</div>
         </SessionGate>
       </Provider>
@@ -186,6 +187,41 @@ describe('SessionGate', () => {
         cache: 'no-store',
         headers: { accept: 'application/json', 'X-CSRF': '1' },
       });
+    });
+
+    it('probes through the given probe instead of fetch', async () => {
+      const probeUser = vi.fn<typeof fetchBffUser>().mockResolvedValue(userBody());
+      const { store } = renderGate(runtime, Fragment, probeUser);
+      await settle();
+
+      expect(probeUser).toHaveBeenCalledWith(runtime);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId('protected')).toBeInTheDocument();
+      expect(store.getState().session.status).toBe('signed-in');
+    });
+
+    it('probes through the given probe on the poll interval and after the session expires', async () => {
+      const probeUser = vi
+        .fn<typeof fetchBffUser>()
+        .mockResolvedValueOnce(userBody(30))
+        .mockResolvedValue(null);
+      renderGate(runtime, Fragment, probeUser);
+      await settle();
+      expect(probeUser).toHaveBeenCalledTimes(1);
+
+      await advance(31_000);
+
+      expect(probeUser).toHaveBeenCalledTimes(2);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('protected')).not.toBeInTheDocument();
+    });
+
+    it('shows the probe failure message when the given probe fails', async () => {
+      const probeUser = vi.fn<typeof fetchBffUser>().mockRejectedValue(new Error('offline'));
+      renderGate(runtime, Fragment, probeUser);
+      await settle();
+
+      expect(screen.getByTestId('signin-error')).toHaveTextContent('Unable to check your session.');
     });
 
     it('renders the children once the probe answers a user', async () => {

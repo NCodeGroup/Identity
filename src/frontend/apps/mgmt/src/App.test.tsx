@@ -861,19 +861,23 @@ describe('App (session)', () => {
   });
 
   it('signs out by posting the BFF logout form', async () => {
-    const submit = vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(() => {});
+    const submitted: HTMLFormElement[] = [];
+    vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function (
+      this: HTMLFormElement,
+    ) {
+      submitted.push(this);
+    });
     renderSession({ status: 'signed-in', user: adminUser });
     expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('sign-out'));
 
-    expect(submit).toHaveBeenCalledTimes(1);
-    const form = document.querySelector<HTMLFormElement>('form[method="post"]');
-    expect(form).not.toBeNull();
-    expect(form!.getAttribute('action')).toBe('/bff/logout');
-    const fields = Object.fromEntries(new FormData(form!).entries());
+    expect(submitted).toHaveLength(1);
+    const form = submitted[0]!;
+    expect(form.method).toBe('post');
+    expect(form.getAttribute('action')).toBe('/bff/logout');
+    const fields = Object.fromEntries(new FormData(form).entries());
     expect(fields).toEqual({ sid: 'guard', returnUrl: '/' });
-    form!.remove();
   });
 
   it('hides the session controls when no one is signed in', async () => {

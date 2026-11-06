@@ -94,13 +94,18 @@ describe('loginUrl', () => {
 
 describe('submitLogout', () => {
   it('posts a hidden form with the session id and the root return URL', () => {
-    const submit = vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(() => {});
+    const submitted: HTMLFormElement[] = [];
+    vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function (
+      this: HTMLFormElement,
+    ) {
+      expect(this.isConnected).toBe(true);
+      submitted.push(this);
+    });
 
     submitLogout(user);
 
-    expect(submit).toHaveBeenCalledTimes(1);
-    const form = document.body.querySelector('form');
-    expect(form).not.toBeNull();
+    expect(submitted).toHaveLength(1);
+    const form = submitted[0];
     expect(form?.method).toBe('post');
     expect(form?.getAttribute('action')).toBe('/bff/logout');
     expect(form?.hidden).toBe(true);
@@ -115,13 +120,27 @@ describe('submitLogout', () => {
     ]);
   });
 
-  it('appends the form to the given document', () => {
+  it('removes the form from the document once it is submitted', () => {
     vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(() => {});
+
+    submitLogout(user);
+
+    expect(document.body.querySelector('form')).toBeNull();
+  });
+
+  it('submits the form in the given document', () => {
+    const owners: Document[] = [];
+    vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function (
+      this: HTMLFormElement,
+    ) {
+      owners.push(this.ownerDocument);
+    });
     const other = document.implementation.createHTMLDocument('other');
 
     submitLogout(user, other);
 
-    expect(other.body.querySelector('form')).not.toBeNull();
+    expect(owners).toEqual([other]);
+    expect(other.body.querySelector('form')).toBeNull();
     expect(document.body.querySelector('form')).toBeNull();
   });
 });
@@ -149,17 +168,27 @@ describe('signInErrorMessage', () => {
 
 describe('nextProbeDelayMs', () => {
   it('waits one second past the idle expiry when it comes first', () => {
-    expect(nextProbeDelayMs(user, 400_000)).toBe(601_000);
+    expect(nextProbeDelayMs(user, 990_000)).toBe(11_000);
   });
 
   it('waits one second past the absolute expiry when it comes first', () => {
     const absolute: BffUser = { ...user, session: { expiresAt: 500, idleExpiresAt: 1_000 } };
 
-    expect(nextProbeDelayMs(absolute, 100_000)).toBe(401_000);
+    expect(nextProbeDelayMs(absolute, 450_000)).toBe(51_000);
   });
 
   it('waits one second once the expiry has passed', () => {
     expect(nextProbeDelayMs(user, 5_000_000)).toBe(1_000);
+  });
+
+  it('never waits longer than the poll interval', () => {
+    const far: BffUser = {
+      ...user,
+      session: { expiresAt: 10_000_000_000, idleExpiresAt: 10_000_000_000 },
+    };
+
+    expect(nextProbeDelayMs(far, 0)).toBe(SESSION_POLL_INTERVAL_MS);
+    expect(nextProbeDelayMs(user, 400_000)).toBe(SESSION_POLL_INTERVAL_MS);
   });
 
   it('reads the clock by default', () => {

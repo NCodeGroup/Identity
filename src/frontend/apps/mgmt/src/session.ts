@@ -47,6 +47,7 @@ export function submitLogout(user: BffUser, doc: Document = document): void {
 
   doc.body.appendChild(form);
   form.submit();
+  form.remove();
 }
 
 /** The `error` code the BFF put on the page's query string after a failed sign-in, if any. */
@@ -62,11 +63,13 @@ export function signInErrorMessage(code: string): string {
 
 /**
  * The delay, in milliseconds, until the session is probed again: one second after the earlier of the session's idle
- * and absolute expiry, or one second from `now` once that moment has passed.
+ * and absolute expiry, or one second from `now` once that moment has passed. The delay never exceeds
+ * `SESSION_POLL_INTERVAL_MS`, so it stays far below the largest delay `setTimeout` accepts (2^31 - 1 milliseconds);
+ * the interval probe covers the time in between.
  */
 export function nextProbeDelayMs(user: BffUser, now: number = Date.now()): number {
   const expiryMs = Math.min(user.session.idleExpiresAt, user.session.expiresAt) * 1000;
-  return Math.max(0, expiryMs - now) + 1000;
+  return Math.min(SESSION_POLL_INTERVAL_MS, Math.max(0, expiryMs - now) + 1000);
 }
 
 /**

@@ -308,6 +308,13 @@ NCode.Identity.OpenId.Tenants.TenantChangedCommand.SettingsChanged.get -> bool
 NCode.Identity.OpenId.Tenants.TenantChangedCommand.SettingsChanged.init -> void
 NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantChangedCommand() -> void
 NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantChangedCommand(string! TenantId, bool SettingsChanged) -> void
+NCode.Identity.OpenId.Tenants.TenantRevision
+NCode.Identity.OpenId.Tenants.TenantRevision.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Tenants.TenantRevision.ConcurrencyToken.init -> void
+NCode.Identity.OpenId.Tenants.TenantRevision.TenantId.get -> string!
+NCode.Identity.OpenId.Tenants.TenantRevision.TenantId.init -> void
+NCode.Identity.OpenId.Tenants.TenantRevision.TenantRevision() -> void
+NCode.Identity.OpenId.Tenants.TenantRevision.TenantRevision(string! TenantId, string! ConcurrencyToken) -> void
 NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantId.get -> string!
 NCode.Identity.OpenId.Tenants.TenantChangedCommand.TenantId.init -> void
 NCode.Identity.OpenId.Tenants.SeedTenantCommand

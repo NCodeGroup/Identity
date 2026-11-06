@@ -3,7 +3,9 @@
 - **Status:** Accepted (amended by
   [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md):
   the package also references `NCode.Buffers` for the strict encodings, and holds the HTML page security model and the
-  front-channel marker)
+  front-channel marker; and by
+  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
+  it references `NCode.Registration` and holds forwarded-header trust and Strict-Transport-Security)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 

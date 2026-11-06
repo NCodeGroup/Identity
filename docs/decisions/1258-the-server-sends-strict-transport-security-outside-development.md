@@ -1,6 +1,8 @@
 # 1258. The server sends Strict-Transport-Security outside Development
 
-- **Status:** Accepted
+- **Status:** Accepted (decision 1 amended by
+  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
+  the registration and the pipeline step live in `NCode.AspNetCore`, and every host composes them)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0122](project-template/0122-strict-transport-security-outside-development.md)

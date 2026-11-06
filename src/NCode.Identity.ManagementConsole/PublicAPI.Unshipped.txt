@@ -7,6 +7,11 @@ const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.ConfigurationSe
 const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.FrontendName = "mgmt" -> string!
 const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.ManagementApiResource = "urn:ncode:management" -> string!
 const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.NoncePlaceholder = "__NCODE_CSP_NONCE__" -> string!
+NCode.Identity.ManagementConsole.DefaultRegistration
+NCode.Identity.ManagementConsole.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.ManagementConsole.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddManagementConsole(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.ManagementConsole.IManagementConsoleBuilder!
+NCode.Identity.ManagementConsole.IManagementConsoleBuilder
+NCode.Identity.ManagementConsole.IManagementConsoleBuilder.IdentityBffBuilder.get -> NCode.Identity.Bff.Server.IIdentityBffBuilder!
 NCode.Identity.ManagementConsole.ManagementConsole
 NCode.Identity.ManagementConsole.ManagementConsole.ManagementConsole() -> void
 NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions

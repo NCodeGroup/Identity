@@ -195,6 +195,47 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupAuthorizeCreate(ManagementError? error) =>
+        MockValidator
+            .Setup(x =>
+                x.AuthorizeCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
+    private void SetupAuthorizeUpdate(ManagementError? error) =>
+        MockValidator
+            .Setup(x =>
+                x.AuthorizeUpdateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    ResourceServerId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
+    private void SetupAuthorizeDelete(ManagementError? error) =>
+        MockValidator
+            .Setup(x =>
+                x.AuthorizeDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    ResourceServerId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
+    private static ManagementError Forbidden() =>
+        new() { StatusCode = StatusCodes.Status403Forbidden, Detail = "Forbidden." };
+
     private void SetupValidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -346,10 +387,10 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Returns("generated-rs-id")
             .Verifiable();
         SetupStore();
+        SetupAuthorizeCreate(error: null);
         MockValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedResourceServer>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -396,10 +437,10 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Returns("generated-rs-id")
             .Verifiable();
         SetupStore();
+        SetupAuthorizeCreate(error: null);
         MockValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedResourceServer>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -428,8 +469,69 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateAsync_WhenUnauthorized_ReturnsTheErrorWithoutOpeningTheStore()
+    {
+        SetupAuthorizeCreate(Forbidden());
+
+        var request = new CreateResourceServerRequest
+        {
+            Identifier = "https://api.example.com",
+            Name = "Example API",
+            IsDisabled = false,
+            Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+        };
+
+        // Strict mocks: no IStoreManagerFactory.CreateAsync setup, so opening the store would fail the test.
+        var result = await Handler.CreateAsync(
+            CreateHttpContext(),
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheResourceServer()
+    {
+        SetupAuthorizeUpdate(Forbidden());
+
+        // Strict mocks: no IStoreManagerFactory.CreateAsync setup, so reading the resource server would fail the test.
+        var result = await Handler.UpdateAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new JsonPatchDocument<UpdateResourceServerRequest>(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheResourceServer()
+    {
+        SetupAuthorizeDelete(Forbidden());
+
+        // Strict mocks: no IStoreManagerFactory.CreateAsync setup, so reading the resource server would fail the test.
+        var result = await Handler.DeleteAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task DeleteAsync_WhenSystem_ReturnsConflict()
     {
+        SetupAuthorizeDelete(error: null);
         SetupStore();
         MockStore
             .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
@@ -438,7 +540,6 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         MockValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedResourceServer>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -455,6 +556,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.DeleteAsync(
             CreateHttpContext(),
+            TenantId,
             ResourceServerId,
             CancellationToken.None
         );

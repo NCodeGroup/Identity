@@ -17,32 +17,35 @@ public class DefaultRegistrationTests
     [Fact]
     public void AddBffBlazorClient_RegistersProvider()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<
+            AuthenticationStateProvider,
+            ServerAuthenticationStateProvider
+        >();
 
-        var builder = services.AddBffBlazorClient();
+        var builder = serviceCollection.AddBffBlazorClient();
 
         Assert.NotNull(builder);
-        Assert.True(services.IsRegistered<BffBlazorClientLibrary>());
+        Assert.True(serviceCollection.IsRegistered<BffBlazorClientLibrary>());
         var descriptor = Assert.Single(
-            services,
+            serviceCollection,
             x => x.ServiceType == typeof(AuthenticationStateProvider)
         );
         Assert.Equal(typeof(BffClientAuthenticationStateProvider), descriptor.ImplementationType);
         Assert.Equal(ServiceLifetime.Scoped, descriptor.Lifetime);
         Assert.Contains(
-            services,
+            serviceCollection,
             x =>
                 x.ServiceType == typeof(IValidateOptions<BffBlazorClientOptions>)
                 && x.ImplementationType == typeof(BffBlazorClientOptionsValidator)
         );
         Assert.Contains(
-            services,
+            serviceCollection,
             x =>
                 x.ServiceType == typeof(BffClientSession) && x.Lifetime == ServiceLifetime.Singleton
         );
         Assert.Contains(
-            services,
+            serviceCollection,
             x =>
                 x.ServiceType == typeof(BffAntiforgeryHeaderHandler)
                 && x.Lifetime == ServiceLifetime.Transient
@@ -52,10 +55,10 @@ public class DefaultRegistrationTests
     [Fact]
     public void AddBffBlazorClient_CalledTwice_Throws()
     {
-        var services = new ServiceCollection();
-        services.AddBffBlazorClient();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddBffBlazorClient();
 
-        Assert.Throws<InvalidOperationException>(() => services.AddBffBlazorClient());
+        Assert.Throws<InvalidOperationException>(() => serviceCollection.AddBffBlazorClient());
     }
 
     #endregion

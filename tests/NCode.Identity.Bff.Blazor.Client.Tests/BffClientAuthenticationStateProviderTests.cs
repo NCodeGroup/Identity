@@ -91,10 +91,10 @@ public class BffClientAuthenticationStateProviderTests : BaseTests
 
     #endregion
 
-    #region SessionChanged Tests
+    #region AuthenticationStateChanged Event Tests
 
     [Fact]
-    public async Task SessionChanged_NotifiesSubscribers()
+    public async Task AuthenticationStateChanged_SessionChanges_NotifiesSubscribers()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Unauthorized);
         using var session = CreateSession(handler);

@@ -7,7 +7,7 @@ namespace NCode.Identity.Bff.Blazor.Client.Tests;
 
 public class BffClientClaimTypesTests : BaseTests
 {
-    #region LogoutUrl
+    #region LogoutUrl Tests
 
     [Fact]
     public void LogoutUrl_EqualsServerClaimType()
@@ -17,7 +17,7 @@ public class BffClientClaimTypesTests : BaseTests
 
     #endregion
 
-    #region LogoutSid
+    #region LogoutSid Tests
 
     [Fact]
     public void LogoutSid_EqualsServerClaimType()

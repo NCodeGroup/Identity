@@ -141,7 +141,7 @@ public class BffClientSessionTests : BaseTests
     }
 
     [Fact]
-    public async Task Seeded_IntervalElapses_401SignsOut()
+    public async Task GetAuthenticationStateAsync_SeededAndProbeAnswers401_SignsOut()
     {
         var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Unauthorized);
         var time = new FakeTimeProvider(Start);
@@ -164,35 +164,8 @@ public class BffClientSessionTests : BaseTests
         Assert.Single(handler.Requests);
     }
 
-    #endregion
-
-    #region Invalidate Tests
-
     [Fact]
-    public async Task Invalidate_ProbesNow()
-    {
-        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Unauthorized);
-        using var session = CreateSession(handler, new FakeTimeProvider(Start));
-        session.Seed(ReadUser(UserDocument));
-        var changed = new TaskCompletionSource<Task<AuthenticationState>>(
-            TaskCreationOptions.RunContinuationsAsynchronously
-        );
-        session.Changed += task => changed.TrySetResult(task);
-        await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
-
-        session.Invalidate();
-
-        var signedOut = await (await changed.Task.WaitAsync(Timeout)).WaitAsync(Timeout);
-        Assert.False(signedOut.User.Identity?.IsAuthenticated);
-        Assert.Single(handler.Requests);
-    }
-
-    #endregion
-
-    #region Probe Tests
-
-    [Fact]
-    public Task Probe_ServerError_KeepsUser() =>
+    public Task GetAuthenticationStateAsync_ProbeAnswers500_KeepsUser() =>
         AssertProbeKeepsUserAsync(
             () => new HttpResponseMessage(HttpStatusCode.InternalServerError),
             EventIds.ProbeStatusUnexpected
@@ -220,8 +193,35 @@ public class BffClientSessionTests : BaseTests
             EventIds.ProbeDocumentUnreadable
         );
 
+    #endregion
+
+    #region Invalidate Tests
+
     [Fact]
-    public async Task Probe_SameUser_RaisesNothing()
+    public async Task Invalidate_ProbesNow()
+    {
+        var handler = StubHttpMessageHandler.Respond(HttpStatusCode.Unauthorized);
+        using var session = CreateSession(handler, new FakeTimeProvider(Start));
+        session.Seed(ReadUser(UserDocument));
+        var changed = new TaskCompletionSource<Task<AuthenticationState>>(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        session.Changed += task => changed.TrySetResult(task);
+        await session.GetAuthenticationStateAsync().WaitAsync(Timeout);
+
+        session.Invalidate();
+
+        var signedOut = await (await changed.Task.WaitAsync(Timeout)).WaitAsync(Timeout);
+        Assert.False(signedOut.User.Identity?.IsAuthenticated);
+        Assert.Single(handler.Requests);
+    }
+
+    #endregion
+
+    #region Changed Event Tests
+
+    [Fact]
+    public async Task Changed_ProbeFindsSameUser_IsNotRaised()
     {
         using var requested = new SemaphoreSlim(0);
         var handler = new StubHttpMessageHandler(

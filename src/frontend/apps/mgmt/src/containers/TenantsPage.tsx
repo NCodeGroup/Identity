@@ -55,13 +55,16 @@ const closed: DialogState = { kind: 'none' };
 /** How long the address must stay unchanged before it is previewed, so typing sends no burst of requests. */
 const defaultAddressPreviewDelayMs = 300;
 
+/** The status of a problem whose `errors` extension lists why a promotion cannot be applied. */
+const conflictStatus = 409;
+
 /**
  * The message of a failed promotion request: the problem's detail, followed by each error a `409` problem lists in
  * its `errors` extension.
  */
 function promotionErrorMessage(error: ApiError): string {
   const message = apiErrorMessage(error);
-  const data = 'status' in error && error.status === 409 ? error.data : undefined;
+  const data = 'status' in error && error.status === conflictStatus ? error.data : undefined;
   const errors =
     data && typeof data === 'object' ? (data as { errors?: unknown }).errors : undefined;
   if (!Array.isArray(errors)) {

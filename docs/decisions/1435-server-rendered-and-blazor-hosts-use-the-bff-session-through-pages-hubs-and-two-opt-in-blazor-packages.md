@@ -57,7 +57,8 @@ WebAssembly client never holds a token.**
    `IBffConnectionSessionAccessor`.
 5. **`NCode.Identity.Bff.Blazor` serves the server half.** `AddBffBlazorLibrary()` registers the revalidating server
    `AuthenticationStateProvider`, which revalidates a circuit's connection every `RevalidationInterval` and signs the
-   circuit out when the session ended, and a `CircuitHandler` that makes the connection current for inbound activity.
+   circuit out when the session ended, or when revalidating it fails for any reason but an unavailable store, and a
+   `CircuitHandler` that makes the connection current for inbound activity.
    Prerendering persists the `/bff/user` document for WebAssembly. `AsBffComponents()` marks component pages as BFF
    pages and the Blazor hub as a BFF hub that admits anonymous circuits. A Razor Components convention sees no
    application services, so `AsBffComponents()` attaches an `IBffEndpointStartupRequirement`, which is endpoint
@@ -97,6 +98,7 @@ WebAssembly client never holds a token.**
 - A component that runs in WebAssembly sees only the frontend's `UserClaims`, because the persisted document carries no
   other claim and no token.
 - A store outage keeps a circuit signed in and fails the hub invocations that are due to revalidate.
+- Revalidation fails closed: an error other than an unavailable store signs the circuit out.
 - A hub that is not a Blazor hub revalidates only on invocations, so an idle connection holds its session until the
   next invocation.
 

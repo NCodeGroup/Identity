@@ -15,4 +15,6 @@ internal static class EventIds
     private const int Base = 25000;
 
     public const int RevalidationFailed = Base + 1;
+
+    public const int RevalidationFaulted = Base + 2;
 }

@@ -15,8 +15,8 @@ namespace NCode.Identity.Bff.Blazor;
 
 /// <summary>
 /// Provides the authentication state of a Blazor circuit: it revalidates the circuit's connection session every
-/// <see cref="IBffConnectionSession.RevalidationInterval"/> and signs the circuit out when the session ended, and it
-/// persists the <c>/bff/user</c> document for a WebAssembly client while a BFF page renders.
+/// <see cref="IBffConnectionSession.RevalidationInterval"/>, signs the circuit out when the session ended or its
+/// revalidation fails for any reason but an unavailable store, and it persists the <c>/bff/user</c> document for a WebAssembly client while a BFF page renders.
 /// </summary>
 internal sealed class BffAuthenticationStateProvider
     : ServerAuthenticationStateProvider,
@@ -73,8 +73,11 @@ internal sealed class BffAuthenticationStateProvider
         var source = new CancellationTokenSource();
         CancelRevalidation(source);
 
-        _ = RevalidateAsync(task, source.Token);
+        _ = RevalidateAsync(task, source.Token).AsTask();
     }
+
+    private static Task<AuthenticationState> SignedOut() =>
+        Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())));
 
     private void CancelRevalidation(CancellationTokenSource? replacement)
     {
@@ -86,7 +89,7 @@ internal sealed class BffAuthenticationStateProvider
         previous.Dispose();
     }
 
-    private async Task RevalidateAsync(
+    private async ValueTask RevalidateAsync(
         Task<AuthenticationState> task,
         CancellationToken cancellationToken
     )
@@ -106,11 +109,7 @@ internal sealed class BffAuthenticationStateProvider
                     var principal = await connection.ValidateAsync(null, cancellationToken);
                     if (principal is null)
                     {
-                        SetAuthenticationState(
-                            Task.FromResult(
-                                new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))
-                            )
-                        );
+                        SetAuthenticationState(SignedOut());
                         return;
                     }
                 }
@@ -126,7 +125,8 @@ internal sealed class BffAuthenticationStateProvider
         }
         catch (Exception exception)
         {
-            Logger.RevalidationFailed(exception);
+            Logger.RevalidationFaulted(exception);
+            SetAuthenticationState(SignedOut());
         }
     }
 

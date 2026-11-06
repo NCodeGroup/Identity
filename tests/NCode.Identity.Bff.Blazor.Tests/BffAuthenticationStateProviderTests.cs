@@ -208,6 +208,33 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     }
 
     [Fact]
+    public async Task SetAuthenticationState_ValidationThrows_SignsOut()
+    {
+        var validated = CreateSignal();
+        MockSession.Setup(x => x.RevalidationInterval).Returns(Interval).Verifiable();
+        MockSession
+            .Setup(x => x.ValidateAsync(null, It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                validated.TrySetResult();
+                throw new InvalidOperationException("validation failed");
+            })
+            .Verifiable();
+        Provider.SetAuthenticationState(SignedIn(MockSession.Object));
+        var next = ObserveNextState();
+
+        await AdvanceUntilAsync(validated.Task);
+
+        var signedOut = await next.WaitAsync(Timeout);
+        Assert.False(signedOut.User.Identity?.IsAuthenticated);
+        var current = await Provider.GetAuthenticationStateAsync();
+        Assert.False(current.User.Identity?.IsAuthenticated);
+        var record = Assert.Single(Logger.Collector.GetSnapshot());
+        Assert.Equal(EventIds.RevalidationFaulted, record.Id.Id);
+        Assert.IsType<InvalidOperationException>(record.Exception);
+    }
+
+    [Fact]
     public async Task Anonymous_NeverValidates()
     {
         Provider.SetAuthenticationState(

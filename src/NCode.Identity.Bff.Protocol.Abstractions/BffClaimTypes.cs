@@ -9,7 +9,7 @@ namespace NCode.Identity.Bff;
 /// The claim types that the BFF adds to the principal of a session, beside the claims of the provider.
 /// </summary>
 /// <remarks>
-/// The types are reserved: a <see cref="IBffSessionClaimContributor"/> can neither add nor remove them, and the claims of
+/// The types are reserved: a <c>IBffSessionClaimContributor</c> can neither add nor remove them, and the claims of
 /// a provider that use them are dropped.
 /// </remarks>
 [PublicAPI]

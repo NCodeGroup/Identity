@@ -5,16 +5,6 @@ NCode.Identity.Bff.BffApiAttribute
 NCode.Identity.Bff.BffApiAttribute.BffApiAttribute() -> void
 NCode.Identity.Bff.BffPageAttribute
 NCode.Identity.Bff.BffPageAttribute.BffPageAttribute() -> void
-NCode.Identity.Bff.BffDefaults
-const NCode.Identity.Bff.BffDefaults.AuthenticationScheme = "Bff" -> string!
-const NCode.Identity.Bff.BffDefaults.EndpointPrefix = "/bff" -> string!
-const NCode.Identity.Bff.BffDefaults.SessionCookieName = "__Host-Http-bff" -> string!
-const NCode.Identity.Bff.BffDefaults.LoginCookieName = "__Host-Http-bff-login" -> string!
-const NCode.Identity.Bff.BffDefaults.PageReloadCookieName = "__Host-Http-bff-reload" -> string!
-const NCode.Identity.Bff.BffDefaults.AntiforgeryCookieName = "__Host-Http-bff-antiforgery" -> string!
-const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderName = "X-CSRF" -> string!
-const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderValue = "1" -> string!
-const NCode.Identity.Bff.BffDefaults.ConfigurationSectionName = "Bff" -> string!
 NCode.Identity.Bff.BffProblemTypes
 const NCode.Identity.Bff.BffProblemTypes.SessionRequired = "urn:ncode:identity:bff:session_required" -> string!
 const NCode.Identity.Bff.BffProblemTypes.AntiforgeryHeaderMissing = "urn:ncode:identity:bff:antiforgery_header_missing" -> string!
@@ -232,9 +222,6 @@ override NCode.Identity.Bff.BffConnectionIdentity.Clone() -> System.Security.Cla
 NCode.Identity.Bff.BffClaimsPrincipalExtensions
 NCode.Identity.Bff.BffClaimsPrincipalExtensions.extension(System.Security.Claims.ClaimsPrincipal!)
 NCode.Identity.Bff.BffClaimsPrincipalExtensions.extension(System.Security.Claims.ClaimsPrincipal!).GetBffConnectionSession() -> NCode.Identity.Bff.IBffConnectionSession?
-NCode.Identity.Bff.BffClaimTypes
-const NCode.Identity.Bff.BffClaimTypes.LogoutUrl = "bff_logout_url" -> string!
-const NCode.Identity.Bff.BffClaimTypes.LogoutSid = "bff_logout_sid" -> string!
 NCode.Identity.Bff.BffHubAttribute
 NCode.Identity.Bff.BffHubAttribute.BffHubAttribute() -> void
 NCode.Identity.Bff.BffSelfRevalidatingHubAttribute

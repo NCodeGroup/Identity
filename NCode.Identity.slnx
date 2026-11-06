@@ -18,6 +18,7 @@
         <Project Path="src/NCode.Identity.Bff.Abstractions/NCode.Identity.Bff.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Bff.Blazor.Client/NCode.Identity.Bff.Blazor.Client.csproj" />
         <Project Path="src/NCode.Identity.Bff.Blazor/NCode.Identity.Bff.Blazor.csproj" />
+        <Project Path="src/NCode.Identity.Bff.Protocol.Abstractions/NCode.Identity.Bff.Protocol.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Bff.Server/NCode.Identity.Bff.Server.csproj" />
         <Project Path="src/NCode.Identity.Bff/NCode.Identity.Bff.csproj" />
         <Project Path="src/NCode.Identity.Cose.Abstractions/NCode.Identity.Cose.Abstractions.csproj" />

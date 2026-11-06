@@ -80,13 +80,13 @@ public class BffEndpointStartupCheckEndToEndTests
         );
 
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
-        var services = builder.Services;
-        services.AddSingleton(keySet);
-        services.AddSingleton(valueSet);
-        services.AddSingleton(indexSet);
-        services.AddIdentityBff(builder.Configuration);
+        var serviceCollection = builder.Services;
+        serviceCollection.AddSingleton(keySet);
+        serviceCollection.AddSingleton(valueSet);
+        serviceCollection.AddSingleton(indexSet);
+        serviceCollection.AddIdentityBff(builder.Configuration);
 
-        var proxy = services
+        var proxy = serviceCollection
             .AddReverseProxy()
             .LoadFromMemory(
                 [

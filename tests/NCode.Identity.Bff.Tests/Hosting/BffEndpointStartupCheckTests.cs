@@ -76,24 +76,24 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         var builder = WebApplication.CreateSlimBuilder(
             new WebApplicationOptions { EnvironmentName = Environments.Production }
         );
-        var services = builder.Services;
-        services.AddOptions<BffOptions>();
+        var serviceCollection = builder.Services;
+        serviceCollection.AddOptions<BffOptions>();
 
         var requirement = CreateLooseMock<IBffTokenRequirement>();
-        requirement.SetupGet(x => x.Name).Returns(BffTokenRequirementNames.User);
-        services.AddSingleton(requirement.Object);
-        services.AddSingleton(CreateStrictMock<IBffTokenAccessor>().Object);
-        services.AddSingleton(CreateStrictMock<IDPoPProofFactory>().Object);
-        services.AddHttpContextAccessor();
-        services.AddSingleton(Frontends);
+        requirement.SetupGet(x => x.Name).Returns(BffTokenRequirementNames.User).Verifiable();
+        serviceCollection.AddSingleton(requirement.Object);
+        serviceCollection.AddSingleton(CreateStrictMock<IBffTokenAccessor>().Object);
+        serviceCollection.AddSingleton(CreateStrictMock<IDPoPProofFactory>().Object);
+        serviceCollection.AddHttpContextAccessor();
+        serviceCollection.AddSingleton(Frontends);
         var upstreamFactory = CreateStrictMock<IForwarderHttpClientFactory>();
         upstreamFactory
             .Setup(x => x.CreateClient(It.IsAny<ForwarderHttpClientContext>()))
             .Returns(() => new HttpMessageInvoker(new HttpClientHandler()))
             .Verifiable();
-        services.AddSingleton(upstreamFactory.Object);
+        serviceCollection.AddSingleton(upstreamFactory.Object);
 
-        services
+        serviceCollection
             .AddReverseProxy()
             .LoadFromMemory(
                 routes,
@@ -254,6 +254,34 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
 
     #endregion
 
+    #region StartingAsync Tests
+
+    [Fact]
+    public void StartingAsync_Always_Completes()
+    {
+        using var check = CreateCheck(new DefaultEndpointDataSource());
+
+        var task = check.StartingAsync(CancellationToken.None);
+
+        Assert.True(task.IsCompletedSuccessfully);
+    }
+
+    #endregion
+
+    #region StartAsync Tests
+
+    [Fact]
+    public void StartAsync_Always_Completes()
+    {
+        using var check = CreateCheck(new DefaultEndpointDataSource());
+
+        var task = check.StartAsync(CancellationToken.None);
+
+        Assert.True(task.IsCompletedSuccessfully);
+    }
+
+    #endregion
+
     #region StartedAsync Tests
 
     [Fact]
@@ -327,17 +355,30 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
 
     #endregion
 
-    #region Lifecycle Tests
+    #region StopAsync Tests
 
     [Fact]
-    public async Task OtherLifecycleMembers_Complete()
+    public void StopAsync_Always_Completes()
     {
         using var check = CreateCheck(new DefaultEndpointDataSource());
 
-        await check.StartingAsync(CancellationToken.None);
-        await check.StartAsync(CancellationToken.None);
-        await check.StopAsync(CancellationToken.None);
-        await check.StoppedAsync(CancellationToken.None);
+        var task = check.StopAsync(CancellationToken.None);
+
+        Assert.True(task.IsCompletedSuccessfully);
+    }
+
+    #endregion
+
+    #region StoppedAsync Tests
+
+    [Fact]
+    public void StoppedAsync_Always_Completes()
+    {
+        using var check = CreateCheck(new DefaultEndpointDataSource());
+
+        var task = check.StoppedAsync(CancellationToken.None);
+
+        Assert.True(task.IsCompletedSuccessfully);
     }
 
     #endregion

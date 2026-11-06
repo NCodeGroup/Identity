@@ -25,6 +25,34 @@ public class BffFrontendCatalogTests : BaseTests
         return httpContext;
     }
 
+    #region Constructor Tests
+
+    [Fact]
+    public void Constructor_Always_DefersReadingTheOptionsToFirstUse()
+    {
+        var mockOptions = CreateStrictMock<Microsoft.Extensions.Options.IOptions<BffOptions>>();
+
+        var catalog = new BffFrontendCatalog(
+            mockOptions.Object,
+            [new HostBffFrontendSelector(), new PathBffFrontendSelector()]
+        );
+
+        mockOptions
+            .SetupGet(x => x.Value)
+            .Returns(
+                new BffOptions
+                {
+                    Frontends = { [BffTestFrontends.Name] = BffTestFrontends.CreateOptions() },
+                }
+            )
+            .Verifiable();
+
+        var frontend = Assert.Single(catalog.Frontends);
+        Assert.Equal(BffTestFrontends.Name, frontend.Name);
+    }
+
+    #endregion
+
     #region Frontends Tests
 
     [Fact]
@@ -74,14 +102,6 @@ public class BffFrontendCatalogTests : BaseTests
             "The frontend selection rule 'host' is registered more than once.",
             exception.Message
         );
-    }
-
-    [Fact]
-    public void Constructor_BuildsNothingUntilAMemberIsUsed()
-    {
-        var options = new BffOptions { Frontends = { ["web"] = CreateOptions("custom", "x") } };
-
-        _ = BffTestFrontends.CreateCatalog(options);
     }
 
     #endregion

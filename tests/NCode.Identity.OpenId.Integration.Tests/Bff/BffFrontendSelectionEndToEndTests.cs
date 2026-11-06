@@ -173,11 +173,11 @@ public class BffFrontendSelectionEndToEndTests
         );
 
         var (keySet, valueSet, indexSet) = BffTestHost.CreateSharedState();
-        var services = builder.Services;
-        services.AddSingleton(keySet);
-        services.AddSingleton(valueSet);
-        services.AddSingleton(indexSet);
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+        var serviceCollection = builder.Services;
+        serviceCollection.AddSingleton(keySet);
+        serviceCollection.AddSingleton(valueSet);
+        serviceCollection.AddSingleton(indexSet);
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             AdminKeyRing,
             (serviceProvider, _) =>
                 serviceProvider
@@ -191,7 +191,7 @@ public class BffFrontendSelectionEndToEndTests
                             ),
                     ])
         );
-        services.AddIdentityBff(builder.Configuration);
+        serviceCollection.AddIdentityBff(builder.Configuration);
 
         var app = builder.Build();
         app.UseBffSecurityHeaders();

@@ -115,10 +115,10 @@ public class DefaultBffAuditRecorderTests : BaseTests
 
     #endregion
 
-    #region ClientId Tests
+    #region LoginFailedAsync Tests
 
     [Fact]
-    public async Task ClientId_RequestWithoutAFrontend_IsNull()
+    public async Task LoginFailedAsync_RequestWithoutAFrontend_PublishesANullClientId()
     {
         var frontends = BffTestFrontends.CreateCatalog(
             new BffOptions

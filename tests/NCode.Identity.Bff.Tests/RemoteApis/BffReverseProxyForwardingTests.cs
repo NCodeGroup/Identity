@@ -9,11 +9,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Buffers;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
+using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -109,8 +113,20 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
         services.AddSingleton(requirement.Object);
         services.AddSingleton(MockTokens.Object);
         services.AddSingleton(CreateStrictMock<IDPoPProofFactory>().Object);
+        var frontends = BffTestFrontends.CreateCatalog();
+        var timeProvider = new FakeTimeProvider();
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            frontends,
+            timeProvider
+        );
+        services.AddSingleton<IBffConnectionSessionAccessor, DefaultBffConnectionSessionAccessor>();
+        services.AddSingleton(new BffTokenContexts(frontends, resolver, cookies));
         services.AddHttpContextAccessor();
-        services.AddSingleton(BffTestFrontends.CreateCatalog());
+        services.AddSingleton(frontends);
 
         var upstreamFactory = CreateStrictMock<IForwarderHttpClientFactory>();
         upstreamFactory

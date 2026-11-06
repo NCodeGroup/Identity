@@ -9,12 +9,16 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Primitives;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
+using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
@@ -71,6 +75,20 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
             }
         );
 
+    private BffTokenContexts CreateContexts()
+    {
+        var timeProvider = new FakeTimeProvider();
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            Frontends,
+            timeProvider
+        );
+        return new BffTokenContexts(Frontends, resolver, cookies);
+    }
+
     private Endpoint[] CreateYarpEndpoints(bool asBffRemoteApis, params RouteConfig[] routes)
     {
         var builder = WebApplication.CreateSlimBuilder(
@@ -84,6 +102,11 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         serviceCollection.AddSingleton(requirement.Object);
         serviceCollection.AddSingleton(CreateStrictMock<IBffTokenAccessor>().Object);
         serviceCollection.AddSingleton(CreateStrictMock<IDPoPProofFactory>().Object);
+        serviceCollection.AddSingleton<
+            IBffConnectionSessionAccessor,
+            DefaultBffConnectionSessionAccessor
+        >();
+        serviceCollection.AddSingleton(CreateContexts());
         serviceCollection.AddHttpContextAccessor();
         serviceCollection.AddSingleton(Frontends);
         var upstreamFactory = CreateStrictMock<IForwarderHttpClientFactory>();
@@ -130,9 +153,10 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         var clientFactory = new BffForwarderHttpClientFactory(
             CreateStrictMock<IForwarderHttpClientFactory>().Object,
             CreateStrictMock<IHttpContextAccessor>().Object,
+            new DefaultBffConnectionSessionAccessor(),
+            CreateContexts(),
             CreateStrictMock<IBffTokenAccessor>().Object,
-            CreateStrictMock<IDPoPProofFactory>().Object,
-            Frontends
+            CreateStrictMock<IDPoPProofFactory>().Object
         );
 
         return new BffTransformProvider(

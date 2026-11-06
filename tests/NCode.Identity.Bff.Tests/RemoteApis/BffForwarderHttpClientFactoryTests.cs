@@ -4,8 +4,11 @@
 using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
@@ -38,12 +41,23 @@ public sealed class BffForwarderHttpClientFactoryTests : BaseTests
                 return Task.FromResult(response);
             }
         );
+        var timeProvider = new FakeTimeProvider();
+        var frontends = BffTestFrontends.CreateCatalog();
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            frontends,
+            timeProvider
+        );
         Factory = new BffForwarderHttpClientFactory(
             MockInner.Object,
             CreateStrictMock<IHttpContextAccessor>().Object,
+            new DefaultBffConnectionSessionAccessor(),
+            new BffTokenContexts(frontends, resolver, cookies),
             CreateStrictMock<IBffTokenAccessor>().Object,
-            CreateStrictMock<IDPoPProofFactory>().Object,
-            BffTestFrontends.CreateCatalog()
+            CreateStrictMock<IDPoPProofFactory>().Object
         );
     }
 

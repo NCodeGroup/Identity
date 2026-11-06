@@ -5,11 +5,15 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Time.Testing;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
+using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 
@@ -31,6 +35,20 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
     private IEndpointRouteBuilder CreateEndpoints(Action<BffFrontendOptions>? configure = null) =>
         CreateEndpoints(BffTestFrontends.CreateCatalog(configure));
 
+    private BffTokenContexts CreateContexts(BffFrontendCatalog catalog)
+    {
+        var timeProvider = new FakeTimeProvider();
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            catalog,
+            timeProvider
+        );
+        return new BffTokenContexts(catalog, resolver, cookies);
+    }
+
     private IEndpointRouteBuilder CreateEndpoints(BffFrontendCatalog catalog)
     {
         var builder = WebApplication.CreateSlimBuilder(
@@ -43,6 +61,8 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         services.AddSingleton(requirement.Object);
         services.AddSingleton(CreateLooseMock<IBffTokenAccessor>().Object);
         services.AddSingleton(CreateLooseMock<IDPoPProofFactory>().Object);
+        services.AddSingleton<IBffConnectionSessionAccessor, DefaultBffConnectionSessionAccessor>();
+        services.AddSingleton(CreateContexts(catalog));
         services.AddHttpContextAccessor();
         services.AddHttpForwarder();
         services.AddSingleton(catalog);

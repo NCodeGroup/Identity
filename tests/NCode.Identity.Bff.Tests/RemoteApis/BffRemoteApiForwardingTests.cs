@@ -6,11 +6,14 @@ using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Buffers;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
@@ -38,6 +41,8 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
 
     private BffFrontendCatalog Frontends { get; }
 
+    private BffTokenContexts Contexts { get; }
+
     private BffTokenRequest TokenRequest { get; } = new(BffTokenRequirementNames.User);
 
     public BffRemoteApiForwardingTests()
@@ -47,6 +52,19 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
         Frontends = BffTestFrontends.CreateCatalog(x =>
             x.DPoP = new BffDPoPOptions { Mode = BffDPoPModes.Required, KeyRing = "dpop-keys" }
         );
+
+        var timeProvider = new FakeTimeProvider(
+            new DateTimeOffset(2026, 1, 2, 5, 0, 0, TimeSpan.Zero)
+        );
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            Frontends,
+            timeProvider
+        );
+        Contexts = new BffTokenContexts(Frontends, resolver, cookies);
     }
 
     protected override void Dispose(bool disposing)
@@ -65,9 +83,10 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
 
         var handler = new BffAccessTokenHandler(
             accessor.Object,
+            new DefaultBffConnectionSessionAccessor(),
+            Contexts,
             MockTokens.Object,
             MockProofs.Object,
-            Frontends,
             TokenRequest
         )
         {

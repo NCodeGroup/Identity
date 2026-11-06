@@ -2,10 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
+using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
@@ -27,7 +31,19 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
         Services.AddOptions<BffOptions>();
         Services.AddSingleton(CreateLooseMock<IBffTokenAccessor>().Object);
         Services.AddSingleton(CreateLooseMock<IDPoPProofFactory>().Object);
-        Services.AddSingleton(BffTestFrontends.CreateCatalog());
+        var frontends = BffTestFrontends.CreateCatalog();
+        var timeProvider = new FakeTimeProvider();
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            frontends,
+            timeProvider
+        );
+        Services.AddSingleton<IBffConnectionSessionAccessor, DefaultBffConnectionSessionAccessor>();
+        Services.AddSingleton(new BffTokenContexts(frontends, resolver, cookies));
+        Services.AddSingleton(frontends);
     }
 
     protected override void Dispose(bool disposing)

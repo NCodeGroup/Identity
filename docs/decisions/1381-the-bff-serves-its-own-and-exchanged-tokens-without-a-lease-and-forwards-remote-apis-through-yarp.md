@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (decisions 7 and 8 amended by
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): configured remote APIs
-  and YARP routes belong to a frontend)
+  and YARP routes belong to a frontend; decision 8 amended by
+  [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md): a route that names a
+  requirement without AsBffRemoteApis() stops the host from starting, and the 502 stays the backstop)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 

@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amends [ADR-1082](1082-playground-and-conformance-surfaces.md); amended by
   [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md): the
-  developer CORS origins move to the host's overlay)
+  developer CORS origins move to the host's overlay; and by
+  [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the seeder also
+  registers the confidential BFF clients its configuration declares)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

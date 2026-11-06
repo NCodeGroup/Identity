@@ -1,0 +1,178 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using Microsoft.Extensions.Hosting;
+using Xunit;
+
+namespace NCode.Identity.ManagementConsole.Tests;
+
+public class ManagementConsoleOptionsValidatorTests : BaseTests
+{
+    private ManagementConsoleOptionsValidator CreateValidator(string environmentName = "Production")
+    {
+        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
+        mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
+        return new ManagementConsoleOptionsValidator(mockEnvironment.Object);
+    }
+
+    private static ManagementConsoleOptions CreateValidOptions() =>
+        new()
+        {
+            ManagementApiUrl = "https://id.example.com/api",
+            BundleRootPath = "bundle",
+            Features = { ["audit"] = true },
+            Branding =
+            {
+                DisplayName = "Console",
+                LogoUrl = "https://cdn.example.com/logo.svg",
+                PrimaryColor = "#112233",
+                SecondaryColor = "#445566",
+                Mode = "dark",
+            },
+        };
+
+    #region Validate Tests
+
+    [Fact]
+    public void Validate_WhenValid_Succeeds()
+    {
+        var result = CreateValidator().Validate(null, CreateValidOptions());
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenOptionalSettingsAreUnset_Succeeds()
+    {
+        var options = new ManagementConsoleOptions
+        {
+            ManagementApiUrl = "https://id.example.com/api",
+            BundleRootPath = "bundle",
+        };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("id.example.com/api")]
+    [InlineData("http://id.example.com/api")]
+    [InlineData("https://user:secret@id.example.com/api")]
+    [InlineData("https://id.example.com/api?x=1")]
+    [InlineData("https://id.example.com/api#section")]
+    [InlineData("https://id.example.com/api#")]
+    public void Validate_WhenManagementApiUrlIsInvalid_Fails(string? url)
+    {
+        var options = CreateValidOptions();
+        options.ManagementApiUrl = url;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:ManagementApiUrl must be an absolute https URL without user info, query or fragment.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenHttpManagementApiUrlInDevelopment_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.ManagementApiUrl = "http://localhost:5000/api";
+
+        var result = CreateValidator("Development").Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validate_WhenBundleRootPathIsBlank_Fails(string? path)
+    {
+        var options = CreateValidOptions();
+        options.BundleRootPath = path;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:BundleRootPath must name the directory of the built apps/mgmt bundle.",
+            result.Failures ?? []
+        );
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("logo.svg")]
+    [InlineData("http://cdn.example.com/logo.svg")]
+    public void Validate_WhenLogoUrlIsInvalid_Fails(string url)
+    {
+        var options = CreateValidOptions();
+        options.Branding.LogoUrl = url;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:Branding:LogoUrl must be an absolute https URL.",
+            result.Failures ?? []
+        );
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("auto")]
+    [InlineData("Dark")]
+    public void Validate_WhenModeIsInvalid_Fails(string mode)
+    {
+        var options = CreateValidOptions();
+        options.Branding.Mode = mode;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:Branding:Mode must be 'light' or 'dark'.",
+            result.Failures ?? []
+        );
+    }
+
+    [Theory]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public void Validate_WhenModeIsLightOrDark_Succeeds(string mode)
+    {
+        var options = CreateValidOptions();
+        options.Branding.Mode = mode;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validate_WhenAFeatureHasNoName_Fails(string feature)
+    {
+        var options = CreateValidOptions();
+        options.Features[feature] = true;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:Features has a feature without a name.",
+            result.Failures ?? []
+        );
+    }
+
+    #endregion
+}

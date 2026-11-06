@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Moq;
-using NCode.Identity.Bff.Blazor.Client;
 using NCode.Identity.Bff.Blazor.Logging;
 using Xunit;
 
@@ -195,7 +194,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
 
         var persisted = await PersistAsync();
 
-        var bytes = Assert.Contains(BffBlazorClientDefaults.UserStateKey, persisted);
+        var bytes = Assert.Contains(BffUserDocumentNames.PersistedStateKey, persisted);
         var user = JsonElement.Parse(bytes);
         Assert.Equal("user-1", user.GetProperty("sub").GetString());
         Assert.Equal("/bff/logout", user.GetProperty("logoutUrl").GetString());

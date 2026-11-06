@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using NCode.Identity.Bff.Blazor.Client;
 using NCode.Identity.Bff.Blazor.Logging;
 
 namespace NCode.Identity.Bff.Blazor;
@@ -131,6 +130,6 @@ internal sealed class BffAuthenticationStateProvider
         if (document is not { } user)
             return;
 
-        State.PersistAsJson(BffBlazorClientDefaults.UserStateKey, user);
+        State.PersistAsJson(BffUserDocumentNames.PersistedStateKey, user);
     }
 }

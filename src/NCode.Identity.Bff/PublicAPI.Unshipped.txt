@@ -16,6 +16,7 @@ NCode.Identity.Bff.DefaultRegistration.extension(NCode.Registration.IServiceBuil
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffApi() -> TBuilder
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffHub() -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffPage() -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).RequireBffFrontend(params System.Collections.Generic.IEnumerable<string!>! names) -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions

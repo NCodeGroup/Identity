@@ -52,6 +52,24 @@ public static class BffEndpointConventionBuilderExtensions
         }
 
         /// <summary>
+        /// Marks the endpoint as a BFF hub by adding a <see cref="BffHubAttribute"/> to its metadata.
+        /// </summary>
+        /// <remarks>
+        /// The marking lets a BFF session authenticate the request on any method when Fetch Metadata shows no
+        /// cross-site request and the <c>Origin</c>, when sent, is the frontend's public origin or a trusted origin,
+        /// requires no anti-forgery header, and answers a challenge with a <c>401</c> problem and a forbid with a
+        /// <c>403</c> problem. Hub classes use the <see cref="BffHubAttribute"/> attribute instead.
+        /// </remarks>
+        /// <returns>The same builder, so that calls can be chained.</returns>
+        public TBuilder AsBffHub()
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+
+            var attribute = new BffHubAttribute();
+            return builder.WithMetadata(attribute);
+        }
+
+        /// <summary>
         /// Limits the endpoint to the named BFF frontends by adding one <see cref="BffFrontendAttribute"/> per name
         /// to its metadata.
         /// </summary>

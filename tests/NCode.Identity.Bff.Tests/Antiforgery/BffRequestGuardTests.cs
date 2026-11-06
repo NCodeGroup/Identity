@@ -11,6 +11,7 @@ namespace NCode.Identity.Bff.Tests.Antiforgery;
 public class BffRequestGuardTests : BaseTests
 {
     private const string TrustedOrigin = "https://app.example.com";
+    private const string PublicOrigin = "https://www.example.com";
 
     private static BffAntiforgeryOptions CreateOptions() => new();
 
@@ -106,6 +107,76 @@ public class BffRequestGuardTests : BaseTests
         var reason = BffRequestGuard.Check(request, options, [TrustedOrigin]);
 
         Assert.Null(reason);
+    }
+
+    #endregion
+
+    #region CheckHub Tests
+
+    [Fact]
+    public void CheckHub_PublicOrigin_ReturnsNull()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], "same-origin", [PublicOrigin]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Null(reason);
+    }
+
+    [Fact]
+    public void CheckHub_TrustedOrigin_ReturnsNull()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], "same-site", [TrustedOrigin]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Null(reason);
+    }
+
+    [Fact]
+    public void CheckHub_NoOrigin_ReturnsNull()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, []);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Null(reason);
+    }
+
+    [Fact]
+    public void CheckHub_ForeignOrigin_ReturnsCrossSite()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], origins: ["https://evil.example.com"]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Equal(BffRequestGuard.CrossSiteRequest, reason);
+    }
+
+    [Fact]
+    public void CheckHub_RepeatedOrigin_ReturnsCrossSite()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], origins: [PublicOrigin, PublicOrigin]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Equal(BffRequestGuard.CrossSiteRequest, reason);
+    }
+
+    [Fact]
+    public void CheckHub_CrossSiteFetch_ReturnsCrossSite()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], "cross-site", [PublicOrigin]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Equal(BffRequestGuard.CrossSiteRequest, reason);
     }
 
     #endregion

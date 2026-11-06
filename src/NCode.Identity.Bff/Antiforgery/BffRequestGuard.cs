@@ -58,6 +58,25 @@ internal static class BffRequestGuard
             return AntiforgeryHeaderMissing;
         }
 
+        return CheckFetchMetadata(request, trustedOrigins);
+    }
+
+    /// <summary>
+    /// Checks the Fetch Metadata of a request: a same-origin or user-initiated request passes, and a same-site request
+    /// passes only from a trusted origin.
+    /// </summary>
+    /// <param name="request">The request to check.</param>
+    /// <param name="trustedOrigins">
+    /// The origins of the request's frontend that may send same-site requests.
+    /// </param>
+    /// <returns>
+    /// <c>null</c> when the request passes; otherwise the reason it is refused.
+    /// </returns>
+    public static string? CheckFetchMetadata(
+        HttpRequest request,
+        IReadOnlyList<string> trustedOrigins
+    )
+    {
         var site = request.Headers[SecFetchSiteHeaderName];
         if (site.Count == 0)
             return null;
@@ -85,6 +104,48 @@ internal static class BffRequestGuard
                         return null;
                 }
             }
+        }
+
+        return CrossSiteRequest;
+    }
+
+    /// <summary>
+    /// Checks a request to a BFF hub: the Fetch Metadata check applies, and an <c>Origin</c> header, when sent, must be
+    /// the frontend's public origin or a trusted origin because a browser <c>WebSocket</c> cannot send the
+    /// anti-forgery header.
+    /// </summary>
+    /// <param name="request">The request to check.</param>
+    /// <param name="publicOrigin">The public origin of the request's frontend.</param>
+    /// <param name="trustedOrigins">
+    /// The origins of the request's frontend that may send same-site requests.
+    /// </param>
+    /// <returns>
+    /// <c>null</c> when the request passes; otherwise the reason it is refused.
+    /// </returns>
+    public static string? CheckHub(
+        HttpRequest request,
+        string? publicOrigin,
+        IReadOnlyList<string> trustedOrigins
+    )
+    {
+        var refusal = CheckFetchMetadata(request, trustedOrigins);
+        if (refusal is not null)
+            return refusal;
+
+        var origin = request.Headers.Origin;
+        if (origin.Count == 0)
+            return null;
+
+        if (origin.Count != 1 || origin[0] is not { } originValue)
+            return CrossSiteRequest;
+
+        if (string.Equals(publicOrigin, originValue, StringComparison.Ordinal))
+            return null;
+
+        foreach (var trusted in trustedOrigins)
+        {
+            if (string.Equals(trusted, originValue, StringComparison.Ordinal))
+                return null;
         }
 
         return CrossSiteRequest;

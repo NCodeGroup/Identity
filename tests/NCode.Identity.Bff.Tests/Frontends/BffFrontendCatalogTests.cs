@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
@@ -192,10 +193,17 @@ public class BffFrontendCatalogTests : BaseTests
     }
 
     [Fact]
-    public void Change_InvalidOptions_KeepsTheLastSet()
+    public void Change_InvalidOptions_KeepsTheLastSetAndLogsTheRejection()
     {
         var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
-        var catalog = BffTestFrontends.CreateCatalog(source);
+        var logger = new FakeLogger<BffFrontendCatalog>();
+        var catalog = new BffFrontendCatalog(
+            source,
+            [source],
+            [new HostBffFrontendSelector(), new PathBffFrontendSelector()],
+            [],
+            logger
+        );
         var before = catalog.Current;
         var token = catalog.GetChangeToken();
 
@@ -209,6 +217,11 @@ public class BffFrontendCatalogTests : BaseTests
 
         Assert.Same(before, catalog.Current);
         Assert.False(token.HasChanged);
+        Assert.Contains(
+            logger.Collector.GetSnapshot(),
+            record =>
+                record.Id.Id == EventIds.FrontendsChangeRejected && record.Level == LogLevel.Error
+        );
     }
 
     [Fact]

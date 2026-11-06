@@ -23,7 +23,7 @@ public static class BffLibraryRegistration
         /// <summary>
         /// Binds <see cref="BffOptions"/> strictly from the <c>Bff</c> section of <paramref name="configuration"/>, so a
         /// key that maps to no option fails when the options are first read, and follows the section's reloads, so
-        /// <c>BffFrontendCatalog</c> takes a valid change without a restart.
+        /// the BFF's frontends take a valid change without a restart.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the BFF settings.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>

@@ -127,7 +127,12 @@ internal sealed class BffFrontendCatalog : IDisposable
         }
 
         if (Logger.IsEnabled(LogLevel.Information))
-            Logger.FrontendsChanged(string.Join(", ", next.Frontends.Select(x => x.Name)));
+        {
+            var names = next.Frontends.Select(x => x.Name);
+            var frontends = string.Join(", ", names);
+            Logger.FrontendsChanged(frontends);
+        }
+
         previous.Cancel();
     }
 

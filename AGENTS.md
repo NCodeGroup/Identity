@@ -66,7 +66,12 @@ End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./buil
   ([ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)),
   and on opt-in sends browser security headers (`UseBffSecurityHeaders()`) and publishes its client keys at `/bff/jwks`
   ([ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md));
-  `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`)
+  `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`), which also loads the
+  key rings that `Bff:KeyRings` names from PEM files
+  ([ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md));
+  `NCode.Identity.ManagementConsole` composes the management console's BFF host, and
+  `NCode.Identity.ManagementConsole.Host` is its reference host
+  ([ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md))
 - **Persistence** — `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`
 - **Infrastructure ports** — `NCode.Identity.Dispatch(.Abstractions)` (background jobs),
   `NCode.Identity.Events(.Abstractions)`, `NCode.Identity.SharedState(.Abstractions)` (state every replica sees) and its

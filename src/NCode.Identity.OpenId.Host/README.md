@@ -119,8 +119,10 @@ No development credential is committed
 ([ADR-1370](../../docs/decisions/1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md)).
 On first run the AppHost writes `bootstrap-admin-secret` and `admin-password` beside `root-key` in
 `LocalApplicationData/NCode.Identity/LocalDev` (`%LOCALAPPDATA%` on Windows, `~/.local/share` on Linux,
-`~/Library/Application Support` on macOS) and hands them to the hosts. Sign in to the management console as `admin`
-with the text of `admin-password`. The `bootstrap-admin` client authenticates with `client_secret_basic` and the text of
+`~/Library/Application Support` on macOS) and hands them to the hosts. It also writes `mgmt-client.pem` and
+`mgmt-dpop.pem`, the management console's client and DPoP keys, and hands the public key set of the client key to this
+host's developer seed. Sign in to the management console at `https://localhost:5005` as `admin` with the text of
+`admin-password`. The `bootstrap-admin` client authenticates with `client_secret_basic` and the text of
 `bootstrap-admin-secret`, which the Development API reference prefills. Delete a file and restart the AppHost to get a
 new value.
 

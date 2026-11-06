@@ -125,8 +125,8 @@ dotnet tool restore                      # once per clone
 dotnet run --project src/NCode.Identity.OpenId.LocalDev
 ```
 
-That brings up the provider at `https://localhost:5001` plus the management console, the flow explorer, and the
-conformance posture dashboard. See [`src/frontend/README.md`](src/frontend/README.md) for the frontend toolchain.
+That brings up the provider at `https://localhost:5001`, the management console at `https://localhost:5005`, the flow
+explorer, and the conformance posture dashboard. See [`src/frontend/README.md`](src/frontend/README.md) for the frontend toolchain.
 
 ## Build and test
 

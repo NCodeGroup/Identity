@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Accounts.DataContracts;
@@ -16,6 +17,7 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Identity.Server.Logging;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 using Xunit;
@@ -27,27 +29,73 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
     private const string WorkloadTenantId = "default";
 
     private DeveloperInteractiveSeedHandler CreateHandler(
-        DeveloperInteractiveSeedOptions options
+        DeveloperInteractiveSeedOptions options,
+        ILogger<DeveloperInteractiveSeedHandler>? logger = null
     ) =>
         new(
             options,
             CreateStrictMock<IClientKeyImporter>().Object,
             TimeProvider.System,
             CreateSeededClientValidator(),
-            CreateSeededLocalAccountValidator()
+            CreateSeededLocalAccountValidator(),
+            logger ?? CreateStrictMock<ILogger<DeveloperInteractiveSeedHandler>>().Object
         );
 
     private DeveloperInteractiveSeedHandler CreateBffHandler(
         DeveloperInteractiveSeedOptions options,
-        IClientKeyImporter clientKeyImporter
+        IClientKeyImporter clientKeyImporter,
+        ILogger<DeveloperInteractiveSeedHandler>? logger = null
     ) =>
         new(
             options,
             clientKeyImporter,
             TimeProvider.System,
             CreateAcceptingSeededClientValidator(),
-            CreateSeededLocalAccountValidator()
+            CreateSeededLocalAccountValidator(),
+            logger ?? CreateStrictMock<ILogger<DeveloperInteractiveSeedHandler>>().Object
         );
+
+    private static bool MessageContains(object? state, string text) =>
+        state?.ToString()?.Contains(text, StringComparison.Ordinal) == true;
+
+    private ILogger<DeveloperInteractiveSeedHandler> CreateReplacedLogger()
+    {
+        var mockLogger = CreateStrictMock<ILogger<DeveloperInteractiveSeedHandler>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Information)).Returns(true).Verifiable();
+#pragma warning disable CA1873 // The arguments are matchers of a mock setup, not log arguments.
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Information,
+                    It.Is<EventId>(id => id.Id == EventIds.DeveloperBffClientReplaced),
+                    It.IsAny<It.IsAnyType>(),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+                )
+            )
+            .Verifiable();
+#pragma warning restore CA1873
+        return mockLogger.Object;
+    }
+
+    private IClientKeyImporter CreateKeyImporter(params PersistedSecret[] keys)
+    {
+        var mockKeyImporter = CreateStrictMock<IClientKeyImporter>();
+        IReadOnlyList<PersistedSecret>? importedKeys = keys;
+        string? importError = null;
+        mockKeyImporter
+            .Setup(x =>
+                x.TryImportRegisteredKeySet(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<DateTimeOffset>(),
+                    out importedKeys,
+                    out importError
+                )
+            )
+            .Returns(true)
+            .Verifiable();
+        return mockKeyImporter.Object;
+    }
 
     private SeededClientValidator CreateAcceptingSeededClientValidator()
     {
@@ -143,6 +191,71 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             .Verifiable();
         return mockStoreManager.Object;
     }
+
+    private IStoreManager CreateReplacingStoreManager(
+        PersistedClient existing,
+        Action<PersistedClient> onAdded
+    )
+    {
+        var sequence = new MockSequence();
+        var mockClientStore = CreateStrictMock<IClientStore>();
+        mockClientStore
+            .InSequence(sequence)
+            .Setup(x => x.GetOrDefaultAsync("console", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existing)
+            .Verifiable();
+        mockClientStore
+            .InSequence(sequence)
+            .Setup(x => x.RemoveAsync("console", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        mockClientStore
+            .InSequence(sequence)
+            .Setup(x => x.AddAsync(It.IsAny<PersistedClient>(), It.IsAny<CancellationToken>()))
+            .Callback((PersistedClient client, CancellationToken _) => onAdded(client))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var mockStoreManager = CreateStrictMock<IStoreManager>();
+        mockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(mockClientStore.Object)
+            .Verifiable();
+        return mockStoreManager.Object;
+    }
+
+    private static PersistedClient CreateStoredBffClient(
+        string redirectUri,
+        params PersistedSecret[] keys
+    ) =>
+        new()
+        {
+            TenantId = WorkloadTenantId,
+            ClientId = "console",
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = WorkloadTenantId,
+                ClientId = "console",
+                Value = JsonElement.Parse(
+                    $$"""
+                    {
+                      "require_dpop_bound_access_tokens": true,
+                      "require_pushed_authorization_requests": true,
+                      "grant_types_supported": ["authorization_code", "refresh_token"],
+                      "token_endpoint_auth_method": "private_key_jwt",
+                      "redirect_uris": ["{{redirectUri}}"]
+                    }
+                    """
+                ),
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = WorkloadTenantId,
+                ClientId = "console",
+                Value = keys,
+            },
+        };
 
     private static IEnumerable<string?> GetStrings(JsonElement jsonElement, string propertyName) =>
         jsonElement
@@ -293,7 +406,8 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
                 mockSettingSerializer.Object,
                 mockEnvironmentProvider.Object
             ),
-            CreateSeededLocalAccountValidator()
+            CreateSeededLocalAccountValidator(),
+            CreateStrictMock<ILogger<DeveloperInteractiveSeedHandler>>().Object
         );
 
         var mockClientStore = CreateStrictMock<IClientStore>();
@@ -382,7 +496,8 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
                 mockResolver.Object,
                 mockValidator.Object
             ),
-            CreateSeededLocalAccountValidator()
+            CreateSeededLocalAccountValidator(),
+            CreateStrictMock<ILogger<DeveloperInteractiveSeedHandler>>().Object
         );
 
         // No AddAsync setup: the strict store refuses a client that would be stored.
@@ -454,7 +569,8 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             CreateStrictMock<IClientKeyImporter>().Object,
             TimeProvider.System,
             CreateSeededClientValidator(),
-            CreateSeededLocalAccountValidator(mockResolver.Object, mockPolicy.Object)
+            CreateSeededLocalAccountValidator(mockResolver.Object, mockPolicy.Object),
+            CreateStrictMock<ILogger<DeveloperInteractiveSeedHandler>>().Object
         );
 
         // No AddAsync setup: the strict store refuses an account that would be stored.
@@ -601,35 +717,28 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenBffClientExists_LeavesItAlone()
+    public async Task HandleAsync_WhenStoredBffClientMatchesItsConfiguration_LeavesItAlone()
     {
-        var existing = new PersistedClient
-        {
-            TenantId = WorkloadTenantId,
-            ClientId = "console",
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = WorkloadTenantId,
-                ClientId = "console",
-                Value = JsonElement.Parse("{}"),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = WorkloadTenantId,
-                ClientId = "console",
-                Value = [],
-            },
-        };
+        const string redirectUri = "https://console.example/bff/callback";
+        var configuredKey = CreateImportedKey();
 
-        // Strict mocks: the key importer and the store's AddAsync are never called for an existing client.
-        var handler = CreateHandler(
+        // The secret identifier is generated per import and the timestamps are not compared.
+        var storedKey = configuredKey with
+        {
+            SecretId = "stored-secret-id",
+            CreatedWhen = DateTimeOffset.UnixEpoch.AddDays(1),
+        };
+        var existing = CreateStoredBffClient(redirectUri, storedKey);
+
+        // Strict store: neither RemoveAsync nor AddAsync is set up, so either call fails the test.
+        var handler = CreateBffHandler(
             new DeveloperInteractiveSeedOptions
             {
                 TenantId = WorkloadTenantId,
                 BffClients = [CreateBffClient("""{"keys":[]}""")],
                 AdminPassword = null,
-            }
+            },
+            CreateKeyImporter(configuredKey)
         );
         var storeManager = CreateBffStoreManager(existing);
 
@@ -637,6 +746,102 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             CreateCommand(WorkloadTenantId, TenantPlane.Workload, storeManager),
             CancellationToken.None
         );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenStoredBffClientHasADifferentKey_ReplacesItFromConfiguration()
+    {
+        var configuredKey = CreateImportedKey();
+        var storedKey = configuredKey with { EncodedValue = "another-public-key" };
+        var existing = CreateStoredBffClient("https://console.example/bff/callback", storedKey);
+
+        var handler = CreateBffHandler(
+            new DeveloperInteractiveSeedOptions
+            {
+                TenantId = WorkloadTenantId,
+                BffClients = [CreateBffClient("""{"keys":[]}""")],
+                AdminPassword = null,
+            },
+            CreateKeyImporter(configuredKey),
+            CreateReplacedLogger()
+        );
+
+        PersistedClient? addedClient = null;
+        var storeManager = CreateReplacingStoreManager(existing, client => addedClient = client);
+
+        await handler.HandleAsync(
+            CreateCommand(WorkloadTenantId, TenantPlane.Workload, storeManager),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(addedClient);
+        Assert.Equal([configuredKey], addedClient.Secrets.Value);
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenStoredBffClientHasADifferentRedirectUri_ReplacesItFromConfiguration()
+    {
+        var configuredKey = CreateImportedKey();
+        var existing = CreateStoredBffClient("https://other.example/bff/callback", configuredKey);
+
+        var handler = CreateBffHandler(
+            new DeveloperInteractiveSeedOptions
+            {
+                TenantId = WorkloadTenantId,
+                BffClients = [CreateBffClient("""{"keys":[]}""")],
+                AdminPassword = null,
+            },
+            CreateKeyImporter(configuredKey),
+            CreateReplacedLogger()
+        );
+
+        PersistedClient? addedClient = null;
+        var storeManager = CreateReplacingStoreManager(existing, client => addedClient = client);
+
+        await handler.HandleAsync(
+            CreateCommand(WorkloadTenantId, TenantPlane.Workload, storeManager),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(addedClient);
+        Assert.Equal(
+            ["https://console.example/bff/callback"],
+            GetStrings(addedClient.Settings.Value, "redirect_uris")
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenStoredBffClientHasAnExtraKey_ReplacesItFromConfiguration()
+    {
+        var configuredKey = CreateImportedKey();
+        var extraKey = configuredKey with { KeyId = "key-2", EncodedValue = "second-public-key" };
+        var existing = CreateStoredBffClient(
+            "https://console.example/bff/callback",
+            configuredKey,
+            extraKey
+        );
+
+        var handler = CreateBffHandler(
+            new DeveloperInteractiveSeedOptions
+            {
+                TenantId = WorkloadTenantId,
+                BffClients = [CreateBffClient("""{"keys":[]}""")],
+                AdminPassword = null,
+            },
+            CreateKeyImporter(configuredKey),
+            CreateReplacedLogger()
+        );
+
+        PersistedClient? addedClient = null;
+        var storeManager = CreateReplacingStoreManager(existing, client => addedClient = client);
+
+        await handler.HandleAsync(
+            CreateCommand(WorkloadTenantId, TenantPlane.Workload, storeManager),
+            CancellationToken.None
+        );
+
+        Assert.NotNull(addedClient);
+        Assert.Equal([configuredKey], addedClient.Secrets.Value);
     }
 
     [Fact]
@@ -667,8 +872,8 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             mockKeyImporter.Object
         );
 
-        // No AddAsync setup: the strict store refuses a client that would be stored.
-        var storeManager = CreateBffStoreManager(null);
+        // Strict store manager with no setups: the key set is refused before the store is reached.
+        var storeManager = CreateStrictMock<IStoreManager>().Object;
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await handler.HandleAsync(
@@ -694,7 +899,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
             },
             CreateStrictMock<IClientKeyImporter>().Object
         );
-        var storeManager = CreateBffStoreManager(null);
+        var storeManager = CreateStrictMock<IStoreManager>().Object;
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await handler.HandleAsync(
@@ -708,16 +913,95 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task HandleAsync_WhenBffClientShouldNotSeed_SkipsIt()
+    public async Task HandleAsync_WhenBffClientSetsNothing_SkipsItSilently()
     {
-        // Strict store manager: a client without a key set never reaches the store.
+        // Strict logger and store manager with no setups: an entry that sets nothing is neither logged nor stored.
         var handler = CreateHandler(
             new DeveloperInteractiveSeedOptions
             {
                 TenantId = WorkloadTenantId,
-                BffClients = [CreateBffClient(null)],
+                BffClients = [new DeveloperBffClientSeed()],
                 AdminPassword = null,
             }
+        );
+
+        await handler.HandleAsync(
+            CreateCommand(WorkloadTenantId, TenantPlane.Workload),
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenBffClientLacksItsKeySet_SkipsItAndWarnsNamingTheKey()
+    {
+        var mockLogger = CreateStrictMock<ILogger<DeveloperInteractiveSeedHandler>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(id => id.Id == EventIds.DeveloperBffClientSkipped),
+                    It.Is<It.IsAnyType>(
+                        (state, _) =>
+                            MessageContains(state, "DeveloperInteractiveSeed:BffClients:1:Jwks")
+                            && !MessageContains(state, ":RedirectUris")
+                    ),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+                )
+            )
+            .Verifiable();
+
+        // Strict store manager with no setups: an entry that does not seed never reaches the store.
+        var handler = CreateHandler(
+            new DeveloperInteractiveSeedOptions
+            {
+                TenantId = WorkloadTenantId,
+                BffClients = [new DeveloperBffClientSeed(), CreateBffClient(null)],
+                AdminPassword = null,
+            },
+            mockLogger.Object
+        );
+
+        await handler.HandleAsync(
+            CreateCommand(WorkloadTenantId, TenantPlane.Workload),
+            CancellationToken.None
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenBffClientLacksRedirectUris_SkipsItAndWarnsNamingTheKey()
+    {
+        var mockLogger = CreateStrictMock<ILogger<DeveloperInteractiveSeedHandler>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(id => id.Id == EventIds.DeveloperBffClientSkipped),
+                    It.Is<It.IsAnyType>(
+                        (state, _) =>
+                            MessageContains(
+                                state,
+                                "DeveloperInteractiveSeed:BffClients:0:RedirectUris"
+                            )
+                    ),
+                    null,
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+                )
+            )
+            .Verifiable();
+
+        var bffClient = CreateBffClient("""{"keys":[]}""");
+        bffClient.RedirectUris = [];
+        var handler = CreateHandler(
+            new DeveloperInteractiveSeedOptions
+            {
+                TenantId = WorkloadTenantId,
+                BffClients = [bffClient],
+                AdminPassword = null,
+            },
+            mockLogger.Object
         );
 
         await handler.HandleAsync(

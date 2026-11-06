@@ -9,7 +9,8 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// Describes a single <strong>development-only</strong> confidential BFF client to seed: a client that authenticates
 /// with <c>private_key_jwt</c>, pushes its authorization requests, receives DPoP-bound tokens and takes back-channel
 /// logout. Its public keys are registered by value, because the server's outbound guard never reaches a loopback
-/// <c>jwks_uri</c>.
+/// <c>jwks_uri</c>. The configuration is the client: a stored client that differs from it is replaced, and an entry that
+/// sets a client id but lacks the key set or the redirect URIs is skipped with a warning.
 /// </summary>
 [PublicAPI]
 public sealed class DeveloperBffClientSeed

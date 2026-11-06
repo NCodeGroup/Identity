@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
@@ -14,6 +15,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Server.Logging;
 using NCode.Mediator;
 
 namespace NCode.Identity.Server.DevelopmentEnvironment;
@@ -29,7 +31,12 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// are validated against the registered setting domains and against the client coherence rules of the tenant it is
 /// seeded into, and a failure stops the seeding with an error naming the client, rather than storing a client that
 /// fails every request that loads it. A BFF client's key set is imported under the client-key policy a dynamically
-/// registered <c>jwks</c> follows, and a key set the policy refuses stops the seeding the same way. The administrator's password must meet the tenant's password policy, and a
+/// registered <c>jwks</c> follows, and a key set the policy refuses stops the seeding the same way. A BFF client is
+/// owned by its configuration, which the AppHost writes from the key files it owns: a stored BFF client whose settings
+/// and keys match its configuration is left as it is, and one that differs is removed, with its grants, codes and
+/// tokens, and stored again from the configuration. A BFF client entry that names a client id but lacks its key set or
+/// its redirect URIs is skipped with a warning that names the missing configuration keys. The administrator's password
+/// must meet the tenant's password policy, and a
 /// refused one stops the seeding with an error naming the administrator.
 /// </remarks>
 // See ADR-1140 and ADR-1206.
@@ -38,7 +45,8 @@ internal sealed class DeveloperInteractiveSeedHandler(
     IClientKeyImporter clientKeyImporter,
     TimeProvider timeProvider,
     SeededClientValidator seededClientValidator,
-    SeededLocalAccountValidator seededLocalAccountValidator
+    SeededLocalAccountValidator seededLocalAccountValidator,
+    ILogger<DeveloperInteractiveSeedHandler> logger
 ) : ICommandHandler<SeedTenantCommand>, ISupportMediatorPriority
 {
     // The grant types of a BFF client: the code flow and the refresh of its session's tokens.
@@ -54,6 +62,7 @@ internal sealed class DeveloperInteractiveSeedHandler(
     private SeededClientValidator SeededClientValidator { get; } = seededClientValidator;
     private SeededLocalAccountValidator SeededLocalAccountValidator { get; } =
         seededLocalAccountValidator;
+    private ILogger<DeveloperInteractiveSeedHandler> Logger { get; } = logger;
 
     /// <inheritdoc />
     public int MediatorPriority => DefaultMediatorPriorities.Low;
@@ -78,11 +87,16 @@ internal sealed class DeveloperInteractiveSeedHandler(
             }
         }
 
-        foreach (var bffClient in Options.BffClients)
+        for (var index = 0; index < Options.BffClients.Count; ++index)
         {
+            var bffClient = Options.BffClients[index];
             if (bffClient.ShouldSeed)
             {
                 await SeedBffClientAsync(context, bffClient, cancellationToken);
+            }
+            else if (!string.IsNullOrEmpty(bffClient.ClientId))
+            {
+                WarnAboutSkippedBffClient(bffClient.ClientId, bffClient, index);
             }
         }
 
@@ -101,13 +115,6 @@ internal sealed class DeveloperInteractiveSeedHandler(
         var clientId = bffClient.ClientId;
         var jwks = bffClient.Jwks;
         if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(jwks))
-        {
-            return;
-        }
-
-        var store = context.StoreManager.GetStore<IClientStore>();
-        var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
-        if (existing is not null)
         {
             return;
         }
@@ -164,8 +171,73 @@ internal sealed class DeveloperInteractiveSeedHandler(
             },
         };
 
+        var store = context.StoreManager.GetStore<IClientStore>();
+        var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
+        if (existing is not null)
+        {
+            if (MatchesConfiguration(existing, persistedClient))
+            {
+                return;
+            }
+
+            // The removal also removes the client's grants, codes and tokens, none of which a changed key or
+            // redirect URI can keep using.
+            await store.RemoveAsync(clientId, cancellationToken);
+            Logger.DeveloperBffClientReplaced(clientId);
+        }
+
         await store.AddAsync(persistedClient, cancellationToken);
     }
+
+    private void WarnAboutSkippedBffClient(
+        string clientId,
+        DeveloperBffClientSeed bffClient,
+        int index
+    )
+    {
+        var prefix = $"{DeveloperInteractiveSeedOptions.DefaultSectionName}:BffClients:{index}";
+        var missingKeys = new List<string>(capacity: 2);
+        if (string.IsNullOrEmpty(bffClient.Jwks))
+        {
+            missingKeys.Add($"{prefix}:Jwks");
+        }
+
+        if (bffClient.RedirectUris.Length == 0)
+        {
+            missingKeys.Add($"{prefix}:RedirectUris");
+        }
+
+        Logger.DeveloperBffClientSkipped(clientId, string.Join(" and ", missingKeys));
+    }
+
+    private static bool MatchesConfiguration(PersistedClient stored, PersistedClient configured) =>
+        JsonElement.DeepEquals(stored.Settings.Value, configured.Settings.Value)
+        && KeysMatch(stored.Secrets.Value, configured.Secrets.Value);
+
+    // The keys are compared as an unordered set by what makes a key usable. The secret identifier, which the
+    // importer generates per import, and the timestamps are not part of the comparison.
+    private static bool KeysMatch(
+        IReadOnlyCollection<PersistedSecret> stored,
+        IReadOnlyCollection<PersistedSecret> configured
+    )
+    {
+        if (stored.Count != configured.Count)
+        {
+            return false;
+        }
+
+        return stored.Select(KeyIdentity).ToHashSet().SetEquals(configured.Select(KeyIdentity));
+    }
+
+    private static (
+        string? KeyId,
+        string? Use,
+        string? Algorithm,
+        string SecretType,
+        string SecretEncoding,
+        string EncodedValue
+    ) KeyIdentity(PersistedSecret key) =>
+        (key.KeyId, key.Use, key.Algorithm, key.SecretType, key.SecretEncoding, key.EncodedValue);
 
     private IReadOnlyList<PersistedSecret> ImportKeys(string clientId, string jwks)
     {

@@ -392,6 +392,14 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **A suite is a `*.EndToEnd.Tests` project, which only `./build/e2e.ps1` and the `End-to-end` check run.**
   `./build/dod.ps1` never runs it
   ([ADR-1430](../../docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+- 👁 **A project under `tests/` whose name does not end in `.Tests` is a support project.** The solution compiles it, no
+  tier of `build/test-projects.ps1` lists it, and it is no test project and has no JUnit logger, so a suite references
+  it and no gate tests it
+  ([ADR-1441](../../docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+- 👁 **Host a Blazor Web App through `WebApplicationFactory<TEntryPoint>.UseKestrel()` over the suite's certificate,
+  then call `StartServer()`.** The factory locates the app's static web assets, which a `WebApplication.CreateBuilder`
+  in the test process does not
+  ([ADR-1441](../../docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
 - 👁 **An end-to-end suite is not hermetic by design.** Every host stays on loopback over the run's throwaway
   certificate, the container reaches the host only through `TestcontainersSettings.ExposeHostPortsAsync`, and
   credentials are generated per run

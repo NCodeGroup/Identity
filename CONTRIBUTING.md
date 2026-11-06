@@ -95,6 +95,14 @@ attributes, `SameSite` on cross-site navigation, CORS preflight denial and Fetch
 runs the BFF against Keycloak in a container and checks login, DPoP, refresh-token rotation, RP-initiated logout and
 back-channel logout. They need a running Docker engine.
 
+The suite also runs a Blazor Web App (interactive server and WebAssembly) from the support projects
+`NCode.Identity.Bff.EndToEnd.BlazorApp` and `NCode.Identity.Bff.EndToEnd.BlazorApp.Client` through
+`WebApplicationFactory` on Kestrel. It checks that a circuit signs out after back-channel logout, that a `WebSocket`
+from another origin is refused, that an idle hub connection closes once its session ends, and that a WebAssembly
+component's traffic carries no token. A project under `tests/` whose name does not end in `.Tests` is a support project:
+the solution compiles it and no gate tests it
+([ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+
 ```pwsh
 # Run every end-to-end suite (installs the Playwright browsers and pulls the Keycloak image on the first run):
 ./build/e2e.ps1

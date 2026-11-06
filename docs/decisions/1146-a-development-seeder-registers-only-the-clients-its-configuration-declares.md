@@ -71,8 +71,9 @@ library has no default; the host's environment overlay declares the entries.
   integration tests behave as before.
 - The Conformance environment no longer receives the two loopback SPA clients. It holds only the conformance clients
   its own overlay declares.
-- The seeder is add-only and idempotent, so a development database keeps any client seeded earlier.
-  `build/dev-db-reset.ps1` purges it.
+- The seeder is idempotent. It never changes a stored SPA client, and it reconciles a stored BFF client with its
+  configuration, replacing one that differs together with its grants, codes and tokens. A development database keeps
+  every other client seeded earlier. `build/dev-db-reset.ps1` purges the rest.
 - The public API is unchanged. Only the initial value of `SpaClients` changed.
 
 ## References

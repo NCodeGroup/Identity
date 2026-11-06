@@ -1,10 +1,13 @@
 export {
-  authSlice,
-  signedIn,
-  signedOut,
-  type AuthState,
-  type SignedInPayload,
-} from './authSlice.js';
+  sessionSlice,
+  sessionStarted,
+  sessionEnded,
+  type BffSessionLifetime,
+  type BffUser,
+  type SessionState,
+  type SessionStatus,
+} from './sessionSlice.js';
+export { parseBffUser, fetchBffUser } from './bffSession.js';
 export { configSlice, runtimeConfigLoaded, type ConfigState } from './configSlice.js';
 export { createAppStore, type AppDispatch, type AppStore, type RootState } from './store.js';
 export { useAppDispatch, useAppSelector, useAppStore } from './hooks.js';

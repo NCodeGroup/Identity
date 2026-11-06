@@ -1,4 +1,5 @@
 export type {
+  AddOwnerRequest,
   CallerResource,
   ClientResource,
   CollectionResource,
@@ -28,6 +29,7 @@ export type {
   KeyBitSizes,
   ManagementCapabilitiesResource,
   ManagementProblem,
+  OwnerResource,
   PromoteTenantRequest,
   PublicKeyResource,
   ResourceServerResource,
@@ -73,8 +75,13 @@ export {
   ownerLimitsTagId,
   ownerScope,
   ownerTagId,
+  roleListApiPath,
+  roleListTagId,
+  type AdministeredOwner,
   type ClientOwner,
   type ManagementOwner,
+  type RoleList,
+  type RoleOwner,
   type SecretOwner,
 } from './owner.js';
 export {

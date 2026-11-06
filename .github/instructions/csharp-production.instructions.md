@@ -1208,6 +1208,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
     | `22000`–`22999` | `NCode.Identity.Cose`                               |
     | `23000`–`23999` | `NCode.Identity.Cwt`                                |
     | `24000`–`24999` | `NCode.Identity.Bff.Blazor.Client`                  |
+    | `25000`–`25999` | `NCode.Identity.Bff.Blazor`                         |
 
 ### Metrics
 

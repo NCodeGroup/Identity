@@ -6,6 +6,7 @@ import { apiErrorMessage, type ApiError, useGetTeamUsageQuery } from '@ncode/sto
 import { DataStateBoundary, TeamUsageTable } from '@ncode/ui';
 import type { TeamSurface } from '../routes.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
+import { TeamsPage } from './TeamsPage.js';
 import { TenantsPage } from './TenantsPage.js';
 
 export type TeamDetailPageProps = {
@@ -14,6 +15,8 @@ export type TeamDetailPageProps = {
   readonly surface: TeamSurface;
   /** Opens a tenant of the team. */
   readonly onOpenTenant: (tenantId: string) => void;
+  /** Opens a child team of the team. */
+  readonly onOpenTeam: (teamId: string) => void;
 };
 
 type TeamTabProps = {
@@ -21,12 +24,13 @@ type TeamTabProps = {
 };
 
 /**
- * Container: one team's tenants, settings, or usage surface, as the `surface` prop names. The address bar selects the
- * surface (ADR-1255), so this page holds no tab state. Wires the team's tenant list to {@link TenantsPage}, the
- * owner-generic {@link OwnerSettingsTab} to the team, and shows the usage ledger of the team's tenants (ADR-1199)
+ * Container: one team's tenants, child teams, settings, or usage surface, as the `surface` prop names. The address
+ * bar selects the surface (ADR-1255), so this page holds no tab state. Wires the team's tenant list to
+ * {@link TenantsPage}, its child team list to {@link TeamsPage}, the owner-generic {@link OwnerSettingsTab} to the
+ * team, and shows the usage ledger of the team's tenants and of its descendant teams' tenants (ADR-1199, ADR-1426)
  * through {@link TeamUsageTable}.
  */
-export function TeamDetailPage({ teamId, surface, onOpenTenant }: TeamDetailPageProps) {
+export function TeamDetailPage({ teamId, surface, onOpenTenant, onOpenTeam }: TeamDetailPageProps) {
   return (
     <>
       <Stack sx={{ mb: 2 }}>
@@ -38,6 +42,7 @@ export function TeamDetailPage({ teamId, surface, onOpenTenant }: TeamDetailPage
         </Typography>
       </Stack>
       {surface === 'tenants' && <TenantsPage teamId={teamId} onOpenTenant={onOpenTenant} />}
+      {surface === 'teams' && <TeamsPage parentTeamId={teamId} onOpenTeam={onOpenTeam} />}
       {surface === 'settings' && <OwnerSettingsTab owner={{ kind: 'team', teamId }} />}
       {surface === 'usage' && <TeamUsageTab teamId={teamId} />}
     </>

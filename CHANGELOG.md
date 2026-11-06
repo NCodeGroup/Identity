@@ -847,17 +847,18 @@ describes the family as it is rather than its changes
   management API is never retired, extended or removed. The seed applies the plan whenever the tenant is
   materialized, and `TenantKeyRolloverService` applies it in the background every
   `OpenId:Tenant:KeyRollover:Interval` (one hour), one replica per interval under a lease on the shared-state port
-  that lasts half the interval, walking each enabled team's tenants under that team's effective settings (a disabled
-  team is skipped, and a team that fails is logged before the next one runs), each tenant in its own unit of work
-  under its optimistic concurrency, and announces every tenant it changed so every replica serves its keys as they
-  are. A team's settings reconciliation seeds a
-  tenant whose only key for an algorithm has retired like one that never held it. Every change is an audit event,
+  that lasts half the interval, walking each enabled team's tenants under that team's effective settings (a team that
+  is disabled, or beneath a disabled team, is skipped, and a team that fails is logged before the next one runs), each
+  tenant in its own unit of work under its optimistic concurrency, and announces every tenant it changed so every
+  replica serves its keys as they are. A team's settings reconciliation seeds a tenant whose only key for an algorithm
+  has retired like one that never held it. Every change is an audit event,
   `tenant.key.generated`, `tenant.key.activated`, `tenant.key.retired`, `tenant.key.extended` or
   `tenant.key.removed`, in the `key` category with the `system` actor, published once the change is committed: the
   pass publishes after its save, and a seed queues its events on `TenantSeedContext.RunAfterCommit`, whose steps the
   provisioner runs once the seed has committed
   ([ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
   [#166](https://github.com/NCodeGroup/Identity/issues/166)).
 
@@ -2040,12 +2041,14 @@ describes the family as it is rather than its changes
   update merge the client's document onto its tenant's effective settings, as the runtime does, and answer `400` with a
   validation problem naming the setting when a registered ID token, UserInfo or introspection signing or encryption
   algorithm is outside its effective `*_values_supported` list; the default `A128CBC-HS256` of a registered encryption
-  without an `enc` is checked the same way. A tenant settings update checks every client of the tenant, a team settings update every client of its tenants, and a platform
+  without an `enc` is checked the same way. A tenant settings update checks every client of the tenant, a team settings
+  update every client of the tenants of the team and of every team beneath it, and a platform
   settings update every client of every tenant, each answering `400` naming the list and the client when the change
   excludes an algorithm a client registers; a mismatch the change does not introduce is not reported. A mismatch is
   reported when the settings are written rather than at issuance. `OpenIdPlatform.ConfiguredSettingsProvider` holds the
   settings the platform derives from its defaults and the host's configuration, onto which its persisted settings document
-  is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
   page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
@@ -2824,14 +2827,16 @@ describes the family as it is rather than its changes
 - **A replica that may have missed a broadcast drops what the message would have invalidated.** The Valkey subscriber
   calls `IReplicaBroadcastHandler.HandleMissedMessagesAsync` once it subscribes a channel and whenever its connection is
   restored. The tenant handler evicts every cached tenant through `IOpenIdTenantCache.ClearAsync`, the team handler
-  evicts only the cached teams whose stored row changed or is gone, with their tenants, comparing each served team's
-  concurrency token (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
+  evicts only the cached teams whose stored row, or the row of a team above them, changed or is gone, with every team
+  and tenant beneath them, comparing the concurrency token of each served team and of every team it was materialized
+  over (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
   `IOpenIdTenantCache.GetTeamRevisionsAsync`) with the store's (`ITeamStore.GetConcurrencyTokensAsync`) and clearing
   both caches when it cannot read them, and the platform
   handler reads the platform's settings again
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   issue [#249](https://github.com/NCodeGroup/Identity/issues/249),
   [#564](https://github.com/NCodeGroup/Identity/issues/564)).
 
@@ -3566,22 +3571,53 @@ describes the family as it is rather than its changes
   (`TenantResolution:Root:TeamId`, default `platform`) holds the root tenant and every tenant a strategy creates
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
-- **A team's settings cascade into its tenants.** The settings scopes are `platform`, `team`, `tenant`, `client` and
-  `resource_server`; a team document carries every setting that applies beneath it, so the security profiles, ceilings
-  and defaults a team selects bind its tenants, and a materialized tenant reads its document beneath its team's
-  effective settings. `max_tenants` applies to the team scope, merges with `Min` and is a limit the platform's
-  administrators set on a team, and a creation that would exceed it answers `409`
+- **A team can nest beneath a parent team.** `POST /api/teams/{teamId}/teams` creates a team beneath its parent and
+  `GET /api/teams/{teamId}/teams` lists a team's child teams; `TeamResource` carries `parentTeamId`, and `GET /api/teams`
+  lists every team at every level. A team's parent is fixed when it is created, so the tree has no cycles, and a team
+  holds tenants and child teams side by side, so a customer's team is the parent of a team per product, each with its
+  own sandbox, testing and production tenants. A top-level team is at depth 1, the platform setting `max_team_depth`
+  (1 to 8; unset means 8) bounds the depth a team is created at, each team row stores its path from its top-level team
+  (`TeamPaths`), a materialized team exposes its `Parent` and `Path`, and the platform's own team holds no teams
+  ([#567](https://github.com/NCodeGroup/Identity/issues/567),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+
+- **A team's settings cascade into every team and tenant beneath it.** The settings scopes are `platform`, `team`,
+  `tenant`, `client` and `resource_server`; a team's effective settings merge the platform's, then each ancestor team's
+  document from the top-level team down, then its own (`IEffectiveSettingsResolver.ResolveTeamAsync`,
+  `ResolveTeamParentAsync`), so the security profiles, ceilings, defaults and limits a team selects bind every team and
+  tenant beneath it, and a materialized team reads its document beneath its parent's effective settings. `max_tenants`
+  and `max_teams` apply to the team scope, merge with `Min` and are limits set by the administrators above the team: a
+  team's `max_tenants` bounds the tenants of the team and of every team beneath it, its `max_teams` bounds the teams
+  beneath it at every level, and a creation that would exceed the limit of any team above it answers `409`
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
-- **A team is an authority node.** Authority runs platform → team → tenant → leaf: a role assigned at a team reaches
-  every tenant beneath it, the `TeamAdmin` role creates the team's tenants and manages everything beneath, `Owner` never
+- **A team is an authority node.** Authority runs platform → each team from the top-level team down → tenant → leaf: a
+  role assigned at a team reaches every team and tenant beneath it, the `TeamAdmin` role creates the team's tenants and
+  child teams and manages everything beneath, `Owner` never
   creates, and a principal's role assignments are read across every tenant: the platform, team and tenant nodes have
   globally unique, retired identifiers and match an assignment on type and identifier, and any other node counts an
   assignment only when it belongs to the node's tenant, because client and resource-server identifiers
   are unique only within a tenant
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+
+- **A team promotes one tenant's configuration to another.** `POST /api/teams/{teamId}/promotions/preview` reports what
+  a promotion would create, update or leave unchanged and `POST /api/teams/{teamId}/promotions` applies it: the
+  tenant's settings, its resource servers and scopes, its clients (keeping their `client_id`) and client grants, never
+  secrets, keys, grants, principals, role assignments, a client the host configures, or a setting whose value belongs
+  to the environment (`SettingDescriptor.IsEnvironmentBound`, such as `redirect_uris`), whose target values the request
+  may supply. Both tenants belong to the team the route names, not to a team beneath it, so a parent team's
+  administrators promote within a child team through that team's route; a promotion needs read authority on the source
+  and creation authority on the target, and a promoted limit needs the authority that sets it (`403` naming the limit). A promotion that changes a client holding role assignments needs
+  creation authority at each node that holds them, as changing that client does
+  ([ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)). It
+  records each change and `tenant.promoted`, and the console offers it on a team's tenants page
+  ([ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
+  [#565](https://github.com/NCodeGroup/Identity/issues/565)).
 
 - **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
   `TenantAdmin` role at the tenant's node, which manages the tenant and everything beneath it and creates its clients,
@@ -3591,31 +3627,41 @@ describes the family as it is rather than its changes
 
 - **A setting can be a limit set from above.** `SettingDescriptor.IsLimit` marks a limit, which merges with a meet; a
   management write that adds, changes or removes a limit in a team's, tenant's, client's or resource server's settings
-  needs `Update` authority at the platform, the team or the tenant above it, or answers `403` naming the limits, and
+  needs `Update` authority at the node above it: the platform for a top-level team, the parent team for a child team,
+  the team for a tenant and the tenant for a client or resource server, or answers `403` naming the limits, and
   `ISettingSerializer.GetChangedLimits` names them
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
-  one team when its own change, under the lease `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
+  one team and every team beneath it when that team's settings change, each team once per pass and under its own lease
+  `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
   (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants.
   Requests that arrive during a pass coalesce, one per team, and a request for every team covers them all, so none is
   dropped however many arrive ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A
-  team change evicts the team and its tenants on every replica over the `team-changed` channel
-  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md)).
+  team change evicts the team, every team beneath it and their tenants on every replica over the `team-changed` channel
+  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
-- **Disabling a team suspends its tenants, and a team with tenants cannot be deleted.** A tenant of a disabled team
-  answers `404` on the protocol surface and on the management routes that act through its OpenID runtime (sessions,
-  principals, local accounts), as a disabled tenant does, while its stored configuration stays manageable;
-  `DELETE /api/teams/{teamId}` answers `409` while the team has tenants, a deleted team's id is never reissued, and the
-  platform's own team can be neither disabled nor deleted. Creating, deleting, disabling and restoring a team, and
-  `GET /api/teams` and `GET /api/tenants`, need `GlobalAdmin` or an assignment at the platform node
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+- **Disabling a team suspends every team and tenant beneath it, and a team with tenants or teams cannot be deleted.** A
+  tenant of a disabled team, or of a team beneath one, answers `404` on the protocol surface and on the management
+  routes that act through its OpenID runtime (sessions, principals, local accounts), as a disabled tenant does, while
+  its stored configuration stays manageable; `DELETE /api/teams/{teamId}` answers `409` while the team has tenants or
+  child teams, a deleted team's id is never reissued, and the platform's own team can be neither disabled nor deleted.
+  Creating, deleting, disabling and restoring a top-level team, and `GET /api/teams` and `GET /api/tenants`, need
+  `GlobalAdmin` or an assignment at the platform node. Creating, deleting, disabling and restoring a child team need
+  that authority at its parent team
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
-- **Usage is queryable per team.** Every usage row carries the team the tenant belonged to, so a deleted tenant's final
-  days still bill to its team, and `GET /api/teams/{teamId}/usage?from=&to=` lists each tenant's counts per day and
-  meter ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+- **Usage is queryable per team, across every team beneath it.** Every usage row carries the path of the teams its
+  tenant belonged to, so a deleted tenant's or deleted team's final days still bill to every team above it, and
+  `GET /api/teams/{teamId}/usage?from=&to=` lists the counts of each tenant of the team and of every team beneath it per
+  day and meter, each entry naming its team and tenant
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
 
 - **Team and platform changes are audited in the control-plane tenant.** `TeamChangedAuditEvent` (`team`) and
@@ -3625,10 +3671,11 @@ describes the family as it is rather than its changes
 
 - **The management console manages teams and the platform's settings.** The platform scope has a Teams surface
   (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete), a Settings surface and an Encryption keys surface;
-  a team scope has its
-  tenants, settings and usage (`TeamUsageTable`); the console routes `/teams`, `/settings`, `/encryption-keys`,
-  `/teams/{teamId}/{tenants|settings|usage}` and `/tenants/{tenantId}/…`
+  the platform's team list names each team's parent; a team scope has its tenants, child teams, settings and usage
+  (`TeamUsageTable`, which names each entry's team), and its exit leads to its parent team; the console routes `/teams`,
+  `/settings`, `/encryption-keys`, `/teams/{teamId}/{tenants|teams|settings|usage}` and `/tenants/{tenantId}/…`
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
 
 - **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key
@@ -3737,10 +3784,22 @@ describes the family as it is rather than its changes
   [#556](https://github.com/NCodeGroup/Identity/issues/556)).
 
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
-  authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a tenant's
-  the limits its team sets. A client's registration update keeps the limits its settings carry
+  authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a child
+  team's the limits its parent team sets, nor a tenant's the limits its team sets. A client's registration update keeps
+  the limits its settings carry
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
+
+- **A team or tenant route answers a caller without authority the same for any identifier.** It authorizes at the team
+  or tenant its route names before it reads, so a `401` or `403` never depends on whether the team, tenant, setting,
+  secret, key, owner or administrator exists, and no row is read for the caller
+  ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
+  [#558](https://github.com/NCodeGroup/Identity/issues/558)).
+
+- **A unit of work resolves a tracked row only in its ambient tenant.** A store's lookup that the change tracker answers
+  applies the same tenant scope as the query filter, so a row tracked for one tenant is never returned in another
+  tenant's scope ([#565](https://github.com/NCodeGroup/Identity/issues/565)).
 
 - **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's and a
   resource server's keys all carry an active window inside a validity window: a key that is not yet

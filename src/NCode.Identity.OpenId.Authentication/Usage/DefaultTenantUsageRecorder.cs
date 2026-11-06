@@ -18,10 +18,16 @@ internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : IT
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
-    public void Record(string teamId, string tenantId, string meter)
+    public void Record(string teamPath, string tenantId, string meter)
     {
         // A name the ledger cannot store would fail every flush of its batch, so it is refused here, at the caller.
-        ArgumentException.ThrowIfNullOrEmpty(teamId);
+        // See ADR-1426.
+        ArgumentException.ThrowIfNullOrEmpty(teamPath);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            teamPath.Length,
+            OpenIdMaxLengths.TeamPath,
+            nameof(teamPath)
+        );
         ArgumentException.ThrowIfNullOrEmpty(tenantId);
         ArgumentException.ThrowIfNullOrEmpty(meter);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(
@@ -31,7 +37,7 @@ internal sealed class DefaultTenantUsageRecorder(TimeProvider timeProvider) : IT
         );
 
         var day = DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime);
-        var key = new TenantUsageKey(teamId, tenantId, day, meter);
+        var key = new TenantUsageKey(teamPath, tenantId, day, meter);
         lock (_sync)
         {
             _pending[key] = _pending.GetValueOrDefault(key) + 1;

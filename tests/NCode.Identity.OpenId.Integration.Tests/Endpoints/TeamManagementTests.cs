@@ -27,7 +27,8 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Drives teams through the management API of a multi-tenant (host-routed) deployment: a team holds tenants, its settings
 /// document sits between the platform's and its tenants' and reaches them at once, disabling it silences them, it caps
-/// how many it holds, it cannot be deleted while it holds any, and its usage lists each tenant's counts.
+/// how many it holds, it cannot be deleted while it holds any, and its usage lists each tenant's counts. A team can nest
+/// beneath a parent team, which then supplies its settings, authority, limits, quota and usage.
 /// </summary>
 public class TeamManagementTests
 {
@@ -77,6 +78,35 @@ public class TeamManagementTests
                 settings,
             }
         );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    private static async Task<HttpResponseMessage> PostChildTeamAsync(
+        HttpClient client,
+        string parentTeamId,
+        string teamId,
+        object settings
+    ) =>
+        await client.PostAsJsonAsync(
+            $"/api/teams/{parentTeamId}/teams",
+            new
+            {
+                teamId,
+                displayName = teamId,
+                isDisabled = false,
+                settings,
+            }
+        );
+
+    private static async Task CreateChildTeamAsync(
+        HttpClient client,
+        string parentTeamId,
+        string teamId,
+        object settings
+    )
+    {
+        using var response = await PostChildTeamAsync(client, parentTeamId, teamId, settings);
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
@@ -346,6 +376,17 @@ public class TeamManagementTests
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 
+    private static async Task AssertGetStatusAsync(
+        HttpClient client,
+        string path,
+        HttpStatusCode expected
+    )
+    {
+        using var response = await client.GetAsync(path);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == expected, $"{path}: {body}");
+    }
+
     private static async Task<HttpResponseMessage> SendPatchAsync(
         HttpClient client,
         string path,
@@ -499,6 +540,182 @@ public class TeamManagementTests
         request.Headers.Host = $"{tenantId}.auth.test";
         using var response = await client.SendAsync(request);
         return response.StatusCode;
+    }
+
+    // Creates team acme with tenants acme-dev and acme-prod and fills acme-dev with a development environment, a
+    // resource server with a scope, a client with a secret and a grant of the client to the resource server; returns
+    // the client's id and the resource server's id.
+    private static async Task<(
+        string ClientId,
+        string ResourceServerId
+    )> ArrangePromotionSourceAsync(HttpClient administrator)
+    {
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTenantAsync(administrator, "acme", "acme-prod");
+        await PatchAsync(
+            administrator,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.RequireConsent}",
+                    value = (object)true,
+                },
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.EnvironmentType}",
+                    value = (object)"development",
+                },
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.EnvironmentName}",
+                    value = (object)"sandbox",
+                },
+            }
+        );
+
+        using var resourceServer = await administrator.PostAsJsonAsync(
+            "/api/tenants/acme-dev/resource-servers",
+            new
+            {
+                identifier = "https://api.acme.test",
+                name = "Acme API",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var resourceServerBody = await resourceServer.Content.ReadAsStringAsync();
+        Assert.True(resourceServer.StatusCode == HttpStatusCode.Created, resourceServerBody);
+        var resourceServerId = JsonElement
+            .Parse(resourceServerBody)
+            .GetProperty("resourceServerId")
+            .GetString();
+        Assert.NotNull(resourceServerId);
+
+        using var scope = await administrator.PostAsJsonAsync(
+            $"/api/tenants/acme-dev/resource-servers/{resourceServerId}/scopes",
+            new { value = "read:things", description = (string?)null }
+        );
+        var scopeBody = await scope.Content.ReadAsStringAsync();
+        Assert.True(scope.StatusCode == HttpStatusCode.Created, scopeBody);
+
+        using var created = await administrator.PostAsJsonAsync(
+            "/api/tenants/acme-dev/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                    [OpenIdSettingNames.ClientName] = "Acme Web",
+                    [OpenIdSettingNames.RedirectUris] = new[] { "https://dev.acme.test/cb" },
+                },
+            }
+        );
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+        var clientId = JsonElement.Parse(createdBody).GetProperty("clientId").GetString();
+        Assert.NotNull(clientId);
+
+        using var secret = await administrator.PostAsJsonAsync(
+            $"/api/tenants/acme-dev/clients/{clientId}/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var secretBody = await secret.Content.ReadAsStringAsync();
+        Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
+
+        using var grant = await administrator.PostAsJsonAsync(
+            $"/api/tenants/acme-dev/clients/{clientId}/grants",
+            new { resourceServerId, scopes = new[] { "read:things" } }
+        );
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, grantBody);
+
+        return (clientId, resourceServerId);
+    }
+
+    private static Task<HttpResponseMessage> PostPromotionAsync(
+        HttpClient client,
+        string teamId,
+        string route,
+        string sourceTenantId,
+        string targetTenantId,
+        object? environmentSettings = null
+    ) =>
+        client.PostAsJsonAsync(
+            $"/api/teams/{teamId}/promotions{route}",
+            new
+            {
+                sourceTenantId,
+                targetTenantId,
+                environmentSettings = environmentSettings ?? Array.Empty<object>(),
+            }
+        );
+
+    private static async Task<JsonElement> ReadPromotionAsync(
+        HttpResponseMessage response,
+        HttpStatusCode expected
+    )
+    {
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == expected, body);
+        return JsonElement.Parse(body);
+    }
+
+    private static bool HasChange(
+        JsonElement report,
+        string resourceType,
+        string resourceId,
+        string action
+    ) =>
+        report
+            .GetProperty("changes")
+            .EnumerateArray()
+            .Any(change =>
+                change.GetProperty("resourceType").GetString() == resourceType
+                && change.GetProperty("resourceId").GetString() == resourceId
+                && change.GetProperty("action").GetString() == action
+            );
+
+    private static bool HasNote(
+        JsonElement report,
+        string resourceId,
+        string code,
+        string? settingName = null
+    ) =>
+        report
+            .GetProperty("notes")
+            .EnumerateArray()
+            .Any(note =>
+                note.GetProperty("resourceId").GetString() == resourceId
+                && note.GetProperty("code").GetString() == code
+                && (
+                    settingName is null
+                    || (
+                        note.TryGetProperty("settingName", out var name)
+                        && name.GetString() == settingName
+                    )
+                )
+            );
+
+    private static async Task<JsonElement> GetJsonAsync(HttpClient client, string path)
+    {
+        using var response = await client.GetAsync(path);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, $"{path}: {body}");
+        return JsonElement.Parse(body);
     }
 
     #endregion
@@ -1235,6 +1452,136 @@ public class TeamManagementTests
 
     #endregion
 
+    #region Authorization Order Tests
+
+    [Fact]
+    public async Task TeamAdmin_GetsForbiddenForAnUnknownTeamAndAnotherTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        await AssertGetStatusAsync(teamAdmin, "/api/teams/globex", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope/settings", HttpStatusCode.Forbidden);
+
+        using var patch = await SendPatchAsync(
+            teamAdmin,
+            "/api/teams/nope/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = "/environment_type",
+                    value = "development",
+                },
+            }
+        );
+        var patchBody = await patch.Content.ReadAsStringAsync();
+        Assert.True(patch.StatusCode == HttpStatusCode.Forbidden, patchBody);
+
+        using var create = await PostTenantAsync(teamAdmin, "nope", "nope-dev");
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
+
+        await AssertGetStatusAsync(teamAdmin, "/api/teams/nope/admins", HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task TeamAdmin_GetsForbiddenForAnUnknownTenantAndAnotherTeamsTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTenantAsync(administrator, "globex", "globex-dev");
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        await AssertGetStatusAsync(teamAdmin, "/api/tenants/globex-dev", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(teamAdmin, "/api/tenants/nope", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/nope/settings",
+            HttpStatusCode.Forbidden
+        );
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/nope/secrets",
+            HttpStatusCode.Forbidden
+        );
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/nope/encryption-keys",
+            HttpStatusCode.Forbidden
+        );
+        await AssertGetStatusAsync(teamAdmin, "/api/tenants/nope/admins", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            teamAdmin,
+            "/api/tenants/globex-dev/owners",
+            HttpStatusCode.Forbidden
+        );
+    }
+
+    [Fact]
+    public async Task TenantAdmin_GetsForbiddenForAnUnknownTenantAndASiblingTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        await CreateTenantAsync(administrator, "acme", "acme-prod");
+        using var tenantAdmin = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/admins"
+        );
+
+        await AssertGetStatusAsync(tenantAdmin, "/api/tenants/acme-prod", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(tenantAdmin, "/api/tenants/nope", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(
+            tenantAdmin,
+            "/api/tenants/nope/admins",
+            HttpStatusCode.Forbidden
+        );
+
+        using var grant = await tenantAdmin.PostAsJsonAsync(
+            "/api/tenants/nope/admins",
+            new { principalId = "pid-x" }
+        );
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Forbidden, grantBody);
+    }
+
+    [Fact]
+    public async Task Administrator_GetsNotFoundForAnUnknownTeamAndTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        await AssertGetStatusAsync(administrator, "/api/teams/nope", HttpStatusCode.NotFound);
+        await AssertGetStatusAsync(administrator, "/api/tenants/nope", HttpStatusCode.NotFound);
+        await AssertGetStatusAsync(
+            administrator,
+            "/api/tenants/nope/admins",
+            HttpStatusCode.NotFound
+        );
+    }
+
+    #endregion
+
     #region Limit Tests
 
     [Fact]
@@ -1717,6 +2064,763 @@ public class TeamManagementTests
         Assert.Equal(HostApplicationFactory.TeamId, usage.GetProperty("teamId").GetString());
         Assert.True(GetCount(usage, "usage-one") >= 2, usage.ToString());
         Assert.True(GetCount(usage, "usage-two") >= 2, usage.ToString());
+    }
+
+    #endregion
+
+    #region Promotion Tests
+
+    [Fact]
+    public async Task PreviewTenantPromotion_ReportsTheChangesAndNotesWithoutApplying()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(administrator);
+
+        using var previewResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            "/preview",
+            "acme-dev",
+            "acme-prod"
+        );
+        var preview = await ReadPromotionAsync(previewResponse, HttpStatusCode.OK);
+        Assert.False(preview.GetProperty("isApplied").GetBoolean());
+        Assert.True(HasChange(preview, "client", clientId, "created"), preview.ToString());
+        Assert.True(
+            HasChange(preview, "resource_server", resourceServerId, "created"),
+            preview.ToString()
+        );
+        Assert.True(
+            HasChange(preview, "client_grant", $"{clientId}/{resourceServerId}", "created"),
+            preview.ToString()
+        );
+        Assert.True(HasNote(preview, clientId, "credential_required"), preview.ToString());
+        Assert.True(
+            HasNote(
+                preview,
+                clientId,
+                "environment_setting_unset",
+                OpenIdSettingNames.RedirectUris
+            ),
+            preview.ToString()
+        );
+
+        await AssertGetStatusAsync(
+            administrator,
+            $"/api/tenants/acme-prod/clients/{clientId}",
+            HttpStatusCode.NotFound
+        );
+    }
+
+    [Fact]
+    public async Task PromoteTenant_CopiesConfigurationButNoSecretsOrEnvironmentValues()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(administrator);
+
+        using var promoteResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod"
+        );
+        var promoted = await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
+        Assert.True(promoted.GetProperty("isApplied").GetBoolean());
+
+        var settings = (
+            await GetJsonAsync(administrator, "/api/tenants/acme-prod/settings")
+        ).GetProperty("settings");
+        Assert.True(settings.GetProperty(OpenIdSettingNames.RequireConsent).GetBoolean());
+        Assert.False(settings.TryGetProperty(OpenIdSettingNames.EnvironmentName, out _));
+
+        var client = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/acme-prod/clients/{clientId}"
+        );
+        Assert.Equal(clientId, client.GetProperty("clientId").GetString());
+        var clientSettings = (
+            await GetJsonAsync(administrator, $"/api/tenants/acme-prod/clients/{clientId}/settings")
+        ).GetProperty("settings");
+        Assert.Equal(
+            "Acme Web",
+            clientSettings.GetProperty(OpenIdSettingNames.ClientName).GetString()
+        );
+        Assert.False(clientSettings.TryGetProperty(OpenIdSettingNames.RedirectUris, out _));
+
+        var secrets = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/acme-prod/clients/{clientId}/secrets"
+        );
+        Assert.Empty(secrets.GetProperty("secrets").EnumerateArray());
+
+        var grant = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/acme-prod/clients/{clientId}/grants/{resourceServerId}"
+        );
+        Assert.Equal(
+            ["read:things"],
+            grant.GetProperty("scopes").EnumerateArray().Select(scope => scope.GetString())
+        );
+    }
+
+    [Fact]
+    public async Task PromoteTenant_WhenPromotedAgain_ReportsEveryChangeUnchanged()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await ArrangePromotionSourceAsync(administrator);
+
+        using var promoteResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod"
+        );
+        await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
+
+        using var againResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod"
+        );
+        var again = await ReadPromotionAsync(againResponse, HttpStatusCode.OK);
+        var actions = again
+            .GetProperty("changes")
+            .EnumerateArray()
+            .Select(change => change.GetProperty("action").GetString())
+            .ToList();
+        Assert.NotEmpty(actions);
+        Assert.All(actions, action => Assert.Equal("unchanged", action));
+    }
+
+    [Fact]
+    public async Task PromoteTenant_WithEnvironmentSettings_WritesTheSuppliedValues()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, _) = await ArrangePromotionSourceAsync(administrator);
+
+        using var promoteResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod",
+            new[]
+            {
+                new
+                {
+                    resourceType = "client",
+                    resourceId = clientId,
+                    settings = new Dictionary<string, object>
+                    {
+                        [OpenIdSettingNames.RedirectUris] = new[] { "https://prod.acme.test/cb" },
+                    },
+                },
+            }
+        );
+        await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
+
+        var clientSettings = (
+            await GetJsonAsync(administrator, $"/api/tenants/acme-prod/clients/{clientId}/settings")
+        ).GetProperty("settings");
+        Assert.Equal(
+            ["https://prod.acme.test/cb"],
+            clientSettings
+                .GetProperty(OpenIdSettingNames.RedirectUris)
+                .EnumerateArray()
+                .Select(uri => uri.GetString())
+        );
+    }
+
+    [Fact]
+    public async Task PromoteTenant_ByATeamOwner_ReturnsForbidden()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await ArrangePromotionSourceAsync(administrator);
+        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+
+        foreach (var route in new[] { "/preview", string.Empty })
+        {
+            using var response = await PostPromotionAsync(
+                owner,
+                "acme",
+                route,
+                "acme-dev",
+                "acme-prod"
+            );
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.True(response.StatusCode == HttpStatusCode.Forbidden, body);
+        }
+    }
+
+    [Fact]
+    public async Task PromoteTenant_ToAnotherTeamsTenant_ReturnsNotFound()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await ArrangePromotionSourceAsync(administrator);
+        await CreateTeamAsync(administrator, "beta", new { });
+        await CreateTenantAsync(administrator, "beta", "beta-prod");
+
+        using var response = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "beta-prod"
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NotFound, body);
+    }
+
+    [Fact]
+    public async Task PromoteTenant_ByATenantAdminOfBoth_WhenALimitChanges_ReturnsForbidden()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await ArrangePromotionSourceAsync(administrator);
+        await PatchAsync(
+            administrator,
+            "/api/tenants/acme-dev/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.RateLimitTenantPerMinute}",
+                    value = 100,
+                },
+            }
+        );
+        using var tenantAdmin = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/admins"
+        );
+        var admins = await GetJsonAsync(administrator, "/api/tenants/acme-dev/admins");
+        var principalId = admins
+            .GetProperty("items")
+            .EnumerateArray()
+            .Select(admin => admin.GetProperty("principalId").GetString())
+            .Single();
+        using var grant = await administrator.PostAsJsonAsync(
+            "/api/tenants/acme-prod/admins",
+            new { principalId }
+        );
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, grantBody);
+
+        foreach (var route in new[] { "/preview", string.Empty })
+        {
+            using var refused = await PostPromotionAsync(
+                tenantAdmin,
+                "acme",
+                route,
+                "acme-dev",
+                "acme-prod"
+            );
+            var refusedBody = await refused.Content.ReadAsStringAsync();
+            Assert.True(refused.StatusCode == HttpStatusCode.Forbidden, refusedBody);
+            Assert.Contains(
+                OpenIdSettingNames.RateLimitTenantPerMinute,
+                refusedBody,
+                StringComparison.Ordinal
+            );
+        }
+
+        using var allowed = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod"
+        );
+        await ReadPromotionAsync(allowed, HttpStatusCode.OK);
+        var settings = (
+            await GetJsonAsync(administrator, "/api/tenants/acme-prod/settings")
+        ).GetProperty("settings");
+        Assert.Equal(
+            100,
+            settings.GetProperty(OpenIdSettingNames.RateLimitTenantPerMinute).GetInt32()
+        );
+    }
+
+    [Fact]
+    public async Task PromoteTenant_LeavesTheHostManagedClientAlone()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var root = await GetJsonAsync(administrator, $"/api/tenants/{RootTenantId}");
+        var teamId = root.GetProperty("teamId").GetString();
+        Assert.NotNull(teamId);
+        await CreateTenantAsync(administrator, teamId, "root-staging");
+
+        using var response = await PostPromotionAsync(
+            administrator,
+            teamId,
+            "/preview",
+            RootTenantId,
+            "root-staging"
+        );
+
+        var preview = await ReadPromotionAsync(response, HttpStatusCode.OK);
+        Assert.True(HasNote(preview, BootstrapClientId, "host_managed"), preview.ToString());
+        Assert.DoesNotContain(
+            preview.GetProperty("changes").EnumerateArray(),
+            change => change.GetProperty("resourceId").GetString() == BootstrapClientId
+        );
+    }
+
+    #endregion
+
+    #region Nested Team Tests
+
+    [Fact]
+    public async Task NestedTeam_ServesItsTenantsUnderItsParentsSettings()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(
+            administrator,
+            "globex",
+            new { id_token_signing_alg_values_supported = new[] { "RS256" } }
+        );
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        Assert.Equal<string>(
+            ["RS256"],
+            await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev")
+        );
+    }
+
+    [Fact]
+    public async Task NestedTeam_PatchingTheParentsSettings_ReachesTheChildsTenantsAtOnce()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        var before = await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev");
+        Assert.Contains("PS256", before);
+
+        await PatchAsync(
+            administrator,
+            "/api/teams/globex/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
+                    value = new[] { "RS256" },
+                },
+            }
+        );
+
+        // No polling: the change is served as soon as the write returns.
+        var after = await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev");
+        Assert.Equal<string>(["RS256"], after);
+    }
+
+    [Fact]
+    public async Task NestedTeam_DisablingTheParent_MakesTheChildsTenantsAnswerNotFound()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        using (var served = await GetDiscoveryAsync(administrator, "globex-web-dev"))
+            Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+
+        await SetTeamDisabledAsync(administrator, "globex", isDisabled: true);
+
+        using (var silenced = await GetDiscoveryAsync(administrator, "globex-web-dev"))
+            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+
+        await SetTeamDisabledAsync(administrator, "globex", isDisabled: false);
+
+        using (var restored = await GetDiscoveryAsync(administrator, "globex-web-dev"))
+            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+    }
+
+    [Fact]
+    public async Task NestedTeam_DeletingAParentWithAChildTeam_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+
+        using var response = await administrator.DeleteAsync("/api/teams/globex");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentTeamAdmin_CreatesAChildTeamAndItsTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var parentAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex",
+            "admins"
+        );
+
+        await CreateChildTeamAsync(parentAdmin, "globex", "globex-web", new { });
+        await CreateTenantAsync(parentAdmin, "globex-web", "globex-web-dev");
+
+        using var served = await GetDiscoveryAsync(administrator, "globex-web-dev");
+        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentTeamAdmin_ChangesAChildTeamsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { max_tenants = 2 });
+        using var parentAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex",
+            "admins"
+        );
+
+        await PatchAsync(
+            parentAdmin,
+            "/api/teams/globex-web/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = $"/{OpenIdSettingNames.MaxTenants}",
+                    value = 5,
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task NestedTeam_ChildTeamAdmin_CannotChangeItsTeamsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { max_tenants = 2 });
+        using var childAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex-web",
+            "admins"
+        );
+
+        using var replaced = await SendPatchAsync(
+            childAdmin,
+            "/api/teams/globex-web/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = $"/{OpenIdSettingNames.MaxTenants}",
+                    value = 5,
+                },
+            }
+        );
+
+        var body = await replaced.Content.ReadAsStringAsync();
+        Assert.True(replaced.StatusCode == HttpStatusCode.Forbidden, body);
+        Assert.Contains(OpenIdSettingNames.MaxTenants, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_CreatingATenantWhenTheParentIsFull_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { max_tenants = 1 });
+        await CreateTenantAsync(administrator, "globex", "globex-main");
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+
+        using var response = await PostTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_BeneathThePlatformsOwnTeam_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await PostChildTeamAsync(
+            administrator,
+            HostApplicationFactory.TeamId,
+            "under-platform",
+            new { }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_Stranger_GetsForbiddenOnEveryChildTeamRouteForAnUnknownTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var stranger = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        foreach (var teamId in new[] { "nope", "globex" })
+        {
+            using var create = await PostChildTeamAsync(stranger, teamId, "stray", new { });
+            var createBody = await create.Content.ReadAsStringAsync();
+            Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
+
+            await AssertGetStatusAsync(
+                stranger,
+                $"/api/teams/{teamId}/teams",
+                HttpStatusCode.Forbidden
+            );
+            await AssertGetStatusAsync(
+                stranger,
+                $"/api/teams/{teamId}/usage",
+                HttpStatusCode.Forbidden
+            );
+        }
+    }
+
+    [Fact]
+    public async Task NestedTeam_ChildTeamAdmin_GetsForbiddenForItsParentAndSiblings()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-api", new { });
+        using var childAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex-web",
+            "admins"
+        );
+
+        await AssertGetStatusAsync(childAdmin, "/api/teams/globex", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(childAdmin, "/api/teams/globex-api", HttpStatusCode.Forbidden);
+
+        using var create = await PostChildTeamAsync(childAdmin, "globex", "stray", new { });
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
+
+        await AssertGetStatusAsync(childAdmin, "/api/teams/globex-web", HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task NestedTeam_ChildTeamAdmin_CannotDisableOrDeleteItsOwnTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        using var childAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex-web",
+            "admins"
+        );
+
+        using var disabled = await SendPatchAsync(
+            childAdmin,
+            "/api/teams/globex-web",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/isDisabled",
+                    value = true,
+                },
+            }
+        );
+        var disabledBody = await disabled.Content.ReadAsStringAsync();
+        Assert.True(disabled.StatusCode == HttpStatusCode.Forbidden, disabledBody);
+
+        using var deleted = await childAdmin.DeleteAsync("/api/teams/globex-web");
+        var deletedBody = await deleted.Content.ReadAsStringAsync();
+        Assert.True(deleted.StatusCode == HttpStatusCode.Forbidden, deletedBody);
+
+        var team = await GetJsonAsync(administrator, "/api/teams/globex-web");
+        Assert.False(team.GetProperty("isDisabled").GetBoolean(), team.ToString());
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentTeamAdmin_DisablesRestoresAndDeletesAChildTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        using var parentAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex",
+            "admins"
+        );
+
+        // SetTeamDisabledAsync asserts 204 No Content.
+        await SetTeamDisabledAsync(parentAdmin, "globex-web", isDisabled: true);
+        await SetTeamDisabledAsync(parentAdmin, "globex-web", isDisabled: false);
+
+        using var deleted = await parentAdmin.DeleteAsync("/api/teams/globex-web");
+        var deletedBody = await deleted.Content.ReadAsStringAsync();
+        Assert.True(deleted.StatusCode == HttpStatusCode.NoContent, deletedBody);
+    }
+
+    [Fact]
+    public async Task NestedTeam_Administrator_GetsNotFoundForAnUnknownParent()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await PostChildTeamAsync(administrator, "nope", "stray", new { });
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NotFound, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentUsage_ListsTheChildTeamsTenantsWithTheirTeam()
+    {
+        using var host = CreateFactory();
+        using var recordingHost = host.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services =>
+                services.Configure<TenantUsageOptions>(options =>
+                    options.FlushInterval = TimeSpan.FromMilliseconds(50)
+                )
+            )
+        );
+        using var administrator = await CreateAdministratorClientAsync(host);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        var client = recordingHost.CreateClient();
+        for (var i = 0; i < 2; ++i)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+            {
+                Content = new FormUrlEncodedContent(
+                    new Dictionary<string, string>
+                    {
+                        ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
+                    }
+                ),
+            };
+            request.Headers.Host = "globex-web-dev.auth.test";
+            using var response = await client.SendAsync(request);
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, response.StatusCode);
+        }
+
+        // The ledger is written by the periodic flush, so poll until the tenant's count arrives.
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        JsonElement usage;
+        while (true)
+        {
+            using var response = await administrator.GetAsync("/api/teams/globex/usage");
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+            usage = JsonElement.Parse(body);
+            if (GetCount(usage, "globex-web-dev") >= 2 || DateTime.UtcNow > deadline)
+                break;
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+
+        Assert.Equal("globex", usage.GetProperty("teamId").GetString());
+        Assert.True(GetCount(usage, "globex-web-dev") >= 2, usage.ToString());
+        Assert.All(
+            usage
+                .GetProperty("entries")
+                .EnumerateArray()
+                .Where(entry => entry.GetProperty("tenantId").GetString() == "globex-web-dev"),
+            entry => Assert.Equal("globex-web", entry.GetProperty("teamId").GetString())
+        );
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentTeamAdmin_PromotesBetweenAChildTeamsTenants()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-prod");
+        using var parentAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex",
+            "admins"
+        );
+
+        using var response = await PostPromotionAsync(
+            parentAdmin,
+            "globex-web",
+            "/preview",
+            "globex-web-dev",
+            "globex-web-prod"
+        );
+
+        await ReadPromotionAsync(response, HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task NestedTeam_PromotingAChildTeamsTenantsThroughItsParent_ReturnsNotFound()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-prod");
+
+        using var response = await PostPromotionAsync(
+            administrator,
+            "globex",
+            "/preview",
+            "globex-web-dev",
+            "globex-web-prod"
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NotFound, body);
     }
 
     #endregion

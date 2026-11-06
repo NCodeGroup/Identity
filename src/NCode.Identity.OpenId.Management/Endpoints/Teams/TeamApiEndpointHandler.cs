@@ -18,8 +18,8 @@ using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
-using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Logging;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -40,6 +40,9 @@ GET    api/teams
 GET    api/teams/{teamId}
 PATCH  api/teams/{teamId}
 DELETE api/teams/{teamId}
+
+POST api/teams/{teamId}/teams
+GET  api/teams/{teamId}/teams
 
 GET   api/teams/{teamId}/settings
 PATCH api/teams/{teamId}/settings
@@ -71,15 +74,12 @@ internal class TeamApiEndpointHandler(
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator,
-    ITenantClientCoherenceChecker tenantClientCoherenceChecker,
+    ITeamClientCoherenceChecker teamClientCoherenceChecker,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<TeamApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
-    // The number of tenants read per page when a settings write is checked against the team's tenants' clients.
-    private const int TenantPageSize = 100;
-
     /// <summary>
     /// Gets the most days one read of a team's usage spans: a year of the ledger's retention.
     /// </summary>
@@ -102,8 +102,8 @@ internal class TeamApiEndpointHandler(
         effectiveSettingsResolver;
 
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
-    private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
-        tenantClientCoherenceChecker;
+    private ITeamClientCoherenceChecker TeamClientCoherenceChecker { get; } =
+        teamClientCoherenceChecker;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
     /// <inheritdoc />
@@ -128,8 +128,26 @@ internal class TeamApiEndpointHandler(
             .ProducesValidationProblem();
         teams.MapGet("", ListTeamsAsync).Produces<CollectionResource<TeamResource>>();
         teams.MapGet("/{teamId}", GetTeamAsync).Produces<TeamResource>();
-        teams.MapPatch("/{teamId}", UpdateTeamAsync).Produces(StatusCodes.Status204NoContent);
-        teams.MapDelete("/{teamId}", DeleteTeamAsync).Produces(StatusCodes.Status204NoContent);
+        teams
+            .MapPatch("/{teamId}", UpdateTeamAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden);
+        teams
+            .MapDelete("/{teamId}", DeleteTeamAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status409Conflict);
+
+        teams
+            .MapPost("/{teamId}/teams", CreateChildTeamAsync)
+            .Produces<TeamResource>(StatusCodes.Status201Created)
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict);
+        teams
+            .MapGet("/{teamId}/teams", ListChildTeamsAsync)
+            .Produces<CollectionResource<TeamResource>>();
 
         teams.MapGet("/{teamId}/settings", GetSettingsAsync).Produces<TeamSettingsResource>();
         teams
@@ -142,7 +160,9 @@ internal class TeamApiEndpointHandler(
         teams
             .MapGet("/{teamId}/usage", GetUsageAsync)
             .Produces<TeamUsageResource>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
 
         teams
             .MapGet("/{teamId}/owners", ListOwnersAsync)
@@ -152,7 +172,8 @@ internal class TeamApiEndpointHandler(
             .Produces<OwnerResource>(StatusCodes.Status201Created);
         teams
             .MapDelete("/{teamId}/owners/{principalId}", RemoveOwnerAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status409Conflict);
 
         teams
             .MapGet("/{teamId}/admins", ListAdminsAsync)
@@ -164,18 +185,6 @@ internal class TeamApiEndpointHandler(
             .MapDelete("/{teamId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
     }
-
-    // The platform's authority node, addressed from the control-plane tenant the request runs under.
-    private static ResourceNode GetPlatformNode(HttpContext httpContext) =>
-        ResourceNode.For(
-            GetControlPlaneTenantId(httpContext),
-            ResourceNodeTypes.Platform,
-            OpenIdConstants.PlatformResourceId
-        );
-
-    // The team's authority node, addressed from the control-plane tenant the request runs under.
-    private static ResourceNode GetTeamNode(HttpContext httpContext, string teamId) =>
-        ResourceNode.For(GetControlPlaneTenantId(httpContext), ResourceNodeTypes.Team, teamId);
 
     private static string GetControlPlaneTenantId(HttpContext httpContext) =>
         httpContext.GetOpenIdContext().Tenant.TenantId;
@@ -192,6 +201,7 @@ internal class TeamApiEndpointHandler(
             ConcurrencyToken = team.ConcurrencyToken,
             DisplayName = team.DisplayName,
             IsDisabled = team.IsDisabled,
+            ParentTeamId = team.ParentTeamId,
         };
 
     /// <summary>
@@ -241,10 +251,48 @@ internal class TeamApiEndpointHandler(
         HttpContext httpContext,
         [FromBody] CreateTeamRequest request,
         CancellationToken cancellationToken
+    ) => await CreateTeamCoreAsync(httpContext, parentTeamId: null, request, cancellationToken);
+
+    /// <summary>
+    /// Creates a team directly beneath a parent team. The caller becomes its owner and administrator.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the parent team.</param>
+    /// <param name="request">The <see cref="CreateTeamRequest"/> describing the team to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The created team.</response>
+    /// <response code="403">The caller lacks <c>Create</c> at the parent team.</response>
+    /// <response code="404">The parent team does not exist.</response>
+    /// <response code="409">The parent is the platform's own team, the team would be nested too deep, or a team above it holds its maximum number of teams.</response>
+    // See ADR-1424 and ADR-1426.
+    [EndpointName("api/teams/teams/create")]
+    internal virtual async ValueTask<IResult> CreateChildTeamAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromBody] CreateTeamRequest request,
+        CancellationToken cancellationToken
+    ) => await CreateTeamCoreAsync(httpContext, teamId, request, cancellationToken);
+
+    private async ValueTask<IResult> CreateTeamCoreAsync(
+        HttpContext httpContext,
+        string? parentTeamId,
+        CreateTeamRequest request,
+        CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
         var controlPlaneTenantId = openIdContext.Tenant.TenantId;
+
+        var authorizationError = await TeamValidator.AuthorizeCreateAsync(
+            httpContext.User,
+            controlPlaneTenantId,
+            parentTeamId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
@@ -255,6 +303,7 @@ internal class TeamApiEndpointHandler(
             TeamId = teamId,
             ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
+            ParentTeamId = parentTeamId,
             DisplayName = request.DisplayName,
             Settings = new PersistedTeamSettings
             {
@@ -264,13 +313,7 @@ internal class TeamApiEndpointHandler(
             },
         };
 
-        var error = await TeamValidator.ValidateCreateAsync(
-            httpContext.User,
-            controlPlaneTenantId,
-            team,
-            storeManager,
-            cancellationToken
-        );
+        var error = await TeamValidator.ValidateCreateAsync(team, storeManager, cancellationToken);
         if (error is not null)
         {
             return ToErrorResult(error);
@@ -286,6 +329,15 @@ internal class TeamApiEndpointHandler(
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
+        }
+
+        if (parentTeamId is not null)
+        {
+            var limitError = await CheckTeamLimitsAsync(store, parentTeamId, cancellationToken);
+            if (limitError is not null)
+            {
+                return ToErrorResult(limitError);
+            }
         }
 
         await store.AddAsync(team, cancellationToken);
@@ -380,6 +432,49 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
+    /// Lists the teams directly beneath a team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the parent team.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of teams to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">A page of the teams directly beneath the team; an empty page for a team that has none.</response>
+    // See ADR-1424 and ADR-1426.
+    [EndpointName("api/teams/teams/list")]
+    internal virtual async ValueTask<IResult> ListChildTeamsAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var effectiveLimit = NormalizeLimit(limit);
+        var teamNode = GetTeamNode(httpContext, teamId);
+
+        // Listing a team's child teams is authority at the team: the caller is authorized at the team node before the
+        // store is read.
+        return await ProcessListAsync(
+            httpContext,
+            teamNode,
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<ITeamStore>();
+                return await store.GetChildPageAsync(
+                    teamId,
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
+                    cancellationToken
+                );
+            },
+            ToTeamResource
+        );
+    }
+
+    /// <summary>
     /// Gets a team.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
@@ -393,17 +488,18 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITeamStore>();
-
-        var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
-
         return await ProcessGetAsync(
             httpContext,
-            team,
             GetTeamNode(httpContext, teamId),
             Operations.Read,
-            ToTeamResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITeamStore>();
+                return await store.GetOrDefaultAsync(teamId, token);
+            },
+            ToTeamResource,
+            cancellationToken
         );
     }
 
@@ -416,6 +512,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team was updated.</response>
+    /// <response code="403">The caller lacks authority at the team, or at the node above it.</response>
     [EndpointName("api/teams/update")]
     internal virtual async ValueTask<IResult> UpdateTeamAsync(
         HttpContext httpContext,
@@ -425,6 +522,17 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await TeamValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            GetControlPlaneTenantId(httpContext),
+            teamId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
 
@@ -498,7 +606,8 @@ internal class TeamApiEndpointHandler(
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team was deleted.</response>
-    /// <response code="409">The team is the platform's own team or still has tenants, and cannot be deleted.</response>
+    /// <response code="403">The caller lacks authority at the team, or at the node above it.</response>
+    /// <response code="409">The team is the platform's own team or still has tenants or teams, and cannot be deleted.</response>
     [EndpointName("api/teams/delete")]
     internal virtual async ValueTask<IResult> DeleteTeamAsync(
         HttpContext httpContext,
@@ -506,6 +615,17 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await TeamValidator.AuthorizeDeleteAsync(
+            httpContext.User,
+            GetControlPlaneTenantId(httpContext),
+            teamId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
 
@@ -564,22 +684,24 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITeamStore>();
-
-        var teamSettings = await store.GetSettingsOrDefaultAsync(teamId, cancellationToken);
-
         return await ProcessGetAsync(
             httpContext,
-            teamSettings,
             GetTeamNode(httpContext, teamId),
             Operations.Read,
-            ToTeamSettingsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITeamStore>();
+                return await store.GetSettingsOrDefaultAsync(teamId, token);
+            },
+            ToTeamSettingsResource,
+            cancellationToken
         );
     }
 
     /// <summary>
-    /// Gets a team's effective (resolved) settings: the platform's settings with the team's document merged onto them.
+    /// Gets a team's effective (resolved) settings: the platform's settings, then each team's above it, with the team's
+    /// document merged onto them.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="teamId">The identifier of the team.</param>
@@ -592,23 +714,20 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITeamStore>();
-
-        var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
-        if (team is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
         // See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            team.Settings.Value,
             GetTeamNode(httpContext, teamId),
             Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<ITeamStore>();
+                var team = await store.GetOrDefaultAsync(teamId, token);
+                return team?.TeamId;
+            },
             async (_, token) =>
             {
                 var effectiveSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
@@ -639,24 +758,27 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTeamNode(httpContext, teamId),
+            Operations.Update,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
 
-        var teamSettings = await store.GetSettingsOrDefaultAsync(teamId, cancellationToken);
-        if (teamSettings is null)
+        var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
+        if (team is null)
         {
             return TypedResults.NotFound();
         }
 
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTeamNode(httpContext, teamId),
-            Operations.Update
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
+        var teamSettings = team.Settings;
 
         if (
             !string.IsNullOrEmpty(ifMatch)
@@ -694,7 +816,12 @@ internal class TeamApiEndpointHandler(
         }
 
         var changedLimits = SettingSerializer.GetChangedLimits(teamSettings.Value, settingsValue);
-        var authorityAbove = GetPlatformNode(httpContext);
+        // A limit in a team's document is set by the authority over its parent team, or over the platform for a
+        // top-level team (ADR-1418, ADR-1426).
+        var authorityAbove = TeamNodes.GetNodeAbove(
+            GetControlPlaneTenantId(httpContext),
+            team.ParentTeamId
+        );
         var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
             httpContext,
             changedLimits,
@@ -706,19 +833,20 @@ internal class TeamApiEndpointHandler(
             return limitRefusal;
         }
 
-        // The platform is resolved outside the replaced document's catch, so a platform document that cannot be honored
-        // fails the write naming the platform (ADR-1245).
-        var platformSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        // The parent's settings are resolved outside the replaced document's catch, so a document above the team that
+        // cannot be honored fails the write naming its owner (ADR-1245).
+        var parentSettings = await EffectiveSettingsResolver.ResolveTeamParentAsync(
+            teamId,
             cancellationToken
         );
         var newTeamSettings = EffectiveSettingsResolver.Resolve(
-            platformSettings,
+            parentSettings,
             OpenIdSettingScopes.Team,
             settingsValue
         );
         var currentTeamSettings = ResolveReplacedTeamSettingsOrDefault(
             teamId,
-            platformSettings,
+            parentSettings,
             teamSettings.Value
         );
 
@@ -767,25 +895,25 @@ internal class TeamApiEndpointHandler(
 
     /// <summary>
     /// Resolves the effective settings of the team's committed settings document, which a settings write replaces, onto
-    /// the platform's effective settings that the caller resolved. When the document cannot be honored by the settings
-    /// vocabulary, nothing was coherent under it, so no client is checked and the write may replace it with a document
-    /// that can be honored.
+    /// the effective settings of the team's parent that the caller resolved. When the document cannot be honored by the
+    /// settings vocabulary, nothing was coherent under it, so no client is checked and the write may replace it with a
+    /// document that can be honored.
     /// </summary>
     /// <param name="teamId">The identifier of the team.</param>
-    /// <param name="platformSettings">The platform's effective settings, which are the team's parent settings.</param>
+    /// <param name="parentSettings">The effective settings of the team's parent team, or of the platform for a top-level team.</param>
     /// <param name="replacedSettings">The team's committed settings document.</param>
     /// <returns>The team's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
     // See ADR-1241.
     private IReadOnlySettingCollection? ResolveReplacedTeamSettingsOrDefault(
         string teamId,
-        IReadOnlySettingCollection platformSettings,
+        IReadOnlySettingCollection parentSettings,
         JsonElement replacedSettings
     )
     {
         try
         {
             return EffectiveSettingsResolver.Resolve(
-                platformSettings,
+                parentSettings,
                 OpenIdSettingScopes.Team,
                 replacedSettings
             );
@@ -798,13 +926,10 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
-    /// Verifies that replacing the team's settings document leaves every value each client of each of the team's tenants
-    /// registers permitted by every client coherence rule (<see cref="ITenantClientCoherenceChecker"/>). The current and
-    /// new team settings are each resolved through the <see cref="IEffectiveSettingsResolver"/>, and each tenant's
-    /// document is resolved onto both. Only the team's tenants are read, as an untracked, secret-free projection
-    /// (<see cref="ITenantStore.GetSettingsPageAsync(string, PageRequest, CancellationToken)"/>). A tenant whose
-    /// settings document cannot be honored is logged and skipped, because none of its clients is coherent under either
-    /// settings.
+    /// Verifies that replacing the team's settings document leaves every value each client registers permitted by every
+    /// client coherence rule, in every tenant of the team and of every team beneath it, through the
+    /// <see cref="ITeamClientCoherenceChecker"/>. The current and new team settings are each resolved through the
+    /// <see cref="IEffectiveSettingsResolver"/>.
     /// </summary>
     /// <param name="teamId">The identifier of the team whose settings change.</param>
     /// <param name="currentTeamSettings">The team's effective settings with its current settings document.</param>
@@ -822,62 +947,19 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        List<SettingError> errors = [];
-        var tenantStore = storeManager.GetStore<ITenantStore>();
-
-        var page = new PageRequest { Limit = TenantPageSize };
-        do
-        {
-            var result = await tenantStore.GetSettingsPageAsync(teamId, page, cancellationToken);
-            foreach (var tenantSettings in result.Items)
-            {
-                IReadOnlySettingCollection currentTenantSettings;
-                IReadOnlySettingCollection newTenantSettings;
-                try
-                {
-                    currentTenantSettings = EffectiveSettingsResolver.Resolve(
-                        currentTeamSettings,
-                        OpenIdSettingScopes.Tenant,
-                        tenantSettings.Value
-                    );
-                    newTenantSettings = EffectiveSettingsResolver.Resolve(
-                        newTeamSettings,
-                        OpenIdSettingScopes.Tenant,
-                        tenantSettings.Value
-                    );
-                }
-                catch (JsonException exception)
-                {
-                    Logger.TenantSettingsUnreadable(tenantSettings.TenantId, exception.Message);
-                    continue;
-                }
-
-                var findings = await TenantClientCoherenceChecker.FindIntroducedViolationsAsync(
-                    storeManager,
-                    tenantSettings.TenantId,
-                    currentTenantSettings,
-                    newTenantSettings,
-                    cancellationToken
-                );
-
-                errors.AddRange(
-                    findings.Select(finding => new SettingError(
-                        finding.Violation.GoverningSettingName,
-                        $"The change would make the client '{finding.ClientId}' of tenant '{tenantSettings.TenantId}' incoherent: {finding.Violation.Description}"
-                    ))
-                );
-            }
-
-            page = page with { Cursor = result.NextCursor };
-        } while (page.Cursor is not null);
-
-        return errors;
+        return await TeamClientCoherenceChecker.FindIntroducedViolationsAsync(
+            storeManager,
+            teamId,
+            currentTeamSettings,
+            newTeamSettings,
+            cancellationToken
+        );
     }
 
     /// <summary>
-    /// Gets a team's usage from the durable daily ledger: the count of each meter of each of the team's tenants on each UTC
-    /// calendar day of a range, which the platform bills a plan by and reports to the customer. The ledger keeps a
-    /// deleted tenant's usage, so it can still be read.
+    /// Gets a team's usage from the durable daily ledger: the count of each meter of each tenant of the team and of every
+    /// team beneath it on each UTC calendar day of a range, which the platform bills a plan by and reports to the
+    /// customer. The ledger keeps the usage of deleted tenants and teams, so it can still be read.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="teamId">The identifier of the team.</param>
@@ -887,7 +969,9 @@ internal class TeamApiEndpointHandler(
     /// <response code="200">The team's usage on the range.</response>
     /// <response code="400">The range is reversed, longer than <see cref="MaxUsageDays"/> days, or would start before the
     /// first representable day.</response>
-    // See ADR-1199.
+    /// <response code="403">The caller lacks <c>Read</c> at the team, for any team identifier.</response>
+    /// <response code="404">The team does not exist.</response>
+    // See ADR-1199, ADR-1424 and ADR-1426.
     [EndpointName("api/teams/usage/get")]
     internal virtual async ValueTask<IResult> GetUsageAsync(
         HttpContext httpContext,
@@ -897,14 +981,16 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTeamNode(httpContext, teamId),
-            Operations.Read
+        var teamNode = GetTeamNode(httpContext, teamId);
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            teamNode,
+            Operations.Read,
+            cancellationToken
         );
-        if (!authorizationResult.Succeeded)
+        if (authorizationFailure is not null)
         {
-            return AuthorizationFailed(httpContext);
+            return authorizationFailure;
         }
 
         var lastDay = to ?? DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime);
@@ -937,8 +1023,16 @@ internal class TeamApiEndpointHandler(
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var teamStore = storeManager.GetStore<ITeamStore>();
+        var team = await teamStore.GetOrDefaultAsync(teamId, cancellationToken);
+        if (team is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var teamPath = TeamPaths.Format([.. team.AncestorTeamIds, team.TeamId]);
         var store = storeManager.GetStore<ITenantUsageStore>();
-        var usage = await store.ListByTeamAsync(teamId, firstDay, lastDay, cancellationToken);
+        var usage = await store.ListByTeamAsync(teamPath, firstDay, lastDay, cancellationToken);
 
         return TypedResults.Ok(
             new TeamUsageResource
@@ -949,6 +1043,7 @@ internal class TeamApiEndpointHandler(
                 Entries = usage
                     .Select(entry => new TeamUsageEntry
                     {
+                        TeamId = TeamPaths.Parse(entry.TeamPath)[^1],
                         TenantId = entry.TenantId,
                         Day = entry.Day,
                         Meter = entry.Meter,
@@ -1174,6 +1269,60 @@ internal class TeamApiEndpointHandler(
             new TeamChangedCommand(teamId, settingsChanged),
             cancellationToken
         );
+    }
+
+    // Checks the limits a child team's creation is held to: the platform's 'max_team_depth' bounds how deep the child
+    // sits, and every team above it holds at most its 'max_teams' teams beneath it (ADR-1426). Unset 'max_teams'
+    // means unlimited, and an unset depth falls back to the hard bound.
+    private async ValueTask<ManagementError?> CheckTeamLimitsAsync(
+        ITeamStore store,
+        string parentTeamId,
+        CancellationToken cancellationToken
+    )
+    {
+        var lineage = await store.GetLineageAsync(parentTeamId, cancellationToken);
+
+        var platformSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            cancellationToken
+        );
+        var maxDepth = platformSettings.TryGetValue(
+            OpenIdSettingKeys.MaxTeamDepth,
+            out var configuredDepth
+        )
+            ? configuredDepth
+            : TeamPaths.MaxDepth;
+        if (lineage.Count + 1 > maxDepth)
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status409Conflict,
+                Detail = $"A team can be nested at most {maxDepth} levels deep.",
+            };
+        }
+
+        var settings = platformSettings;
+        foreach (var ancestor in lineage)
+        {
+            settings = EffectiveSettingsResolver.ResolveStored(
+                settings,
+                OpenIdSettingScopes.Team,
+                ancestor.TeamId,
+                ancestor.Settings.Value
+            );
+            if (
+                settings.TryGetValue(OpenIdSettingKeys.MaxTeams, out var maxTeams)
+                && await store.CountDescendantsAsync(ancestor.TeamId, cancellationToken) >= maxTeams
+            )
+            {
+                return new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = $"The team '{ancestor.TeamId}' holds its maximum of {maxTeams} teams.",
+                };
+            }
+        }
+
+        return null;
     }
 
     private async ValueTask<PersistedTeam> ReloadTeamAsync(

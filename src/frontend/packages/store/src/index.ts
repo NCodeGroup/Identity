@@ -31,6 +31,8 @@ export {
   useCreateTenantMutation,
   useUpdateTenantMutation,
   useDeleteTenantMutation,
+  usePreviewTenantPromotionMutation,
+  usePromoteTenantMutation,
   useCreateClientMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,
@@ -58,4 +60,6 @@ export {
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
   useUpdateSettingsMutation,
+  useListChildTeamsQuery,
+  useCreateChildTeamMutation,
 } from './managementApi.js';

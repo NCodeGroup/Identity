@@ -105,12 +105,78 @@ export type TenantAddressResource = {
   readonly failures: readonly TenantAddressFailure[];
 };
 
+/**
+ * Mirror of `TenantPromotionEnvironmentSettings`: the environment-bound setting values for a resource a promotion
+ * writes, addressed by its id in the target tenant.
+ */
+export type TenantPromotionEnvironmentSettings = {
+  readonly resourceType: string;
+  readonly resourceId: string;
+  readonly settings: Readonly<Record<string, unknown>>;
+};
+
+/**
+ * Mirror of `PromoteTenantRequest`: the configuration of one tenant of a team promoted into another tenant of the
+ * same team. `environmentSettings` supplies values that belong to the target's environment.
+ */
+export type PromoteTenantRequest = {
+  readonly sourceTenantId: string;
+  readonly targetTenantId: string;
+  readonly environmentSettings: readonly TenantPromotionEnvironmentSettings[];
+};
+
+/**
+ * Mirror of `TenantPromotionChangeResource`: one resource a promotion creates, updates or leaves unchanged. `action`
+ * is one of `created`, `updated` or `unchanged`.
+ */
+export type TenantPromotionChange = {
+  readonly resourceType: string;
+  readonly resourceId: string;
+  readonly action: string;
+};
+
+/**
+ * Mirror of `TenantPromotionNoteResource`: something to know about a promoted resource, such as a credential the
+ * target must be given (`credential_required`), an environment-bound setting left unset
+ * (`environment_setting_unset`) or a host-managed client the promotion leaves alone (`host_managed`).
+ */
+export type TenantPromotionNote = {
+  readonly resourceType: string;
+  readonly resourceId: string;
+  readonly code: string;
+  readonly detail: string;
+  readonly settingName?: string | null;
+};
+
+/** Mirror of `TenantPromotionErrorResource`: a reason the promotion cannot be applied. */
+export type TenantPromotionError = {
+  readonly resourceType: string;
+  readonly detail: string;
+  readonly resourceId?: string | null;
+};
+
+/**
+ * Mirror of `TenantPromotionResource`: the report of a promotion preview (`isApplied` is `false`) or of an applied
+ * promotion (`isApplied` is `true`).
+ */
+export type TenantPromotionResource = {
+  readonly teamId: string;
+  readonly sourceTenantId: string;
+  readonly targetTenantId: string;
+  readonly isApplied: boolean;
+  readonly changes: readonly TenantPromotionChange[];
+  readonly notes: readonly TenantPromotionNote[];
+  readonly errors: readonly TenantPromotionError[];
+};
+
 /** Mirror of `TeamResource`: a team groups tenants under one administrative boundary. */
 export type TeamResource = {
   readonly teamId: string;
   readonly concurrencyToken: string;
   readonly displayName: string;
   readonly isDisabled: boolean;
+  /** The team directly above, or null for a top-level team; it never changes. */
+  readonly parentTeamId?: string | null;
 };
 
 /** Mirror of `RoleAssignmentResource`: one role a principal holds at one node of the resource tree. */
@@ -480,6 +546,7 @@ export type TenantUsageResource = {
  * vocabulary, e.g. `requests` or `token_requests`) on a UTC calendar `day` (`YYYY-MM-DD` on the wire).
  */
 export type TeamUsageEntry = {
+  readonly teamId: string;
   readonly tenantId: string;
   readonly day: string;
   readonly meter: string;

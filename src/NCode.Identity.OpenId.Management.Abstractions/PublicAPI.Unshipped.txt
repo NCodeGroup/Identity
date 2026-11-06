@@ -615,9 +615,12 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.Algorithm
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ExpiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.Secrets.ImportSecretRequest.ExpiresWhen.init -> void
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
-NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.AuthorizeCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.AuthorizeDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.AuthorizeUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateCreateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateDeleteAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateUpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.ManagementError
 NCode.Identity.OpenId.Management.ManagementError.Detail.get -> string!
 NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void
@@ -652,11 +655,10 @@ static NCode.Identity.OpenId.Management.Operations.List.get -> Microsoft.AspNetC
 static NCode.Identity.OpenId.Management.Operations.Read.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Update.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.AuthorizationFailed(Microsoft.AspNetCore.Http.HttpContext! httpContext) -> Microsoft.AspNetCore.Http.IResult!
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.GetAuthorizationFailureAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, object! authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult?>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.NormalizeLimit(int? limit) -> int
-virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, TResponse>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
-virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, object? authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, TResponse>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
-virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, object? authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<TValue, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResponse>>! mapperAsync, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
-virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue>(Microsoft.AspNetCore.Http.HttpContext! httpContext, TValue? valueOrNull, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, object! authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TValue?>>! readAsync, System.Func<TValue, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResponse>>! mapperAsync, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
+virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessGetAsync<TValue, TResponse>(Microsoft.AspNetCore.Http.HttpContext! httpContext, object! authorizationResource, Microsoft.AspNetCore.Authorization.IAuthorizationRequirement! authorizationRequirement, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TValue?>>! readAsync, System.Func<TValue, TResponse>! mapper, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ProcessListAsync<TItem, TResource>(Microsoft.AspNetCore.Http.HttpContext! httpContext, object! authorizationResource, System.Func<System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<TItem>!>>! fetchPageAsync, System.Func<TItem, TResource>! mapper) -> System.Threading.Tasks.ValueTask<Microsoft.AspNetCore.Http.IResult!>
 virtual NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ToErrorResult(NCode.Identity.OpenId.Management.ManagementError! error) -> Microsoft.AspNetCore.Http.IResult!
 NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.Issuer.get -> string?
@@ -772,6 +774,8 @@ NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.DisplayName.get ->
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.DisplayName.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.ParentTeamId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.ParentTeamId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.TeamResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest
 NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.TeamId.get -> string!
@@ -804,6 +808,8 @@ NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.S
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.TeamEffectiveSettingsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TeamId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.Day.get -> System.DateOnly
@@ -832,7 +838,10 @@ override NCode.Identity.OpenId.Management.Auditing.TeamChangedAuditEvent.Resourc
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Team = "team" -> string!
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTeamChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! teamId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator
-NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.AuthorizeCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, string? parentTeamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.AuthorizeDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.AuthorizeUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateCreateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.ValidateUpdateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam! team, NCode.Identity.OpenId.Management.Contracts.Teams.UpdateTeamRequest! model, string? ifMatch, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreateSecretRequest.ActivatesWhen.get -> System.DateTimeOffset?
@@ -948,3 +957,124 @@ NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeysResource.RootKeyAccessBinding.init -> void
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyAccessIdentity.get -> string?
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.RootKeyAccessIdentity.init -> void
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.ClientGrant = "client_grant" -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.PromoteTenantRequest
+NCode.Identity.OpenId.Management.Contracts.Teams.PromoteTenantRequest.PromoteTenantRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.PromoteTenantRequest.SourceTenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.PromoteTenantRequest.SourceTenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.PromoteTenantRequest.TargetTenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.PromoteTenantRequest.TargetTenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.PromoteTenantRequest.EnvironmentSettings.get -> System.Collections.Generic.List<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings!>!
+NCode.Identity.OpenId.Management.Contracts.Teams.PromoteTenantRequest.EnvironmentSettings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings.TenantPromotionEnvironmentSettings() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings.ResourceType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings.ResourceType.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings.ResourceId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings.ResourceId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings.Settings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings.Settings.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.TenantPromotionResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.TeamId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.SourceTenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.SourceTenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.TargetTenantId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.TargetTenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.IsApplied.get -> bool
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.IsApplied.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.Changes.get -> System.Collections.Generic.List<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource!>!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.Changes.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.Notes.get -> System.Collections.Generic.List<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource!>!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.Notes.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.Errors.get -> System.Collections.Generic.List<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource!>!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionResource.Errors.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource.TenantPromotionChangeResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource.ResourceType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource.ResourceType.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource.ResourceId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource.ResourceId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource.Action.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource.Action.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.TenantPromotionNoteResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.ResourceType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.ResourceType.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.ResourceId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.ResourceId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.Code.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.Code.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.Detail.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.Detail.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.SettingName.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource.SettingName.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource.TenantPromotionErrorResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource.ResourceType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource.ResourceType.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource.Detail.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource.Detail.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource.ResourceId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource.ResourceId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionActions
+const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionActions.Created = "created" -> string!
+const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionActions.Updated = "updated" -> string!
+const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionActions.Unchanged = "unchanged" -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteCodes
+const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteCodes.CredentialRequired = "credential_required" -> string!
+const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteCodes.EnvironmentSettingUnset = "environment_setting_unset" -> string!
+const NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteCodes.HostManaged = "host_managed" -> string!
+NCode.Identity.OpenId.Management.Promotions.ITenantPromotionContributor
+NCode.Identity.OpenId.Management.Promotions.ITenantPromotionContributor.Order.get -> int
+NCode.Identity.OpenId.Management.Promotions.ITenantPromotionContributor.PlanAsync(NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Promotions.ITenantPromotionContributor.ApplyAsync(NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders
+const NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders.TenantSettings = 100 -> int
+const NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders.ResourceServers = 200 -> int
+const NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders.Clients = 300 -> int
+const NCode.Identity.OpenId.Management.Promotions.TenantPromotionOrders.ClientGrants = 400 -> int
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.TenantPromotionLimitChange() -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.AuthorityAbove.get -> NCode.Identity.OpenId.Persistence.ISupportTenantId!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.AuthorityAbove.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.SettingNames.get -> System.Collections.Generic.List<string!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange.SettingNames.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TenantPromotionContext() -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.SourceTenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.SourceTenant.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenant.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenant.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TeamNode.get -> NCode.Identity.OpenId.Persistence.ISupportTenantId!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TeamNode.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenantNode.get -> NCode.Identity.OpenId.Persistence.ISupportTenantId!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenantNode.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.StoreManager.get -> NCode.Persistence.Stores.IStoreManager!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.StoreManager.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AmbientTenantAccessor.get -> NCode.Identity.OpenId.Persistence.Tenants.IAmbientTenantAccessor!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AmbientTenantAccessor.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.JsonSerializerOptions.get -> System.Text.Json.JsonSerializerOptions!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.JsonSerializerOptions.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.EnvironmentSettings.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionEnvironmentSettings!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.EnvironmentSettings.init -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenantSettings.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TargetTenantSettings.set -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.Changes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.Notes.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.Errors.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AuditEvents.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.Events.Audit.ResourceChangeAuditEvent!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.ChangedLimits.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Promotions.TenantPromotionLimitChange!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.RequiredCreateAuthorities.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.ISupportTenantId!>!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.BeginSourceScope() -> System.IDisposable!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.BeginTargetScope() -> System.IDisposable!
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.GetEnvironmentSettingsOrDefault(string! resourceType, string! resourceId) -> System.Text.Json.JsonElement?
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddChange(NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionChangeResource! change) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddNote(NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionNoteResource! note) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddError(NCode.Identity.OpenId.Management.Contracts.Teams.TenantPromotionErrorResource! error) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddAuditEvent(NCode.Identity.Events.Audit.ResourceChangeAuditEvent! auditEvent) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddChangedLimits(NCode.Identity.OpenId.Persistence.ISupportTenantId! authorityAbove, System.Collections.Generic.IReadOnlyList<string!>! settingNames) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddRequiredCreateAuthority(NCode.Identity.OpenId.Persistence.ISupportTenantId! node) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.MapIdentifier(string! resourceType, string! sourceId, string! targetId) -> void
+NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TryGetTargetIdentifier(string! resourceType, string! sourceId, out string? targetId) -> bool

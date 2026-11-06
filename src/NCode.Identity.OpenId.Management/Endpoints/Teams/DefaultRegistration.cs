@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
+using NCode.Identity.OpenId.Management.Promotions;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
@@ -19,7 +21,17 @@ internal static class DefaultRegistration
         public void AddTeamEndpoint()
         {
             builder.AddEndpoint<TeamApiEndpointHandler>();
+            builder.AddEndpoint<TenantPromotionApiEndpointHandler>();
             builder.ServiceCollection.TryAddSingleton<ITeamValidator, DefaultTeamValidator>();
+            builder.ServiceCollection.TryAddSingleton<
+                ITeamClientCoherenceChecker,
+                DefaultTeamClientCoherenceChecker
+            >();
+            builder.ServiceCollection.TryAddSingleton<
+                ITenantClientCoherenceChecker,
+                DefaultTenantClientCoherenceChecker
+            >();
+            builder.AddTenantPromotionServices();
         }
     }
 }

@@ -118,4 +118,11 @@ public static class OpenIdMaxLengths
     /// </summary>
     // See ADR-1303.
     public const int AuditSourceIp = 64;
+
+    /// <summary>
+    /// Gets the max length of a team path: <see cref="TeamPaths.MaxDepth"/> identifiers of at most 63 characters each,
+    /// every one followed by <c>/</c>, after a leading <c>/</c>.
+    /// </summary>
+    // See ADR-1426.
+    public const int TeamPath = 513;
 }

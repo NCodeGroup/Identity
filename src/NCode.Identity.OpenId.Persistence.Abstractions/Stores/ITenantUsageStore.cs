@@ -55,18 +55,18 @@ public interface ITenantUsageStore : IStore
     );
 
     /// <summary>
-    /// Lists the usage of every tenant of a team, including tenants since deleted, of every meter on the days from
-    /// <paramref name="firstDay"/> to <paramref name="lastDay"/>, both inclusive, ordered by day, then by tenant, then
-    /// by meter.
+    /// Lists the usage of every tenant of the team the path names and of every team beneath it, including deleted
+    /// tenants and teams, of every meter on the days from <paramref name="firstDay"/> to
+    /// <paramref name="lastDay"/>, both inclusive, ordered by day, then by tenant, then by meter.
     /// </summary>
-    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="teamPath">The path of the team, in the <see cref="TeamPaths"/> form.</param>
     /// <param name="firstDay">The first UTC calendar day to list.</param>
     /// <param name="lastDay">The last UTC calendar day to list.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the usage.</returns>
-    // See ADR-1411.
+    // See ADR-1411 and ADR-1426.
     ValueTask<IReadOnlyList<PersistedTenantUsage>> ListByTeamAsync(
-        string teamId,
+        string teamPath,
         DateOnly firstDay,
         DateOnly lastDay,
         CancellationToken cancellationToken

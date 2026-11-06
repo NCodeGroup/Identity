@@ -12,13 +12,14 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Teams;
 
 /// <summary>
-/// Handles the announcement that a team changed by evicting the team from this replica's <see cref="IOpenIdTeamCache"/>
-/// and its tenants from the <see cref="IOpenIdTenantCache"/>. Every replica receives the announcement, the one that made
-/// the change included. The message is the team identifier. Evicting is idempotent, so a repeated message is harmless. A
-/// replica that may have missed an announcement evicts only the teams whose stored row changed or is gone, with their
-/// tenants, and clears both caches when it cannot read the revisions.
+/// Handles the announcement that a team changed by evicting the team and every team beneath it from this replica's
+/// <see cref="IOpenIdTeamCache"/> and their tenants from the <see cref="IOpenIdTenantCache"/>. Every replica receives the
+/// announcement, the one that made the change included. The message is the team identifier. Evicting is idempotent, so a
+/// repeated message is harmless. A replica that may have missed an announcement evicts only the teams whose stored row,
+/// or the row of a team above it, changed or is gone, with their descendants and tenants, and clears both caches when it
+/// cannot read the revisions.
 /// </summary>
-// See ADR-1411 and ADR-1416.
+// See ADR-1411, ADR-1416 and ADR-1426.
 internal sealed class TeamChangeBroadcastHandler(
     IOpenIdTeamCache teamCache,
     IOpenIdTenantCache tenantCache,

@@ -303,17 +303,19 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var account = await storeManager
-            .GetStore<ILocalAccountStore>()
-            .GetByIdOrDefaultAsync(localAccountId, cancellationToken);
-
         return await ProcessGetAsync(
             httpContext,
-            account,
             TenantScopeResource.For(tenantId),
             Operations.Read,
-            ToLocalAccountResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                return await storeManager
+                    .GetStore<ILocalAccountStore>()
+                    .GetByIdOrDefaultAsync(localAccountId, token);
+            },
+            ToLocalAccountResource,
+            cancellationToken
         );
     }
 
@@ -616,17 +618,19 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var account = await storeManager
-            .GetStore<ILocalAccountStore>()
-            .GetByIdOrDefaultAsync(localAccountId, cancellationToken);
-
         return await ProcessGetAsync(
             httpContext,
-            account,
             TenantScopeResource.For(tenantId),
             Operations.Read,
-            value => ToClaimsResource(tenantId, value)
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                return await storeManager
+                    .GetStore<ILocalAccountStore>()
+                    .GetByIdOrDefaultAsync(localAccountId, token);
+            },
+            value => ToClaimsResource(tenantId, value),
+            cancellationToken
         );
     }
 
@@ -681,19 +685,17 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var principal = await ResolvePrincipalAsync(
-            storeManager,
-            localAccountId,
-            cancellationToken
-        );
-
         return await ProcessGetAsync(
             httpContext,
-            principal,
             TenantScopeResource.For(tenantId),
             Operations.Read,
-            value => ToMetadataResource(tenantId, localAccountId, value)
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                return await ResolvePrincipalAsync(storeManager, localAccountId, token);
+            },
+            value => ToMetadataResource(tenantId, localAccountId, value),
+            cancellationToken
         );
     }
 

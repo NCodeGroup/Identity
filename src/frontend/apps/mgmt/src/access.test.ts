@@ -78,6 +78,34 @@ describe('teamExit', () => {
   it('leads any other caller home', () => {
     expect(teamExit(member)).toEqual({ route: HOME_ROUTE, label: 'Home' });
   });
+
+  it("leads a child team to its parent's teams while the access is unknown", () => {
+    expect(teamExit(undefined, 'acme')).toEqual({
+      route: teamRoute('acme', 'teams'),
+      label: 'Team',
+    });
+  });
+
+  it("leads a platform administrator's child team to its parent's teams", () => {
+    expect(teamExit(admin, 'acme')).toEqual({ route: teamRoute('acme', 'teams'), label: 'Team' });
+  });
+
+  it("leads a child team to its parent's teams for a caller with a role at the parent", () => {
+    expect(teamExit(member, 'acme')).toEqual({ route: teamRoute('acme', 'teams'), label: 'Team' });
+  });
+
+  it('leads a child team home for a caller without a role at its parent', () => {
+    const other: CallerAccess = {
+      isPlatformAdministrator: false,
+      teamIds: ['beta'],
+      tenantIds: [],
+    };
+    expect(teamExit(other, 'acme')).toEqual({ route: HOME_ROUTE, label: 'Home' });
+  });
+
+  it('leads a top-level team where a team without a parent leads', () => {
+    expect(teamExit(member, null)).toEqual(teamExit(member));
+  });
 });
 
 describe('tenantExit', () => {

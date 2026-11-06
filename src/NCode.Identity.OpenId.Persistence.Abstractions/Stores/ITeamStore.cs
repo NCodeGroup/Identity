@@ -37,6 +37,60 @@ public interface ITeamStore : IStore<PersistedTeam>
     ValueTask<PersistedTeam?> GetOrDefaultAsync(string teamId, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Gets a single page of the <see cref="PersistedTeam"/> instances directly beneath a team, ordered by their
+    /// surrogate identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <param name="teamId">The identifier of the parent team.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedTeam"/> instances and the cursor for the next page; an empty page when no team has the
+    /// specified identifier.</returns>
+    // See ADR-1426.
+    ValueTask<PagedResult<PersistedTeam>> GetChildPageAsync(
+        string teamId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets a team and every team above it, with the top-level team first and the team itself last.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedTeam"/> instances from the top-level team down to the team; empty when no team has the
+    /// specified identifier.</returns>
+    // See ADR-1426.
+    ValueTask<IReadOnlyList<PersistedTeam>> GetLineageAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Gets every team beneath a team at every level, with a parent before its children.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedTeam"/> instances beneath the team; empty when the team has none or does not exist.</returns>
+    // See ADR-1426.
+    ValueTask<IReadOnlyList<PersistedTeam>> GetDescendantsAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Counts every team beneath a team at every level.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
+    /// teams beneath the team; zero when the team does not exist.</returns>
+    // See ADR-1426.
+    ValueTask<long> CountDescendantsAsync(string teamId, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Gets the concurrency token of each listed team that exists, keyed by its identifier compared without regard
     /// to case; a team that does not exist has no entry.
     /// </summary>
@@ -110,23 +164,23 @@ public interface ITeamStore : IStore<PersistedTeam>
     );
 
     /// <summary>
-    /// Removes an OpenId Team from the store. The removal is rejected while any tenant still belongs to the team.
-    /// Removing a team retires its identifier, so it is never reissued.
+    /// Removes an OpenId Team from the store. The removal is rejected while any tenant or team still belongs to the
+    /// team. Removing a team retires its identifier, so it is never reissued.
     /// </summary>
     /// <param name="teamId">The identifier of the OpenId Team to remove.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the team was removed; otherwise <c>false</c> when no matching team existed.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when a tenant still belongs to the team.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a tenant or team still belongs to the team.</exception>
     ValueTask<bool> RemoveAsync(string teamId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Determines whether an OpenId Team still has dependents: any tenant that belongs to it.
+    /// Determines whether an OpenId Team still has dependents: any tenant or team that belongs to it.
     /// </summary>
     /// <param name="teamId">The identifier of the OpenId Team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
-    /// when any tenant belongs to the team; otherwise <c>false</c> (including when no such team exists).</returns>
+    /// when any tenant or team belongs to the team; otherwise <c>false</c> (including when no such team exists).</returns>
     ValueTask<bool> HasDependentsAsync(string teamId, CancellationToken cancellationToken);
 
     /// <summary>

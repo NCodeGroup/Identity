@@ -4,8 +4,10 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Moq;
+using Moq.Protected;
 using NCode.Collections.Providers;
 using NCode.Collections.Providers.PeriodicPolling;
+using NCode.Disposables;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -45,6 +47,7 @@ public sealed class DefaultOpenIdTeamFactoryTests
         var lease = await fixture.Factory.CreateTeamAsync(
             Mock.Of<OpenIdEnvironment>(),
             platform.Object,
+            default,
             CreatePersistedTeam(),
             Mock.Of<IPropertyBag>(),
             CancellationToken.None
@@ -82,11 +85,140 @@ public sealed class DefaultOpenIdTeamFactoryTests
         var lease = await fixture.Factory.CreateTeamAsync(
             Mock.Of<OpenIdEnvironment>(),
             platform.Object,
+            default,
             persistedTeam,
             Mock.Of<IPropertyBag>(),
             CancellationToken.None
         );
 
+        await lease.DisposeAsync();
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task CreateTeamAsync_WithAParentTeam_LayersTheDocumentOverTheParentsSettings()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var parentCollection = mocks.Create<IReadOnlySettingCollection>();
+        var parentProvider = mocks.Create<IReadOnlySettingCollectionProvider>();
+        parentProvider.Setup(x => x.Collection).Returns(parentCollection.Object).Verifiable();
+        var parentTeam = mocks.Create<OpenIdTeam>();
+        parentTeam
+            .Protected()
+            .Setup<ValueTask>("DisposeAsyncCore")
+            .Returns(ValueTask.CompletedTask);
+        parentTeam.Setup(x => x.SettingsProvider).Returns(parentProvider.Object).Verifiable();
+        parentTeam.Setup(x => x.IsDisabled).Returns(false).Verifiable();
+        await using var parentOwner = AsyncSharedReference.Create(parentTeam.Object);
+        var resolver = mocks.Create<IEffectiveSettingsResolver>();
+        resolver
+            .Setup(x =>
+                x.ReadScopeSettings(
+                    parentCollection.Object,
+                    OpenIdSettingScopes.Team,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns([])
+            .Verifiable();
+        var fixture = CreateFixture(mocks, resolver.Object);
+
+        var lease = await fixture.Factory.CreateTeamAsync(
+            Mock.Of<OpenIdEnvironment>(),
+            mocks.Create<OpenIdPlatform>().Object,
+            parentOwner.AddReference(),
+            CreateChildPersistedTeam(),
+            Mock.Of<IPropertyBag>(),
+            CancellationToken.None
+        );
+
+        Assert.Equal(2, fixture.DataSources.Count);
+        Assert.Same(parentCollection.Object, fixture.DataSources[0].Collection);
+        Assert.Same(parentTeam.Object, lease.Value.Parent);
+        await lease.DisposeAsync();
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task CreateTeamAsync_WhenTheParentIsDisabled_IsDisabled()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var parentCollection = mocks.Create<IReadOnlySettingCollection>();
+        var parentProvider = mocks.Create<IReadOnlySettingCollectionProvider>();
+        parentProvider.Setup(x => x.Collection).Returns(parentCollection.Object).Verifiable();
+        var parentTeam = mocks.Create<OpenIdTeam>();
+        parentTeam
+            .Protected()
+            .Setup<ValueTask>("DisposeAsyncCore")
+            .Returns(ValueTask.CompletedTask);
+        parentTeam.Setup(x => x.SettingsProvider).Returns(parentProvider.Object).Verifiable();
+        parentTeam.Setup(x => x.IsDisabled).Returns(true).Verifiable();
+        await using var parentOwner = AsyncSharedReference.Create(parentTeam.Object);
+        var resolver = mocks.Create<IEffectiveSettingsResolver>();
+        resolver
+            .Setup(x =>
+                x.ReadScopeSettings(
+                    It.IsAny<IReadOnlySettingCollection>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns([])
+            .Verifiable();
+        var fixture = CreateFixture(mocks, resolver.Object);
+
+        var lease = await fixture.Factory.CreateTeamAsync(
+            Mock.Of<OpenIdEnvironment>(),
+            mocks.Create<OpenIdPlatform>().Object,
+            parentOwner.AddReference(),
+            CreateChildPersistedTeam(),
+            Mock.Of<IPropertyBag>(),
+            CancellationToken.None
+        );
+
+        Assert.True(lease.Value.IsDisabled);
+        await lease.DisposeAsync();
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task CreateTeamAsync_WithAncestors_HasTheirPath()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var parentCollection = mocks.Create<IReadOnlySettingCollection>();
+        var parentProvider = mocks.Create<IReadOnlySettingCollectionProvider>();
+        parentProvider.Setup(x => x.Collection).Returns(parentCollection.Object).Verifiable();
+        var parentTeam = mocks.Create<OpenIdTeam>();
+        parentTeam
+            .Protected()
+            .Setup<ValueTask>("DisposeAsyncCore")
+            .Returns(ValueTask.CompletedTask);
+        parentTeam.Setup(x => x.SettingsProvider).Returns(parentProvider.Object).Verifiable();
+        parentTeam.Setup(x => x.IsDisabled).Returns(false).Verifiable();
+        await using var parentOwner = AsyncSharedReference.Create(parentTeam.Object);
+        var resolver = mocks.Create<IEffectiveSettingsResolver>();
+        resolver
+            .Setup(x =>
+                x.ReadScopeSettings(
+                    It.IsAny<IReadOnlySettingCollection>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns([])
+            .Verifiable();
+        var fixture = CreateFixture(mocks, resolver.Object);
+
+        var lease = await fixture.Factory.CreateTeamAsync(
+            Mock.Of<OpenIdEnvironment>(),
+            mocks.Create<OpenIdPlatform>().Object,
+            parentOwner.AddReference(),
+            CreateChildPersistedTeam(),
+            Mock.Of<IPropertyBag>(),
+            CancellationToken.None
+        );
+
+        Assert.Equal("/acme/acme-web/", lease.Value.Path);
         await lease.DisposeAsync();
         mocks.Verify();
     }
@@ -140,6 +272,7 @@ public sealed class DefaultOpenIdTeamFactoryTests
         var lease = await fixture.Factory.CreateTeamAsync(
             Mock.Of<OpenIdEnvironment>(),
             platform.Object,
+            default,
             persistedTeam,
             Mock.Of<IPropertyBag>(),
             CancellationToken.None
@@ -170,6 +303,23 @@ public sealed class DefaultOpenIdTeamFactoryTests
             Settings = new PersistedTeamSettings
             {
                 TeamId = "platform",
+                ConcurrencyToken = "token",
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+        };
+
+    private static PersistedTeam CreateChildPersistedTeam() =>
+        new()
+        {
+            TeamId = "acme-web",
+            ConcurrencyToken = "row-token",
+            ParentTeamId = "acme",
+            AncestorTeamIds = ["acme"],
+            IsDisabled = false,
+            DisplayName = "Acme Web",
+            Settings = new PersistedTeamSettings
+            {
+                TeamId = "acme-web",
                 ConcurrencyToken = "token",
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },

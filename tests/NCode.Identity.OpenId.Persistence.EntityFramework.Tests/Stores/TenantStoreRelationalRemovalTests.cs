@@ -436,7 +436,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
                 new PersistedTenantUsage
                 {
                     TenantId = TenantOneId,
-                    TeamId = "platform",
+                    TeamPath = "/platform/",
                     Day = day,
                     Meter = "requests",
                     Count = 7,
@@ -454,7 +454,7 @@ public sealed class TenantStoreRelationalRemovalTests : IDisposable
         Assert.True(removed);
         Assert.Empty(await _dbContext.Tenants.ToListAsync());
         var entries = await usageStore.ListByTeamAsync(
-            "platform",
+            "/platform/",
             day,
             day,
             CancellationToken.None

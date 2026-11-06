@@ -12,11 +12,17 @@ type Story = StoryObj<typeof TeamUsageTable>;
 export const Populated: Story = {
   args: {
     entries: [
-      { tenantId: 'acme', day: '2026-10-20', meter: 'requests', count: 12840 },
-      { tenantId: 'acme', day: '2026-10-20', meter: 'token_requests', count: 1310 },
-      { tenantId: 'globex', day: '2026-10-20', meter: 'requests', count: 4021 },
-      { tenantId: 'acme', day: '2026-10-21', meter: 'requests', count: 9021 },
-      { tenantId: 'globex', day: '2026-10-21', meter: 'token_requests', count: 877 },
+      { teamId: 'acme', tenantId: 'acme', day: '2026-10-20', meter: 'requests', count: 12840 },
+      { teamId: 'acme', tenantId: 'acme', day: '2026-10-20', meter: 'token_requests', count: 1310 },
+      { teamId: 'globex', tenantId: 'globex', day: '2026-10-20', meter: 'requests', count: 4021 },
+      { teamId: 'acme', tenantId: 'acme', day: '2026-10-21', meter: 'requests', count: 9021 },
+      {
+        teamId: 'globex',
+        tenantId: 'globex',
+        day: '2026-10-21',
+        meter: 'token_requests',
+        count: 877,
+      },
     ],
   },
 };
@@ -24,8 +30,14 @@ export const Populated: Story = {
 export const SparseMeters: Story = {
   args: {
     entries: [
-      { tenantId: 'acme', day: '2026-10-20', meter: 'requests', count: 40 },
-      { tenantId: 'globex', day: '2026-10-21', meter: 'token_requests', count: 3 },
+      { teamId: 'acme', tenantId: 'acme', day: '2026-10-20', meter: 'requests', count: 40 },
+      {
+        teamId: 'globex',
+        tenantId: 'globex',
+        day: '2026-10-21',
+        meter: 'token_requests',
+        count: 3,
+      },
     ],
   },
 };

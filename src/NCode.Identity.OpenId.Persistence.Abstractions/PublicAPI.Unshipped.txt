@@ -414,12 +414,12 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.Meter.init 
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.PersistedTenantUsage() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.TenantId.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.TenantId.init -> void
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.TeamId.get -> string!
-NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.TeamId.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.TeamPath.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage.TeamPath.init -> void
 NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore
 NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore.AddAsync(System.Guid replicaId, long batchNumber, System.Collections.Generic.IReadOnlyCollection<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage!>! usage, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore.ListAsync(string! tenantId, System.DateOnly firstDay, System.DateOnly lastDay, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage!>!>
-NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore.ListByTeamAsync(string! teamId, System.DateOnly firstDay, System.DateOnly lastDay, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage!>!>
+NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore.ListByTeamAsync(string! teamPath, System.DateOnly firstDay, System.DateOnly lastDay, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenantUsage!>!>
 NCode.Identity.OpenId.Persistence.Stores.ITenantUsageStore.RemoveBeforeAsync(System.DateOnly day, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.AuditName = 100 -> int
 const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.AuditSourceIp = 64 -> int
@@ -503,10 +503,14 @@ NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTeamResource.TeamId
 NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTeamResource.TeamId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.ISupportPersistedTeamResource
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.AncestorTeamIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.AncestorTeamIds.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.DisplayName.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.DisplayName.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.IsDisabled.get -> bool
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.IsDisabled.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ParentTeamId.get -> string?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ParentTeamId.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.PersistedTeam() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ReconciledSettings.get -> System.Text.Json.JsonElement?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ReconciledSettings.set -> void
@@ -523,7 +527,11 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeamSettings.PersistedT
 NCode.Identity.OpenId.Persistence.ISupportTeamId
 NCode.Identity.OpenId.Persistence.ISupportTeamId.TeamId.get -> string!
 NCode.Identity.OpenId.Persistence.Stores.ITeamStore
+NCode.Identity.OpenId.Persistence.Stores.ITeamStore.CountDescendantsAsync(string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
+NCode.Identity.OpenId.Persistence.Stores.ITeamStore.GetChildPageAsync(string! teamId, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>!>
 NCode.Identity.OpenId.Persistence.Stores.ITeamStore.GetConcurrencyTokensAsync(System.Collections.Generic.IReadOnlyCollection<string!>! teamIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>
+NCode.Identity.OpenId.Persistence.Stores.ITeamStore.GetDescendantsAsync(string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>!>
+NCode.Identity.OpenId.Persistence.Stores.ITeamStore.GetLineageAsync(string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>!>
 NCode.Identity.OpenId.Persistence.Stores.ITeamStore.GetManyAsync(System.Collections.Generic.IReadOnlyCollection<string!>! teamIds, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>!>
 NCode.Identity.OpenId.Persistence.Stores.ITeamStore.GetOrDefaultAsync(string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam?>
 NCode.Identity.OpenId.Persistence.Stores.ITeamStore.GetPageAsync(NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>!>
@@ -557,3 +565,8 @@ NCode.Identity.OpenId.Persistence.Stores.IGrantStore.UpdateProtectedPayloadAsync
 NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore
 NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore.GetPageAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IReadOnlyCollection<string!>! valuePrefixes, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue!>!>
 NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore.UpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TeamPath = 513 -> int
+const NCode.Identity.OpenId.Persistence.TeamPaths.MaxDepth = 8 -> int
+NCode.Identity.OpenId.Persistence.TeamPaths
+static NCode.Identity.OpenId.Persistence.TeamPaths.Format(System.Collections.Generic.IEnumerable<string!>! teamIds) -> string!
+static NCode.Identity.OpenId.Persistence.TeamPaths.Parse(string! teamPath) -> System.Collections.Generic.IReadOnlyList<string!>!

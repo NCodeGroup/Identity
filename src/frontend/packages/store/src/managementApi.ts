@@ -35,6 +35,7 @@ import {
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
+  type PromoteTenantRequest,
   type PublicKeyResource,
   type ResourceServerResource,
   type ScopeResource,
@@ -44,6 +45,7 @@ import {
   type TeamResource,
   type TeamUsageResource,
   type TenantAddressResource,
+  type TenantPromotionResource,
   type TenantResource,
   type TenantUsageResource,
   type UpdateClientFields,
@@ -57,7 +59,7 @@ import { dynamicBaseQuery } from './baseQuery.js';
 /** A cache-tag id in the platform scope, which owns the teams and identifies every tenant. */
 const platformTag = (id: string): string => scopeTagId(PLATFORM_SCOPE, id);
 
-/** A cache-tag id in a team's scope, which owns the list of its tenants. */
+/** A cache-tag id in a team's scope, which owns the lists of its tenants and of its child teams. */
 const teamTag = (teamId: string, id: string): string => scopeTagId(teamScope(teamId), id);
 
 /** A cache-tag id in a tenant's scope, which owns its grants, secrets, and settings. */
@@ -121,6 +123,29 @@ export const managementApi = createApi({
     createTeam: build.mutation<TeamResource, CreateTeamRequest>({
       query: (body) => ({ url: 'api/teams', method: 'POST', body }),
       invalidatesTags: [
+        { type: 'Team', id: platformTag(LIST_TAG) },
+        { type: 'Caller', id: callerTag },
+      ],
+    }),
+    // The child teams of one team; each child's own tag lives in the platform scope, where its id is unique.
+    listChildTeams: build.query<CollectionResource<TeamResource>, { teamId: string }>({
+      query: ({ teamId }) => `api/teams/${encodeURIComponent(teamId)}/teams`,
+      providesTags: (result, _error, { teamId }) => [
+        { type: 'Team' as const, id: teamTag(teamId, LIST_TAG) },
+        ...(result?.items ?? []).map((t) => ({
+          type: 'Team' as const,
+          id: platformTag(t.teamId),
+        })),
+      ],
+    }),
+    createChildTeam: build.mutation<TeamResource, { teamId: string; body: CreateTeamRequest }>({
+      query: ({ teamId, body }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}/teams`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { teamId }) => [
+        { type: 'Team', id: teamTag(teamId, LIST_TAG) },
         { type: 'Team', id: platformTag(LIST_TAG) },
         { type: 'Caller', id: callerTag },
       ],
@@ -272,6 +297,61 @@ export const managementApi = createApi({
         { type: 'Tenant', id: platformTag(tenantId) },
         { type: 'Caller', id: callerTag },
       ],
+    }),
+    previewTenantPromotion: build.mutation<
+      TenantPromotionResource,
+      { teamId: string; body: PromoteTenantRequest }
+    >({
+      query: ({ teamId, body }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}/promotions/preview`,
+        method: 'POST',
+        body,
+      }),
+    }),
+    // A promotion writes the target tenant's settings, clients and resource servers, so it refreshes the
+    // target's own tags and, for every client and resource server it reports, the item and its settings.
+    promoteTenant: build.mutation<
+      TenantPromotionResource,
+      { teamId: string; body: PromoteTenantRequest }
+    >({
+      query: ({ teamId, body }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}/promotions`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, _error, { body }) => {
+        const tenantId = body.targetTenantId;
+        const tags: { type: 'Tenant' | 'Client' | 'ResourceServer' | 'Settings'; id: string }[] = [
+          { type: 'Tenant', id: platformTag(tenantId) },
+          { type: 'Settings', id: ownerTagId({ kind: 'tenant', tenantId }) },
+          { type: 'Client', id: tenantTag(tenantId, LIST_TAG) },
+          { type: 'ResourceServer', id: tenantTag(tenantId, LIST_TAG) },
+        ];
+        for (const change of result?.changes ?? []) {
+          if (change.resourceType === 'client') {
+            tags.push(
+              { type: 'Client', id: tenantTag(tenantId, change.resourceId) },
+              {
+                type: 'Settings',
+                id: ownerTagId({ kind: 'client', tenantId, clientId: change.resourceId }),
+              },
+            );
+          } else if (change.resourceType === 'resource_server') {
+            tags.push(
+              { type: 'ResourceServer', id: tenantTag(tenantId, change.resourceId) },
+              {
+                type: 'Settings',
+                id: ownerTagId({
+                  kind: 'resource-server',
+                  tenantId,
+                  resourceServerId: change.resourceId,
+                }),
+              },
+            );
+          }
+        }
+        return tags;
+      },
     }),
     createClient: build.mutation<ClientResource, { tenantId: string; body: CreateClientRequest }>({
       query: ({ tenantId, body }) => ({
@@ -660,6 +740,8 @@ export const {
   useCreateTenantMutation,
   useUpdateTenantMutation,
   useDeleteTenantMutation,
+  usePreviewTenantPromotionMutation,
+  usePromoteTenantMutation,
   useCreateClientMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,
@@ -687,4 +769,6 @@ export const {
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
   useUpdateSettingsMutation,
+  useListChildTeamsQuery,
+  useCreateChildTeamMutation,
 } = managementApi;

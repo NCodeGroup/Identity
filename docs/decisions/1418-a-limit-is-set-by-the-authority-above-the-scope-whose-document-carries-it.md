@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amends [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
   [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md))
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md); amended by
+  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): a limit in a child team's document is set by the
+  authority over its parent team, and `max_teams` is a limit)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)

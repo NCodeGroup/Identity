@@ -3,7 +3,9 @@
 - **Status:** Accepted (amends [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
   [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md),
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md))
+  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md); amended by
+  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): the administrators of every team above a tenant grant its
+  administrators, and a `TenantAdmin` assignment never reaches a team)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 

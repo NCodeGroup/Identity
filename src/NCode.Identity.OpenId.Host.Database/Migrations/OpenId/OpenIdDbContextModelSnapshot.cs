@@ -1417,6 +1417,15 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<long?>("ParentTeamId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(513)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(513)");
+
                     b.Property<string>("ReconciledSettingsFingerprint")
                         .HasMaxLength(50)
                         .IsUnicode(false)
@@ -1445,6 +1454,10 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasIndex("NormalizedTeamId")
                         .IsUnique();
+
+                    b.HasIndex("ParentTeamId");
+
+                    b.HasIndex("Path");
 
                     b.ToTable("Teams", (string)null);
                 });
@@ -1627,11 +1640,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<string>("TeamId")
+                    b.Property<string>("TeamPath")
                         .IsRequired()
-                        .HasMaxLength(300)
+                        .HasMaxLength(513)
                         .IsUnicode(false)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("character varying(513)");
 
                     b.Property<string>("TenantId")
                         .IsRequired()
@@ -1643,7 +1656,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasIndex("Day");
 
-                    b.HasIndex("TeamId", "Day");
+                    b.HasIndex("TeamPath", "Day");
 
                     b.HasIndex("TenantId", "Day", "Meter")
                         .IsUnique();
@@ -1875,6 +1888,16 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Navigation("ResourceServer");
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity", b =>
+                {
+                    b.HasOne("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity", "ParentTeam")
+                        .WithMany()
+                        .HasForeignKey("ParentTeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentTeam");
                 });
 
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity", b =>

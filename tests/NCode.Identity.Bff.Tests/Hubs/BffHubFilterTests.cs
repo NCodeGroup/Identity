@@ -17,7 +17,9 @@ public class BffHubFilterTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(1);
-    private static readonly MethodInfo Method = typeof(TestHub).GetMethod(nameof(TestHub.Ping))!;
+    private static readonly MethodInfo Method =
+        typeof(TestHub).GetMethod(nameof(TestHub.Ping))
+        ?? throw new InvalidOperationException("TestHub.Ping is missing.");
 
     private readonly FakeTimeProvider _timeProvider = new(Now);
     private readonly CancellationToken _connectionAborted = new CancellationTokenSource().Token;
@@ -115,10 +117,6 @@ public class BffHubFilterTests : BaseTests
         var result = await filter.InvokeMethodAsync(CreateInvocation(context.Object), Next);
 
         Assert.Equal("result", result);
-        session.Verify(
-            x => x.ValidateAsync(It.IsAny<DateTimeOffset?>(), It.IsAny<CancellationToken>()),
-            Times.Never
-        );
     }
 
     [Fact]

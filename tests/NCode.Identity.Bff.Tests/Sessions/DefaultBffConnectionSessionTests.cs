@@ -141,7 +141,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
 
     #endregion
 
-    #region Properties Tests
+    #region RevalidationInterval Property Tests
 
     [Fact]
     public void RevalidationInterval_ReadsFrontendOption()
@@ -156,8 +156,12 @@ public class DefaultBffConnectionSessionTests : BaseTests
         Assert.Equal(TimeSpan.FromSeconds(20), session.RevalidationInterval);
     }
 
+    #endregion
+
+    #region Frontend Property Tests
+
     [Fact]
-    public void Properties_DescribeFrontendWithoutRequest()
+    public void Frontend_ReturnsFrontendName()
     {
         var catalog = BffTestFrontends.CreateCatalog();
         var frontend = BffTestFrontends.Get(catalog);
@@ -165,7 +169,35 @@ public class DefaultBffConnectionSessionTests : BaseTests
         var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
 
         Assert.Equal(BffTestFrontends.Name, session.Frontend);
+    }
+
+    #endregion
+
+    #region SelectedFrontend Property Tests
+
+    [Fact]
+    public void SelectedFrontend_ReturnsFrontend()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+
         Assert.Same(frontend, session.SelectedFrontend);
+    }
+
+    #endregion
+
+    #region HttpContext Property Tests
+
+    [Fact]
+    public void HttpContext_IsNull()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+
         Assert.Null(session.HttpContext);
     }
 
@@ -182,24 +214,6 @@ public class DefaultBffConnectionSessionTests : BaseTests
         var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
 
         session.OnSessionEnded();
-    }
-
-    #endregion
-
-    #region BffConnectionSessions Tests
-
-    [Fact]
-    public void Create_ReturnsConnectionSessionOfFrontend()
-    {
-        var catalog = BffTestFrontends.CreateCatalog();
-        var frontend = BffTestFrontends.Get(catalog);
-        var resolver = CreateResolver(catalog);
-        var sessions = new BffConnectionSessions(resolver.Object);
-
-        var session = sessions.Create(frontend, Handle, LogoutUrl);
-
-        Assert.Equal(BffTestFrontends.Name, session.Frontend);
-        Assert.Null(session.HttpContext);
     }
 
     #endregion

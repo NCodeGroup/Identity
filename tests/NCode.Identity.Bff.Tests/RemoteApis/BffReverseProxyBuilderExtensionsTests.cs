@@ -20,17 +20,17 @@ namespace NCode.Identity.Bff.Tests.RemoteApis;
 
 public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
 {
-    private ServiceCollection Services { get; } = new();
+    private ServiceCollection ServiceCollection { get; } = new();
 
     private ServiceProvider? Provider { get; set; }
 
     public BffReverseProxyBuilderExtensionsTests()
     {
-        Services.AddLogging();
-        Services.AddHttpContextAccessor();
-        Services.AddOptions<BffOptions>();
-        Services.AddSingleton(CreateLooseMock<IBffTokenAccessor>().Object);
-        Services.AddSingleton(CreateLooseMock<IDPoPProofFactory>().Object);
+        ServiceCollection.AddLogging();
+        ServiceCollection.AddHttpContextAccessor();
+        ServiceCollection.AddOptions<BffOptions>();
+        ServiceCollection.AddSingleton(CreateLooseMock<IBffTokenAccessor>().Object);
+        ServiceCollection.AddSingleton(CreateLooseMock<IDPoPProofFactory>().Object);
         var frontends = BffTestFrontends.CreateCatalog();
         var timeProvider = new FakeTimeProvider();
         var cookies = new BffCookies(timeProvider);
@@ -41,9 +41,12 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
             frontends,
             timeProvider
         );
-        Services.AddSingleton<IBffConnectionSessionAccessor, DefaultBffConnectionSessionAccessor>();
-        Services.AddSingleton(new BffTokenContexts(frontends, resolver, cookies));
-        Services.AddSingleton(frontends);
+        ServiceCollection.AddSingleton<
+            IBffConnectionSessionAccessor,
+            DefaultBffConnectionSessionAccessor
+        >();
+        ServiceCollection.AddSingleton(new BffTokenContexts(frontends, resolver, cookies));
+        ServiceCollection.AddSingleton(frontends);
     }
 
     protected override void Dispose(bool disposing)
@@ -55,7 +58,7 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
 
     private IServiceProvider Build()
     {
-        Provider = Services.BuildServiceProvider();
+        Provider = ServiceCollection.BuildServiceProvider();
         return Provider;
     }
 
@@ -89,7 +92,7 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
     [Fact]
     public void AddBffTransforms_DefaultFactory_DecoratesIt()
     {
-        Services.AddReverseProxy().AddBffTransforms();
+        ServiceCollection.AddReverseProxy().AddBffTransforms();
         var provider = Build();
 
         using var client = CreateClient(provider);
@@ -105,7 +108,7 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
     public void AddBffTransforms_AfterConfigureHttpClient_KeepsTheCallback()
     {
         var isConfigured = false;
-        Services
+        ServiceCollection
             .AddReverseProxy()
             .ConfigureHttpClient((_, _) => isConfigured = true)
             .AddBffTransforms();
@@ -123,8 +126,8 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
             StubHttpMessageHandler.Respond(System.Net.HttpStatusCode.OK)
         );
         var custom = SetupCustomFactory(inner);
-        var builder = Services.AddReverseProxy();
-        Services.AddSingleton(custom.Object);
+        var builder = ServiceCollection.AddReverseProxy();
+        ServiceCollection.AddSingleton(custom.Object);
         builder.AddBffTransforms();
 
         using var client = CreateClient(Build());
@@ -139,8 +142,8 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
             StubHttpMessageHandler.Respond(System.Net.HttpStatusCode.OK)
         );
         var custom = SetupCustomFactory(inner);
-        var builder = Services.AddReverseProxy();
-        Services.AddSingleton<IForwarderHttpClientFactory>(_ => custom.Object);
+        var builder = ServiceCollection.AddReverseProxy();
+        ServiceCollection.AddSingleton<IForwarderHttpClientFactory>(_ => custom.Object);
         builder.AddBffTransforms();
 
         using var client = CreateClient(Build());
@@ -151,14 +154,14 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
     [Fact]
     public void AddBffTransforms_CalledTwice_DecoratesOnce()
     {
-        Services.AddReverseProxy().AddBffTransforms().AddBffTransforms();
+        ServiceCollection.AddReverseProxy().AddBffTransforms().AddBffTransforms();
         var provider = Build();
 
         using var client = CreateClient(provider);
 
         Assert.IsNotType<BffForwarderInvoker>(client.Inner);
         Assert.Single(
-            Services,
+            ServiceCollection,
             descriptor => descriptor.ImplementationType == typeof(BffTransformProvider)
         );
     }
@@ -166,10 +169,10 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
     [Fact]
     public void AddBffTransforms_KeepsTheFactoryLifetime()
     {
-        Services.AddReverseProxy().AddBffTransforms();
+        ServiceCollection.AddReverseProxy().AddBffTransforms();
 
         var descriptor = Assert.Single(
-            Services,
+            ServiceCollection,
             descriptor => descriptor.ServiceType == typeof(IForwarderHttpClientFactory)
         );
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
@@ -195,7 +198,7 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
     [Fact]
     public void AddBffTransforms_ThenConfigureHttpClient_Throws()
     {
-        var builder = Services.AddReverseProxy().AddBffTransforms();
+        var builder = ServiceCollection.AddReverseProxy().AddBffTransforms();
 
         Assert.Throws<InvalidOperationException>(() => builder.ConfigureHttpClient((_, _) => { }));
     }
@@ -206,8 +209,8 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
         using var inner = new HttpMessageInvoker(
             StubHttpMessageHandler.Respond(System.Net.HttpStatusCode.OK)
         );
-        Services.AddReverseProxy().AddBffTransforms();
-        Services.AddSingleton(CreateLooseMock<IForwarderHttpClientFactory>().Object);
+        ServiceCollection.AddReverseProxy().AddBffTransforms();
+        ServiceCollection.AddSingleton(CreateLooseMock<IForwarderHttpClientFactory>().Object);
         var provider = Build();
 
         Assert.Throws<InvalidOperationException>(() =>

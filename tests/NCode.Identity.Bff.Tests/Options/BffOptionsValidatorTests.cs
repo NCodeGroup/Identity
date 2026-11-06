@@ -382,6 +382,21 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     [Fact]
+    public void Validate_RevalidationIntervalHalfIdle_Succeeds()
+    {
+        var options = CreateValidOptions();
+        Frontend(options).Session.IdleTimeout = TimeSpan.FromHours(1);
+        Frontend(options).Session.RevalidationInterval = TimeSpan.FromMinutes(30);
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.DoesNotContain(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:Session:RevalidationInterval")
+        );
+    }
+
+    [Fact]
     public void Validate_DefaultRevalidationInterval_Succeeds()
     {
         var options = CreateValidOptions();

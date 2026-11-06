@@ -50,8 +50,11 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
         return httpContext;
     }
 
-    private IBffTokenContext CreateContext(HttpContext httpContext) =>
-        CreateContexts(CreateStrictMock<IBffSessionManager>()).ForRequest(httpContext);
+    private IBffTokenContext CreateContext(HttpContext httpContext)
+    {
+        var sessionManager = CreateStrictMock<IBffSessionManager>();
+        return CreateContexts(sessionManager).ForRequest(httpContext);
+    }
 
     private static readonly BffTokenResult Token = BffTokenResult.Success(
         new BffAccessToken("access", "Bearer", Now.AddMinutes(5))

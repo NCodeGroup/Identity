@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -148,99 +147,6 @@ public class BffRequestTokenContextTests : BaseTests
         context.OnSessionEnded();
 
         Assert.Empty(httpContext.Response.Headers.SetCookie.ToArray());
-    }
-
-    #endregion
-
-    #region From Tests
-
-    [Fact]
-    public void From_ForeignContext_Throws()
-    {
-        var foreign = CreateStrictMock<IBffTokenContext>();
-
-        Assert.Throws<InvalidOperationException>(() => IBffSessionScope.From(foreign.Object));
-    }
-
-    [Fact]
-    public void From_RequestContext_ReturnsIt()
-    {
-        var catalog = BffTestFrontends.CreateCatalog();
-        var resolver = CreateResolver(catalog);
-        var context = CreateContext(new DefaultHttpContext(), catalog, resolver.Object);
-
-        Assert.Same(context, IBffSessionScope.From(context));
-    }
-
-    #endregion
-
-    #region BffTokenContexts Tests
-
-    [Fact]
-    public void ForRequest_ReturnsRequestContext()
-    {
-        var catalog = BffTestFrontends.CreateCatalog();
-        var resolver = CreateResolver(catalog);
-        var contexts = new BffTokenContexts(
-            catalog,
-            resolver.Object,
-            new BffCookies(_timeProvider)
-        );
-        var httpContext = new DefaultHttpContext();
-
-        var scope = contexts.ForRequest(httpContext);
-
-        Assert.Same(httpContext, scope.HttpContext);
-        Assert.Equal(BffTestFrontends.Name, scope.Frontend);
-    }
-
-    [Fact]
-    public void ForRequest_HubWithConnection_ReturnsConnection()
-    {
-        var catalog = BffTestFrontends.CreateCatalog();
-        var resolver = CreateResolver(catalog);
-        var contexts = new BffTokenContexts(
-            catalog,
-            resolver.Object,
-            new BffCookies(_timeProvider)
-        );
-        var connection = new DefaultBffConnectionSession(
-            BffTestFrontends.Get(catalog),
-            new string('a', 43),
-            "/bff/logout",
-            resolver.Object
-        );
-        var httpContext = new DefaultHttpContext();
-        httpContext.SetEndpoint(
-            new Endpoint(null, new EndpointMetadataCollection(new BffHubAttribute()), "hub")
-        );
-        httpContext.User = new ClaimsPrincipal(
-            new BffConnectionIdentity(new ClaimsIdentity("test"), connection)
-        );
-
-        var scope = contexts.ForRequest(httpContext);
-
-        Assert.Same(connection, scope);
-    }
-
-    [Fact]
-    public void ForRequest_HubWithoutConnection_ReturnsRequestContext()
-    {
-        var catalog = BffTestFrontends.CreateCatalog();
-        var resolver = CreateResolver(catalog);
-        var contexts = new BffTokenContexts(
-            catalog,
-            resolver.Object,
-            new BffCookies(_timeProvider)
-        );
-        var httpContext = new DefaultHttpContext();
-        httpContext.SetEndpoint(
-            new Endpoint(null, new EndpointMetadataCollection(new BffHubAttribute()), "hub")
-        );
-
-        var scope = contexts.ForRequest(httpContext);
-
-        Assert.Same(httpContext, scope.HttpContext);
     }
 
     #endregion

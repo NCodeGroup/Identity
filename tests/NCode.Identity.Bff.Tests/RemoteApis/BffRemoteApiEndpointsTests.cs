@@ -54,21 +54,24 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         var builder = WebApplication.CreateSlimBuilder(
             new WebApplicationOptions { EnvironmentName = Environments.Production }
         );
-        var services = builder.Services;
+        var serviceCollection = builder.Services;
 
         var requirement = CreateLooseMock<IBffTokenRequirement>();
         requirement.SetupGet(x => x.Name).Returns(BffTokenRequirementNames.User);
-        services.AddSingleton(requirement.Object);
-        services.AddSingleton(CreateLooseMock<IBffTokenAccessor>().Object);
-        services.AddSingleton(CreateLooseMock<IDPoPProofFactory>().Object);
-        services.AddSingleton<IBffConnectionSessionAccessor, DefaultBffConnectionSessionAccessor>();
-        services.AddSingleton(CreateContexts(catalog));
-        services.AddHttpContextAccessor();
-        services.AddHttpForwarder();
-        services.AddSingleton(catalog);
-        services.AddSingleton<BffRemoteApiInvokerFactory>();
-        services.AddSingleton<BffRemoteApiRegistry>();
-        services.AddSingleton<BffRemoteApiHandler>();
+        serviceCollection.AddSingleton(requirement.Object);
+        serviceCollection.AddSingleton(CreateLooseMock<IBffTokenAccessor>().Object);
+        serviceCollection.AddSingleton(CreateLooseMock<IDPoPProofFactory>().Object);
+        serviceCollection.AddSingleton<
+            IBffConnectionSessionAccessor,
+            DefaultBffConnectionSessionAccessor
+        >();
+        serviceCollection.AddSingleton(CreateContexts(catalog));
+        serviceCollection.AddHttpContextAccessor();
+        serviceCollection.AddHttpForwarder();
+        serviceCollection.AddSingleton(catalog);
+        serviceCollection.AddSingleton<BffRemoteApiInvokerFactory>();
+        serviceCollection.AddSingleton<BffRemoteApiRegistry>();
+        serviceCollection.AddSingleton<BffRemoteApiHandler>();
 
         App = builder.Build();
         return App;

@@ -25,8 +25,11 @@ public class BffExchangeTokenRequirementTests : BaseTests
         return new BffTokenContexts(frontends, resolver, cookies);
     }
 
-    private IBffTokenContext CreateContext(HttpContext httpContext) =>
-        CreateContexts(CreateStrictMock<IBffSessionManager>()).ForRequest(httpContext);
+    private IBffTokenContext CreateContext(HttpContext httpContext)
+    {
+        var sessionManager = CreateStrictMock<IBffSessionManager>();
+        return CreateContexts(sessionManager).ForRequest(httpContext);
+    }
 
     private Mock<IBffExchangeTokenService> MockService { get; }
     private BffExchangeTokenRequirement Requirement { get; }

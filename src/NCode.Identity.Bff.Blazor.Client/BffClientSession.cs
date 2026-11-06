@@ -296,8 +296,8 @@ internal sealed class BffClientSession(
                 StringComparison.Ordinal
             )
             || !string.Equals(
-                current.Principal.FindFirst(BffClientClaimTypes.LogoutSid)?.Value,
-                next.Principal.FindFirst(BffClientClaimTypes.LogoutSid)?.Value,
+                current.Principal.FindFirst(BffClaimTypes.LogoutSid)?.Value,
+                next.Principal.FindFirst(BffClaimTypes.LogoutSid)?.Value,
                 StringComparison.Ordinal
             );
     }

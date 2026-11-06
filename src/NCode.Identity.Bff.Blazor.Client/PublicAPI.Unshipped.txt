@@ -7,10 +7,7 @@ NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary.BffBlazorClientLibrary()
 const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.AuthenticationType = "NCode.Identity.Bff" -> string!
 const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.HttpClientName = "NCode.Identity.Bff.Blazor.Client" -> string!
 const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.UserStateKey = "NCode.Identity.Bff.User" -> string!
-const NCode.Identity.Bff.Blazor.Client.BffClientClaimTypes.LogoutSid = "bff_logout_sid" -> string!
-const NCode.Identity.Bff.Blazor.Client.BffClientClaimTypes.LogoutUrl = "bff_logout_url" -> string!
 NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults
-NCode.Identity.Bff.Blazor.Client.BffClientClaimTypes
 NCode.Identity.Bff.Blazor.Client.DefaultRegistration
 NCode.Identity.Bff.Blazor.Client.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.Bff.Blazor.Client.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddBffBlazorClient() -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary>!

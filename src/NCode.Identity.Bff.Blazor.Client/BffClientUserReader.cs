@@ -72,8 +72,8 @@ internal static class BffClientUserReader
             }
         }
 
-        AddString(userDocument, LogoutUrlPropertyName, BffClientClaimTypes.LogoutUrl, claims);
-        AddString(userDocument, LogoutSidPropertyName, BffClientClaimTypes.LogoutSid, claims);
+        AddString(userDocument, LogoutUrlPropertyName, BffClaimTypes.LogoutUrl, claims);
+        AddString(userDocument, LogoutSidPropertyName, BffClaimTypes.LogoutSid, claims);
 
         var identity = new ClaimsIdentity(
             claims,

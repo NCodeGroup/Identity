@@ -173,6 +173,21 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
     }
 
     [Fact]
+    public async Task GetOrDefaultAsync_WhenAnotherTenantsClientIsTracked_ReturnsNull()
+    {
+        await SeedAsync();
+
+        _ambientTenantAccessor.TenantId = TenantA;
+        var tracked = await _store.GetOrDefaultAsync(ClientA, CancellationToken.None);
+        Assert.NotNull(tracked);
+
+        _ambientTenantAccessor.TenantId = TenantB;
+        var crossTenant = await _store.GetOrDefaultAsync(ClientA, CancellationToken.None);
+
+        Assert.Null(crossTenant);
+    }
+
+    [Fact]
     public async Task GetSecretOrDefaultAsync_WhenScopedToOtherTenant_ReturnsNull()
     {
         await SeedAsync();

@@ -121,17 +121,25 @@ internal class ClientGrantApiEndpointHandler(
     [EndpointName("api/clients/grants/get")]
     internal virtual async ValueTask<IResult> GetAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string resourceServerId,
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientGrantStore>();
-
-        var grant = await store.GetOrDefaultAsync(clientId, resourceServerId, cancellationToken);
-
-        return await ProcessGetAsync(httpContext, grant, Operations.Read, ToResource);
+        return await ProcessGetAsync(
+            httpContext,
+            TenantScopeResource.For(tenantId),
+            Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientGrantStore>();
+                return await store.GetOrDefaultAsync(clientId, resourceServerId, token);
+            },
+            ToResource,
+            cancellationToken
+        );
     }
 
     /// <summary>

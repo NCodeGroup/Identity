@@ -275,18 +275,19 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
             httpContext,
-            resourceServer,
             node,
             Operations.Read,
-            ToResourceServerResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+                return await store.GetOrDefaultAsync(resourceServerId, token);
+            },
+            ToResourceServerResource,
+            cancellationToken
         );
     }
 
@@ -511,20 +512,24 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/scopes/list")]
     internal virtual async ValueTask<IResult> ListScopesAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
-
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
             httpContext,
-            resourceServer,
+            node,
             Operations.Read,
-            value => (IReadOnlyList<ScopeResource>)value.Scopes.Select(ToScopeResource).ToList()
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+                return await store.GetOrDefaultAsync(resourceServerId, token);
+            },
+            value => (IReadOnlyList<ScopeResource>)value.Scopes.Select(ToScopeResource).ToList(),
+            cancellationToken
         );
     }
 
@@ -606,20 +611,29 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/scopes/get")]
     internal virtual async ValueTask<IResult> GetScopeAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         [FromRoute] string scopeValue,
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
-        var scope = resourceServer?.Scopes.FirstOrDefault(scope =>
-            string.Equals(scope.Value, scopeValue, StringComparison.OrdinalIgnoreCase)
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+        return await ProcessGetAsync(
+            httpContext,
+            node,
+            Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+                var resourceServer = await store.GetOrDefaultAsync(resourceServerId, token);
+                return resourceServer?.Scopes.FirstOrDefault(scope =>
+                    string.Equals(scope.Value, scopeValue, StringComparison.OrdinalIgnoreCase)
+                );
+            },
+            ToScopeResource,
+            cancellationToken
         );
-
-        return await ProcessGetAsync(httpContext, scope, Operations.Read, ToScopeResource);
     }
 
     /// <summary>
@@ -940,18 +954,20 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
             httpContext,
-            resourceServer?.Settings,
             node,
             Operations.Read,
-            ToResourceServerSettingsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+                var resourceServer = await store.GetOrDefaultAsync(resourceServerId, token);
+                return resourceServer?.Settings;
+            },
+            ToResourceServerSettingsResource,
+            cancellationToken
         );
     }
 
@@ -1070,27 +1086,26 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
-        if (resourceServer is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
 
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
-        // A null projection is the absent tenant, answered 404. See ADR-1245.
+        // A null read is the absent resource server or the absent tenant, answered 404. See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            resourceServer.Settings.Value,
             node,
             Operations.Read,
-            async (_, token) =>
+            async token =>
             {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+
+                var resourceServer = await store.GetOrDefaultAsync(resourceServerId, token);
+                if (resourceServer is null)
+                {
+                    return null;
+                }
+
                 var effectiveSettings = await MergeResourceServerSettingsAsync(
                     tenantId,
                     resourceServer,
@@ -1101,6 +1116,7 @@ internal class ResourceServerApiEndpointHandler(
                     ? null
                     : ToResourceServerEffectiveSettingsResource(resourceServer, effectiveSettings);
             },
+            resource => resource,
             cancellationToken
         );
     }
@@ -1117,18 +1133,19 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var secrets = await store.GetSecretsOrDefaultAsync(resourceServerId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
             httpContext,
-            secrets,
             node,
             Operations.Read,
-            ToResourceServerSecretsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+                return await store.GetSecretsOrDefaultAsync(resourceServerId, token);
+            },
+            ToResourceServerSecretsResource,
+            cancellationToken
         );
     }
 
@@ -1371,26 +1388,30 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServerSecret = await store.GetSecretOrDefaultAsync(
-            resourceServerId,
-            secretId,
-            cancellationToken
-        );
-
-        var scoped = resourceServerSecret is null
-            ? null
-            : TenantOwnedResource.For(resourceServerSecret.TenantId, resourceServerSecret.Value);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
             httpContext,
-            scoped,
             node,
             Operations.Read,
-            x => ToSecretResource(x.Value)
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+
+                var resourceServerSecret = await store.GetSecretOrDefaultAsync(
+                    resourceServerId,
+                    secretId,
+                    token
+                );
+                return resourceServerSecret is null
+                    ? null
+                    : TenantOwnedResource.For(
+                        resourceServerSecret.TenantId,
+                        resourceServerSecret.Value
+                    );
+            },
+            x => ToSecretResource(x.Value),
+            cancellationToken
         );
     }
 
@@ -1407,33 +1428,31 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServerSecret = await store.GetSecretOrDefaultAsync(
-            resourceServerId,
-            secretId,
-            cancellationToken
-        );
-
-        if (resourceServerSecret is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var scoped = TenantOwnedResource.For(
-            resourceServerSecret.TenantId,
-            resourceServerSecret.Value
-        );
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
             httpContext,
-            scoped,
             node,
             Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+
+                var resourceServerSecret = await store.GetSecretOrDefaultAsync(
+                    resourceServerId,
+                    secretId,
+                    token
+                );
+                return resourceServerSecret is null
+                    ? null
+                    : TenantOwnedResource.For(
+                        resourceServerSecret.TenantId,
+                        resourceServerSecret.Value
+                    );
+            },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            x => SecretPublicKeyConverter.Convert(x.Value),
+            cancellationToken
         );
     }
 

@@ -18,6 +18,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 public sealed class DefaultTenantValidatorTests : IDisposable
 {
     private const string TenantId = "tenant-1";
+    private const string TeamId = "platform";
     private const string ControlPlaneTenantId = "platform-root";
     private const string Issuer = "https://example.test";
 
@@ -68,7 +69,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
         new()
         {
             TenantId = tenantId,
-            TeamId = "platform",
+            TeamId = TeamId,
             ConcurrencyToken = concurrencyToken,
             Issuer = issuer,
             IsDisabled = false,
@@ -99,6 +100,26 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             )
             .ReturnsAsync(result)
             .Verifiable();
+    }
+
+    private Func<object?> SetupAuthorizationCapturingTheNode(IAuthorizationRequirement requirement)
+    {
+        object? authorizedResource = null;
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r => r.Contains(requirement))
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, object? resource, IEnumerable<IAuthorizationRequirement> _) =>
+                    authorizedResource = resource
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+        return () => authorizedResource;
     }
 
     private void SetupTenantStore()
@@ -132,41 +153,212 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
     #endregion
 
-    #region ValidateCreateAsync Tests
+    #region AuthorizeCreateAsync Tests
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenForbiddenAndAuthenticated_Returns403()
+    public async Task AuthorizeCreateAsync_WhenAuthorized_ReturnsNull()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            ControlPlaneTenantId,
+            TeamId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeCreateAsync_WhenForbiddenAndAuthenticated_Returns403()
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await Validator.ValidateCreateAsync(
+        var error = await Validator.AuthorizeCreateAsync(
             CreateUser(authenticated: true),
             ControlPlaneTenantId,
-            CreateTenant(),
-            MockStoreManager.Object,
+            TeamId,
             CancellationToken.None
         );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+        Assert.Equal("The caller is not authorized to create this tenant.", error.Detail);
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenForbiddenAndAnonymous_Returns401()
+    public async Task AuthorizeCreateAsync_WhenForbiddenAndAnonymous_Returns401()
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await Validator.ValidateCreateAsync(
+        var error = await Validator.AuthorizeCreateAsync(
             CreateUser(authenticated: false),
             ControlPlaneTenantId,
-            CreateTenant(),
-            MockStoreManager.Object,
+            TeamId,
             CancellationToken.None
         );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+        Assert.Equal("Authentication is required to create this tenant.", error.Detail);
     }
+
+    [Fact]
+    public async Task AuthorizeCreateAsync_AuthorizesCreateOnTheTeamNode()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheNode(Operations.Create);
+
+        await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            ControlPlaneTenantId,
+            TeamId,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource());
+        Assert.Equal(ControlPlaneTenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Team, node.ResourceType);
+        Assert.Equal(TeamId, node.ResourceId);
+    }
+
+    #endregion
+
+    #region AuthorizeUpdateAsync Tests
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenAuthorized_ReturnsNull()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenForbiddenAndAuthenticated_Returns403()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+        Assert.Equal("The caller is not authorized to update this tenant.", error.Detail);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenForbiddenAndAnonymous_Returns401()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: false),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+        Assert.Equal("Authentication is required to update this tenant.", error.Detail);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_AuthorizesUpdateOnTheTenantNode()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheNode(Operations.Update);
+
+        await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource());
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Tenant, node.ResourceType);
+        Assert.Equal(TenantId, node.ResourceId);
+    }
+
+    #endregion
+
+    #region AuthorizeDeleteAsync Tests
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenAuthorized_ReturnsNull()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenForbiddenAndAuthenticated_Returns403()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+        Assert.Equal("The caller is not authorized to delete this tenant.", error.Detail);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenForbiddenAndAnonymous_Returns401()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: false),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+        Assert.Equal("Authentication is required to delete this tenant.", error.Detail);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_AuthorizesDeleteOnTheTenantNode()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheNode(Operations.Delete);
+
+        await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource());
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Tenant, node.ResourceType);
+        Assert.Equal(TenantId, node.ResourceId);
+    }
+
+    #endregion
+
+    #region ValidateCreateAsync Tests
 
     [Theory]
     [InlineData("")]
@@ -175,11 +367,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
         string displayName
     )
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            ControlPlaneTenantId,
             CreateTenant(displayName: displayName),
             MockStoreManager.Object,
             CancellationToken.None
@@ -193,12 +381,9 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenAddressIsInvalid_Returns400WithEveryReason()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation(Issuer, Invalid("Bad identifier."), Invalid("Bad issuer."));
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -212,12 +397,9 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenAddressIsInvalidAndConflicts_Returns400()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation(Issuer, Conflict("Issuer taken."), Invalid("Bad route."));
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -231,7 +413,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenTenantIdExists_Returns409()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation(Issuer);
         SetupTenantStore();
         MockTenantStore
@@ -240,8 +421,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             .Verifiable();
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -255,7 +434,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenAddressConflicts_Returns409()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation(Issuer, Conflict("Issuer taken."));
         SetupTenantStore();
         MockTenantStore
@@ -264,8 +442,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             .Verifiable();
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -279,7 +455,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenValid_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation(Issuer);
         SetupTenantStore();
         MockTenantStore
@@ -288,8 +463,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             .Verifiable();
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            ControlPlaneTenantId,
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -298,70 +471,14 @@ public sealed class DefaultTenantValidatorTests : IDisposable
         Assert.Null(error);
     }
 
-    [Fact]
-    public async Task ValidateCreateAsync_AuthorizesCreateOnTheTeamNode()
-    {
-        object? authorizedResource = null;
-        MockAuthorizationService
-            .Setup(x =>
-                x.AuthorizeAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.IsAny<object?>(),
-                    It.Is<IEnumerable<IAuthorizationRequirement>>(r =>
-                        r.Contains(Operations.Create)
-                    )
-                )
-            )
-            .Callback(
-                (ClaimsPrincipal _, object? resource, IEnumerable<IAuthorizationRequirement> _) =>
-                    authorizedResource = resource
-            )
-            .ReturnsAsync(AuthorizationResult.Failed())
-            .Verifiable();
-
-        await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
-            ControlPlaneTenantId,
-            CreateTenant(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        var node = Assert.IsType<ResourceNode>(authorizedResource);
-        Assert.Equal(ControlPlaneTenantId, node.TenantId);
-        Assert.Equal(ResourceNodeTypes.Team, node.ResourceType);
-        Assert.Equal("platform", node.ResourceId);
-    }
-
     #endregion
 
     #region ValidateUpdateAsync Tests
 
     [Fact]
-    public async Task ValidateUpdateAsync_WhenForbidden_Returns403()
-    {
-        SetupAuthorization(AuthorizationResult.Failed());
-
-        var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
-            CreateTenant(),
-            new UpdateTenantRequest { DisplayName = "New Name" },
-            ifMatch: null,
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
-    }
-
-    [Fact]
     public async Task ValidateUpdateAsync_WhenIfMatchMismatch_Returns412()
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateTenant(concurrencyToken: "tenant-ct"),
             new UpdateTenantRequest { DisplayName = "New Name" },
             ifMatch: "stale-token",
@@ -376,10 +493,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenTheDisplayNameIsWhitespace_ReturnsBadRequest()
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateTenant(),
             new UpdateTenantRequest { DisplayName = "   " },
             ifMatch: null,
@@ -395,10 +509,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenDisplayNameMissing_Returns400()
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateTenant(),
             new UpdateTenantRequest { DisplayName = null },
             ifMatch: null,
@@ -413,11 +524,9 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIssuerChangedAndAddressIsInvalid_Returns400()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation("https://new.test", Invalid("Bad route."));
 
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateTenant(),
             new UpdateTenantRequest { DisplayName = "New Name", Issuer = "https://new.test" },
             ifMatch: null,
@@ -433,11 +542,9 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIssuerChangedAndAddressConflicts_Returns409()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation("https://new.test", Conflict("Issuer taken."));
 
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateTenant(),
             new UpdateTenantRequest { DisplayName = "New Name", Issuer = "https://new.test" },
             ifMatch: null,
@@ -453,11 +560,9 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIssuerChangedAndValid_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation("https://new.test");
 
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateTenant(),
             new UpdateTenantRequest { DisplayName = "New Name", Issuer = "https://new.test" },
             ifMatch: null,
@@ -471,11 +576,9 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIssuerCleared_ValidatesTheTenantWithoutAnIssuer()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupTenantValidation(issuer: null, Invalid("The tenant requires an issuer."));
 
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateTenant(issuer: Issuer),
             new UpdateTenantRequest { DisplayName = "New Name", Issuer = null },
             ifMatch: null,
@@ -490,10 +593,7 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIssuerUnchanged_SkipsAddressValidationAndReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateTenant(issuer: Issuer),
             new UpdateTenantRequest { DisplayName = "New Name", Issuer = Issuer },
             ifMatch: null,
@@ -503,34 +603,17 @@ public sealed class DefaultTenantValidatorTests : IDisposable
 
         Assert.Null(error);
     }
+
     #endregion
 
     #region ValidateDeleteAsync Tests
 
     [Fact]
-    public async Task ValidateDeleteAsync_WhenForbidden_Returns403()
-    {
-        SetupAuthorization(AuthorizationResult.Failed());
-
-        var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
-            CreateTenant(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
-    }
-
-    [Fact]
     public async Task ValidateDeleteAsync_WhenRequiredTenant_Returns409WithoutCheckingDependents()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         MockTenantResolver.Setup(x => x.IsRequiredTenant(TenantId)).Returns(true).Verifiable();
 
         var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -544,7 +627,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateDeleteAsync_WhenHasDependents_Returns409()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         MockTenantResolver.Setup(x => x.IsRequiredTenant(TenantId)).Returns(false).Verifiable();
         SetupTenantStore();
         MockTenantStore
@@ -553,7 +635,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             .Verifiable();
 
         var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -567,7 +648,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     [Fact]
     public async Task ValidateDeleteAsync_WhenValid_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         MockTenantResolver.Setup(x => x.IsRequiredTenant(TenantId)).Returns(false).Verifiable();
         SetupTenantStore();
         MockTenantStore
@@ -576,7 +656,6 @@ public sealed class DefaultTenantValidatorTests : IDisposable
             .Verifiable();
 
         var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
             CreateTenant(),
             MockStoreManager.Object,
             CancellationToken.None

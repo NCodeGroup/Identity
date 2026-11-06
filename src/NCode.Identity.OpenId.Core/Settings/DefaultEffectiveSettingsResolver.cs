@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.OpenId.Tenants;
@@ -147,6 +148,7 @@ internal sealed class DefaultEffectiveSettingsResolver(
 
     /// <inheritdoc />
     // See ADR-1411.
+    // See ADR-1426.
     public async ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
         string teamId,
         CancellationToken cancellationToken
@@ -155,24 +157,29 @@ internal sealed class DefaultEffectiveSettingsResolver(
         ArgumentNullException.ThrowIfNull(teamId);
 
         var platformSettings = await ResolvePlatformAsync(cancellationToken);
+        var lineage = await ReadLineageAsync(teamId, cancellationToken);
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITeamStore>();
+        return Fold(platformSettings, lineage);
+    }
 
-        var teamSettings =
-            await store.GetSettingsOrDefaultAsync(teamId, cancellationToken)
-            ?? throw new KeyNotFoundException($"The team '{teamId}' does not exist.");
+    /// <inheritdoc />
+    // See ADR-1426.
+    public async ValueTask<IReadOnlySettingCollection> ResolveTeamParentAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(teamId);
 
-        return ResolveStored(
-            platformSettings,
-            OpenIdSettingScopes.Team,
-            teamId,
-            teamSettings.Value
-        );
+        var platformSettings = await ResolvePlatformAsync(cancellationToken);
+        var lineage = await ReadLineageAsync(teamId, cancellationToken);
+
+        return Fold(platformSettings, lineage.Take(lineage.Count - 1));
     }
 
     /// <inheritdoc />
     // See ADR-1411.
+    // See ADR-1426.
     public async ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
         string teamId,
         JsonElement settings,
@@ -181,8 +188,50 @@ internal sealed class DefaultEffectiveSettingsResolver(
     {
         ArgumentNullException.ThrowIfNull(teamId);
 
-        var platformSettings = await ResolvePlatformAsync(cancellationToken);
+        var parentSettings = await ResolveTeamParentAsync(teamId, cancellationToken);
 
-        return Resolve(platformSettings, OpenIdSettingScopes.Team, settings);
+        return Resolve(parentSettings, OpenIdSettingScopes.Team, settings);
+    }
+
+    /// <summary>
+    /// Reads a team and every team above it from the store, with the top-level team first.
+    /// </summary>
+    private async ValueTask<IReadOnlyList<PersistedTeam>> ReadLineageAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITeamStore>();
+
+        var lineage = await store.GetLineageAsync(teamId, cancellationToken);
+        if (lineage.Count == 0)
+        {
+            throw new KeyNotFoundException($"The team '{teamId}' does not exist.");
+        }
+
+        return lineage;
+    }
+
+    /// <summary>
+    /// Merges each team's committed settings document onto the platform's settings, in the order given.
+    /// </summary>
+    private IReadOnlySettingCollection Fold(
+        IReadOnlySettingCollection platformSettings,
+        IEnumerable<PersistedTeam> teams
+    )
+    {
+        var settings = platformSettings;
+        foreach (var team in teams)
+        {
+            settings = ResolveStored(
+                settings,
+                OpenIdSettingScopes.Team,
+                team.TeamId,
+                team.Settings.Value
+            );
+        }
+
+        return settings;
     }
 }

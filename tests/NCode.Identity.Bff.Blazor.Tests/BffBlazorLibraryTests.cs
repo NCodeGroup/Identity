@@ -8,10 +8,10 @@ namespace NCode.Identity.Bff.Blazor.Tests;
 
 public class BffBlazorLibraryTests : BaseTests
 {
-    #region BffBlazorLibrary
+    #region BffBlazorLibrary Tests
 
     [Fact]
-    public void Marker_IsRegistrationMarker()
+    public void BffBlazorLibrary_IsRegistrationMarker()
     {
         Assert.IsAssignableFrom<IRegistrationMarker<BffBlazorLibrary>>(default(BffBlazorLibrary));
     }

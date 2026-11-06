@@ -124,10 +124,10 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
         return httpContext;
     }
 
-    #region Revalidation Tests
+    #region SetAuthenticationState Tests
 
     [Fact]
-    public async Task Revalidate_SessionEnded_SignsOut()
+    public async Task SetAuthenticationState_SessionEnded_SignsOut()
     {
         var validated = CreateSignal();
         MockSession.Setup(x => x.RevalidationInterval).Returns(Interval).Verifiable();
@@ -148,7 +148,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     }
 
     [Fact]
-    public async Task Revalidate_SessionAlive_KeepsUser()
+    public async Task SetAuthenticationState_SessionAlive_KeepsUser()
     {
         var calls = 0;
         var validated = CreateSignal();
@@ -176,7 +176,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     }
 
     [Fact]
-    public async Task Revalidate_StoreUnavailable_KeepsUser()
+    public async Task SetAuthenticationState_StoreUnavailable_KeepsUser()
     {
         var calls = 0;
         var validated = CreateSignal();
@@ -235,7 +235,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     }
 
     [Fact]
-    public async Task Anonymous_NeverValidates()
+    public async Task SetAuthenticationState_Anonymous_NeverValidates()
     {
         Provider.SetAuthenticationState(
             Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())))
@@ -251,10 +251,10 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
 
     #endregion
 
-    #region Persistence Tests
+    #region PersistStateAsync Tests
 
     [Fact]
-    public async Task Persist_PageRequest_PersistsDocument()
+    public async Task PersistStateAsync_PageRequest_PersistsDocument()
     {
         var httpContext = CreatePageContext();
         var document = JsonElement.Parse("""{ "sub": "user-1", "logoutUrl": "/bff/logout" }""");
@@ -273,7 +273,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     }
 
     [Fact]
-    public async Task Persist_NoHttpContext_PersistsNothing()
+    public async Task PersistStateAsync_NoHttpContext_PersistsNothing()
     {
         MockHttpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null).Verifiable();
 

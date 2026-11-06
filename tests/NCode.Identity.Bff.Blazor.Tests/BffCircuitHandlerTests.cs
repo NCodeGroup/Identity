@@ -30,10 +30,10 @@ public sealed class BffCircuitHandlerTests : BaseTests
         (CircuitInboundActivityContext)
             RuntimeHelpers.GetUninitializedObject(typeof(CircuitInboundActivityContext));
 
-    #region CreateInboundActivityHandler
+    #region CreateInboundActivityHandler Tests
 
     [Fact]
-    public async Task InboundActivity_WithConnection_MakesItCurrent()
+    public async Task CreateInboundActivityHandler_WithConnection_MakesItCurrent()
     {
         var mockSession = CreateStrictMock<IBffConnectionSession>();
         var mockScope = CreateStrictMock<IDisposable>();
@@ -65,7 +65,7 @@ public sealed class BffCircuitHandlerTests : BaseTests
     }
 
     [Fact]
-    public async Task InboundActivity_Anonymous_CallsNext()
+    public async Task CreateInboundActivityHandler_Anonymous_CallsNext()
     {
         var context = CreateContext();
         var called = false;

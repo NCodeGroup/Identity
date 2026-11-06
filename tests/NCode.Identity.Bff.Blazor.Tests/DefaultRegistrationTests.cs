@@ -11,19 +11,20 @@ namespace NCode.Identity.Bff.Blazor.Tests;
 
 public class DefaultRegistrationTests : BaseTests
 {
-    private static IServiceBuilder<BffLibrary> CreateBffBuilder(ServiceCollection services) =>
-        services.NewBuilder<BffLibrary>();
+    private static IServiceBuilder<BffLibrary> CreateBffBuilder(
+        ServiceCollection serviceCollection
+    ) => serviceCollection.NewBuilder<BffLibrary>();
 
-    #region AddBffBlazorLibrary
+    #region AddBffBlazorLibrary Tests
 
     [Fact]
     public void AddBffBlazorLibrary_ReplacesAuthenticationStateProvider()
     {
-        var services = new ServiceCollection();
-        CreateBffBuilder(services).AddBffBlazorLibrary();
+        var serviceCollection = new ServiceCollection();
+        CreateBffBuilder(serviceCollection).AddBffBlazorLibrary();
 
         var descriptor = Assert.Single(
-            services,
+            serviceCollection,
             x => x.ServiceType == typeof(AuthenticationStateProvider)
         );
 
@@ -34,12 +35,12 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddBffBlazorLibrary_AfterRazorComponents_ReplacesAuthenticationStateProvider()
     {
-        var services = new ServiceCollection();
-        services.AddRazorComponents().AddInteractiveServerComponents();
-        CreateBffBuilder(services).AddBffBlazorLibrary();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddRazorComponents().AddInteractiveServerComponents();
+        CreateBffBuilder(serviceCollection).AddBffBlazorLibrary();
 
         var descriptor = Assert.Single(
-            services,
+            serviceCollection,
             x => x.ServiceType == typeof(AuthenticationStateProvider)
         );
 
@@ -50,11 +51,11 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddBffBlazorLibrary_RegistersCircuitHandler()
     {
-        var services = new ServiceCollection();
-        CreateBffBuilder(services).AddBffBlazorLibrary();
+        var serviceCollection = new ServiceCollection();
+        CreateBffBuilder(serviceCollection).AddBffBlazorLibrary();
 
         var descriptor = Assert.Single(
-            services,
+            serviceCollection,
             x =>
                 x.ServiceType == typeof(CircuitHandler)
                 && x.ImplementationType == typeof(BffCircuitHandler)
@@ -66,8 +67,8 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddBffBlazorLibrary_CalledTwice_Throws()
     {
-        var services = new ServiceCollection();
-        var builder = CreateBffBuilder(services);
+        var serviceCollection = new ServiceCollection();
+        var builder = CreateBffBuilder(serviceCollection);
         builder.AddBffBlazorLibrary();
 
         Assert.Throws<InvalidOperationException>(() => builder.AddBffBlazorLibrary());

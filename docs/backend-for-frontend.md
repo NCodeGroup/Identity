@@ -596,7 +596,8 @@ controller) adds metadata that the cookie-acceptance middleware enforces:
 account page. Marking an endpoint with `.AsBffPage()` (or `[BffPage]` on a controller or a Razor Page) lets the BFF
 cookie authenticate it:
 
-- A page accepts **`GET` and `HEAD`** by navigation, and any other method as a form post: Fetch Metadata must show no
+- A page accepts **`GET`, `HEAD`, `OPTIONS` and `TRACE`** without a token, and any other method as a form post: Fetch
+  Metadata must show no
   cross-site request (a same-site request only from a trusted origin), and ASP.NET Core's antiforgery token, the one
   Razor Pages, MVC tag helpers and Blazor's `<AntiforgeryToken>` emit, must be valid under the session's principal.
   `UseBff()` checks both. A failure is a `403` `application/problem+json` (`cross_site_request` or

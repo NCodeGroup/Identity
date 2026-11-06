@@ -40,8 +40,9 @@ internal static class BffGuardedEndpoints
 
     /// <summary>
     /// Determines whether the endpoint is a page marked <c>[BffPage]</c> or <c>AsBffPage()</c> and neither an API nor a
-    /// hub: <c>GET</c> and <c>HEAD</c> by navigation and a form post that passes Fetch Metadata and carries a valid
-    /// antiforgery token, and a challenge redirects to login. An API and a hub outrank a page.
+    /// hub: <c>GET</c>, <c>HEAD</c>, <c>OPTIONS</c> and <c>TRACE</c> without a token and a form post that passes Fetch
+    /// Metadata and carries a valid antiforgery token, and a challenge redirects to login. An API and a hub outrank a
+    /// page.
     /// </summary>
     /// <param name="endpoint">The endpoint of the request, if any.</param>
     public static bool IsPage(Endpoint? endpoint) =>

@@ -38,9 +38,9 @@ public static class BffEndpointConventionBuilderExtensions
         /// Marks the endpoint as a BFF page by adding a <see cref="BffPageAttribute"/> to its metadata.
         /// </summary>
         /// <remarks>
-        /// The marking lets a BFF session authenticate the request on <c>GET</c> and <c>HEAD</c> by navigation and on
-        /// a form post that passes Fetch Metadata and carries a valid antiforgery token, requires no anti-forgery
-        /// header, and answers a challenge with a redirect to the BFF login.
+        /// The marking lets a BFF session authenticate the request on <c>GET</c>, <c>HEAD</c>, <c>OPTIONS</c> and
+        /// <c>TRACE</c> without a token and on a form post that passes Fetch Metadata and carries a valid antiforgery
+        /// token, requires no anti-forgery header, and answers a challenge with a redirect to the BFF login.
         /// Controllers use the <see cref="BffPageAttribute"/> attribute instead.
         /// </remarks>
         /// <returns>The same builder, so that calls can be chained.</returns>

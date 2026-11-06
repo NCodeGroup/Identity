@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (amends
   [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) and
-  [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) decision 1)
+  [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) decision 1 and
+  [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 

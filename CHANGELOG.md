@@ -2467,8 +2467,8 @@ describes the family as it is rather than its changes
   default the grant stays inside the provider's login session and the provider's logout reaches the BFF.
   `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, including when a hub or Blazor circuit
   connection revalidates the session without an `HttpContext`, and back-channel logout ends
-  sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD and a form
-  post with a valid antiforgery token, and `AsBffHub`/`[BffHub]` a SignalR hub whose connection holds the session
+  sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET, HEAD,
+  OPTIONS and TRACE, and a form post with a valid antiforgery token, and `AsBffHub`/`[BffHub]` a SignalR hub whose connection holds the session
   (`IBffConnectionSession`) and obtains tokens through `IBffTokenContext`.
   A won refresh and a logout are never cancelled by the browser, so a rotated refresh token is kept and a session always
   ends. `AddIdentityBff` validates the refresh lease against the client's request timeout, and the protocol client's

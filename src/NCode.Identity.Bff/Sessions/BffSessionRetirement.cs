@@ -27,11 +27,6 @@ internal class BffSessionRetirement(
 )
 {
     /// <summary>
-    /// Gets how long a replica holds the lease of one frontend.
-    /// </summary>
-    internal static TimeSpan LeaseDuration { get; } = TimeSpan.FromMinutes(5);
-
-    /// <summary>
     /// Ends the stored sessions of the frontends that the set removed or configured as another client.
     /// </summary>
     /// <param name="frontends">The set of frontends that the BFF serves.</param>
@@ -67,7 +62,7 @@ internal class BffSessionRetirement(
 
             var lease = await store.TryAcquireRefreshLeaseAsync(
                 "retire:" + frontend,
-                timeProvider.GetUtcNow() + LeaseDuration,
+                timeProvider.GetUtcNow() + frontends.Options.SessionRetirement.LeaseDuration,
                 cancellationToken
             );
             if (lease is null)
@@ -116,8 +111,8 @@ internal class BffSessionRetirement(
 
             try
             {
-                await sessions.EndAsync(null, key, metadata, recordReason, cancellationToken);
-                ++count;
+                if (await sessions.EndAsync(null, key, metadata, recordReason, cancellationToken))
+                    ++count;
             }
             catch (Exception exception)
                 when (exception is not BffStoreUnavailableException

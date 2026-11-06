@@ -14,7 +14,7 @@ namespace NCode.Identity.Bff.Hosting;
 /// </summary>
 /// <remarks>
 /// A pass that fails, or that leaves a frontend to another holder of its lease, is tried again after
-/// <see cref="RetryDelay"/>; every change of the frontends starts a pass for the changed set at once.
+/// <c>Bff:SessionRetirement:RetryDelay</c>; every change of the frontends starts a pass for the changed set at once.
 /// </remarks>
 // See ADR-1443.
 internal sealed class BffSessionRetirementService(
@@ -24,29 +24,25 @@ internal sealed class BffSessionRetirementService(
     ILogger<BffSessionRetirementService> logger
 ) : BackgroundService
 {
-    /// <summary>
-    /// Gets how long the service waits before it repeats a pass that failed.
-    /// </summary>
-    internal static TimeSpan RetryDelay { get; } = TimeSpan.FromMinutes(1);
-
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
             var changed = frontends.GetChangeToken();
+            var current = frontends.Current;
             var delay = Timeout.InfiniteTimeSpan;
 
             try
             {
-                var complete = await retirement.RetireAsync(frontends.Current, stoppingToken);
+                var complete = await retirement.RetireAsync(current, stoppingToken);
                 if (!complete)
-                    delay = RetryDelay;
+                    delay = current.Options.SessionRetirement.RetryDelay;
             }
             catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
             {
                 logger.FrontendRetirementFailed(exception);
-                delay = RetryDelay;
+                delay = current.Options.SessionRetirement.RetryDelay;
             }
 
             var signal = new TaskCompletionSource(

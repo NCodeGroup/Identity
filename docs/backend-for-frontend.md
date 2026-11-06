@@ -927,6 +927,8 @@ every registered rule, and `IsMatch` reads only the request. Two rules are built
   (`client_changed`), and a background pass on one replica, at start and after each change, ends every stored session
   of a removed or re-registered frontend (`frontend_removed`, `client_changed`) through the store's client index
   ([ADR-1443](decisions/1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)).
+  The pass holds each frontend's lease for `Bff:SessionRetirement:LeaseDuration` (5 minutes by default) and runs again
+  after `Bff:SessionRetirement:RetryDelay` (1 minute by default) when it fails or leaves a frontend to another replica.
 
 **Isolation.** Each frontend has its own session cookie, `__Host-Http-bff.<name>`, and login cookie,
 `__Host-Http-bff-login.<name>`, so two surfaces on one origin never share a session cookie. Naming the cookie per frontend

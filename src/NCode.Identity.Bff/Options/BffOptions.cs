@@ -27,4 +27,10 @@ public sealed class BffOptions
     /// Gets or sets the token refresh options. The configuration section is <c>Bff:Tokens</c>.
     /// </summary>
     public BffTokenOptions Tokens { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the options of the pass that ends the sessions of removed or re-registered frontends. The
+    /// configuration section is <c>Bff:SessionRetirement</c>.
+    /// </summary>
+    public BffSessionRetirementOptions SessionRetirement { get; set; } = new();
 }

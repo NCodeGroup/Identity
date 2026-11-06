@@ -57,6 +57,36 @@ internal class BffOptionsValidator(
         }
     }
 
+    private static void ValidateSessionRetirement(
+        BffSessionRetirementOptions? sessionRetirement,
+        List<string> failures
+    )
+    {
+        if (sessionRetirement is null)
+        {
+            failures.Add("Bff:SessionRetirement must be set.");
+            return;
+        }
+
+        if (
+            sessionRetirement.LeaseDuration < TimeSpan.FromMinutes(1)
+            || sessionRetirement.LeaseDuration > TimeSpan.FromHours(1)
+        )
+        {
+            failures.Add(
+                "Bff:SessionRetirement:LeaseDuration must be between 1 minute and 1 hour."
+            );
+        }
+
+        if (
+            sessionRetirement.RetryDelay < TimeSpan.FromSeconds(1)
+            || sessionRetirement.RetryDelay > TimeSpan.FromHours(1)
+        )
+        {
+            failures.Add("Bff:SessionRetirement:RetryDelay must be between 1 second and 1 hour.");
+        }
+    }
+
     private static void ValidateAntiforgery(
         BffAntiforgeryOptions? antiforgery,
         List<string> failures
@@ -104,6 +134,7 @@ internal class BffOptionsValidator(
         ValidateFrontends(options.Frontends, isDevelopment, failures);
         ValidateAntiforgery(options.Antiforgery, failures);
         ValidateTokens(options.Tokens, failures);
+        ValidateSessionRetirement(options.SessionRetirement, failures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success

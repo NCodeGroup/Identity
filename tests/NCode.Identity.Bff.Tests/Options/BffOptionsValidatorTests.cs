@@ -595,6 +595,46 @@ public class BffOptionsValidatorTests : BaseTests
         Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Tokens:RefreshLeaseDuration"));
     }
 
+    [Theory]
+    [InlineData(59)]
+    [InlineData(3601)]
+    public void Validate_SessionRetirementLeaseDurationOutOfRange_Fails(int seconds)
+    {
+        var options = CreateValidOptions();
+        options.SessionRetirement.LeaseDuration = TimeSpan.FromSeconds(seconds);
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:SessionRetirement:LeaseDuration")
+        );
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3601)]
+    public void Validate_SessionRetirementRetryDelayOutOfRange_Fails(int seconds)
+    {
+        var options = CreateValidOptions();
+        options.SessionRetirement.RetryDelay = TimeSpan.FromSeconds(seconds);
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:SessionRetirement:RetryDelay"));
+    }
+
+    [Fact]
+    public void Validate_NullSessionRetirement_Fails()
+    {
+        var options = CreateValidOptions();
+        options.SessionRetirement = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(result.Failures ?? [], x => x == "Bff:SessionRetirement must be set.");
+    }
+
     [Fact]
     public void Validate_WhenAntiforgeryHeaderNameBlank_Fails()
     {

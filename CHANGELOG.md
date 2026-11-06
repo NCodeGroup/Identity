@@ -5190,7 +5190,8 @@ describes the family as it is rather than its changes
   frontend's `Authority` and `ClientId`; a request or connection ends one whose frontend is configured with another
   (`client_changed`), a removed frontend's sessions answer no request, and a background pass on one replica, at start
   and after every change, ends every stored session of a removed or re-registered frontend (`frontend_removed`,
-  `client_changed`) through the store's client index (`IBffSessionStore.FindClientsAsync`, `FindByClientAsync`)
+  `client_changed`) through the store's client index (`IBffSessionStore.FindClientsAsync`, `FindByClientAsync`), under a
+  lease and retry delay that `Bff:SessionRetirement` configures
   ([#602](https://github.com/NCodeGroup/Identity/issues/602),
   [ADR-1443](docs/decisions/1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)).
 

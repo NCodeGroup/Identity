@@ -19,6 +19,7 @@ namespace NCode.Identity.Bff.Tests.Hosting;
 public sealed class BffSessionRetirementServiceTests : BaseTests
 {
     private static readonly TimeSpan WaitLimit = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromMinutes(2);
 
     private readonly BffTestOptionsSource _source;
     private readonly BffFrontendCatalog _frontends;
@@ -29,7 +30,11 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
 
     public BffSessionRetirementServiceTests()
     {
-        _source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        _source = new BffTestOptionsSource(
+            BffTestFrontends.CreateBffOptions(options =>
+                options.SessionRetirement.RetryDelay = RetryDelay
+            )
+        );
         _frontends = BffTestFrontends.CreateCatalog(_source);
         _retirement = CreateStrictMock<BffSessionRetirement>(
             BffTestTelemetry.Instrument(CreateStrictMock<IBffSessionStore>().Object),
@@ -108,7 +113,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
                 .Reader.ReadAsync()
                 .AsTask()
                 .WaitAsync(WaitLimit);
-            if (dueTime != BffSessionRetirementService.RetryDelay)
+            if (dueTime != RetryDelay)
                 continue;
 
             callback(state);

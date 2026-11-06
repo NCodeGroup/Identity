@@ -472,5 +472,162 @@ public class BffSessionResolverTests : BaseTests
         Assert.Same(state, result);
     }
 
+    [Fact]
+    public async Task ResolveAsync_HubEndpoint_Slides()
+    {
+        var httpContext = CreateHttpContext(endpointMetadata: new BffHubAttribute());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        BffSessionState? slidState = null;
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) => slidState = update(current)
+            )
+            .Verifiable();
+
+        var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(Now, result.Metadata.LastAccessedAt);
+        Assert.Same(slidState, result);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_WithSession_PrincipalCarriesLogoutClaims()
+    {
+        var httpContext = CreateHttpContext();
+        httpContext.Request.PathBase = "/app";
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+
+        await Resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        var principal = httpContext.Features.Get<BffRequestFeature>()?.Principal;
+        Assert.NotNull(principal);
+        Assert.Equal("/app/bff/logout", principal.FindFirst(BffClaimTypes.LogoutUrl)?.Value);
+        Assert.Equal("guard", principal.FindFirst(BffClaimTypes.LogoutSid)?.Value);
+        var sessionFeature = httpContext.Features.Get<IBffSessionFeature>();
+        Assert.NotNull(sessionFeature);
+        Assert.Equal(
+            "/app/bff/logout",
+            sessionFeature.Principal.FindFirst(BffClaimTypes.LogoutUrl)?.Value
+        );
+    }
+
+    #endregion
+
+    #region ValidateAsync Tests
+
+    [Fact]
+    public async Task ValidateAsync_Expired_EndsSessionWithoutHttpContext()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var state = CreateState(Now, Now.AddHours(1));
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.EndAsync(
+                    null,
+                    state.StoreKey,
+                    state.Metadata,
+                    BffSessionEndReasons.AbsoluteExpiry,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Resolver.ValidateAsync(
+            frontend,
+            Handle,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_ActivityAfterThreshold_Slides()
+    {
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) => update(current)
+            )
+            .Verifiable();
+
+        var result = await Resolver.ValidateAsync(
+            frontend,
+            Handle,
+            null,
+            Now,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal(Now, result.Metadata.LastAccessedAt);
+        Assert.Equal(Now.AddHours(1), result.Metadata.IdleExpiresAt);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_NoActivity_DoesNotSlide()
+    {
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+
+        var result = await Resolver.ValidateAsync(
+            frontend,
+            Handle,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.Same(state, result);
+    }
+
     #endregion
 }

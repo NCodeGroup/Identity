@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
+using NCode.Identity.Bff.Navigation;
 
 namespace NCode.Identity.Bff.Sessions;
 
@@ -53,24 +54,61 @@ internal class BffSessionResolver(
 
         var frontend = _frontends.Resolve(httpContext);
         if (frontend is null)
-            return Complete(httpContext, feature, null);
+            return CompleteWithoutSession(feature);
 
         var handle = _cookies.ReadSessionHandle(httpContext.Request, frontend);
         if (handle is null)
-            return Complete(httpContext, feature, null);
+            return CompleteWithoutSession(feature);
 
-        var state = await _sessionManager.LoadAsync(handle, cancellationToken);
+        var slides =
+            BffGuardedEndpoints.IsApi(endpoint)
+            || BffGuardedEndpoints.IsHub(endpoint)
+            || BffGuardedEndpoints.IsPage(endpoint);
+        DateTimeOffset? activityAt = slides ? _timeProvider.GetUtcNow() : null;
+
+        var state = await ValidateAsync(
+            frontend,
+            handle,
+            httpContext,
+            activityAt,
+            cancellationToken
+        );
         if (state is null)
         {
             _cookies.DeleteSession(httpContext.Response, frontend);
-            return Complete(httpContext, feature, null);
+            return CompleteWithoutSession(feature);
         }
 
+        return Complete(httpContext, feature, frontend, state);
+    }
+
+    /// <summary>
+    /// Loads and validates the session of a handle, ends it when it has expired or a validator refuses it, and slides
+    /// it from <paramref name="activityAt"/>. It never touches cookies or request features.
+    /// </summary>
+    /// <param name="frontend">The frontend that the session must belong to.</param>
+    /// <param name="handle">The session handle.</param>
+    /// <param name="httpContext">The request that resolved the session, or <see langword="null"/> when a connection revalidates it.</param>
+    /// <param name="activityAt">The time of the activity that slides the session, or <see langword="null"/> to not slide it.</param>
+    /// <param name="cancellationToken">The token to cancel the operation.</param>
+    /// <returns>The valid session, or <see langword="null"/> when there is none.</returns>
+    public virtual async ValueTask<BffSessionState?> ValidateAsync(
+        BffFrontend frontend,
+        string handle,
+        HttpContext? httpContext,
+        DateTimeOffset? activityAt,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(frontend);
+        ArgumentException.ThrowIfNullOrEmpty(handle);
+
+        var state = await _sessionManager.LoadAsync(handle, cancellationToken);
+        if (state is null)
+            return null;
+
         if (!string.Equals(state.Metadata.Frontend, frontend.Name, StringComparison.Ordinal))
-        {
-            _cookies.DeleteSession(httpContext.Response, frontend);
-            return Complete(httpContext, feature, null);
-        }
+            return null;
 
         var now = _timeProvider.GetUtcNow();
         string? endReason = null;
@@ -88,8 +126,7 @@ internal class BffSessionResolver(
                 endReason,
                 cancellationToken
             );
-            _cookies.DeleteSession(httpContext.Response, frontend);
-            return Complete(httpContext, feature, null);
+            return null;
         }
 
         var principal = BffSessionPrincipal.Create(state.Payload.Claims, state.Metadata.Issuer);
@@ -111,29 +148,20 @@ internal class BffSessionResolver(
                 BffSessionEndReasons.EndedByValidator,
                 cancellationToken
             );
-            _cookies.DeleteSession(httpContext.Response, frontend);
-            return Complete(httpContext, feature, null);
+            return null;
         }
 
-        var slides = BffGuardedEndpoints.IsApi(endpoint) || BffGuardedEndpoints.IsPage(endpoint);
         var idleTimeout = frontend.Options.Session.IdleTimeout;
-        if (slides && now - state.Metadata.LastAccessedAt >= idleTimeout / 10)
+        if (activityAt is { } at && at - state.Metadata.LastAccessedAt >= idleTimeout / 10)
         {
-            var slid = await _sessionManager.UpdateAsync(
+            return await _sessionManager.UpdateAsync(
                 state,
-                current => Slide(current, now, idleTimeout),
+                current => Slide(current, at, idleTimeout),
                 cancellationToken
             );
-            if (slid is null)
-            {
-                _cookies.DeleteSession(httpContext.Response, frontend);
-                return Complete(httpContext, feature, null);
-            }
-
-            state = slid;
         }
 
-        return Complete(httpContext, feature, state);
+        return state;
     }
 
     private static BffSessionState Slide(
@@ -162,18 +190,27 @@ internal class BffSessionResolver(
         return current with { Metadata = slid };
     }
 
-    private static BffSessionState? Complete(
+    private static BffSessionState? CompleteWithoutSession(BffRequestFeature feature)
+    {
+        feature.IsResolved = true;
+        feature.Session = null;
+        return null;
+    }
+
+    private static BffSessionState Complete(
         HttpContext httpContext,
         BffRequestFeature feature,
-        BffSessionState? state
+        BffFrontend frontend,
+        BffSessionState state
     )
     {
         feature.IsResolved = true;
         feature.Session = state;
-        if (state is null)
-            return null;
 
-        var principal = BffSessionPrincipal.Create(state.Payload.Claims, state.Metadata.Issuer);
+        var principal = BffSessionPrincipal.Create(
+            state,
+            BffNavigation.LogoutUrl(httpContext.Request, frontend.Options)
+        );
         feature.Principal = principal;
         httpContext.Features.Set<IBffSessionFeature>(
             new BffSessionFeature(state.Metadata, principal)

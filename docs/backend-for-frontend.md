@@ -641,15 +641,20 @@ session, slides it from the connection's activity, and obtains tokens without an
 - `IBffConnectionRevalidator` is the one loop that keeps a connection's session current. It waits
   `Session:RevalidationInterval` (1 minute by default, at most half the idle timeout), revalidates the session without
   sliding it, so the idle timeout still ends the session of an idle connection, and returns once the session has
-  ended. It retries when the store is unavailable and fails closed on any other failure
-  ([ADR-1441](decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+  ended. It returns at once when the connection's `SessionEnded` token is cancelled: a connection session cancels it
+  once any use finds the session ended, and from then on reports the session ended without reading the store. It
+  retries when the store is unavailable and fails closed on any other failure
+  ([ADR-1441](decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
+  [ADR-1445](decisions/1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md)).
 - `BffHubFilter`, registered for every hub, watches each connection from connect to disconnect through the revalidator
   and aborts the connection once the session has ended, idle or not. An invocation revalidates the connection once the
   interval has passed, slides the session from the invocation, aborts the connection when the session has ended, and
   makes the connection current for `AddBffAccessTokenHandler`.
-- `[BffSelfRevalidatingHub]` marks a hub whose application revalidates its own connections; the filter starts no
-  watch for it. `AsBffComponents()` puts it on the Blazor hub, whose circuit waits on the same revalidator and signs
-  out instead of closing.
+- `[BffSelfRevalidatingHub]` marks a hub whose application signs its users out itself. The filter starts no watch for
+  it and never closes its connection: an invocation that finds the session ended fails with a `HubException`, and once
+  the session ended the connection's invocations run without the session. `AsBffComponents()` puts it on the Blazor
+  hub, whose circuit waits on the same revalidator and signs out instead of closing
+  ([ADR-1445](decisions/1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md)).
 
 **Remote APIs** are forwarded to an allow-listed destination. `MapBffRemoteApi("/api/orders", destination, options)`
 binds a local path prefix to **one** destination base URL. The forwarder:
@@ -928,15 +933,17 @@ every registered rule, and `IsMatch` reads only the request. Two rules are built
 - **Ambiguity.** Frontends of different rules can still select one request, such as a host-selected and a
   path-selected frontend. That request fails closed with `InvalidOperationException` (`500`) instead of picking one.
 - **Reload.** The frontends follow the `Bff` section. When its configuration source reloads, `BffFrontendCatalog` builds
-  the whole candidate set (the options validators, the selection rules, each frontend's client-authentication method,
-  and the checks that `MapBffRemoteApi()` and `MapBffRemoteApis()` add) and replaces the frontends, `Antiforgery` and
-  `Tokens` at once only when it passes. An invalid change keeps the last valid set and is logged at `Error` (event
-  19012). The endpoints of `MapBffEndpoints()` and `MapBffRemoteApis()` follow the set, with the conventions added to
-  their route group, and the endpoint check runs again. A source that never reloads, such as options configured in
-  code, fixes the frontends for the host's life. `Bff:KeyRings` entries are registered when `AddIdentityBff` is called
-  and are not re-read by a change, so a frontend added by a change names a key ring that the host already has
+  the whole candidate set (the options validators, the selection rules, each frontend's client-authentication method
+  and key rings, and the checks that `MapBffRemoteApi()` and `MapBffRemoteApis()` add) and replaces the frontends,
+  `Antiforgery` and `Tokens` at once only when it passes. An invalid change keeps the last valid set and is logged at
+  `Error` (event 19012). The endpoints of `MapBffEndpoints()` and `MapBffRemoteApis()` follow the set, with the
+  conventions added to their route group, and the endpoint check runs again. A source that never reloads, such as
+  options configured in code, fixes the frontends for the host's life. `Bff:KeyRings` entries are registered when
+  `AddIdentityBff` is called and are not re-read by a change, so a frontend added by a change must name a key ring that
+  the host already has, or the change is refused
   ([ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md),
-  [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+  [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
+  [ADR-1446](decisions/1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md)).
 - **Removal.** A removed frontend serves no request, so its cookie is never read. A session records its frontend's
   `Authority` and `ClientId`: a request or a connection ends a session whose frontend is configured with another
   (`client_changed`), and a background pass on one replica, at start and after each change, ends every stored session
@@ -1008,9 +1015,12 @@ var bff = builder.Services.AddIdentityBff(builder.Configuration); // NCode.Ident
 bff.SharedStateLibraryBuilder.AddValkey(builder.Configuration);    // only when running several replicas
 builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the seam for a key ring held elsewhere, such as a KMS
     "orders-web-client-key", (serviceProvider, _) => LoadClientKeys(serviceProvider));
+builder.Services.AddTrustedForwardedHeaders(builder.Configuration); // NCode.AspNetCore; "ForwardedHeaders"
+builder.Services.AddStrictTransportSecurity(builder.Configuration);   // "StrictTransportSecurity"
 
 var app = builder.Build();
-app.UseForwardedHeaders();
+app.UseTrustedForwardedHeaders();
+app.UseStrictTransportSecurity();
 app.UseBffSecurityHeaders();                            // optional; Bff:Frontends:{name}:SecurityHeaders
 app.UseCors(myCorsPolicy);                              // optional, and always outermost
 app.UseBff();                                           // anti-forgery header + Fetch Metadata + session resolution
@@ -1091,7 +1101,7 @@ provider in code and configures no entry for it
 - `Bff:Frontends:{name}:PublicOrigin` is missing, not an absolute URL in canonical form, has user info, a query, a
   fragment or a trailing `/`, or is not `https` (outside Development).
 - The client-authentication method or the token requirement names something not registered.
-- There are no `Bff:Frontends:{name}:ReturnUrls`, or an entry is not a same-origin relative path.
+- `Bff:Frontends:{name}:ClientAuthentication:KeyRing` or `DPoP:KeyRing` names a key ring that is not registered.- There are no `Bff:Frontends:{name}:ReturnUrls`, or an entry is not a same-origin relative path.
 - A remote API's destination is not `https` (outside Development), or its path overlaps the frontend's `PathPrefix` or
   another of its APIs' local prefixes.
 - `Bff:Frontends:{name}:Jwks:Enabled` is `true` without `ClientAuthentication:KeyRing`.
@@ -1247,7 +1257,11 @@ client `mgmt-console` of the control-plane tenant
   machine callers and every other path to the console host.
 
 `AddManagementConsole(configuration)` composes `AddIdentityBff` and binds the `ManagementConsole` section strictly, and
-`MapManagementConsole()` maps the console's endpoints. The host's `Program.cs` holds nothing else. The console host
+`MapManagementConsole()` maps the console's endpoints. The host's `Program.cs` adds only the transport layer every host
+composes from `NCode.AspNetCore`: forwarded headers trusted from the proxies the `ForwardedHeaders` section names, and
+`Strict-Transport-Security` outside Development
+([ADR-1447](decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
+The console host
 answers these paths:
 
 | Path                      | Answer                                                                                                                                                                              |

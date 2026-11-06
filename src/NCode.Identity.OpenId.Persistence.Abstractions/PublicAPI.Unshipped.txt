@@ -503,10 +503,14 @@ NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTeamResource.TeamId
 NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedTeamResource.TeamId.init -> void
 NCode.Identity.OpenId.Persistence.DataContracts.ISupportPersistedTeamResource
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.AncestorTeamIds.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.AncestorTeamIds.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.DisplayName.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.DisplayName.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.IsDisabled.get -> bool
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.IsDisabled.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ParentTeamId.get -> string?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ParentTeamId.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.PersistedTeam() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ReconciledSettings.get -> System.Text.Json.JsonElement?
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam.ReconciledSettings.set -> void

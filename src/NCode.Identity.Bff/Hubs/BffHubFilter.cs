@@ -11,15 +11,18 @@ namespace NCode.Identity.Bff.Hubs;
 
 /// <summary>
 /// Revalidates the BFF session that a hub connection holds once its revalidation interval has passed, slides the
-/// session from the invocation, ends the connection when the session ended, and makes the connection current for the
-/// invocation so an outbound call obtains its token through <see cref="IBffConnectionSessionAccessor"/>. A connection
-/// of a hub that is not marked with <see cref="BffSelfRevalidatingHubAttribute"/> is also watched while it is idle:
-/// it is aborted once <see cref="IBffConnectionRevalidator"/> reports that its session ended.
+/// session from the invocation, and makes the connection current for the invocation so an outbound call obtains its
+/// token through <see cref="IBffConnectionSessionAccessor"/>. An invocation that finds the session ended fails, and the
+/// connection closes unless its hub is marked with <see cref="BffSelfRevalidatingHubAttribute"/>, whose application
+/// signs its user out, so such a hub's later invocations run without the session. A connection of a hub that is not
+/// marked with <see cref="BffSelfRevalidatingHubAttribute"/> is also watched while it is idle: it is aborted once
+/// <see cref="IBffConnectionRevalidator"/> reports that its session ended.
 /// </summary>
 /// <param name="connections">The accessor of the current connection session.</param>
 /// <param name="revalidator">The revalidator that waits for the session of an idle connection to end.</param>
 /// <param name="timeProvider">The time provider.</param>
 /// <param name="logger">The logger.</param>
+// See ADR-1445.
 internal sealed class BffHubFilter(
     IBffConnectionSessionAccessor connections,
     IBffConnectionRevalidator revalidator,
@@ -90,6 +93,14 @@ internal sealed class BffHubFilter(
         if (context.User?.GetBffConnectionSession() is not { } connection)
             return await next(invocationContext);
 
+        if (connection.SessionEnded.IsCancellationRequested)
+        {
+            if (IsSelfRevalidating(context))
+                return await next(invocationContext);
+
+            throw CloseUnlessSelfRevalidating(context);
+        }
+
         var now = timeProvider.GetUtcNow();
         if (
             !context.Items.TryGetValue(ValidatedAtKey, out var stored)
@@ -154,11 +165,16 @@ internal sealed class BffHubFilter(
         }
 
         if (principal is null)
-        {
-            context.Abort();
-            throw new HubException("The BFF session ended.");
-        }
+            throw CloseUnlessSelfRevalidating(context);
 
         context.Items[ValidatedAtKey] = now;
+    }
+
+    private static HubException CloseUnlessSelfRevalidating(HubCallerContext context)
+    {
+        if (!IsSelfRevalidating(context))
+            context.Abort();
+
+        return new HubException("The BFF session ended.");
     }
 }

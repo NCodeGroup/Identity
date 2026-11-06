@@ -87,25 +87,48 @@ public class BffHubFilterTests : BaseTests
 
     private Mock<HubCallerContext> CreateConnectionContext(
         Mock<IBffConnectionSession> session,
-        bool validate
+        bool validate,
+        bool readsItems = true
     )
     {
         var user = new ClaimsPrincipal(
             new BffConnectionIdentity(new ClaimsIdentity("test"), session.Object)
         );
         var context = CreateContext(user);
-        context.SetupGet(x => x.Items).Returns(_items).Verifiable();
+        if (readsItems)
+            context.SetupGet(x => x.Items).Returns(_items).Verifiable();
         if (validate)
             context.SetupGet(x => x.ConnectionAborted).Returns(_connectionAborted).Verifiable();
         return context;
     }
 
-    private Mock<IBffConnectionSession> CreateSession(bool readsInterval = false)
+    private Mock<IBffConnectionSession> CreateSession(
+        bool readsInterval = false,
+        bool ended = false
+    )
     {
         var session = CreateStrictMock<IBffConnectionSession>();
+        session.SetupGet(x => x.SessionEnded).Returns(new CancellationToken(ended));
         if (readsInterval)
             session.SetupGet(x => x.RevalidationInterval).Returns(Interval).Verifiable();
         return session;
+    }
+
+    private static IFeatureCollection CreateHubFeatures(bool selfRevalidating)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.SetEndpoint(
+            new Endpoint(
+                requestDelegate: null,
+                selfRevalidating
+                    ? new EndpointMetadataCollection(new BffSelfRevalidatingHubAttribute())
+                    : EndpointMetadataCollection.Empty,
+                displayName: "hub"
+            )
+        );
+        var features = new FeatureCollection();
+        features.Set<IHttpContextFeature>(new TestHttpContextFeature { HttpContext = httpContext });
+        return features;
     }
 
     private HubInvocationContext CreateInvocation(HubCallerContext context) =>
@@ -163,17 +186,7 @@ public class BffHubFilterTests : BaseTests
     {
         var session = CreateSession();
         var context = CreateConnectionContext(session, validate: false);
-        var httpContext = new DefaultHttpContext();
-        httpContext.SetEndpoint(
-            new Endpoint(
-                requestDelegate: null,
-                new EndpointMetadataCollection(new BffSelfRevalidatingHubAttribute()),
-                displayName: "hub"
-            )
-        );
-        var features = new FeatureCollection();
-        features.Set<IHttpContextFeature>(new TestHttpContextFeature { HttpContext = httpContext });
-        SetupFeatures(context, features);
+        SetupFeatures(context, CreateHubFeatures(selfRevalidating: true));
 
         await CreateFilter()
             .OnConnectedAsync(
@@ -381,11 +394,85 @@ public class BffHubFilterTests : BaseTests
     {
         var session = CreateSession();
         var context = CreateConnectionContext(session, validate: true);
+        SetupFeatures(context, new FeatureCollection());
         context.Setup(x => x.Abort()).Verifiable();
         session
             .Setup(x => x.ValidateAsync(Now, _connectionAborted))
             .Returns(new ValueTask<ClaimsPrincipal?>((ClaimsPrincipal?)null))
             .Verifiable();
+        var called = false;
+
+        await Assert.ThrowsAsync<HubException>(async () =>
+            await CreateFilter()
+                .InvokeMethodAsync(
+                    CreateInvocation(context.Object),
+                    invocation =>
+                    {
+                        called = true;
+                        return Next(invocation);
+                    }
+                )
+        );
+
+        Assert.False(called);
+    }
+
+    [Fact]
+    public async Task InvokeMethodAsync_SelfRevalidatingHubSessionEnded_ThrowsWithoutAborting()
+    {
+        var session = CreateSession();
+        var context = CreateConnectionContext(session, validate: true);
+        SetupFeatures(context, CreateHubFeatures(selfRevalidating: true));
+        session
+            .Setup(x => x.ValidateAsync(Now, _connectionAborted))
+            .Returns(new ValueTask<ClaimsPrincipal?>((ClaimsPrincipal?)null))
+            .Verifiable();
+        var called = false;
+
+        await Assert.ThrowsAsync<HubException>(async () =>
+            await CreateFilter()
+                .InvokeMethodAsync(
+                    CreateInvocation(context.Object),
+                    invocation =>
+                    {
+                        called = true;
+                        return Next(invocation);
+                    }
+                )
+        );
+
+        Assert.False(called);
+    }
+
+    [Fact]
+    public async Task InvokeMethodAsync_SelfRevalidatingHubAfterSessionEnded_CallsNextWithoutTheConnection()
+    {
+        var session = CreateSession(ended: true);
+        var context = CreateConnectionContext(session, validate: false, readsItems: false);
+        SetupFeatures(context, CreateHubFeatures(selfRevalidating: true));
+        IBffConnectionSession? seen = session.Object;
+
+        var result = await CreateFilter()
+            .InvokeMethodAsync(
+                CreateInvocation(context.Object),
+                invocation =>
+                {
+                    seen = _accessor.Current;
+                    return Next(invocation);
+                }
+            );
+
+        Assert.Equal("result", result);
+        Assert.Null(seen);
+    }
+
+    [Fact]
+    public async Task InvokeMethodAsync_AfterSessionEnded_AbortsAndThrowsWithoutValidating()
+    {
+        var session = CreateSession(ended: true);
+        var context = CreateConnectionContext(session, validate: false, readsItems: false);
+        SetupFeatures(context, CreateHubFeatures(selfRevalidating: false));
+        context.Setup(x => x.Abort()).Verifiable();
         var called = false;
 
         await Assert.ThrowsAsync<HubException>(async () =>

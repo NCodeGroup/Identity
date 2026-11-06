@@ -14,9 +14,9 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Provides the common, backing-store-agnostic functionality for OpenID management API endpoint handlers — resource-based
-/// authorization and the standard <c>GET</c>/collection response processing. A <c>GET</c> either authorizes against a
-/// node and then reads the value, so an unauthorized caller never touches the store, or authorizes against a value
-/// that is already in hand. It is public so capability packages that
+/// authorization and the standard <c>GET</c>/collection response processing. A <c>GET</c> authorizes against a
+/// node and only then reads the value, so an unauthorized caller never touches the store. It is public so
+/// capability packages that
 /// plug into the management slice (for example, local accounts) can author their own endpoints without taking a
 /// dependency on the management implementation package.
 /// </summary>
@@ -87,87 +87,6 @@ public abstract class ManagementApiEndpointHandler
     protected internal virtual IResult ToErrorResult(ManagementError error)
     {
         return TypedResults.Problem(detail: error.Detail, statusCode: error.StatusCode);
-    }
-
-    /// <summary>
-    /// Processes an HTTP <c>GET</c> request for the specified value, returning the value as-is when found and authorized.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="valueOrNull">The value to return, or <c>null</c> when not found.</param>
-    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate against the value.</param>
-    /// <typeparam name="TValue">The type of the value to return.</typeparam>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
-    protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue>(
-        HttpContext httpContext,
-        TValue? valueOrNull,
-        IAuthorizationRequirement authorizationRequirement
-    )
-    {
-        return await ProcessGetAsync(
-            httpContext,
-            valueOrNull,
-            authorizationRequirement,
-            value => value
-        );
-    }
-
-    /// <summary>
-    /// Processes an HTTP <c>GET</c> request for the specified value, mapping it to a response when found and authorized.
-    /// Emits an <c>ETag</c> and honors <c>If-None-Match</c> when the value supports a concurrency token.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="valueOrNull">The value to map and return, or <c>null</c> when not found.</param>
-    /// <param name="authorizationRequirement">The <see cref="IAuthorizationRequirement"/> to evaluate against the value.</param>
-    /// <param name="mapper">A function that maps the value to the response representation.</param>
-    /// <typeparam name="TValue">The type of the value being processed.</typeparam>
-    /// <typeparam name="TResponse">The type of the response representation.</typeparam>
-    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
-    protected internal virtual async ValueTask<IResult> ProcessGetAsync<TValue, TResponse>(
-        HttpContext httpContext,
-        TValue? valueOrNull,
-        IAuthorizationRequirement authorizationRequirement,
-        Func<TValue, TResponse> mapper
-    )
-    {
-        if (valueOrNull is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        // https://learn.microsoft.com/en-us/aspnet/core/security/authorization/resourcebased?view=aspnetcore-9.0
-        var user = httpContext.User;
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            user,
-            valueOrNull,
-            authorizationRequirement
-        );
-
-        if (authorizationResult.Succeeded)
-        {
-            // Project first so an absent sub-resource short-circuits to 404 before emitting an ETag or a 304.
-            var response = mapper(valueOrNull);
-            if (response is null)
-            {
-                // A null projection signals an absent sub-resource.
-                return TypedResults.NotFound();
-            }
-
-            if (valueOrNull is ISupportConcurrencyToken supportConcurrencyToken)
-            {
-                var concurrencyToken = supportConcurrencyToken.ConcurrencyToken;
-                httpContext.Response.Headers.ETag = concurrencyToken;
-
-                var ifNoneMatch = httpContext.Request.Headers.IfNoneMatch;
-                if (string.Equals(ifNoneMatch, concurrencyToken, StringComparison.Ordinal))
-                {
-                    return TypedResults.StatusCode(StatusCodes.Status304NotModified);
-                }
-            }
-
-            return TypedResults.Json(response);
-        }
-
-        return AuthorizationFailed(httpContext);
     }
 
     /// <summary>
@@ -270,20 +189,20 @@ public abstract class ManagementApiEndpointHandler
             return failure;
         }
 
-        var valueOrNull = await readAsync(cancellationToken);
-        if (valueOrNull is null)
+        var value = await readAsync(cancellationToken);
+        if (value is null)
         {
             return TypedResults.NotFound();
         }
 
         // Project first so an absent sub-resource short-circuits to 404 before emitting an ETag or a 304.
-        var response = await mapperAsync(valueOrNull, cancellationToken);
+        var response = await mapperAsync(value, cancellationToken);
         if (response is null)
         {
             return TypedResults.NotFound();
         }
 
-        if (valueOrNull is ISupportConcurrencyToken supportConcurrencyToken)
+        if (value is ISupportConcurrencyToken supportConcurrencyToken)
         {
             var concurrencyToken = supportConcurrencyToken.ConcurrencyToken;
             httpContext.Response.Headers.ETag = concurrencyToken;

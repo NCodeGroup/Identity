@@ -512,20 +512,24 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/scopes/list")]
     internal virtual async ValueTask<IResult> ListScopesAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
-
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
         return await ProcessGetAsync(
             httpContext,
-            resourceServer,
+            node,
             Operations.Read,
-            value => (IReadOnlyList<ScopeResource>)value.Scopes.Select(ToScopeResource).ToList()
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+                return await store.GetOrDefaultAsync(resourceServerId, token);
+            },
+            value => (IReadOnlyList<ScopeResource>)value.Scopes.Select(ToScopeResource).ToList(),
+            cancellationToken
         );
     }
 
@@ -607,20 +611,29 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/scopes/get")]
     internal virtual async ValueTask<IResult> GetScopeAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         [FromRoute] string scopeValue,
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IResourceServerStore>();
-
-        var resourceServer = await store.GetOrDefaultAsync(resourceServerId, cancellationToken);
-        var scope = resourceServer?.Scopes.FirstOrDefault(scope =>
-            string.Equals(scope.Value, scopeValue, StringComparison.OrdinalIgnoreCase)
+        var node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId);
+        return await ProcessGetAsync(
+            httpContext,
+            node,
+            Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IResourceServerStore>();
+                var resourceServer = await store.GetOrDefaultAsync(resourceServerId, token);
+                return resourceServer?.Scopes.FirstOrDefault(scope =>
+                    string.Equals(scope.Value, scopeValue, StringComparison.OrdinalIgnoreCase)
+                );
+            },
+            ToScopeResource,
+            cancellationToken
         );
-
-        return await ProcessGetAsync(httpContext, scope, Operations.Read, ToScopeResource);
     }
 
     /// <summary>

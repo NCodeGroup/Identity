@@ -181,13 +181,24 @@ internal sealed class BffTestHost : IAsyncDisposable
     /// <summary>
     /// Sends a request with the cookies of the jar and stores the cookies that the response sets.
     /// </summary>
-    public async Task<HttpResponseMessage> SendAsync(
+    public Task<HttpResponseMessage> SendAsync(
         HttpMethod method,
         string pathAndQuery,
         params (string Name, string Value)[] headers
+    ) => SendAsync(method, pathAndQuery, null, headers);
+
+    /// <summary>
+    /// Sends a request with a body and the cookies of the jar, as a browser that posts a form, and stores the cookies
+    /// that the response sets.
+    /// </summary>
+    public async Task<HttpResponseMessage> SendAsync(
+        HttpMethod method,
+        string pathAndQuery,
+        HttpContent? content,
+        params (string Name, string Value)[] headers
     )
     {
-        using var request = new HttpRequestMessage(method, pathAndQuery);
+        using var request = new HttpRequestMessage(method, pathAndQuery) { Content = content };
         if (_cookies.Count > 0)
         {
             var cookie = string.Join("; ", _cookies.Select(pair => $"{pair.Key}={pair.Value}"));

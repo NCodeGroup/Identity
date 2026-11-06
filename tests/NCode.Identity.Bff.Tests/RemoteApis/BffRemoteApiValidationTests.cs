@@ -9,7 +9,7 @@ namespace NCode.Identity.Bff.Tests.RemoteApis;
 
 public class BffRemoteApiValidationTests : BaseTests
 {
-    private const string Key = "Bff:RemoteApis:orders";
+    private const string Key = "Bff:Frontends:web:RemoteApis:orders";
 
     private static BffRemoteApiOptions CreateValidApi() =>
         new() { Path = "/api/orders", Destination = "https://api.example.com/v1" };

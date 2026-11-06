@@ -18,8 +18,23 @@ internal class BffOptionsValidator(
 {
     private const string Key = "Bff";
 
-    private Dictionary<string, IBffFrontendSelector> Selectors { get; } =
-        selectors.ToDictionary(x => x.Name, StringComparer.Ordinal);
+    private Dictionary<string, IBffFrontendSelector> Selectors { get; } = IndexSelectors(selectors);
+
+    private static Dictionary<string, IBffFrontendSelector> IndexSelectors(
+        IEnumerable<IBffFrontendSelector> selectors
+    )
+    {
+        var selectorsByName = new Dictionary<string, IBffFrontendSelector>(StringComparer.Ordinal);
+        foreach (var selector in selectors)
+        {
+            if (!selectorsByName.TryAdd(selector.Name, selector))
+                throw new InvalidOperationException(
+                    $"The frontend selection rule '{selector.Name}' is registered more than once."
+                );
+        }
+
+        return selectorsByName;
+    }
 
     /// <inheritdoc />
     public ValidateOptionsResult Validate(string? name, BffOptions options)

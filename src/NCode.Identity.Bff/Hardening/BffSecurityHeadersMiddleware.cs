@@ -48,18 +48,16 @@ internal class BffSecurityHeadersMiddleware(RequestDelegate next, BffFrontendCat
                 ? found
                 : DefaultHeaders;
 
-        context.Response.OnStarting(() => WriteHeaders(context.Response.Headers, headers));
+        context.Response.OnStarting(WriteHeaders, (context.Response, headers));
         return _next(context);
     }
 
-    private static Task WriteHeaders(
-        IHeaderDictionary target,
-        KeyValuePair<string, string>[] headers
-    )
+    private static Task WriteHeaders(object state)
     {
+        var (response, headers) = ((HttpResponse, KeyValuePair<string, string>[]))state;
         foreach (var (name, value) in headers)
         {
-            target.TryAdd(name, value);
+            response.Headers.TryAdd(name, value);
         }
 
         return Task.CompletedTask;

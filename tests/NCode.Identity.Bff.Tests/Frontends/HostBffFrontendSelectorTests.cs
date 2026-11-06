@@ -173,6 +173,35 @@ public class HostBffFrontendSelectorTests : BaseTests
         Assert.Empty(failures);
     }
 
+    [Theory]
+    [InlineData("app.example.com:443", "https://app.example.com", true)]
+    [InlineData("app.example.com:80", "http://app.example.com", true)]
+    [InlineData("app.example.com:8443", "https://app.example.com:8443", false)]
+    public void Validate_ValueNamesDefaultPortOfPublicOrigin_ReturnsFailureOnlyForTheDefaultPort(
+        string value,
+        string publicOrigin,
+        bool isRefused
+    )
+    {
+        var selection = CreateSelection([value], publicOrigin);
+
+        var failures = _selector.Validate(selection);
+
+        if (isRefused)
+        {
+            Assert.Equal(
+                [
+                    $"Values entry '{value}' names the default port of PublicOrigin '{publicOrigin}'; omit it, because a browser's Host header never carries the default port.",
+                ],
+                failures
+            );
+        }
+        else
+        {
+            Assert.Empty(failures);
+        }
+    }
+
     [Fact]
     public void Validate_PublicOriginNotAbsolute_SkipsTheOriginCheck()
     {

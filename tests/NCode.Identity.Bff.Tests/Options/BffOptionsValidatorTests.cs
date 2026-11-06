@@ -43,6 +43,28 @@ public class BffOptionsValidatorTests : BaseTests
     private static BffFrontendOptions Frontend(BffOptions options) =>
         options.Frontends[WebFrontend];
 
+    #region Constructor Tests
+
+    [Fact]
+    public void Constructor_RuleRegisteredTwice_Throws()
+    {
+        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            new BffOptionsValidator(
+                mockEnvironment.Object,
+                [new HostBffFrontendSelector(), new HostBffFrontendSelector()]
+            )
+        );
+
+        Assert.Equal(
+            "The frontend selection rule 'host' is registered more than once.",
+            exception.Message
+        );
+    }
+
+    #endregion
+
     #region Validate Tests
 
     [Fact]

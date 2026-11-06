@@ -24,11 +24,22 @@ internal sealed class HostBffFrontendSelector : IBffFrontendSelector
 
         List<string> failures = [];
         List<HostString> hosts = [];
+        var origin = Uri.TryCreate(selection.PublicOrigin, UriKind.Absolute, out var parsed)
+            ? parsed
+            : null;
         foreach (var value in selection.Values)
         {
             if (TryParse(value, out var host))
             {
                 hosts.Add(host);
+
+                if (origin is not null && host.Port is { } port && port == GetDefaultPort(origin))
+                {
+                    failures.Add(
+                        $"Values entry '{value}' names the default port of PublicOrigin '{selection.PublicOrigin}'; omit it, because a browser's Host header never carries the default port."
+                    );
+                }
+
                 continue;
             }
 
@@ -37,10 +48,7 @@ internal sealed class HostBffFrontendSelector : IBffFrontendSelector
             );
         }
 
-        if (
-            Uri.TryCreate(selection.PublicOrigin, UriKind.Absolute, out var origin)
-            && !hosts.Exists(x => IsOriginHost(x, origin))
-        )
+        if (origin is not null && !hosts.Exists(x => IsOriginHost(x, origin)))
         {
             failures.Add(
                 $"Values must include the host of PublicOrigin '{selection.PublicOrigin}', so the frontend's callback selects it."
@@ -108,6 +116,14 @@ internal sealed class HostBffFrontendSelector : IBffFrontendSelector
 
         return false;
     }
+
+    private static int? GetDefaultPort(Uri origin) =>
+        origin.Scheme switch
+        {
+            "https" => 443,
+            "http" => 80,
+            _ => null,
+        };
 
     private static bool IsOriginHost(HostString host, Uri origin) =>
         string.Equals(host.Host, origin.Host, StringComparison.OrdinalIgnoreCase)

@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Xunit;
 
-namespace NCode.Identity.Server.Tests.StrictTransportSecurity;
+namespace NCode.AspNetCore.Tests;
 
 public sealed class StrictTransportSecurityRegistrationTests : BaseTests
 {

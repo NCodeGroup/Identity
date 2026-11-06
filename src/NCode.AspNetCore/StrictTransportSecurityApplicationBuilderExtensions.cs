@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Server.StrictTransportSecurity;
+using NCode.AspNetCore.Options;
 
-namespace NCode.Identity.Server;
+namespace NCode.AspNetCore;
 
 /// <summary>
 /// Provides the request-pipeline counterpart to <see cref="StrictTransportSecurityRegistration"/>: applies the
@@ -25,7 +25,7 @@ public static class StrictTransportSecurityApplicationBuilderExtensions
         /// <c>StrictTransportSecurity</c> configuration disables the header, so it is safe to leave wired.
         /// </summary>
         /// <remarks>
-        /// Call this right after <c>UseReverseProxy</c> and before HTTPS redirection, so a request that a trusted
+        /// Call this right after <c>UseTrustedForwardedHeaders</c> and before HTTPS redirection, so a request that a trusted
         /// proxy received over HTTPS counts as HTTPS. Requires <c>AddStrictTransportSecurity</c>.
         /// </remarks>
         /// <returns>The same <see cref="IApplicationBuilder"/> instance for method chaining.</returns>

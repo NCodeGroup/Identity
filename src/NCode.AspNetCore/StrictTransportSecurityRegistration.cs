@@ -7,18 +7,19 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Server.StrictTransportSecurity;
+using NCode.AspNetCore.Options;
 using NCode.Registration;
 
-namespace NCode.Identity.Server;
+namespace NCode.AspNetCore;
 
 /// <summary>
-/// Registers the <c>Strict-Transport-Security</c> policy that the server sends on every response to a request that
+/// Registers the <c>Strict-Transport-Security</c> policy that the application sends on every response to a request that
 /// arrived over HTTPS. Apply it to the request pipeline with <c>UseStrictTransportSecurity</c>.
 /// </summary>
 /// <remarks>
 /// Safe to leave wired: the pipeline step adds nothing in the Development environment or when the policy is disabled.
 /// </remarks>
+// See ADR-1447.
 [PublicAPI]
 public static class StrictTransportSecurityRegistration
 {

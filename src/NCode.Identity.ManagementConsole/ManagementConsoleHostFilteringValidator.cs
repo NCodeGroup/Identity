@@ -1,0 +1,43 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using Microsoft.AspNetCore.HostFiltering;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+
+namespace NCode.Identity.ManagementConsole;
+
+/// <summary>
+/// Validates <see cref="HostFilteringOptions"/> when the host starts, so a Production deployment that accepts any
+/// <c>Host</c> header stops at startup instead of serving the console for a host name it does not own.
+/// </summary>
+internal sealed class ManagementConsoleHostFilteringValidator(IHostEnvironment environment)
+    : IValidateOptions<HostFilteringOptions>
+{
+    private const string Wildcard = "*";
+
+    /// <inheritdoc />
+    public ValidateOptionsResult Validate(string? name, HostFilteringOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (!environment.IsProduction())
+        {
+            return ValidateOptionsResult.Success;
+        }
+
+        var hosts = options.AllowedHosts;
+        if (
+            hosts is { Count: > 0 }
+            && !hosts.Any(host => string.Equals(host?.Trim(), Wildcard, StringComparison.Ordinal))
+        )
+        {
+            return ValidateOptionsResult.Success;
+        }
+
+        var value = hosts is null ? string.Empty : string.Join(';', hosts);
+        return ValidateOptionsResult.Fail(
+            $"AllowedHosts must list this deployment's host names and must not be empty or contain '{Wildcard}' in the Production environment (value: '{value}')."
+        );
+    }
+}

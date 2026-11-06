@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -90,7 +91,7 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
-    public void AddManagementConsole_Always_RegistersBothValidators()
+    public void AddManagementConsole_Always_RegistersTheValidators()
     {
         var services = CreateServices();
 
@@ -108,6 +109,13 @@ public class DefaultRegistrationTests : BaseTests
             x =>
                 x.ServiceType == typeof(IValidateOptions<BffOptions>)
                 && x.ImplementationType == typeof(ManagementConsoleFrontendValidator)
+                && x.Lifetime == ServiceLifetime.Singleton
+        );
+        Assert.Contains(
+            services,
+            x =>
+                x.ServiceType == typeof(IValidateOptions<HostFilteringOptions>)
+                && x.ImplementationType == typeof(ManagementConsoleHostFilteringValidator)
                 && x.Lifetime == ServiceLifetime.Singleton
         );
     }

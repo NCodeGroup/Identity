@@ -849,10 +849,9 @@ describes the family as it is rather than its changes
   `OpenId:Tenant:KeyRollover:Interval` (one hour), one replica per interval under a lease on the shared-state port
   that lasts half the interval, walking each enabled team's tenants under that team's effective settings (a team that
   is disabled, or beneath a disabled team, is skipped, and a team that fails is logged before the next one runs), each
-  tenant in its own unit of work
-  under its optimistic concurrency, and announces every tenant it changed so every replica serves its keys as they
-  are. A team's settings reconciliation seeds a
-  tenant whose only key for an algorithm has retired like one that never held it. Every change is an audit event,
+  tenant in its own unit of work under its optimistic concurrency, and announces every tenant it changed so every
+  replica serves its keys as they are. A team's settings reconciliation seeds a tenant whose only key for an algorithm
+  has retired like one that never held it. Every change is an audit event,
   `tenant.key.generated`, `tenant.key.activated`, `tenant.key.retired`, `tenant.key.extended` or
   `tenant.key.removed`, in the `key` category with the `system` actor, published once the change is committed: the
   pass publishes after its save, and a seed queues its events on `TenantSeedContext.RunAfterCommit`, whose steps the

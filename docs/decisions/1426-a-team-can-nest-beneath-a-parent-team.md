@@ -1,13 +1,13 @@
 # 1426. A team can nest beneath a parent team
 
 - **Status:** Accepted (amends
+  [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1412](1412-settings-are-reconciled-per-team.md),
-  [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
-  [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) and
-  [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md))
+  [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) and
+  [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 
@@ -76,7 +76,7 @@ and missed-announcement revalidation reach every descendant.**
    least 0, merged with a meet, not discoverable) bounds the teams beneath a team at every level, and a child-team
    creation is refused when any team on the parent's lineage is full. Top-level team creation is platform authority and
    is not bounded by `max_teams`. The checks run before the insert, and two racing creations may overshoot by one.
-10. **Usage rolls up.** Every usage row stores the tenant's team path instead of a bare team identifier
+10. **Usage rolls up.** Every usage row stores the tenant's team path
     ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)), so a deleted tenant's or deleted team's
     usage still rolls up to every team above it. `ITenantUsageStore.ListByTeamAsync` is a prefix match on the path, and
     `TeamUsageEntry` carries the team identifier, the path's last segment.
@@ -124,16 +124,19 @@ and missed-announcement revalidation reach every descendant.**
   links.
 - A change to a team's settings, a disable or an eviction fans out to every team and tenant beneath it, bounded by the
   depth limit.
-- A custom implementation of `ITeamStore`, `ITenantStore`, `ITenantUsageStore`, `ITenantUsageRecorder`,
-  `IEffectiveSettingsResolver`, `OpenIdTeam` or `IOpenIdTeamCache` implements the added members.
+- A custom `ITeamStore` serves the tree (`GetChildPageAsync`, `GetLineageAsync`, `GetDescendantsAsync`,
+  `CountDescendantsAsync`), a custom `ITenantStore` counts the tenants of a team's subtree, a custom
+  `ITenantUsageStore` lists by team path prefix and `ITenantUsageRecorder` records under the team path, a custom
+  `IEffectiveSettingsResolver` resolves `ResolveTeamParentAsync`, a custom `OpenIdTeam` exposes `Parent` and `Path`,
+  and a custom `IOpenIdTeamCache` evicts a team's subtree.
 
 ## References
 
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — tenant usage is a daily ledger that
+  replicas add to
 - [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform is the
   deployment root and a team groups a customer's tenants
 - [ADR-1412](1412-settings-are-reconciled-per-team.md) — settings are reconciled per team
-- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — tenant usage is a daily ledger that
-  replicas add to
 - [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md) — a
   replica that may have missed a team announcement evicts only the teams whose row changed
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a

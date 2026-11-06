@@ -50,8 +50,9 @@ public abstract class OpenIdTeam : IAsyncDisposable
     public abstract string Path { get; }
 
     /// <summary>
-    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> that contains team settings merged with platform settings.
-    /// This collection provider will periodically refresh the items from the backing store and provide change notifications.
+    /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> that contains the team's settings merged onto its parent
+    /// team's effective settings, or onto the platform's for a top-level team. This collection provider periodically
+    /// refreshes the items from the backing store and provides change notifications.
     /// </summary>
     public abstract IReadOnlySettingCollectionProvider SettingsProvider { get; }
 

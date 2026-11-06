@@ -52,6 +52,10 @@ export type BackendServedSurfaceConfigOptions = {
   readonly coverage: CoverageFloors;
 };
 
+export type BffServedSurfaceConfigOptions = {
+  readonly coverage: CoverageFloors;
+};
+
 type BuildConfig = NonNullable<ViteUserConfig['build']>;
 
 /**
@@ -144,12 +148,6 @@ function buildOptions(): BuildConfig {
 
 /** The well-known path of the bootstrap document every bundle fetches from its serving host (`@ncode/config`). */
 const BOOTSTRAP_PATH = '/config/bootstrap.json';
-
-/**
- * The path of the management API. The bootstrap document's root-relative `apiBaseUrl` reaches it on the origin that
- * serves the bundle, so a standalone dev server proxies it to the OpenID Provider host (ADR-1312).
- */
-const API_PATH = '/api/';
 
 const COVERAGE_METRICS = ['statements', 'branches', 'functions', 'lines'] as const;
 
@@ -280,7 +278,6 @@ export function serveOverHttps(env: ServiceEnvironment): Plugin {
  * The configuration of a standalone surface: a single-page app served by its own Vite dev server. That server is the
  * bundle's serving host, so it must publish the bootstrap document; rather than ship a static copy that drifts, it
  * proxies the well-known path to the OpenID Provider host, and local development reads the real document (ADR-1064).
- * It also proxies the management API (`/api/`), which the document's root-relative `apiBaseUrl` reaches on this origin.
  */
 export function defineStandaloneSurfaceConfig({
   port,
@@ -302,11 +299,6 @@ export function defineStandaloneSurfaceConfig({
           // The local OpenID Provider host serves a development certificate.
           secure: false,
         },
-        [API_PATH]: {
-          target: resolveServiceOrigin(bootstrapHost, env),
-          changeOrigin: true,
-          secure: false,
-        },
       },
     },
     build: buildOptions(),
@@ -316,8 +308,9 @@ export function defineStandaloneSurfaceConfig({
 
 /**
  * The value Vite writes into the `nonce` attribute of every script, modulepreload link and the
- * `<meta property="csp-nonce">` of a backend-served bundle. The host writes each response's nonce in its place, so
- * `InteractiveBundleShell.NoncePlaceholder` in the .NET host must stay equal (ADR-1256).
+ * `<meta property="csp-nonce">` of a backend-served or BFF-served bundle. The host writes each response's nonce in its
+ * place, so `InteractiveBundleShell.NoncePlaceholder` in the OpenID Provider host and
+ * `ManagementConsoleDefaults.NoncePlaceholder` in the console host must stay equal (ADR-1256).
  */
 export const CSP_NONCE_PLACEHOLDER = '__NCODE_CSP_NONCE__';
 
@@ -334,6 +327,23 @@ export function defineBackendServedSurfaceConfig({
 }: BackendServedSurfaceConfigOptions): ViteUserConfig {
   return {
     base: './',
+    html: { cspNonce: CSP_NONCE_PLACEHOLDER },
+    plugins: [react(), failOnOversizedChunks()],
+    build: buildOptions(),
+    test: testGates({ environment: 'jsdom', coverage }),
+  };
+}
+
+/**
+ * The configuration of a BFF-served surface: a bundle its own BFF host serves from its `dist` folder at the root of its
+ * origin. It has no dev server; its `dev` script rebuilds `dist` on change. The bundle runs under the page's
+ * Content-Security-Policy nonce, so the build marks its scripts with the placeholder the host replaces (ADR-1256).
+ */
+export function defineBffServedSurfaceConfig({
+  coverage,
+}: BffServedSurfaceConfigOptions): ViteUserConfig {
+  return {
+    base: '/',
     html: { cspNonce: CSP_NONCE_PLACEHOLDER },
     plugins: [react(), failOnOversizedChunks()],
     build: buildOptions(),

@@ -25,6 +25,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
     private const string CertificatePath = "/opt/keycloak/conf/e2e-tls.crt";
     private const string PrivateKeyPath = "/opt/keycloak/conf/e2e-tls.key";
     private const string AdminClientId = "e2e-admin";
+    private const int LogLinesOnFailure = 60;
 
     /// <summary>
     /// The name of the realm that the container imports.
@@ -111,6 +112,8 @@ public sealed class KeycloakProvider : IAsyncDisposable
             .WithEnvironment("KC_HTTPS_CERTIFICATE_FILE", CertificatePath)
             .WithEnvironment("KC_HTTPS_CERTIFICATE_KEY_FILE", PrivateKeyPath)
             .WithEnvironment("KC_TRUSTSTORE_PATHS", CertificatePath)
+            // Token verification logs why it rejects a token only at debug.
+            .WithEnvironment("KC_LOG_LEVEL", "INFO,org.keycloak.services.managers:DEBUG")
             .WithEnvironment("E2E_USER_PASSWORD", userPassword)
             .WithEnvironment("E2E_ADMIN_SECRET", adminSecret)
             .WithResourceMapping(
@@ -186,7 +189,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
         );
 
         using var tokenResponse = await client.SendAsync(tokenRequest);
-        tokenResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(tokenResponse, accessToken: null);
         var token = await tokenResponse.Content.ReadFromJsonAsync<TokenResponse>(
             JsonSerializerOptions.Web
         );
@@ -203,7 +206,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
         );
 
         using var usersResponse = await client.SendAsync(usersRequest);
-        usersResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(usersResponse, token.AccessToken);
         var users = await usersResponse.Content.ReadFromJsonAsync<List<UserRepresentation>>(
             JsonSerializerOptions.Web
         );
@@ -220,7 +223,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
         );
 
         using var logoutResponse = await client.SendAsync(logoutRequest);
-        logoutResponse.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(logoutResponse, token.AccessToken);
     }
 
     /// <inheritdoc />
@@ -228,6 +231,47 @@ public sealed class KeycloakProvider : IAsyncDisposable
     {
         await _container.DisposeAsync();
         await _image.DisposeAsync();
+    }
+
+    // Keycloak's answer to a refused call names no reason, so the failure carries the token's timing claims and the
+    // end of Keycloak's log, which does.
+    private async Task EnsureSuccessAsync(HttpResponseMessage response, string? accessToken)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync();
+        var (stdout, stderr) = await _container.GetLogsAsync(timestampsEnabled: false);
+        var log = string.Join('\n', $"{stdout}{stderr}".Split('\n').TakeLast(LogLinesOnFailure));
+        var request = response.RequestMessage;
+        throw new HttpRequestException(
+            $"Keycloak answered {(int)response.StatusCode} to {request?.Method} {request?.RequestUri}. "
+                + $"WWW-Authenticate: '{response.Headers.WwwAuthenticate}'. Body: '{body}'. "
+                + $"Token claims: {DescribeToken(accessToken)}. Now: {TimeProvider.System.GetUtcNow().ToUnixTimeSeconds()}."
+                + $"\nKeycloak log:\n{log}",
+            inner: null,
+            response.StatusCode
+        );
+    }
+
+    private static string DescribeToken(string? accessToken)
+    {
+        if (accessToken?.Split('.') is not [_, var payload, _])
+            return "none";
+
+        var claims = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+            Base64Url.DecodeFromChars(payload),
+            JsonSerializerOptions.Web
+        );
+        string[] names = ["iss", "azp", "typ", "iat", "exp", "sid"];
+        return string.Join(
+            ", ",
+            names.Select(name =>
+                claims is not null && claims.TryGetValue(name, out var value)
+                    ? $"{name}={value}"
+                    : $"{name} absent"
+            )
+        );
     }
 
     private sealed record TokenResponse(

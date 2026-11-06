@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <UserSecretsId>594bdda7-a1e9-46a6-806c-5655318a3b7d</UserSecretsId>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.ManagementConsole\NCode.Identity.ManagementConsole.csproj" />
+        <ProjectReference Include="..\NCode.Identity.SharedState.Valkey\NCode.Identity.SharedState.Valkey.csproj" />
+    </ItemGroup>
+</Project>

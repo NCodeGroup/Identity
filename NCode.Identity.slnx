@@ -34,6 +34,7 @@
         <Project Path="src/NCode.Identity.Jwk/NCode.Identity.Jwk.csproj" />
         <Project Path="src/NCode.Identity.Jwt.Abstractions/NCode.Identity.Jwt.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Jwt/NCode.Identity.Jwt.csproj" />
+        <Project Path="src/NCode.Identity.ManagementConsole.Host/NCode.Identity.ManagementConsole.Host.csproj" />
         <Project Path="src/NCode.Identity.ManagementConsole/NCode.Identity.ManagementConsole.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Abstractions/NCode.Identity.OpenId.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Accounts.Abstractions/NCode.Identity.OpenId.Accounts.Abstractions.csproj" />

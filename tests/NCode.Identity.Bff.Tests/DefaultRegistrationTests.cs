@@ -108,6 +108,18 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public void AddBffLibrary_RegistersTheClientAuthenticationCheck()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        Assert.Single(
+            provider.GetServices<IBffFrontendSetCheck>().OfType<BffClientAuthenticationCheck>()
+        );
+    }
+
+    [Fact]
     public void AddBffLibrary_RegistersTheRemoteApiServices()
     {
         ClientBuilder.AddBffLibrary(EventsBuilder);

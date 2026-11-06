@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Moq;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -11,27 +11,42 @@ using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Hosting;
 
-public class BffStartupCheckTests
+public class BffStartupCheckTests : BaseTests
 {
-    private static BffStartupCheck CreateCheck(string configuredMethod)
+    private BffStartupCheck CreateCheck(string configuredMethod)
     {
-        var authenticator = new Mock<IClientAuthenticator>();
+        var authenticator = CreateStrictMock<IClientAuthenticator>();
         authenticator
             .SetupGet(x => x.MethodName)
-            .Returns(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt);
+            .Returns(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt)
+            .Verifiable();
 
-        var frontends = BffTestFrontends.CreateCatalog(f =>
-            f.ClientAuthentication = new BffClientAuthenticationOptions
-            {
-                Method = configuredMethod,
-            }
+        var source = new BffTestOptionsSource(
+            BffTestFrontends.CreateBffOptions(x =>
+                x.Frontends[BffTestFrontends.Name].ClientAuthentication =
+                    new BffClientAuthenticationOptions { Method = configuredMethod }
+            )
+        );
+        var frontends = BffTestFrontends.CreateCatalog(
+            source,
+            new BffClientAuthenticationCheck([authenticator.Object])
         );
 
-        return new BffStartupCheck(new[] { authenticator.Object }, frontends);
+        return new BffStartupCheck(frontends);
+    }
+
+    #region StartAsync Tests
+
+    [Fact]
+    public async Task StartAsync_ValidSet_Completes()
+    {
+        var check = CreateCheck(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt);
+
+        await check.StartAsync(CancellationToken.None);
     }
 
     [Fact]
-    public async Task StartAsync_WhenNoAuthenticatorMatches_Throws()
+    public async Task StartAsync_UnregisteredMethod_Throws()
     {
         var check = CreateCheck(OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt);
 
@@ -45,19 +60,17 @@ public class BffStartupCheckTests
         );
     }
 
-    [Fact]
-    public async Task StartAsync_WhenAnAuthenticatorMatches_Completes()
-    {
-        var check = CreateCheck(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt);
+    #endregion
 
-        await check.StartAsync(CancellationToken.None);
-    }
+    #region StopAsync Tests
 
     [Fact]
-    public async Task StopAsync_Completes()
+    public async Task StopAsync_Always_Completes()
     {
         var check = CreateCheck(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt);
 
         await check.StopAsync(CancellationToken.None);
     }
+
+    #endregion
 }

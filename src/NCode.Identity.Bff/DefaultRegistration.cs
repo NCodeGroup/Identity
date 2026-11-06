@@ -40,8 +40,8 @@ public static class DefaultRegistration
     extension(IServiceBuilder<OpenIdClientLibrary> builder)
     {
         /// <summary>
-        /// Registers the BFF library: its options, the frontends (the selection rules, the catalog and the routing
-        /// policy that keeps a request's endpoints to its frontend), the session store and manager, the audit
+        /// Registers the BFF library: its options, the frontends (the selection rules, the frontend-set checks, the
+        /// catalog and the routing policy that keeps a request's endpoints to its frontend), the session store and manager, the audit
         /// recorder and the cookie writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root
         /// registers the shared-state adapters
         /// (<c>AddSharedStateServices().AddInProcessExpiringKeySet().AddInProcessExpiringValueSet().AddInProcessExpiringIndexSet()</c>
@@ -95,6 +95,9 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IBffFrontendSelector, PathBffFrontendSelector>()
             );
             serviceCollection.TryAddSingleton<BffFrontendCatalog>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffFrontendSetCheck, BffClientAuthenticationCheck>()
+            );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<MatcherPolicy, BffFrontendMatcherPolicy>()
             );

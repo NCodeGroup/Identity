@@ -115,6 +115,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
             serviceCollection.TryAddSingleton<BffLoginHandler>();
             serviceCollection.TryAddSingleton<BffCallbackHandler>();
+            serviceCollection.TryAddSingleton<
+                IBffUserDocumentFactory,
+                DefaultBffUserDocumentFactory
+            >();
             serviceCollection.TryAddSingleton<BffUserHandler>();
             serviceCollection.TryAddSingleton<BffLogoutService>();
             serviceCollection.TryAddSingleton<BffLogoutHandler>();

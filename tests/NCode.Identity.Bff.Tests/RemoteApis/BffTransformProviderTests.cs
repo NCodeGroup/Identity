@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -21,8 +20,6 @@ namespace NCode.Identity.Bff.Tests.RemoteApis;
 
 public sealed class BffTransformProviderTests : BaseTests
 {
-    private const string AntiforgeryHeaderName = "X-Custom-CSRF";
-
     private ServiceProvider Services { get; } = new ServiceCollection().BuildServiceProvider();
 
     private Mock<IBffTokenAccessor> MockTokens { get; }
@@ -68,12 +65,6 @@ public sealed class BffTransformProviderTests : BaseTests
             ClientFactory,
             [requirement.Object],
             MockTokens.Object,
-            Microsoft.Extensions.Options.Options.Create(
-                new BffOptions
-                {
-                    Antiforgery = new BffAntiforgeryOptions { HeaderName = AntiforgeryHeaderName },
-                }
-            ),
             BffTestFrontends.CreateCatalog()
         );
     }
@@ -97,7 +88,6 @@ public sealed class BffTransformProviderTests : BaseTests
                 CreateStrictMock<IForwarderHttpClientFactory>().Object,
                 [],
                 MockTokens.Object,
-                Microsoft.Extensions.Options.Options.Create(new BffOptions()),
                 BffTestFrontends.CreateCatalog()
             )
         );
@@ -237,7 +227,6 @@ public sealed class BffTransformProviderTests : BaseTests
         );
         Assert.Equal(BffTokenRequirementNames.User, transform.TokenRequest.Requirement);
         Assert.Equal("orders.read", transform.TokenRequest.Scope);
-        Assert.Equal(AntiforgeryHeaderName, transform.AntiforgeryHeaderName);
     }
 
     [Fact]

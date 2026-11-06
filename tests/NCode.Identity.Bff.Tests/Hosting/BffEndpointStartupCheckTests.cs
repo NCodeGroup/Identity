@@ -165,7 +165,6 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
             clientFactory,
             [],
             CreateStrictMock<IBffTokenAccessor>().Object,
-            Microsoft.Extensions.Options.Options.Create(new BffOptions()),
             Frontends
         );
     }

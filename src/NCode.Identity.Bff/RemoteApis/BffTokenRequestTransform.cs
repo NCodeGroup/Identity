@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Net.Http.Headers;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
@@ -16,11 +17,11 @@ namespace NCode.Identity.Bff.RemoteApis;
 /// </summary>
 /// <param name="tokenRequest">The token request that the route's metadata names.</param>
 /// <param name="tokens">The accessor that resolves the token.</param>
-/// <param name="antiforgeryHeaderName">The name of the BFF's anti-forgery header.</param>
+/// <param name="frontends">The frontends that the BFF serves; the current set names the anti-forgery header.</param>
 internal sealed class BffTokenRequestTransform(
     BffTokenRequest tokenRequest,
     IBffTokenAccessor tokens,
-    string antiforgeryHeaderName
+    BffFrontendCatalog frontends
 ) : RequestTransform
 {
     // A browser's credentials never reach a remote API.
@@ -32,11 +33,6 @@ internal sealed class BffTokenRequestTransform(
     /// </summary>
     public BffTokenRequest TokenRequest { get; } = tokenRequest;
 
-    /// <summary>
-    /// Gets the name of the BFF's anti-forgery header, which the transform strips.
-    /// </summary>
-    public string AntiforgeryHeaderName { get; } = antiforgeryHeaderName;
-
     /// <inheritdoc />
     public override async ValueTask ApplyAsync(RequestTransformContext context)
     {
@@ -45,7 +41,7 @@ internal sealed class BffTokenRequestTransform(
         foreach (var name in StrippedHeaders)
             RemoveHeader(context, name);
 
-        RemoveHeader(context, AntiforgeryHeaderName);
+        RemoveHeader(context, frontends.Current.Options.Antiforgery.HeaderName);
 
         var httpContext = context.HttpContext;
         var token = await tokens.GetAccessTokenAsync(

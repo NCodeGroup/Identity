@@ -6,6 +6,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
 using Xunit;
@@ -30,7 +31,11 @@ public sealed class BffTokenRequestTransformTests : BaseTests
         Transform = new BffTokenRequestTransform(
             TokenRequest,
             MockTokens.Object,
-            AntiforgeryHeaderName
+            BffTestFrontends.CreateCatalog(
+                BffTestFrontends.CreateBffOptions(x =>
+                    x.Antiforgery.HeaderName = AntiforgeryHeaderName
+                )
+            )
         );
     }
 
@@ -73,10 +78,9 @@ public sealed class BffTokenRequestTransformTests : BaseTests
     #region Constructor Tests
 
     [Fact]
-    public void Constructor_KeepsTheTokenRequestAndHeaderName()
+    public void Constructor_KeepsTheTokenRequest()
     {
         Assert.Same(TokenRequest, Transform.TokenRequest);
-        Assert.Equal(AntiforgeryHeaderName, Transform.AntiforgeryHeaderName);
     }
 
     #endregion

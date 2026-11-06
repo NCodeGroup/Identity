@@ -228,37 +228,6 @@ internal class TeamStore(
 
     /// <inheritdoc />
     // See ADR-1426.
-    public async ValueTask<IReadOnlyList<PersistedTeam>> GetDescendantsAsync(
-        string teamId,
-        CancellationToken cancellationToken
-    )
-    {
-        var entity = await GetEntityOrDefaultAsync(teamId, cancellationToken);
-        if (entity is null)
-        {
-            return [];
-        }
-
-        var prefix = entity.Path;
-        var entityId = entity.Id;
-        var entities = await DbContext
-            .Teams.AsNoTracking()
-            .Where(team => team.Path.StartsWith(prefix) && team.Id != entityId)
-            .OrderBy(team => team.Path.Length)
-            .ThenBy(team => team.Id)
-            .ToListAsync(cancellationToken);
-
-        var teams = new List<PersistedTeam>(entities.Count);
-        foreach (var descendant in entities)
-        {
-            teams.Add(await MapFromEntityAsync(descendant, cancellationToken));
-        }
-
-        return teams;
-    }
-
-    /// <inheritdoc />
-    // See ADR-1426.
     public async ValueTask<long> CountDescendantsAsync(
         string teamId,
         CancellationToken cancellationToken

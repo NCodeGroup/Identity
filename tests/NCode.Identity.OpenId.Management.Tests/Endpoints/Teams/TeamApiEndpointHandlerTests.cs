@@ -1581,7 +1581,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                 new PersistedTenantUsage
                 {
                     TenantId = "tenant-a",
-                    TeamId = TeamId,
+                    TeamPath = $"/{TeamId}/",
                     Day = from,
                     Meter = "requests",
                     Count = 42,
@@ -1589,7 +1589,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                 new PersistedTenantUsage
                 {
                     TenantId = "tenant-b",
-                    TeamId = TeamId,
+                    TeamPath = $"/{TeamId}/",
                     Day = to,
                     Meter = "tokens",
                     Count = 7,

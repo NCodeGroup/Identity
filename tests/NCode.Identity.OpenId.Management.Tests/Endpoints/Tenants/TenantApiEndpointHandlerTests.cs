@@ -871,7 +871,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 new PersistedTenantUsage
                 {
                     TenantId = TenantId,
-                    TeamId = "platform",
+                    TeamPath = "/platform/",
                     Day = from,
                     Meter = "requests",
                     Count = 42,

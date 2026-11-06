@@ -1,0 +1,17 @@
+{{- if .Values.managementConsole.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "identity-host.managementConsole.fullname" . }}
+  labels:
+    {{- include "identity-host.managementConsole.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.managementConsole.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.managementConsole.service.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "identity-host.managementConsole.selectorLabels" . | nindent 4 }}
+{{- end }}

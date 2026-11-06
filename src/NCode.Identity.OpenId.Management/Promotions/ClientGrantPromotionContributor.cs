@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.Identity.OpenId.Management.Auditing;
-using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -16,14 +16,12 @@ namespace NCode.Identity.OpenId.Management.Promotions;
 /// promotion maps for it, and the host-managed clients' grants stay out.
 /// </summary>
 // See ADR-1425.
-internal class ClientGrantPromotionContributor(
-    IEnumerable<IHostManagedClientPolicy> hostManagedClientPolicies
-) : ITenantPromotionContributor
+internal class ClientGrantPromotionContributor(IHostManagedClientChecker hostManagedClientChecker)
+    : ITenantPromotionContributor
 {
     private const int PageLimit = 100;
 
-    private IReadOnlyList<IHostManagedClientPolicy> HostManagedClientPolicies { get; } =
-    [.. hostManagedClientPolicies];
+    private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
 
     /// <inheritdoc />
     public int Order => TenantPromotionOrders.ClientGrants;
@@ -108,9 +106,6 @@ internal class ClientGrantPromotionContributor(
             }
         }
     }
-
-    private bool IsHostManaged(string tenantId, string clientId) =>
-        HostManagedClientPolicies.Any(policy => policy.IsHostManaged(tenantId, clientId));
 
     private async ValueTask<List<ClientGrantPromotion>> ComputeAsync(
         TenantPromotionContext context,
@@ -240,8 +235,14 @@ internal class ClientGrantPromotionContributor(
             foreach (var client in clientPage.Items)
             {
                 if (
-                    IsHostManaged(context.SourceTenant.TenantId, client.ClientId)
-                    || IsHostManaged(context.TargetTenant.TenantId, client.ClientId)
+                    HostManagedClientChecker.IsHostManaged(
+                        context.SourceTenant.TenantId,
+                        client.ClientId
+                    )
+                    || HostManagedClientChecker.IsHostManaged(
+                        context.TargetTenant.TenantId,
+                        client.ClientId
+                    )
                 )
                 {
                     continue;

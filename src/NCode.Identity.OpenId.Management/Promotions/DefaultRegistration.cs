@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
@@ -28,6 +29,14 @@ internal static class DefaultRegistration
                 DefaultPromotedSettingsComposer
             >();
             serviceCollection.TryAddSingleton<ITenantPromoter, DefaultTenantPromoter>();
+            serviceCollection.TryAddSingleton<
+                IHostManagedClientChecker,
+                DefaultHostManagedClientChecker
+            >();
+            serviceCollection.TryAddSingleton<
+                IClientKeySourceChecker,
+                DefaultClientKeySourceChecker
+            >();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

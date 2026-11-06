@@ -123,7 +123,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
             MockClientKeyImporter.Object,
-            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
             MockSecretPublicKeyConverter.Object,
             MockSecretProtectorProvider.Object,
             TimeProvider.System,
@@ -136,7 +135,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockClientSecretIssuer.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
-            hostManagedClientPolicies,
+            new DefaultHostManagedClientChecker(hostManagedClientPolicies),
+            new DefaultClientKeySourceChecker(
+                ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+            ),
             NullLogger<ClientApiEndpointHandler>.Instance
         );
 

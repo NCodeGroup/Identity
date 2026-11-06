@@ -3,8 +3,8 @@
 
 using System.Text.Json;
 using NCode.Identity.OpenId.Management.Auditing;
-using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -20,7 +20,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     private const string TargetTenantId = "target-tenant";
 
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
-    private Mock<IHostManagedClientPolicy> MockHostManagedClientPolicy { get; }
+    private Mock<IHostManagedClientChecker> MockHostManagedClientChecker { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
     private Mock<IClientGrantStore> MockClientGrantStore { get; }
@@ -31,7 +31,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
 
     public ClientGrantPromotionContributorTests()
     {
-        MockHostManagedClientPolicy = MockRepository.Create<IHostManagedClientPolicy>();
+        MockHostManagedClientChecker = MockRepository.Create<IHostManagedClientChecker>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
         MockClientGrantStore = MockRepository.Create<IClientGrantStore>();
@@ -53,7 +53,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
         MockAmbientTenantAccessor
             .Setup(x => x.BeginScope(TargetTenantId))
             .Returns(new NoopDisposable());
-        MockHostManagedClientPolicy
+        MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(false);
     }
@@ -66,7 +66,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     }
 
     private ClientGrantPromotionContributor CreateContributor() =>
-        new([MockHostManagedClientPolicy.Object]);
+        new(MockHostManagedClientChecker.Object);
 
     private static PersistedTenant CreateTenant(string tenantId) =>
         new()
@@ -356,7 +356,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheClientIsHostManagedInTheSourceTenant_LeavesItsGrantsOut()
     {
         var context = CreateContext();
-        MockHostManagedClientPolicy
+        MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(SourceTenantId, "client-1"))
             .Returns(true)
             .Verifiable();
@@ -372,7 +372,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheClientIsHostManagedInTheTargetTenant_LeavesItsGrantsOut()
     {
         var context = CreateContext();
-        MockHostManagedClientPolicy
+        MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(TargetTenantId, "client-1"))
             .Returns(true)
             .Verifiable();
@@ -469,7 +469,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task ApplyAsync_WhenTheClientIsHostManaged_WritesNothing()
     {
         var context = CreateContext();
-        MockHostManagedClientPolicy
+        MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(SourceTenantId, "client-1"))
             .Returns(true)
             .Verifiable();

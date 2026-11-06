@@ -6,15 +6,12 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
-using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyTypes;
-using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
@@ -32,8 +29,8 @@ internal class ClientPromotionContributor(
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IClientCoherenceValidator clientCoherenceValidator,
     ITenantClientCoherenceChecker tenantClientCoherenceChecker,
-    ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    IEnumerable<IHostManagedClientPolicy> hostManagedClientPolicies
+    IClientKeySourceChecker clientKeySourceChecker,
+    IHostManagedClientChecker hostManagedClientChecker
 ) : ITenantPromotionContributor
 {
     private const int PageLimit = 100;
@@ -50,10 +47,9 @@ internal class ClientPromotionContributor(
     private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
         tenantClientCoherenceChecker;
 
-    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+    private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
 
-    private IReadOnlyList<IHostManagedClientPolicy> HostManagedClientPolicies { get; } =
-    [.. hostManagedClientPolicies];
+    private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
 
     /// <inheritdoc />
     public int Order => TenantPromotionOrders.Clients;
@@ -276,21 +272,6 @@ internal class ClientPromotionContributor(
             ResourceServerId = client.ResourceServerId,
         };
 
-    private bool IsHostManaged(string tenantId, string clientId) =>
-        HostManagedClientPolicies.Any(policy => policy.IsHostManaged(tenantId, clientId));
-
-    private static bool HasJwksUri(JsonElement settings) =>
-        settings.ValueKind == JsonValueKind.Object
-        && settings.TryGetProperty(OpenIdSettingNames.JwksUri, out var jwksUri)
-        && jwksUri.ValueKind == JsonValueKind.String
-        && !string.IsNullOrEmpty(jwksUri.GetString());
-
-    private bool HasPublicKeys(IEnumerable<PersistedSecret> secrets) =>
-        secrets.Any(secret =>
-            SecretKeyTypeCatalog.TryGet(secret.SecretType, out var descriptor)
-            && descriptor.IsAsymmetric
-        );
-
     private static bool IsCredentialRequired(JsonElement settings, PersistedClient? target)
     {
         string? method = null;
@@ -447,7 +428,12 @@ internal class ClientPromotionContributor(
 
         foreach (var source in sources)
         {
-            if (IsHostManaged(context.SourceTenant.TenantId, source.ClientId))
+            if (
+                HostManagedClientChecker.IsHostManaged(
+                    context.SourceTenant.TenantId,
+                    source.ClientId
+                )
+            )
             {
                 computation.HostManagedSourceClientIds.Add(source.ClientId);
                 continue;
@@ -487,7 +473,12 @@ internal class ClientPromotionContributor(
             var target = await store.GetOrDefaultAsync(source.ClientId, cancellationToken);
             if (target is not null)
             {
-                if (IsHostManaged(context.TargetTenant.TenantId, target.ClientId))
+                if (
+                    HostManagedClientChecker.IsHostManaged(
+                        context.TargetTenant.TenantId,
+                        target.ClientId
+                    )
+                )
                 {
                     errors.Add(
                         "The host configures the client in the target tenant, so the promotion does not change it."
@@ -558,8 +549,8 @@ internal class ClientPromotionContributor(
 
             if (
                 target is not null
-                && HasJwksUri(promoted.Document)
-                && HasPublicKeys(target.Secrets.Value)
+                && ClientKeySourceChecker.HasJwksUri(promoted.Document)
+                && ClientKeySourceChecker.HasPublicKeys(target.Secrets.Value)
             )
             {
                 errors.Add(

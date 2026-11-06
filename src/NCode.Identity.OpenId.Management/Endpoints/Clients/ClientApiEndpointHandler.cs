@@ -17,7 +17,6 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
-using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -26,12 +25,10 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
-using NCode.Json;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -68,7 +65,6 @@ internal class ClientApiEndpointHandler(
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
     IClientKeyImporter clientKeyImporter,
-    ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretPublicKeyConverter secretPublicKeyConverter,
     ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
@@ -81,7 +77,8 @@ internal class ClientApiEndpointHandler(
     IClientSecretIssuer clientSecretIssuer,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
-    IEnumerable<IHostManagedClientPolicy> hostManagedClientPolicies,
+    IHostManagedClientChecker hostManagedClientChecker,
+    IClientKeySourceChecker clientKeySourceChecker,
     ILogger<ClientApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
@@ -131,7 +128,6 @@ internal class ClientApiEndpointHandler(
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
-    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -145,8 +141,8 @@ internal class ClientApiEndpointHandler(
     private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
-    private IHostManagedClientPolicy[] HostManagedClientPolicies { get; } =
-        hostManagedClientPolicies.ToArray();
+    private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
+    private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -244,7 +240,10 @@ internal class ClientApiEndpointHandler(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             PrincipalId = client.PrincipalId,
-            IsHostManaged = IsHostManaged(client.TenantId, client.ClientId),
+            IsHostManaged = HostManagedClientChecker.IsHostManaged(
+                client.TenantId,
+                client.ClientId
+            ),
             ResourceServerId = client.ResourceServerId,
         };
     }
@@ -1129,7 +1128,10 @@ internal class ClientApiEndpointHandler(
             return limitRefusal;
         }
 
-        if (HasJwksUri(settingsValue) && HasPublicKeys(client.Secrets.Value))
+        if (
+            ClientKeySourceChecker.HasJwksUri(settingsValue)
+            && ClientKeySourceChecker.HasPublicKeys(client.Secrets.Value)
+        )
         {
             return KeySourceConflict();
         }
@@ -1367,7 +1369,10 @@ internal class ClientApiEndpointHandler(
             );
         }
 
-        if (HasJwksUri(client.Settings.Value) && IsPublicKeyType(request.SecretType))
+        if (
+            ClientKeySourceChecker.HasJwksUri(client.Settings.Value)
+            && ClientKeySourceChecker.IsPublicKeyType(request.SecretType)
+        )
         {
             return KeySourceConflict();
         }
@@ -1536,7 +1541,7 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        if (HasJwksUri(client.Settings.Value))
+        if (ClientKeySourceChecker.HasJwksUri(client.Settings.Value))
         {
             return KeySourceConflict();
         }
@@ -2220,7 +2225,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (IsHostManaged(client.TenantId, client.ClientId))
+        if (HostManagedClientChecker.IsHostManaged(client.TenantId, client.ClientId))
         {
             return HostManagedClientRefused();
         }
@@ -2312,9 +2317,6 @@ internal class ClientApiEndpointHandler(
             statusCode: StatusCodes.Status409Conflict
         );
 
-    private bool IsHostManaged(string tenantId, string clientId) =>
-        HostManagedClientPolicies.Any(policy => policy.IsHostManaged(tenantId, clientId));
-
     // A client the host configures carries authority from that configuration, so no management caller changes it.
     // See ADR-1417.
     private static ProblemHttpResult HostManagedClientRefused() =>
@@ -2322,15 +2324,4 @@ internal class ClientApiEndpointHandler(
             detail: "The host configures this client, so the management API does not change it.",
             statusCode: StatusCodes.Status409Conflict
         );
-
-    private static bool HasJwksUri(JsonElement settings) =>
-        settings.ValueKind == JsonValueKind.Object
-        && settings.TryGetPropertyValue<string>(OpenIdSettingNames.JwksUri, out var jwksUri)
-        && !string.IsNullOrEmpty(jwksUri);
-
-    private bool IsPublicKeyType(string secretType) =>
-        SecretKeyTypeCatalog.TryGet(secretType, out var descriptor) && descriptor.IsAsymmetric;
-
-    private bool HasPublicKeys(IEnumerable<PersistedSecret> secrets) =>
-        secrets.Any(secret => IsPublicKeyType(secret.SecretType));
 }

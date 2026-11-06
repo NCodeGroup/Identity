@@ -6,7 +6,6 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
-using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -15,7 +14,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
@@ -34,9 +32,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IClientCoherenceValidator> MockClientCoherenceValidator { get; }
     private Mock<ITenantClientCoherenceChecker> MockTenantClientCoherenceChecker { get; }
-    private Mock<ISecretKeyTypeCatalog> MockSecretKeyTypeCatalog { get; }
-    private Mock<ISecretKeyTypeDescriptor> MockAsymmetricDescriptor { get; }
-    private Mock<IHostManagedClientPolicy> MockHostManagedClientPolicy { get; }
+    private Mock<IClientKeySourceChecker> MockClientKeySourceChecker { get; }
+    private Mock<IHostManagedClientChecker> MockHostManagedClientChecker { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
     private Mock<IRoleAssignmentStore> MockRoleAssignmentStore { get; }
@@ -53,9 +50,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockClientCoherenceValidator = MockRepository.Create<IClientCoherenceValidator>();
         MockTenantClientCoherenceChecker = MockRepository.Create<ITenantClientCoherenceChecker>();
-        MockSecretKeyTypeCatalog = MockRepository.Create<ISecretKeyTypeCatalog>();
-        MockAsymmetricDescriptor = MockRepository.Create<ISecretKeyTypeDescriptor>();
-        MockHostManagedClientPolicy = MockRepository.Create<IHostManagedClientPolicy>();
+        MockClientKeySourceChecker = MockRepository.Create<IClientKeySourceChecker>();
+        MockHostManagedClientChecker = MockRepository.Create<IHostManagedClientChecker>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
         MockRoleAssignmentStore = MockRepository.Create<IRoleAssignmentStore>();
@@ -79,9 +75,10 @@ public sealed class ClientPromotionContributorTests : IDisposable
             .Setup(x => x.ResolveTeamAsync(TeamId, CancellationToken.None))
             .ReturnsAsync(MockTeamSettings.Object);
         SetupResolveTenant("{}", MockTenantSettings);
-        MockHostManagedClientPolicy
+        MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(It.IsAny<string>(), It.IsAny<string>()))
             .Returns(false);
+        MockClientKeySourceChecker.Setup(x => x.HasJwksUri(It.IsAny<JsonElement>())).Returns(false);
     }
 
     public void Dispose() => MockRepository.Verify();
@@ -98,8 +95,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
             MockEffectiveSettingsResolver.Object,
             MockClientCoherenceValidator.Object,
             MockTenantClientCoherenceChecker.Object,
-            MockSecretKeyTypeCatalog.Object,
-            [MockHostManagedClientPolicy.Object]
+            MockClientKeySourceChecker.Object,
+            MockHostManagedClientChecker.Object
         );
 
     private void SetupResolveTenant(string documentJson, Mock<IReadOnlySettingCollection> result)
@@ -244,7 +241,7 @@ public sealed class ClientPromotionContributorTests : IDisposable
             .Verifiable();
 
     private void SetupHostManaged(string tenantId, string clientId) =>
-        MockHostManagedClientPolicy
+        MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(tenantId, clientId))
             .Returns(true)
             .Verifiable();
@@ -557,12 +554,18 @@ public sealed class ClientPromotionContributorTests : IDisposable
             """{"jwks_uri":"https://client/jwks"}"""
         );
         SetupChangedLimits(target, promoted);
-        ISecretKeyTypeDescriptor? descriptor = MockAsymmetricDescriptor.Object;
-        MockSecretKeyTypeCatalog
-            .Setup(x => x.TryGet("rsa", out descriptor))
+        MockClientKeySourceChecker
+            .Setup(x =>
+                x.HasJwksUri(
+                    It.Is<JsonElement>(value => JsonElement.DeepEquals(value, promoted.Document))
+                )
+            )
             .Returns(true)
             .Verifiable();
-        MockAsymmetricDescriptor.Setup(x => x.IsAsymmetric).Returns(true).Verifiable();
+        MockClientKeySourceChecker
+            .Setup(x => x.HasPublicKeys(target.Secrets.Value))
+            .Returns(true)
+            .Verifiable();
         SetupRoleAssignments(target.PrincipalId);
 
         await CreateContributor().PlanAsync(context, CancellationToken.None);

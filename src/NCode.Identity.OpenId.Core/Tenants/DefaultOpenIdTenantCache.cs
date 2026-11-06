@@ -238,10 +238,7 @@ internal class DefaultOpenIdTenantCache(
         return ValueTask.FromResult(revisions);
     }
 
-    /// <summary>
-    /// Gets the revision of each cached <see cref="OpenIdTenant"/> instance: its identifier and the concurrency token
-    /// of the persisted tenant it was materialized from.
-    /// </summary>
+    /// <inheritdoc />
     public ValueTask<IReadOnlyCollection<TenantRevision>> GetRevisionsAsync(
         IPropertyBag propertyBag,
         CancellationToken cancellationToken

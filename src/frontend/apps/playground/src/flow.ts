@@ -13,7 +13,7 @@ import {
   type RandomBytes,
   type TokenSet,
 } from '@ncode/auth';
-import type { RuntimeConfig } from '@ncode/config';
+import type { OpenIdRuntimeConfig } from '@ncode/config';
 
 /** Path, relative to the app origin, the OpenID Provider redirects back to after authorization. */
 export const CALLBACK_PATH = '/callback';
@@ -86,7 +86,7 @@ export function isCallback(search: string): boolean {
  * set of artifacts so the explorer can display every step. UI-free so it is unit-testable.
  */
 export async function beginFlow(
-  runtime: RuntimeConfig,
+  runtime: OpenIdRuntimeConfig,
   request: FlowRequest,
   origin: string,
   deps: FlowDeps,
@@ -173,7 +173,7 @@ export function readCallback(search: string, deps: FlowDeps): CallbackResult {
 
 /** Exchanges the authorization code for tokens using the transaction's PKCE verifier, then clears the transaction. */
 export async function exchangeCode(
-  runtime: RuntimeConfig,
+  runtime: OpenIdRuntimeConfig,
   callback: CallbackResult,
   deps: FlowDeps,
 ): Promise<TokenSet> {
@@ -193,7 +193,7 @@ export async function exchangeCode(
 
 /** Exchanges a refresh token for a fresh token set (public client). */
 export function refreshTokens(
-  runtime: RuntimeConfig,
+  runtime: OpenIdRuntimeConfig,
   clientId: string,
   refreshToken: string,
   deps: FlowDeps,
@@ -206,7 +206,7 @@ export function refreshTokens(
  * advertises no `userinfo_endpoint` or the call fails.
  */
 export async function fetchUserInfo(
-  runtime: RuntimeConfig,
+  runtime: OpenIdRuntimeConfig,
   accessToken: string,
   deps: FlowDeps,
 ): Promise<Record<string, unknown>> {
@@ -261,7 +261,7 @@ export function inspectJwt(token: string): DecodedJwt | null {
  * as the post-logout redirect.
  */
 export function endSessionUrl(
-  runtime: RuntimeConfig,
+  runtime: OpenIdRuntimeConfig,
   idToken: string | null,
   clientId: string,
   origin: string,

@@ -4,7 +4,9 @@
   [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md): the client registers the
   `offline_access` scope only when its BFF lists it in `Bff:Scopes`; keys amended by
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): its per-frontend
-  settings are configured under Bff:Frontends:{name})
+  settings are configured under Bff:Frontends:{name}; and by
+  [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): a client whose
+  provider cannot reach its `jwks_uri` registers its keys by value)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 

@@ -20,7 +20,7 @@ type Failure = {
 
 /**
  * Stateful boot gate shared by every surface that discovers its runtime configuration. Until the configuration is in
- * the store there is no API base URL or issuer, so nothing downstream can render meaningfully: the gate loads it once,
+ * the store there is no API base URL, so nothing downstream can render meaningfully: the gate loads it once,
  * stores it, and renders the children themed by its branding. The loading and error states render before any branding
  * is known, so they use the default theme. Configuration that reaches the store any other way wins over a load in
  * flight or a failed one.

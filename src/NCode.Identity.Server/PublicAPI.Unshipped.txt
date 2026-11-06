@@ -69,6 +69,19 @@ NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.
 NCode.Identity.Server.DeveloperKeysRegistration
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeyPruning() -> NCode.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.BackchannelLogoutUri.get -> string?
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.BackchannelLogoutUri.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.ClientId.get -> string?
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.ClientId.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.DeveloperBffClientSeed() -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.Jwks.get -> string?
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.Jwks.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.PostLogoutRedirectUris.get -> string![]!
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.PostLogoutRedirectUris.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.RedirectUris.get -> string![]!
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.RedirectUris.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.ShouldSeed.get -> bool
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.AllowedOrigins.get -> string![]!
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.AllowedOrigins.set -> void
@@ -80,6 +93,8 @@ NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.Adm
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminPassword.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminUserName.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.AdminUserName.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.BffClients.get -> System.Collections.Generic.IList<NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed!>!
+NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.BffClients.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.DeveloperInteractiveSeedOptions() -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SeedAdminUser.get -> bool
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.SpaClients.get -> System.Collections.Generic.IList<NCode.Identity.Server.DevelopmentEnvironment.DeveloperSpaClientSeed!>!

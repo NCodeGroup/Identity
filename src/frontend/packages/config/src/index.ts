@@ -1,8 +1,13 @@
 export type {
+  AntiforgeryHeader,
+  BffBootstrapDocument,
+  BffConfig,
+  BffRuntimeConfig,
   BootstrapDocument,
   BrandingConfig,
   EnvironmentConfig,
   OpenIdDiscovery,
+  OpenIdRuntimeConfig,
   RuntimeConfig,
   SurfaceKind,
 } from './types.js';
@@ -10,15 +15,19 @@ export {
   DEFAULT_SCOPES,
   mergeRuntimeConfig,
   normalizeBaseUrl,
+  parseBffBootstrapDocument,
   parseBootstrapDocument,
   parseBrandingConfig,
   parseOpenIdDiscovery,
   RuntimeConfigError,
+  toBffRuntimeConfig,
 } from './parse.js';
 export {
   BOOTSTRAP_PATH,
   DISCOVERY_PATH,
+  createBffRuntimeConfigLoader,
   createRuntimeConfigLoader,
+  loadBffRuntimeConfig,
   loadRuntimeConfig,
   type FetchLike,
   type LoadRuntimeConfigOptions,

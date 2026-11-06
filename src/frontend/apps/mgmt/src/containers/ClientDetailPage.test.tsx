@@ -3,15 +3,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
 import type { ClientResource, CreatedSecretResource, SecretResource } from '@ncode/api';
-import type { RuntimeConfig } from '@ncode/config';
+import type { BffRuntimeConfig } from '@ncode/config';
 import { ClientDetailPage } from './ClientDetailPage.js';
 
-const runtime: RuntimeConfig = {
+const runtime: BffRuntimeConfig = {
+  kind: 'bff',
   apiBaseUrl: 'https://api.test',
-  issuer: 'https://op.test',
-  authorizationEndpoint: 'https://op.test/authorize',
-  tokenEndpoint: 'https://op.test/token',
-  scopes: ['openid'],
+  bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
   features: {},
 };
 
@@ -27,13 +25,6 @@ const client: ClientResource = {
 function renderPage(overrides: Partial<ClientResource> = {}, onBack = vi.fn()) {
   const store = createAppStore({
     config: { runtime },
-    auth: {
-      accessToken: 'token',
-      subject: 'admin',
-      expiresAt: null,
-      refreshToken: null,
-      idToken: null,
-    },
   });
   render(
     <Provider store={store}>

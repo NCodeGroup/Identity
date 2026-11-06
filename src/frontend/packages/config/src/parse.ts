@@ -1,9 +1,11 @@
 import type {
+  BffBootstrapDocument,
+  BffRuntimeConfig,
   BootstrapDocument,
   BrandingConfig,
   EnvironmentConfig,
   OpenIdDiscovery,
-  RuntimeConfig,
+  OpenIdRuntimeConfig,
 } from './types.js';
 
 /** Thrown when runtime configuration cannot be discovered or is invalid. */
@@ -110,6 +112,47 @@ export function parseBootstrapDocument(raw: unknown): BootstrapDocument {
   };
 }
 
+/** Validates and normalizes the bootstrap document a BFF-served surface's host publishes. */
+export function parseBffBootstrapDocument(raw: unknown): BffBootstrapDocument {
+  if (raw === null || typeof raw !== 'object') {
+    throw new RuntimeConfigError('Bootstrap document must be a JSON object.');
+  }
+  const doc = raw as Record<string, unknown>;
+  const apiBaseUrl = normalizeBaseUrl(requireNonEmpty(doc.apiBaseUrl, 'apiBaseUrl'));
+
+  if (doc.bff === null || typeof doc.bff !== 'object' || Array.isArray(doc.bff)) {
+    throw new RuntimeConfigError("Bootstrap document is missing required field 'bff'.");
+  }
+  const bff = doc.bff as Record<string, unknown>;
+  const basePath = normalizeBaseUrl(requireNonEmpty(bff.basePath, 'bff.basePath'));
+  if (!basePath.startsWith('/')) {
+    throw new RuntimeConfigError("Bootstrap document field 'bff.basePath' must start with '/'.");
+  }
+
+  const header =
+    bff.antiforgeryHeader !== null &&
+    typeof bff.antiforgeryHeader === 'object' &&
+    !Array.isArray(bff.antiforgeryHeader)
+      ? (bff.antiforgeryHeader as Record<string, unknown>)
+      : {};
+  const name = requireNonEmpty(header.name, 'bff.antiforgeryHeader.name');
+  const value = requireNonEmpty(header.value, 'bff.antiforgeryHeader.value');
+
+  const features =
+    doc.features && typeof doc.features === 'object'
+      ? (doc.features as Record<string, boolean>)
+      : {};
+
+  const branding = parseBrandingConfig(doc.branding);
+
+  return {
+    apiBaseUrl,
+    bff: { basePath, antiforgeryHeader: { name, value } },
+    features,
+    ...(branding ? { branding } : {}),
+  };
+}
+
 /** Validates the OpenID discovery metadata the frontend depends on. */
 export function parseOpenIdDiscovery(raw: unknown): OpenIdDiscovery {
   if (raw === null || typeof raw !== 'object') {
@@ -130,17 +173,18 @@ export function parseOpenIdDiscovery(raw: unknown): OpenIdDiscovery {
   };
 }
 
-/** Merges a bootstrap document and OpenID discovery metadata into the resolved runtime config. */
+/** Merges a bootstrap document and OpenID discovery metadata into the resolved runtime config of an OpenID surface. */
 export function mergeRuntimeConfig(
   bootstrap: BootstrapDocument,
   discovery: OpenIdDiscovery,
-): RuntimeConfig {
+): OpenIdRuntimeConfig {
   if (normalizeBaseUrl(discovery.issuer) !== bootstrap.issuer) {
     throw new RuntimeConfigError(
       `Issuer mismatch: bootstrap '${bootstrap.issuer}' !== discovery '${discovery.issuer}'.`,
     );
   }
   return {
+    kind: 'openid',
     apiBaseUrl: bootstrap.apiBaseUrl,
     issuer: bootstrap.issuer,
     authorizationEndpoint: discovery.authorization_endpoint,
@@ -153,5 +197,16 @@ export function mergeRuntimeConfig(
       : {}),
     ...(discovery.userinfo_endpoint ? { userInfoEndpoint: discovery.userinfo_endpoint } : {}),
     ...(bootstrap.branding ? { branding: bootstrap.branding } : {}),
+  };
+}
+
+/** Resolves a BFF-served surface's bootstrap document into its runtime config. */
+export function toBffRuntimeConfig(document: BffBootstrapDocument): BffRuntimeConfig {
+  return {
+    kind: 'bff',
+    apiBaseUrl: document.apiBaseUrl,
+    bff: document.bff,
+    features: document.features ?? {},
+    ...(document.branding ? { branding: document.branding } : {}),
   };
 }

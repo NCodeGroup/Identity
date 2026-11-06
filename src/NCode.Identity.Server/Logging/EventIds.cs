@@ -29,4 +29,6 @@ internal static class EventIds
     public const int SecretProtectionCommandOwnerHasNoMasterKeys = Base + 13;
     public const int SecretProtectionCommandUsageInvalid = Base + 14;
     public const int DeveloperPlatformMasterKeysReplaced = Base + 15;
+    public const int DeveloperBffClientReplaced = Base + 16;
+    public const int DeveloperBffClientSkipped = Base + 17;
 }

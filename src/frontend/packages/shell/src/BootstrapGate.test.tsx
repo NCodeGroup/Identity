@@ -9,6 +9,7 @@ import { createAppTheme } from '@ncode/ui';
 import { BootstrapGate } from './BootstrapGate.js';
 
 const runtime: RuntimeConfig = {
+  kind: 'openid',
   apiBaseUrl: 'https://api.test',
   issuer: 'https://op.test',
   authorizationEndpoint: 'https://op.test/authorize',
@@ -249,7 +250,7 @@ describe('BootstrapGate', () => {
       second.resolve({ ...runtime, issuer: 'https://second.test' });
 
       expect(await screen.findByTestId('theme-probe')).toBeInTheDocument();
-      expect(store.getState().config.runtime?.issuer).toBe('https://second.test');
+      expect(store.getState().config.runtime).toMatchObject({ issuer: 'https://second.test' });
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
 

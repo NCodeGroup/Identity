@@ -9,7 +9,9 @@
   issuer defaults to the serving tenant's issuer, never the request origin; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
-  settings under `/api/platform`)
+  settings under `/api/platform`; and by
+  [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the management
+  console is served by a BFF host of its own)
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 

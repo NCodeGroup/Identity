@@ -1,3 +1,4 @@
+export { CSP_NONCE_SELECTOR, readCspNonce } from './cspNonce.js';
 export { createAppTheme } from './theme/createAppTheme.js';
 export { AppThemeProvider, type AppThemeProviderProps } from './theme/AppThemeProvider.js';
 export { ScopeBadge, type ScopeBadgeProps, type ScopeKind } from './components/ScopeBadge.js';

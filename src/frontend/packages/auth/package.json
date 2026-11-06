@@ -2,7 +2,7 @@
   "name": "@ncode/auth",
   "version": "0.0.0",
   "private": true,
-  "description": "Framework-free OAuth 2.0 authorization-code + PKCE helpers for NCode.Identity frontends.",
+  "description": "Framework-free OAuth 2.0 authorization-code + PKCE protocol helpers for the Playground's public client.",
   "type": "module",
   "exports": {
     ".": {

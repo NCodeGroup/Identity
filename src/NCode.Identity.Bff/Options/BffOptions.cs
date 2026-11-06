@@ -27,4 +27,11 @@ public sealed class BffOptions
     /// Gets or sets the token refresh options. The configuration section is <c>Bff:Tokens</c>.
     /// </summary>
     public BffTokenOptions Tokens { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the key rings that the BFF reads from PEM files, by name. The configuration section is
+    /// <c>Bff:KeyRings</c>.
+    /// </summary>
+    public Dictionary<string, BffKeyRingOptions> KeyRings { get; set; } =
+        new(StringComparer.Ordinal);
 }

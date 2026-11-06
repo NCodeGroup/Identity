@@ -1,7 +1,7 @@
 import { combineReducers, configureStore, type Middleware, type Reducer } from '@reduxjs/toolkit';
-import { authSlice } from './authSlice.js';
 import { configSlice } from './configSlice.js';
 import { managementApi } from './managementApi.js';
+import { sessionSlice } from './sessionSlice.js';
 
 /**
  * The combined root reducer. RTK's `@reduxjs/toolkit/query/react` subpath bundles its own copies of
@@ -12,7 +12,7 @@ import { managementApi } from './managementApi.js';
  */
 const rootReducer = combineReducers({
   config: configSlice.reducer,
-  auth: authSlice.reducer,
+  session: sessionSlice.reducer,
   [managementApi.reducerPath]: managementApi.reducer as Reducer,
 });
 
@@ -20,8 +20,8 @@ export type RootState = ReturnType<typeof rootReducer>;
 
 /**
  * Assembles the shared Redux store. Each app shell calls this once at the top level; all surfaces
- * share the same config/auth slices and the Management API cache. `preloadedState` keeps the store
- * testable (hydrate with a known runtime config / token).
+ * share the same config/session slices and the Management API cache. `preloadedState` keeps the store
+ * testable (hydrate with a known runtime config / session).
  */
 export function createAppStore(preloadedState?: Partial<RootState>) {
   return configureStore({

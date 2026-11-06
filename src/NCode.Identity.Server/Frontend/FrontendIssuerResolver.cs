@@ -12,9 +12,10 @@ namespace NCode.Identity.Server.Frontend;
 /// <summary>
 /// Resolves the issuer the frontend bootstrap document publishes when <see cref="FrontendBootstrapOptions.Issuer"/> is
 /// unset: the issuer of the tenant that serves the surface — the tenant the request identifies (the only tenant under
-/// the static single-tenant strategy), and otherwise the root tenant, which serves the Management console. The issuer is
-/// the tenant's stored issuer, or the one its strategy derives before the tenant is provisioned. It is never derived from
-/// the serving request, so a forged or proxied <c>Host</c> cannot change the authority the bundle trusts.
+/// the static single-tenant strategy), and otherwise the root tenant, which serves the surfaces under the dynamic
+/// strategies. The issuer is the tenant's stored issuer, or the one its strategy derives before the tenant is
+/// provisioned. It is never derived from the serving request, so a forged or proxied <c>Host</c> cannot change the
+/// authority the bundle trusts.
 /// </summary>
 // See ADR-1182.
 internal sealed class FrontendIssuerResolver(

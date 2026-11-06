@@ -53,13 +53,19 @@ public class BffHubFilterTests : BaseTests
         IFeatureCollection features
     ) => context.SetupGet(x => x.Features).Returns(features).Verifiable();
 
+    private void SetupWatchContext(Mock<HubCallerContext> context)
+    {
+        SetupFeatures(context, new FeatureCollection());
+        context.SetupGet(x => x.ConnectionAborted).Returns(_connectionAborted).Verifiable();
+    }
+
     private void SetupIdleWatch(
         Mock<HubCallerContext> context,
         Mock<IBffConnectionSession> session,
         Action<CancellationToken>? onWait = null
     )
     {
-        SetupFeatures(context, new FeatureCollection());
+        SetupWatchContext(context);
         _revalidator
             .Setup(x => x.WaitUntilEndedAsync(session.Object, It.IsAny<CancellationToken>()))
             .Returns(
@@ -136,7 +142,7 @@ public class BffHubFilterTests : BaseTests
         var context = CreateConnectionContext(session, validate: false);
         var aborted = CreateSignal();
         context.Setup(x => x.Abort()).Callback(() => aborted.SetResult()).Verifiable();
-        SetupFeatures(context, new FeatureCollection());
+        SetupWatchContext(context);
         _revalidator
             .Setup(x => x.WaitUntilEndedAsync(session.Object, It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
@@ -203,7 +209,7 @@ public class BffHubFilterTests : BaseTests
         var context = CreateConnectionContext(session, validate: false);
         var aborted = CreateSignal();
         context.Setup(x => x.Abort()).Callback(() => aborted.SetResult()).Verifiable();
-        SetupFeatures(context, new FeatureCollection());
+        SetupWatchContext(context);
         _revalidator
             .Setup(x => x.WaitUntilEndedAsync(session.Object, It.IsAny<CancellationToken>()))
             .Throws(new InvalidOperationException("fault"))
@@ -219,6 +225,39 @@ public class BffHubFilterTests : BaseTests
         var record = Assert.Single(_logger.Collector.GetSnapshot());
         Assert.Equal(EventIds.HubRevalidationFaulted, record.Id.Id);
         Assert.IsType<InvalidOperationException>(record.Exception);
+    }
+
+    [Fact]
+    public async Task OnConnectedAsync_ConnectionAborted_EndsWatch()
+    {
+        var session = CreateSession();
+        var context = CreateConnectionContext(session, validate: false);
+        using var connectionAborted = new CancellationTokenSource();
+        context.SetupGet(x => x.ConnectionAborted).Returns(connectionAborted.Token).Verifiable();
+        SetupFeatures(context, new FeatureCollection());
+        var waiting = CreateSignal();
+        Task? wait = null;
+        _revalidator
+            .Setup(x => x.WaitUntilEndedAsync(session.Object, It.IsAny<CancellationToken>()))
+            .Returns(
+                (IBffConnectionSession _, CancellationToken token) =>
+                {
+                    wait = Task.Delay(Timeout.InfiniteTimeSpan, token);
+                    waiting.SetResult();
+                    return new ValueTask(wait);
+                }
+            )
+            .Verifiable();
+        await CreateFilter()
+            .OnConnectedAsync(
+                new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+                _ => Task.CompletedTask
+            );
+        await waiting.Task.WaitAsync(SignalTimeout);
+
+        await connectionAborted.CancelAsync();
+
+        await Assert.ThrowsAsync<TaskCanceledException>(() => wait!.WaitAsync(SignalTimeout));
     }
 
     #endregion
@@ -409,5 +448,15 @@ public class BffHubFilterTests : BaseTests
     private sealed class TestHub : Hub
     {
         public static string Ping() => "pong";
+    }
+
+    /// <summary>
+    /// An <see cref="IHttpContextFeature"/> that serves the <see cref="Microsoft.AspNetCore.Http.HttpContext"/> that a
+    /// test assigns.
+    /// </summary>
+    private sealed class TestHttpContextFeature : IHttpContextFeature
+    {
+        /// <inheritdoc />
+        public HttpContext? HttpContext { get; set; }
     }
 }

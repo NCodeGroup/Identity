@@ -45,16 +45,11 @@ internal sealed class BffHubFilter(
 
         await next(context);
 
-        if (
-            connection is not null
-            && context
-                .Context.GetHttpContext()
-                ?.GetEndpoint()
-                ?.Metadata.GetMetadata<BffSelfRevalidatingHubAttribute>()
-                is null
-        )
+        if (connection is not null && !IsSelfRevalidating(context.Context))
         {
-            var source = new CancellationTokenSource();
+            var source = CancellationTokenSource.CreateLinkedTokenSource(
+                context.Context.ConnectionAborted
+            );
             context.Context.Items[WatchKey] = source;
             _ = WatchAsync(context.Context, connection, source.Token).AsTask();
         }
@@ -109,6 +104,14 @@ internal sealed class BffHubFilter(
         {
             return await next(invocationContext);
         }
+    }
+
+    private static bool IsSelfRevalidating(HubCallerContext context)
+    {
+        var httpContext = context.GetHttpContext();
+        var endpoint = httpContext?.GetEndpoint();
+        var attribute = endpoint?.Metadata.GetMetadata<BffSelfRevalidatingHubAttribute>();
+        return attribute is not null;
     }
 
     private async ValueTask WatchAsync(

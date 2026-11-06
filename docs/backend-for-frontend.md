@@ -1101,7 +1101,8 @@ provider in code and configures no entry for it
 - `Bff:Frontends:{name}:PublicOrigin` is missing, not an absolute URL in canonical form, has user info, a query, a
   fragment or a trailing `/`, or is not `https` (outside Development).
 - The client-authentication method or the token requirement names something not registered.
-- `Bff:Frontends:{name}:ClientAuthentication:KeyRing` or `DPoP:KeyRing` names a key ring that is not registered.- There are no `Bff:Frontends:{name}:ReturnUrls`, or an entry is not a same-origin relative path.
+- `Bff:Frontends:{name}:ClientAuthentication:KeyRing` or `DPoP:KeyRing` names a key ring that is not registered.
+- There are no `Bff:Frontends:{name}:ReturnUrls`, or an entry is not a same-origin relative path.
 - A remote API's destination is not `https` (outside Development), or its path overlaps the frontend's `PathPrefix` or
   another of its APIs' local prefixes.
 - `Bff:Frontends:{name}:Jwks:Enabled` is `true` without `ClientAuthentication:KeyRing`.

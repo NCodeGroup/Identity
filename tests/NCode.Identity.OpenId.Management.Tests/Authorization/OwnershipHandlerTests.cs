@@ -81,6 +81,22 @@ public class OwnershipHandlerTests : IDisposable
             },
         };
 
+    private static PersistedTeam CreateTeam(string teamId, string[] ancestorTeamIds) =>
+        new()
+        {
+            TeamId = teamId,
+            ConcurrencyToken = string.Empty,
+            IsDisabled = false,
+            DisplayName = teamId,
+            AncestorTeamIds = ancestorTeamIds,
+            Settings = new PersistedTeamSettings
+            {
+                TeamId = teamId,
+                ConcurrencyToken = string.Empty,
+                Value = default,
+            },
+        };
+
     // A requirement the handler does not decide reads nothing, a caller without a principal reads no assignments, and
     // a team or platform node reads no tenant.
     private async Task<bool> HandleAsync(
@@ -91,7 +107,8 @@ public class OwnershipHandlerTests : IDisposable
         bool decides = true,
         bool readsAssignments = true,
         bool readsTenant = true,
-        string? tenantTeamId = TeamId
+        string? tenantTeamId = TeamId,
+        string[]? teamAncestors = null
     )
     {
         var factory = MockRepository.Create<IStoreManagerFactory>();
@@ -105,10 +122,12 @@ public class OwnershipHandlerTests : IDisposable
                 resolver,
                 accessor,
                 ambient,
+                resource,
                 assignments,
                 readsAssignments,
                 readsTenant,
-                tenantTeamId
+                tenantTeamId,
+                teamAncestors
             );
         }
 
@@ -138,10 +157,12 @@ public class OwnershipHandlerTests : IDisposable
         Mock<ICallerPrincipalResolver> resolver,
         Mock<IHttpContextAccessor> accessor,
         Mock<IAmbientTenantAccessor> ambient,
+        ISupportTenantId resource,
         PersistedRoleAssignment[] assignments,
         bool readsAssignments,
         bool readsTenant,
-        string? tenantTeamId
+        string? tenantTeamId,
+        string[]? teamAncestors
     )
     {
         var manager = MockRepository.Create<IStoreManager>();
@@ -189,6 +210,20 @@ public class OwnershipHandlerTests : IDisposable
                         x.GetOrDefaultAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())
                     )
                     .ReturnsAsync(tenantTeamId is null ? null : CreateTenant(tenantTeamId))
+                    .Verifiable();
+            }
+
+            var isTeamNode = resource is IResourceNode { ResourceType: ResourceNodeTypes.Team };
+            var teamId = isTeamNode ? ((IResourceNode)resource).ResourceId : tenantTeamId;
+            if (isTeamNode || (readsTenant && tenantTeamId is not null))
+            {
+                var teamStore = MockRepository.Create<ITeamStore>();
+                manager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object).Verifiable();
+                teamStore
+                    .Setup(x =>
+                        x.GetOrDefaultAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())
+                    )
+                    .ReturnsAsync(CreateTeam(teamId!, teamAncestors ?? []))
                     .Verifiable();
             }
 
@@ -269,6 +304,64 @@ public class OwnershipHandlerTests : IDisposable
         );
 
         Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenTeamAdminAtTheParentOfTheTenantsTeam_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ClientNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "parent-team")],
+            teamAncestors: ["parent-team"]
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenCreateOnAChildTeamNodeAndTeamAdminAtItsParent_Succeeds()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Create,
+            TeamNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "parent-team")],
+            readsTenant: false,
+            teamAncestors: ["parent-team"]
+        );
+
+        Assert.True(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenTeamAdminAtAChildOfTheTenantsTeam_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            ClientNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TeamAdmin, ResourceNodeTypes.Team, "child-team")],
+            teamAncestors: ["parent-team"]
+        );
+
+        Assert.False(succeeded);
+    }
+
+    [Fact]
+    public async Task HandleRequirementAsync_WhenTenantAdminAndTheResourceIsATeamNode_DoesNotSucceed()
+    {
+        var succeeded = await HandleAsync(
+            Operations.Update,
+            TeamNode(),
+            CreateSubject(),
+            [Assignment(BuiltInRoles.TenantAdmin, ResourceNodeTypes.Tenant, TenantId)],
+            readsTenant: false,
+            teamAncestors: ["parent-team"]
+        );
+
+        Assert.False(succeeded);
     }
 
     [Fact]

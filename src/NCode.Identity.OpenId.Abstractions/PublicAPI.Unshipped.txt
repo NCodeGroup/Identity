@@ -982,6 +982,10 @@ NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.set -> void
 NCode.Identity.OpenId.Teams.ITeamProvisioner
 NCode.Identity.OpenId.Teams.ITeamProvisioner.EnsureCreatedAsync(string! teamId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxTenants = "max_tenants" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxTeams = "max_teams" -> string!
+const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxTeamDepth = "max_team_depth" -> string!
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MaxTeams.get -> NCode.Identity.Settings.SettingKey<int>
+static NCode.Identity.OpenId.Settings.OpenIdSettingKeys.MaxTeamDepth.get -> NCode.Identity.Settings.SettingKey<int>
 abstract NCode.Identity.OpenId.Teams.OpenIdTeam.ConcurrencyToken.get -> string!
 abstract NCode.Identity.OpenId.Teams.OpenIdTeam.DisplayName.get -> string!
 abstract NCode.Identity.OpenId.Teams.OpenIdTeam.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask

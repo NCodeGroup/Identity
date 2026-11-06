@@ -2549,6 +2549,27 @@ describes the family as it is rather than its changes
   frontends ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
 
+- **The management console is served by a BFF host of its own.** `NCode.Identity.ManagementConsole`
+  (`AddManagementConsole(configuration)`, `MapManagementConsole()`) and `NCode.Identity.ManagementConsole.Host` serve
+  the built `apps/mgmt` bundle under a per-response CSP nonce, `/config/bootstrap.json`, the `mgmt` frontend's `/bff`
+  endpoints, and `/management/api/*` forwarded to `ManagementConsole:ManagementApiUrl` with the user's DPoP-bound
+  `urn:ncode:management` token. The console is the confidential client `mgmt-console` of the control-plane tenant
+  (`private_key_jwt`, PAR, DPoP, back-channel logout) and listens on `https://localhost:5005` under the AppHost, which
+  generates the console's keys per machine
+  ([#158](https://github.com/NCodeGroup/Identity/issues/158),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+
+- **A BFF loads its key rings from PEM files.** `Bff:KeyRings:{name}:PemFiles` registers a key ring from EC or RSA
+  private-key PEM files, each key's `kid` is its file name without the extension, and the host validates the files when
+  it starts
+  ([ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+
+- **The management console reads its session from its BFF.** The `RuntimeConfig` union and `loadBffRuntimeConfig`, the
+  `session` slice and `fetchBffUser`, `SessionGate` (poll, expiry and visibility probes, `BroadcastChannel`), sign-out
+  by the logout form, `defineBffServedSurfaceConfig` and `readCspNonce` in `@ncode/ui` give the console its session
+  from `/bff/user`
+  ([ADR-1438](docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
+
 - **The BFF is proven in real browsers and against a second OpenID Provider.** The `End-to-end` check runs
   `./build/e2e.ps1`, which drives the BFF with Playwright in Chromium, Firefox and WebKit against Keycloak in a
   container. The session cookie is host-only, `HttpOnly`, `Secure` and `SameSite=Strict` (or `Lax` when chosen). A
@@ -3770,6 +3791,13 @@ describes the family as it is rather than its changes
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
 
 ### Security
+
+- **The management console holds no token in the browser.** No access, refresh or ID token reaches the console's
+  script; its calls carry the `__Host-Http-bff.mgmt` cookie and the anti-forgery header, and the console's origin is
+  separate from the OP's login, consent and account pages
+  (RFC 10017,
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+  [ADR-1438](docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 
 - **Management authority comes from role assignments.** No role claim but the bootstrap administrator's `GlobalAdmin`
   confers authority; a tenant administrator reaches nothing above its tenant, so the control-plane tenant's

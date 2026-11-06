@@ -132,7 +132,7 @@ internal sealed class TenantUsageStore(
                 {
                     Id = IdGenerator.CreateId(),
                     TenantId = entry.TenantId,
-                    TeamId = entry.TeamId,
+                    TeamPath = entry.TeamPath,
                     Day = day,
                     Meter = entry.Meter,
                     Count = entry.Count,
@@ -165,9 +165,9 @@ internal sealed class TenantUsageStore(
     }
 
     /// <inheritdoc />
-    // See ADR-1411.
+    // See ADR-1411 and ADR-1426.
     public async ValueTask<IReadOnlyList<PersistedTenantUsage>> ListByTeamAsync(
-        string teamId,
+        string teamPath,
         DateOnly firstDay,
         DateOnly lastDay,
         CancellationToken cancellationToken
@@ -175,7 +175,9 @@ internal sealed class TenantUsageStore(
     {
         var entities = await DbContext
             .TenantUsage.AsNoTracking()
-            .Where(usage => usage.TeamId == teamId && usage.Day >= firstDay && usage.Day <= lastDay)
+            .Where(usage =>
+                usage.TeamPath.StartsWith(teamPath) && usage.Day >= firstDay && usage.Day <= lastDay
+            )
             .OrderBy(usage => usage.Day)
             .ThenBy(usage => usage.TenantId)
             .ThenBy(usage => usage.Meter)
@@ -188,7 +190,7 @@ internal sealed class TenantUsageStore(
         new()
         {
             TenantId = entity.TenantId,
-            TeamId = entity.TeamId,
+            TeamPath = entity.TeamPath,
             Day = entity.Day,
             Meter = entity.Meter,
             Count = entity.Count,

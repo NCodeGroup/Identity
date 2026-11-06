@@ -5,7 +5,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Logging;
-using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -176,7 +175,7 @@ internal sealed class TenantUsageFlushService(
                     .. chunk.Select(pair => new PersistedTenantUsage
                     {
                         TenantId = pair.Key.TenantId,
-                        TeamId = TeamPaths.Parse(pair.Key.TeamPath)[^1],
+                        TeamPath = pair.Key.TeamPath,
                         Day = pair.Key.Day,
                         Meter = pair.Key.Meter,
                         Count = pair.Value,

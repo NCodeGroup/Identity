@@ -569,8 +569,8 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Tea
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.Team.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.TeamId.get -> long
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantEntity.TeamId.init -> void
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TeamId.get -> string!
-NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TeamId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TeamPath.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TenantUsageEntity.TeamPath.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ActivatesWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.ActivatesWhen.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.SecretEntity.RetiresWhen.get -> System.DateTimeOffset

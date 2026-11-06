@@ -4,30 +4,17 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.AspNetCore;
-using NCode.Identity.Bff.Frontends;
-using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Responses;
-using NCode.Identity.Bff.Sessions;
-using NCode.Identity.Jose;
 
 namespace NCode.Identity.Bff.Endpoints;
 
 /// <summary>
-/// Handles <c>GET /bff/user</c>, which tells the frontend who is signed in without exposing any token. The registered
-/// <see cref="IBffUserContributor"/> strategies add fields beside the reserved ones.
+/// Handles <c>GET /bff/user</c>, which tells the frontend who is signed in without exposing any token. The document
+/// comes from the registered <see cref="IBffUserDocumentFactory"/>.
 /// </summary>
-internal class BffUserHandler(
-    BffSessionResolver resolver,
-    IEnumerable<IBffUserContributor> contributors,
-    BffFrontendCatalog frontends
-)
+internal class BffUserHandler(IBffUserDocumentFactory documentFactory)
 {
     private const string JsonContentType = "application/json; charset=utf-8";
-    private const string LogoutPath = "/logout";
-
-    private readonly BffSessionResolver _resolver = resolver;
-    private readonly IEnumerable<IBffUserContributor> _contributors = contributors;
-    private readonly BffFrontendCatalog _frontends = frontends;
 
     /// <summary>
     /// Writes the signed-in user, or a <c>401</c> problem when the request has no session.
@@ -41,8 +28,8 @@ internal class BffUserHandler(
         response.SetNoStore();
 
         var cancellationToken = httpContext.RequestAborted;
-        var session = await _resolver.ResolveAsync(httpContext, cancellationToken);
-        if (session is null)
+        var document = await documentFactory.CreateAsync(httpContext, cancellationToken);
+        if (document is null)
         {
             await BffResponses.WriteProblemAsync(
                 httpContext,
@@ -53,73 +40,11 @@ internal class BffUserHandler(
             return;
         }
 
-        var frontend = _frontends.GetRequired(httpContext);
-        var principal = BffSessionPrincipal.Create(session.Payload.Claims, session.Metadata.Issuer);
-
-        // The contributors run before the response starts, so a contributor that fails leaves no partial body.
-        var userContext = new BffUserContext(httpContext, principal, session.Metadata);
-        foreach (var contributor in _contributors)
-        {
-            await contributor.ContributeAsync(userContext, cancellationToken);
-        }
-
         response.StatusCode = StatusCodes.Status200OK;
         response.ContentType = JsonContentType;
 
         await using var writer = new Utf8JsonWriter(response.BodyWriter);
-        writer.WriteStartObject();
-
-        writer.WriteString(JoseClaimNames.Payload.Sub, session.Metadata.Subject);
-        var name = principal.FindFirst(JoseClaimNames.Payload.Name)?.Value;
-        if (name is not null)
-            writer.WriteString(JoseClaimNames.Payload.Name, name);
-
-        writer.WriteStartObject("claims");
-        foreach (var claimType in frontend.Options.UserClaims)
-        {
-            var values = principal.FindAll(claimType).Select(claim => claim.Value).ToList();
-            if (values.Count == 0)
-                continue;
-
-            if (values.Count == 1)
-            {
-                writer.WriteString(claimType, values[0]);
-                continue;
-            }
-
-            writer.WriteStartArray(claimType);
-            foreach (var value in values)
-            {
-                writer.WriteStringValue(value);
-            }
-
-            writer.WriteEndArray();
-        }
-
-        writer.WriteEndObject();
-
-        writer.WriteStartObject("session");
-        writer.WriteNumber("expiresAt", session.Metadata.AbsoluteExpiresAt.ToUnixTimeSeconds());
-        writer.WriteNumber("idleExpiresAt", session.Metadata.IdleExpiresAt.ToUnixTimeSeconds());
-        writer.WriteEndObject();
-
-        var logoutPath = BffNavigation.LocalUrl(
-            httpContext.Request,
-            frontend.Options.PathPrefix + LogoutPath
-        );
-        writer.WriteString("logoutUrl", logoutPath);
-        writer.WriteString("logoutSid", session.Payload.LogoutGuard);
-
-        foreach (var (fieldName, value) in userContext.Fields)
-        {
-            writer.WritePropertyName(fieldName);
-            if (value is null)
-                writer.WriteNullValue();
-            else
-                value.WriteTo(writer);
-        }
-
-        writer.WriteEndObject();
+        document.Value.WriteTo(writer);
         await writer.FlushAsync(cancellationToken);
         await response.BodyWriter.FlushAsync(cancellationToken);
     }

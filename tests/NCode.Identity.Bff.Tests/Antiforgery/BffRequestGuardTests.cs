@@ -11,6 +11,7 @@ namespace NCode.Identity.Bff.Tests.Antiforgery;
 public class BffRequestGuardTests : BaseTests
 {
     private const string TrustedOrigin = "https://app.example.com";
+    private const string PublicOrigin = "https://www.example.com";
 
     private static BffAntiforgeryOptions CreateOptions() => new();
 
@@ -110,36 +111,92 @@ public class BffRequestGuardTests : BaseTests
 
     #endregion
 
-    #region CheckPage Tests
+    #region CheckHub Tests
 
-    [Theory]
-    [InlineData("GET")]
-    [InlineData("HEAD")]
-    public void CheckPage_SafeMethod_ReturnsNull(string method)
+    [Fact]
+    public void CheckHub_PublicOrigin_ReturnsNull()
     {
         var options = CreateOptions();
-        var request = CreateRequest(options, []);
-        request.Method = method;
+        var request = CreateRequest(options, [], "same-origin", [PublicOrigin]);
 
-        var reason = BffRequestGuard.CheckPage(request);
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
 
         Assert.Null(reason);
     }
 
-    [Theory]
-    [InlineData("POST")]
-    [InlineData("PUT")]
-    [InlineData("PATCH")]
-    [InlineData("DELETE")]
-    public void CheckPage_UnsafeMethod_ReturnsUnsafeMethod(string method)
+    [Fact]
+    public void CheckHub_TrustedOrigin_ReturnsNull()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], "same-site", [TrustedOrigin]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Null(reason);
+    }
+
+    [Fact]
+    public void CheckHub_NoOrigin_ReturnsNull()
     {
         var options = CreateOptions();
         var request = CreateRequest(options, []);
-        request.Method = method;
 
-        var reason = BffRequestGuard.CheckPage(request);
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
 
-        Assert.Equal(BffRequestGuard.UnsafeMethod, reason);
+        Assert.Null(reason);
+    }
+
+    [Fact]
+    public void CheckHub_ForeignOrigin_ReturnsCrossSite()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], origins: ["https://evil.example.com"]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Equal(BffRequestGuard.CrossSiteRequest, reason);
+    }
+
+    [Fact]
+    public void CheckHub_RepeatedOrigin_ReturnsCrossSite()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], origins: [PublicOrigin, PublicOrigin]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Equal(BffRequestGuard.CrossSiteRequest, reason);
+    }
+
+    [Fact]
+    public void CheckHub_CrossSiteFetch_ReturnsCrossSite()
+    {
+        var options = CreateOptions();
+        var request = CreateRequest(options, [], "cross-site", [PublicOrigin]);
+
+        var reason = BffRequestGuard.CheckHub(request, PublicOrigin, [TrustedOrigin]);
+
+        Assert.Equal(BffRequestGuard.CrossSiteRequest, reason);
+    }
+
+    #endregion
+
+    #region IsSafeMethod Tests
+
+    [Theory]
+    [InlineData("GET", true)]
+    [InlineData("HEAD", true)]
+    [InlineData("OPTIONS", true)]
+    [InlineData("TRACE", true)]
+    [InlineData("POST", false)]
+    [InlineData("PUT", false)]
+    [InlineData("PATCH", false)]
+    [InlineData("DELETE", false)]
+    public void IsSafeMethod_Method_ReturnsExpected(string method, bool expected)
+    {
+        var result = BffRequestGuard.IsSafeMethod(method);
+
+        Assert.Equal(expected, result);
     }
 
     #endregion

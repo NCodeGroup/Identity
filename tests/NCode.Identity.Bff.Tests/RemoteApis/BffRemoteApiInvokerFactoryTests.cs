@@ -2,8 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
+using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 
@@ -11,13 +15,26 @@ namespace NCode.Identity.Bff.Tests.RemoteApis;
 
 public class BffRemoteApiInvokerFactoryTests : BaseTests
 {
-    private static BffRemoteApiInvokerFactory CreateFactory() =>
-        new(
-            new HttpContextAccessor(),
-            new Moq.Mock<IBffTokenAccessor>().Object,
-            new Moq.Mock<IDPoPProofFactory>().Object,
-            BffTestFrontends.CreateCatalog()
+    private BffRemoteApiInvokerFactory CreateFactory()
+    {
+        var timeProvider = new FakeTimeProvider();
+        var frontends = BffTestFrontends.CreateCatalog();
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            frontends,
+            timeProvider
         );
+        return new BffRemoteApiInvokerFactory(
+            new HttpContextAccessor(),
+            new DefaultBffConnectionSessionAccessor(),
+            new BffTokenContexts(frontends, resolver, cookies),
+            new Moq.Mock<IBffTokenAccessor>().Object,
+            new Moq.Mock<IDPoPProofFactory>().Object
+        );
+    }
 
     #region CreateInvoker Tests
 

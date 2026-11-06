@@ -4,7 +4,6 @@
 using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Bff.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 
@@ -12,20 +11,23 @@ namespace NCode.Identity.Bff.Tokens;
 
 /// <summary>
 /// Attaches the access token of the current session, and its DPoP proof when the token is DPoP-bound, to outbound requests.
+/// The session is the current connection when there is one, otherwise the session of the current request.
 /// </summary>
 /// <param name="accessor">The accessor of the current request.</param>
+/// <param name="connections">The accessor of the current connection.</param>
+/// <param name="contexts">Creates the token context of the current request.</param>
 /// <param name="tokens">The accessor of the BFF's tokens.</param>
 /// <param name="proofs">The factory of DPoP proofs.</param>
-/// <param name="frontends">The catalog of the frontends, whose registration signs the DPoP proofs of the request's frontend.</param>
 /// <param name="tokenRequest">
 /// The token request to resolve when a request carries no <see cref="ResolvedTokenKey"/>, or <see langword="null"/> to
 /// send such a request unchanged, as a YARP cluster does for a route that is not a BFF remote API.
 /// </param>
 internal class BffAccessTokenHandler(
     IHttpContextAccessor accessor,
+    IBffConnectionSessionAccessor connections,
+    BffTokenContexts contexts,
     IBffTokenAccessor tokens,
     IDPoPProofFactory proofs,
-    BffFrontendCatalog frontends,
     BffTokenRequest? tokenRequest
 ) : DelegatingHandler
 {
@@ -80,7 +82,13 @@ internal class BffAccessTokenHandler(
             );
         var requestUri =
             request.RequestUri ?? throw new InvalidOperationException("The request has no URI.");
-        var registration = frontends.GetRequired(GetHttpContext()).Registration;
+        var tokenContext = GetTokenContext();
+        var scope = IBffSessionScope.From(tokenContext);
+        var registration =
+            scope.SelectedFrontend?.Registration
+            ?? throw new InvalidOperationException(
+                "No BFF frontend serves the session whose access token is DPoP-bound."
+            );
 
         // The content must be replayable for the one retry of a nonce challenge.
         if (request.Content is { } content)
@@ -126,14 +134,30 @@ internal class BffAccessTokenHandler(
         CancellationToken cancellationToken
     )
     {
-        return await tokens.GetAccessTokenAsync(GetHttpContext(), request, cancellationToken);
+        var tokenContext = GetTokenContext();
+        return await tokens.GetAccessTokenAsync(tokenContext, request, cancellationToken);
     }
 
-    private HttpContext GetHttpContext() =>
-        accessor.HttpContext
-        ?? throw new InvalidOperationException(
-            "The BFF access token handler requires a current HttpContext."
-        );
+    private IBffTokenContext GetTokenContext()
+    {
+        // The connection and the request scope share no type, so the context is chosen with an if rather than ??.
+        IBffTokenContext context;
+        if (connections.Current is { } connection)
+        {
+            context = connection;
+        }
+        else
+        {
+            context = contexts.ForRequest(
+                accessor.HttpContext
+                    ?? throw new InvalidOperationException(
+                        "The BFF access token handler requires a current HttpContext or a current BFF connection."
+                    )
+            );
+        }
+
+        return context;
+    }
 
     private async Task<HttpResponseMessage> SendRecordingNonceAsync(
         HttpRequestMessage request,

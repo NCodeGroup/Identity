@@ -1,8 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Microsoft.AspNetCore.Http;
-
 namespace NCode.Identity.Bff.Tokens;
 
 /// <summary>
@@ -17,14 +15,15 @@ internal class BffUserTokenRequirement(IBffUserTokenService service) : IBffToken
 
     /// <inheritdoc />
     public ValueTask<BffTokenResult> GetAccessTokenAsync(
-        HttpContext httpContext,
+        IBffTokenContext context,
         BffTokenRequest request,
         CancellationToken cancellationToken
     )
     {
-        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(request);
 
-        return _service.GetAccessTokenAsync(httpContext, request, cancellationToken);
+        var scope = IBffSessionScope.From(context);
+        return _service.GetAccessTokenAsync(scope, request, cancellationToken);
     }
 }

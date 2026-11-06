@@ -1,0 +1,26 @@
+#nullable enable
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientHttpClientBuilderExtensions
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!)
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!).AddBffAntiforgeryHeader() -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary.BffBlazorClientLibrary() -> void
+const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.AuthenticationType = "NCode.Identity.Bff" -> string!
+const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.HttpClientName = "NCode.Identity.Bff.Blazor.Client" -> string!
+const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.UserStateKey = "NCode.Identity.Bff.User" -> string!
+const NCode.Identity.Bff.Blazor.Client.BffClientClaimTypes.LogoutSid = "bff_logout_sid" -> string!
+const NCode.Identity.Bff.Blazor.Client.BffClientClaimTypes.LogoutUrl = "bff_logout_url" -> string!
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults
+NCode.Identity.Bff.Blazor.Client.BffClientClaimTypes
+NCode.Identity.Bff.Blazor.Client.DefaultRegistration
+NCode.Identity.Bff.Blazor.Client.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.Bff.Blazor.Client.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddBffBlazorClient() -> NCode.Registration.IServiceBuilder<NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary>!
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.AntiforgeryHeaderName.get -> string!
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.AntiforgeryHeaderName.set -> void
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.AntiforgeryHeaderValue.get -> string!
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.AntiforgeryHeaderValue.set -> void
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.BffBlazorClientOptions() -> void
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.ProbeInterval.get -> System.TimeSpan
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.ProbeInterval.set -> void
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.UserPath.get -> string!
+NCode.Identity.Bff.Blazor.Client.Options.BffBlazorClientOptions.UserPath.set -> void

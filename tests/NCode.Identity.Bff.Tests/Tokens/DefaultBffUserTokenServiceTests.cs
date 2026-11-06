@@ -12,6 +12,7 @@ using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -43,6 +44,9 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     private Mock<IBffSessionStore> MockStore { get; }
     private Mock<ITokenClient> MockTokenClient { get; }
     private Mock<IBffAuditRecorder> MockRecorder { get; }
+    private BffCookies Cookies { get; }
+    private BffFrontendCatalog Frontends { get; }
+    private BffSessionResolver Resolver { get; }
     private FakeTimeProvider TimeProvider { get; }
     private ServiceProvider MetricsProvider { get; }
     private BffMetrics Metrics { get; }
@@ -87,27 +91,19 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
         TimeProvider = timeProvider;
-        var cookies = new BffCookies(timeProvider);
-        var resolver = new BffSessionResolver(
-            MockManager.Object,
-            cookies,
-            [],
-            BffTestFrontends.CreateCatalog(),
-            timeProvider
-        );
+        Cookies = new BffCookies(timeProvider);
+        Frontends = BffTestFrontends.CreateCatalog();
+        Resolver = new BffSessionResolver(MockManager.Object, Cookies, [], Frontends, timeProvider);
         MockStore = CreateStrictMock<IBffSessionStore>();
         MockTokenClient = CreateStrictMock<ITokenClient>();
         var mockRecorder = CreateStrictMock<IBffAuditRecorder>();
         MockRecorder = mockRecorder;
         Service = new DefaultBffUserTokenService(
-            resolver,
             MockManager.Object,
             new BffInstrumentedSessionStore(MockStore.Object, Metrics),
             MockTokenClient.Object,
-            BffTestFrontends.CreateCatalog(),
             new BffRefreshLocks(),
             Metrics,
-            cookies,
             mockRecorder.Object,
             options,
             timeProvider,
@@ -147,6 +143,9 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             activity.Status
         );
     }
+
+    private BffRequestTokenContext CreateScope(HttpContext httpContext) =>
+        new(httpContext, Frontends, Resolver, Cookies);
 
     private static DefaultHttpContext CreateHttpContext(BffSessionState? session)
     {
@@ -196,7 +195,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         var httpContext = CreateHttpContext(null);
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -220,7 +219,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         var httpContext = CreateHttpContext(CreateState("refresh-token", cached));
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -255,7 +254,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -333,7 +332,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             CreateRequest(resource),
             CancellationToken.None
         );
@@ -431,7 +430,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             CreateRequest(resource),
             cts.Token
         );
@@ -499,7 +498,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -559,7 +558,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -617,7 +616,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -681,7 +680,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -735,7 +734,11 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var exception = await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
-            await Service.GetAccessTokenAsync(httpContext, UserRequest, CancellationToken.None)
+            await Service.GetAccessTokenAsync(
+                CreateScope(httpContext),
+                UserRequest,
+                CancellationToken.None
+            )
         );
 
         Assert.Same(writeBackFailure, exception);
@@ -752,7 +755,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -785,7 +788,11 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         SetupLeaseLost();
 
         var result = await AdvanceUntilCompletedAsync(
-            service.GetAccessTokenAsync(httpContext, UserRequest, CancellationToken.None)
+            service.GetAccessTokenAsync(
+                CreateScope(httpContext),
+                UserRequest,
+                CancellationToken.None
+            )
         );
 
         Assert.True(result.IsSuccess);
@@ -875,7 +882,11 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await AdvanceUntilCompletedAsync(
-            service.GetAccessTokenAsync(httpContext, UserRequest, CancellationToken.None)
+            service.GetAccessTokenAsync(
+                CreateScope(httpContext),
+                UserRequest,
+                CancellationToken.None
+            )
         );
 
         Assert.True(result.IsSuccess);
@@ -900,7 +911,11 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await AdvanceUntilCompletedAsync(
-            service.GetAccessTokenAsync(httpContext, UserRequest, CancellationToken.None)
+            service.GetAccessTokenAsync(
+                CreateScope(httpContext),
+                UserRequest,
+                CancellationToken.None
+            )
         );
 
         Assert.False(result.IsSuccess);
@@ -938,7 +953,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -961,7 +976,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         SetupFailedRefresh(state, httpContext, OpenIdProtocol.ErrorCodes.InvalidScope);
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -1017,7 +1032,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -1060,7 +1075,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             UserRequest,
             CancellationToken.None
         );
@@ -1136,23 +1151,12 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             new BffOptions { Tokens = { RefreshLeaseDuration = TimeSpan.FromMilliseconds(400) } }
         );
         var timeProvider = TimeProvider;
-        var cookies = new BffCookies(timeProvider);
-        var resolver = new BffSessionResolver(
-            MockManager.Object,
-            cookies,
-            [],
-            BffTestFrontends.CreateCatalog(),
-            timeProvider
-        );
         return new DefaultBffUserTokenService(
-            resolver,
             MockManager.Object,
             new BffInstrumentedSessionStore(MockStore.Object, Metrics),
             MockTokenClient.Object,
-            BffTestFrontends.CreateCatalog(),
             new BffRefreshLocks(),
             Metrics,
-            cookies,
             MockRecorder.Object,
             options,
             timeProvider,

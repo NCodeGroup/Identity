@@ -29,12 +29,25 @@ internal static class BffGuardedEndpoints
         IsApi(endpoint) || endpoint?.Metadata.GetMetadata<BffUserEndpointMetadata>() is not null;
 
     /// <summary>
-    /// Determines whether the endpoint is a page marked <c>[BffPage]</c> or <c>AsBffPage()</c> and not an API: GET and
-    /// HEAD only, a challenge redirects to login.
+    /// Determines whether the endpoint is a SignalR hub marked <c>[BffHub]</c> or <c>AsBffHub()</c> and not an API: any
+    /// method, the Fetch Metadata and <c>Origin</c> checks apply, a challenge answers 401 and a request slides the
+    /// session. An API outranks a hub.
+    /// </summary>
+    /// <param name="endpoint">The endpoint of the request, if any.</param>
+    public static bool IsHub(Endpoint? endpoint) =>
+        !RequiresAntiforgery(endpoint)
+        && endpoint?.Metadata.GetMetadata<BffHubAttribute>() is not null;
+
+    /// <summary>
+    /// Determines whether the endpoint is a page marked <c>[BffPage]</c> or <c>AsBffPage()</c> and neither an API nor a
+    /// hub: <c>GET</c>, <c>HEAD</c>, <c>OPTIONS</c> and <c>TRACE</c> without a token and a form post that passes Fetch
+    /// Metadata and carries a valid antiforgery token, and a challenge redirects to login. An API and a hub outrank a
+    /// page.
     /// </summary>
     /// <param name="endpoint">The endpoint of the request, if any.</param>
     public static bool IsPage(Endpoint? endpoint) =>
         !RequiresAntiforgery(endpoint)
+        && !IsHub(endpoint)
         && endpoint?.Metadata.GetMetadata<BffPageAttribute>() is not null;
 
     /// <summary>
@@ -42,5 +55,5 @@ internal static class BffGuardedEndpoints
     /// </summary>
     /// <param name="endpoint">The endpoint of the request, if any.</param>
     public static bool IsGuarded(Endpoint? endpoint) =>
-        RequiresAntiforgery(endpoint) || IsPage(endpoint);
+        RequiresAntiforgery(endpoint) || IsHub(endpoint) || IsPage(endpoint);
 }

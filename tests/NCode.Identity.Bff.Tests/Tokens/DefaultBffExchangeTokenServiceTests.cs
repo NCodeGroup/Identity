@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -32,6 +33,10 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
     private Mock<IBffSessionManager> MockManager { get; }
     private Mock<IBffUserTokenService> MockUserTokens { get; }
     private Mock<ITokenClient> MockTokenClient { get; }
+    private FakeTimeProvider TimeProvider { get; } = new(Now);
+    private BffCookies Cookies { get; }
+    private BffFrontendCatalog Frontends { get; }
+    private BffSessionResolver Resolver { get; }
     private BffRefreshLocks Locks { get; } = new();
     private DefaultBffExchangeTokenService Service { get; }
 
@@ -40,6 +45,9 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         MockManager = CreateStrictMock<IBffSessionManager>();
         MockUserTokens = CreateStrictMock<IBffUserTokenService>();
         MockTokenClient = CreateStrictMock<ITokenClient>();
+        Cookies = new BffCookies(TimeProvider);
+        Frontends = BffTestFrontends.CreateCatalog();
+        Resolver = new BffSessionResolver(MockManager.Object, Cookies, [], Frontends, TimeProvider);
         Service = CreateService(TimeSpan.FromSeconds(40));
     }
 
@@ -48,31 +56,23 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         var options = Microsoft.Extensions.Options.Options.Create(
             new BffOptions { Tokens = { RefreshLeaseDuration = refreshLeaseDuration } }
         );
-        var timeProvider = new FakeTimeProvider(Now);
-        var frontends = BffTestFrontends.CreateCatalog();
-        var resolver = new BffSessionResolver(
-            MockManager.Object,
-            new BffCookies(timeProvider),
-            [],
-            frontends,
-            timeProvider
-        );
         var grantClient = new BffGrantClient(
             MockTokenClient.Object,
-            timeProvider,
+            TimeProvider,
             CreateLooseMock<ILogger<BffGrantClient>>().Object
         );
         return new DefaultBffExchangeTokenService(
-            resolver,
             MockManager.Object,
             MockUserTokens.Object,
             grantClient,
-            frontends,
             Locks,
             options,
-            timeProvider
+            TimeProvider
         );
     }
+
+    private BffRequestTokenContext CreateScope(HttpContext httpContext) =>
+        new(httpContext, Frontends, Resolver, Cookies);
 
     private static DefaultHttpContext CreateHttpContext(BffSessionState? session)
     {
@@ -126,7 +126,11 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
     private void SetupSubject(HttpContext httpContext, BffTokenResult result) =>
         MockUserTokens
             .Setup(x =>
-                x.GetAccessTokenAsync(httpContext, IsSubjectRequest(), CancellationToken.None)
+                x.GetAccessTokenAsync(
+                    It.Is<IBffSessionScope>(s => s.HttpContext == httpContext),
+                    IsSubjectRequest(),
+                    CancellationToken.None
+                )
             )
             .ReturnsAsync(result)
             .Verifiable();
@@ -145,13 +149,13 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         MockUserTokens
             .Setup(x =>
                 x.GetAccessTokenAsync(
-                    It.IsAny<HttpContext>(),
+                    It.IsAny<IBffSessionScope>(),
                     IsSubjectRequest(),
                     It.IsAny<CancellationToken>()
                 )
             )
             .Returns(
-                (HttpContext _, BffTokenRequest _, CancellationToken cancellationToken) =>
+                (IBffSessionScope _, BffTokenRequest _, CancellationToken cancellationToken) =>
                     new ValueTask<BffTokenResult>(release.Task.WaitAsync(cancellationToken))
             )
             .Verifiable(times);
@@ -205,7 +209,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
     public async Task GetAccessTokenAsync_NoSession_ReturnsSessionRequired()
     {
         var result = await Service.GetAccessTokenAsync(
-            CreateHttpContext(null),
+            CreateScope(CreateHttpContext(null)),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -220,7 +224,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         var state = CreateState(CreateExchanged(Now.AddMinutes(5)));
 
         var result = await Service.GetAccessTokenAsync(
-            CreateHttpContext(state),
+            CreateScope(CreateHttpContext(state)),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -238,7 +242,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         SetupReload(CreateState(CreateExchanged(Now.AddMinutes(5))));
 
         var result = await Service.GetAccessTokenAsync(
-            CreateHttpContext(state),
+            CreateScope(CreateHttpContext(state)),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -252,7 +256,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         SetupReload(null);
 
         var result = await Service.GetAccessTokenAsync(
-            CreateHttpContext(CreateState()),
+            CreateScope(CreateHttpContext(CreateState())),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -273,7 +277,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         SetupSubject(httpContext, failure);
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -290,7 +294,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         SetupSubject(httpContext, BffTokenResult.Success(null));
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -309,7 +313,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         SetupExchange(new TokenResult(new ProtocolError("invalid_target", 400)));
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -361,7 +365,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -398,7 +402,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
-            httpContext,
+            CreateScope(httpContext),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -415,11 +419,15 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         SetupReload(state);
         var release = SetupBlockedSubject(Times.Once());
         var first = service
-            .GetAccessTokenAsync(CreateHttpContext(state), ExchangeRequest, CancellationToken.None)
+            .GetAccessTokenAsync(
+                CreateScope(CreateHttpContext(state)),
+                ExchangeRequest,
+                CancellationToken.None
+            )
             .AsTask();
 
         var second = await service.GetAccessTokenAsync(
-            CreateHttpContext(state),
+            CreateScope(CreateHttpContext(state)),
             ExchangeRequest,
             CancellationToken.None
         );
@@ -454,10 +462,14 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         );
         SetupWrite(state);
         var first = Service
-            .GetAccessTokenAsync(CreateHttpContext(state), ExchangeRequest, cts.Token)
+            .GetAccessTokenAsync(CreateScope(CreateHttpContext(state)), ExchangeRequest, cts.Token)
             .AsTask();
         var second = Service
-            .GetAccessTokenAsync(CreateHttpContext(state), ExchangeRequest, CancellationToken.None)
+            .GetAccessTokenAsync(
+                CreateScope(CreateHttpContext(state)),
+                ExchangeRequest,
+                CancellationToken.None
+            )
             .AsTask();
 
         await cts.CancelAsync();
@@ -477,13 +489,17 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Service
-                .GetAccessTokenAsync(CreateHttpContext(null), null!, CancellationToken.None)
+                .GetAccessTokenAsync(
+                    CreateScope(CreateHttpContext(null)),
+                    null!,
+                    CancellationToken.None
+                )
                 .AsTask()
         );
     }
 
     [Fact]
-    public async Task GetAccessTokenAsync_NullHttpContext_Throws()
+    public async Task GetAccessTokenAsync_NullScope_Throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Service.GetAccessTokenAsync(null!, ExchangeRequest, CancellationToken.None).AsTask()

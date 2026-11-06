@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Encodings.Web;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -135,6 +137,22 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
             provider.GetServices<MatcherPolicy>(),
             policy => policy is BffFrontendMatcherPolicy
         );
+    }
+
+    [Fact]
+    public void AddBffLibrary_ConfiguresHostAntiforgeryCookie()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        var cookie = provider.GetRequiredService<IOptions<AntiforgeryOptions>>().Value.Cookie;
+        Assert.Equal(BffDefaults.AntiforgeryCookieName, cookie.Name);
+        Assert.Equal(CookieSecurePolicy.Always, cookie.SecurePolicy);
+        Assert.Equal("/", cookie.Path);
+        Assert.Equal(SameSiteMode.Strict, cookie.SameSite);
+        Assert.True(cookie.HttpOnly);
+        Assert.Null(cookie.Domain);
     }
 
     [Fact]

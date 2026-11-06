@@ -24,4 +24,18 @@ public interface IBffTokenAccessor
         BffTokenRequest request,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Gets an access token for a connection that a guarded request opened, or for a context that a token requirement
+    /// received.
+    /// </summary>
+    /// <param name="context">The request or connection that obtains the token.</param>
+    /// <param name="request">The token request.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The token or the reason that none is available.</returns>
+    ValueTask<BffTokenResult> GetAccessTokenAsync(
+        IBffTokenContext context,
+        BffTokenRequest request,
+        CancellationToken cancellationToken
+    );
 }

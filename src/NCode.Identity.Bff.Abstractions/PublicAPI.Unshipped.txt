@@ -10,6 +10,7 @@ const NCode.Identity.Bff.BffDefaults.AuthenticationScheme = "Bff" -> string!
 const NCode.Identity.Bff.BffDefaults.EndpointPrefix = "/bff" -> string!
 const NCode.Identity.Bff.BffDefaults.SessionCookieName = "__Host-Http-bff" -> string!
 const NCode.Identity.Bff.BffDefaults.LoginCookieName = "__Host-Http-bff-login" -> string!
+const NCode.Identity.Bff.BffDefaults.AntiforgeryCookieName = "__Host-Http-bff-antiforgery" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderName = "X-CSRF" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderValue = "1" -> string!
 const NCode.Identity.Bff.BffDefaults.ConfigurationSectionName = "Bff" -> string!
@@ -21,7 +22,7 @@ const NCode.Identity.Bff.BffProblemTypes.Forbidden = "urn:ncode:identity:bff:for
 const NCode.Identity.Bff.BffProblemTypes.StoreUnavailable = "urn:ncode:identity:bff:store_unavailable" -> string!
 const NCode.Identity.Bff.BffProblemTypes.TokenUnavailable = "urn:ncode:identity:bff:token_unavailable" -> string!
 const NCode.Identity.Bff.BffProblemTypes.InvalidRequest = "urn:ncode:identity:bff:invalid_request" -> string!
-const NCode.Identity.Bff.BffProblemTypes.UnsafeMethod = "urn:ncode:identity:bff:unsafe_method" -> string!
+const NCode.Identity.Bff.BffProblemTypes.AntiforgeryTokenInvalid = "urn:ncode:identity:bff:antiforgery_token_invalid" -> string!
 const NCode.Identity.Bff.BffProblemTypes.MethodNotAllowed = "urn:ncode:identity:bff:method_not_allowed" -> string!
 NCode.Identity.Bff.BffSessionEndReasons
 const NCode.Identity.Bff.BffSessionEndReasons.LoggedOut = "logged_out" -> string!
@@ -109,9 +110,18 @@ NCode.Identity.Bff.BffStoreUnavailableException.BffStoreUnavailableException(str
 NCode.Identity.Bff.IBffSessionFeature
 NCode.Identity.Bff.IBffSessionFeature.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
 NCode.Identity.Bff.IBffSessionFeature.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.IBffTokenContext
+NCode.Identity.Bff.IBffTokenContext.Frontend.get -> string?
+NCode.Identity.Bff.IBffTokenContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext?
+NCode.Identity.Bff.IBffConnectionSession
+NCode.Identity.Bff.IBffConnectionSession.RevalidationInterval.get -> System.TimeSpan
+NCode.Identity.Bff.IBffConnectionSession.ValidateAsync(System.DateTimeOffset? lastActivityAt, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
+NCode.Identity.Bff.IBffConnectionSessionAccessor
+NCode.Identity.Bff.IBffConnectionSessionAccessor.Current.get -> NCode.Identity.Bff.IBffConnectionSession?
+NCode.Identity.Bff.IBffConnectionSessionAccessor.Use(NCode.Identity.Bff.IBffConnectionSession! session) -> System.IDisposable!
 NCode.Identity.Bff.BffSessionValidationContext
-NCode.Identity.Bff.BffSessionValidationContext.BffSessionValidationContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Security.Claims.ClaimsPrincipal! principal) -> void
-NCode.Identity.Bff.BffSessionValidationContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffSessionValidationContext.BffSessionValidationContext(Microsoft.AspNetCore.Http.HttpContext? httpContext, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Security.Claims.ClaimsPrincipal! principal) -> void
+NCode.Identity.Bff.BffSessionValidationContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext?
 NCode.Identity.Bff.BffSessionValidationContext.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
 NCode.Identity.Bff.BffSessionValidationContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
 NCode.Identity.Bff.IBffSessionValidator
@@ -156,10 +166,11 @@ const NCode.Identity.Bff.BffTokenFailureReasons.RefreshFailed = "refresh_failed"
 const NCode.Identity.Bff.BffTokenFailureReasons.RefreshWaitTimeout = "refresh_wait_timeout" -> string!
 const NCode.Identity.Bff.BffTokenFailureReasons.SessionRequired = "session_required" -> string!
 NCode.Identity.Bff.IBffTokenRequirement
-NCode.Identity.Bff.IBffTokenRequirement.GetAccessTokenAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffTokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffTokenResult!>
+NCode.Identity.Bff.IBffTokenRequirement.GetAccessTokenAsync(NCode.Identity.Bff.IBffTokenContext! context, NCode.Identity.Bff.BffTokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffTokenResult!>
 NCode.Identity.Bff.IBffTokenRequirement.Name.get -> string!
 NCode.Identity.Bff.IBffTokenAccessor
 NCode.Identity.Bff.IBffTokenAccessor.GetAccessTokenAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffTokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffTokenResult!>
+NCode.Identity.Bff.IBffTokenAccessor.GetAccessTokenAsync(NCode.Identity.Bff.IBffTokenContext! context, NCode.Identity.Bff.BffTokenRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffTokenResult!>
 NCode.Identity.Bff.BffTokenRequirementNames
 const NCode.Identity.Bff.BffTokenRequirementNames.User = "user" -> string!
 NCode.Identity.Bff.BffTokenUnavailableException
@@ -211,3 +222,19 @@ NCode.Identity.Bff.BffFrontendAttribute
 NCode.Identity.Bff.BffFrontendAttribute.BffFrontendAttribute(string! name) -> void
 NCode.Identity.Bff.BffFrontendAttribute.Name.get -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.FrontendMismatch = "frontend_mismatch" -> string!
+NCode.Identity.Bff.BffConnectionIdentity
+NCode.Identity.Bff.BffConnectionIdentity.BffConnectionIdentity(System.Security.Claims.ClaimsIdentity! identity, NCode.Identity.Bff.IBffConnectionSession! session) -> void
+NCode.Identity.Bff.BffConnectionIdentity.Session.get -> NCode.Identity.Bff.IBffConnectionSession!
+override NCode.Identity.Bff.BffConnectionIdentity.Clone() -> System.Security.Claims.ClaimsIdentity!
+NCode.Identity.Bff.BffClaimsPrincipalExtensions
+NCode.Identity.Bff.BffClaimsPrincipalExtensions.extension(System.Security.Claims.ClaimsPrincipal!)
+NCode.Identity.Bff.BffClaimsPrincipalExtensions.extension(System.Security.Claims.ClaimsPrincipal!).GetBffConnectionSession() -> NCode.Identity.Bff.IBffConnectionSession?
+NCode.Identity.Bff.BffClaimTypes
+const NCode.Identity.Bff.BffClaimTypes.LogoutUrl = "bff_logout_url" -> string!
+const NCode.Identity.Bff.BffClaimTypes.LogoutSid = "bff_logout_sid" -> string!
+NCode.Identity.Bff.BffHubAttribute
+NCode.Identity.Bff.BffHubAttribute.BffHubAttribute() -> void
+NCode.Identity.Bff.IBffUserDocumentFactory
+NCode.Identity.Bff.IBffUserDocumentFactory.CreateAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Text.Json.JsonElement?>
+NCode.Identity.Bff.IBffEndpointStartupRequirement
+NCode.Identity.Bff.IBffEndpointStartupRequirement.Validate(System.IServiceProvider! services) -> string?

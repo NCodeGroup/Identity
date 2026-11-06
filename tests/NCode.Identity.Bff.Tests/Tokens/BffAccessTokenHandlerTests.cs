@@ -3,10 +3,13 @@
 
 using System.Net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Buffers;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
@@ -26,6 +29,8 @@ public class BffAccessTokenHandlerTests : BaseTests
     private readonly Mock<IBffTokenAccessor> _tokens;
     private readonly Mock<IDPoPProofFactory> _proofs;
     private readonly BffFrontendCatalog _frontends;
+    private readonly DefaultBffConnectionSessionAccessor _connections = new();
+    private readonly BffTokenContexts _contexts;
     private readonly BffTokenRequest _tokenRequest = new(BffTokenRequirementNames.User);
 
     public BffAccessTokenHandlerTests()
@@ -36,31 +41,48 @@ public class BffAccessTokenHandlerTests : BaseTests
         _frontends = BffTestFrontends.CreateCatalog(x =>
             x.DPoP = new BffDPoPOptions { Mode = BffDPoPModes.Required, KeyRing = "dpop-keys" }
         );
+
+        var timeProvider = new FakeTimeProvider(
+            new DateTimeOffset(2026, 1, 2, 5, 0, 0, TimeSpan.Zero)
+        );
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            _frontends,
+            timeProvider
+        );
+        _contexts = new BffTokenContexts(_frontends, resolver, cookies);
     }
 
     private ClientRegistration Registration => BffTestFrontends.Get(_frontends).Registration;
 
-    private HttpClient CreateClient(StubHttpMessageHandler inner)
-    {
-        var handler = new BffAccessTokenHandler(
+    private BffAccessTokenHandler CreateHandler(StubHttpMessageHandler inner) =>
+        new(
             _accessor.Object,
+            _connections,
+            _contexts,
             _tokens.Object,
             _proofs.Object,
-            _frontends,
             _tokenRequest
         )
         {
             InnerHandler = inner,
         };
-        return new HttpClient(handler);
-    }
+
+    private HttpClient CreateClient(StubHttpMessageHandler inner) => new(CreateHandler(inner));
 
     private void SetupResult(DefaultHttpContext httpContext, BffTokenResult result)
     {
         _accessor.SetupGet(x => x.HttpContext).Returns(httpContext).Verifiable();
         _tokens
             .Setup(x =>
-                x.GetAccessTokenAsync(httpContext, _tokenRequest, It.IsAny<CancellationToken>())
+                x.GetAccessTokenAsync(
+                    It.Is<IBffTokenContext>(c => c.HttpContext == httpContext),
+                    _tokenRequest,
+                    It.IsAny<CancellationToken>()
+                )
             )
             .Returns(new ValueTask<BffTokenResult>(result))
             .Verifiable();
@@ -69,15 +91,52 @@ public class BffAccessTokenHandlerTests : BaseTests
     #region SendAsync Tests
 
     [Fact]
-    public async Task SendAsync_NoHttpContext_Throws()
+    public async Task SendAsync_NoContextAtAll_Throws()
     {
         _accessor.SetupGet(x => x.HttpContext).Returns((HttpContext?)null).Verifiable();
         var inner = StubHttpMessageHandler.Respond(HttpStatusCode.OK);
         using var client = CreateClient(inner);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetAsync(RequestUri));
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.GetAsync(RequestUri)
+        );
 
+        Assert.Contains("current BFF connection", exception.Message);
         Assert.Empty(inner.Requests);
+    }
+
+    [Fact]
+    public async Task SendAsync_CurrentConnection_UsesConnectionContext()
+    {
+        var connection = CreateStrictMock<IBffConnectionSession>();
+        _tokens
+            .Setup(x =>
+                x.GetAccessTokenAsync(
+                    It.Is<IBffTokenContext>(c => ReferenceEquals(c, connection.Object)),
+                    _tokenRequest,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                new ValueTask<BffTokenResult>(
+                    BffTokenResult.Success(
+                        new BffAccessToken(
+                            "at",
+                            OpenIdProtocol.TokenTypes.Bearer,
+                            DateTimeOffset.MaxValue
+                        )
+                    )
+                )
+            )
+            .Verifiable();
+        var inner = StubHttpMessageHandler.Respond(HttpStatusCode.OK);
+        using var client = CreateClient(inner);
+        using var scope = _connections.Use(connection.Object);
+
+        using var response = await client.GetAsync(RequestUri);
+
+        var recorded = Assert.Single(inner.Requests);
+        Assert.Equal($"{OpenIdProtocol.TokenTypes.Bearer} at", recorded.Authorization);
     }
 
     [Fact]
@@ -128,9 +187,10 @@ public class BffAccessTokenHandlerTests : BaseTests
         var inner = StubHttpMessageHandler.Respond(HttpStatusCode.OK);
         var handler = new BffAccessTokenHandler(
             _accessor.Object,
+            _connections,
+            _contexts,
             _tokens.Object,
             _proofs.Object,
-            _frontends,
             tokenRequest: null
         )
         {

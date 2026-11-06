@@ -10,21 +10,21 @@ namespace NCode.Identity.Bff;
 /// <summary>
 /// Carries what an <see cref="IBffSessionValidator"/> needs to decide whether a session may continue.
 /// </summary>
-/// <param name="httpContext">The HTTP context of the request that resolved the session.</param>
+/// <param name="httpContext">The HTTP context of the request that resolved the session, or <see langword="null"/> when a connection revalidates it.</param>
 /// <param name="metadata">The metadata of the resolved session.</param>
 /// <param name="principal">The principal built from the claims stored in the session.</param>
 [PublicAPI]
 public sealed class BffSessionValidationContext(
-    HttpContext httpContext,
+    HttpContext? httpContext,
     BffSessionMetadata metadata,
     ClaimsPrincipal principal
 )
 {
     /// <summary>
-    /// Gets the HTTP context of the request that resolved the session.
+    /// Gets the HTTP context of the request that resolved the session, or <see langword="null"/> when a connection
+    /// revalidates it.
     /// </summary>
-    public HttpContext HttpContext { get; } =
-        httpContext ?? throw new ArgumentNullException(nameof(httpContext));
+    public HttpContext? HttpContext { get; } = httpContext;
 
     /// <summary>
     /// Gets the metadata of the resolved session.

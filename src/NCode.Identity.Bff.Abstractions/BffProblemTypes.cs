@@ -52,9 +52,10 @@ public static class BffProblemTypes
     public const string InvalidRequest = "urn:ncode:identity:bff:invalid_request";
 
     /// <summary>
-    /// The request to a page uses a method other than <c>GET</c> or <c>HEAD</c>.
+    /// A form post to a page lacks a valid antiforgery token.
     /// </summary>
-    public const string UnsafeMethod = "urn:ncode:identity:bff:unsafe_method";
+    public const string AntiforgeryTokenInvalid =
+        "urn:ncode:identity:bff:antiforgery_token_invalid";
 
     /// <summary>
     /// The request to a remote API uses a method that the remote API does not accept.

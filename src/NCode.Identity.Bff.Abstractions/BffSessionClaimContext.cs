@@ -22,7 +22,8 @@ public sealed class BffSessionClaimContext
 
     /// <summary>
     /// Gets the claim types that a contributor can neither add nor remove: <c>iss</c>, <c>sub</c>, <c>sid</c>,
-    /// <c>auth_time</c>, <c>acr</c> and <c>amr</c>, which the provider asserted about the authentication.
+    /// <c>auth_time</c>, <c>acr</c> and <c>amr</c>, which the provider asserted about the authentication, and
+    /// <see cref="BffClaimTypes.LogoutUrl"/> and <see cref="BffClaimTypes.LogoutSid"/>, which the BFF adds.
     /// </summary>
     public static IReadOnlySet<string> ReservedClaimTypes { get; } =
         new HashSet<string>(StringComparer.Ordinal)
@@ -33,6 +34,8 @@ public sealed class BffSessionClaimContext
             JoseClaimNames.Payload.AuthTime,
             JoseClaimNames.Payload.Acr,
             JoseClaimNames.Payload.Amr,
+            BffClaimTypes.LogoutUrl,
+            BffClaimTypes.LogoutSid,
         };
 
     /// <summary>

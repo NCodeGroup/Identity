@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
@@ -18,21 +17,17 @@ namespace NCode.Identity.Bff.Tokens;
 // Token exchange issues no refresh token and presents nothing that a second exchange could not present again, so
 // replicas need no lease: a lock inside the replica only keeps one session from exchanging twice at once. See ADR-1381.
 internal class DefaultBffExchangeTokenService(
-    BffSessionResolver sessionResolver,
     IBffSessionManager sessionManager,
     IBffUserTokenService userTokenService,
     BffGrantClient grantClient,
-    BffFrontendCatalog frontends,
     BffRefreshLocks locks,
     IOptions<BffOptions> options,
     TimeProvider timeProvider
 ) : IBffExchangeTokenService
 {
-    private readonly BffSessionResolver _sessionResolver = sessionResolver;
     private readonly IBffSessionManager _sessionManager = sessionManager;
     private readonly IBffUserTokenService _userTokenService = userTokenService;
     private readonly BffGrantClient _grantClient = grantClient;
-    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly BffRefreshLocks _locks = locks;
     private readonly IOptions<BffOptions> _options = options;
     private readonly TimeProvider _timeProvider = timeProvider;
@@ -43,15 +38,15 @@ internal class DefaultBffExchangeTokenService(
 
     /// <inheritdoc />
     public async ValueTask<BffTokenResult> GetAccessTokenAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffTokenRequest request,
         CancellationToken cancellationToken
     )
     {
-        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(request);
 
-        var state = await _sessionResolver.ResolveAsync(httpContext, cancellationToken);
+        var state = await scope.ResolveAsync(cancellationToken);
         if (state is null)
             return BffTokenResult.Failure(
                 StatusCodes.Status401Unauthorized,
@@ -86,11 +81,11 @@ internal class DefaultBffExchangeTokenService(
         if (fresh is not null)
             return fresh;
 
-        return await ExchangeAsync(httpContext, current, request, cancellationToken);
+        return await ExchangeAsync(scope, current, request, cancellationToken);
     }
 
     private async ValueTask<BffTokenResult> ExchangeAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffSessionState current,
         BffTokenRequest request,
         CancellationToken cancellationToken
@@ -98,7 +93,7 @@ internal class DefaultBffExchangeTokenService(
     {
         // a failure to get the user's token, such as a refresh that ended the session, is the exchange's failure
         var subject = await _userTokenService.GetAccessTokenAsync(
-            httpContext,
+            scope,
             SubjectTokenRequest,
             cancellationToken
         );
@@ -119,7 +114,7 @@ internal class DefaultBffExchangeTokenService(
             Scope = request.Scope,
             DPoPJwkThumbprint = current.Payload.DPoPJwkThumbprint,
         };
-        var frontend = _frontends.GetRequired(httpContext);
+        var frontend = scope.RequireFrontend();
         var result = await _grantClient.RequestAsync(frontend, grantRequest, cancellationToken);
         if (result.Token is not { } token)
             return result;

@@ -3,10 +3,14 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
+using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
@@ -28,12 +32,23 @@ public sealed class BffTransformProviderTests : BaseTests
     public BffTransformProviderTests()
     {
         MockTokens = CreateStrictMock<IBffTokenAccessor>();
+        var timeProvider = new FakeTimeProvider();
+        var frontends = BffTestFrontends.CreateCatalog();
+        var cookies = new BffCookies(timeProvider);
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            frontends,
+            timeProvider
+        );
         ClientFactory = new BffForwarderHttpClientFactory(
             CreateStrictMock<IForwarderHttpClientFactory>().Object,
             CreateStrictMock<IHttpContextAccessor>().Object,
+            new DefaultBffConnectionSessionAccessor(),
+            new BffTokenContexts(frontends, resolver, cookies),
             MockTokens.Object,
-            CreateStrictMock<IDPoPProofFactory>().Object,
-            BffTestFrontends.CreateCatalog()
+            CreateStrictMock<IDPoPProofFactory>().Object
         );
     }
 

@@ -7,9 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
-using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
-using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
@@ -23,28 +21,22 @@ namespace NCode.Identity.Bff.Tokens;
 /// The default <see cref="IBffUserTokenService"/>, which serves cached tokens and refreshes stale ones.
 /// </summary>
 internal class DefaultBffUserTokenService(
-    BffSessionResolver sessionResolver,
     IBffSessionManager sessionManager,
     BffInstrumentedSessionStore sessionStore,
     ITokenClient tokenClient,
-    BffFrontendCatalog frontends,
     BffRefreshLocks refreshLocks,
     BffMetrics metrics,
-    BffCookies cookies,
     IBffAuditRecorder auditRecorder,
     IOptions<BffOptions> options,
     TimeProvider timeProvider,
     ILogger<DefaultBffUserTokenService> logger
 ) : IBffUserTokenService
 {
-    private readonly BffSessionResolver _sessionResolver = sessionResolver;
     private readonly IBffSessionManager _sessionManager = sessionManager;
     private readonly BffInstrumentedSessionStore _sessionStore = sessionStore;
     private readonly ITokenClient _tokenClient = tokenClient;
-    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly BffRefreshLocks _refreshLocks = refreshLocks;
     private readonly BffMetrics _metrics = metrics;
-    private readonly BffCookies _cookies = cookies;
     private readonly IBffAuditRecorder _auditRecorder = auditRecorder;
     private readonly IOptions<BffOptions> _options = options;
     private readonly TimeProvider _timeProvider = timeProvider;
@@ -52,15 +44,15 @@ internal class DefaultBffUserTokenService(
 
     /// <inheritdoc />
     public async ValueTask<BffTokenResult> GetAccessTokenAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffTokenRequest request,
         CancellationToken cancellationToken
     )
     {
-        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(request);
 
-        var state = await _sessionResolver.ResolveAsync(httpContext, cancellationToken);
+        var state = await scope.ResolveAsync(cancellationToken);
         if (state is null)
             return BffTokenResult.Failure(
                 StatusCodes.Status401Unauthorized,
@@ -89,25 +81,24 @@ internal class DefaultBffUserTokenService(
         }
 
         if (state.Payload.RefreshToken is null)
-            return await EndRefreshFailedAsync(httpContext, state);
+            return await EndRefreshFailedAsync(scope, state);
 
-        return await RefreshAsync(httpContext, state, request, cancellationToken);
+        return await RefreshAsync(scope, state, request, cancellationToken);
     }
 
     private async ValueTask<BffTokenResult> EndRefreshFailedAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffSessionState state
     )
     {
         await _sessionManager.EndAsync(
-            httpContext,
+            scope.HttpContext,
             state.StoreKey,
             state.Metadata,
             BffSessionEndReasons.RefreshFailed,
             CancellationToken.None
         );
-        var frontend = _frontends.GetRequired(httpContext);
-        _cookies.DeleteSession(httpContext.Response, frontend);
+        scope.OnSessionEnded();
         return BffTokenResult.Failure(
             StatusCodes.Status401Unauthorized,
             BffTokenFailureReasons.RefreshFailed
@@ -115,7 +106,7 @@ internal class DefaultBffUserTokenService(
     }
 
     private async ValueTask<BffTokenResult> RefreshAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffSessionState state,
         BffTokenRequest request,
         CancellationToken cancellationToken
@@ -126,13 +117,7 @@ internal class DefaultBffUserTokenService(
         var attempt = new RefreshAttempt();
         try
         {
-            var result = await RefreshGatedAsync(
-                httpContext,
-                state,
-                request,
-                attempt,
-                cancellationToken
-            );
+            var result = await RefreshGatedAsync(scope, state, request, attempt, cancellationToken);
             RefreshCompleted(activity, startTimestamp, attempt, result.Reason);
             return result;
         }
@@ -170,7 +155,7 @@ internal class DefaultBffUserTokenService(
     }
 
     private async ValueTask<BffTokenResult> RefreshGatedAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffSessionState state,
         BffTokenRequest request,
         RefreshAttempt attempt,
@@ -192,11 +177,11 @@ internal class DefaultBffUserTokenService(
                 BffTokenFailureReasons.RefreshWaitTimeout
             );
 
-        return await RefreshLockedAsync(httpContext, state, request, attempt, cancellationToken);
+        return await RefreshLockedAsync(scope, state, request, attempt, cancellationToken);
     }
 
     private async ValueTask<BffTokenResult> RefreshLockedAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffSessionState state,
         BffTokenRequest request,
         RefreshAttempt attempt,
@@ -211,7 +196,7 @@ internal class DefaultBffUserTokenService(
             );
 
         var result = await AcquireAndRefreshAsync(
-            httpContext,
+            scope,
             current,
             request,
             attempt,
@@ -220,7 +205,7 @@ internal class DefaultBffUserTokenService(
         if (result is not null)
             return result;
 
-        return await WaitForRefreshAsync(httpContext, current, request, attempt, cancellationToken);
+        return await WaitForRefreshAsync(scope, current, request, attempt, cancellationToken);
     }
 
     private BffTokenResult? TryGetFresh(
@@ -261,7 +246,7 @@ internal class DefaultBffUserTokenService(
     /// another replica holds the lease.
     /// </summary>
     private async ValueTask<BffTokenResult?> AcquireAndRefreshAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffSessionState current,
         BffTokenRequest request,
         RefreshAttempt attempt,
@@ -277,7 +262,7 @@ internal class DefaultBffUserTokenService(
 
         var refreshToken = current.Payload.RefreshToken;
         if (refreshToken is null)
-            return await EndRefreshFailedAsync(httpContext, current);
+            return await EndRefreshFailedAsync(scope, current);
 
         var leaseKey = GetLeaseKey(current, refreshToken);
         var leaseExpiresAt = now + tokenOptions.RefreshLeaseDuration;
@@ -292,7 +277,7 @@ internal class DefaultBffUserTokenService(
         attempt.Presented = true;
         try
         {
-            return await RequestAndStoreAsync(httpContext, current, refreshToken, request, now);
+            return await RequestAndStoreAsync(scope, current, refreshToken, request, now);
         }
         finally
         {
@@ -322,7 +307,7 @@ internal class DefaultBffUserTokenService(
     }
 
     private async ValueTask<BffTokenResult> WaitForRefreshAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffSessionState seen,
         BffTokenRequest request,
         RefreshAttempt attempt,
@@ -360,7 +345,7 @@ internal class DefaultBffUserTokenService(
             )
             {
                 var result = await AcquireAndRefreshAsync(
-                    httpContext,
+                    scope,
                     loaded,
                     request,
                     attempt,
@@ -383,14 +368,14 @@ internal class DefaultBffUserTokenService(
     }
 
     private async ValueTask<BffTokenResult> RequestAndStoreAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffSessionState current,
         string refreshToken,
         BffTokenRequest request,
         DateTimeOffset now
     )
     {
-        var frontend = _frontends.GetRequired(httpContext);
+        var frontend = scope.RequireFrontend();
         var refreshRequest = new RefreshTokenRequest(refreshToken)
         {
             Resources = request.Resource is null ? [] : [request.Resource],
@@ -415,7 +400,7 @@ internal class DefaultBffUserTokenService(
         {
             _logger.RefreshFailed(BffTokenFailureReasons.ProviderUnavailable, exception);
             await _auditRecorder.TokenRefreshFailedAsync(
-                httpContext,
+                scope.HttpContext,
                 subject,
                 BffTokenFailureReasons.ProviderUnavailable,
                 CancellationToken.None
@@ -431,7 +416,7 @@ internal class DefaultBffUserTokenService(
             var error = result.Error.Error;
             _logger.RefreshFailed(error, null);
             await _auditRecorder.TokenRefreshFailedAsync(
-                httpContext,
+                scope.HttpContext,
                 subject,
                 error,
                 CancellationToken.None
@@ -450,13 +435,13 @@ internal class DefaultBffUserTokenService(
                 );
 
             await _sessionManager.EndAsync(
-                httpContext,
+                scope.HttpContext,
                 current.StoreKey,
                 current.Metadata,
                 BffSessionEndReasons.RefreshFailed,
                 CancellationToken.None
             );
-            _cookies.DeleteSession(httpContext.Response, frontend);
+            scope.OnSessionEnded();
             return BffTokenResult.Failure(
                 StatusCodes.Status401Unauthorized,
                 BffTokenFailureReasons.RefreshFailed
@@ -469,7 +454,7 @@ internal class DefaultBffUserTokenService(
         {
             _logger.RefreshFailed(BffTokenFailureReasons.ProviderError, null);
             await _auditRecorder.TokenRefreshFailedAsync(
-                httpContext,
+                scope.HttpContext,
                 subject,
                 BffTokenFailureReasons.ProviderError,
                 CancellationToken.None

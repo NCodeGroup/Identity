@@ -25,6 +25,12 @@ public sealed class BffSessionOptions
     public TimeSpan IdleTimeout { get; set; } = TimeSpan.FromHours(1);
 
     /// <summary>
+    /// Gets or sets how often the holder of a connection, such as a Blazor circuit, revalidates the session. The
+    /// default is 1 minute. The configuration key is <c>Bff:Frontends:{name}:Session:RevalidationInterval</c>.
+    /// </summary>
+    public TimeSpan RevalidationInterval { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
     /// Gets or sets the <c>SameSite</c> mode of the session cookie. The default is <see cref="SameSiteMode.Strict"/>.
     /// The configuration key is <c>Bff:Frontends:{name}:Session:SameSite</c>.
     /// </summary>

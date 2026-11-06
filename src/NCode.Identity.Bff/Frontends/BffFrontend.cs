@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.Bff.Hardening;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.OpenId.Client;
 
@@ -87,6 +88,7 @@ internal sealed class BffFrontend
         Registration = CreateRegistration(options);
         SessionCookieName = $"{BffDefaults.SessionCookieName}.{name}";
         LoginCookieName = $"{BffDefaults.LoginCookieName}.{name}";
+        SecurityHeaders = BffSecurityHeaders.Create(options.SecurityHeaders);
     }
 
     /// <summary>
@@ -114,6 +116,11 @@ internal sealed class BffFrontend
     /// Gets the name of the login transaction cookie of the frontend.
     /// </summary>
     public string LoginCookieName { get; }
+
+    /// <summary>
+    /// Gets the security headers of the frontend, computed once from its options.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, string>> SecurityHeaders { get; }
 
     /// <summary>
     /// Gets what the selection rule is given, or <see langword="null"/> when the frontend names no rule.

@@ -154,6 +154,26 @@ public class BffFrontendTests : BaseTests
     #region Constructor Tests
 
     [Fact]
+    public void Constructor_Always_ComputesTheSecurityHeadersFromItsOptions()
+    {
+        var options = CreateOptions();
+        options.SecurityHeaders = new BffSecurityHeadersOptions
+        {
+            ContentSecurityPolicy = "default-src 'self'; img-src https://img.example.com",
+        };
+
+        var frontend = new BffFrontend("web", options, null);
+
+        Assert.Contains(
+            frontend.SecurityHeaders,
+            x =>
+                x.Key == "Content-Security-Policy"
+                && x.Value == "default-src 'self'; img-src https://img.example.com"
+        );
+        Assert.Contains(frontend.SecurityHeaders, x => x.Key == "X-Content-Type-Options");
+    }
+
+    [Fact]
     public void Constructor_RuleWithoutSelector_Throws()
     {
         var options = new BffFrontendOptions

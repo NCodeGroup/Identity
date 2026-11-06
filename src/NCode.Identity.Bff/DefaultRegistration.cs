@@ -38,8 +38,9 @@ public static class DefaultRegistration
         /// <summary>
         /// Registers the BFF library: its options, the frontends (the selection rules, the catalog and the routing
         /// policy that keeps a request's endpoints to its frontend), the session store and manager, the audit
-        /// recorder and the cookie writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root registers the shared-state
-        /// adapters (<c>AddSharedStateServices().AddInProcessExpiringKeySet().AddInProcessExpiringValueSet().AddInProcessExpiringIndexSet()</c>
+        /// recorder and the cookie writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root
+        /// registers the shared-state adapters
+        /// (<c>AddSharedStateServices().AddInProcessExpiringKeySet().AddInProcessExpiringValueSet().AddInProcessExpiringIndexSet()</c>
         /// for one replica, Valkey for several).
         /// </summary>
         /// <param name="events">The <see cref="IServiceBuilder{T}"/> for <see cref="EventsLibrary"/> that proves the

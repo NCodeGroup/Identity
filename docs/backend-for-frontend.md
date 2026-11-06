@@ -857,7 +857,8 @@ a valid cookie-name suffix and a stable value in session metadata.
 **Selection.** Selection is an open strategy collection (`IBffFrontendSelector`, by rule name,
 [ADR-1150](decisions/1150-vocabularies-are-open-unless-provably-closed.md)). A frontend's
 `Selection:Rule` names a rule and `Selection:Values` feeds it. Each rule validates its own values, says whether two
-frontends of its kind overlap, and matches requests. Two rules are built in:
+frontends of its kind overlap, and matches requests. A rule takes no constructor dependencies: options validation reads
+every registered rule, and `IsMatch` reads only the request. Two rules are built in:
 
 | Rule   | Values                                                                                                                       | Checks at startup                                                                                                                                  |
 | ------ | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |

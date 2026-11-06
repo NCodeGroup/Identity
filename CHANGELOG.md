@@ -5093,8 +5093,8 @@ describes the family as it is rather than its changes
   [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
 
 - **BFF frontends never share a session.** Each frontend's cookies are `__Host-Http-bff.<name>` and
-  `__Host-Http-bff-login.<name>`, a session or login of one frontend is refused by another (`frontend_mismatch`), and a
-  logout token ends only the receiving frontend's sessions
+  `__Host-Http-bff-login.<name>`, another frontend ignores a frontend's session and deletes its cookie, and refuses its
+  login transaction (`frontend_mismatch`), and a logout token ends only the receiving frontend's sessions
   ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
 

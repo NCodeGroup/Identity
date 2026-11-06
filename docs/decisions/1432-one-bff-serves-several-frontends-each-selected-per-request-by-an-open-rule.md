@@ -58,7 +58,8 @@ endpoint or a token takes it from that frontend.**
 3. **Selection is a strategy collection.** `IBffFrontendSelector` is registered by rule name, with the built-in rules
    `host` and `path` (`BffFrontendSelectorNames`). A frontend's `Selection:Rule` names the rule and `Selection:Values`
    holds its values. Each rule validates its own values (`Validate`), declares whether two frontends that use it overlap
-   (`Overlaps`) and matches a request (`IsMatch`).
+   (`Overlaps`) and matches a request (`IsMatch`). A rule takes no constructor dependencies: options validation reads
+   every registered rule, and `IsMatch` reads only the request.
    - **At most one frontend omits the rule.** It serves every request that no other frontend selects. A catalog with a
      single frontend and no rule selects it for every request.
    - **Overlap is refused at startup**: two frontends of one rule whose values can match one request fail the host's

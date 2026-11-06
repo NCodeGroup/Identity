@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Time.Testing;
-using Moq;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -15,18 +14,6 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 public class BffNoneTokenRequirementTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
-
-    private static BffSessionResolver CreateResolver(Mock<IBffSessionManager> manager)
-    {
-        var timeProvider = new FakeTimeProvider(Now);
-        return new BffSessionResolver(
-            manager.Object,
-            new BffCookies(timeProvider),
-            [],
-            BffTestFrontends.CreateCatalog(),
-            timeProvider
-        );
-    }
 
     private static DefaultHttpContext CreateHttpContext(bool hasSession)
     {
@@ -53,14 +40,27 @@ public class BffNoneTokenRequirementTests : BaseTests
         return httpContext;
     }
 
-    private BffNoneTokenRequirement Requirement { get; }
-
-    public BffNoneTokenRequirementTests()
+    private BffRequestTokenContext CreateContext(bool hasSession)
     {
-        Requirement = new BffNoneTokenRequirement(
-            CreateResolver(CreateStrictMock<IBffSessionManager>())
+        var timeProvider = new FakeTimeProvider(Now);
+        var cookies = new BffCookies(timeProvider);
+        var frontends = BffTestFrontends.CreateCatalog();
+        var resolver = new BffSessionResolver(
+            CreateStrictMock<IBffSessionManager>().Object,
+            cookies,
+            [],
+            frontends,
+            timeProvider
+        );
+        return new BffRequestTokenContext(
+            CreateHttpContext(hasSession),
+            frontends,
+            resolver,
+            cookies
         );
     }
+
+    private BffNoneTokenRequirement Requirement { get; } = new();
 
     #region Name Tests
 
@@ -75,7 +75,7 @@ public class BffNoneTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_Session_ReturnsSuccessWithoutToken()
     {
         var result = await Requirement.GetAccessTokenAsync(
-            CreateHttpContext(true),
+            CreateContext(true),
             new BffTokenRequest(BffTokenRequirementNames.None),
             CancellationToken.None
         );
@@ -88,7 +88,7 @@ public class BffNoneTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_NoSession_ReturnsSessionRequired()
     {
         var result = await Requirement.GetAccessTokenAsync(
-            CreateHttpContext(false),
+            CreateContext(false),
             new BffTokenRequest(BffTokenRequirementNames.None),
             CancellationToken.None
         );
@@ -98,7 +98,7 @@ public class BffNoneTokenRequirementTests : BaseTests
     }
 
     [Fact]
-    public async Task GetAccessTokenAsync_NullHttpContext_Throws()
+    public async Task GetAccessTokenAsync_NullContext_Throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Requirement

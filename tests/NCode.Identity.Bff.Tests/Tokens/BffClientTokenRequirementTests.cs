@@ -50,6 +50,9 @@ public class BffClientTokenRequirementTests : BaseTests
         return httpContext;
     }
 
+    private IBffTokenContext CreateContext(HttpContext httpContext) =>
+        CreateContexts(CreateStrictMock<IBffSessionManager>()).ForRequest(httpContext);
+
     private static readonly BffTokenResult Token = BffTokenResult.Success(
         new BffAccessToken("access", "Bearer", Now.AddMinutes(5))
     );
@@ -60,10 +63,7 @@ public class BffClientTokenRequirementTests : BaseTests
     public BffClientTokenRequirementTests()
     {
         MockService = CreateStrictMock<IBffClientTokenService>();
-        Requirement = new BffClientTokenRequirement(
-            CreateContexts(CreateStrictMock<IBffSessionManager>()),
-            MockService.Object
-        );
+        Requirement = new BffClientTokenRequirement(MockService.Object);
     }
 
     #region Name Tests
@@ -79,7 +79,7 @@ public class BffClientTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_NoSession_ReturnsSessionRequired()
     {
         var result = await Requirement.GetAccessTokenAsync(
-            CreateHttpContext(false),
+            CreateContext(CreateHttpContext(false)),
             new BffTokenRequest(BffTokenRequirementNames.Client),
             CancellationToken.None
         );
@@ -96,7 +96,7 @@ public class BffClientTokenRequirementTests : BaseTests
             Resource = "https://api.example",
             Scope = "read",
         };
-        var requirementContext = CreateHttpContext(true);
+        var requirementContext = CreateContext(CreateHttpContext(true));
         MockService
             .Setup(x =>
                 x.GetAccessTokenAsync(It.IsAny<IBffSessionScope>(), request, CancellationToken.None)
@@ -118,7 +118,11 @@ public class BffClientTokenRequirementTests : BaseTests
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Requirement
-                .GetAccessTokenAsync(CreateHttpContext(true), null!, CancellationToken.None)
+                .GetAccessTokenAsync(
+                    CreateContext(CreateHttpContext(true)),
+                    null!,
+                    CancellationToken.None
+                )
                 .AsTask()
         );
     }

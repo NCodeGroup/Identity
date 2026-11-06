@@ -50,6 +50,9 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
         return httpContext;
     }
 
+    private IBffTokenContext CreateContext(HttpContext httpContext) =>
+        CreateContexts(CreateStrictMock<IBffSessionManager>()).ForRequest(httpContext);
+
     private static readonly BffTokenResult Token = BffTokenResult.Success(
         new BffAccessToken("access", "Bearer", Now.AddMinutes(5))
     );
@@ -63,7 +66,6 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
         MockUserService = CreateStrictMock<IBffUserTokenService>();
         MockClientService = CreateStrictMock<IBffClientTokenService>();
         Requirement = new BffUserOrClientTokenRequirement(
-            CreateContexts(CreateStrictMock<IBffSessionManager>()),
             MockUserService.Object,
             MockClientService.Object
         );
@@ -89,7 +91,7 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
     [Fact]
     public async Task GetAccessTokenAsync_Session_ReturnsUserToken()
     {
-        var httpContext = CreateHttpContext(true);
+        var context = CreateContext(CreateHttpContext(true));
         var request = CreateRequest();
         MockUserService
             .Setup(x =>
@@ -99,7 +101,7 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
-            httpContext,
+            context,
             request,
             CancellationToken.None
         );
@@ -110,7 +112,7 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
     [Fact]
     public async Task GetAccessTokenAsync_SessionUserTokenFails_DoesNotFallBackToClient()
     {
-        var httpContext = CreateHttpContext(true);
+        var context = CreateContext(CreateHttpContext(true));
         var request = CreateRequest();
         var failure = BffTokenResult.Failure(
             StatusCodes.Status401Unauthorized,
@@ -124,7 +126,7 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
-            httpContext,
+            context,
             request,
             CancellationToken.None
         );
@@ -136,7 +138,7 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_NoSession_ReturnsClientToken()
     {
         var request = CreateRequest();
-        var httpContext = CreateHttpContext(false);
+        var context = CreateContext(CreateHttpContext(false));
         MockClientService
             .Setup(x =>
                 x.GetAccessTokenAsync(It.IsAny<IBffSessionScope>(), request, CancellationToken.None)
@@ -145,7 +147,7 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
-            httpContext,
+            context,
             request,
             CancellationToken.None
         );
@@ -154,7 +156,7 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
     }
 
     [Fact]
-    public async Task GetAccessTokenAsync_NullHttpContext_Throws()
+    public async Task GetAccessTokenAsync_NullContext_Throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Requirement.GetAccessTokenAsync(null!, CreateRequest(), CancellationToken.None).AsTask()

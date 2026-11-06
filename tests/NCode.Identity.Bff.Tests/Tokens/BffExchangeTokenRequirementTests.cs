@@ -25,16 +25,16 @@ public class BffExchangeTokenRequirementTests : BaseTests
         return new BffTokenContexts(frontends, resolver, cookies);
     }
 
+    private IBffTokenContext CreateContext(HttpContext httpContext) =>
+        CreateContexts(CreateStrictMock<IBffSessionManager>()).ForRequest(httpContext);
+
     private Mock<IBffExchangeTokenService> MockService { get; }
     private BffExchangeTokenRequirement Requirement { get; }
 
     public BffExchangeTokenRequirementTests()
     {
         MockService = CreateStrictMock<IBffExchangeTokenService>();
-        Requirement = new BffExchangeTokenRequirement(
-            MockService.Object,
-            CreateContexts(CreateStrictMock<IBffSessionManager>())
-        );
+        Requirement = new BffExchangeTokenRequirement(MockService.Object);
     }
 
     #region Name Tests
@@ -71,7 +71,7 @@ public class BffExchangeTokenRequirementTests : BaseTests
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
-            httpContext,
+            CreateContext(httpContext),
             request,
             CancellationToken.None
         );
@@ -84,7 +84,11 @@ public class BffExchangeTokenRequirementTests : BaseTests
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Requirement
-                .GetAccessTokenAsync(new DefaultHttpContext(), null!, CancellationToken.None)
+                .GetAccessTokenAsync(
+                    CreateContext(new DefaultHttpContext()),
+                    null!,
+                    CancellationToken.None
+                )
                 .AsTask()
         );
     }

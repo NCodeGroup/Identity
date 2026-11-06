@@ -43,7 +43,6 @@ public static class DefaultRegistration
             var newBuilder = builder.NewBuilder<BffBlazorLibrary>();
             var serviceCollection = builder.ServiceCollection;
 
-            serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.AddHttpContextAccessor();
 
             serviceCollection.RemoveAll<AuthenticationStateProvider>();

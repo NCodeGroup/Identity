@@ -14,9 +14,9 @@ using NCode.Identity.Bff.Blazor.Logging;
 namespace NCode.Identity.Bff.Blazor;
 
 /// <summary>
-/// Provides the authentication state of a Blazor circuit: it revalidates the circuit's connection session every
-/// <see cref="IBffConnectionSession.RevalidationInterval"/>, signs the circuit out when the session ended or its
-/// revalidation fails for any reason but an unavailable store, and it persists the <c>/bff/user</c> document for a WebAssembly client while a BFF page renders.
+/// Provides the authentication state of a Blazor circuit: it waits through the <see cref="IBffConnectionRevalidator"/>
+/// until the circuit's connection session ended, signs the circuit out then or when waiting fails, and it persists the
+/// <c>/bff/user</c> document for a WebAssembly client while a BFF page renders.
 /// </summary>
 internal sealed class BffAuthenticationStateProvider
     : ServerAuthenticationStateProvider,
@@ -30,20 +30,20 @@ internal sealed class BffAuthenticationStateProvider
     /// <param name="state">The state that is persisted for the WebAssembly client.</param>
     /// <param name="httpContextAccessor">The accessor of the request that renders a page.</param>
     /// <param name="documents">The factory of the <c>/bff/user</c> document.</param>
-    /// <param name="timeProvider">The provider of the revalidation delay.</param>
+    /// <param name="revalidator">The revalidator that waits until a connection's session ended.</param>
     /// <param name="logger">The logger.</param>
     public BffAuthenticationStateProvider(
         PersistentComponentState state,
         IHttpContextAccessor httpContextAccessor,
         IBffUserDocumentFactory documents,
-        TimeProvider timeProvider,
+        IBffConnectionRevalidator revalidator,
         ILogger<BffAuthenticationStateProvider> logger
     )
     {
         State = state;
         HttpContextAccessor = httpContextAccessor;
         Documents = documents;
-        TimeProvider = timeProvider;
+        Revalidator = revalidator;
         Logger = logger;
 
         AuthenticationStateChanged += OnAuthenticationStateChanged;
@@ -56,7 +56,7 @@ internal sealed class BffAuthenticationStateProvider
     private PersistentComponentState State { get; }
     private IHttpContextAccessor HttpContextAccessor { get; }
     private IBffUserDocumentFactory Documents { get; }
-    private TimeProvider TimeProvider { get; }
+    private IBffConnectionRevalidator Revalidator { get; }
     private ILogger<BffAuthenticationStateProvider> Logger { get; }
     private PersistingComponentStateSubscription PersistingSubscription { get; }
 
@@ -100,34 +100,19 @@ internal sealed class BffAuthenticationStateProvider
             if (state.User.GetBffConnectionSession() is not { } connection)
                 return;
 
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                await Task.Delay(connection.RevalidationInterval, TimeProvider, cancellationToken);
-
-                try
-                {
-                    var principal = await connection.ValidateAsync(null, cancellationToken);
-                    if (principal is null)
-                    {
-                        SetAuthenticationState(SignedOut());
-                        return;
-                    }
-                }
-                catch (BffStoreUnavailableException exception)
-                {
-                    Logger.RevalidationFailed(exception);
-                }
-            }
+            await Revalidator.WaitUntilEndedAsync(connection, cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             // the circuit's state changed or the provider was disposed
+            return;
         }
         catch (Exception exception)
         {
             Logger.RevalidationFaulted(exception);
-            SetAuthenticationState(SignedOut());
         }
+
+        SetAuthenticationState(SignedOut());
     }
 
     private async Task PersistUserAsync()

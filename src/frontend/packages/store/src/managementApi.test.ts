@@ -830,6 +830,48 @@ describe('managementApi team CRUD endpoints (platform scope)', () => {
     expect(captured[0]?.url).toBe('https://api.test/api/teams/acme');
     expect(captured[0]?.method).toBe('DELETE');
   });
+
+  it('updateTeam of a child team invalidates its parent list', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.updateTeam.initiate({
+        teamId: 'acme-web',
+        parentTeamId: 'acme',
+        concurrencyToken: 'etag-1',
+        fields: { displayName: 'Web', isDisabled: false },
+      }),
+    );
+
+    expect('error' in result).toBe(false);
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme-web');
+    expect(captured[0]?.method).toBe('PATCH');
+  });
+
+  it('deleteTeam of a child team invalidates its parent list', async () => {
+    const captured = mockFetch(new Response(null, { status: 204 }));
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.deleteTeam.initiate({ teamId: 'acme-web', parentTeamId: 'acme' }),
+    );
+
+    expect('error' in result).toBe(false);
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme-web');
+    expect(captured[0]?.method).toBe('DELETE');
+  });
+
+  it('listChildTeams reports a failure without provided tags', async () => {
+    mockFetch(new Response(null, { status: 404 }));
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.listChildTeams.initiate({ teamId: 'missing' }),
+    );
+
+    expect('error' in result && result.error).toBeTruthy();
+  });
 });
 
 describe('managementApi caller queries', () => {

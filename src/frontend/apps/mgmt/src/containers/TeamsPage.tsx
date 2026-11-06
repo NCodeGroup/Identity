@@ -166,7 +166,7 @@ export function TeamsPage({ onOpenTeam, parentTeamId }: TeamsPageProps) {
             teamId: t.teamId,
             displayName: t.displayName,
             isDisabled: t.isDisabled,
-            parentTeamId: t.parentTeamId,
+            ...(t.parentTeamId === undefined ? {} : { parentTeamId: t.parentTeamId }),
           }))}
           onSelect={onOpenTeam}
           onEdit={openEdit}

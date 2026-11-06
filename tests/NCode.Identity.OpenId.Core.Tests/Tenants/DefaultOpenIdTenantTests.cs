@@ -44,6 +44,7 @@ public sealed class DefaultOpenIdTenantTests
         var tenant = new DefaultOpenIdTenant(
             "acme",
             "platform",
+            "tenant-ct",
             "Acme",
             "https://op.example/acme",
             mtlsEndpointAliasAuthority: null,
@@ -85,6 +86,7 @@ public sealed class DefaultOpenIdTenantTests
         await using var tenant = new DefaultOpenIdTenant(
             "acme",
             "platform",
+            "tenant-ct",
             "Acme",
             "https://op.example/acme",
             mtlsEndpointAliasAuthority: null,
@@ -101,6 +103,19 @@ public sealed class DefaultOpenIdTenantTests
         );
 
         Assert.Same(teamInstance, tenant.Team);
+    }
+
+    #endregion
+
+    #region ConcurrencyToken Tests
+
+    [Fact]
+    public async Task ConcurrencyToken_ReturnsTheTokenOfTheRowTheTenantWasMaterializedFrom()
+    {
+        var (tenant, _) = await CreateTenantAsync();
+        await using var disposable = tenant;
+
+        Assert.Equal("tenant-ct", tenant.ConcurrencyToken);
     }
 
     #endregion

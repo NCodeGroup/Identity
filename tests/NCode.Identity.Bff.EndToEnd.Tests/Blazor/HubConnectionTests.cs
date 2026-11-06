@@ -22,7 +22,7 @@ public sealed class HubConnectionTests(EndToEndEnvironment environment)
         var bff = environment.BlazorBff;
         await using var context = await environment.NewContextAsync(browserName);
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff.Origin, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
         var originPage = await BrowserFlows.OpenOriginAsync(context, environment.CrossSiteAdmitted);
         var before = bff.Counters.HubRequests;
         var url = $"{bff.WebSocketOrigin}/_blazor";
@@ -47,7 +47,7 @@ public sealed class HubConnectionTests(EndToEndEnvironment environment)
         var bff = environment.BlazorBff;
         await using var context = await environment.NewContextAsync(browserName);
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff.Origin, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
 
         var opened = await HubFlows.OpenHubConnectionAsync(
             page,

@@ -26,7 +26,7 @@ public sealed class BlazorCircuitTests(EndToEndEnvironment environment)
         var bff = environment.BlazorBff;
         await using var context = await environment.NewContextAsync(browserName);
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff.Origin, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
         var before = bff.Counters.HubRequests;
 
         await page.GotoAsync($"{bff.Origin}/circuit");

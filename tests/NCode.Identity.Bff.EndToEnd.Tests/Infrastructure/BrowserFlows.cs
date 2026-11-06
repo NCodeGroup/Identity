@@ -29,6 +29,20 @@ public static class BrowserFlows
         LoginAsync(page, bff.Origin, keycloak);
 
     /// <summary>
+    /// Signs the user in at Keycloak through the Blazor BFF's login endpoint and waits until its home page has rendered,
+    /// past the same-site reload page that a navigation without the session cookie gets first.
+    /// </summary>
+    public static async Task LoginAsync(
+        IPage page,
+        BlazorBffApplication bff,
+        KeycloakProvider keycloak
+    )
+    {
+        await LoginAsync(page, bff.Origin, keycloak);
+        await page.WaitForSelectorAsync("#home");
+    }
+
+    /// <summary>
     /// Signs the user in at Keycloak through the login endpoint of the BFF at the origin and waits for the return
     /// page.
     /// </summary>

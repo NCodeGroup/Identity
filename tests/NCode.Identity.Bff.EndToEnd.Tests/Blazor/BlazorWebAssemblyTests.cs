@@ -29,7 +29,7 @@ public sealed partial class BlazorWebAssemblyTests(EndToEndEnvironment environme
         var bff = environment.BlazorBff;
         await using var context = await environment.NewContextAsync(browserName);
         var page = await context.NewPageAsync();
-        await BrowserFlows.LoginAsync(page, bff.Origin, environment.Keycloak);
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
         var requests = new ConcurrentQueue<IRequest>();
         page.Request += (_, request) => requests.Enqueue(request);
         var calls = bff.Counters.ApiCalls;

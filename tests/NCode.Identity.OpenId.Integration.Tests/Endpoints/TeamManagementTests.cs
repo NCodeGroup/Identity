@@ -27,7 +27,8 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// <summary>
 /// Drives teams through the management API of a multi-tenant (host-routed) deployment: a team holds tenants, its settings
 /// document sits between the platform's and its tenants' and reaches them at once, disabling it silences them, it caps
-/// how many it holds, it cannot be deleted while it holds any, and its usage lists each tenant's counts.
+/// how many it holds, it cannot be deleted while it holds any, and its usage lists each tenant's counts. A team can nest
+/// beneath a parent team, which then supplies its settings, authority, limits, quota and usage.
 /// </summary>
 public class TeamManagementTests
 {
@@ -77,6 +78,35 @@ public class TeamManagementTests
                 settings,
             }
         );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    private static async Task<HttpResponseMessage> PostChildTeamAsync(
+        HttpClient client,
+        string parentTeamId,
+        string teamId,
+        object settings
+    ) =>
+        await client.PostAsJsonAsync(
+            $"/api/teams/{parentTeamId}/teams",
+            new
+            {
+                teamId,
+                displayName = teamId,
+                isDisabled = false,
+                settings,
+            }
+        );
+
+    private static async Task CreateChildTeamAsync(
+        HttpClient client,
+        string parentTeamId,
+        string teamId,
+        object settings
+    )
+    {
+        using var response = await PostChildTeamAsync(client, parentTeamId, teamId, settings);
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
@@ -2348,6 +2378,449 @@ public class TeamManagementTests
             preview.GetProperty("changes").EnumerateArray(),
             change => change.GetProperty("resourceId").GetString() == BootstrapClientId
         );
+    }
+
+    #endregion
+
+    #region Nested Team Tests
+
+    [Fact]
+    public async Task NestedTeam_ServesItsTenantsUnderItsParentsSettings()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(
+            administrator,
+            "globex",
+            new { id_token_signing_alg_values_supported = new[] { "RS256" } }
+        );
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        Assert.Equal<string>(
+            ["RS256"],
+            await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev")
+        );
+    }
+
+    [Fact]
+    public async Task NestedTeam_PatchingTheParentsSettings_ReachesTheChildsTenantsAtOnce()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        var before = await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev");
+        Assert.Contains("PS256", before);
+
+        await PatchAsync(
+            administrator,
+            "/api/teams/globex/settings",
+            new[]
+            {
+                new
+                {
+                    op = "add",
+                    path = $"/{OpenIdSettingNames.IdTokenSigningAlgValuesSupported}",
+                    value = new[] { "RS256" },
+                },
+            }
+        );
+
+        // No polling: the change is served as soon as the write returns.
+        var after = await GetIdTokenSigningAlgorithmsAsync(administrator, "globex-web-dev");
+        Assert.Equal<string>(["RS256"], after);
+    }
+
+    [Fact]
+    public async Task NestedTeam_DisablingTheParent_MakesTheChildsTenantsAnswerNotFound()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        using (var served = await GetDiscoveryAsync(administrator, "globex-web-dev"))
+            Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+
+        await SetTeamDisabledAsync(administrator, "globex", isDisabled: true);
+
+        using (var silenced = await GetDiscoveryAsync(administrator, "globex-web-dev"))
+            Assert.Equal(HttpStatusCode.NotFound, silenced.StatusCode);
+
+        await SetTeamDisabledAsync(administrator, "globex", isDisabled: false);
+
+        using (var restored = await GetDiscoveryAsync(administrator, "globex-web-dev"))
+            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+    }
+
+    [Fact]
+    public async Task NestedTeam_DeletingAParentWithAChildTeam_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+
+        using var response = await administrator.DeleteAsync("/api/teams/globex");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentTeamAdmin_CreatesAChildTeamAndItsTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var parentAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex",
+            "admins"
+        );
+
+        await CreateChildTeamAsync(parentAdmin, "globex", "globex-web", new { });
+        await CreateTenantAsync(parentAdmin, "globex-web", "globex-web-dev");
+
+        using var served = await GetDiscoveryAsync(administrator, "globex-web-dev");
+        Assert.Equal(HttpStatusCode.OK, served.StatusCode);
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentTeamAdmin_ChangesAChildTeamsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { max_tenants = 2 });
+        using var parentAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex",
+            "admins"
+        );
+
+        await PatchAsync(
+            parentAdmin,
+            "/api/teams/globex-web/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = $"/{OpenIdSettingNames.MaxTenants}",
+                    value = 5,
+                },
+            }
+        );
+    }
+
+    [Fact]
+    public async Task NestedTeam_ChildTeamAdmin_CannotChangeItsTeamsLimits()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { max_tenants = 2 });
+        using var childAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex-web",
+            "admins"
+        );
+
+        using var replaced = await SendPatchAsync(
+            childAdmin,
+            "/api/teams/globex-web/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = $"/{OpenIdSettingNames.MaxTenants}",
+                    value = 5,
+                },
+            }
+        );
+
+        var body = await replaced.Content.ReadAsStringAsync();
+        Assert.True(replaced.StatusCode == HttpStatusCode.Forbidden, body);
+        Assert.Contains(OpenIdSettingNames.MaxTenants, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_CreatingATenantWhenTheParentIsFull_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { max_tenants = 1 });
+        await CreateTenantAsync(administrator, "globex", "globex-main");
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+
+        using var response = await PostTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_BeneathThePlatformsOwnTeam_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await PostChildTeamAsync(
+            administrator,
+            HostApplicationFactory.TeamId,
+            "under-platform",
+            new { }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_Stranger_GetsForbiddenOnEveryChildTeamRouteForAnUnknownTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var stranger = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        foreach (var teamId in new[] { "nope", "globex" })
+        {
+            using var create = await PostChildTeamAsync(stranger, teamId, "stray", new { });
+            var createBody = await create.Content.ReadAsStringAsync();
+            Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
+
+            await AssertGetStatusAsync(
+                stranger,
+                $"/api/teams/{teamId}/teams",
+                HttpStatusCode.Forbidden
+            );
+            await AssertGetStatusAsync(
+                stranger,
+                $"/api/teams/{teamId}/usage",
+                HttpStatusCode.Forbidden
+            );
+        }
+    }
+
+    [Fact]
+    public async Task NestedTeam_ChildTeamAdmin_GetsForbiddenForItsParentAndSiblings()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-api", new { });
+        using var childAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex-web",
+            "admins"
+        );
+
+        await AssertGetStatusAsync(childAdmin, "/api/teams/globex", HttpStatusCode.Forbidden);
+        await AssertGetStatusAsync(childAdmin, "/api/teams/globex-api", HttpStatusCode.Forbidden);
+
+        using var create = await PostChildTeamAsync(childAdmin, "globex", "stray", new { });
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
+
+        await AssertGetStatusAsync(childAdmin, "/api/teams/globex-web", HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task NestedTeam_ChildTeamAdmin_CannotDisableOrDeleteItsOwnTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        using var childAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex-web",
+            "admins"
+        );
+
+        using var disabled = await SendPatchAsync(
+            childAdmin,
+            "/api/teams/globex-web",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/isDisabled",
+                    value = true,
+                },
+            }
+        );
+        var disabledBody = await disabled.Content.ReadAsStringAsync();
+        Assert.True(disabled.StatusCode == HttpStatusCode.Forbidden, disabledBody);
+
+        using var deleted = await childAdmin.DeleteAsync("/api/teams/globex-web");
+        var deletedBody = await deleted.Content.ReadAsStringAsync();
+        Assert.True(deleted.StatusCode == HttpStatusCode.Forbidden, deletedBody);
+
+        var team = await GetJsonAsync(administrator, "/api/teams/globex-web");
+        Assert.False(team.GetProperty("isDisabled").GetBoolean(), team.ToString());
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentTeamAdmin_DisablesRestoresAndDeletesAChildTeam()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        using var parentAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex",
+            "admins"
+        );
+
+        // SetTeamDisabledAsync asserts 204 No Content.
+        await SetTeamDisabledAsync(parentAdmin, "globex-web", isDisabled: true);
+        await SetTeamDisabledAsync(parentAdmin, "globex-web", isDisabled: false);
+
+        using var deleted = await parentAdmin.DeleteAsync("/api/teams/globex-web");
+        var deletedBody = await deleted.Content.ReadAsStringAsync();
+        Assert.True(deleted.StatusCode == HttpStatusCode.NoContent, deletedBody);
+    }
+
+    [Fact]
+    public async Task NestedTeam_Administrator_GetsNotFoundForAnUnknownParent()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await PostChildTeamAsync(administrator, "nope", "stray", new { });
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NotFound, body);
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentUsage_ListsTheChildTeamsTenantsWithTheirTeam()
+    {
+        using var host = CreateFactory();
+        using var recordingHost = host.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services =>
+                services.Configure<TenantUsageOptions>(options =>
+                    options.FlushInterval = TimeSpan.FromMilliseconds(50)
+                )
+            )
+        );
+        using var administrator = await CreateAdministratorClientAsync(host);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+
+        var client = recordingHost.CreateClient();
+        for (var i = 0; i < 2; ++i)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/oauth2/token")
+            {
+                Content = new FormUrlEncodedContent(
+                    new Dictionary<string, string>
+                    {
+                        ["grant_type"] = OpenIdProtocol.GrantTypes.ClientCredentials,
+                    }
+                ),
+            };
+            request.Headers.Host = "globex-web-dev.auth.test";
+            using var response = await client.SendAsync(request);
+            Assert.NotEqual(HttpStatusCode.TooManyRequests, response.StatusCode);
+        }
+
+        // The ledger is written by the periodic flush, so poll until the tenant's count arrives.
+        var deadline = DateTime.UtcNow.AddSeconds(30);
+        JsonElement usage;
+        while (true)
+        {
+            using var response = await administrator.GetAsync("/api/teams/globex/usage");
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+            usage = JsonElement.Parse(body);
+            if (GetCount(usage, "globex-web-dev") >= 2 || DateTime.UtcNow > deadline)
+                break;
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+
+        Assert.Equal("globex", usage.GetProperty("teamId").GetString());
+        Assert.True(GetCount(usage, "globex-web-dev") >= 2, usage.ToString());
+        Assert.All(
+            usage
+                .GetProperty("entries")
+                .EnumerateArray()
+                .Where(entry => entry.GetProperty("tenantId").GetString() == "globex-web-dev"),
+            entry => Assert.Equal("globex-web", entry.GetProperty("teamId").GetString())
+        );
+    }
+
+    [Fact]
+    public async Task NestedTeam_ParentTeamAdmin_PromotesBetweenAChildTeamsTenants()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-prod");
+        using var parentAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "globex",
+            "admins"
+        );
+
+        using var response = await PostPromotionAsync(
+            parentAdmin,
+            "globex-web",
+            "/preview",
+            "globex-web-dev",
+            "globex-web-prod"
+        );
+
+        await ReadPromotionAsync(response, HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task NestedTeam_PromotingAChildTeamsTenantsThroughItsParent_ReturnsNotFound()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateChildTeamAsync(administrator, "globex", "globex-web", new { });
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-dev");
+        await CreateTenantAsync(administrator, "globex-web", "globex-web-prod");
+
+        using var response = await PostPromotionAsync(
+            administrator,
+            "globex",
+            "/preview",
+            "globex-web-dev",
+            "globex-web-prod"
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NotFound, body);
     }
 
     #endregion

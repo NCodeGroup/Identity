@@ -3570,22 +3570,28 @@ describes the family as it is rather than its changes
   ([#567](https://github.com/NCodeGroup/Identity/issues/567),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
-- **A team's settings cascade into its tenants.** The settings scopes are `platform`, `team`, `tenant`, `client` and
-  `resource_server`; a team document carries every setting that applies beneath it, so the security profiles, ceilings
-  and defaults a team selects bind its tenants, and a materialized tenant reads its document beneath its team's
-  effective settings. `max_tenants` applies to the team scope, merges with `Min` and is a limit the platform's
-  administrators set on a team, and a creation that would exceed it answers `409`
+- **A team's settings cascade into every team and tenant beneath it.** The settings scopes are `platform`, `team`,
+  `tenant`, `client` and `resource_server`; a team's effective settings merge the platform's, then each ancestor team's
+  document from the top-level team down, then its own (`IEffectiveSettingsResolver.ResolveTeamAsync`,
+  `ResolveTeamParentAsync`), so the security profiles, ceilings, defaults and limits a team selects bind every team and
+  tenant beneath it, and a materialized team reads its document beneath its parent's effective settings. `max_tenants`
+  and `max_teams` apply to the team scope, merge with `Min` and are limits set by the administrators above the team: a
+  team's `max_tenants` bounds the tenants of the team and of every team beneath it, its `max_teams` bounds the teams
+  beneath it at every level, and a creation that would exceed the limit of any team above it answers `409`
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
-- **A team is an authority node.** Authority runs platform → team → tenant → leaf: a role assigned at a team reaches
-  every tenant beneath it, the `TeamAdmin` role creates the team's tenants and manages everything beneath, `Owner` never
+- **A team is an authority node.** Authority runs platform → each team from the top-level team down → tenant → leaf: a
+  role assigned at a team reaches every team and tenant beneath it, the `TeamAdmin` role creates the team's tenants and
+  child teams and manages everything beneath, `Owner` never
   creates, and a principal's role assignments are read across every tenant: the platform, team and tenant nodes have
   globally unique, retired identifiers and match an assignment on type and identifier, and any other node counts an
   assignment only when it belongs to the node's tenant, because client and resource-server identifiers
   are unique only within a tenant
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
 - **A team promotes one tenant's configuration to another.** `POST /api/teams/{teamId}/promotions/preview` reports what
   a promotion would create, update or leave unchanged and `POST /api/teams/{teamId}/promotions` applies it: the
@@ -3608,9 +3614,11 @@ describes the family as it is rather than its changes
 
 - **A setting can be a limit set from above.** `SettingDescriptor.IsLimit` marks a limit, which merges with a meet; a
   management write that adds, changes or removes a limit in a team's, tenant's, client's or resource server's settings
-  needs `Update` authority at the platform, the team or the tenant above it, or answers `403` naming the limits, and
+  needs `Update` authority at the node above it: the platform for a top-level team, the parent team for a child team,
+  the team for a tenant and the tenant for a client or resource server, or answers `403` naming the limits, and
   `ISettingSerializer.GetChangedLimits` names them
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
@@ -3754,9 +3762,11 @@ describes the family as it is rather than its changes
   [#556](https://github.com/NCodeGroup/Identity/issues/556)).
 
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
-  authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a tenant's
-  the limits its team sets. A client's registration update keeps the limits its settings carry
+  authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a child
+  team's the limits its parent team sets, nor a tenant's the limits its team sets. A client's registration update keeps
+  the limits its settings carry
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
 - **A team or tenant route answers a caller without authority the same for any identifier.** It authorizes at the team

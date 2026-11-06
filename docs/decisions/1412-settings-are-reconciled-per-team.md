@@ -9,7 +9,8 @@
   [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md); amended by
   [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md): a
   replica that may have missed a `team-changed` announcement evicts only the teams whose row changed, with their
-  tenants)
+  tenants; amended by [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): a team is reconciled with every
+  team beneath it)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)

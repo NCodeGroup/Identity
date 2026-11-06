@@ -1356,6 +1356,17 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Create,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1363,17 +1374,6 @@ internal class ClientApiEndpointHandler(
         if (client is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
@@ -1539,6 +1539,17 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Create,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1546,17 +1557,6 @@ internal class ClientApiEndpointHandler(
         if (client is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
@@ -1924,6 +1924,30 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        var createFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Create,
+            cancellationToken
+        );
+        if (createFailure is not null)
+        {
+            return createFailure;
+        }
+
+        var updateFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Update,
+            cancellationToken
+        );
+        if (updateFailure is not null)
+        {
+            return updateFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1934,26 +1958,6 @@ internal class ClientApiEndpointHandler(
         if (client is null || secret is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var createResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Create
-        );
-        if (!createResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        var updateResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(client.TenantId, secret),
-            Operations.Update
-        );
-        if (!updateResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(

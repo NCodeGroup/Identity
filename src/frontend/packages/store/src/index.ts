@@ -62,6 +62,7 @@ export {
   useValidateTenantRootKeyMutation,
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
+  useGetSettingLimitsQuery,
   useUpdateSettingsMutation,
   useListChildTeamsQuery,
   useCreateChildTeamMutation,

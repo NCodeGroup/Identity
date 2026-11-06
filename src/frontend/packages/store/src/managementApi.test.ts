@@ -2146,6 +2146,19 @@ describe('managementApi owner-generic secrets and settings requests', () => {
     },
   );
 
+  it.each(ownerCases)(
+    'getSettingLimits GETs the setting limits of the $key owner',
+    async ({ owner, path }) => {
+      const captured = mockFetch(jsonResponse({ names: [], canChange: true }));
+      const store = createStore();
+
+      await store.dispatch(managementApi.endpoints.getSettingLimits.initiate(owner));
+
+      expect(captured[0]?.url).toBe(`https://api.test${path}/settings/limits`);
+      expect(captured[0]?.method).toBe('GET');
+    },
+  );
+
   it.each(secretOwnerCases)(
     'createSecret POSTs the request body under the $key owner',
     async ({ owner, path }) => {

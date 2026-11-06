@@ -5,6 +5,7 @@ import {
   LIST_TAG,
   ownerApiPath,
   ownerEffectiveTagId,
+  ownerLimitsTagId,
   ownerScope,
   ownerTagId,
   replacePatch,
@@ -41,6 +42,7 @@ import {
   type ScopeResource,
   type SecretsResource,
   type SecretOwner,
+  type SettingLimitsResource,
   type SettingsResource,
   type TeamResource,
   type TeamUsageResource,
@@ -87,6 +89,7 @@ export const managementApi = createApi({
     'Grant',
     'Secret',
     'Settings',
+    'SettingLimits',
     'EncryptionKey',
     'Caller',
   ],
@@ -693,6 +696,12 @@ export const managementApi = createApi({
         { type: 'Settings', id: ownerEffectiveTagId(owner) },
       ],
     }),
+    getSettingLimits: build.query<SettingLimitsResource, ManagementOwner>({
+      query: (owner) => `${ownerApiPath(owner)}/settings/limits`,
+      providesTags: (_result, _error, owner) => [
+        { type: 'SettingLimits', id: ownerLimitsTagId(owner) },
+      ],
+    }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only). A client's
     // settings change can issue the secret its client-authentication method needs, which the response carries once
     // (docs/decisions/1391); every other change answers 204 with no body, which resolves to null.
@@ -768,6 +777,7 @@ export const {
   useValidateTenantRootKeyMutation,
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
+  useGetSettingLimitsQuery,
   useUpdateSettingsMutation,
   useListChildTeamsQuery,
   useCreateChildTeamMutation,

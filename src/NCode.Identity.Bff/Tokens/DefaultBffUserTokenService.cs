@@ -106,7 +106,8 @@ internal class DefaultBffUserTokenService(
             BffSessionEndReasons.RefreshFailed,
             CancellationToken.None
         );
-        _cookies.DeleteSession(httpContext.Response, _frontends.GetRequired(httpContext));
+        var frontend = _frontends.GetRequired(httpContext);
+        _cookies.DeleteSession(httpContext.Response, frontend);
         return BffTokenResult.Failure(
             StatusCodes.Status401Unauthorized,
             BffTokenFailureReasons.RefreshFailed
@@ -389,6 +390,7 @@ internal class DefaultBffUserTokenService(
         DateTimeOffset now
     )
     {
+        var frontend = _frontends.GetRequired(httpContext);
         var refreshRequest = new RefreshTokenRequest(refreshToken)
         {
             Resources = request.Resource is null ? [] : [request.Resource],
@@ -403,7 +405,7 @@ internal class DefaultBffUserTokenService(
             // The lease is won: a caller that aborts now must not lose the rotated refresh token, so nothing
             // but the client's request timeout ends the request or the write-back. See ADR-1291.
             result = await _tokenClient.RequestTokenAsync(
-                _frontends.GetRequired(httpContext).Registration,
+                frontend.Registration,
                 refreshRequest,
                 CancellationToken.None
             );
@@ -454,7 +456,7 @@ internal class DefaultBffUserTokenService(
                 BffSessionEndReasons.RefreshFailed,
                 CancellationToken.None
             );
-            _cookies.DeleteSession(httpContext.Response, _frontends.GetRequired(httpContext));
+            _cookies.DeleteSession(httpContext.Response, frontend);
             return BffTokenResult.Failure(
                 StatusCodes.Status401Unauthorized,
                 BffTokenFailureReasons.RefreshFailed

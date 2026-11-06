@@ -97,10 +97,11 @@ internal class BffMiddleware(
     {
         if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
         {
+            var trustedOrigins = _frontends.Resolve(context)?.Options.TrustedOrigins ?? [];
             var reason = BffRequestGuard.Check(
                 context.Request,
                 _options.Value.Antiforgery,
-                _frontends.Resolve(context)?.Options.TrustedOrigins ?? []
+                trustedOrigins
             );
             if (reason is null)
                 return null;

@@ -119,11 +119,8 @@ internal class DefaultBffExchangeTokenService(
             Scope = request.Scope,
             DPoPJwkThumbprint = current.Payload.DPoPJwkThumbprint,
         };
-        var result = await _grantClient.RequestAsync(
-            _frontends.GetRequired(httpContext),
-            grantRequest,
-            cancellationToken
-        );
+        var frontend = _frontends.GetRequired(httpContext);
+        var result = await _grantClient.RequestAsync(frontend, grantRequest, cancellationToken);
         if (result.Token is not { } token)
             return result;
 

@@ -5,7 +5,8 @@
   [ADR-1412](1412-settings-are-reconciled-per-team.md),
   [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
-  [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) and
+  [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
+  [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) and
   [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
@@ -59,7 +60,14 @@ and missed-announcement revalidation reach every descendant.**
    top-level team, the parent team for a child team. `TenantAdmin`
    ([ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)) stays confined to its tenant:
    the chain of a team node holds team nodes and the platform, never a tenant node, so a tenant administrator never
-   reaches a team, and the administrators of every team above a tenant grant its administrators.
+   reaches a team, and the administrators of every team above a tenant grant its administrators. Every team route
+   authorizes at the node it names before it reads
+   ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)): creating a
+   child team authorizes `Operations.Create` at the parent team its route names; updating or deleting a team
+   authorizes at the team's own node, which every role above it reaches, and then, against the stored parent,
+   authorizes a disable, a restore or a deletion at the node above it, so a caller without authority at the team gets
+   `403` for any identifier and nothing is read. Listing a team's child teams and reading its usage authorize at the
+   team node first.
 8. **A disabled team suspends everything beneath it.** `OpenIdTeam.IsDisabled` is true when the team or any team above
    it is disabled, so every tenant beneath a disabled team answers `404`, and the ended-session sweep and the key
    rollover skip them. A team with tenants or child teams cannot be deleted (`409`).
@@ -91,6 +99,12 @@ and missed-announcement revalidation reach every descendant.**
     (`/teams/{teamId}/teams`) that lists, creates, edits and deletes child teams, the platform team list shows each
     team's parent, a team scope's exit leads to its parent team when it has one, and the usage table names each
     entry's team.
+14. **A promotion stays between two tenants of one team.** A promotion
+    ([ADR-1425](1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md))
+    copies between the direct tenants of the team its route names, the environments of one product. A tenant of a team
+    beneath it resolves under that team's settings and limits, and the node above a promoted tenant document is the
+    tenant's own team. A parent team's administrators reach a child team's tenants, so they promote within a child team
+    through that team's route.
 
 ## Options considered
 
@@ -126,3 +140,7 @@ and missed-announcement revalidation reach every descendant.**
   role assignment at the tenant's node
 - [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) — a limit is set by
   the authority above the scope whose document carries it
+- [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — a management
+  route authorizes the caller at the node it names before it reads
+- [ADR-1425](1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md) — a team
+  promotes one tenant's configuration to another and environment-bound values stay

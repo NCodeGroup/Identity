@@ -16,10 +16,11 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ITeamValidator"/>. A team is created and deleted under the
-/// platform node and updated under its own node, authorized in the control-plane tenant that serves the request. A
-/// team's identifier follows the form of a tenant identifier, is never reused after the team is deleted, and the
-/// platform's own team can be neither disabled nor deleted. Disabling or restoring a team is also authorized at the
-/// platform node, so only the platform suspends and restores a team.
+/// platform node and updated under its own node, authorized in the control-plane tenant that serves the request from
+/// route values alone, before the team is read. A team's identifier follows the form of a tenant identifier, is never
+/// reused after the team is deleted, and the platform's own team can be neither disabled nor deleted. Disabling or
+/// restoring a team is also authorized at the platform node, judged against the stored team, so only the platform
+/// suspends and restores a team.
 /// </summary>
 // See ADR-1411
 internal class DefaultTeamValidator(
@@ -33,15 +34,12 @@ internal class DefaultTeamValidator(
     private TenantResolutionOptions Options => TenantResolutionOptions.Value;
 
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateCreateAsync(
+    public ValueTask<ManagementError?> AuthorizeCreateAsync(
         ClaimsPrincipal user,
         string controlPlaneTenantId,
-        PersistedTeam team,
-        IStoreManager storeManager,
         CancellationToken cancellationToken
-    )
-    {
-        var error = await AuthorizeAsync(
+    ) =>
+        AuthorizeAsync(
             user,
             ResourceNode.For(
                 controlPlaneTenantId,
@@ -52,11 +50,48 @@ internal class DefaultTeamValidator(
             "The caller is not authorized to create this team.",
             "Authentication is required to create this team."
         );
-        if (error is not null)
-        {
-            return error;
-        }
 
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeUpdateAsync(
+        ClaimsPrincipal user,
+        string controlPlaneTenantId,
+        string teamId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, teamId),
+            Operations.Update,
+            "The caller is not authorized to update this team.",
+            "Authentication is required to update this team."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        ClaimsPrincipal user,
+        string controlPlaneTenantId,
+        string teamId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(
+                controlPlaneTenantId,
+                ResourceNodeTypes.Platform,
+                OpenIdConstants.PlatformResourceId
+            ),
+            Operations.Delete,
+            "The caller is not authorized to delete this team.",
+            "Authentication is required to delete this team."
+        );
+
+    /// <inheritdoc />
+    public async ValueTask<ManagementError?> ValidateCreateAsync(
+        PersistedTeam team,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
         if (!TenantIdentifierRules.IsValidTenantId(team.TeamId))
         {
             return new ManagementError
@@ -111,21 +146,9 @@ internal class DefaultTeamValidator(
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, team.TeamId),
-            Operations.Update,
-            "The caller is not authorized to update this team.",
-            "Authentication is required to update this team."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         if (model.IsDisabled != team.IsDisabled)
         {
-            error = await AuthorizeAsync(
+            var error = await AuthorizeAsync(
                 user,
                 ResourceNode.For(
                     controlPlaneTenantId,
@@ -180,29 +203,11 @@ internal class DefaultTeamValidator(
 
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateDeleteAsync(
-        ClaimsPrincipal user,
-        string controlPlaneTenantId,
         PersistedTeam team,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            ResourceNode.For(
-                controlPlaneTenantId,
-                ResourceNodeTypes.Platform,
-                OpenIdConstants.PlatformResourceId
-            ),
-            Operations.Delete,
-            "The caller is not authorized to delete this team.",
-            "Authentication is required to delete this team."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         if (string.Equals(team.TeamId, Options.Root.TeamId, StringComparison.Ordinal))
         {
             return new ManagementError

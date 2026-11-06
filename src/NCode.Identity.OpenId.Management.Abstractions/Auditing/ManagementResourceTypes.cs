@@ -24,6 +24,11 @@ public static class ManagementResourceTypes
     public const string ClientSecret = "client.secret";
 
     /// <summary>
+    /// A client grant, the pairing of a client with the resource server and scopes it may request.
+    /// </summary>
+    public const string ClientGrant = "client_grant";
+
+    /// <summary>
     /// A team, a grouping of related tenants.
     /// </summary>
     public const string Team = "team";

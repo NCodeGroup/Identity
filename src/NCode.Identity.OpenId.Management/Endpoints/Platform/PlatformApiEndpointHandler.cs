@@ -15,7 +15,6 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
-using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -140,27 +139,20 @@ internal class PlatformApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var platformSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
-
         return await ProcessGetAsync(
             httpContext,
-            platformSettings,
             authorizationResource: GetPlatformNode(httpContext),
             Operations.Read,
-            ToPlatformSettingsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IPlatformStore>();
+                return await store.GetSettingsOrDefaultAsync(token);
+            },
+            ToPlatformSettingsResource,
+            cancellationToken
         );
     }
-
-    // The platform's authority node: the one deployment root, addressed from the tenant the request runs under.
-    private static ResourceNode GetPlatformNode(HttpContext httpContext) =>
-        ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.Platform,
-            OpenIdConstants.PlatformResourceId
-        );
 
     /// <summary>
     /// Gets the platform's effective (resolved) settings.
@@ -174,28 +166,31 @@ internal class PlatformApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IPlatformStore>();
-
-        var platformSettings = await store.GetSettingsOrDefaultAsync(cancellationToken);
-        if (platformSettings is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
         // The authorization is against the persisted settings, like the raw settings read. See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            platformSettings.Value,
             authorizationResource: GetPlatformNode(httpContext),
             Operations.Read,
-            async (settings, token) =>
+            async token =>
             {
-                var effectiveSettings = await ResolveStoredPlatformSettingsAsync(settings, token);
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IPlatformStore>();
+
+                var platformSettings = await store.GetSettingsOrDefaultAsync(token);
+                if (platformSettings is null)
+                {
+                    return null;
+                }
+
+                var effectiveSettings = await ResolveStoredPlatformSettingsAsync(
+                    platformSettings.Value,
+                    token
+                );
                 return ToPlatformEffectiveSettingsResource(effectiveSettings);
             },
+            resource => resource,
             cancellationToken
         );
     }

@@ -3573,6 +3573,19 @@ describes the family as it is rather than its changes
   are unique only within a tenant
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
+- **A team promotes one tenant's configuration to another.** `POST /api/teams/{teamId}/promotions/preview` reports what
+  a promotion would create, update or leave unchanged and `POST /api/teams/{teamId}/promotions` applies it: the
+  tenant's settings, its resource servers and scopes, its clients (keeping their `client_id`) and client grants, never
+  secrets, keys, grants, principals, role assignments, a client the host configures, or a setting whose value belongs
+  to the environment (`SettingDescriptor.IsEnvironmentBound`, such as `redirect_uris`), whose target values the request
+  may supply. It needs read authority on the source and creation authority on the target, and a promoted limit needs
+  the authority that sets it (`403` naming the limit). A promotion that changes a client holding role assignments needs
+  creation authority at each node that holds them, as changing that client does
+  ([ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)). It
+  records each change and `tenant.promoted`, and the console offers it on a team's tenants page
+  ([ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
+  [#565](https://github.com/NCodeGroup/Identity/issues/565)).
+
 - **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
   `TenantAdmin` role at the tenant's node, which manages the tenant and everything beneath it and creates its clients,
   resource servers and other resources; granting or revoking it is creation authority at the tenant
@@ -3731,6 +3744,16 @@ describes the family as it is rather than its changes
   the limits its team sets. A client's registration update keeps the limits its settings carry
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
+
+- **A team or tenant route answers a caller without authority the same for any identifier.** It authorizes at the team
+  or tenant its route names before it reads, so a `401` or `403` never depends on whether the team, tenant, setting,
+  secret, key, owner or administrator exists, and no row is read for the caller
+  ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
+  [#558](https://github.com/NCodeGroup/Identity/issues/558)).
+
+- **A unit of work resolves a tracked row only in its ambient tenant.** A store's lookup that the change tracker answers
+  applies the same tenant scope as the query filter, so a row tracked for one tenant is never returned in another
+  tenant's scope ([#565](https://github.com/NCodeGroup/Identity/issues/565)).
 
 - **A key never signs, verifies, encrypts, decrypts or is published outside its windows.** A tenant's, a client's and a
   resource server's keys all carry an active window inside a validity window: a key that is not yet

@@ -17,7 +17,6 @@ using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
-using NCode.Identity.OpenId.Management.Clients;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
@@ -26,12 +25,10 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
-using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
-using NCode.Json;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -68,7 +65,6 @@ internal class ClientApiEndpointHandler(
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
     IClientKeyImporter clientKeyImporter,
-    ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretPublicKeyConverter secretPublicKeyConverter,
     ISecretProtectorProvider secretProtectorProvider,
     TimeProvider timeProvider,
@@ -81,7 +77,8 @@ internal class ClientApiEndpointHandler(
     IClientSecretIssuer clientSecretIssuer,
     IResourceOwnershipService resourceOwnershipService,
     IManagementAuditRecorder managementAuditRecorder,
-    IEnumerable<IHostManagedClientPolicy> hostManagedClientPolicies,
+    IHostManagedClientChecker hostManagedClientChecker,
+    IClientKeySourceChecker clientKeySourceChecker,
     ILogger<ClientApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
@@ -131,7 +128,6 @@ internal class ClientApiEndpointHandler(
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
-    private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
     private ISecretPublicKeyConverter SecretPublicKeyConverter { get; } = secretPublicKeyConverter;
     private ISecretProtectorProvider SecretProtectorProvider { get; } = secretProtectorProvider;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -145,8 +141,8 @@ internal class ClientApiEndpointHandler(
     private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
-    private IHostManagedClientPolicy[] HostManagedClientPolicies { get; } =
-        hostManagedClientPolicies.ToArray();
+    private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
+    private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -244,7 +240,10 @@ internal class ClientApiEndpointHandler(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             PrincipalId = client.PrincipalId,
-            IsHostManaged = IsHostManaged(client.TenantId, client.ClientId),
+            IsHostManaged = HostManagedClientChecker.IsHostManaged(
+                client.TenantId,
+                client.ClientId
+            ),
             ResourceServerId = client.ResourceServerId,
         };
     }
@@ -640,13 +639,20 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
-        return await ProcessGetAsync(httpContext, client, node, Operations.Read, ToClientResource);
+        return await ProcessGetAsync(
+            httpContext,
+            node,
+            Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+                return await store.GetOrDefaultAsync(clientId, token);
+            },
+            ToClientResource,
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -941,19 +947,22 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        // The client store has no dedicated settings getter; the client is loaded whole (settings included).
-        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
-            client?.Settings,
             node,
             Operations.Read,
-            ToClientSettingsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+
+                // The client store has no dedicated settings getter; the client is loaded whole (settings included).
+                var client = await store.GetOrDefaultAsync(clientId, token);
+                return client?.Settings;
+            },
+            ToClientSettingsResource,
+            cancellationToken
         );
     }
 
@@ -973,31 +982,30 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        var client = await store.GetOrDefaultAsync(clientId, cancellationToken);
-        if (client is null)
-        {
-            return TypedResults.NotFound();
-        }
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
 
         // The settings are resolved only after authorization, so a caller who may not read them learns nothing about a
         // document that cannot be honored, and the stored document's token is not the effective view's.
-        // A null projection is the absent tenant, answered 404. See ADR-1245.
+        // A null read is the absent client or the absent tenant, answered 404. See ADR-1245.
         return await ProcessGetAsync(
             httpContext,
-            client.Settings.Value,
             node,
             Operations.Read,
-            async (settings, token) =>
+            async token =>
             {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+
+                var client = await store.GetOrDefaultAsync(clientId, token);
+                if (client is null)
+                {
+                    return null;
+                }
+
                 var effectiveSettings = await MergeClientSettingsAsync(
                     tenantId,
                     clientId,
-                    settings,
+                    client.Settings.Value,
                     storeManager,
                     token
                 );
@@ -1005,6 +1013,7 @@ internal class ClientApiEndpointHandler(
                     ? null
                     : ToClientEffectiveSettingsResource(client, effectiveSettings);
             },
+            resource => resource,
             cancellationToken
         );
     }
@@ -1119,7 +1128,10 @@ internal class ClientApiEndpointHandler(
             return limitRefusal;
         }
 
-        if (HasJwksUri(settingsValue) && HasPublicKeys(client.Secrets.Value))
+        if (
+            ClientKeySourceChecker.HasJwksUri(settingsValue)
+            && ClientKeySourceChecker.HasPublicKeys(client.Secrets.Value)
+        )
         {
             return KeySourceConflict();
         }
@@ -1274,18 +1286,19 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        var clientSecrets = await store.GetSecretsOrDefaultAsync(clientId, cancellationToken);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
-            clientSecrets,
             node,
             Operations.Read,
-            ToClientSecretsResource
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+                return await store.GetSecretsOrDefaultAsync(clientId, token);
+            },
+            ToClientSecretsResource,
+            cancellationToken
         );
     }
 
@@ -1356,7 +1369,10 @@ internal class ClientApiEndpointHandler(
             );
         }
 
-        if (HasJwksUri(client.Settings.Value) && IsPublicKeyType(request.SecretType))
+        if (
+            ClientKeySourceChecker.HasJwksUri(client.Settings.Value)
+            && ClientKeySourceChecker.IsPublicKeyType(request.SecretType)
+        )
         {
             return KeySourceConflict();
         }
@@ -1525,7 +1541,7 @@ internal class ClientApiEndpointHandler(
             return ToErrorResult(validationError);
         }
 
-        if (HasJwksUri(client.Settings.Value))
+        if (ClientKeySourceChecker.HasJwksUri(client.Settings.Value))
         {
             return KeySourceConflict();
         }
@@ -1610,27 +1626,24 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        // The discrete getter resolves the secret together with its owning TenantId, which scopes authorization.
-        var clientSecret = await store.GetSecretOrDefaultAsync(
-            clientId,
-            secretId,
-            cancellationToken
-        );
-
-        var scoped = clientSecret is null
-            ? null
-            : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
-            scoped,
             node,
             Operations.Read,
-            x => ToSecretResource(x.Value)
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+
+                // The discrete getter resolves the secret together with its owning TenantId.
+                var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
+                return clientSecret is null
+                    ? null
+                    : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+            },
+            x => ToSecretResource(x.Value),
+            cancellationToken
         );
     }
 
@@ -1652,31 +1665,25 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
-
-        // The discrete getter resolves the secret together with its owning TenantId, which scopes authorization.
-        var clientSecret = await store.GetSecretOrDefaultAsync(
-            clientId,
-            secretId,
-            cancellationToken
-        );
-
-        if (clientSecret is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var scoped = TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
-
         var node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         return await ProcessGetAsync(
             httpContext,
-            scoped,
             node,
             Operations.Read,
+            async token =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var store = storeManager.GetStore<IClientStore>();
+
+                // The discrete getter resolves the secret together with its owning TenantId.
+                var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
+                return clientSecret is null
+                    ? null
+                    : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+            },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value)
+            x => SecretPublicKeyConverter.Convert(x.Value),
+            cancellationToken
         );
     }
 
@@ -2218,7 +2225,7 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (IsHostManaged(client.TenantId, client.ClientId))
+        if (HostManagedClientChecker.IsHostManaged(client.TenantId, client.ClientId))
         {
             return HostManagedClientRefused();
         }
@@ -2310,9 +2317,6 @@ internal class ClientApiEndpointHandler(
             statusCode: StatusCodes.Status409Conflict
         );
 
-    private bool IsHostManaged(string tenantId, string clientId) =>
-        HostManagedClientPolicies.Any(policy => policy.IsHostManaged(tenantId, clientId));
-
     // A client the host configures carries authority from that configuration, so no management caller changes it.
     // See ADR-1417.
     private static ProblemHttpResult HostManagedClientRefused() =>
@@ -2320,15 +2324,4 @@ internal class ClientApiEndpointHandler(
             detail: "The host configures this client, so the management API does not change it.",
             statusCode: StatusCodes.Status409Conflict
         );
-
-    private static bool HasJwksUri(JsonElement settings) =>
-        settings.ValueKind == JsonValueKind.Object
-        && settings.TryGetPropertyValue<string>(OpenIdSettingNames.JwksUri, out var jwksUri)
-        && !string.IsNullOrEmpty(jwksUri);
-
-    private bool IsPublicKeyType(string secretType) =>
-        SecretKeyTypeCatalog.TryGet(secretType, out var descriptor) && descriptor.IsAsymmetric;
-
-    private bool HasPublicKeys(IEnumerable<PersistedSecret> secrets) =>
-        secrets.Any(secret => IsPublicKeyType(secret.SecretType));
 }

@@ -34,16 +34,11 @@ internal class DefaultTeamValidator(
     private TenantResolutionOptions Options => TenantResolutionOptions.Value;
 
     /// <summary>
-    /// Gets the node above the specified team: its parent team, or the platform for a top-level team.
+    /// Determines whether the specified team identifier names the platform's own team.
     /// </summary>
-    private static ResourceNode GetLifecycleNode(string controlPlaneTenantId, PersistedTeam team) =>
-        team.ParentTeamId is { } parentTeamId
-            ? ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, parentTeamId)
-            : ResourceNode.For(
-                controlPlaneTenantId,
-                ResourceNodeTypes.Platform,
-                OpenIdConstants.PlatformResourceId
-            );
+    private bool IsPlatformTeam(string teamId) =>
+        // Team identifiers compare without regard to case, as the store looks them up.
+        string.Equals(teamId, Options.Root.TeamId, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     public ValueTask<ManagementError?> AuthorizeCreateAsync(
@@ -51,20 +46,17 @@ internal class DefaultTeamValidator(
         string controlPlaneTenantId,
         string? parentTeamId,
         CancellationToken cancellationToken
-    ) =>
-        AuthorizeAsync(
+    )
+    {
+        var node = TeamNodes.GetNodeAbove(controlPlaneTenantId, parentTeamId);
+        return AuthorizeAsync(
             user,
-            parentTeamId is null
-                ? ResourceNode.For(
-                    controlPlaneTenantId,
-                    ResourceNodeTypes.Platform,
-                    OpenIdConstants.PlatformResourceId
-                )
-                : ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, parentTeamId),
+            node,
             Operations.Create,
             "The caller is not authorized to create this team.",
             "Authentication is required to create this team."
         );
+    }
 
     /// <inheritdoc />
     public ValueTask<ManagementError?> AuthorizeUpdateAsync(
@@ -126,7 +118,7 @@ internal class DefaultTeamValidator(
 
         if (team.ParentTeamId is { } parentTeamId)
         {
-            if (string.Equals(parentTeamId, Options.Root.TeamId, StringComparison.Ordinal))
+            if (IsPlatformTeam(parentTeamId))
             {
                 return new ManagementError
                 {
@@ -181,9 +173,10 @@ internal class DefaultTeamValidator(
     {
         if (model.IsDisabled != team.IsDisabled)
         {
+            var lifecycleNode = TeamNodes.GetNodeAbove(controlPlaneTenantId, team.ParentTeamId);
             var error = await AuthorizeAsync(
                 user,
-                GetLifecycleNode(controlPlaneTenantId, team),
+                lifecycleNode,
                 Operations.Update,
                 "The caller is not authorized to disable or enable this team.",
                 "Authentication is required to disable or enable this team."
@@ -215,10 +208,7 @@ internal class DefaultTeamValidator(
             };
         }
 
-        if (
-            model.IsDisabled
-            && string.Equals(team.TeamId, Options.Root.TeamId, StringComparison.Ordinal)
-        )
+        if (model.IsDisabled && IsPlatformTeam(team.TeamId))
         {
             return new ManagementError
             {
@@ -239,9 +229,10 @@ internal class DefaultTeamValidator(
         CancellationToken cancellationToken
     )
     {
+        var lifecycleNode = TeamNodes.GetNodeAbove(controlPlaneTenantId, team.ParentTeamId);
         var authorizationError = await AuthorizeAsync(
             user,
-            GetLifecycleNode(controlPlaneTenantId, team),
+            lifecycleNode,
             Operations.Delete,
             "The caller is not authorized to delete this team.",
             "Authentication is required to delete this team."
@@ -251,7 +242,7 @@ internal class DefaultTeamValidator(
             return authorizationError;
         }
 
-        if (string.Equals(team.TeamId, Options.Root.TeamId, StringComparison.Ordinal))
+        if (IsPlatformTeam(team.TeamId))
         {
             return new ManagementError
             {

@@ -434,6 +434,20 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateCreateAsync_WhenTheParentIsThePlatformsTeamInAnotherCase_Returns409()
+    {
+        SetupTeamStore();
+
+        var error = await Create(
+            CreateTeam(parentTeamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant())
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Equal("The platform's own team cannot hold teams.", error.Detail);
+    }
+
+    [Fact]
     public async Task ValidateCreateAsync_WhenTheParentIsMissing_Returns404()
     {
         SetupTeamStore();
@@ -511,6 +525,21 @@ public sealed class DefaultTeamValidatorTests : IDisposable
 
         var error = await Update(
             CreateTeam(teamId: RootTenantOptions.DefaultTeamId),
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Equal("The platform's own team cannot be disabled.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenDisablingThePlatformsTeamInAnotherCase_Returns409()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Update(
+            CreateTeam(teamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant()),
             new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
         );
 
@@ -692,6 +721,20 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
 
         var error = await Delete(CreateTeam(teamId: RootTenantOptions.DefaultTeamId));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Equal("The platform's own team cannot be deleted.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateDeleteAsync_WhenThePlatformsTeamIsNamedInAnotherCase_Returns409()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Delete(
+            CreateTeam(teamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant())
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);

@@ -438,12 +438,13 @@ internal class TeamApiEndpointHandler(
     )
     {
         var effectiveLimit = NormalizeLimit(limit);
+        var teamNode = GetTeamNode(httpContext, teamId);
 
         // Listing a team's child teams is authority at the team: the caller is authorized at the team node before the
         // store is read.
         return await ProcessListAsync(
             httpContext,
-            GetTeamNode(httpContext, teamId),
+            teamNode,
             async () =>
             {
                 await using var storeManager = await StoreManagerFactory.CreateAsync(
@@ -804,9 +805,10 @@ internal class TeamApiEndpointHandler(
         var changedLimits = SettingSerializer.GetChangedLimits(teamSettings.Value, settingsValue);
         // A limit in a team's document is set by the authority over its parent team, or over the platform for a
         // top-level team (ADR-1418, ADR-1426).
-        var authorityAbove = team.ParentTeamId is { } parentTeamId
-            ? GetTeamNode(httpContext, parentTeamId)
-            : GetPlatformNode(httpContext);
+        var authorityAbove = TeamNodes.GetNodeAbove(
+            GetControlPlaneTenantId(httpContext),
+            team.ParentTeamId
+        );
         var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
             httpContext,
             changedLimits,
@@ -966,9 +968,10 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var teamNode = GetTeamNode(httpContext, teamId);
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            GetTeamNode(httpContext, teamId),
+            teamNode,
             Operations.Read,
             cancellationToken
         );
@@ -1007,9 +1010,8 @@ internal class TeamApiEndpointHandler(
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var team = await storeManager
-            .GetStore<ITeamStore>()
-            .GetOrDefaultAsync(teamId, cancellationToken);
+        var teamStore = storeManager.GetStore<ITeamStore>();
+        var team = await teamStore.GetOrDefaultAsync(teamId, cancellationToken);
         if (team is null)
         {
             return TypedResults.NotFound();

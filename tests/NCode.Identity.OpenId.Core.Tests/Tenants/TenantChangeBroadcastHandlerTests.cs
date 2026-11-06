@@ -163,6 +163,20 @@ public sealed class TenantChangeBroadcastHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleMissedMessagesAsync_WhenReadingTheTokensTimesOut_EvictsEveryMasterKeyAndClearsTheCache()
+    {
+        SetupRevisions([new TenantRevision("acme", "a1")]);
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException())
+            .Verifiable();
+        MockSecretProtectorProvider.Setup(x => x.EvictAll()).Verifiable();
+        SetupClear();
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+    }
+
+    [Fact]
     public async Task HandleMissedMessagesAsync_WhenAnEvictionFails_EvictsTheOtherStaleTenantsAndClearsTheCache()
     {
         SetupRevisions([new TenantRevision("acme", "a1"), new TenantRevision("globex", "g1")]);

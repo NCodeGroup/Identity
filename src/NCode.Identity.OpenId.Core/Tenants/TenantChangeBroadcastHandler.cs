@@ -94,7 +94,7 @@ internal sealed class TenantChangeBroadcastHandler(
                 .Distinct()
                 .ToList();
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             Logger.TenantCacheRevalidationFailed(exception);
             return null;
@@ -142,7 +142,7 @@ internal sealed class TenantChangeBroadcastHandler(
             {
                 await HandleAsync(tenantId, cancellationToken);
             }
-            catch (Exception exception) when (exception is not OperationCanceledException)
+            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
             {
                 Logger.TenantCacheEvictionFailed(exception, tenantId);
                 failed = true;
@@ -166,7 +166,7 @@ internal sealed class TenantChangeBroadcastHandler(
         {
             await TenantCache.ClearAsync(propertyBag, cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             Logger.TenantCacheClearFailed(exception);
         }

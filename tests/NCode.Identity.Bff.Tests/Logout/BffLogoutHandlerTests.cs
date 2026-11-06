@@ -69,6 +69,8 @@ public class BffLogoutHandlerTests : BaseTests
             new BffSessionMetadata
             {
                 Frontend = BffTestFrontends.Name,
+                Authority = "https://op.example",
+                ClientId = "bff",
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 SessionId = "sid-1",

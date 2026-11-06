@@ -433,7 +433,11 @@ public class BffMiddlewareTests : BaseTests
                             new string('h', 43),
                             "key",
                             1,
-                            new BffSessionMetadata(),
+                            new BffSessionMetadata
+                            {
+                                Authority = BffTestFrontends.Authority,
+                                ClientId = BffTestFrontends.ClientId,
+                            },
                             new BffSessionPayload()
                         )
                     );

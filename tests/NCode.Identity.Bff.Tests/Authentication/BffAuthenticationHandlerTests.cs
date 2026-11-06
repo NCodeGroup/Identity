@@ -100,7 +100,7 @@ public class BffAuthenticationHandlerTests : BaseTests
             UrlEncoder.Default,
             resolver,
             catalog,
-            new BffConnectionSessions(resolver)
+            new BffConnectionSessions(resolver, catalog)
         );
         var scheme = new AuthenticationScheme(
             BffDefaults.AuthenticationScheme,

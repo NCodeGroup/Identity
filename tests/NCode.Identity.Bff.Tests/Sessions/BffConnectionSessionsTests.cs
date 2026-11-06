@@ -37,7 +37,7 @@ public class BffConnectionSessionsTests : BaseTests
         var catalog = BffTestFrontends.CreateCatalog();
         var frontend = BffTestFrontends.Get(catalog);
         var resolver = CreateResolver(catalog);
-        var sessions = new BffConnectionSessions(resolver.Object);
+        var sessions = new BffConnectionSessions(resolver.Object, catalog);
 
         var session = sessions.Create(frontend, Handle, LogoutUrl);
 

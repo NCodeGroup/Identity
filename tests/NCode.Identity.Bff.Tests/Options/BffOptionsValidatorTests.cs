@@ -3,7 +3,9 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Options;
@@ -14,7 +16,10 @@ public class BffOptionsValidatorTests : BaseTests
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-        return new BffOptionsValidator(mockEnvironment.Object);
+        return new BffOptionsValidator(
+            mockEnvironment.Object,
+            [new HostBffFrontendSelector(), new PathBffFrontendSelector()]
+        );
     }
 
     private static BffOptions CreateValidOptions() =>
@@ -776,6 +781,175 @@ public class BffOptionsValidatorTests : BaseTests
         Assert.True(result.Failed);
         Assert.Contains(
             "Bff:RemoteApis:orders:Path '/api/orders' must not overlap Bff:RemoteApis:api:Path '/api'.",
+            result.Failures ?? []
+        );
+    }
+
+    #endregion
+
+    #region Frontends Tests
+
+    [Fact]
+    public void Validate_WhenFrontendValid_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = BffTestFrontends.CreateOptions();
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendsNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:Frontends must be set.", result.Failures ?? []);
+    }
+
+    [Theory]
+    [InlineData("Web")]
+    [InlineData("-web")]
+    [InlineData("web-")]
+    [InlineData("a_b")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    public void Validate_WhenFrontendNameInvalid_Fails(string name)
+    {
+        var options = CreateValidOptions();
+        options.Frontends[name] = BffTestFrontends.CreateOptions();
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            $"Bff:Frontends key '{name}' must be 1 to 63 lowercase letters, digits and hyphens that start and end with a letter or digit.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendClientIdBlank_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = BffTestFrontends.CreateOptions(x => x.ClientId = "");
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:Frontends:web:ClientId must not be blank.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:Frontends:web must be set.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenTwoFrontendsHaveNoRule_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["admin"] = BffTestFrontends.CreateOptions(x =>
+            x.PublicOrigin = "https://admin.example.com"
+        );
+        options.Frontends["web"] = BffTestFrontends.CreateOptions();
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "At most one entry of Bff:Frontends may have no Selection:Rule; it serves the requests no other frontend selects.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendRuleUnknown_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = BffTestFrontends.CreateOptions(x => x.Selection.Rule = "other");
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends:web:Selection:Rule 'other' is not a registered frontend selection rule.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenHostRuleHasNoValues_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["shop"] = BffTestFrontends.CreateOptions(x =>
+        {
+            x.PublicOrigin = "https://shop.example.com";
+            x.Selection.Rule = BffFrontendSelectorNames.Host;
+        });
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends:shop:Selection: Values must name at least one host.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenPathFrontendsOverlap_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["admin"] = BffTestFrontends.CreateOptions(x =>
+        {
+            x.PathPrefix = "/admin/bff";
+            x.Selection.Rule = BffFrontendSelectorNames.Path;
+            x.Selection.Values = ["/admin"];
+        });
+        options.Frontends["reports"] = BffTestFrontends.CreateOptions(x =>
+        {
+            x.PathPrefix = "/admin/reports/bff";
+            x.Selection.Rule = BffFrontendSelectorNames.Path;
+            x.Selection.Values = ["/admin/reports"];
+        });
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends:admin:Selection and Bff:Frontends:reports:Selection select the same requests.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendsShareTheCallback_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = BffTestFrontends.CreateOptions();
+        options.Frontends["shop"] = BffTestFrontends.CreateOptions(x =>
+        {
+            x.Selection.Rule = BffFrontendSelectorNames.Host;
+            x.Selection.Values = ["app.example.com"];
+        });
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends:shop and Bff:Frontends:web have the same PublicOrigin and PathPrefix; each frontend needs its own callback URI.",
             result.Failures ?? []
         );
     }

@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId;
 
 namespace NCode.Identity.ManagementConsole;
 
@@ -16,14 +17,27 @@ internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environ
     private const string Key = ManagementConsoleDefaults.ConfigurationSectionName;
 
     private static bool IsAbsoluteHttpsUrl(string? url) =>
-        Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        AbsoluteUri.TryParse(url, out var uri)
         && string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal);
+
+    private static string Describe(string? url)
+    {
+        if (!AbsoluteUri.TryParse(url, out var uri))
+        {
+            return url ?? string.Empty;
+        }
+
+        var schemeAndServer = uri.GetComponents(
+            UriComponents.SchemeAndServer,
+            UriFormat.UriEscaped
+        );
+        return $"{schemeAndServer}{uri.AbsolutePath}";
+    }
 
     private static bool IsValidManagementApiUrl(string? url, bool isDevelopment)
     {
         if (
-            string.IsNullOrWhiteSpace(url)
-            || !Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            !AbsoluteUri.TryParse(url, out var uri)
             || uri.UserInfo.Length != 0
             || uri.Query.Length != 0
             || uri.Fragment.Length != 0
@@ -52,38 +66,44 @@ internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environ
         if (!IsValidManagementApiUrl(options.ManagementApiUrl, isDevelopment))
         {
             failures.Add(
-                $"{Key}:ManagementApiUrl must be an absolute https URL without user info, query or fragment."
+                $"{Key}:ManagementApiUrl must be an absolute https URL without user info, query or fragment; it is '{Describe(options.ManagementApiUrl)}'."
             );
         }
 
         if (string.IsNullOrWhiteSpace(options.BundleRootPath))
         {
             failures.Add(
-                $"{Key}:BundleRootPath must name the directory of the built apps/mgmt bundle."
+                $"{Key}:BundleRootPath must name the directory of the built apps/mgmt bundle; it is '{options.BundleRootPath}'."
             );
         }
 
         var branding = options.Branding;
-        if (branding is not null)
-        {
-            if (branding.LogoUrl is not null && !IsAbsoluteHttpsUrl(branding.LogoUrl))
-            {
-                failures.Add($"{Key}:Branding:LogoUrl must be an absolute https URL.");
-            }
 
-            if (
-                branding.Mode is not null
-                && !string.Equals(branding.Mode, "light", StringComparison.Ordinal)
-                && !string.Equals(branding.Mode, "dark", StringComparison.Ordinal)
-            )
-            {
-                failures.Add($"{Key}:Branding:Mode must be 'light' or 'dark'.");
-            }
+        if (branding.LogoUrl is not null && !IsAbsoluteHttpsUrl(branding.LogoUrl))
+        {
+            failures.Add(
+                $"{Key}:Branding:LogoUrl must be an absolute https URL; it is '{Describe(branding.LogoUrl)}'."
+            );
         }
 
-        if (options.Features is not null && options.Features.Keys.Any(string.IsNullOrWhiteSpace))
+        if (
+            branding.Mode is not null
+            && !string.Equals(branding.Mode, "light", StringComparison.Ordinal)
+            && !string.Equals(branding.Mode, "dark", StringComparison.Ordinal)
+        )
         {
-            failures.Add($"{Key}:Features has a feature without a name.");
+            failures.Add(
+                $"{Key}:Branding:Mode must be 'light' or 'dark'; it is '{branding.Mode}'."
+            );
+        }
+
+        if (options.Features is not null)
+        {
+            var unnamed = options.Features.Keys.FirstOrDefault(string.IsNullOrWhiteSpace);
+            if (unnamed is not null)
+            {
+                failures.Add($"{Key}:Features has a feature without a name; it is '{unnamed}'.");
+            }
         }
 
         return failures.Count == 0

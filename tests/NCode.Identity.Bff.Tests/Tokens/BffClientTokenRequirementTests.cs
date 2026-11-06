@@ -7,6 +7,7 @@ using Moq;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using Xunit;
 
@@ -26,7 +27,7 @@ public class BffClientTokenRequirementTests : BaseTests
             manager.Object,
             new BffCookies(options, timeProvider),
             [],
-            options,
+            BffTestFrontends.CreateCatalog(),
             timeProvider
         );
     }

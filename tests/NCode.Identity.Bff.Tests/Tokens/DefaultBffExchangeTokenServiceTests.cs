@@ -9,6 +9,7 @@ using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -58,7 +59,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             MockManager.Object,
             new BffCookies(options, timeProvider),
             [],
-            options,
+            BffTestFrontends.CreateCatalog(),
             timeProvider
         );
         var grantClient = new BffGrantClient(

@@ -15,6 +15,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
@@ -94,7 +95,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             MockManager.Object,
             cookies,
             [],
-            options,
+            BffTestFrontends.CreateCatalog(),
             timeProvider
         );
         MockStore = CreateStrictMock<IBffSessionStore>();
@@ -1148,7 +1149,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             MockManager.Object,
             cookies,
             [],
-            options,
+            BffTestFrontends.CreateCatalog(),
             timeProvider
         );
         return new DefaultBffUserTokenService(

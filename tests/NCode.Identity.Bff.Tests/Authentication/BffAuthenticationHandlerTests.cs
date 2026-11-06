@@ -14,6 +14,7 @@ using NCode.Identity.Bff.Authentication;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Jose;
 using Xunit;
 
@@ -62,7 +63,13 @@ public class BffAuthenticationHandlerTests : BaseTests
         var timeProvider = new FakeTimeProvider(Now);
         var cookies = new BffCookies(options, timeProvider);
         var manager = CreateStrictMock<IBffSessionManager>();
-        var resolver = new BffSessionResolver(manager.Object, cookies, [], options, timeProvider);
+        var resolver = new BffSessionResolver(
+            manager.Object,
+            cookies,
+            [],
+            BffTestFrontends.CreateCatalog(),
+            timeProvider
+        );
 
         var httpContext = new DefaultHttpContext();
         httpContext.Response.Body = new MemoryStream();

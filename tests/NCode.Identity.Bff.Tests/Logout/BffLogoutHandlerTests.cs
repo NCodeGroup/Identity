@@ -12,6 +12,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -37,7 +38,7 @@ public class BffLogoutHandlerTests : BaseTests
             CreateStrictMock<IBffSessionManager>().Object,
             cookies,
             Array.Empty<IBffSessionValidator>(),
-            options,
+            BffTestFrontends.CreateCatalog(),
             timeProvider
         );
         _logoutService = CreateStrictMock<BffLogoutService>(

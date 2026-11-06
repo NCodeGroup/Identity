@@ -98,3 +98,12 @@ const NCode.AspNetCore.HealthProbeDefaults.LivenessEndpointName = "health_live_e
 const NCode.AspNetCore.HealthProbeDefaults.LivenessPath = "/health/live" -> string!
 const NCode.AspNetCore.HealthProbeDefaults.ReadinessEndpointName = "health_ready_endpoint" -> string!
 const NCode.AspNetCore.HealthProbeDefaults.ReadinessPath = "/health/ready" -> string!
+NCode.AspNetCore.SinglePageBundleDefaults
+const NCode.AspNetCore.SinglePageBundleDefaults.AssetsDirectory = "assets" -> string!
+const NCode.AspNetCore.SinglePageBundleDefaults.IndexFileName = "index.html" -> string!
+NCode.AspNetCore.SinglePageBundle<TIndex>
+NCode.AspNetCore.SinglePageBundle<TIndex>.Dispose() -> void
+NCode.AspNetCore.SinglePageBundle<TIndex>.ServeAsset(Microsoft.AspNetCore.Http.HttpResponse! response, string! assetPath) -> Microsoft.AspNetCore.Http.IResult!
+NCode.AspNetCore.SinglePageBundle<TIndex>.SinglePageBundle(string? rootPath, System.Func<string!, TIndex?>! parseIndex) -> void
+NCode.AspNetCore.SinglePageBundle<TIndex>.TryGetAsset(string! assetPath) -> Microsoft.Extensions.FileProviders.IFileInfo?
+NCode.AspNetCore.SinglePageBundle<TIndex>.TryReadIndexAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TIndex?>

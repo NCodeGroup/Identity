@@ -214,6 +214,30 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
     }
 
     [Fact]
+    public void MapReverseProxy_AsBffRemoteApis_LimitsARouteToItsFrontend()
+    {
+        var endpoints = CreateApp(
+            CreateRoute(
+                TokenRouteId,
+                "/api/orders/{**rest}",
+                new Dictionary<string, string>
+                {
+                    [BffReverseProxyMetadataKeys.Frontend] = BffDefaults.FrontendName,
+                }
+            ),
+            OtherRoute
+        );
+
+        var attribute = Assert.Single(
+            GetEndpoint(endpoints, TokenRouteId).Metadata.GetOrderedMetadata<BffFrontendAttribute>()
+        );
+        Assert.Equal(BffDefaults.FrontendName, attribute.Name);
+        Assert.Empty(
+            GetEndpoint(endpoints, OtherRouteId).Metadata.GetOrderedMetadata<BffFrontendAttribute>()
+        );
+    }
+
+    [Fact]
     public void MapReverseProxy_UnregisteredRequirement_Throws()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>

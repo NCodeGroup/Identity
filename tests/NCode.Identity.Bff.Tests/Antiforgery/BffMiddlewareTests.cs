@@ -252,6 +252,66 @@ public class BffMiddlewareTests : BaseTests
     }
 
     [Fact]
+    public async Task InvokeAsync_HubFromForeignOrigin_Returns403CrossSite()
+    {
+        var httpContext = CreateContext(guarded: false);
+        httpContext.Request.Method = HttpMethods.Get;
+        httpContext.Request.Headers.Origin = "https://evil.example.com";
+        httpContext.SetEndpoint(
+            new Endpoint(null, new EndpointMetadataCollection(new BffHubAttribute()), "hub")
+        );
+        var nextCalled = false;
+        var middleware = CreateMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+        MockRecorder
+            .Setup(x =>
+                x.AntiforgeryRejectedAsync(
+                    httpContext,
+                    BffRequestGuard.CrossSiteRequest,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.False(nextCalled);
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+        Assert.Equal(
+            BffProblemTypes.CrossSiteRequest,
+            ReadProblem(httpContext).GetProperty("type").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task InvokeAsync_HubFromPublicOrigin_CallsNextAndSetsCheckedEndpoint()
+    {
+        var httpContext = CreateContext(guarded: false);
+        httpContext.Request.Method = HttpMethods.Get;
+        httpContext.Request.Headers.Origin = "https://app.example.com";
+        httpContext.SetEndpoint(
+            new Endpoint(null, new EndpointMetadataCollection(new BffHubAttribute()), "hub")
+        );
+        var nextCalled = false;
+        var middleware = CreateMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.True(nextCalled);
+        var feature = httpContext.Features.Get<BffRequestFeature>();
+        Assert.NotNull(feature);
+        Assert.Same(httpContext.GetEndpoint(), feature.CheckedEndpoint);
+    }
+
+    [Fact]
     public async Task InvokeAsync_PagePost_Returns405AndSkipsNext()
     {
         var httpContext = CreateContext(guarded: false);

@@ -118,6 +118,25 @@ internal class BffMiddleware(
             return (reason, StatusCodes.Status403Forbidden, type, title);
         }
 
+        if (BffGuardedEndpoints.IsHub(endpoint))
+        {
+            var frontend = _frontends.Resolve(context);
+            var reason = BffRequestGuard.CheckHub(
+                context.Request,
+                frontend?.Options.PublicOrigin,
+                frontend?.Options.TrustedOrigins ?? []
+            );
+            if (reason is null)
+                return null;
+
+            return (
+                reason,
+                StatusCodes.Status403Forbidden,
+                BffProblemTypes.CrossSiteRequest,
+                "Cross-site requests are not allowed."
+            );
+        }
+
         if (BffGuardedEndpoints.IsPage(endpoint))
         {
             var reason = BffRequestGuard.CheckPage(context.Request);

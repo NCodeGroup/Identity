@@ -64,7 +64,7 @@ jobs:
       - name: Review
         # A release's full commit SHA, with its tag in the comment: the action receives the app key and the Bedrock key,
         # and a SHA is the one pin nobody can move. Dependabot opens each bump and updates both.
-        uses: NCodeGroup/code-review@d969c1980f3e931d7c82690439752a3f3dc05e42 # v1.0.1
+        uses: NCodeGroup/code-review@564bb16f8f4f25f88dcc47baae10d7edf55ca504 # v1.1.2
         with:
           app-private-key: ${{ secrets.NCODE_REVIEW_APP_PRIVATE_KEY }}
           bedrock-api-key: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
@@ -87,6 +87,6 @@ jobs:
       pull-requests: read
     steps:
       - name: Record the outcomes
-        uses: NCodeGroup/code-review@d969c1980f3e931d7c82690439752a3f3dc05e42 # v1.0.1
+        uses: NCodeGroup/code-review@564bb16f8f4f25f88dcc47baae10d7edf55ca504 # v1.1.2
         with:
           app-private-key: ${{ secrets.NCODE_REVIEW_APP_PRIVATE_KEY }}

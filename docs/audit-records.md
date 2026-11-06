@@ -365,9 +365,10 @@ session-termination seam.
 
 #### Resource-change events
 
-A resource-change event is named `<resource_type>.<change_type>`, where `change_type` is `created`, `updated`, `deleted`
-or `settings.updated`. `details.change_type` repeats the change type, and `details.resource_values` is a non-sensitive
-snapshot of the resource, never secret material.
+A resource-change event is named `<resource_type>.<change_type>`, where `change_type` is `created`, `updated`,
+`deleted`, `settings.updated` or `promoted`. `details.change_type` repeats the change type, and
+`details.resource_values` is a non-sensitive snapshot of the resource, never secret material. A promotion records each
+change it writes, then `tenant.promoted` on the target tenant, whose `resource_values` is the promotion's report.
 
 | Event name prefix (`resource_type`) | Owning resource listed second |
 | ----------------------------------- | ----------------------------- |

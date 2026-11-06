@@ -20,6 +20,14 @@ internal static class DefaultRegistration
         {
             builder.AddEndpoint<ClientApiEndpointHandler>();
             builder.ServiceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
+            builder.ServiceCollection.TryAddSingleton<
+                IHostManagedClientChecker,
+                DefaultHostManagedClientChecker
+            >();
+            builder.ServiceCollection.TryAddSingleton<
+                IClientKeySourceChecker,
+                DefaultClientKeySourceChecker
+            >();
         }
     }
 }

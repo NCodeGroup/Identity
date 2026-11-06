@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -135,6 +136,89 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
 
         var json = Assert.IsType<JsonHttpResult<CollectionResource<ClientGrantResource>>>(result);
         Assert.Single(json.Value!.Items);
+    }
+
+    private void SetupTenantAuthorization(AuthorizationResult result)
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is TenantScopeResource
+                        && ((TenantScopeResource)resource).TenantId == TenantId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenForbidden_ReturnsForbiddenWithoutReading()
+    {
+        SetupTenantAuthorization(AuthorizationResult.Failed());
+
+        // No store is set up, so a strict-mock failure would mean the grant was read before authorization.
+        var result = await Handler.GetAsync(
+            CreateHttpContext(),
+            TenantId,
+            ClientId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenAuthorizedAndMissing_ReturnsNotFound()
+    {
+        SetupTenantAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x =>
+                x.GetOrDefaultAsync(ClientId, ResourceServerId, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync((PersistedClientGrant?)null)
+            .Verifiable();
+
+        var result = await Handler.GetAsync(
+            CreateHttpContext(),
+            TenantId,
+            ClientId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenAuthorized_ReturnsTheGrant()
+    {
+        SetupTenantAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x =>
+                x.GetOrDefaultAsync(ClientId, ResourceServerId, It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateGrant())
+            .Verifiable();
+
+        var result = await Handler.GetAsync(
+            CreateHttpContext(),
+            TenantId,
+            ClientId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<ClientGrantResource>>(result);
+        Assert.Equal(ResourceServerId, json.Value?.ResourceServerId);
+        Assert.Equal(["read:messages"], json.Value?.Scopes);
     }
 
     [Fact]

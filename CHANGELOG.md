@@ -2465,7 +2465,8 @@ describes the family as it is rather than its changes
   `BffAccessToken.TokenType` is `Bearer` when the provider's token response omits the `token_type` that RFC 6749 §5.1
   requires. The login requests `openid` and the scopes `Bff:Frontends:{name}:Scopes` lists, never `offline_access` on its own, so by
   default the grant stays inside the provider's login session and the provider's logout reaches the BFF.
-  `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and back-channel logout ends
+  `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, including when a hub or Blazor circuit
+  connection revalidates the session without an `HttpContext`, and back-channel logout ends
   sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD and a form
   post with a valid antiforgery token, and `AsBffHub`/`[BffHub]` a SignalR hub whose connection holds the session
   (`IBffConnectionSession`) and obtains tokens through `IBffTokenContext`.

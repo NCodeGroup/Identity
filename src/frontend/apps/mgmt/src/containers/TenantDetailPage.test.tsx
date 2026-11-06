@@ -196,6 +196,9 @@ describe('TenantDetailPage', () => {
       if (url.endsWith('/api/tenants/acme/settings')) {
         return jsonResponse({ concurrencyToken: 'sc9', settings: { a: 1 } });
       }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: [], canChange: true });
+      }
       if (url.endsWith('/api/tenants/acme/effective-settings')) {
         return jsonResponse({ settings: { a: 1, issuer: 'https://op.test' } });
       }

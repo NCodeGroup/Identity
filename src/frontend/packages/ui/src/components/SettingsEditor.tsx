@@ -15,9 +15,9 @@ export type SettingsEditorProps = {
   /** A server-side error surfaced after a failed save. */
   readonly error?: string | undefined;
   /** The limits the settings may carry. */
-  readonly limitNames?: readonly string[];
+  readonly limitNames?: readonly string[] | undefined;
   /** When set, the limits are read-only: the document's limit entries as pretty JSON. */
-  readonly lockedJson?: string;
+  readonly lockedJson?: string | undefined;
   readonly onSave: (settings: Record<string, unknown>) => void;
 };
 

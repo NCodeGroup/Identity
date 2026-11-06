@@ -305,6 +305,9 @@ describe('ClientDetailPage', () => {
       if (url.endsWith('/clients/web/settings')) {
         return jsonResponse({ concurrencyToken: 'sc9', settings: { a: 1 } });
       }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: [], canChange: true });
+      }
       if (url.endsWith('/clients/web/effective-settings')) {
         return jsonResponse({ settings: { a: 1, issuer: 'https://op.test' } });
       }
@@ -346,6 +349,9 @@ describe('ClientDetailPage', () => {
       }
       if (url.endsWith('/clients/web/settings')) {
         return jsonResponse({ concurrencyToken: 'sc9', settings: { a: 1 } });
+      }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: [], canChange: true });
       }
       if (url.endsWith('/clients/web/effective-settings')) {
         return jsonResponse({ settings: { a: 1, issuer: 'https://op.test' } });

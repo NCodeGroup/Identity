@@ -2041,7 +2041,7 @@ public class TeamManagementTests
     #region Promotion Tests
 
     [Fact]
-    public async Task PromoteTenant_CopiesConfigurationButNoSecretsOrEnvironmentValues()
+    public async Task PreviewTenantPromotion_ReportsTheChangesAndNotesWithoutApplying()
     {
         using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
@@ -2075,6 +2075,20 @@ public class TeamManagementTests
             ),
             preview.ToString()
         );
+
+        await AssertGetStatusAsync(
+            administrator,
+            $"/api/tenants/acme-prod/clients/{clientId}",
+            HttpStatusCode.NotFound
+        );
+    }
+
+    [Fact]
+    public async Task PromoteTenant_CopiesConfigurationButNoSecretsOrEnvironmentValues()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        var (clientId, resourceServerId) = await ArrangePromotionSourceAsync(administrator);
 
         using var promoteResponse = await PostPromotionAsync(
             administrator,
@@ -2120,6 +2134,23 @@ public class TeamManagementTests
             ["read:things"],
             grant.GetProperty("scopes").EnumerateArray().Select(scope => scope.GetString())
         );
+    }
+
+    [Fact]
+    public async Task PromoteTenant_WhenPromotedAgain_ReportsEveryChangeUnchanged()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await ArrangePromotionSourceAsync(administrator);
+
+        using var promoteResponse = await PostPromotionAsync(
+            administrator,
+            "acme",
+            string.Empty,
+            "acme-dev",
+            "acme-prod"
+        );
+        await ReadPromotionAsync(promoteResponse, HttpStatusCode.OK);
 
         using var againResponse = await PostPromotionAsync(
             administrator,

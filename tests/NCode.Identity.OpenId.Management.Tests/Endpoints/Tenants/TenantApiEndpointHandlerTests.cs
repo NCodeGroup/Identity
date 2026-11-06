@@ -182,7 +182,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((PersistedRoleAssignment?)null)
             .Verifiable();
 
     // Only a request that changes a secret records it.
@@ -5172,7 +5172,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TenantAdmin))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TenantAdmin),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         var result = await Handler.AddAdminAsync(
@@ -5213,7 +5219,13 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TenantAdmin))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TenantAdmin),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         await Handler.AddAdminAsync(
@@ -5299,7 +5311,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TenantAdmin)])
             .Verifiable();
 
         var result = await Handler.RemoveAdminAsync(
@@ -5337,7 +5349,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TenantAdmin)])
             .Verifiable();
 
         await Handler.RemoveAdminAsync(
@@ -5388,7 +5400,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(false)
+            .ReturnsAsync([])
             .Verifiable();
 
         var result = await Handler.RemoveAdminAsync(

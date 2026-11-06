@@ -113,7 +113,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((PersistedRoleAssignment?)null)
             .Verifiable();
 
     // Only a request that changes a secret records it.

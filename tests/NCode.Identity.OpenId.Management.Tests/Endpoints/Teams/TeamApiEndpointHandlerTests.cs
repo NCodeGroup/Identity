@@ -727,7 +727,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(CreateAssignment("principal-1", BuiltInRoles.Owner))
             .Verifiable();
         MockResourceOwnershipService
             .Setup(x =>
@@ -752,7 +752,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-1", BuiltInRoles.TeamAdmin))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-1", BuiltInRoles.TeamAdmin),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
         SetupTeam(CreateTeam("reloaded-ct"));
         SetupTeamChangedAudit(ResourceChangeTypes.Created);
@@ -798,7 +804,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((PersistedRoleAssignment?)null)
             .Verifiable();
         // A caller that resolves to no principal becomes no owner, so no AddAssignmentAsync setup exists: the strict
         // mock fails the test if a TeamAdmin assignment is granted.
@@ -988,7 +994,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((PersistedRoleAssignment?)null)
             .Verifiable();
         MockResourceOwnershipService
             .Setup(x =>
@@ -2577,7 +2583,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.Owner))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.Owner),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         await Handler.AddOwnerAsync(
@@ -2606,7 +2618,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.Removed)
+            .ReturnsAsync(
+                new OwnerRemoval
+                {
+                    Result = OwnerRemovalResult.Removed,
+                    RemovedAssignments = [CreateAssignment("principal-1", BuiltInRoles.Owner)],
+                }
+            )
             .Verifiable();
 
         await Handler.RemoveOwnerAsync(
@@ -2637,7 +2655,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.Owner))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.Owner),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         var result = await Handler.AddOwnerAsync(
@@ -2666,7 +2690,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.LastOwnerForbidden)
+            .ReturnsAsync(
+                new OwnerRemoval
+                {
+                    Result = OwnerRemovalResult.LastOwnerForbidden,
+                    RemovedAssignments = [],
+                }
+            )
             .Verifiable();
 
         var result = await Handler.RemoveOwnerAsync(
@@ -2696,7 +2726,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.Removed)
+            .ReturnsAsync(
+                new OwnerRemoval
+                {
+                    Result = OwnerRemovalResult.Removed,
+                    RemovedAssignments = [CreateAssignment("principal-1", BuiltInRoles.Owner)],
+                }
+            )
             .Verifiable();
 
         var result = await Handler.RemoveOwnerAsync(
@@ -2796,7 +2832,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TeamAdmin))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TeamAdmin),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         var result = await Handler.AddAdminAsync(
@@ -2837,7 +2879,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TeamAdmin))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TeamAdmin),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         await Handler.AddAdminAsync(
@@ -2902,7 +2950,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TeamAdmin)])
             .Verifiable();
 
         var result = await Handler.RemoveAdminAsync(
@@ -2940,7 +2988,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TeamAdmin)])
             .Verifiable();
 
         await Handler.RemoveAdminAsync(
@@ -2988,7 +3036,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(false)
+            .ReturnsAsync([])
             .Verifiable();
 
         var result = await Handler.RemoveAdminAsync(

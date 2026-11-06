@@ -160,7 +160,9 @@ public class OwnerEndpointHelperTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(Owner("p2", "a2"))
+            .ReturnsAsync(
+                new RoleAssignmentGrant { Assignment = Owner("p2", "a2"), IsAdded = true }
+            )
             .Verifiable();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
@@ -216,7 +218,13 @@ public class OwnerEndpointHelperTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.LastOwnerForbidden)
+            .ReturnsAsync(
+                new OwnerRemoval
+                {
+                    Result = OwnerRemovalResult.LastOwnerForbidden,
+                    RemovedAssignments = [],
+                }
+            )
             .Verifiable();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
@@ -253,7 +261,13 @@ public class OwnerEndpointHelperTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.Removed)
+            .ReturnsAsync(
+                new OwnerRemoval
+                {
+                    Result = OwnerRemovalResult.Removed,
+                    RemovedAssignments = [Owner("p1")],
+                }
+            )
             .Verifiable();
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);

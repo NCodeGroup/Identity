@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import { apiErrorMessage, type ApiError, useGetTenantUsageQuery } from '@ncode/store';
 import { DataStateBoundary, TenantUsageTable } from '@ncode/ui';
 import type { TenantOwnSurface } from '../routes.js';
+import { OwnerAccessTab } from './OwnerAccessTab.js';
 import { OwnerEncryptionKeysTab } from './OwnerEncryptionKeysTab.js';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
@@ -20,9 +21,10 @@ type TenantTabProps = {
 };
 
 /**
- * Container: the current tenant's own secrets, encryption keys, settings, or usage surface (as opposed to its clients'), as the
+ * Container: the current tenant's own secrets, encryption keys, settings, access, or usage surface (as opposed to its clients'), as the
  * `surface` prop names. The address bar selects the surface (ADR-1255), so this page holds no tab state. Wires the
- * owner-generic {@link OwnerSecretsTab}/{@link OwnerSettingsTab} and the {@link OwnerEncryptionKeysTab} to the tenant, and shows the tenant's usage ledger
+ * owner-generic {@link OwnerSecretsTab}/{@link OwnerSettingsTab}, the {@link OwnerEncryptionKeysTab} and the
+ * {@link OwnerAccessTab} (the tenant's administrators and owners) to the tenant, and shows the tenant's usage ledger
  * (ADR-1199) through {@link TenantUsageTable}. The tenant id comes from the active scope, so the boundary stays
  * structural (a tenant administrator can never address another tenant).
  */
@@ -44,6 +46,7 @@ export function TenantDetailPage({ tenantId, surface }: TenantDetailPageProps) {
         <OwnerEncryptionKeysTab owner={owner} ownerLabel="tenant" />
       )}
       {surface === 'settings' && <OwnerSettingsTab owner={owner} />}
+      {surface === 'access' && <OwnerAccessTab owner={owner} />}
       {surface === 'usage' && <TenantUsageTab tenantId={tenantId} />}
     </>
   );

@@ -141,6 +141,27 @@ describe('TeamDetailPage', () => {
     });
   });
 
+  it("lists the team's administrators and owners on the access surface", async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/admins')) {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-alice', principalId: 'alice', roleName: 'TeamAdmin' }],
+        });
+      }
+      if (url.endsWith('/api/teams/acme/owners')) {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-bob', principalId: 'bob', roleName: 'Owner' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage('access');
+
+    expect(await screen.findByTestId('admins-row-alice')).toBeInTheDocument();
+    expect(await screen.findByTestId('owners-row-bob')).toBeInTheDocument();
+  });
+
   it('shows the team usage ledger on the usage tab and narrows it to a chosen range', async () => {
     const calls = installFetch((url, method) => {
       if (url.includes('/api/teams/acme/usage?from=2026-10-21&to=2026-10-21')) {

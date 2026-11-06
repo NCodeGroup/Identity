@@ -30,7 +30,7 @@ internal sealed class BffClientAuthenticationStateProvider
 
         if (
             state.TryTakeFromJson<JsonElement>(
-                BffBlazorClientDefaults.UserStateKey,
+                BffUserDocumentNames.PersistedStateKey,
                 out var document
             ) && BffClientUserReader.TryRead(document, out var user)
         )

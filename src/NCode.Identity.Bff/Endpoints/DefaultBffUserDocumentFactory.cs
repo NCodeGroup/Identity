@@ -53,12 +53,12 @@ internal sealed class DefaultBffUserDocumentFactory(
         {
             writer.WriteStartObject();
 
-            writer.WriteString(JoseClaimNames.Payload.Sub, session.Metadata.Subject);
+            writer.WriteString(BffUserDocumentNames.Subject, session.Metadata.Subject);
             var name = principal.FindFirst(JoseClaimNames.Payload.Name)?.Value;
             if (name is not null)
-                writer.WriteString(JoseClaimNames.Payload.Name, name);
+                writer.WriteString(BffUserDocumentNames.Name, name);
 
-            writer.WriteStartObject("claims");
+            writer.WriteStartObject(BffUserDocumentNames.Claims);
             foreach (var claimType in frontend.Options.UserClaims)
             {
                 var values = principal.FindAll(claimType).Select(claim => claim.Value).ToList();
@@ -82,14 +82,20 @@ internal sealed class DefaultBffUserDocumentFactory(
 
             writer.WriteEndObject();
 
-            writer.WriteStartObject("session");
-            writer.WriteNumber("expiresAt", session.Metadata.AbsoluteExpiresAt.ToUnixTimeSeconds());
-            writer.WriteNumber("idleExpiresAt", session.Metadata.IdleExpiresAt.ToUnixTimeSeconds());
+            writer.WriteStartObject(BffUserDocumentNames.Session);
+            writer.WriteNumber(
+                BffUserDocumentNames.ExpiresAt,
+                session.Metadata.AbsoluteExpiresAt.ToUnixTimeSeconds()
+            );
+            writer.WriteNumber(
+                BffUserDocumentNames.IdleExpiresAt,
+                session.Metadata.IdleExpiresAt.ToUnixTimeSeconds()
+            );
             writer.WriteEndObject();
 
             var logoutPath = BffNavigation.LogoutUrl(httpContext.Request, frontend.Options);
-            writer.WriteString("logoutUrl", logoutPath);
-            writer.WriteString("logoutSid", session.Payload.LogoutGuard);
+            writer.WriteString(BffUserDocumentNames.LogoutUrl, logoutPath);
+            writer.WriteString(BffUserDocumentNames.LogoutSid, session.Payload.LogoutGuard);
 
             foreach (var (fieldName, value) in userContext.Fields)
             {

@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" />
         <PackageReference Include="Microsoft.Playwright" />
         <PackageReference Include="Testcontainers" />
@@ -21,6 +22,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.Bff.Server\NCode.Identity.Bff.Server.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.Bff\NCode.Identity.Bff.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Bff.EndToEnd.BlazorApp\NCode.Identity.Bff.EndToEnd.BlazorApp.csproj" />
     </ItemGroup>
 
     <ItemGroup>

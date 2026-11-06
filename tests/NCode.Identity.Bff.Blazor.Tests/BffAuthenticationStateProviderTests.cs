@@ -11,9 +11,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
-using Microsoft.Extensions.Time.Testing;
 using Moq;
-using NCode.Identity.Bff.Blazor.Client;
 using NCode.Identity.Bff.Blazor.Logging;
 using Xunit;
 
@@ -21,16 +19,12 @@ namespace NCode.Identity.Bff.Blazor.Tests;
 
 public sealed class BffAuthenticationStateProviderTests : BaseTests
 {
-    private static DateTimeOffset Start { get; } = new(2023, 11, 14, 22, 13, 20, TimeSpan.Zero);
-
-    private static TimeSpan Interval { get; } = TimeSpan.FromMinutes(1);
-
     private static TimeSpan Timeout { get; } = TimeSpan.FromSeconds(10);
 
     private Mock<IHttpContextAccessor> MockHttpContextAccessor { get; }
     private Mock<IBffUserDocumentFactory> MockDocuments { get; }
     private Mock<IBffConnectionSession> MockSession { get; }
-    private FakeTimeProvider TimeProvider { get; }
+    private Mock<IBffConnectionRevalidator> MockRevalidator { get; }
     private FakeLogger<BffAuthenticationStateProvider> Logger { get; }
     private ComponentStatePersistenceManager Manager { get; }
     private BffAuthenticationStateProvider Provider { get; }
@@ -40,7 +34,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
         MockHttpContextAccessor = CreateStrictMock<IHttpContextAccessor>();
         MockDocuments = CreateStrictMock<IBffUserDocumentFactory>();
         MockSession = CreateStrictMock<IBffConnectionSession>();
-        TimeProvider = new FakeTimeProvider(Start);
+        MockRevalidator = CreateStrictMock<IBffConnectionRevalidator>();
         Logger = new FakeLogger<BffAuthenticationStateProvider>();
         Manager = new ComponentStatePersistenceManager(
             NullLogger<ComponentStatePersistenceManager>.Instance
@@ -49,7 +43,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
             Manager.State,
             MockHttpContextAccessor.Object,
             MockDocuments.Object,
-            TimeProvider,
+            MockRevalidator.Object,
             Logger
         );
     }
@@ -75,31 +69,8 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     private static Task<AuthenticationState> SignedIn(IBffConnectionSession session) =>
         Task.FromResult(CreateConnectionState(session));
 
-    private async Task AdvanceUntilAsync(Task task)
-    {
-        using var cancellation = new CancellationTokenSource(Timeout);
-        while (!task.IsCompleted)
-        {
-            cancellation.Token.ThrowIfCancellationRequested();
-            TimeProvider.Advance(Interval);
-            await Task.WhenAny(task, Task.Delay(10, cancellation.Token));
-        }
-
-        await task;
-    }
-
     private static TaskCompletionSource CreateSignal() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    private Task<AuthenticationState> ObserveNextState()
-    {
-        var observed = new TaskCompletionSource<Task<AuthenticationState>>(
-            TaskCreationOptions.RunContinuationsAsynchronously
-        );
-        Provider.AuthenticationStateChanged += task => observed.TrySetResult(task);
-
-        return observed.Task.Unwrap();
-    }
 
     private async Task<IReadOnlyDictionary<string, byte[]>> PersistAsync()
     {
@@ -129,104 +100,64 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     [Fact]
     public async Task SetAuthenticationState_SessionEnded_SignsOut()
     {
-        var validated = CreateSignal();
-        MockSession.Setup(x => x.RevalidationInterval).Returns(Interval).Verifiable();
-        MockSession
-            .Setup(x => x.ValidateAsync(null, It.IsAny<CancellationToken>()))
-            .Callback(() => validated.TrySetResult())
-            .ReturnsAsync((ClaimsPrincipal?)null)
+        MockRevalidator
+            .Setup(x => x.WaitUntilEndedAsync(MockSession.Object, It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
+
         Provider.SetAuthenticationState(SignedIn(MockSession.Object));
-        var next = ObserveNextState();
 
-        await AdvanceUntilAsync(validated.Task);
-
-        var signedOut = await next.WaitAsync(Timeout);
-        Assert.False(signedOut.User.Identity?.IsAuthenticated);
         var current = await Provider.GetAuthenticationStateAsync();
         Assert.False(current.User.Identity?.IsAuthenticated);
+        Assert.Empty(Logger.Collector.GetSnapshot());
     }
 
     [Fact]
     public async Task SetAuthenticationState_SessionAlive_KeepsUser()
     {
-        var calls = 0;
-        var validated = CreateSignal();
-        var principal = CreateConnectionState(MockSession.Object).User;
-        MockSession.Setup(x => x.RevalidationInterval).Returns(Interval).Verifiable();
-        MockSession
-            .Setup(x => x.ValidateAsync(null, It.IsAny<CancellationToken>()))
-            .Callback(() =>
-            {
-                if (Interlocked.Increment(ref calls) == 2)
-                    validated.TrySetResult();
-            })
-            .ReturnsAsync(principal)
+        var started = CreateSignal();
+        var captured = CancellationToken.None;
+        MockRevalidator
+            .Setup(x => x.WaitUntilEndedAsync(MockSession.Object, It.IsAny<CancellationToken>()))
+            .Returns(
+                (IBffConnectionSession _, CancellationToken token) =>
+                {
+                    captured = token;
+                    started.TrySetResult();
+                    return new ValueTask(
+                        Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, token)
+                    );
+                }
+            )
             .Verifiable();
         var changes = 0;
         Provider.SetAuthenticationState(SignedIn(MockSession.Object));
         Provider.AuthenticationStateChanged += _ => Interlocked.Increment(ref changes);
 
-        await AdvanceUntilAsync(validated.Task);
+        await started.Task.WaitAsync(Timeout);
 
         Assert.Equal(0, Volatile.Read(ref changes));
         var current = await Provider.GetAuthenticationStateAsync();
         Assert.True(current.User.Identity?.IsAuthenticated);
         Assert.Empty(Logger.Collector.GetSnapshot());
-    }
+        Assert.False(captured.IsCancellationRequested);
 
-    [Fact]
-    public async Task SetAuthenticationState_StoreUnavailable_KeepsUser()
-    {
-        var calls = 0;
-        var validated = CreateSignal();
-        var principal = CreateConnectionState(MockSession.Object).User;
-        MockSession.Setup(x => x.RevalidationInterval).Returns(Interval).Verifiable();
-        MockSession
-            .Setup(x => x.ValidateAsync(null, It.IsAny<CancellationToken>()))
-            .Returns(() =>
-            {
-                if (Interlocked.Increment(ref calls) == 1)
-                    throw new BffStoreUnavailableException("store down");
+        Provider.Dispose();
 
-                validated.TrySetResult();
-                return ValueTask.FromResult<ClaimsPrincipal?>(principal);
-            })
-            .Verifiable();
-        var changes = 0;
-        Provider.SetAuthenticationState(SignedIn(MockSession.Object));
-        Provider.AuthenticationStateChanged += _ => Interlocked.Increment(ref changes);
-
-        await AdvanceUntilAsync(validated.Task);
-
+        Assert.True(captured.IsCancellationRequested);
         Assert.Equal(0, Volatile.Read(ref changes));
-        var current = await Provider.GetAuthenticationStateAsync();
-        Assert.True(current.User.Identity?.IsAuthenticated);
-        var record = Assert.Single(Logger.Collector.GetSnapshot());
-        Assert.Equal(EventIds.RevalidationFailed, record.Id.Id);
-        Assert.IsType<BffStoreUnavailableException>(record.Exception);
     }
 
     [Fact]
-    public async Task SetAuthenticationState_ValidationThrows_SignsOut()
+    public async Task SetAuthenticationState_WatchFaults_SignsOutAndLogs()
     {
-        var validated = CreateSignal();
-        MockSession.Setup(x => x.RevalidationInterval).Returns(Interval).Verifiable();
-        MockSession
-            .Setup(x => x.ValidateAsync(null, It.IsAny<CancellationToken>()))
-            .Returns(() =>
-            {
-                validated.TrySetResult();
-                throw new InvalidOperationException("validation failed");
-            })
+        MockRevalidator
+            .Setup(x => x.WaitUntilEndedAsync(MockSession.Object, It.IsAny<CancellationToken>()))
+            .Returns(() => ValueTask.FromException(new InvalidOperationException("watch failed")))
             .Verifiable();
+
         Provider.SetAuthenticationState(SignedIn(MockSession.Object));
-        var next = ObserveNextState();
 
-        await AdvanceUntilAsync(validated.Task);
-
-        var signedOut = await next.WaitAsync(Timeout);
-        Assert.False(signedOut.User.Identity?.IsAuthenticated);
         var current = await Provider.GetAuthenticationStateAsync();
         Assert.False(current.User.Identity?.IsAuthenticated);
         var record = Assert.Single(Logger.Collector.GetSnapshot());
@@ -235,14 +166,11 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
     }
 
     [Fact]
-    public async Task SetAuthenticationState_Anonymous_NeverValidates()
+    public async Task SetAuthenticationState_Anonymous_NeverWatches()
     {
         Provider.SetAuthenticationState(
             Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())))
         );
-
-        TimeProvider.Advance(TimeSpan.FromHours(1));
-        await Task.Delay(50);
 
         var current = await Provider.GetAuthenticationStateAsync();
         Assert.False(current.User.Identity?.IsAuthenticated);
@@ -266,7 +194,7 @@ public sealed class BffAuthenticationStateProviderTests : BaseTests
 
         var persisted = await PersistAsync();
 
-        var bytes = Assert.Contains(BffBlazorClientDefaults.UserStateKey, persisted);
+        var bytes = Assert.Contains(BffUserDocumentNames.PersistedStateKey, persisted);
         var user = JsonElement.Parse(bytes);
         Assert.Equal("user-1", user.GetProperty("sub").GetString());
         Assert.Equal("/bff/logout", user.GetProperty("logoutUrl").GetString());

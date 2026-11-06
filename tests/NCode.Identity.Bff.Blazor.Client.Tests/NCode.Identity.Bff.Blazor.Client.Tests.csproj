@@ -28,6 +28,5 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.Bff.Blazor.Client\NCode.Identity.Bff.Blazor.Client.csproj" />
-        <ProjectReference Include="..\..\src\NCode.Identity.Bff.Abstractions\NCode.Identity.Bff.Abstractions.csproj" />
     </ItemGroup>
 </Project>

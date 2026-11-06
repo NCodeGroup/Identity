@@ -18,6 +18,7 @@
         <Project Path="src/NCode.Identity.Bff.Abstractions/NCode.Identity.Bff.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Bff.Blazor.Client/NCode.Identity.Bff.Blazor.Client.csproj" />
         <Project Path="src/NCode.Identity.Bff.Blazor/NCode.Identity.Bff.Blazor.csproj" />
+        <Project Path="src/NCode.Identity.Bff.Protocol.Abstractions/NCode.Identity.Bff.Protocol.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Bff.Server/NCode.Identity.Bff.Server.csproj" />
         <Project Path="src/NCode.Identity.Bff/NCode.Identity.Bff.csproj" />
         <Project Path="src/NCode.Identity.Cose.Abstractions/NCode.Identity.Cose.Abstractions.csproj" />
@@ -90,6 +91,8 @@
         <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Blazor.Client.Tests/NCode.Identity.Bff.Blazor.Client.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Blazor.Tests/NCode.Identity.Bff.Blazor.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.Bff.EndToEnd.BlazorApp.Client/NCode.Identity.Bff.EndToEnd.BlazorApp.Client.csproj" />
+        <Project Path="tests/NCode.Identity.Bff.EndToEnd.BlazorApp/NCode.Identity.Bff.EndToEnd.BlazorApp.csproj" />
         <Project Path="tests/NCode.Identity.Bff.EndToEnd.Tests/NCode.Identity.Bff.EndToEnd.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Server.Tests/NCode.Identity.Bff.Server.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Tests/NCode.Identity.Bff.Tests.csproj" />

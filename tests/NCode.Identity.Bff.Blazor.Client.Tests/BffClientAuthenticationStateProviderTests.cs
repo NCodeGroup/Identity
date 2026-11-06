@@ -57,7 +57,7 @@ public class BffClientAuthenticationStateProviderTests : BaseTests
         var store = new TestPersistentComponentStateStore(
             new Dictionary<string, byte[]>
             {
-                [BffBlazorClientDefaults.UserStateKey] = JsonSerializer.SerializeToUtf8Bytes(
+                [BffUserDocumentNames.PersistedStateKey] = JsonSerializer.SerializeToUtf8Bytes(
                     JsonElement.Parse(document)
                 ),
             }
@@ -82,10 +82,7 @@ public class BffClientAuthenticationStateProviderTests : BaseTests
 
         Assert.True(authenticationState.User.Identity?.IsAuthenticated);
         Assert.Equal("user-1", authenticationState.User.FindFirst("sub")?.Value);
-        Assert.Equal(
-            "guard-1",
-            authenticationState.User.FindFirst(BffClientClaimTypes.LogoutSid)?.Value
-        );
+        Assert.Equal("guard-1", authenticationState.User.FindFirst(BffClaimTypes.LogoutSid)?.Value);
         httpClientFactory.VerifyNoOtherCalls();
     }
 

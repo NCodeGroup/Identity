@@ -23,6 +23,8 @@ namespace NCode.Identity.Bff.Tests.Authentication;
 
 public class BffAuthenticationHandlerTests : BaseTests
 {
+    private const string PageReloadCookie = "__Host-Http-bff-reload.default=1";
+
     private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
     private static BffSessionState CreateState() =>
@@ -70,6 +72,8 @@ public class BffAuthenticationHandlerTests : BaseTests
         var resolver = new BffSessionResolver(manager.Object, cookies, [], catalog, timeProvider);
 
         var httpContext = new DefaultHttpContext();
+        httpContext.Request.Method = HttpMethods.Get;
+        httpContext.Request.Path = "/";
         httpContext.Response.Body = new MemoryStream();
         var feature = new BffRequestFeature
         {
@@ -102,7 +106,9 @@ public class BffAuthenticationHandlerTests : BaseTests
             UrlEncoder.Default,
             resolver,
             catalog,
-            new BffConnectionSessions(resolver, catalog)
+            new BffConnectionSessions(resolver, catalog),
+            cookies,
+            new BffPageReload(cookies)
         );
         var scheme = new AuthenticationScheme(
             BffDefaults.AuthenticationScheme,
@@ -232,6 +238,7 @@ public class BffAuthenticationHandlerTests : BaseTests
         );
         httpContext.Request.Path = "/app/page";
         httpContext.Request.QueryString = new QueryString("?a=1");
+        httpContext.Request.Headers.Cookie = PageReloadCookie;
 
         await handler.ChallengeAsync(null);
 
@@ -255,6 +262,7 @@ public class BffAuthenticationHandlerTests : BaseTests
             }
         );
         httpContext.Request.Path = "/admin/page";
+        httpContext.Request.Headers.Cookie = PageReloadCookie;
 
         await handler.ChallengeAsync(null);
 
@@ -274,6 +282,7 @@ public class BffAuthenticationHandlerTests : BaseTests
             f => f.ReturnUrls = ["/app"]
         );
         httpContext.Request.Path = "/other";
+        httpContext.Request.Headers.Cookie = PageReloadCookie;
 
         await handler.ChallengeAsync(null);
 
@@ -304,6 +313,38 @@ public class BffAuthenticationHandlerTests : BaseTests
         Assert.Equal("application/problem+json", httpContext.Response.ContentType);
         var body = await ReadBodyAsync(httpContext);
         Assert.Contains(BffProblemTypes.SessionRequired, body);
+    }
+
+    [Fact]
+    public async Task ChallengeAsync_PageNavigationWhenPageReloadApplies_WritesReloadPageAndSetsTheMarker()
+    {
+        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
+        httpContext.Request.Path = "/app/page";
+
+        await handler.ChallengeAsync(null);
+
+        Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
+        Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
+        Assert.False(httpContext.Response.Headers.ContainsKey("Location"));
+        Assert.StartsWith(PageReloadCookie, httpContext.Response.Headers.SetCookie.ToString());
+        var body = await ReadBodyAsync(httpContext);
+        Assert.Contains("url=/app/page\"", body);
+    }
+
+    [Fact]
+    public async Task ChallengeAsync_PageNavigationWithReloadMarker_RedirectsToLoginAndDeletesTheMarker()
+    {
+        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
+        httpContext.Request.Headers.Cookie = PageReloadCookie;
+
+        await handler.ChallengeAsync(null);
+
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
+        Assert.StartsWith(
+            "__Host-Http-bff-reload.default=;",
+            httpContext.Response.Headers.SetCookie.ToString()
+        );
     }
 
     [Fact]

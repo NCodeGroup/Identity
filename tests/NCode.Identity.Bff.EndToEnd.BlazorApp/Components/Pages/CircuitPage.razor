@@ -1,0 +1,13 @@
+@page "/circuit"
+@rendermode InteractiveServer
+
+<AuthorizeView>
+    <Authorized>
+        <span id="circuit-user">@context.User.FindFirst("email")?.Value</span>
+    </Authorized>
+    <NotAuthorized>
+        <span id="circuit-user">signed out</span>
+    </NotAuthorized>
+</AuthorizeView>
+
+<span id="circuit-state">@(RendererInfo.IsInteractive ? "interactive" : "static")</span>

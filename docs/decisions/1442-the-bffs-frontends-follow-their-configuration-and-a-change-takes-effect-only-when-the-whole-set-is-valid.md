@@ -48,8 +48,8 @@ derives from its options reads the current set.**
 3. **The whole set is validated first.** On a change the catalog creates the options through
    `IOptionsFactory<BffOptions>` (strict binding and every `IValidateOptions<BffOptions>`), builds the frontends (each
    selection rule must be registered) and runs every `IBffFrontendSetCheck`. A candidate that fails never takes
-   effect: the catalog keeps the last valid set and logs every failure at `Error` as event 19009. A candidate that
-   passes replaces the set atomically and is logged as event 19008. The first set is built the same way, and
+   effect: the catalog keeps the last valid set and logs every failure at `Error` as event 19012. A candidate that
+   passes replaces the set atomically and is logged as event 19011. The first set is built the same way, and
    `BffStartupCheck` builds it when the host starts, so a failure stops the host.
 4. **The checks.** The library registers `BffClientAuthenticationCheck`: each frontend's client-authentication method
    has a registered authenticator. `MapBffRemoteApi(...)` adds a check that no frontend's `PathPrefix` and no

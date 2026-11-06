@@ -18,7 +18,7 @@ internal static class BffNavigation
     /// </summary>
     /// <param name="options">The options of the frontend.</param>
     public static string CallbackUri(BffFrontendOptions options) =>
-        $"{options.PublicOrigin}{options.PathPrefix}/callback";
+        $"{options.PublicOrigin}{options.PathPrefix}{BffEndpointPaths.Callback}";
 
     /// <summary>
     /// Gets a local URL for a path, prefixed with the path base.
@@ -33,7 +33,7 @@ internal static class BffNavigation
     /// <param name="request">The current request.</param>
     /// <param name="options">The options of the frontend.</param>
     public static string LogoutUrl(HttpRequest request, BffFrontendOptions options) =>
-        LocalUrl(request, options.PathPrefix + "/logout");
+        LocalUrl(request, options.PathPrefix + BffEndpointPaths.Logout);
 
     /// <summary>
     /// Gets the local URL of the error page of a frontend with the reason in the <c>error</c> query parameter.

@@ -2558,7 +2558,7 @@ describes the family as it is rather than its changes
   `BffFrontendCatalog` validates the whole candidate set (the options validators, the selection rules, each frontend's
   client-authentication method, and the checks that `MapBffRemoteApi()` and `MapBffRemoteApis()` add) and only then
   replaces the frontends, `Bff:Antiforgery` and `Bff:Tokens` at once; an invalid change keeps the last valid set and is
-  logged (events 19008 and 19009). The endpoints of `MapBffEndpoints()` and `MapBffRemoteApis()` follow the set with the
+  logged (events 19011 and 19012). The endpoints of `MapBffEndpoints()` and `MapBffRemoteApis()` follow the set with the
   conventions added to their route group, the endpoint check runs again, and each frontend's security headers and
   client-credential tokens belong to the frontend as built for the set
   ([#602](https://github.com/NCodeGroup/Identity/issues/602),
@@ -2568,11 +2568,19 @@ describes the family as it is rather than its changes
   `AsBffComponents`, a revalidating `AuthenticationStateProvider`, circuit token access, the user document persisted
   for WebAssembly) serves Blazor's interactive server render mode, and the `NCode.Identity.Bff.Blazor.Client` package
   (`AddBffBlazorClient`, `AddBffAntiforgeryHeader`) serves WebAssembly through `/bff/user` and the anti-forgery
-  header. `BffClaimTypes` names the session principal's `bff_logout_url` and `bff_logout_sid` claims, which render the
-  logout form in every render mode, `IBffUserDocumentFactory` builds the `/bff/user` document, and a frontend's
-  `Session:RevalidationInterval` sets how often a connection revalidates its session
+  header. The Blazor server package depends only on the BFF's abstractions, and the dependency-free
+  `NCode.Identity.Bff.Protocol.Abstractions` package holds the names the server and the WebAssembly client share:
+  `BffDefaults`, `BffClaimTypes` (the `bff_logout_url` and `bff_logout_sid` claims that render the logout form in every
+  render mode), `BffEndpointPaths` and `BffUserDocumentNames`. `IBffUserDocumentFactory` builds the `/bff/user`
+  document, and a frontend's `Session:RevalidationInterval` sets how often `IBffConnectionRevalidator` revalidates the
+  session a hub connection or a circuit holds, idle or not. The Blazor packages build against the Microsoft package
+  band 10.0.14
   ([#524](https://github.com/NCodeGroup/Identity/issues/524),
-  [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)).
+  [#604](https://github.com/NCodeGroup/Identity/issues/604),
+  [#605](https://github.com/NCodeGroup/Identity/issues/605),
+  [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
+  [ADR-1440](docs/decisions/1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md),
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
 
 - **The management console is served by a BFF host of its own.** `NCode.Identity.ManagementConsole`
   (`AddManagementConsole(configuration)`, `MapManagementConsole()`) and `NCode.Identity.ManagementConsole.Host` serve
@@ -2601,10 +2609,14 @@ describes the family as it is rather than its changes
   cross-site navigation carries it only under `Lax`, a cross-origin `fetch` stops at its CORS preflight, and Fetch
   Metadata refuses a cross-site or untrusted same-site request even when CORS admits it. Login with PAR, PKCE,
   `private_key_jwt` through `/bff/jwks`, DPoP, RFC 9207 and PS256 ID tokens works, and so do refresh-token
-  rotation, RP-initiated logout and back-channel logout, all from Keycloak's discovery metadata alone.
-  `./build/dod.ps1` never runs these `*.EndToEnd.Tests` suites
+  rotation, RP-initiated logout and back-channel logout, all from Keycloak's discovery metadata alone. A Blazor Web App
+  host (interactive server and WebAssembly) shows that a circuit signs out after back-channel logout, an idle hub
+  connection closes once its session ends, a `WebSocket` from another origin is refused and a WebAssembly component's
+  traffic carries no token. `./build/dod.ps1` never runs these `*.EndToEnd.Tests` suites
   ([#418](https://github.com/NCodeGroup/Identity/issues/418), [#419](https://github.com/NCodeGroup/Identity/issues/419),
-  [ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+  [#603](https://github.com/NCodeGroup/Identity/issues/603),
+  [ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
 
 - **Entity Framework persistence is a reusable framework plus domain slices.** The framework package
   `NCode.Identity.OpenId.Persistence.EntityFramework` provides a `DbSet`-less `OpenIdDbContext` that slices plug into
@@ -4001,8 +4013,8 @@ describes the family as it is rather than its changes
 
 - **Dependencies are pinned to releases without known advisories.** Every `Microsoft.AspNetCore.*`,
   `Microsoft.EntityFrameworkCore.*`, `Microsoft.Extensions.*`, `System.Text.Json`, and
-  `System.Security.Cryptography.Xml` pin (and the `dotnet-ef` tool) is on the .NET 10.0.13 servicing band, which brings
-  `System.Security.Cryptography.Pkcs` 10.0.13 transitively, clear of GHSA-2fmv-rv2c-59x7 and GHSA-846f-f764-76mx
+  `System.Security.Cryptography.Xml` pin (and the `dotnet-ef` tool) is on the .NET 10.0.14 servicing band, which brings
+  `System.Security.Cryptography.Pkcs` 10.0.14 transitively, clear of GHSA-2fmv-rv2c-59x7 and GHSA-846f-f764-76mx
   (`Pkcs`) and GHSA-7hqp-7c5m-4vq6, GHSA-c399-9853-6jmj, and GHSA-r955-8q5j-3h83 (`Xml`).
 
 - **Frontend dependencies must be three days old before anyone installs them.** pnpm refuses a version published less
@@ -5164,13 +5176,20 @@ describes the family as it is rather than its changes
   fails closed when misordered, and the session cookie authenticates, and the token accessor serves, only
   `AsBffApi`/`AsBffPage` endpoints and `/bff/user`. A page form post needs Fetch Metadata that shows no cross-site
   request and a valid antiforgery token in the `__Host-Http-bff-antiforgery` cookie, a hub refuses a cross-site request
-  or a foreign `Origin`, and a WebAssembly client never receives a token
+  or a foreign `Origin`, a hub connection ends once its session ends, idle or not, and a WebAssembly client never
+  receives a token. A page navigation that arrives without its Strict session cookie is answered once, under a
+  60-second marker cookie, with a same-origin reload page (strict CSP, `no-store`), so the login's return and links
+  from other sites reach the page with its session
   ([#394](https://github.com/NCodeGroup/Identity/issues/394),
   [#524](https://github.com/NCodeGroup/Identity/issues/524),
+  [#603](https://github.com/NCodeGroup/Identity/issues/603),
+  [#604](https://github.com/NCodeGroup/Identity/issues/604),
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-1292](docs/decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
   [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
-  [ADR-1436](docs/decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)).
+  [ADR-1436](docs/decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md),
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
+  [ADR-1444](docs/decisions/1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md)).
 
 - **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body and is the only logout
   method; `/bff/user` returns `logoutUrl` as the path alone and the logout guard as `logoutSid`, a reserved field

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers.Text;
-using System.Net.Security;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -16,12 +15,6 @@ using NCode.Identity.Bff.Antiforgery;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Server;
 using NCode.Identity.Jose;
-using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.OpenId;
-using NCode.Identity.OpenId.Client;
-using NCode.Identity.Secrets.Collections;
-using NCode.Identity.Secrets.KeyMaterial;
-using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 
@@ -34,7 +27,7 @@ public sealed class BffApplication : IAsyncDisposable
     /// <summary>
     /// The name of the one frontend that the BFF serves.
     /// </summary>
-    public const string FrontendName = "web";
+    public const string FrontendName = BffHostSetup.FrontendName;
 
     /// <summary>
     /// The name of the session cookie of the frontend.
@@ -45,10 +38,6 @@ public sealed class BffApplication : IAsyncDisposable
     /// The name of the login cookie of the frontend.
     /// </summary>
     public const string LoginCookieName = $"{BffDefaults.LoginCookieName}.{FrontendName}";
-
-    private const string ConfigurationPrefix = $"Bff:Frontends:{FrontendName}";
-    private const string ClientKeyRing = "e2e-client";
-    private const string DPoPKeyRing = "e2e-dpop";
 
     private readonly WebApplication _app;
     private readonly List<ECDsa> _keys = [];
@@ -73,36 +62,13 @@ public sealed class BffApplication : IAsyncDisposable
             )
         );
 
-        var configuration = new Dictionary<string, string?>
-        {
-            [$"{ConfigurationPrefix}:Authority"] = settings.Authority,
-            [$"{ConfigurationPrefix}:PublicOrigin"] = Origin,
-            [$"{ConfigurationPrefix}:ClientId"] = settings.ClientId,
-            [$"{ConfigurationPrefix}:ClientAuthentication:Method"] = OpenIdProtocol
-                .ClientAuthenticationMethods
-                .PrivateKeyJwt,
-            [$"{ConfigurationPrefix}:ClientAuthentication:KeyRing"] = ClientKeyRing,
-            [$"{ConfigurationPrefix}:DPoP:KeyRing"] = DPoPKeyRing,
-            [$"{ConfigurationPrefix}:Jwks:Enabled"] = "true",
-            [$"{ConfigurationPrefix}:IdToken:SigningAlgorithms:0"] = AlgorithmCodes
-                .DigitalSignature
-                .RsaSsaPssSha256,
-            [$"{ConfigurationPrefix}:ReturnUrls:0"] = "/",
-            [$"{ConfigurationPrefix}:UserClaims:0"] = "email",
-            [$"{ConfigurationPrefix}:Session:SameSite"] = settings.SameSite.ToString(),
-        };
-        for (var i = 0; i < settings.TrustedOrigins.Count; i++)
-        {
-            configuration[$"{ConfigurationPrefix}:TrustedOrigins:{i}"] = settings.TrustedOrigins[i];
-        }
-
-        builder.Configuration.AddInMemoryCollection(configuration);
+        builder.Configuration.AddInMemoryCollection(
+            BffHostSetup.CreateConfiguration(settings, Origin)
+        );
 
         var serviceCollection = builder.Services;
-        AddKeyRing(serviceCollection, ClientKeyRing);
-        AddKeyRing(serviceCollection, DPoPKeyRing);
-
         serviceCollection.AddIdentityBff(builder.Configuration);
+        BffHostSetup.AddServices(serviceCollection, settings, _keys);
         serviceCollection.AddCors(options =>
             options.AddDefaultPolicy(policy =>
                 policy
@@ -112,21 +78,6 @@ public sealed class BffApplication : IAsyncDisposable
                     .WithMethods("GET")
             )
         );
-
-        // Registered after the library, which configures its own primary handler for the named client.
-        serviceCollection
-            .AddHttpClient(OpenIdClientDefaults.HttpClientName)
-            .ConfigurePrimaryHttpMessageHandler(
-                (handler, _) =>
-                    ((SocketsHttpHandler)handler).SslOptions.RemoteCertificateValidationCallback = (
-                        _,
-                        certificate,
-                        _,
-                        errors
-                    ) =>
-                        errors == SslPolicyErrors.None
-                        || settings.Certificate.IsTrusted(certificate)
-            );
 
         var app = builder.Build();
         app.Use(
@@ -233,23 +184,6 @@ public sealed class BffApplication : IAsyncDisposable
             await application.DisposeAsync();
             throw;
         }
-    }
-
-    private void AddKeyRing(IServiceCollection serviceCollection, string keyRing)
-    {
-        var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        _keys.Add(key);
-        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
-            keyRing,
-            (serviceProvider, _) =>
-                serviceProvider
-                    .GetRequiredService<ISecretKeyCollectionProviderFactory>()
-                    .CreateStatic([
-                        serviceProvider
-                            .GetRequiredService<ISecretKeyFactory>()
-                            .CreateEcc(new KeyMetadata { KeyId = keyRing }, key),
-                    ])
-        );
     }
 
     /// <inheritdoc />

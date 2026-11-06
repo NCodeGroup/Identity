@@ -33,6 +33,7 @@ public sealed class BffComponentsConventionTests : BaseTests
         Assert.Single(builder.Metadata.OfType<BffPageAttribute>());
         Assert.Contains(BffBlazorLibraryRequirement.Instance, builder.Metadata);
         Assert.Empty(builder.Metadata.OfType<BffHubAttribute>());
+        Assert.Empty(builder.Metadata.OfType<BffSelfRevalidatingHubAttribute>());
     }
 
     [Fact]
@@ -44,6 +45,7 @@ public sealed class BffComponentsConventionTests : BaseTests
 
         Assert.Single(builder.Metadata.OfType<BffHubAttribute>());
         Assert.Single(builder.Metadata.OfType<AllowAnonymousAttribute>());
+        Assert.Single(builder.Metadata.OfType<BffSelfRevalidatingHubAttribute>());
         Assert.Contains(BffBlazorLibraryRequirement.Instance, builder.Metadata);
         Assert.Empty(builder.Metadata.OfType<BffPageAttribute>());
     }
@@ -57,6 +59,7 @@ public sealed class BffComponentsConventionTests : BaseTests
 
         Assert.Single(builder.Metadata.OfType<BffHubAttribute>());
         Assert.Single(builder.Metadata.OfType<AllowAnonymousAttribute>());
+        Assert.Single(builder.Metadata.OfType<BffSelfRevalidatingHubAttribute>());
         Assert.Contains(BffBlazorLibraryRequirement.Instance, builder.Metadata);
     }
 

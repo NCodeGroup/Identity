@@ -88,6 +88,7 @@ internal sealed class BffFrontend
         Registration = CreateRegistration(options);
         SessionCookieName = $"{BffDefaults.SessionCookieName}.{name}";
         LoginCookieName = $"{BffDefaults.LoginCookieName}.{name}";
+        PageReloadCookieName = $"{BffDefaults.PageReloadCookieName}.{name}";
         SecurityHeaders = BffSecurityHeaders.Create(options.SecurityHeaders);
     }
 
@@ -116,6 +117,11 @@ internal sealed class BffFrontend
     /// Gets the name of the login transaction cookie of the frontend.
     /// </summary>
     public string LoginCookieName { get; }
+
+    /// <summary>
+    /// Gets the name of the page reload marker cookie of the frontend.
+    /// </summary>
+    public string PageReloadCookieName { get; }
 
     /// <summary>
     /// Gets the security headers of the frontend, computed once from its options.

@@ -82,6 +82,9 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
 
         Assert.NotNull(provider.GetRequiredService<IBffSessionStore>());
         Assert.NotNull(provider.GetRequiredService<IBffSessionManager>());
+        Assert.IsType<DefaultBffConnectionRevalidator>(
+            provider.GetRequiredService<IBffConnectionRevalidator>()
+        );
     }
 
     [Fact]

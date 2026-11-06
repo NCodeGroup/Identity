@@ -54,4 +54,19 @@ public class BffPackageDependencyTests : BaseTests
             Assert.True(isAllowed, name);
         }
     }
+
+    [Fact]
+    public void ProtocolAssembly_ReferencesOnlyTheRuntime()
+    {
+        foreach (var reference in typeof(BffUserDocumentNames).Assembly.GetReferencedAssemblies())
+        {
+            var name = reference.Name ?? string.Empty;
+            var isRuntime =
+                name == "netstandard"
+                || name == "System"
+                || name.StartsWith("System.", StringComparison.Ordinal);
+
+            Assert.True(isRuntime, name);
+        }
+    }
 }

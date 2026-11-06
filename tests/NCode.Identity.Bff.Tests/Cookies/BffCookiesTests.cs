@@ -13,6 +13,8 @@ public class BffCookiesTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
+    private const string PageReloadCookieName = "__Host-Http-bff-reload.default";
+
     private static readonly string Value43 = new('a', 43);
 
     private static BffCookies CreateCookies() => new(new FakeTimeProvider(Now));
@@ -115,6 +117,96 @@ public class BffCookiesTests : BaseTests
         Assert.StartsWith($"{BffTestFrontends.LoginCookieName}=;", setCookie);
         Assert.Contains("samesite=lax", setCookie.ToLowerInvariant());
         AssertCommonAttributes(setCookie);
+    }
+
+    #endregion
+
+    #region SetPageReload Tests
+
+    [Fact]
+    public void SetPageReload_WithFrontend_WritesTheFrontendsLaxMarker()
+    {
+        var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+
+        CreateCookies().SetPageReload(httpContext.Response, frontend);
+
+        var setCookie = GetSetCookie(httpContext);
+        Assert.StartsWith($"{PageReloadCookieName}=1;", setCookie);
+        Assert.Contains("samesite=lax", setCookie.ToLowerInvariant());
+        Assert.Contains("max-age=60", setCookie.ToLowerInvariant());
+        AssertCommonAttributes(setCookie);
+    }
+
+    [Fact]
+    public void SetPageReload_WithStrictFrontend_StaysLax()
+    {
+        var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(
+            BffTestFrontends.CreateCatalog(x => x.Session.SameSite = SameSiteMode.Strict)
+        );
+
+        CreateCookies().SetPageReload(httpContext.Response, frontend);
+
+        var setCookie = GetSetCookie(httpContext);
+        Assert.Contains("samesite=lax", setCookie.ToLowerInvariant());
+    }
+
+    #endregion
+
+    #region DeletePageReload Tests
+
+    [Fact]
+    public void DeletePageReload_WithFrontend_ExpiresTheFrontendsCookie()
+    {
+        var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+
+        CreateCookies().DeletePageReload(httpContext.Response, frontend);
+
+        var setCookie = GetSetCookie(httpContext);
+        Assert.StartsWith($"{PageReloadCookieName}=;", setCookie);
+        Assert.Contains("samesite=lax", setCookie.ToLowerInvariant());
+        AssertCommonAttributes(setCookie);
+    }
+
+    #endregion
+
+    #region HasPageReload Tests
+
+    [Fact]
+    public void HasPageReload_WithFrontendCookie_ReturnsTrue()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Cookie = $"{PageReloadCookieName}=1";
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+
+        var result = CreateCookies().HasPageReload(httpContext.Request, frontend);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasPageReload_WhenMissing_ReturnsFalse()
+    {
+        var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+
+        var result = CreateCookies().HasPageReload(httpContext.Request, frontend);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasPageReload_WithAnotherFrontendsCookie_ReturnsFalse()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Cookie = $"{BffDefaults.PageReloadCookieName}.other=1";
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+
+        var result = CreateCookies().HasPageReload(httpContext.Request, frontend);
+
+        Assert.False(result);
     }
 
     #endregion

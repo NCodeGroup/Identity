@@ -83,6 +83,33 @@ internal static partial class Log
     internal static partial void EndpointCheckFailed(this ILogger logger, string failure);
 
     [LoggerMessage(
+        EventId = EventIds.ConnectionRevalidationFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF could not revalidate the session that a connection holds because the session store is unavailable; the connection keeps its session"
+    )]
+    internal static partial void ConnectionRevalidationFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.ConnectionRevalidationFaulted,
+        Level = LogLevel.Error,
+        Message = "Revalidating the BFF session that a connection holds failed; the connection ends"
+    )]
+    internal static partial void ConnectionRevalidationFaulted(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.HubRevalidationFaulted,
+        Level = LogLevel.Error,
+        Message = "Waiting for the BFF session of a hub connection to end failed; the connection is aborted"
+    )]
+    internal static partial void HubRevalidationFaulted(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
         EventId = EventIds.FrontendsChanged,
         Level = LogLevel.Information,
         Message = "The BFF frontends changed: {Frontends}"

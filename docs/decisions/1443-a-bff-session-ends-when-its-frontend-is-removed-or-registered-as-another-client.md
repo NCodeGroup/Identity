@@ -46,14 +46,14 @@ client; and a background pass on one replica ends every stored session whose fro
    `Bff:SessionRetirement:LeaseDuration` (five minutes by default), reads each of the client's records and ends each
    session whose own metadata names a removed frontend
    (`frontend_removed`, `BffSessionEndReasons.FrontendRemoved`) or another client (`client_changed`), recording the
-   session-ended audit event and logging event 19010. A session ends through an atomic take of its record, so when a
+   session-ended audit event and logging event 19013. A session ends through an atomic take of its record, so when a
    request and the pass end one session at once, only the caller whose take removed it records the audit event and
    counts it. A replica that cannot take the lease leaves the frontend to the
    one that holds it and runs the pass again after `Bff:SessionRetirement:RetryDelay` (a minute by default), so a lease
    that its holder could not release delays the pass by at most the lease's duration. A store failure is logged as
-   event 19011, and the pass runs again after `Bff:SessionRetirement:RetryDelay` (a minute by default) or at the next
+   event 19014, and the pass runs again after `Bff:SessionRetirement:RetryDelay` (a minute by default) or at the next
    change. Any other failure of a pass is logged the same way, so the service keeps running. A session
-   that cannot be ended is logged as event 19012, and the pass ends the client's other sessions and runs again after
+   that cannot be ended is logged as event 19015, and the pass ends the client's other sessions and runs again after
    `Bff:SessionRetirement:RetryDelay` (a minute by default).
 5. **Restarts and interruptions converge.** The pass reads the store, not a remembered set, so a frontend removed by
    restarting the replicas is reconciled at their next start, and a pass that a crash interrupted runs again at the

@@ -15,8 +15,8 @@ namespace NCode.Identity.Bff.Blazor;
 internal static class BffComponentsConvention
 {
     /// <summary>
-    /// Marks a component page as a BFF page and the Blazor hub as a BFF hub that admits anonymous circuits. Every
-    /// other endpoint carries no session and no token, so it is left untouched.
+    /// Marks a component page as a BFF page and the Blazor hub as a BFF hub that admits anonymous circuits and
+    /// revalidates its own connections. Every other endpoint carries no session and no token, so it is left untouched.
     /// </summary>
     /// <param name="endpointBuilder">The endpoint to mark.</param>
     public static void Apply(EndpointBuilder endpointBuilder)
@@ -33,6 +33,7 @@ internal static class BffComponentsConvention
         {
             metadata.Add(new BffHubAttribute());
             metadata.Add(new AllowAnonymousAttribute());
+            metadata.Add(new BffSelfRevalidatingHubAttribute());
             metadata.Add(BffBlazorLibraryRequirement.Instance);
         }
     }

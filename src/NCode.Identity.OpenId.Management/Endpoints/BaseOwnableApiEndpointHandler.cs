@@ -124,7 +124,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             return TypedResults.NotFound();
         }
 
-        var owner = await ResourceOwnershipService.AddOwnerAsync(
+        var grant = await ResourceOwnershipService.AddOwnerAsync(
             storeManager,
             tenantId,
             resourceType,
@@ -134,7 +134,10 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        return TypedResults.Created($"{ownersPath}/{owner.PrincipalId}", ToOwnerResource(owner));
+        return TypedResults.Created(
+            $"{ownersPath}/{grant.Assignment.PrincipalId}",
+            ToOwnerResource(grant.Assignment)
+        );
     }
 
     /// <summary>
@@ -163,7 +166,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var result = await ResourceOwnershipService.RemoveOwnerAsync(
+        var removal = await ResourceOwnershipService.RemoveOwnerAsync(
             storeManager,
             resourceType,
             resourceId,
@@ -171,7 +174,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             cancellationToken
         );
 
-        switch (result)
+        switch (removal.Result)
         {
             case OwnerRemovalResult.NotFound:
                 return TypedResults.NotFound();

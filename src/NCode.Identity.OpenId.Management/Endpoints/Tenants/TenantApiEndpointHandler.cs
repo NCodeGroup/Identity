@@ -2172,7 +2172,7 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var admin = await ResourceOwnershipService.AddAssignmentAsync(
+        var grant = await ResourceOwnershipService.AddAssignmentAsync(
             storeManager,
             tenantId,
             ResourceNodeTypes.Tenant,
@@ -2184,8 +2184,8 @@ internal class TenantApiEndpointHandler(
         await storeManager.SaveChangesAsync(cancellationToken);
 
         return TypedResults.Created(
-            $"/tenants/{tenantId}/admins/{admin.PrincipalId}",
-            ToOwnerResource(admin)
+            $"/tenants/{tenantId}/admins/{grant.Assignment.PrincipalId}",
+            ToOwnerResource(grant.Assignment)
         );
     }
 
@@ -2222,7 +2222,7 @@ internal class TenantApiEndpointHandler(
             BuiltInRoles.TenantAdmin,
             cancellationToken
         );
-        if (!removed)
+        if (removed.Count == 0)
         {
             return TypedResults.NotFound();
         }

@@ -1235,7 +1235,7 @@ internal class TeamApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var admin = await ResourceOwnershipService.AddAssignmentAsync(
+        var grant = await ResourceOwnershipService.AddAssignmentAsync(
             storeManager,
             GetControlPlaneTenantId(httpContext),
             ResourceNodeTypes.Team,
@@ -1247,8 +1247,8 @@ internal class TeamApiEndpointHandler(
         await storeManager.SaveChangesAsync(cancellationToken);
 
         return TypedResults.Created(
-            $"/teams/{teamId}/admins/{admin.PrincipalId}",
-            ToOwnerResource(admin)
+            $"/teams/{teamId}/admins/{grant.Assignment.PrincipalId}",
+            ToOwnerResource(grant.Assignment)
         );
     }
 
@@ -1284,7 +1284,7 @@ internal class TeamApiEndpointHandler(
             BuiltInRoles.TeamAdmin,
             cancellationToken
         );
-        if (!removed)
+        if (removed.Count == 0)
         {
             return TypedResults.NotFound();
         }

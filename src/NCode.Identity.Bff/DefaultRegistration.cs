@@ -95,6 +95,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffJwksHandler>();
 
             serviceCollection.TryAddSingleton<BffRefreshLocks>();
+            serviceCollection.TryAddSingleton<BffTokenContexts>();
             serviceCollection.TryAddSingleton<IBffUserTokenService, DefaultBffUserTokenService>();
             serviceCollection.TryAddSingleton<BffGrantClient>();
             serviceCollection.TryAddSingleton<

@@ -1,0 +1,37 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using Microsoft.AspNetCore.Http;
+using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Frontends;
+using NCode.Identity.Bff.Sessions;
+
+namespace NCode.Identity.Bff.Tokens;
+
+/// <summary>
+/// Creates the <see cref="IBffSessionScope"/> that a token is obtained through.
+/// </summary>
+/// <param name="frontends">The catalog of frontends.</param>
+/// <param name="resolver">Resolves the session of a request.</param>
+/// <param name="cookies">Deletes the session cookie of a request.</param>
+internal class BffTokenContexts(
+    BffFrontendCatalog frontends,
+    BffSessionResolver resolver,
+    BffCookies cookies
+)
+{
+    private readonly BffFrontendCatalog _frontends = frontends;
+    private readonly BffSessionResolver _resolver = resolver;
+    private readonly BffCookies _cookies = cookies;
+
+    /// <summary>
+    /// Creates the session scope of a request to an endpoint that the BFF guards.
+    /// </summary>
+    /// <param name="httpContext">The request.</param>
+    public virtual IBffSessionScope ForRequest(HttpContext httpContext)
+    {
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        return new BffRequestTokenContext(httpContext, _frontends, _resolver, _cookies);
+    }
+}

@@ -38,7 +38,7 @@ runtime. The server packages and the client package both read them from there.**
    names the `/bff/user` properties and the key a Blazor server persists the document under. The client keeps no copy
    of any of them.
 3. **Who references it.** `NCode.Identity.Bff.Abstractions` and `NCode.Identity.Bff.Blazor.Client` reference the
-   package. A server call site reads the names through the same namespace as before.
+   package. A server call site reads the names through the namespace `NCode.Identity.Bff`.
 4. **The Blazor packages.** `NCode.Identity.Bff.Blazor` references only `NCode.Identity.Bff.Abstractions` and
    `NCode.Registration`. A host that serves both render modes references both Blazor packages.
 5. **Tests enforce it.** `BffPackageDependencyTests` holds the shared package to the runtime and the server packages

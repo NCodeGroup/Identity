@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -27,15 +28,15 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private IEndpointRouteBuilder CreateEndpoints(Action<BffOptions>? configure = null)
+    private IEndpointRouteBuilder CreateEndpoints(Action<BffFrontendOptions>? configure = null) =>
+        CreateEndpoints(BffTestFrontends.CreateCatalog(configure));
+
+    private IEndpointRouteBuilder CreateEndpoints(BffFrontendCatalog catalog)
     {
         var builder = WebApplication.CreateSlimBuilder(
             new WebApplicationOptions { EnvironmentName = Environments.Production }
         );
         var services = builder.Services;
-        var optionsBuilder = services.AddOptions<BffOptions>();
-        if (configure is not null)
-            optionsBuilder.Configure(configure);
 
         var requirement = CreateLooseMock<IBffTokenRequirement>();
         requirement.SetupGet(x => x.Name).Returns(BffTokenRequirementNames.User);
@@ -44,7 +45,7 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         services.AddSingleton(CreateLooseMock<IDPoPProofFactory>().Object);
         services.AddHttpContextAccessor();
         services.AddHttpForwarder();
-        services.AddSingleton(BffTestFrontends.CreateCatalog());
+        services.AddSingleton(catalog);
         services.AddSingleton<BffRemoteApiInvokerFactory>();
         services.AddSingleton<BffRemoteApiRegistry>();
         services.AddSingleton<BffRemoteApiHandler>();
@@ -129,7 +130,11 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
             endpoints.MapBffRemoteApi("/bff/orders", Destination)
         );
 
-        Assert.Contains("Bff:PathPrefix '/bff'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(
+            "frontend 'default' at '/bff'",
+            exception.Message,
+            StringComparison.Ordinal
+        );
     }
 
     [Fact]
@@ -211,6 +216,57 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
     }
 
     [Fact]
+    public void MapBffRemoteApis_ConfiguredApi_BelongsToItsFrontend()
+    {
+        var endpoints = CreateEndpoints(x =>
+            x.RemoteApis["orders"] = new BffRemoteApiOptions
+            {
+                Path = "/api/orders",
+                Destination = Destination,
+            }
+        );
+
+        var group = endpoints.MapBffRemoteApis();
+
+        var endpoint = Assert.Single(GetEndpoints(group));
+        Assert.Equal("BFF remote API /api/orders (default)", endpoint.DisplayName);
+        Assert.Equal(
+            BffTestFrontends.Name,
+            Assert.Single(endpoint.Metadata.GetOrderedMetadata<BffFrontendAttribute>()).Name
+        );
+        Assert.NotNull(endpoint.Metadata.GetMetadata<BffApiAttribute>());
+    }
+
+    [Fact]
+    public void MapBffRemoteApis_TwoFrontends_MayMapTheSamePath()
+    {
+        var api = new BffRemoteApiOptions { Path = "/api/orders", Destination = Destination };
+        var catalog = BffTestFrontends.CreateCatalog(
+            new BffOptions
+            {
+                Frontends =
+                {
+                    ["web"] = BffTestFrontends.CreateOptions(x => x.RemoteApis["orders"] = api),
+                    ["admin"] = BffTestFrontends.CreateOptions(x =>
+                    {
+                        x.PathPrefix = "/admin/bff";
+                        x.RemoteApis["orders"] = api;
+                    }),
+                },
+            }
+        );
+        var endpoints = CreateEndpoints(catalog);
+
+        var group = endpoints.MapBffRemoteApis();
+
+        var names = GetEndpoints(group)
+            .Select(x => Assert.Single(x.Metadata.GetOrderedMetadata<BffFrontendAttribute>()).Name)
+            .Order()
+            .ToList();
+        Assert.Equal(["admin", "web"], names);
+    }
+
+    [Fact]
     public void MapBffRemoteApis_OverlapsACodeMappedApi_ThrowsWithTheConfigurationKey()
     {
         var endpoints = CreateEndpoints(x =>
@@ -227,7 +283,7 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         );
 
         Assert.StartsWith(
-            "Bff:RemoteApis:orders:Path",
+            "Bff:Frontends:default:RemoteApis:orders:Path",
             exception.Message,
             StringComparison.Ordinal
         );

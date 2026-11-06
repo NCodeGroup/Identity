@@ -1,27 +1,37 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Frozen;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 
 namespace NCode.Identity.Bff.Hardening;
 
 /// <summary>
-/// Writes the configured security headers on every response, just before it starts, unless the application already set
-/// the header. Writing them as the response starts keeps them on a response that an exception handler cleared.
+/// Writes the security headers of the frontend that serves the request on every response, just before it starts,
+/// unless the application already set the header. Writing them as the response starts keeps them on a response that an
+/// exception handler cleared.
 /// </summary>
-internal class BffSecurityHeadersMiddleware(RequestDelegate next, IOptions<BffOptions> options)
+internal class BffSecurityHeadersMiddleware(RequestDelegate next, BffFrontendCatalog frontends)
 {
     private const string NoSniff = "nosniff";
     private const string ReferrerPolicyHeaderName = "Referrer-Policy";
     private const string CrossOriginOpenerPolicyHeaderName = "Cross-Origin-Opener-Policy";
 
+    private static KeyValuePair<string, string>[] DefaultHeaders { get; } =
+        CreateHeaders(new BffSecurityHeadersOptions());
+
     private readonly RequestDelegate _next = next;
-    private readonly KeyValuePair<string, string>[] _headers = CreateHeaders(
-        options.Value.SecurityHeaders
-    );
+    private readonly BffFrontendCatalog _frontends = frontends;
+
+    private readonly FrozenDictionary<string, KeyValuePair<string, string>[]> _headersByFrontend =
+        frontends.Frontends.ToFrozenDictionary(
+            x => x.Name,
+            x => CreateHeaders(x.Options.SecurityHeaders),
+            StringComparer.Ordinal
+        );
 
     /// <summary>
     /// Runs the middleware for a request.
@@ -31,16 +41,25 @@ internal class BffSecurityHeadersMiddleware(RequestDelegate next, IOptions<BffOp
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        context.Response.OnStarting(WriteHeaders, context.Response);
+        // A request that no frontend selects still gets the strict defaults.
+        var frontend = _frontends.Resolve(context);
+        var headers =
+            frontend is not null && _headersByFrontend.TryGetValue(frontend.Name, out var found)
+                ? found
+                : DefaultHeaders;
+
+        context.Response.OnStarting(() => WriteHeaders(context.Response.Headers, headers));
         return _next(context);
     }
 
-    private Task WriteHeaders(object state)
+    private static Task WriteHeaders(
+        IHeaderDictionary target,
+        KeyValuePair<string, string>[] headers
+    )
     {
-        var headers = ((HttpResponse)state).Headers;
-        foreach (var (name, value) in _headers)
+        foreach (var (name, value) in headers)
         {
-            headers.TryAdd(name, value);
+            target.TryAdd(name, value);
         }
 
         return Task.CompletedTask;

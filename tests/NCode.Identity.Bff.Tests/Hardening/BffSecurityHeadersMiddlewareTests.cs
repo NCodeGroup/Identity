@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using NCode.Identity.Bff.Hardening;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Hardening;
@@ -14,20 +15,48 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
     private const string DefaultContentSecurityPolicy =
         "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'";
 
-    private BffOptions Options { get; } = new();
+    private const string AdminContentSecurityPolicy =
+        "default-src 'self'; script-src 'self' https://admin.example.com";
+
+    private const string ShopContentSecurityPolicy =
+        "default-src 'self'; img-src https://shop.example.com";
 
     private StartingResponseFeature ResponseFeature { get; } = new();
 
-    private BffSecurityHeadersMiddleware CreateMiddleware(RequestDelegate next) =>
-        new(next, Microsoft.Extensions.Options.Options.Create(Options));
+    private static BffSecurityHeadersMiddleware CreateMiddleware(
+        RequestDelegate next,
+        Action<BffFrontendOptions>? configure = null
+    ) => new(next, BffTestFrontends.CreateCatalog(configure));
 
-    private DefaultHttpContext CreateContext()
+    private static BffSecurityHeadersMiddleware CreateMiddleware(
+        RequestDelegate next,
+        BffOptions options
+    ) => new(next, BffTestFrontends.CreateCatalog(options));
+
+    private static BffFrontendOptions CreateHostOptions(
+        string host,
+        string contentSecurityPolicy
+    ) =>
+        BffTestFrontends.CreateOptions(x =>
+        {
+            x.Selection = new BffFrontendSelectionOptions
+            {
+                Rule = BffFrontendSelectorNames.Host,
+                Values = [host],
+            };
+            x.SecurityHeaders.ContentSecurityPolicy = contentSecurityPolicy;
+        });
+
+    private DefaultHttpContext CreateContext(string? host = null)
     {
         var features = new FeatureCollection();
         features.Set<IHttpRequestFeature>(new HttpRequestFeature());
         features.Set<IHttpResponseFeature>(ResponseFeature);
         features.Set<IHttpResponseBodyFeature>(new StreamResponseBodyFeature(Stream.Null));
-        return new DefaultHttpContext(features);
+        var httpContext = new DefaultHttpContext(features);
+        if (host is not null)
+            httpContext.Request.Host = new HostString(host);
+        return httpContext;
     }
 
     #region InvokeAsync Tests
@@ -68,11 +97,16 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
     [Fact]
     public async Task InvokeAsync_ConfiguredValues_WritesThem()
     {
-        Options.SecurityHeaders.ContentSecurityPolicy = "default-src 'self'; script-src 'self'";
-        Options.SecurityHeaders.ReferrerPolicy = "no-referrer";
-        Options.SecurityHeaders.CrossOriginOpenerPolicy = "same-origin-allow-popups";
         var httpContext = CreateContext();
-        var middleware = CreateMiddleware(_ => Task.CompletedTask);
+        var middleware = CreateMiddleware(
+            _ => Task.CompletedTask,
+            x =>
+            {
+                x.SecurityHeaders.ContentSecurityPolicy = "default-src 'self'; script-src 'self'";
+                x.SecurityHeaders.ReferrerPolicy = "no-referrer";
+                x.SecurityHeaders.CrossOriginOpenerPolicy = "same-origin-allow-popups";
+            }
+        );
 
         await middleware.InvokeAsync(httpContext);
         await ResponseFeature.StartAsync();
@@ -84,6 +118,62 @@ public class BffSecurityHeadersMiddlewareTests : BaseTests
         );
         Assert.Equal("no-referrer", headers["Referrer-Policy"].ToString());
         Assert.Equal("same-origin-allow-popups", headers["Cross-Origin-Opener-Policy"].ToString());
+    }
+
+    [Theory]
+    [InlineData("admin.example.com", AdminContentSecurityPolicy)]
+    [InlineData("shop.example.com", ShopContentSecurityPolicy)]
+    public async Task InvokeAsync_TwoFrontends_WritesTheHeadersOfTheSelectedFrontend(
+        string host,
+        string expectedContentSecurityPolicy
+    )
+    {
+        var middleware = CreateMiddleware(
+            _ => Task.CompletedTask,
+            new BffOptions
+            {
+                Frontends =
+                {
+                    ["admin"] = CreateHostOptions("admin.example.com", AdminContentSecurityPolicy),
+                    ["shop"] = CreateHostOptions("shop.example.com", ShopContentSecurityPolicy),
+                },
+            }
+        );
+        var httpContext = CreateContext(host);
+
+        await middleware.InvokeAsync(httpContext);
+        await ResponseFeature.StartAsync();
+
+        Assert.Equal(
+            expectedContentSecurityPolicy,
+            httpContext.Response.Headers.ContentSecurityPolicy.ToString()
+        );
+    }
+
+    [Fact]
+    public async Task InvokeAsync_NoFrontendSelectsTheRequest_WritesTheDefaultHeaders()
+    {
+        var middleware = CreateMiddleware(
+            _ => Task.CompletedTask,
+            new BffOptions
+            {
+                Frontends =
+                {
+                    ["admin"] = CreateHostOptions(
+                        "admin.example.com",
+                        "default-src 'self'; script-src 'self'"
+                    ),
+                },
+            }
+        );
+        var httpContext = CreateContext("other.example.com");
+
+        await middleware.InvokeAsync(httpContext);
+        await ResponseFeature.StartAsync();
+
+        var headers = httpContext.Response.Headers;
+        Assert.Equal(DefaultContentSecurityPolicy, headers.ContentSecurityPolicy.ToString());
+        Assert.Equal("nosniff", headers.XContentTypeOptions.ToString());
     }
 
     [Fact]

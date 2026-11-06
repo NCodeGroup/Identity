@@ -17,7 +17,8 @@ namespace NCode.Identity.Bff.Hosting;
 /// <summary>
 /// Fails startup when the BFF metadata of an endpoint is incomplete: a YARP route that names a token requirement
 /// without <c>AsBffRemoteApis()</c>, a YARP route mapped without <c>AddBffTransforms()</c>, or an endpoint that names
-/// a frontend the BFF does not configure.
+/// a frontend the BFF does not configure, or an endpoint whose <see cref="IBffEndpointStartupRequirement"/> metadata
+/// reports a failure.
 /// </summary>
 /// <remarks>
 /// Endpoints are complete only once the pipeline is built, so the check runs at <see cref="StartedAsync"/>. After
@@ -28,6 +29,7 @@ namespace NCode.Identity.Bff.Hosting;
 internal sealed class BffEndpointStartupCheck(
     EndpointDataSource endpoints,
     BffFrontendCatalog frontends,
+    IServiceProvider services,
     IEnumerable<ITransformProvider> transformProviders,
     ILogger<BffEndpointStartupCheck> logger
 ) : IHostedLifecycleService, IDisposable
@@ -37,16 +39,19 @@ internal sealed class BffEndpointStartupCheck(
     /// </summary>
     /// <param name="endpoints">The endpoints to check.</param>
     /// <param name="frontends">The frontends that the BFF serves.</param>
+    /// <param name="services">The application's services, which the endpoints' requirements are checked against.</param>
     /// <param name="hasBffTransforms">Whether the BFF's YARP transforms are registered.</param>
     /// <returns>A message for each failure, or an empty list when the metadata is complete.</returns>
     internal static IReadOnlyList<string> FindFailures(
         IEnumerable<Endpoint> endpoints,
         BffFrontendCatalog frontends,
+        IServiceProvider services,
         bool hasBffTransforms
     )
     {
         ArgumentNullException.ThrowIfNull(endpoints);
         ArgumentNullException.ThrowIfNull(frontends);
+        ArgumentNullException.ThrowIfNull(services);
 
         var failures = new List<string>();
         foreach (var endpoint in endpoints)
@@ -98,6 +103,16 @@ internal sealed class BffEndpointStartupCheck(
                     );
                 }
             }
+
+            var requirements = endpoint
+                .Metadata.GetOrderedMetadata<IBffEndpointStartupRequirement>()
+                .Distinct();
+            foreach (var requirement in requirements)
+            {
+                var failure = requirement.Validate(services);
+                if (failure is not null)
+                    failures.Add($"Endpoint '{endpoint.DisplayName}': {failure}");
+            }
         }
 
         return failures;
@@ -116,7 +131,7 @@ internal sealed class BffEndpointStartupCheck(
     /// <inheritdoc />
     public Task StartedAsync(CancellationToken cancellationToken)
     {
-        var failures = FindFailures(endpoints.Endpoints, frontends, HasBffTransforms);
+        var failures = FindFailures(endpoints.Endpoints, frontends, services, HasBffTransforms);
         if (failures.Count > 0)
             throw new InvalidOperationException(string.Join(" ", failures));
 
@@ -146,7 +161,9 @@ internal sealed class BffEndpointStartupCheck(
 
     private void Recheck()
     {
-        foreach (var failure in FindFailures(endpoints.Endpoints, frontends, HasBffTransforms))
+        foreach (
+            var failure in FindFailures(endpoints.Endpoints, frontends, services, HasBffTransforms)
+        )
             logger.EndpointCheckFailed(failure);
     }
 }

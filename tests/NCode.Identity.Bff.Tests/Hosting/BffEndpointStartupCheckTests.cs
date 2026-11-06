@@ -37,6 +37,8 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
 
     private FakeLogger<BffEndpointStartupCheck> Logger { get; } = new();
 
+    private IServiceProvider Services { get; } = new ServiceCollection().BuildServiceProvider();
+
     protected override void Dispose(bool disposing)
     {
         if (disposing)
@@ -171,10 +173,20 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
     private BffEndpointStartupCheck CreateCheck(
         EndpointDataSource endpoints,
         bool hasBffTransforms = true
-    ) => new(endpoints, Frontends, hasBffTransforms ? [CreateTransformProvider()] : [], Logger);
+    ) =>
+        new(
+            endpoints,
+            Frontends,
+            Services,
+            hasBffTransforms ? [CreateTransformProvider()] : [],
+            Logger
+        );
 
     private static Endpoint CreateFrontendEndpoint(string name) =>
         new(null, new EndpointMetadataCollection(new BffFrontendAttribute(name)), "stub endpoint");
+
+    private static Endpoint CreateRequirementEndpoint(IBffEndpointStartupRequirement requirement) =>
+        new(null, new EndpointMetadataCollection(requirement), "requirement endpoint");
 
     #region FindFailures Tests
 
@@ -184,7 +196,12 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         var endpoints = CreateYarpEndpoints(asBffRemoteApis: false, TokenRoute);
 
         var failure = Assert.Single(
-            BffEndpointStartupCheck.FindFailures(endpoints, Frontends, hasBffTransforms: true)
+            BffEndpointStartupCheck.FindFailures(
+                endpoints,
+                Frontends,
+                Services,
+                hasBffTransforms: true
+            )
         );
 
         Assert.Contains($"'{TokenRouteId}'", failure);
@@ -200,6 +217,7 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         var failures = BffEndpointStartupCheck.FindFailures(
             endpoints,
             Frontends,
+            Services,
             hasBffTransforms: true
         );
 
@@ -212,7 +230,12 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         var endpoints = CreateYarpEndpoints(asBffRemoteApis: true, TokenRoute);
 
         var failure = Assert.Single(
-            BffEndpointStartupCheck.FindFailures(endpoints, Frontends, hasBffTransforms: false)
+            BffEndpointStartupCheck.FindFailures(
+                endpoints,
+                Frontends,
+                Services,
+                hasBffTransforms: false
+            )
         );
 
         Assert.Contains($"'{TokenRouteId}'", failure);
@@ -225,7 +248,12 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         var endpoints = CreateYarpEndpoints(asBffRemoteApis: false, FrontendRoute);
 
         var failure = Assert.Single(
-            BffEndpointStartupCheck.FindFailures(endpoints, Frontends, hasBffTransforms: true)
+            BffEndpointStartupCheck.FindFailures(
+                endpoints,
+                Frontends,
+                Services,
+                hasBffTransforms: true
+            )
         );
 
         Assert.Contains($"'{FrontendRouteId}'", failure);
@@ -242,6 +270,7 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         var failures = BffEndpointStartupCheck.FindFailures(
             endpoints,
             Frontends,
+            Services,
             hasBffTransforms: true
         );
 
@@ -255,6 +284,7 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
             BffEndpointStartupCheck.FindFailures(
                 [CreateFrontendEndpoint("missing")],
                 Frontends,
+                Services,
                 hasBffTransforms: true
             )
         );
@@ -270,6 +300,44 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         var failures = BffEndpointStartupCheck.FindFailures(
             [CreateFrontendEndpoint(BffTestFrontends.Name)],
             Frontends,
+            Services,
+            hasBffTransforms: true
+        );
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void FindFailures_RequirementFails_ReportsIt()
+    {
+        var requirement = CreateStrictMock<IBffEndpointStartupRequirement>();
+        requirement
+            .Setup(x => x.Validate(Services))
+            .Returns("It needs a registration.")
+            .Verifiable();
+
+        var failure = Assert.Single(
+            BffEndpointStartupCheck.FindFailures(
+                [CreateRequirementEndpoint(requirement.Object)],
+                Frontends,
+                Services,
+                hasBffTransforms: true
+            )
+        );
+
+        Assert.Equal("Endpoint 'requirement endpoint': It needs a registration.", failure);
+    }
+
+    [Fact]
+    public void FindFailures_RequirementHolds_ReportsNothing()
+    {
+        var requirement = CreateStrictMock<IBffEndpointStartupRequirement>();
+        requirement.Setup(x => x.Validate(Services)).Returns((string?)null).Verifiable();
+
+        var failures = BffEndpointStartupCheck.FindFailures(
+            [CreateRequirementEndpoint(requirement.Object)],
+            Frontends,
+            Services,
             hasBffTransforms: true
         );
 

@@ -1,6 +1,9 @@
 # 1430. End-to-end suites run the BFF in real browsers against a containerized Keycloak in their own gate
 
-- **Status:** Accepted (amends [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md))
+- **Status:** Accepted (amends
+  [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md); decision 1
+  amended by [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md): a
+  project under tests/ whose name does not end in .Tests is a support project that no tier runs)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md), [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md)

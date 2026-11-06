@@ -13,16 +13,9 @@ namespace NCode.Identity.Bff.Blazor.Logging;
 internal static partial class Log
 {
     [LoggerMessage(
-        EventId = EventIds.RevalidationFailed,
-        Level = LogLevel.Warning,
-        Message = "The BFF could not revalidate the session of a Blazor circuit because the session store is unavailable; the circuit keeps its state"
-    )]
-    internal static partial void RevalidationFailed(this ILogger logger, Exception exception);
-
-    [LoggerMessage(
         EventId = EventIds.RevalidationFaulted,
         Level = LogLevel.Error,
-        Message = "Revalidating the BFF session of a Blazor circuit failed; the circuit is signed out"
+        Message = "Waiting for the BFF session of a Blazor circuit to end failed; the circuit is signed out"
     )]
     internal static partial void RevalidationFaulted(this ILogger logger, Exception exception);
 }

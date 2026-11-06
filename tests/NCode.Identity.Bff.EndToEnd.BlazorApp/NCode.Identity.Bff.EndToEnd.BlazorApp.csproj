@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>NCode.Identity.Bff.EndToEnd.BlazorApp</RootNamespace>
+        <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+        <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\NCode.Identity.Bff.Blazor\NCode.Identity.Bff.Blazor.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Bff.Server\NCode.Identity.Bff.Server.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.Bff\NCode.Identity.Bff.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Bff.EndToEnd.BlazorApp.Client\NCode.Identity.Bff.EndToEnd.BlazorApp.Client.csproj" />
+    </ItemGroup>
+</Project>

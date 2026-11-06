@@ -104,8 +104,13 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IBffSessionManager, DefaultBffSessionManager>();
             serviceCollection.TryAddSingleton<IBffAuditRecorder, DefaultBffAuditRecorder>();
             serviceCollection.TryAddSingleton<BffCookies>();
+            serviceCollection.TryAddSingleton<BffPageReload>();
             serviceCollection.TryAddSingleton<BffSessionResolver>();
             serviceCollection.TryAddSingleton<BffConnectionSessions>();
+            serviceCollection.TryAddSingleton<
+                IBffConnectionRevalidator,
+                DefaultBffConnectionRevalidator
+            >();
             serviceCollection.TryAddSingleton<
                 IBffConnectionSessionAccessor,
                 DefaultBffConnectionSessionAccessor

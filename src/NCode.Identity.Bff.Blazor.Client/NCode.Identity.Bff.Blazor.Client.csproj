@@ -18,6 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\NCode.Identity.Bff.Protocol.Abstractions\NCode.Identity.Bff.Protocol.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Json\NCode.Json.csproj" />
         <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
         <ProjectReference Include="..\NCode.Time\NCode.Time.csproj" />

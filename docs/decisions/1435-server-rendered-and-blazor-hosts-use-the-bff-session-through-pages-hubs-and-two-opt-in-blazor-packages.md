@@ -3,7 +3,11 @@
 - **Status:** Accepted (amends
   [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) and
   [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) decision 1 and
-  [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md))
+  [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md); decision 4
+  amended by [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md):
+  an idle hub connection ends with its session; decisions 5 and 6 amended by [ADR-1440](1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md):
+  the Blazor server package depends only on abstractions and both halves read their shared names from
+  NCode.Identity.Bff.Protocol.Abstractions)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 

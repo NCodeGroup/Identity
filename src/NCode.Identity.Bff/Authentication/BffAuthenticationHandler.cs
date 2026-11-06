@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logout;
@@ -19,7 +20,9 @@ namespace NCode.Identity.Bff.Authentication;
 
 /// <summary>
 /// Authenticates the requests to the endpoints the BFF guards from the BFF session cookie, and answers challenges and
-/// forbids.
+/// forbids. A page navigation that reaches a <c>SameSite=Strict</c> frontend without its session cookie is answered
+/// once with the same-origin reload page that <see cref="BffPageReload"/> writes before the challenge redirects to
+/// login.
 /// </summary>
 internal class BffAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> schemeOptions,
@@ -27,16 +30,18 @@ internal class BffAuthenticationHandler(
     UrlEncoder encoder,
     BffSessionResolver resolver,
     BffFrontendCatalog frontends,
-    BffConnectionSessions connections
+    BffConnectionSessions connections,
+    BffCookies cookies,
+    BffPageReload pageReload
 )
     : AuthenticationHandler<AuthenticationSchemeOptions>(schemeOptions, loggerFactory, encoder),
         IAuthenticationSignOutHandler
 {
-    private const string LoginPath = "/login";
-
     private BffSessionResolver Resolver { get; } = resolver;
     private BffFrontendCatalog Frontends { get; } = frontends;
     private BffConnectionSessions Connections { get; } = connections;
+    private BffCookies Cookies { get; } = cookies;
+    private BffPageReload PageReload { get; } = pageReload;
 
     /// <inheritdoc />
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -112,11 +117,20 @@ internal class BffAuthenticationHandler(
         }
 
         var request = Request;
+        if (PageReload.ShouldReload(Context, frontend))
+            return PageReload.WriteAsync(Context, frontend, Context.RequestAborted).AsTask();
+
+        if (Cookies.HasPageReload(request, frontend))
+            Cookies.DeletePageReload(Response, frontend);
+
         var returnUrl = $"{request.Path}{request.QueryString}";
         if (!BffReturnUrls.IsLocalUrl(returnUrl, frontend.Options.ReturnUrls))
             returnUrl = "/";
 
-        var loginUrl = BffNavigation.LocalUrl(request, frontend.Options.PathPrefix + LoginPath);
+        var loginUrl = BffNavigation.LocalUrl(
+            request,
+            frontend.Options.PathPrefix + BffEndpointPaths.Login
+        );
         var escaped = Uri.EscapeDataString(returnUrl);
         Response.Redirect($"{loginUrl}?returnUrl={escaped}");
         return Task.CompletedTask;

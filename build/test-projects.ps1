@@ -7,7 +7,9 @@
 
 .DESCRIPTION
     Finds every *.csproj under the tests/ folder, skipping bin/ and obj/ folders. A project whose file name ends with
-    .EndToEnd.Tests.csproj belongs to the end-to-end tier; every other project is a test project.
+    .EndToEnd.Tests.csproj belongs to the end-to-end tier, one whose file name ends with .Tests.csproj is a test
+    project, and any other project under tests/ is a support project that a suite references, which neither tier
+    lists.
 
     Outputs one object with Tests (repository-relative .csproj paths of the test projects) and EndToEnd
     (repository-relative .csproj paths of the end-to-end projects). Paths use / separators and each list is sorted
@@ -42,7 +44,7 @@ if (Test-Path -LiteralPath $testsFolder -PathType Container) {
         if ($file.Name.EndsWith('.EndToEnd.Tests.csproj', [StringComparison]::Ordinal)) {
             $endToEnd.Add($relativePath)
         }
-        else {
+        elseif ($file.Name.EndsWith('.Tests.csproj', [StringComparison]::Ordinal)) {
             $tests.Add($relativePath)
         }
     }

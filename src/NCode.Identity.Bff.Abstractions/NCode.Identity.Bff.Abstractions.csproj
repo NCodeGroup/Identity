@@ -17,6 +17,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Events.Abstractions\NCode.Identity.Events.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Bff.Protocol.Abstractions\NCode.Identity.Bff.Protocol.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Client.Abstractions\NCode.Identity.OpenId.Client.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
     </ItemGroup>

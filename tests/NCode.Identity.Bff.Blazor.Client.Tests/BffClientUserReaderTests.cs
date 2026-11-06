@@ -39,8 +39,8 @@ public class BffClientUserReaderTests : BaseTests
         Assert.Equal("user-1", user.Principal.FindFirst("sub")?.Value);
         Assert.Equal("ada@example.com", user.Principal.FindFirst("email")?.Value);
         Assert.Equal("36", user.Principal.FindFirst("age")?.Value);
-        Assert.Equal("/bff/logout", user.Principal.FindFirst(BffClientClaimTypes.LogoutUrl)?.Value);
-        Assert.Equal("guard-1", user.Principal.FindFirst(BffClientClaimTypes.LogoutSid)?.Value);
+        Assert.Equal("/bff/logout", user.Principal.FindFirst(BffClaimTypes.LogoutUrl)?.Value);
+        Assert.Equal("guard-1", user.Principal.FindFirst(BffClaimTypes.LogoutSid)?.Value);
         Assert.Equal(
             new DateTimeOffset(2023, 11, 14, 22, 23, 20, TimeSpan.Zero),
             user.IdleExpiresAt

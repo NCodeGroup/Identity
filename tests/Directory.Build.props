@@ -5,7 +5,6 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <IsTestProject>true</IsTestProject>
     <!-- Test projects are NOT exempt from the warning gate: warnings-as-errors is inherited from the root.
          See ADR-1127 — the criterion is "code we maintain", not "code we ship", and the xunit.analyzers rules
          in particular report real defects in the tests themselves. Relax an individual rule via the justified
@@ -18,9 +17,15 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
+  <!-- A project under tests/ whose name does not end in '.Tests' is a support project a suite references, which the
+       solution compiles and no runner tests. -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
   <!-- The Definition of Done (dod.ps1) writes one JUnit report per test assembly to artifacts/test-results via the JUnit
        test logger; build/test-report.ps1 presents them and CI uploads them to Codecov (ADR-1143). -->
-  <ItemGroup>
+  <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
     <PackageReference Include="JunitXml.TestLogger" />
   </ItemGroup>
 </Project>

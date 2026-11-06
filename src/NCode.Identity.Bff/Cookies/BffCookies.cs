@@ -8,12 +8,16 @@ using NCode.Identity.Bff.Frontends;
 namespace NCode.Identity.Bff.Cookies;
 
 /// <summary>
-/// Reads, writes and deletes the BFF session cookie and the login cookie.
+/// Reads, writes and deletes the BFF session cookie, the login cookie and the page reload marker cookie.
 /// </summary>
 internal class BffCookies(TimeProvider timeProvider)
 {
     // 32 random bytes in unpadded base64url.
     private const int ValueLength = 43;
+
+    private const string PageReloadValue = "1";
+
+    private static readonly TimeSpan PageReloadLifetime = TimeSpan.FromSeconds(60);
 
     /// <summary>
     /// Reads the session handle of a frontend from the request, or returns <see langword="null"/> when the cookie is
@@ -111,6 +115,53 @@ internal class BffCookies(TimeProvider timeProvider)
     {
         var cookieOptions = CreateOptions(SameSiteMode.Lax);
         response.Cookies.Delete(frontend.LoginCookieName, cookieOptions);
+    }
+
+    /// <summary>
+    /// Determines whether the request carries the page reload marker cookie of a frontend.
+    /// </summary>
+    /// <param name="request">The current request.</param>
+    /// <param name="frontend">The frontend that the request belongs to.</param>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the writers."
+    )]
+    public bool HasPageReload(HttpRequest request, BffFrontend frontend) =>
+        request.Cookies.ContainsKey(frontend.PageReloadCookieName);
+
+    /// <summary>
+    /// Sets the page reload marker cookie of a frontend, which lives for a minute and is sent on every top-level
+    /// navigation.
+    /// </summary>
+    /// <param name="response">The current response.</param>
+    /// <param name="frontend">The frontend that the page belongs to.</param>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the writers."
+    )]
+    public void SetPageReload(HttpResponse response, BffFrontend frontend)
+    {
+        var cookieOptions = CreateOptions(SameSiteMode.Lax);
+        cookieOptions.MaxAge = PageReloadLifetime;
+        response.Cookies.Append(frontend.PageReloadCookieName, PageReloadValue, cookieOptions);
+    }
+
+    /// <summary>
+    /// Deletes the page reload marker cookie of a frontend.
+    /// </summary>
+    /// <param name="response">The current response.</param>
+    /// <param name="frontend">The frontend that the page belongs to.</param>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the writers."
+    )]
+    public void DeletePageReload(HttpResponse response, BffFrontend frontend)
+    {
+        var cookieOptions = CreateOptions(SameSiteMode.Lax);
+        response.Cookies.Delete(frontend.PageReloadCookieName, cookieOptions);
     }
 
     private static string? Read(HttpRequest request, string name)

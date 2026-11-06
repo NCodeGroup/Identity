@@ -87,6 +87,7 @@ internal sealed class BffFrontend
         Registration = CreateRegistration(options);
         SessionCookieName = $"{BffDefaults.SessionCookieName}.{name}";
         LoginCookieName = $"{BffDefaults.LoginCookieName}.{name}";
+        PageReloadCookieName = $"{BffDefaults.PageReloadCookieName}.{name}";
     }
 
     /// <summary>
@@ -114,6 +115,11 @@ internal sealed class BffFrontend
     /// Gets the name of the login transaction cookie of the frontend.
     /// </summary>
     public string LoginCookieName { get; }
+
+    /// <summary>
+    /// Gets the name of the page reload marker cookie of the frontend.
+    /// </summary>
+    public string PageReloadCookieName { get; }
 
     /// <summary>
     /// Gets what the selection rule is given, or <see langword="null"/> when the frontend names no rule.

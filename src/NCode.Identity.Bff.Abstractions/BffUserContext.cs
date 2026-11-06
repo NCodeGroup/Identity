@@ -26,12 +26,12 @@ public sealed class BffUserContext
     public static IReadOnlySet<string> ReservedFieldNames { get; } =
         new HashSet<string>(StringComparer.Ordinal)
         {
-            "sub",
-            "name",
-            "claims",
-            "session",
-            "logoutUrl",
-            "logoutSid",
+            BffUserDocumentNames.Subject,
+            BffUserDocumentNames.Name,
+            BffUserDocumentNames.Claims,
+            BffUserDocumentNames.Session,
+            BffUserDocumentNames.LogoutUrl,
+            BffUserDocumentNames.LogoutSid,
         };
 
     /// <summary>

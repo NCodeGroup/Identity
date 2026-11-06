@@ -133,7 +133,7 @@ public class BffClientSessionTests : BaseTests
 
         Assert.True(state.User.Identity?.IsAuthenticated);
         Assert.Equal("user-1", state.User.FindFirst("sub")?.Value);
-        Assert.Equal("guard-1", state.User.FindFirst(BffClientClaimTypes.LogoutSid)?.Value);
+        Assert.Equal("guard-1", state.User.FindFirst(BffClaimTypes.LogoutSid)?.Value);
         var request = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Get, request.Method);
         Assert.Equal(new Uri("https://app.example/bff/user"), request.RequestUri);

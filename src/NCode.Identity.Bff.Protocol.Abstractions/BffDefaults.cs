@@ -38,6 +38,13 @@ public static class BffDefaults
     public const string LoginCookieName = "__Host-Http-bff-login";
 
     /// <summary>
+    /// The base name of the cookie that marks a page navigation the BFF has answered with a same-origin reload because
+    /// the browser withheld the session cookie. The cookie of a frontend appends <c>.</c> and the name of the
+    /// frontend.
+    /// </summary>
+    public const string PageReloadCookieName = "__Host-Http-bff-reload";
+
+    /// <summary>
     /// The name of the cookie that holds the antiforgery token of the forms a page renders.
     /// </summary>
     public const string AntiforgeryCookieName = "__Host-Http-bff-antiforgery";

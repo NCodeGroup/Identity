@@ -45,6 +45,7 @@ POST api/teams/{teamId}/teams
 GET  api/teams/{teamId}/teams
 
 GET   api/teams/{teamId}/settings
+GET   api/teams/{teamId}/settings/limits
 PATCH api/teams/{teamId}/settings
 GET   api/teams/{teamId}/effective-settings
 GET   api/teams/{teamId}/usage
@@ -150,6 +151,9 @@ internal class TeamApiEndpointHandler(
             .Produces<CollectionResource<TeamResource>>();
 
         teams.MapGet("/{teamId}/settings", GetSettingsAsync).Produces<TeamSettingsResource>();
+        teams
+            .MapGet("/{teamId}/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
         teams
             .MapPatch("/{teamId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -695,6 +699,41 @@ internal class TeamApiEndpointHandler(
                 return await store.GetSettingsOrDefaultAsync(teamId, token);
             },
             ToTeamSettingsResource,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Gets the limits a team's settings carry and whether the caller may set them: whether it holds update authority
+    /// over the team's parent team, or over the platform for a top-level team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The team's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/teams/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        async ValueTask<ResourceNode?> ReadNodeAboveAsync(CancellationToken token)
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+            var store = storeManager.GetStore<ITeamStore>();
+            var team = await store.GetOrDefaultAsync(teamId, token);
+            return team is null
+                ? null
+                : TeamNodes.GetNodeAbove(GetControlPlaneTenantId(httpContext), team.ParentTeamId);
+        }
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            GetTeamNode(httpContext, teamId),
+            SettingSerializer.GetLimits(OpenIdSettingScopes.Team),
+            ReadNodeAboveAsync,
             cancellationToken
         );
     }

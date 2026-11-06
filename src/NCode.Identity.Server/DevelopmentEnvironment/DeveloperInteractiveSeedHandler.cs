@@ -36,8 +36,7 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// and keys match its configuration is left as it is, and one that differs is removed, with its grants, codes and
 /// tokens, and stored again from the configuration. A BFF client entry that names a client id but lacks its key set or
 /// its redirect URIs is skipped with a warning that names the missing configuration keys. The administrator's password
-/// must meet the tenant's password policy, and a
-/// refused one stops the seeding with an error naming the administrator.
+/// must meet the tenant's password policy, and a refused one stops the seeding with an error naming the administrator.
 /// </remarks>
 // See ADR-1140 and ADR-1206.
 internal sealed class DeveloperInteractiveSeedHandler(

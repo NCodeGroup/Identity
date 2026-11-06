@@ -9,15 +9,6 @@ namespace NCode.Identity.ManagementConsole.Tests;
 
 public class ManagementConsoleHostFilteringValidatorTests : BaseTests
 {
-    private ManagementConsoleHostFilteringValidator CreateValidator(
-        string environmentName = "Production"
-    )
-    {
-        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-        return new ManagementConsoleHostFilteringValidator(mockEnvironment.Object);
-    }
-
     private static HostFilteringOptions CreateOptions(params string[] hosts)
     {
         var options = new HostFilteringOptions();
@@ -27,6 +18,15 @@ public class ManagementConsoleHostFilteringValidatorTests : BaseTests
         }
 
         return options;
+    }
+
+    private ManagementConsoleHostFilteringValidator CreateValidator(
+        string environmentName = "Production"
+    )
+    {
+        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
+        mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
+        return new ManagementConsoleHostFilteringValidator(mockEnvironment.Object);
     }
 
     #region Validate Tests

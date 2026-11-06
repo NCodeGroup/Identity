@@ -10,13 +10,14 @@ using Xunit;
 namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 
 /// <summary>
-/// The environment that the end-to-end tests share: Keycloak in a container, two backend-for-frontend (BFF)
+/// The environment that the end-to-end tests share: Keycloak in a container, three backend-for-frontend (BFF)
 /// applications, the origin pages and Playwright.
 /// </summary>
 public sealed class EndToEndEnvironment : IAsyncLifetime
 {
     private const string StrictClientId = "bff-strict";
     private const string LaxClientId = "bff-lax";
+    private const string BlazorClientId = "bff-blazor";
     private const string ContainerHost = "host.testcontainers.internal";
 
     private readonly ConcurrentDictionary<string, Task<IBrowser>> _browsers = new();
@@ -25,6 +26,7 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
     private KeycloakProvider? _keycloak;
     private BffApplication? _strictBff;
     private BffApplication? _laxBff;
+    private BlazorBffApplication? _blazorBff;
     private OriginServer? _originServer;
     private IPlaywright? _playwright;
     private string? _crossSiteDenied;
@@ -46,6 +48,11 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
     /// Gets the BFF whose session cookie is <c>SameSite=Lax</c>.
     /// </summary>
     public BffApplication LaxBff => _laxBff ?? throw NotInitialized();
+
+    /// <summary>
+    /// Gets the BFF that hosts the Blazor Web App, whose session cookie is <c>SameSite=Strict</c>.
+    /// </summary>
+    public BlazorBffApplication BlazorBff => _blazorBff ?? throw NotInitialized();
 
     /// <summary>
     /// Gets the Playwright instance.
@@ -77,6 +84,7 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
     {
         var strictPort = LoopbackPort.Reserve();
         var laxPort = LoopbackPort.Reserve();
+        var blazorPort = LoopbackPort.Reserve();
         var crossSiteDeniedPort = LoopbackPort.Reserve();
         var crossSiteAdmittedPort = LoopbackPort.Reserve();
         var sameSiteUntrustedPort = LoopbackPort.Reserve();
@@ -89,7 +97,11 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
 
         _certificate = TestCertificate.Create();
 
-        await TestcontainersSettings.ExposeHostPortsAsync([(ushort)strictPort, (ushort)laxPort]);
+        await TestcontainersSettings.ExposeHostPortsAsync([
+            (ushort)strictPort,
+            (ushort)laxPort,
+            (ushort)blazorPort,
+        ]);
 
         _keycloak = await KeycloakProvider.StartAsync(
             _certificate,
@@ -99,6 +111,8 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
                 ["BFF_STRICT_CONTAINER_ORIGIN"] = $"https://{ContainerHost}:{strictPort}",
                 ["BFF_LAX_ORIGIN"] = $"https://localhost:{laxPort}",
                 ["BFF_LAX_CONTAINER_ORIGIN"] = $"https://{ContainerHost}:{laxPort}",
+                ["BFF_BLAZOR_ORIGIN"] = $"https://localhost:{blazorPort}",
+                ["BFF_BLAZOR_CONTAINER_ORIGIN"] = $"https://{ContainerHost}:{blazorPort}",
             }
         );
 
@@ -107,6 +121,18 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
         );
         _laxBff = await BffApplication.StartAsync(
             CreateSettings(LaxClientId, laxPort, SameSiteMode.Lax)
+        );
+        _blazorBff = await BlazorBffApplication.StartAsync(
+            new BffApplicationSettings(
+                BlazorClientId,
+                blazorPort,
+                SameSiteMode.Strict,
+                Keycloak.Issuer,
+                _certificate,
+                [],
+                [],
+                TimeSpan.FromSeconds(2)
+            )
         );
 
         _originServer = await OriginServer.StartAsync(
@@ -142,6 +168,9 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
 
         if (_originServer is not null)
             await _originServer.DisposeAsync();
+
+        if (_blazorBff is not null)
+            await _blazorBff.DisposeAsync();
 
         if (_laxBff is not null)
             await _laxBff.DisposeAsync();

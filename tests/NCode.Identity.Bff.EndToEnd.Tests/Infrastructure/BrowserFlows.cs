@@ -25,9 +25,16 @@ public static class BrowserFlows
     /// <summary>
     /// Signs the user in at Keycloak through the BFF's login endpoint and waits for the return page.
     /// </summary>
-    public static async Task LoginAsync(IPage page, BffApplication bff, KeycloakProvider keycloak)
+    public static Task LoginAsync(IPage page, BffApplication bff, KeycloakProvider keycloak) =>
+        LoginAsync(page, bff.Origin, keycloak);
+
+    /// <summary>
+    /// Signs the user in at Keycloak through the login endpoint of the BFF at the origin and waits for the return
+    /// page.
+    /// </summary>
+    public static async Task LoginAsync(IPage page, string origin, KeycloakProvider keycloak)
     {
-        await page.GotoAsync($"{bff.Origin}/bff/login?returnUrl=%2F");
+        await page.GotoAsync($"{origin}/bff/login?returnUrl=%2F");
         await page.FillAsync("#username", KeycloakProvider.UserName);
         await page.FillAsync("#password", keycloak.UserPassword);
 #pragma warning disable CS0612 // Playwright marks it obsolete without a replacement that waits for a navigation the page has not started yet.
@@ -35,7 +42,7 @@ public static class BrowserFlows
             () => page.ClickAsync("#kc-login"),
             new PageRunAndWaitForNavigationOptions
             {
-                UrlFunc = url => new Uri(url).GetLeftPart(UriPartial.Path) == $"{bff.Origin}/",
+                UrlFunc = url => new Uri(url).GetLeftPart(UriPartial.Path) == $"{origin}/",
                 WaitUntil = WaitUntilState.Commit,
             }
         );

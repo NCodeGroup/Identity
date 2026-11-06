@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
@@ -26,9 +27,9 @@ public static class BffEndpointRouteBuilderExtensions
     extension(IEndpointRouteBuilder endpoints)
     {
         /// <summary>
-        /// Maps the <c>login</c>, <c>callback</c>, <c>user</c>, <c>logout</c> and <c>backchannel-logout</c> endpoints under the configured
-        /// <see cref="BffOptions.PathPrefix"/>, and the <c>jwks</c> endpoint when <see cref="BffJwksOptions.Enabled"/> is
-        /// <c>true</c>.
+        /// Maps the <c>login</c>, <c>callback</c>, <c>user</c>, <c>logout</c> and <c>backchannel-logout</c> endpoints of
+        /// each frontend under its <see cref="BffFrontendOptions.PathPrefix"/>, limited to that frontend, and the
+        /// <c>jwks</c> endpoint of each frontend whose <see cref="BffJwksOptions.Enabled"/> is <c>true</c>.
         /// </summary>
         /// <returns>The <see cref="RouteGroupBuilder"/> of the endpoints, so that the application can add a rate
         /// limiter or exclude them from the API description.</returns>
@@ -36,73 +37,17 @@ public static class BffEndpointRouteBuilderExtensions
         {
             ArgumentNullException.ThrowIfNull(endpoints);
 
-            var options = endpoints.ServiceProvider.GetRequiredService<IOptions<BffOptions>>();
-            var prefix = options.Value.PathPrefix;
+            var catalog = endpoints.ServiceProvider.GetRequiredService<BffFrontendCatalog>();
 
-            var group = endpoints.MapGroup(prefix).AllowAnonymous().WithTags(Tag);
+            var group = endpoints.MapGroup(string.Empty).AllowAnonymous().WithTags(Tag);
 
-            group
-                .MapGet(
-                    "/login",
-                    static (HttpContext context) =>
-                        context
-                            .RequestServices.GetRequiredService<BffLoginHandler>()
-                            .HandleAsync(context)
-                )
-                .WithName("Bff.Login");
-
-            group
-                .MapGet(
-                    "/callback",
-                    static (HttpContext context) =>
-                        context
-                            .RequestServices.GetRequiredService<BffCallbackHandler>()
-                            .HandleAsync(context)
-                )
-                .WithName("Bff.Callback");
-
-            group
-                .MapGet(
-                    "/user",
-                    static (HttpContext context) =>
-                        context
-                            .RequestServices.GetRequiredService<BffUserHandler>()
-                            .HandleAsync(context)
-                )
-                .WithName("Bff.User")
-                .WithMetadata(BffUserEndpointMetadata.Instance);
-
-            group
-                .MapPost(
-                    "/logout",
-                    static (HttpContext context) =>
-                        context
-                            .RequestServices.GetRequiredService<BffLogoutHandler>()
-                            .HandleAsync(context)
-                )
-                .WithName("Bff.Logout");
-
-            group
-                .MapPost(
-                    "/backchannel-logout",
-                    static (HttpContext context) =>
-                        context
-                            .RequestServices.GetRequiredService<BffBackChannelLogoutHandler>()
-                            .HandleAsync(context)
-                )
-                .WithName("Bff.BackchannelLogout");
-
-            if (options.Value.Jwks.Enabled)
+            foreach (var frontend in catalog.Frontends)
             {
-                group
-                    .MapGet(
-                        "/jwks",
-                        static (HttpContext context) =>
-                            context
-                                .RequestServices.GetRequiredService<BffJwksHandler>()
-                                .HandleAsync(context)
-                    )
-                    .WithName("Bff.Jwks");
+                var frontendGroup = group
+                    .MapGroup(frontend.Options.PathPrefix)
+                    .RequireBffFrontend(frontend.Name);
+
+                MapFrontendEndpoints(frontendGroup, frontend);
             }
 
             return group;
@@ -160,6 +105,73 @@ public static class BffEndpointRouteBuilderExtensions
                 BffRemoteApiEndpoints.Map(group, $"Bff:RemoteApis:{name}", api);
 
             return group;
+        }
+    }
+
+    private static void MapFrontendEndpoints(RouteGroupBuilder group, BffFrontend frontend)
+    {
+        group
+            .MapGet(
+                "/login",
+                static (HttpContext context) =>
+                    context
+                        .RequestServices.GetRequiredService<BffLoginHandler>()
+                        .HandleAsync(context)
+            )
+            .WithName($"Bff.{frontend.Name}.Login");
+
+        group
+            .MapGet(
+                "/callback",
+                static (HttpContext context) =>
+                    context
+                        .RequestServices.GetRequiredService<BffCallbackHandler>()
+                        .HandleAsync(context)
+            )
+            .WithName($"Bff.{frontend.Name}.Callback");
+
+        group
+            .MapGet(
+                "/user",
+                static (HttpContext context) =>
+                    context
+                        .RequestServices.GetRequiredService<BffUserHandler>()
+                        .HandleAsync(context)
+            )
+            .WithName($"Bff.{frontend.Name}.User")
+            .WithMetadata(BffUserEndpointMetadata.Instance);
+
+        group
+            .MapPost(
+                "/logout",
+                static (HttpContext context) =>
+                    context
+                        .RequestServices.GetRequiredService<BffLogoutHandler>()
+                        .HandleAsync(context)
+            )
+            .WithName($"Bff.{frontend.Name}.Logout");
+
+        group
+            .MapPost(
+                "/backchannel-logout",
+                static (HttpContext context) =>
+                    context
+                        .RequestServices.GetRequiredService<BffBackChannelLogoutHandler>()
+                        .HandleAsync(context)
+            )
+            .WithName($"Bff.{frontend.Name}.BackchannelLogout");
+
+        if (frontend.Options.Jwks.Enabled)
+        {
+            group
+                .MapGet(
+                    "/jwks",
+                    static (HttpContext context) =>
+                        context
+                            .RequestServices.GetRequiredService<BffJwksHandler>()
+                            .HandleAsync(context)
+                )
+                .WithName($"Bff.{frontend.Name}.Jwks");
         }
     }
 }

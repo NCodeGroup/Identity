@@ -116,7 +116,6 @@ internal sealed class BffFrontendCatalog : IDisposable
                 next = Build();
             }
             catch (Exception exception)
-                when (exception is OptionsValidationException or InvalidOperationException)
             {
                 Logger.FrontendsChangeRejected(exception.Message);
                 return;
@@ -173,12 +172,12 @@ internal sealed class BffFrontendCatalog : IDisposable
         ArgumentNullException.ThrowIfNull(check);
 
         var failures = new List<string>();
-        check.Check(Current, failures);
-        if (failures.Count > 0)
-            throw new InvalidOperationException(string.Join(" ", failures));
-
         lock (Gate)
         {
+            check.Check(Current, failures);
+            if (failures.Count > 0)
+                throw new InvalidOperationException(string.Join(" ", failures));
+
             AddedChecks.Add(check);
         }
     }

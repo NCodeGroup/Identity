@@ -3,8 +3,10 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Frontends;
+using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Options;
 using Xunit;
 
@@ -233,6 +235,37 @@ public class BffFrontendCatalogTests : BaseTests
 
         Assert.Same(before, catalog.Current);
         Assert.False(token.HasChanged);
+    }
+
+    [Fact]
+    public void Change_CheckThrowsUnexpectedException_KeepsTheLastSetAndLogsTheRejection()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var logger = new FakeLogger<BffFrontendCatalog>();
+        var catalog = new BffFrontendCatalog(
+            source,
+            [source],
+            [new HostBffFrontendSelector(), new PathBffFrontendSelector()],
+            [
+                new StubCheck(set =>
+                    set.TryGet("shop", out _)
+                        ? throw new NotSupportedException("the check failed")
+                        : null
+                ),
+            ],
+            logger
+        );
+        var before = catalog.Current;
+        var token = catalog.GetChangeToken();
+
+        source.Change(CreateOptionsWithShop());
+
+        Assert.Same(before, catalog.Current);
+        Assert.False(token.HasChanged);
+        Assert.Contains(
+            logger.Collector.GetSnapshot(),
+            record => record.Id.Id == EventIds.FrontendsChangeRejected
+        );
     }
 
     #endregion

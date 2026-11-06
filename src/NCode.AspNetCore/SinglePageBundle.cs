@@ -21,7 +21,7 @@ namespace NCode.AspNetCore;
 // See ADR-1457.
 // The cache is revalidated from file metadata rather than invalidated by a file watcher: a watcher costs an inotify
 // instance per process and misses changes on bind-mounted and network file systems, while one metadata read per
-// request is far cheaper than the file read it replaces.
+// request is far cheaper than reading the file.
 [PublicAPI]
 public sealed class SinglePageBundle<TIndex>(string? rootPath, Func<string, TIndex?> parseIndex)
     : IDisposable

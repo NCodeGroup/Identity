@@ -34,42 +34,87 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         _retirement = CreateStrictMock<BffSessionRetirement>(
             BffTestTelemetry.Instrument(CreateStrictMock<IBffSessionStore>().Object),
             CreateStrictMock<IBffSessionManager>().Object,
-            _timeProvider,
+            TimeProvider.System,
             NullLogger<BffSessionRetirement>.Instance
         );
     }
 
-    private BffSessionRetirementService CreateService() =>
-        new(_frontends, _retirement.Object, _timeProvider, _logger);
+    private BffSessionRetirementService CreateService(TimeProvider? timeProvider = null) =>
+        new(_frontends, _retirement.Object, timeProvider ?? _timeProvider, _logger);
 
-    private void SetupRetire(Func<int, bool> fails, Func<int, bool>? complete = null)
+    private void SetupRetire(int calls, Func<int, bool> fails, Func<int, bool>? complete = null)
     {
         complete ??= _ => true;
-        var calls = 0;
+        var made = 0;
         _retirement
             .Setup(x => x.RetireAsync(It.IsAny<BffFrontendSet>(), It.IsAny<CancellationToken>()))
             .Returns(
                 (BffFrontendSet set, CancellationToken _) =>
                 {
-                    var call = Interlocked.Increment(ref calls);
+                    var call = Interlocked.Increment(ref made);
                     _passes.Writer.TryWrite(set);
                     return fails(call)
                         ? throw new BffStoreUnavailableException("The store is unavailable.")
                         : ValueTask.FromResult(complete(call));
                 }
             )
-            .Verifiable();
+            .Verifiable(Times.Exactly(calls));
     }
 
     private async Task<BffFrontendSet> ReadPassAsync() =>
         await _passes.Reader.ReadAsync().AsTask().WaitAsync(WaitLimit);
+
+    private Mock<TimeProvider> CreateTimerProvider(
+        Channel<(TimerCallback Callback, object? State, TimeSpan DueTime)> timers
+    )
+    {
+        var mockTimer = CreateStrictMock<ITimer>();
+        mockTimer.Setup(x => x.Dispose()).Verifiable();
+        var mockTimeProvider = CreateStrictMock<TimeProvider>();
+        mockTimeProvider
+            .Setup(x =>
+                x.CreateTimer(
+                    It.IsAny<TimerCallback>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<TimeSpan>(),
+                    Timeout.InfiniteTimeSpan
+                )
+            )
+            .Returns(
+                (TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan _) =>
+                {
+                    timers.Writer.TryWrite((callback, state, dueTime));
+                    return mockTimer.Object;
+                }
+            )
+            .Verifiable();
+        return mockTimeProvider;
+    }
+
+    private static async Task FireRetryTimerAsync(
+        Channel<(TimerCallback Callback, object? State, TimeSpan DueTime)> timers
+    )
+    {
+        while (true)
+        {
+            var (callback, state, dueTime) = await timers
+                .Reader.ReadAsync()
+                .AsTask()
+                .WaitAsync(WaitLimit);
+            if (dueTime != BffSessionRetirementService.RetryDelay)
+                continue;
+
+            callback(state);
+            return;
+        }
+    }
 
     #region ExecuteAsync Tests
 
     [Fact]
     public async Task ExecuteAsync_Start_RetiresAgainstTheCurrentSet()
     {
-        SetupRetire(_ => false);
+        SetupRetire(1, _ => false);
         using var service = CreateService();
 
         await service.StartAsync(CancellationToken.None);
@@ -77,16 +122,12 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
         await service.StopAsync(CancellationToken.None);
 
         Assert.Same(_frontends.Current, set);
-        _retirement.Verify(
-            x => x.RetireAsync(It.IsAny<BffFrontendSet>(), It.IsAny<CancellationToken>()),
-            Times.Once
-        );
     }
 
     [Fact]
     public async Task ExecuteAsync_AfterAChange_RetiresAgainstTheChangedSet()
     {
-        SetupRetire(_ => false);
+        SetupRetire(2, _ => false);
         using var service = CreateService();
 
         await service.StartAsync(CancellationToken.None);
@@ -111,19 +152,19 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_StoreFails_RetriesAfterTheDelay()
     {
-        SetupRetire(call => call == 1);
-        using var service = CreateService();
+        SetupRetire(2, call => call == 1);
+        var timers = Channel.CreateUnbounded<(
+            TimerCallback Callback,
+            object? State,
+            TimeSpan DueTime
+        )>();
+        var timeProvider = CreateTimerProvider(timers);
+        using var service = CreateService(timeProvider.Object);
 
         await service.StartAsync(CancellationToken.None);
         await ReadPassAsync();
-        var retried = ReadPassAsync();
-        while (!retried.IsCompleted)
-        {
-            _timeProvider.Advance(BffSessionRetirementService.RetryDelay);
-            await Task.Delay(10);
-        }
-
-        await retried;
+        await FireRetryTimerAsync(timers);
+        await ReadPassAsync();
         await service.StopAsync(CancellationToken.None);
 
         Assert.Contains(
@@ -132,34 +173,25 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
                 record.Id.Id == EventIds.FrontendRetirementFailed
                 && record.Exception is BffStoreUnavailableException
         );
-        _retirement.Verify(
-            x => x.RetireAsync(It.IsAny<BffFrontendSet>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(2)
-        );
     }
 
     [Fact]
     public async Task ExecuteAsync_LeaseLeftToAnotherHolder_RetriesAfterTheDelay()
     {
-        SetupRetire(_ => false, call => call != 1);
-        using var service = CreateService();
+        SetupRetire(2, _ => false, call => call != 1);
+        var timers = Channel.CreateUnbounded<(
+            TimerCallback Callback,
+            object? State,
+            TimeSpan DueTime
+        )>();
+        var timeProvider = CreateTimerProvider(timers);
+        using var service = CreateService(timeProvider.Object);
 
         await service.StartAsync(CancellationToken.None);
         await ReadPassAsync();
-        var retried = ReadPassAsync();
-        while (!retried.IsCompleted)
-        {
-            _timeProvider.Advance(BffSessionRetirementService.RetryDelay);
-            await Task.Delay(10);
-        }
-
-        await retried;
+        await FireRetryTimerAsync(timers);
+        await ReadPassAsync();
         await service.StopAsync(CancellationToken.None);
-
-        _retirement.Verify(
-            x => x.RetireAsync(It.IsAny<BffFrontendSet>(), It.IsAny<CancellationToken>()),
-            Times.Exactly(2)
-        );
     }
 
     #endregion

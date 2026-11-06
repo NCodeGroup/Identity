@@ -61,18 +61,18 @@ public class DefaultBffSessionStoreTests : BaseTests
                 )
             )
             .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+            .Verifiable(Times.Once);
         MockIndexes
             .Setup(x =>
                 x.AddMemberAsync(
                     BffStoreKeys.ClientsIndex,
                     BffStoreKeys.ClientMember(client, Absolute),
-                    BffStoreKeys.ClientMemberExpiresAt(Absolute),
+                    new DateTimeOffset(2026, 1, 3, 0, 0, 0, TimeSpan.Zero),
                     CancellationToken.None
                 )
             )
             .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+            .Verifiable(Times.Once);
     }
 
     #region TryCreateAsync Tests
@@ -114,7 +114,6 @@ public class DefaultBffSessionStoreTests : BaseTests
     public async Task TryCreateAsync_Always_IndexesTheSessionByItsClient()
     {
         var metadata = CreateMetadata();
-        var client = CreateClient();
         var sidIndex = BffStoreKeys.SessionIdIndex(metadata.Issuer, "sid-1");
         var subIndex = BffStoreKeys.SubjectIndex(metadata.Issuer, metadata.Subject);
 
@@ -140,27 +139,6 @@ public class DefaultBffSessionStoreTests : BaseTests
         SetupClientIndexAdds();
 
         await Store.TryCreateAsync(CreateRecord(), CancellationToken.None);
-
-        MockIndexes.Verify(
-            x =>
-                x.AddMemberAsync(
-                    BffStoreKeys.ClientIndex(client),
-                    StoreKey,
-                    Absolute,
-                    CancellationToken.None
-                ),
-            Times.Once
-        );
-        MockIndexes.Verify(
-            x =>
-                x.AddMemberAsync(
-                    BffStoreKeys.ClientsIndex,
-                    BffStoreKeys.ClientMember(client, Absolute),
-                    new DateTimeOffset(2026, 1, 3, 0, 0, 0, TimeSpan.Zero),
-                    CancellationToken.None
-                ),
-            Times.Once
-        );
     }
 
     [Fact]
@@ -411,14 +389,9 @@ public class DefaultBffSessionStoreTests : BaseTests
         MockIndexes
             .Setup(x => x.RemoveMemberAsync(clientIndex, StoreKey, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+            .Verifiable(Times.Once);
 
         await Store.RemoveAsync(StoreKey, metadata, CancellationToken.None);
-
-        MockIndexes.Verify(
-            x => x.RemoveMemberAsync(clientIndex, StoreKey, CancellationToken.None),
-            Times.Once
-        );
     }
 
     [Fact]
@@ -529,6 +502,20 @@ public class DefaultBffSessionStoreTests : BaseTests
         var result = await Store.FindByClientAsync(client, CancellationToken.None);
 
         Assert.Equal(members, result);
+    }
+
+    [Fact]
+    public async Task FindByClientAsync_StoreFails_ThrowsBffStoreUnavailableException()
+    {
+        var client = CreateClient();
+        MockIndexes
+            .Setup(x => x.GetMembersAsync(BffStoreKeys.ClientIndex(client), CancellationToken.None))
+            .ThrowsAsync(new InvalidOperationException("boom"))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
+            await Store.FindByClientAsync(client, CancellationToken.None)
+        );
     }
 
     #endregion

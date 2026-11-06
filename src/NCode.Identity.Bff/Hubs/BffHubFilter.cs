@@ -2,23 +2,33 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
+using NCode.Identity.Bff.Logging;
 
 namespace NCode.Identity.Bff.Hubs;
 
 /// <summary>
 /// Revalidates the BFF session that a hub connection holds once its revalidation interval has passed, slides the
 /// session from the invocation, ends the connection when the session ended, and makes the connection current for the
-/// invocation so an outbound call obtains its token through <see cref="IBffConnectionSessionAccessor"/>.
+/// invocation so an outbound call obtains its token through <see cref="IBffConnectionSessionAccessor"/>. A connection
+/// of a hub that is not marked with <see cref="BffSelfRevalidatingHubAttribute"/> is also watched while it is idle:
+/// it is aborted once <see cref="IBffConnectionRevalidator"/> reports that its session ended.
 /// </summary>
 /// <param name="connections">The accessor of the current connection session.</param>
+/// <param name="revalidator">The revalidator that waits for the session of an idle connection to end.</param>
 /// <param name="timeProvider">The time provider.</param>
+/// <param name="logger">The logger.</param>
 internal sealed class BffHubFilter(
     IBffConnectionSessionAccessor connections,
-    TimeProvider timeProvider
+    IBffConnectionRevalidator revalidator,
+    TimeProvider timeProvider,
+    ILogger<BffHubFilter> logger
 ) : IHubFilter
 {
     private static readonly object ValidatedAtKey = new();
+    private static readonly object WatchKey = new();
 
     /// <inheritdoc />
     public async Task OnConnectedAsync(
@@ -29,10 +39,47 @@ internal sealed class BffHubFilter(
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(next);
 
-        if (context.Context.User?.GetBffConnectionSession() is not null)
+        var connection = context.Context.User?.GetBffConnectionSession();
+        if (connection is not null)
             context.Context.Items[ValidatedAtKey] = timeProvider.GetUtcNow();
 
         await next(context);
+
+        if (
+            connection is not null
+            && context
+                .Context.GetHttpContext()
+                ?.GetEndpoint()
+                ?.Metadata.GetMetadata<BffSelfRevalidatingHubAttribute>()
+                is null
+        )
+        {
+            var source = new CancellationTokenSource();
+            context.Context.Items[WatchKey] = source;
+            _ = WatchAsync(context.Context, connection, source.Token).AsTask();
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task OnDisconnectedAsync(
+        HubLifetimeContext context,
+        Exception? exception,
+        Func<HubLifetimeContext, Exception?, Task> next
+    )
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(next);
+
+        if (
+            context.Context.Items.Remove(WatchKey, out var value)
+            && value is CancellationTokenSource source
+        )
+        {
+            await source.CancelAsync();
+            source.Dispose();
+        }
+
+        await next(context, exception);
     }
 
     /// <inheritdoc />
@@ -62,6 +109,28 @@ internal sealed class BffHubFilter(
         {
             return await next(invocationContext);
         }
+    }
+
+    private async ValueTask WatchAsync(
+        HubCallerContext context,
+        IBffConnectionSession connection,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            await revalidator.WaitUntilEndedAsync(connection, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception exception)
+        {
+            logger.HubRevalidationFaulted(exception);
+        }
+
+        context.Abort();
     }
 
     private static async ValueTask RevalidateAsync(

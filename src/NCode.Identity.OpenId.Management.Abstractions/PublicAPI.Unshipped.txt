@@ -1084,3 +1084,10 @@ NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddChangedLim
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddRequiredCreateAuthority(NCode.Identity.OpenId.Persistence.ISupportTenantId! node) -> void
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.MapIdentifier(string! resourceType, string! sourceId, string! targetId) -> void
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TryGetTargetIdentifier(string! resourceType, string! sourceId, out string? targetId) -> bool
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.RoleAssignment = "role_assignment" -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeId.get -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeId.init -> void
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeType.get -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeType.init -> void
+override NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.ResourceType.get -> string!

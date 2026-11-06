@@ -31,6 +31,8 @@ export {
   useCreateTenantMutation,
   useUpdateTenantMutation,
   useDeleteTenantMutation,
+  usePreviewTenantPromotionMutation,
+  usePromoteTenantMutation,
   useCreateClientMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,

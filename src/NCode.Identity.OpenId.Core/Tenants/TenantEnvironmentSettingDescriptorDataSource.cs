@@ -13,9 +13,11 @@ namespace NCode.Identity.OpenId.Tenants;
 /// Provides an additive <see cref="SettingDescriptor"/> data source for the tenant environment settings:
 /// <c>environment_type</c>, <c>environment_name</c> and <c>deletion_protection</c>. The domain of
 /// <c>environment_type</c> is the registered <see cref="ITenantEnvironmentType"/> names, so a value that names no
-/// registered type is rejected rather than stored. Each is a tenant setting that is not advertised in discovery.
+/// registered type is rejected rather than stored. Each is a tenant setting that is not advertised in discovery and
+/// whose value belongs to the environment, so promotion never copies it.
 /// </summary>
 // See ADR-1289.
+// See ADR-1425.
 internal class TenantEnvironmentSettingDescriptorDataSource(
     INullChangeToken nullChangeToken,
     IEnumerable<ITenantEnvironmentType> types
@@ -47,6 +49,7 @@ internal class TenantEnvironmentSettingDescriptorDataSource(
                 Default = OpenIdConstants.TenantEnvironmentTypes.Production,
 
                 IsDiscoverable = false,
+                IsEnvironmentBound = true,
                 OnMerge = SettingMerge.Replace,
             };
 
@@ -66,6 +69,7 @@ internal class TenantEnvironmentSettingDescriptorDataSource(
                 Default = string.Empty,
 
                 IsDiscoverable = false,
+                IsEnvironmentBound = true,
                 OnMerge = SettingMerge.Replace,
             };
 
@@ -78,6 +82,7 @@ internal class TenantEnvironmentSettingDescriptorDataSource(
                 Default = false,
 
                 IsDiscoverable = false,
+                IsEnvironmentBound = true,
                 OnMerge = SettingMerge.Replace,
             };
         }

@@ -542,7 +542,8 @@ internal class DefaultSettingDescriptorDataSource(
 
             // client_notification_endpoint: per-client CIBA endpoint the OP POSTs ping/push notifications to. CIBA
             // Core §4 requires an https URL; empty (the default) means the client registered none, which a ping or
-            // push client is rejected for. Override (Replace): each client specifies its own endpoint.
+            // push client is rejected for. Override (Replace): each client specifies its own endpoint. Bound to the
+            // environment: promotion never copies it.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.ClientNotificationEndpoint,
@@ -551,6 +552,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -788,6 +790,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // redirect_uris: the registered redirect URIs for a client.
             // Override (Replace): each scope specifies its own set (per-client registration, not a cascade ceiling).
+            // Bound to the environment: promotion never copies it.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.RedirectUris,
@@ -795,6 +798,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Rule = SettingRules.Each(OpenIdSettingRules.RedirectUri()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -813,6 +817,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // post_logout_redirect_uris: the registered post-logout redirect URIs for a client (RP-Initiated Logout).
             // Override (Replace): each client specifies its own set (per-client registration, not a cascade ceiling).
+            // Bound to the environment: promotion never copies it.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.PostLogoutRedirectUris,
@@ -820,11 +825,13 @@ internal class DefaultSettingDescriptorDataSource(
                 Rule = SettingRules.Each(OpenIdSettingRules.RedirectUri()),
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
             // backchannel_logout_uri: the per-client URI the OP POSTs the logout_token to (Back-Channel Logout).
-            // Override (Replace): each client specifies its own endpoint.
+            // Override (Replace): each client specifies its own endpoint. Bound to the environment: promotion never
+            // copies it.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.BackChannelLogoutUri,
@@ -832,6 +839,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Rule = OpenIdSettingRules.LogoutUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -870,7 +878,8 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // frontchannel_logout_uri: the per-client URI the OP loads in a hidden iframe (Front-Channel Logout).
-            // Override (Replace): each client specifies its own endpoint.
+            // Override (Replace): each client specifies its own endpoint. Bound to the environment: promotion never
+            // copies it.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.FrontChannelLogoutUri,
@@ -878,6 +887,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Rule = OpenIdSettingRules.LogoutUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -1493,7 +1503,8 @@ internal class DefaultSettingDescriptorDataSource(
             // tls_client_auth_trust_anchors: the PEM CA certificates a tls_client_auth certificate must chain to; a
             // self-issued certificate is an anchor, any other an intermediate. Empty (the default) trusts no
             // certificate, so tls_client_auth fails closed until a tenant or client configures its PKI. Not
-            // advertised. Override (Replace): a client pins its own PKI in place of the tenant's.
+            // advertised. Override (Replace): a client pins its own PKI in place of the tenant's. Bound to the
+            // environment: promotion never copies it.
             yield return new SettingDescriptor<IReadOnlyCollection<string>>
             {
                 Name = OpenIdSettingNames.TlsClientAuthTrustAnchors,
@@ -1502,6 +1513,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Default = [],
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -1523,7 +1535,8 @@ internal class DefaultSettingDescriptorDataSource(
 
             // tls_client_auth_subject_dn / _san_dns / _san_uri / _san_ip / _san_email: the expected certificate identity
             // a PKI-validated tls_client_auth client must present (RFC 8705 §2.1.2); exactly one is configured per
-            // client. Not advertised. Override (Replace): a child fully replaces the parent value.
+            // client. Not advertised. Override (Replace): a child fully replaces the parent value. Bound to the
+            // environment: promotion never copies it.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.TlsClientAuthSubjectDn,
@@ -1532,6 +1545,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -1543,6 +1557,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -1554,6 +1569,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -1565,6 +1581,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -1576,6 +1593,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Default = string.Empty,
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -1765,7 +1783,8 @@ internal class DefaultSettingDescriptorDataSource(
             // sector_identifier_uri: groups clients into a single pairwise sector (OpenID Connect Core 1.0 §8.1); the
             // host of this URI is the pairwise sector identifier. When unset the sector falls back to the common host
             // of the client's redirect_uris (or the client_id when that is ambiguous). Not advertised in discovery.
-            // Override (Replace): a child fully replaces the parent value.
+            // Override (Replace): a child fully replaces the parent value. Bound to the environment: promotion never
+            // copies it.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.SectorIdentifierUri,
@@ -1773,12 +1792,14 @@ internal class DefaultSettingDescriptorDataSource(
                 Rule = OpenIdSettingRules.HttpsUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
             // jwks_uri: the per-client URI of the client's JSON Web Key Set, resolved at runtime to obtain the client's
             // public verification keys for private_key_jwt client authentication and signed request objects (JAR). Not
             // advertised in discovery (it is a per-client value). Override (Replace): a child fully replaces the parent.
+            // Bound to the environment: promotion never copies it.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.JwksUri,
@@ -1786,6 +1807,7 @@ internal class DefaultSettingDescriptorDataSource(
                 Rule = OpenIdSettingRules.HttpsUri(),
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 
@@ -1970,13 +1992,15 @@ internal class DefaultSettingDescriptorDataSource(
             // pairwise_salt: a stable, secret per-tenant salt mixed into the pairwise subject derivation to harden it
             // against a guessed-principal preimage attack (OpenID Connect Core 1.0 §8.1). Derivation stays deterministic
             // without it (the tenant id already isolates tenants), but configuring it is recommended. Not advertised.
-            // Override (Replace): a child fully replaces the parent value.
+            // Override (Replace): a child fully replaces the parent value. Bound to the environment: promotion never
+            // copies it.
             yield return new SettingDescriptor<string>
             {
                 Name = OpenIdSettingNames.PairwiseSalt,
                 AppliesTo = Clients,
 
                 IsDiscoverable = IsNonStdDiscoverable,
+                IsEnvironmentBound = true,
                 OnMerge = Replace,
             };
 

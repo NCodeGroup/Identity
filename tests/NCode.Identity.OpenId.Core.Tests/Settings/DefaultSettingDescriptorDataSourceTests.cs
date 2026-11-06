@@ -419,6 +419,38 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         );
     }
 
+    [Fact]
+    public void Collection_EnvironmentBoundSettings_AreTheEnvironmentsAddressesIdentitiesAndSalt()
+    {
+        var dataSource = CreateDataSource();
+
+        var actual = dataSource
+            .Collection.Where(descriptor => descriptor.IsEnvironmentBound)
+            .ToList();
+
+        Assert.Equal(
+            new[]
+            {
+                OpenIdSettingNames.RedirectUris,
+                OpenIdSettingNames.PostLogoutRedirectUris,
+                OpenIdSettingNames.BackChannelLogoutUri,
+                OpenIdSettingNames.FrontChannelLogoutUri,
+                OpenIdSettingNames.JwksUri,
+                OpenIdSettingNames.SectorIdentifierUri,
+                OpenIdSettingNames.ClientNotificationEndpoint,
+                OpenIdSettingNames.TlsClientAuthSubjectDn,
+                OpenIdSettingNames.TlsClientAuthSanDns,
+                OpenIdSettingNames.TlsClientAuthSanUri,
+                OpenIdSettingNames.TlsClientAuthSanIp,
+                OpenIdSettingNames.TlsClientAuthSanEmail,
+                OpenIdSettingNames.TlsClientAuthTrustAnchors,
+                OpenIdSettingNames.PairwiseSalt,
+            }.Order(),
+            actual.Select(descriptor => descriptor.Name).Order()
+        );
+        Assert.DoesNotContain(actual, descriptor => descriptor.IsLimit);
+    }
+
     #endregion
 
     #region UI locale settings

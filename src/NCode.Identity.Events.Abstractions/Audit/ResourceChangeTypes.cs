@@ -31,4 +31,9 @@ public static class ResourceChangeTypes
     /// The resource's settings were updated.
     /// </summary>
     public const string SettingsUpdated = "settings.updated";
+
+    /// <summary>
+    /// The resource received another resource's promotable configuration.
+    /// </summary>
+    public const string Promoted = "promoted";
 }

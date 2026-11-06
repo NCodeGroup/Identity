@@ -17,26 +17,66 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 public interface ITenantValidator
 {
     /// <summary>
-    /// Validates that the specified OpenID Tenant may be created by the caller under its team.
+    /// Authorizes the caller to create a tenant under the specified team. It judges only route values and runs before
+    /// the team is read.
     /// </summary>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
     /// <param name="controlPlaneTenantId">The identifier of the control-plane tenant that carries the team's authority node.</param>
+    /// <param name="teamId">The identifier of the team named by the route.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ManagementError"/> (<c>401</c> or <c>403</c>) when the caller lacks the authority, or <c>null</c> when authorized.</returns>
+    ValueTask<ManagementError?> AuthorizeCreateAsync(
+        ClaimsPrincipal user,
+        string controlPlaneTenantId,
+        string teamId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Authorizes the caller to update the specified tenant. It judges only route values and runs before the tenant is
+    /// read.
+    /// </summary>
+    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
+    /// <param name="tenantId">The identifier of the tenant named by the route.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ManagementError"/> (<c>401</c> or <c>403</c>) when the caller lacks the authority, or <c>null</c> when authorized.</returns>
+    ValueTask<ManagementError?> AuthorizeUpdateAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Authorizes the caller to delete the specified tenant. It judges only route values and runs before the tenant is
+    /// read.
+    /// </summary>
+    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
+    /// <param name="tenantId">The identifier of the tenant named by the route.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ManagementError"/> (<c>401</c> or <c>403</c>) when the caller lacks the authority, or <c>null</c> when authorized.</returns>
+    ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Validates the row of the tenant to be created. It does not authorize the route's node.
+    /// </summary>
     /// <param name="tenant">The <see cref="PersistedTenant"/> to be created.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateCreateAsync(
-        ClaimsPrincipal user,
-        string controlPlaneTenantId,
         PersistedTenant tenant,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Validates that the specified OpenID Tenant may be updated by the caller to the supplied proposed state.
+    /// Validates that the specified OpenID Tenant may be updated to the supplied proposed state. It does not authorize
+    /// the route's node.
     /// </summary>
-    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
     /// <param name="tenant">The current <see cref="PersistedTenant"/> being updated.</param>
     /// <param name="model">The proposed (patched) tenant metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token.</param>
@@ -44,7 +84,6 @@ public interface ITenantValidator
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateUpdateAsync(
-        ClaimsPrincipal user,
         PersistedTenant tenant,
         UpdateTenantRequest model,
         string? ifMatch,
@@ -53,15 +92,13 @@ public interface ITenantValidator
     );
 
     /// <summary>
-    /// Validates that the specified OpenID Tenant may be deleted by the caller.
+    /// Validates that the specified OpenID Tenant may be deleted. It does not authorize the route's node.
     /// </summary>
-    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
     /// <param name="tenant">The <see cref="PersistedTenant"/> to be deleted.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateDeleteAsync(
-        ClaimsPrincipal user,
         PersistedTenant tenant,
         IStoreManager storeManager,
         CancellationToken cancellationToken

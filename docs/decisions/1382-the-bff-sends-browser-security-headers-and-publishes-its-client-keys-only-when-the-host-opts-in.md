@@ -1,6 +1,9 @@
 # 1382. The BFF sends browser security headers and publishes its client keys only when the host opts in
 
-- **Status:** Accepted
+- **Status:** Accepted (decisions 1 and 5 amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): the security headers
+  and the JWKS endpoint are per frontend, and the keys it names, such as Bff:Jwks:Enabled and
+  Bff:ClientAuthentication:KeyRing, are configured under Bff:Frontends:{name})
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 

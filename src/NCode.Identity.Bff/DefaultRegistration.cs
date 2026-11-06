@@ -3,15 +3,16 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Authentication;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Logout;
@@ -35,9 +36,11 @@ public static class DefaultRegistration
     extension(IServiceBuilder<OpenIdClientLibrary> builder)
     {
         /// <summary>
-        /// Registers the BFF library: its options, the session store and manager, the audit recorder and the cookie
-        /// writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root registers the shared-state
-        /// adapters (<c>AddSharedStateServices().AddInProcessExpiringKeySet().AddInProcessExpiringValueSet().AddInProcessExpiringIndexSet()</c>
+        /// Registers the BFF library: its options, the frontends (the selection rules, the catalog and the routing
+        /// policy that keeps a request's endpoints to its frontend), the session store and manager, the audit
+        /// recorder and the cookie writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root
+        /// registers the shared-state adapters
+        /// (<c>AddSharedStateServices().AddInProcessExpiringKeySet().AddInProcessExpiringValueSet().AddInProcessExpiringIndexSet()</c>
         /// for one replica, Valkey for several).
         /// </summary>
         /// <param name="events">The <see cref="IServiceBuilder{T}"/> for <see cref="EventsLibrary"/> that proves the
@@ -64,13 +67,24 @@ public static class DefaultRegistration
             serviceCollection.AddMetrics();
             serviceCollection.TryAddSingleton<BffMetrics>();
 
+            serviceCollection.AddRouting();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffFrontendSelector, HostBffFrontendSelector>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffFrontendSelector, PathBffFrontendSelector>()
+            );
+            serviceCollection.TryAddSingleton<BffFrontendCatalog>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<MatcherPolicy, BffFrontendMatcherPolicy>()
+            );
+
             serviceCollection.TryAddSingleton<IBffSessionStore, DefaultBffSessionStore>();
             serviceCollection.TryAddSingleton<BffInstrumentedSessionStore>();
             serviceCollection.TryAddSingleton<IBffSessionManager, DefaultBffSessionManager>();
             serviceCollection.TryAddSingleton<IBffAuditRecorder, DefaultBffAuditRecorder>();
             serviceCollection.TryAddSingleton<BffCookies>();
             serviceCollection.TryAddSingleton<BffSessionResolver>();
-            serviceCollection.TryAddSingleton<BffClientRegistrationProvider>();
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
             serviceCollection.TryAddSingleton<BffLoginHandler>();
             serviceCollection.TryAddSingleton<BffCallbackHandler>();
@@ -125,6 +139,7 @@ public static class DefaultRegistration
             );
             serviceCollection.AddAuthorization();
             serviceCollection.AddHostedService<BffStartupCheck>();
+            serviceCollection.AddHostedService<BffEndpointStartupCheck>();
 
             return newBuilder;
         }

@@ -53,32 +53,57 @@ internal static class BffReverseProxyRoutes
     }
 
     /// <summary>
-    /// Checks the route's BFF metadata: a token requirement must be registered, and a resource or a scope needs a token
-    /// requirement and must not be blank.
+    /// Gets the name of the frontend that the route's metadata names, or <see langword="null"/> when the route serves
+    /// every frontend.
+    /// </summary>
+    /// <param name="route">The route to read, whose metadata <see cref="Validate"/> accepted.</param>
+    public static string? GetFrontend(RouteConfig route)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+
+        return route.Metadata?.GetValueOrDefault(BffReverseProxyMetadataKeys.Frontend);
+    }
+
+    /// <summary>
+    /// Checks the route's BFF metadata: a token requirement must be registered, a resource or a scope needs a token
+    /// requirement and must not be blank, and a frontend must be configured.
     /// </summary>
     /// <param name="route">The route to check.</param>
-    /// <param name="requirements">The names of the registered token requirements.</param>
+    /// <param name="names">The names that the route's metadata may refer to.</param>
     /// <param name="errors">The list that each failure is added to.</param>
     public static void Validate(
         RouteConfig route,
-        IReadOnlySet<string> requirements,
+        BffReverseProxyRouteNames names,
         ICollection<Exception> errors
     )
     {
         ArgumentNullException.ThrowIfNull(route);
-        ArgumentNullException.ThrowIfNull(requirements);
+        ArgumentNullException.ThrowIfNull(names);
         ArgumentNullException.ThrowIfNull(errors);
 
         var metadata = route.Metadata;
         if (metadata is null)
             return;
 
+        if (
+            metadata.TryGetValue(BffReverseProxyMetadataKeys.Frontend, out var frontend)
+            && CheckFrontend(route, frontend, names.Frontends) is { } frontendFailure
+        )
+        {
+            errors.Add(frontendFailure);
+        }
+
         var hasRequirement = metadata.TryGetValue(
             BffReverseProxyMetadataKeys.TokenRequirement,
             out var requirement
         );
-        if (hasRequirement)
-            ValidateRequirement(route, requirement, requirements, errors);
+        if (
+            hasRequirement
+            && CheckRequirement(route, requirement, names.Requirements) is { } requirementFailure
+        )
+        {
+            errors.Add(requirementFailure);
+        }
 
         foreach (var key in OptionalKeys)
         {
@@ -98,28 +123,51 @@ internal static class BffReverseProxyRoutes
         }
     }
 
-    private static void ValidateRequirement(
+    private static ArgumentException? CheckFrontend(
+        RouteConfig route,
+        string? frontend,
+        IReadOnlySet<string> frontends
+    )
+    {
+        if (string.IsNullOrWhiteSpace(frontend))
+        {
+            return Failure(route, $"{BffReverseProxyMetadataKeys.Frontend} must not be blank.");
+        }
+
+        if (!frontends.Contains(frontend))
+        {
+            return Failure(
+                route,
+                $"{BffReverseProxyMetadataKeys.Frontend} '{frontend}' is not a configured BFF frontend."
+            );
+        }
+
+        return null;
+    }
+
+    private static ArgumentException? CheckRequirement(
         RouteConfig route,
         string? requirement,
-        IReadOnlySet<string> requirements,
-        ICollection<Exception> errors
+        IReadOnlySet<string> requirements
     )
     {
         if (string.IsNullOrWhiteSpace(requirement))
         {
-            errors.Add(
-                Failure(route, $"{BffReverseProxyMetadataKeys.TokenRequirement} must not be blank.")
+            return Failure(
+                route,
+                $"{BffReverseProxyMetadataKeys.TokenRequirement} must not be blank."
             );
         }
-        else if (!requirements.Contains(requirement))
+
+        if (!requirements.Contains(requirement))
         {
-            errors.Add(
-                Failure(
-                    route,
-                    $"{BffReverseProxyMetadataKeys.TokenRequirement} '{requirement}' is not a registered token requirement."
-                )
+            return Failure(
+                route,
+                $"{BffReverseProxyMetadataKeys.TokenRequirement} '{requirement}' is not a registered token requirement."
             );
         }
+
+        return null;
     }
 
     private static ArgumentException Failure(RouteConfig route, string message) =>

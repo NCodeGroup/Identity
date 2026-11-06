@@ -11,6 +11,7 @@ using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Jose;
 using Xunit;
 
@@ -27,7 +28,7 @@ public class BffUserHandlerTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 SessionId = "sid-1",
@@ -56,19 +57,28 @@ public class BffUserHandlerTests : BaseTests
         HttpContext httpContext,
         BffSessionState? session,
         params IBffUserContributor[] contributors
+    ) => CreateFrontendHandler(httpContext, session, null, contributors);
+
+    private BffUserHandler CreateFrontendHandler(
+        HttpContext httpContext,
+        BffSessionState? session,
+        Action<BffFrontendOptions>? configure,
+        params IBffUserContributor[] contributors
     )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { UserClaims = ["email", "role", "phone_number"] }
-        );
+        var frontends = BffTestFrontends.CreateCatalog(frontend =>
+        {
+            frontend.UserClaims = ["email", "role", "phone_number"];
+            configure?.Invoke(frontend);
+        });
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         var manager = CreateStrictMock<IBffSessionManager>();
-        var resolver = new BffSessionResolver(manager.Object, cookies, [], options, timeProvider);
+        var resolver = new BffSessionResolver(manager.Object, cookies, [], frontends, timeProvider);
 
         var feature = new BffRequestFeature { IsResolved = true, Session = session };
         httpContext.Features.Set(feature);
-        return new BffUserHandler(resolver, contributors, options);
+        return new BffUserHandler(resolver, contributors, frontends);
     }
 
     private static async Task<string> ReadBodyAsync(HttpContext httpContext)
@@ -137,6 +147,24 @@ public class BffUserHandlerTests : BaseTests
         Assert.DoesNotContain("id-token", body);
         Assert.DoesNotContain("sid-1", body);
         Assert.DoesNotContain("op.example", body);
+    }
+
+    [Fact]
+    public async Task HandleAsync_FrontendWithItsOwnPrefix_ReturnsItsLogoutUrl()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Response.Body = new MemoryStream();
+        var handler = CreateFrontendHandler(
+            httpContext,
+            CreateState(),
+            frontend => frontend.PathPrefix = "/admin/bff"
+        );
+
+        await handler.HandleAsync(httpContext);
+
+        var body = await ReadBodyAsync(httpContext);
+        var root = JsonElement.Parse(body);
+        Assert.Equal("/admin/bff/logout", root.GetProperty("logoutUrl").GetString());
     }
 
     #endregion

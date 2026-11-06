@@ -15,6 +15,10 @@ public sealed class BffReverseProxyRoutesTests
         BffTokenRequirementNames.None,
     ];
 
+    private static readonly HashSet<string> Frontends = ["default", "admin"];
+
+    private static BffReverseProxyRouteNames Names { get; } = new(Requirements, Frontends);
+
     private static RouteConfig CreateRoute(Dictionary<string, string>? metadata) =>
         new()
         {
@@ -27,7 +31,7 @@ public sealed class BffReverseProxyRoutesTests
     private static List<Exception> Validate(Dictionary<string, string>? metadata)
     {
         List<Exception> errors = [];
-        BffReverseProxyRoutes.Validate(CreateRoute(metadata), Requirements, errors);
+        BffReverseProxyRoutes.Validate(CreateRoute(metadata), Names, errors);
         return errors;
     }
 
@@ -114,6 +118,34 @@ public sealed class BffReverseProxyRoutesTests
     public void GetTokenRequest_NoMetadata_ReturnsNull()
     {
         Assert.Null(BffReverseProxyRoutes.GetTokenRequest(CreateRoute(null)));
+    }
+
+    #endregion
+
+    #region GetFrontend Tests
+
+    [Fact]
+    public void GetFrontend_WithFrontend_ReturnsTheName()
+    {
+        var route = CreateRoute(
+            new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "admin" }
+        );
+
+        Assert.Equal("admin", BffReverseProxyRoutes.GetFrontend(route));
+    }
+
+    [Fact]
+    public void GetFrontend_OtherMetadata_ReturnsNull()
+    {
+        var route = CreateRoute(new Dictionary<string, string> { ["Other"] = "value" });
+
+        Assert.Null(BffReverseProxyRoutes.GetFrontend(route));
+    }
+
+    [Fact]
+    public void GetFrontend_NoMetadata_ReturnsNull()
+    {
+        Assert.Null(BffReverseProxyRoutes.GetFrontend(CreateRoute(null)));
     }
 
     #endregion
@@ -218,6 +250,44 @@ public sealed class BffReverseProxyRoutesTests
         var error = Assert.Single(errors);
         Assert.Equal(
             "The metadata of route 'orders' is invalid: BffResource must not be blank.",
+            error.Message
+        );
+    }
+
+    [Fact]
+    public void Validate_ConfiguredFrontend_AddsNoError()
+    {
+        var errors = Validate(
+            new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "admin" }
+        );
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Validate_BlankFrontend_AddsAnError()
+    {
+        var errors = Validate(
+            new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = " " }
+        );
+
+        var error = Assert.Single(errors);
+        Assert.Equal(
+            "The metadata of route 'orders' is invalid: BffFrontend must not be blank.",
+            error.Message
+        );
+    }
+
+    [Fact]
+    public void Validate_UnknownFrontend_AddsAnError()
+    {
+        var errors = Validate(
+            new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "other" }
+        );
+
+        var error = Assert.Single(errors);
+        Assert.Equal(
+            "The metadata of route 'orders' is invalid: BffFrontend 'other' is not a configured BFF frontend.",
             error.Message
         );
     }

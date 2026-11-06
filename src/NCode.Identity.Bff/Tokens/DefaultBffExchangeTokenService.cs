@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
@@ -21,6 +22,7 @@ internal class DefaultBffExchangeTokenService(
     IBffSessionManager sessionManager,
     IBffUserTokenService userTokenService,
     BffGrantClient grantClient,
+    BffFrontendCatalog frontends,
     BffRefreshLocks locks,
     IOptions<BffOptions> options,
     TimeProvider timeProvider
@@ -30,6 +32,7 @@ internal class DefaultBffExchangeTokenService(
     private readonly IBffSessionManager _sessionManager = sessionManager;
     private readonly IBffUserTokenService _userTokenService = userTokenService;
     private readonly BffGrantClient _grantClient = grantClient;
+    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly BffRefreshLocks _locks = locks;
     private readonly IOptions<BffOptions> _options = options;
     private readonly TimeProvider _timeProvider = timeProvider;
@@ -116,7 +119,8 @@ internal class DefaultBffExchangeTokenService(
             Scope = request.Scope,
             DPoPJwkThumbprint = current.Payload.DPoPJwkThumbprint,
         };
-        var result = await _grantClient.RequestAsync(grantRequest, cancellationToken);
+        var frontend = _frontends.GetRequired(httpContext);
+        var result = await _grantClient.RequestAsync(frontend, grantRequest, cancellationToken);
         if (result.Token is not { } token)
             return result;
 

@@ -3,9 +3,9 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
@@ -27,7 +27,7 @@ public sealed class BffReverseProxyBuilderExtensionsTests : BaseTests
         Services.AddOptions<BffOptions>();
         Services.AddSingleton(CreateLooseMock<IBffTokenAccessor>().Object);
         Services.AddSingleton(CreateLooseMock<IDPoPProofFactory>().Object);
-        Services.AddSingleton<BffClientRegistrationProvider>();
+        Services.AddSingleton(BffTestFrontends.CreateCatalog());
     }
 
     protected override void Dispose(bool disposing)

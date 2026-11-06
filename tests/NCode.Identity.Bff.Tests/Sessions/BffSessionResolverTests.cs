@@ -6,8 +6,10 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Jose;
 using Xunit;
 
@@ -25,10 +27,15 @@ public class BffSessionResolverTests : BaseTests
     public BffSessionResolverTests()
     {
         MockManager = CreateStrictMock<IBffSessionManager>();
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
-        Resolver = new BffSessionResolver(MockManager.Object, cookies, [], options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
+        Resolver = new BffSessionResolver(
+            MockManager.Object,
+            cookies,
+            [],
+            BffTestFrontends.CreateCatalog(),
+            timeProvider
+        );
     }
 
     private static DefaultHttpContext CreateHttpContext(
@@ -40,7 +47,7 @@ public class BffSessionResolverTests : BaseTests
     {
         var httpContext = new DefaultHttpContext();
         if (withCookie)
-            httpContext.Request.Headers.Cookie = $"{BffDefaults.SessionCookieName}={Handle}";
+            httpContext.Request.Headers.Cookie = $"{BffTestFrontends.SessionCookieName}={Handle}";
 
         var feature = new BffRequestFeature();
         if (endpointMetadata is not null)
@@ -61,16 +68,18 @@ public class BffSessionResolverTests : BaseTests
         return httpContext;
     }
 
-    private BffSessionResolver CreateResolver(IEnumerable<IBffSessionValidator> validators)
+    private BffSessionResolver CreateResolver(
+        IEnumerable<IBffSessionValidator> validators,
+        BffFrontendCatalog? catalog = null
+    )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         return new BffSessionResolver(
             MockManager.Object,
             cookies,
             validators,
-            options,
+            catalog ?? BffTestFrontends.CreateCatalog(),
             timeProvider
         );
     }
@@ -78,7 +87,8 @@ public class BffSessionResolverTests : BaseTests
     private static BffSessionState CreateState(
         DateTimeOffset absoluteExpiresAt,
         DateTimeOffset idleExpiresAt,
-        DateTimeOffset? lastAccessedAt = null
+        DateTimeOffset? lastAccessedAt = null,
+        string frontend = BffTestFrontends.Name
     ) =>
         new(
             Handle,
@@ -86,7 +96,7 @@ public class BffSessionResolverTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = frontend,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),
@@ -167,7 +177,46 @@ public class BffSessionResolverTests : BaseTests
 
         Assert.Null(result);
         var setCookie = Assert.Single(httpContext.Response.Headers.SetCookie.ToArray());
-        Assert.StartsWith($"{BffDefaults.SessionCookieName}=;", setCookie);
+        Assert.StartsWith($"{BffTestFrontends.SessionCookieName}=;", setCookie);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_NoFrontendSelected_ReturnsNullWithoutLoading()
+    {
+        var catalog = BffTestFrontends.CreateCatalog(x =>
+            x.Selection = new BffFrontendSelectionOptions
+            {
+                Rule = BffFrontendSelectorNames.Path,
+                Values = ["/admin"],
+            }
+        );
+        var httpContext = CreateHttpContext();
+        httpContext.Request.Path = "/api";
+        var resolver = CreateResolver([], catalog);
+
+        var result = await resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.True(httpContext.Features.Get<BffRequestFeature>()?.IsResolved);
+        Assert.Empty(httpContext.Response.Headers.SetCookie.ToArray());
+    }
+
+    [Fact]
+    public async Task ResolveAsync_SessionOfAnotherFrontend_DeletesCookie()
+    {
+        var httpContext = CreateHttpContext();
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1), frontend: "other");
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+
+        var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Null(httpContext.Features.Get<BffRequestFeature>()?.Session);
+        var setCookie = Assert.Single(httpContext.Response.Headers.SetCookie.ToArray());
+        Assert.StartsWith($"{BffTestFrontends.SessionCookieName}=;", setCookie);
     }
 
     [Fact]
@@ -354,6 +403,43 @@ public class BffSessionResolverTests : BaseTests
         Assert.Equal(Now, result.Metadata.LastAccessedAt);
         Assert.Equal(Now.AddHours(1), result.Metadata.IdleExpiresAt);
         Assert.Same(slidState, result);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_FrontendWithLongerIdleTimeout_SlidesByItsIdleTimeout()
+    {
+        var catalog = BffTestFrontends.CreateCatalog(x =>
+            x.Session.IdleTimeout = TimeSpan.FromHours(2)
+        );
+        var httpContext = CreateHttpContext(endpointMetadata: new BffApiAttribute());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1), Now.AddMinutes(-30));
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) => update(current)
+            )
+            .Verifiable();
+        var resolver = CreateResolver([], catalog);
+
+        var result = await resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(Now, result.Metadata.LastAccessedAt);
+        Assert.Equal(Now.AddHours(2), result.Metadata.IdleExpiresAt);
     }
 
     [Fact]

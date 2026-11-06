@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Bff.Hardening;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Hardening;
@@ -19,7 +19,11 @@ public class BffSecurityHeadersApplicationBuilderExtensionsTests : BaseTests
     public async Task UseBffSecurityHeaders_Pipeline_WritesTheConfiguredHeaders()
     {
         await using var serviceProvider = new ServiceCollection()
-            .Configure<BffOptions>(x => x.SecurityHeaders.ReferrerPolicy = "no-referrer")
+            .AddSingleton(
+                BffTestFrontends.CreateCatalog(x =>
+                    x.SecurityHeaders.ReferrerPolicy = "no-referrer"
+                )
+            )
             .BuildServiceProvider();
         var app = new ApplicationBuilder(serviceProvider);
 

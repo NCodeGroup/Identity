@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Collections.Frozen;
 using System.Net.Http.Headers;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.Bff.Tokens;
@@ -15,13 +14,6 @@ namespace NCode.Identity.Bff.RemoteApis;
 /// </summary>
 internal sealed class BffCookieBoundaryHandler : DelegatingHandler
 {
-    private static FrozenSet<string> BffCookieNames { get; } =
-        FrozenSet.Create(
-            StringComparer.Ordinal,
-            BffDefaults.SessionCookieName,
-            BffDefaults.LoginCookieName
-        );
-
     /// <inheritdoc />
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
@@ -98,6 +90,17 @@ internal sealed class BffCookieBoundaryHandler : DelegatingHandler
     {
         var end = cookie.AsSpan().IndexOfAny('=', ';');
         var name = end < 0 ? cookie.AsSpan() : cookie.AsSpan(0, end);
-        return BffCookieNames.GetAlternateLookup<ReadOnlySpan<char>>().Contains(name.Trim());
+        name = name.Trim();
+        return IsBffCookieName(name, BffDefaults.SessionCookieName)
+            || IsBffCookieName(name, BffDefaults.LoginCookieName);
+    }
+
+    // A frontend's cookie is its base name followed by '.' and the frontend's name.
+    private static bool IsBffCookieName(ReadOnlySpan<char> name, string baseName)
+    {
+        if (!name.StartsWith(baseName, StringComparison.Ordinal))
+            return false;
+
+        return name.Length == baseName.Length || name[baseName.Length] == '.';
     }
 }

@@ -1,7 +1,10 @@
 # 1293. The BFF ends sessions by guarded logout and by back-channel logout through indexes
 
 - **Status:** Accepted (decision 1 superseded by
-  [ADR-1311](1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md): logout is a form POST)
+  [ADR-1311](1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md): logout is a form POST;
+  decision 7 amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): a logout token ends
+  only the receiving frontend's sessions)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 

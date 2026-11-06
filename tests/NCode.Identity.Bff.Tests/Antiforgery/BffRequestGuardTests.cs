@@ -12,10 +12,10 @@ public class BffRequestGuardTests : BaseTests
 {
     private const string TrustedOrigin = "https://app.example.com";
 
-    private static BffOptions CreateOptions() => new() { TrustedOrigins = [TrustedOrigin] };
+    private static BffAntiforgeryOptions CreateOptions() => new();
 
     private static HttpRequest CreateRequest(
-        BffOptions options,
+        BffAntiforgeryOptions options,
         string[] headerValues,
         string? site = null,
         string[]? origins = null
@@ -24,7 +24,7 @@ public class BffRequestGuardTests : BaseTests
         var httpContext = new DefaultHttpContext();
         var request = httpContext.Request;
         if (headerValues.Length > 0)
-            request.Headers[options.Antiforgery.HeaderName] = headerValues;
+            request.Headers[options.HeaderName] = headerValues;
         if (site is not null)
             request.Headers["Sec-Fetch-Site"] = site;
         if (origins is not null)
@@ -52,7 +52,7 @@ public class BffRequestGuardTests : BaseTests
         var options = CreateOptions();
         var request = CreateRequest(options, values);
 
-        var reason = BffRequestGuard.Check(request, options);
+        var reason = BffRequestGuard.Check(request, options, [TrustedOrigin]);
 
         Assert.Equal(BffRequestGuard.AntiforgeryHeaderMissing, reason);
     }
@@ -64,9 +64,9 @@ public class BffRequestGuardTests : BaseTests
     public void Check_HeaderAndPassingSite_ReturnsNull(string? site)
     {
         var options = CreateOptions();
-        var request = CreateRequest(options, [options.Antiforgery.HeaderValue], site);
+        var request = CreateRequest(options, [options.HeaderValue], site);
 
-        var reason = BffRequestGuard.Check(request, options);
+        var reason = BffRequestGuard.Check(request, options, [TrustedOrigin]);
 
         Assert.Null(reason);
     }
@@ -78,9 +78,9 @@ public class BffRequestGuardTests : BaseTests
     public void Check_RefusedSite_ReturnsCrossSite(string site)
     {
         var options = CreateOptions();
-        var request = CreateRequest(options, [options.Antiforgery.HeaderValue], site);
+        var request = CreateRequest(options, [options.HeaderValue], site);
 
-        var reason = BffRequestGuard.Check(request, options);
+        var reason = BffRequestGuard.Check(request, options, [TrustedOrigin]);
 
         Assert.Equal(BffRequestGuard.CrossSiteRequest, reason);
     }
@@ -90,14 +90,9 @@ public class BffRequestGuardTests : BaseTests
     public void Check_SameSiteUntrustedOrigin_ReturnsCrossSite(string[] origins)
     {
         var options = CreateOptions();
-        var request = CreateRequest(
-            options,
-            [options.Antiforgery.HeaderValue],
-            "same-site",
-            origins
-        );
+        var request = CreateRequest(options, [options.HeaderValue], "same-site", origins);
 
-        var reason = BffRequestGuard.Check(request, options);
+        var reason = BffRequestGuard.Check(request, options, [TrustedOrigin]);
 
         Assert.Equal(BffRequestGuard.CrossSiteRequest, reason);
     }
@@ -106,14 +101,9 @@ public class BffRequestGuardTests : BaseTests
     public void Check_SameSiteTrustedOrigin_ReturnsNull()
     {
         var options = CreateOptions();
-        var request = CreateRequest(
-            options,
-            [options.Antiforgery.HeaderValue],
-            "same-site",
-            [TrustedOrigin]
-        );
+        var request = CreateRequest(options, [options.HeaderValue], "same-site", [TrustedOrigin]);
 
-        var reason = BffRequestGuard.Check(request, options);
+        var reason = BffRequestGuard.Check(request, options, [TrustedOrigin]);
 
         Assert.Null(reason);
     }

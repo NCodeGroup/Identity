@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using NCode.AspNetCore;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
@@ -16,7 +17,7 @@ namespace NCode.Identity.Bff.Logout;
 /// Handles <c>POST /backchannel-logout</c>: validates a logout token and ends the sessions it names.
 /// </summary>
 internal class BffBackChannelLogoutHandler(
-    BffClientRegistrationProvider registrationProvider,
+    BffFrontendCatalog frontends,
     ILogoutTokenValidator logoutTokenValidator,
     BffInstrumentedSessionStore sessionStore,
     IBffSessionManager sessionManager,
@@ -61,7 +62,8 @@ internal class BffBackChannelLogoutHandler(
             return;
         }
 
-        var registration = registrationProvider.Registration;
+        var frontend = frontends.GetRequired(httpContext);
+        var registration = frontend.Registration;
         var validationRequest = new LogoutTokenValidationRequest { LogoutToken = logoutToken };
         LogoutTokenValidationResult result;
         try
@@ -95,6 +97,12 @@ internal class BffBackChannelLogoutHandler(
                     continue;
 
                 var metadata = record.Metadata;
+
+                // A logout token is addressed to one client, so it ends only the sessions of the frontend
+                // registered as that client.
+                if (!string.Equals(metadata.Frontend, frontend.Name, StringComparison.Ordinal))
+                    continue;
+
                 if (!string.Equals(metadata.Issuer, result.Issuer, StringComparison.Ordinal))
                     continue;
 

@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.Bff.Antiforgery;
 using NCode.Identity.Bff.Auditing;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Antiforgery;
@@ -23,8 +25,16 @@ public class BffMiddlewareTests : BaseTests
         MockRecorder = CreateStrictMock<IBffAuditRecorder>();
     }
 
-    private BffMiddleware CreateMiddleware(RequestDelegate next) =>
-        new(next, Microsoft.Extensions.Options.Options.Create(Options), MockRecorder.Object);
+    private BffMiddleware CreateMiddleware(
+        RequestDelegate next,
+        BffFrontendCatalog? catalog = null
+    ) =>
+        new(
+            next,
+            Microsoft.Extensions.Options.Options.Create(Options),
+            catalog ?? BffTestFrontends.CreateCatalog(),
+            MockRecorder.Object
+        );
 
     private static DefaultHttpContext CreateContext(bool guarded)
     {
@@ -123,6 +133,77 @@ public class BffMiddlewareTests : BaseTests
             BffProblemTypes.CrossSiteRequest,
             ReadProblem(httpContext).GetProperty("type").GetString()
         );
+    }
+
+    [Fact]
+    public async Task InvokeAsync_SameSiteRequestFromTrustedOrigin_CallsNext()
+    {
+        const string origin = "https://admin.example.com";
+        var httpContext = CreateContext(guarded: true);
+        httpContext.Request.Headers[Options.Antiforgery.HeaderName] = Options
+            .Antiforgery
+            .HeaderValue;
+        httpContext.Request.Headers["Sec-Fetch-Site"] = "same-site";
+        httpContext.Request.Headers.Origin = origin;
+        var nextCalled = false;
+        var middleware = CreateMiddleware(
+            _ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            },
+            BffTestFrontends.CreateCatalog(x => x.TrustedOrigins = [origin])
+        );
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.True(nextCalled);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_SameSiteRequestWithoutAFrontend_IsRefused()
+    {
+        const string origin = "https://admin.example.com";
+        var httpContext = CreateContext(guarded: true);
+        httpContext.Request.Path = "/api";
+        httpContext.Request.Headers[Options.Antiforgery.HeaderName] = Options
+            .Antiforgery
+            .HeaderValue;
+        httpContext.Request.Headers["Sec-Fetch-Site"] = "same-site";
+        httpContext.Request.Headers.Origin = origin;
+        var catalog = BffTestFrontends.CreateCatalog(x =>
+        {
+            x.TrustedOrigins = [origin];
+            x.Selection = new BffFrontendSelectionOptions
+            {
+                Rule = BffFrontendSelectorNames.Path,
+                Values = ["/admin"],
+            };
+        });
+        var nextCalled = false;
+        var middleware = CreateMiddleware(
+            _ =>
+            {
+                nextCalled = true;
+                return Task.CompletedTask;
+            },
+            catalog
+        );
+        MockRecorder
+            .Setup(x =>
+                x.AntiforgeryRejectedAsync(
+                    httpContext,
+                    BffRequestGuard.CrossSiteRequest,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await middleware.InvokeAsync(httpContext);
+
+        Assert.False(nextCalled);
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
     }
 
     [Fact]

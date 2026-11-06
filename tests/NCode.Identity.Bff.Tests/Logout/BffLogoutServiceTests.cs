@@ -5,11 +5,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Logout;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -27,7 +26,7 @@ public class BffLogoutServiceTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now,
@@ -49,16 +48,13 @@ public class BffLogoutServiceTests : BaseTests
         Mock<ITokenRevocationClient> Revocation
     ) CreateService()
     {
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Authority = "https://op.example.com", ClientId = "bff" }
-        );
         var manager = CreateStrictMock<IBffSessionManager>();
         var revocation = CreateStrictMock<ITokenRevocationClient>();
         var service = new BffLogoutService(
             manager.Object,
             revocation.Object,
-            new BffClientRegistrationProvider(options),
-            new BffCookies(options, new FakeTimeProvider(Now)),
+            BffTestFrontends.CreateCatalog(),
+            new BffCookies(new FakeTimeProvider(Now)),
             CreateLooseMock<ILogger<BffLogoutService>>().Object
         );
         return (service, manager, revocation);
@@ -111,7 +107,7 @@ public class BffLogoutServiceTests : BaseTests
         Assert.Null(feature.Session);
         Assert.Null(feature.Principal);
         Assert.Contains(
-            BffDefaults.SessionCookieName,
+            BffTestFrontends.SessionCookieName,
             httpContext.Response.Headers.SetCookie.ToString()
         );
     }
@@ -182,7 +178,7 @@ public class BffLogoutServiceTests : BaseTests
         await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);
 
         Assert.Contains(
-            BffDefaults.SessionCookieName,
+            BffTestFrontends.SessionCookieName,
             httpContext.Response.Headers.SetCookie.ToString()
         );
     }

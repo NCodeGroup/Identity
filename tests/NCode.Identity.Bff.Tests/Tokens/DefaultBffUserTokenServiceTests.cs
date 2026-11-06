@@ -10,11 +10,11 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
@@ -84,17 +84,15 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             },
         };
         ActivitySource.AddActivityListener(Listener);
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Authority = "https://op.example", ClientId = "bff" }
-        );
+        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
         TimeProvider = timeProvider;
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         var resolver = new BffSessionResolver(
             MockManager.Object,
             cookies,
             [],
-            options,
+            BffTestFrontends.CreateCatalog(),
             timeProvider
         );
         MockStore = CreateStrictMock<IBffSessionStore>();
@@ -106,7 +104,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             MockManager.Object,
             new BffInstrumentedSessionStore(MockStore.Object, Metrics),
             MockTokenClient.Object,
-            new BffClientRegistrationProvider(options),
+            BffTestFrontends.CreateCatalog(),
             new BffRefreshLocks(),
             Metrics,
             cookies,
@@ -168,7 +166,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),
@@ -267,7 +265,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Assert.Equal(BffTokenFailureReasons.RefreshFailed, result.Reason);
         Assert.Contains(
             httpContext.Response.Headers.SetCookie,
-            x => x is not null && x.Contains(BffDefaults.SessionCookieName)
+            x => x is not null && x.Contains(BffTestFrontends.SessionCookieName)
         );
     }
 
@@ -950,7 +948,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Assert.Equal(BffTokenFailureReasons.RefreshFailed, result.Reason);
         Assert.Contains(
             httpContext.Response.Headers.SetCookie,
-            x => x is not null && x.Contains(BffDefaults.SessionCookieName)
+            x => x is not null && x.Contains(BffTestFrontends.SessionCookieName)
         );
         AssertRefreshRecorded(BffMetrics.FailedResult, BffTokenFailureReasons.RefreshFailed);
     }
@@ -1135,20 +1133,15 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     private DefaultBffUserTokenService CreateWaitingService()
     {
         var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions
-            {
-                Authority = "https://op.example",
-                ClientId = "bff",
-                Tokens = { RefreshLeaseDuration = TimeSpan.FromMilliseconds(400) },
-            }
+            new BffOptions { Tokens = { RefreshLeaseDuration = TimeSpan.FromMilliseconds(400) } }
         );
         var timeProvider = TimeProvider;
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         var resolver = new BffSessionResolver(
             MockManager.Object,
             cookies,
             [],
-            options,
+            BffTestFrontends.CreateCatalog(),
             timeProvider
         );
         return new DefaultBffUserTokenService(
@@ -1156,7 +1149,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             MockManager.Object,
             new BffInstrumentedSessionStore(MockStore.Object, Metrics),
             MockTokenClient.Object,
-            new BffClientRegistrationProvider(options),
+            BffTestFrontends.CreateCatalog(),
             new BffRefreshLocks(),
             Metrics,
             cookies,

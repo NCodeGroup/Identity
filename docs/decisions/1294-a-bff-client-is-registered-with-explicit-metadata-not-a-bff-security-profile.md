@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended by
   [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md): the client registers the
-  `offline_access` scope only when its BFF lists it in `Bff:Scopes`)
+  `offline_access` scope only when its BFF lists it in `Bff:Scopes`; keys amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): its per-frontend
+  settings are configured under Bff:Frontends:{name})
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 

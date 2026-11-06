@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Bff.Cookies;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Cookies;
@@ -15,11 +15,7 @@ public class BffCookiesTests : BaseTests
 
     private static readonly string Value43 = new('a', 43);
 
-    private static BffCookies CreateCookies() =>
-        new(
-            Microsoft.Extensions.Options.Options.Create(new BffOptions()),
-            new FakeTimeProvider(Now)
-        );
+    private static BffCookies CreateCookies() => new(new FakeTimeProvider(Now));
 
     private static string GetSetCookie(DefaultHttpContext httpContext) =>
         Assert.Single(httpContext.Response.Headers.SetCookie.ToArray()) ?? string.Empty;
@@ -36,17 +32,32 @@ public class BffCookiesTests : BaseTests
     #region SetSession Tests
 
     [Fact]
-    public void SetSession_Always_WritesStrictSecureCookie()
+    public void SetSession_WithFrontend_WritesTheFrontendsCookie()
     {
         var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
 
-        CreateCookies().SetSession(httpContext.Response, Value43, Now.AddHours(2));
+        CreateCookies().SetSession(httpContext.Response, frontend, Value43, Now.AddHours(2));
 
         var setCookie = GetSetCookie(httpContext);
-        Assert.StartsWith($"{BffDefaults.SessionCookieName}={Value43}", setCookie);
+        Assert.StartsWith($"{BffTestFrontends.SessionCookieName}={Value43}", setCookie);
         Assert.Contains("samesite=strict", setCookie.ToLowerInvariant());
         Assert.Contains("max-age=7200", setCookie.ToLowerInvariant());
         AssertCommonAttributes(setCookie);
+    }
+
+    [Fact]
+    public void SetSession_WithFrontendSameSite_UsesTheFrontendsSameSite()
+    {
+        var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(
+            BffTestFrontends.CreateCatalog(x => x.Session.SameSite = SameSiteMode.Lax)
+        );
+
+        CreateCookies().SetSession(httpContext.Response, frontend, Value43, Now.AddHours(2));
+
+        var setCookie = GetSetCookie(httpContext);
+        Assert.Contains("samesite=lax", setCookie.ToLowerInvariant());
     }
 
     #endregion
@@ -54,14 +65,15 @@ public class BffCookiesTests : BaseTests
     #region DeleteSession Tests
 
     [Fact]
-    public void DeleteSession_Always_ExpiresCookieWithSameAttributes()
+    public void DeleteSession_WithFrontend_ExpiresTheFrontendsCookie()
     {
         var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
 
-        CreateCookies().DeleteSession(httpContext.Response);
+        CreateCookies().DeleteSession(httpContext.Response, frontend);
 
         var setCookie = GetSetCookie(httpContext);
-        Assert.StartsWith($"{BffDefaults.SessionCookieName}=;", setCookie);
+        Assert.StartsWith($"{BffTestFrontends.SessionCookieName}=;", setCookie);
         Assert.Contains("samesite=strict", setCookie.ToLowerInvariant());
         AssertCommonAttributes(setCookie);
     }
@@ -71,16 +83,19 @@ public class BffCookiesTests : BaseTests
     #region SetLogin Tests
 
     [Fact]
-    public void SetLogin_Always_WritesLaxSecureCookie()
+    public void SetLogin_WithFrontend_WritesTheFrontendsCookie()
     {
         var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(
+            BffTestFrontends.CreateCatalog(x => x.Session.LoginLifetime = TimeSpan.FromMinutes(5))
+        );
 
-        CreateCookies().SetLogin(httpContext.Response, Value43);
+        CreateCookies().SetLogin(httpContext.Response, frontend, Value43);
 
         var setCookie = GetSetCookie(httpContext);
-        Assert.StartsWith($"{BffDefaults.LoginCookieName}={Value43}", setCookie);
+        Assert.StartsWith($"{BffTestFrontends.LoginCookieName}={Value43}", setCookie);
         Assert.Contains("samesite=lax", setCookie.ToLowerInvariant());
-        Assert.Contains("max-age=600", setCookie.ToLowerInvariant());
+        Assert.Contains("max-age=300", setCookie.ToLowerInvariant());
         AssertCommonAttributes(setCookie);
     }
 
@@ -89,14 +104,15 @@ public class BffCookiesTests : BaseTests
     #region DeleteLogin Tests
 
     [Fact]
-    public void DeleteLogin_Always_ExpiresCookieWithSameAttributes()
+    public void DeleteLogin_WithFrontend_ExpiresTheFrontendsCookie()
     {
         var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
 
-        CreateCookies().DeleteLogin(httpContext.Response);
+        CreateCookies().DeleteLogin(httpContext.Response, frontend);
 
         var setCookie = GetSetCookie(httpContext);
-        Assert.StartsWith($"{BffDefaults.LoginCookieName}=;", setCookie);
+        Assert.StartsWith($"{BffTestFrontends.LoginCookieName}=;", setCookie);
         Assert.Contains("samesite=lax", setCookie.ToLowerInvariant());
         AssertCommonAttributes(setCookie);
     }
@@ -106,24 +122,38 @@ public class BffCookiesTests : BaseTests
     #region ReadSessionHandle Tests
 
     [Fact]
-    public void ReadSessionHandle_When43Characters_ReturnsValue()
+    public void ReadSessionHandle_WithFrontendCookie_ReturnsValue()
     {
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers.Cookie = $"{BffDefaults.SessionCookieName}={Value43}";
+        httpContext.Request.Headers.Cookie = $"{BffTestFrontends.SessionCookieName}={Value43}";
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
 
-        var result = CreateCookies().ReadSessionHandle(httpContext.Request);
+        var result = CreateCookies().ReadSessionHandle(httpContext.Request, frontend);
 
         Assert.Equal(Value43, result);
     }
 
     [Fact]
-    public void ReadSessionHandle_When42Characters_ReturnsNull()
+    public void ReadSessionHandle_WithFrontendCookieOf42Characters_ReturnsNull()
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Headers.Cookie =
-            $"{BffDefaults.SessionCookieName}={new string('a', 42)}";
+            $"{BffTestFrontends.SessionCookieName}={new string('a', 42)}";
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
 
-        var result = CreateCookies().ReadSessionHandle(httpContext.Request);
+        var result = CreateCookies().ReadSessionHandle(httpContext.Request, frontend);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ReadSessionHandle_WithAnotherFrontendsCookie_ReturnsNull()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Cookie = $"{BffDefaults.SessionCookieName}.other={Value43}";
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+
+        var result = CreateCookies().ReadSessionHandle(httpContext.Request, frontend);
 
         Assert.Null(result);
     }
@@ -133,23 +163,26 @@ public class BffCookiesTests : BaseTests
     #region ReadLoginSecret Tests
 
     [Fact]
-    public void ReadLoginSecret_When43Characters_ReturnsValue()
+    public void ReadLoginSecret_WithFrontendCookie_ReturnsValue()
     {
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers.Cookie = $"{BffDefaults.LoginCookieName}={Value43}";
+        httpContext.Request.Headers.Cookie = $"{BffTestFrontends.LoginCookieName}={Value43}";
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
 
-        var result = CreateCookies().ReadLoginSecret(httpContext.Request);
+        var result = CreateCookies().ReadLoginSecret(httpContext.Request, frontend);
 
         Assert.Equal(Value43, result);
     }
 
     [Fact]
-    public void ReadLoginSecret_When42Characters_ReturnsNull()
+    public void ReadLoginSecret_WithFrontendCookieOf42Characters_ReturnsNull()
     {
         var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers.Cookie = $"{BffDefaults.LoginCookieName}={new string('a', 42)}";
+        httpContext.Request.Headers.Cookie =
+            $"{BffTestFrontends.LoginCookieName}={new string('a', 42)}";
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
 
-        var result = CreateCookies().ReadLoginSecret(httpContext.Request);
+        var result = CreateCookies().ReadLoginSecret(httpContext.Request, frontend);
 
         Assert.Null(result);
     }
@@ -158,8 +191,21 @@ public class BffCookiesTests : BaseTests
     public void ReadLoginSecret_WhenMissing_ReturnsNull()
     {
         var httpContext = new DefaultHttpContext();
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
 
-        var result = CreateCookies().ReadLoginSecret(httpContext.Request);
+        var result = CreateCookies().ReadLoginSecret(httpContext.Request, frontend);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ReadLoginSecret_WithAnotherFrontendsCookie_ReturnsNull()
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.Cookie = $"{BffDefaults.LoginCookieName}.other={Value43}";
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+
+        var result = CreateCookies().ReadLoginSecret(httpContext.Request, frontend);
 
         Assert.Null(result);
     }

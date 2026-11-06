@@ -1,6 +1,8 @@
 # 1301. A signed UserInfo response is validated like an ID token under the client's registered algorithms
 
-- **Status:** Accepted
+- **Status:** Accepted (keys amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): its per-frontend
+  settings are configured under Bff:Frontends:{name})
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 

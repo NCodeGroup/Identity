@@ -322,8 +322,9 @@ reached through, when the tenant names one), `state` (`active`, `unavailable` or
 
 ### BFF plane
 
-Every BFF event is a `BffAuditEvent` with `event_source` `bff`. Its `client_id` is the BFF's own client id at the
-provider, and its `subject_id` is the session's subject when one is known. None carries a resource.
+Every BFF event is a `BffAuditEvent` with `event_source` `bff`. Its `client_id` is the client id at the provider of the
+frontend the request selects, and is absent when it selects none. Its `subject_id` is the session's subject when one is
+known. None carries a resource.
 
 | `event_name`                      | Category         | Source | Outcomes  | Severity  | Actor                                                   | Resources | `error.code`                                                                        | `details` |
 | --------------------------------- | ---------------- | ------ | --------- | --------- | ------------------------------------------------------- | --------- | ----------------------------------------------------------------------------------- | --------- |
@@ -339,7 +340,8 @@ Notes on the BFF events:
 
 - `bff.login.failed` codes are the names in `BffLoginFailureReasons`: `unknown_state`, `initiator_mismatch`,
   `issuer_mismatch`, `authorization_error`, `authorization_request_failed`, `provider_unavailable`,
-  `invalid_response`, `token_error`, `id_token_invalid`, `nonce_mismatch` and `rejected_by_gate`.
+  `invalid_response`, `token_error`, `id_token_invalid`, `nonce_mismatch`, `userinfo_failed`, `frontend_mismatch` and
+  `rejected_by_gate`.
 - `bff.session.ended`'s `details.reason` is a name in `BffSessionEndReasons`: `logged_out`, `idle_timeout`,
   `absolute_expiry`, `refresh_failed`, `backchannel_logout`, `replaced` or `ended_by_validator`.
 - `bff.backchannel_logout.received` is published once for each logout token handled, after the sessions it names have

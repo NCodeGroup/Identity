@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using Xunit;
 
@@ -18,15 +18,12 @@ public class BffClientTokenRequirementTests : BaseTests
 
     private static BffSessionResolver CreateResolver(Mock<IBffSessionManager> manager)
     {
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Authority = "https://op.example", ClientId = "bff" }
-        );
         var timeProvider = new FakeTimeProvider(Now);
         return new BffSessionResolver(
             manager.Object,
-            new BffCookies(options, timeProvider),
+            new BffCookies(timeProvider),
             [],
-            options,
+            BffTestFrontends.CreateCatalog(),
             timeProvider
         );
     }
@@ -40,7 +37,7 @@ public class BffClientTokenRequirementTests : BaseTests
                 1,
                 new BffSessionMetadata
                 {
-                    Frontend = BffDefaults.FrontendName,
+                    Frontend = BffTestFrontends.Name,
                     Issuer = "https://op.example",
                     Subject = "sub-1",
                     CreatedAt = Now.AddHours(-1),
@@ -102,13 +99,14 @@ public class BffClientTokenRequirementTests : BaseTests
             Resource = "https://api.example",
             Scope = "read",
         };
+        var requirementContext = CreateHttpContext(true);
         MockService
-            .Setup(x => x.GetAccessTokenAsync(request, CancellationToken.None))
+            .Setup(x => x.GetAccessTokenAsync(requirementContext, request, CancellationToken.None))
             .ReturnsAsync(Token)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
-            CreateHttpContext(true),
+            requirementContext,
             request,
             CancellationToken.None
         );

@@ -13,9 +13,9 @@ public sealed class BffJwksOptions
 {
     /// <summary>
     /// Gets or sets a value indicating whether <c>MapBffEndpoints()</c> maps <c>GET {PathPrefix}/jwks</c>, which
-    /// publishes the public keys of <c>Bff:ClientAuthentication:KeyRing</c> as a JSON Web Key Set. A client registered
-    /// with that <c>jwks_uri</c> rotates its keys without re-registration. The default is <c>false</c>. The
-    /// configuration key is <c>Bff:Jwks:Enabled</c>.
+    /// publishes the public keys of <c>Bff:Frontends:{name}:ClientAuthentication:KeyRing</c> as a JSON Web Key Set. A
+    /// client registered with that <c>jwks_uri</c> rotates its keys without re-registration. The default is
+    /// <c>false</c>. The configuration key is <c>Bff:Frontends:{name}:Jwks:Enabled</c>.
     /// </summary>
     public bool Enabled { get; set; }
 }

@@ -1,6 +1,9 @@
 # 1290. The BFF keeps each session as an encrypted server-side record under a cookie handle
 
-- **Status:** Accepted
+- **Status:** Accepted (decisions 7, 8 and 13 amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): the session and login
+  cookies are named for their frontend, the login transaction records its frontend, a deployment serves several
+  frontends, and a session records the one it belongs to)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)

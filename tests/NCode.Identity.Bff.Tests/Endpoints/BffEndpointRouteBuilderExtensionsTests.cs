@@ -5,19 +5,22 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Endpoints;
 
 public class BffEndpointRouteBuilderExtensionsTests : BaseTests
 {
-    private static List<RouteEndpoint> MapEndpoints(Action<BffOptions>? configure = null)
+    private static List<RouteEndpoint> MapEndpoints(Action<BffFrontendOptions>? configure = null) =>
+        MapEndpoints(BffTestFrontends.CreateCatalog(configure));
+
+    private static List<RouteEndpoint> MapEndpoints(BffFrontendCatalog catalog)
     {
         var builder = WebApplication.CreateSlimBuilder();
-        var optionsBuilder = builder.Services.AddOptions<BffOptions>();
-        if (configure is not null)
-            optionsBuilder.Configure(configure);
+        builder.Services.AddSingleton(catalog);
 
         var app = builder.Build();
         IEndpointRouteBuilder endpoints = app;
@@ -103,6 +106,96 @@ public class BffEndpointRouteBuilderExtensionsTests : BaseTests
         var endpoints = MapEndpoints();
 
         Assert.DoesNotContain(endpoints, x => x.RoutePattern.RawText == "/bff/jwks");
+    }
+
+    [Fact]
+    public void MapBffEndpoints_NamesTheEndpointsAfterTheFrontend()
+    {
+        var endpoints = MapEndpoints(x => x.Jwks.Enabled = true);
+
+        var names = endpoints
+            .Select(x => x.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName)
+            .Order()
+            .ToList();
+
+        Assert.Equal(
+            [
+                "Bff.default.BackchannelLogout",
+                "Bff.default.Callback",
+                "Bff.default.Jwks",
+                "Bff.default.Login",
+                "Bff.default.Logout",
+                "Bff.default.User",
+            ],
+            names
+        );
+    }
+
+    [Fact]
+    public void MapBffEndpoints_EveryEndpoint_IsLimitedToItsFrontend()
+    {
+        var endpoints = MapEndpoints(x => x.Jwks.Enabled = true);
+
+        Assert.All(
+            endpoints,
+            endpoint =>
+            {
+                var frontend = Assert.Single(
+                    endpoint.Metadata.GetOrderedMetadata<BffFrontendAttribute>()
+                );
+                Assert.Equal(BffTestFrontends.Name, frontend.Name);
+            }
+        );
+    }
+
+    [Fact]
+    public void MapBffEndpoints_TwoFrontends_MapsEachUnderItsPrefix()
+    {
+        var catalog = BffTestFrontends.CreateCatalog(
+            new BffOptions
+            {
+                Frontends =
+                {
+                    ["web"] = BffTestFrontends.CreateOptions(x => x.Jwks.Enabled = true),
+                    ["admin"] = BffTestFrontends.CreateOptions(x => x.PathPrefix = "/admin/bff"),
+                },
+            }
+        );
+
+        var endpoints = MapEndpoints(catalog);
+
+        var web = endpoints
+            .Where(x => x.Metadata.GetMetadata<BffFrontendAttribute>()?.Name == "web")
+            .Select(x => x.RoutePattern.RawText)
+            .Order()
+            .ToList();
+        var admin = endpoints
+            .Where(x => x.Metadata.GetMetadata<BffFrontendAttribute>()?.Name == "admin")
+            .Select(x => x.RoutePattern.RawText)
+            .Order()
+            .ToList();
+
+        Assert.Equal(
+            [
+                "/bff/backchannel-logout",
+                "/bff/callback",
+                "/bff/jwks",
+                "/bff/login",
+                "/bff/logout",
+                "/bff/user",
+            ],
+            web
+        );
+        Assert.Equal(
+            [
+                "/admin/bff/backchannel-logout",
+                "/admin/bff/callback",
+                "/admin/bff/login",
+                "/admin/bff/logout",
+                "/admin/bff/user",
+            ],
+            admin
+        );
     }
 
     #endregion

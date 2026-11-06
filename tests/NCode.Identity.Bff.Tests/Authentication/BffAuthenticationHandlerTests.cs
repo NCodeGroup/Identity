@@ -12,8 +12,10 @@ using Moq;
 using NCode.Buffers;
 using NCode.Identity.Bff.Authentication;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Jose;
 using Xunit;
 
@@ -30,7 +32,7 @@ public class BffAuthenticationHandlerTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now,
@@ -55,14 +57,15 @@ public class BffAuthenticationHandlerTests : BaseTests
     )> CreateHandlerAsync(
         BffSessionState? session,
         object? endpointMetadata = null,
-        BffOptions? bffOptions = null
+        Action<BffFrontendOptions>? configure = null,
+        BffFrontendCatalog? catalog = null
     )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(bffOptions ?? new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         var manager = CreateStrictMock<IBffSessionManager>();
-        var resolver = new BffSessionResolver(manager.Object, cookies, [], options, timeProvider);
+        catalog ??= BffTestFrontends.CreateCatalog(configure);
+        var resolver = new BffSessionResolver(manager.Object, cookies, [], catalog, timeProvider);
 
         var httpContext = new DefaultHttpContext();
         httpContext.Response.Body = new MemoryStream();
@@ -98,7 +101,7 @@ public class BffAuthenticationHandlerTests : BaseTests
             NullLoggerFactory.Instance,
             UrlEncoder.Default,
             resolver,
-            options
+            catalog
         );
         var scheme = new AuthenticationScheme(
             BffDefaults.AuthenticationScheme,
@@ -182,11 +185,10 @@ public class BffAuthenticationHandlerTests : BaseTests
     [Fact]
     public async Task ChallengeAsync_PageEndpoint_AllowedPath_RedirectsToLoginWithReturnUrl()
     {
-        var bffOptions = new BffOptions { ReturnUrls = ["/app"] };
         var (handler, httpContext) = await CreateHandlerAsync(
             null,
             new BffPageAttribute(),
-            bffOptions
+            f => f.ReturnUrls = ["/app"]
         );
         httpContext.Request.Path = "/app/page";
         httpContext.Request.QueryString = new QueryString("?a=1");
@@ -201,15 +203,67 @@ public class BffAuthenticationHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task ChallengeAsync_PageEndpoint_FrontendWithPathPrefix_RedirectsToItsLogin()
+    {
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffPageAttribute(),
+            f =>
+            {
+                f.PathPrefix = "/admin/bff";
+                f.ReturnUrls = ["/admin"];
+            }
+        );
+        httpContext.Request.Path = "/admin/page";
+
+        await handler.ChallengeAsync(null);
+
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        Assert.Equal(
+            "/admin/bff/login?returnUrl=%2Fadmin%2Fpage",
+            httpContext.Response.Headers.Location.ToString()
+        );
+    }
+
+    [Fact]
     public async Task ChallengeAsync_PageEndpoint_DisallowedPath_RedirectsToLoginWithRoot()
     {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffPageAttribute(),
+            f => f.ReturnUrls = ["/app"]
+        );
         httpContext.Request.Path = "/other";
 
         await handler.ChallengeAsync(null);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
+    }
+
+    [Fact]
+    public async Task ChallengeAsync_PageWithoutAFrontend_Answers401()
+    {
+        var catalog = BffTestFrontends.CreateCatalog(f =>
+            f.Selection = new BffFrontendSelectionOptions
+            {
+                Rule = BffFrontendSelectorNames.Path,
+                Values = ["/admin"],
+            }
+        );
+        var (handler, httpContext) = await CreateHandlerAsync(
+            null,
+            new BffPageAttribute(),
+            catalog: catalog
+        );
+        httpContext.Request.Path = "/other";
+
+        await handler.ChallengeAsync(null);
+
+        Assert.Equal(StatusCodes.Status401Unauthorized, httpContext.Response.StatusCode);
+        Assert.Equal("application/problem+json", httpContext.Response.ContentType);
+        var body = await ReadBodyAsync(httpContext);
+        Assert.Contains(BffProblemTypes.SessionRequired, body);
     }
 
     [Fact]

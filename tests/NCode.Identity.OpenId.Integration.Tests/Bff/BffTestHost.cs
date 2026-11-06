@@ -26,6 +26,8 @@ namespace NCode.Identity.OpenId.Integration.Tests.Bff;
 /// </summary>
 internal sealed class BffTestHost : IAsyncDisposable
 {
+    public const string FrontendName = "web";
+    public const string ConfigurationPrefix = "Bff:Frontends:web";
     public const string ClientId = "it-bff-e2e";
     public const string ClientSecret = "bff-e2e-Wq4mZ8vK2nT7xR5bL9cY3hF6jD1sGp0E";
     public const string KeyRing = "bff-e2e";
@@ -94,18 +96,18 @@ internal sealed class BffTestHost : IAsyncDisposable
         builder.Configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
-                ["Bff:Authority"] = HostApplicationFactory.TestServerIssuer,
-                ["Bff:PublicOrigin"] = "https://bff.example",
-                ["Bff:ClientId"] = ClientId,
-                ["Bff:ClientAuthentication:Method"] = OpenIdProtocol
+                [$"{ConfigurationPrefix}:Authority"] = HostApplicationFactory.TestServerIssuer,
+                [$"{ConfigurationPrefix}:PublicOrigin"] = "https://bff.example",
+                [$"{ConfigurationPrefix}:ClientId"] = ClientId,
+                [$"{ConfigurationPrefix}:ClientAuthentication:Method"] = OpenIdProtocol
                     .ClientAuthenticationMethods
                     .ClientSecretBasic,
-                ["Bff:ClientAuthentication:KeyRing"] = KeyRing,
-                ["Bff:ReturnUrls:0"] = "/",
+                [$"{ConfigurationPrefix}:ClientAuthentication:KeyRing"] = KeyRing,
+                [$"{ConfigurationPrefix}:ReturnUrls:0"] = "/",
                 // The NCode OP issues a refresh token only when offline_access is granted.
-                ["Bff:Scopes:0"] = OpenIdProtocol.ScopeTypes.OfflineAccess,
-                ["Bff:LoginParameters:0"] = OpenIdProtocol.Parameters.Prompt,
-                ["Bff:UserClaims:0"] = "email",
+                [$"{ConfigurationPrefix}:Scopes:0"] = OpenIdProtocol.ScopeTypes.OfflineAccess,
+                [$"{ConfigurationPrefix}:LoginParameters:0"] = OpenIdProtocol.Parameters.Prompt,
+                [$"{ConfigurationPrefix}:UserClaims:0"] = "email",
             }
         );
 
@@ -179,13 +181,24 @@ internal sealed class BffTestHost : IAsyncDisposable
     /// <summary>
     /// Sends a request with the cookies of the jar and stores the cookies that the response sets.
     /// </summary>
-    public async Task<HttpResponseMessage> SendAsync(
+    public Task<HttpResponseMessage> SendAsync(
         HttpMethod method,
         string pathAndQuery,
         params (string Name, string Value)[] headers
+    ) => SendAsync(method, pathAndQuery, null, headers);
+
+    /// <summary>
+    /// Sends a request with a body and the cookies of the jar, as a browser that posts a form, and stores the cookies
+    /// that the response sets.
+    /// </summary>
+    public async Task<HttpResponseMessage> SendAsync(
+        HttpMethod method,
+        string pathAndQuery,
+        HttpContent? content,
+        params (string Name, string Value)[] headers
     )
     {
-        using var request = new HttpRequestMessage(method, pathAndQuery);
+        using var request = new HttpRequestMessage(method, pathAndQuery) { Content = content };
         if (_cookies.Count > 0)
         {
             var cookie = string.Join("; ", _cookies.Select(pair => $"{pair.Key}={pair.Value}"));

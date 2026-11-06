@@ -1,7 +1,7 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
-- **Status:** In progress. SharedState, the protocol client, the `NCode.Identity.Bff` core, remote APIs and browser
-  hardening are implemented; multiple frontends and serving the management console through the BFF are pending
+- **Status:** In progress. SharedState, the protocol client, the `NCode.Identity.Bff` core, remote APIs, browser
+  hardening and multiple frontends are implemented; serving the management console through the BFF is pending
   ([§9](#9-implementation-status)). The library is tracked as issue
   [#123](https://github.com/NCodeGroup/Identity/issues/123), and the management console as
   [#158](https://github.com/NCodeGroup/Identity/issues/158). Each implemented area's decisions
@@ -280,8 +280,8 @@ packages, so a BFF in front of a non-NCode OP pulls in no server code: the clien
 **Authorization request.**
 
 - `response_type=code`, PKCE `S256` on every request, a fresh `state` and `nonce`, and `response_mode=query`.
-- `scope` is `openid` plus the configured `Bff:Scopes`, each once. It includes `offline_access` only when `Bff:Scopes`
-  lists it, for an OP that issues a refresh token for that scope alone: an offline grant outlives the OP's login
+- `scope` is `openid` plus the frontend's configured `Bff:Frontends:{name}:Scopes`, each once. It includes
+  `offline_access` only when the frontend's `Scopes` lists it, for an OP that issues a refresh token for that scope alone: an offline grant outlives the OP's login
   session, so an OP such as Keycloak ends that session without a back-channel logout to the BFF
   ([ADR-1431](decisions/1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
 - `resource` lists the RFC 8707 resource indicators for the frontend's APIs.
@@ -313,24 +313,28 @@ policy:
 - When the client registers ID-token encryption, the ID token must be a Nested JWT that decrypts with the asymmetric
   keys of the client's key ring under its registered `alg` and `enc` (RSA-OAEP or ECDH-ES only)
   ([ADR-1280](decisions/1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)).
-- `Bff:IdToken` names the signing algorithms, and the encryption `alg` and `enc`, the BFF registered for its ID
-  tokens and logout tokens; encryption needs `Bff:ClientAuthentication:KeyRing`, which holds the decryption keys.
+- `Bff:Frontends:{name}:IdToken` names the signing algorithms, and the encryption `alg` and `enc`, the frontend
+  registered for its ID tokens and logout tokens; encryption needs `Bff:Frontends:{name}:ClientAuthentication:KeyRing`,
+  which holds the decryption keys.
 
 The family therefore has one JOSE stack for every token the BFF validates.
 
 **Discovery.** Discovery is fetched lazily and cached, and the issuer must equal the configured authority (OIDC
 Discovery §4.3). The JWKS is refreshed when a token carries an unknown `kid`.
 
-**UserInfo.** With `Bff:UserInfo:Load`, the callback requests UserInfo once, with the new access token presented the
-way it was issued (bearer, DPoP or over mutual TLS), and refuses a response about another subject than the ID token's
+**UserInfo.** With a frontend's `Bff:Frontends:{name}:UserInfo:Load`, the callback requests UserInfo once, with the new
+access token presented the way it was issued (bearer, DPoP or over mutual TLS), and refuses a response about another
+subject than the ID token's
 (OIDC Core §5.3.2). Each UserInfo claim type replaces the ID token's claims of that type, except the claims that anchor
 the session (`iss`, `sub`, `sid`, `auth_time`, `acr`, `amr`); the session claim contributors and the login gates then
 see the merged claims. A failed request ends the login with `userinfo_failed`, or `provider_unavailable` when the OP
 cannot be reached. Without the option, the session's claims come from the ID token
 ([ADR-1299](decisions/1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md)).
-When the BFF registered `userinfo_signed_response_alg` (`Bff:UserInfo:SigningAlgorithms`), the response must be a JWT
+When the frontend registered `userinfo_signed_response_alg` (`Bff:Frontends:{name}:UserInfo:SigningAlgorithms`), the
+response must be a JWT
 the OP signed under those algorithms, with its `iss` and an `aud` naming the client, and a Nested JWT that decrypts with
-the client's key ring when it also registered encryption (`Bff:UserInfo:KeyManagementAlgorithms`); a JSON response is
+the client's key ring when it also registered encryption
+(`Bff:Frontends:{name}:UserInfo:KeyManagementAlgorithms`); a JSON response is
 then refused, as is an encrypted response that is not signed
 ([ADR-1301](decisions/1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)).
 
@@ -342,9 +346,11 @@ The login transaction is a **server-side record**, not a protected cookie or a p
 - The transaction (PKCE verifier, nonce, return URL, frontend, DPoP key id, allow-listed parameters) is stored
   **under a hash of `state`**, encrypted with a key derived from the initiator secret. Its lifetime is short, 10
   minutes by default.
-- The initiator secret goes to the browser in a `__Host-Http-bff-login` cookie (`Secure`, `HttpOnly`, `Path=/`,
-  `SameSite=Lax`, ten-minute `Max-Age`). It must be `Lax`, because the callback arrives as a cross-site top-level
-  `GET` navigation from the OP, and `Lax` cookies are sent on those.
+- The initiator secret goes to the browser in a `__Host-Http-bff-login.<frontend>` cookie (`Secure`, `HttpOnly`,
+  `Path=/`, `SameSite=Lax`, ten-minute `Max-Age`). It must be `Lax`, because the callback arrives as a cross-site
+  top-level `GET` navigation from the OP, and `Lax` cookies are sent on those.
+- The transaction records its frontend. A callback that selects another frontend than the transaction's is refused
+  with `frontend_mismatch`.
 
 The callback checks these guarantees **before** any token exchange:
 
@@ -363,7 +369,7 @@ login but cannot weaken any check. On success the BFF **always mints a new sessi
 handle the browser already presented. It deletes any session the browser's old cookie pointed to, deletes the
 initiator cookie, and sets the session cookie. Every failure ends with a `bff.login.failed` event carrying a reason
 name from an open vocabulary (`unknown_state`, `initiator_mismatch`, `issuer_mismatch`, `token_error`,
-`id_token_invalid`, `nonce_mismatch`, `rejected_by_gate`, …). The browser is then redirected to the frontend's
+`id_token_invalid`, `nonce_mismatch`, `frontend_mismatch`, `rejected_by_gate`, …). The browser is then redirected to the frontend's
 configured error path, and no session is issued. The protocol client names why an ID token failed in
 `IdTokenValidationResult.FailureCode`, from the open `TokenValidationFailureCodes` vocabulary (`nonce_mismatch`,
 `expired`, `invalid_signature`, …), so the BFF picks the reason name without matching on text
@@ -393,7 +399,7 @@ sequenceDiagram
     O-->>F: id_token, DPoP-bound access_token, refresh_token
     F->>F: validate the ID token and nonce, run login gates
     F->>S: create the session at H(handle), payload encrypted with a handle-derived key
-    F-->>B: 302 to /orders, Set-Cookie __Host-Http-bff (Strict, HttpOnly, Secure)
+    F-->>B: 302 to /orders, Set-Cookie __Host-Http-bff.<frontend> (Strict, HttpOnly, Secure)
 ```
 
 ### 5.3 The session cookie and the server-side record
@@ -402,7 +408,7 @@ sequenceDiagram
 
 | Attribute  | Value                                                     | Note                                                                                                                         |
 | ---------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Name       | `__Host-Http-bff`, with a suffix per frontend when there are several | A browser that does not yet enforce the `__Host-Http-` prefix still enforces `__Host-`, because the name begins with it. |
+| Name       | `__Host-Http-bff.<frontend>` (every frontend's cookie carries its name) | A browser that does not yet enforce the `__Host-Http-` prefix still enforces `__Host-`, because the name begins with it. |
 | Value      | A base64url 256-bit random handle                         | It is a reference, not data. It is never logged and never stored.                                                            |
 | `Secure`   | Always                                                    |                                                                                                                              |
 | `HttpOnly` | Always                                                    |                                                                                                                              |
@@ -414,7 +420,8 @@ sequenceDiagram
 **The record** is stored under `store key = HKDF-SHA-256(handle, "ncode.bff.session.id")` and has two parts:
 
 - **Metadata, in plaintext.** It is needed without the handle: the frontend, `iss`, `sub`, the OP `sid`, creation and
-  last-access times, absolute and idle expiry, and a version for compare-and-swap.
+  last-access times, absolute and idle expiry, and a version for compare-and-swap. The metadata's frontend is checked
+  against the request's frontend: a cookie whose session belongs to another frontend is ignored and deleted.
 - **Payload, encrypted** with AES-256-GCM under `HKDF-SHA-256(handle, "ncode.bff.session.payload")`, with the store
   key and version as associated data. It holds the session principal's claims, the ID token (later sent as
   `id_token_hint`), the refresh token, the access-token cache ([§5.5](#55-token-management)), the DPoP key id, and the
@@ -538,17 +545,17 @@ remote API:
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `user`           | A session is required, and the call uses the session's user token. Without a session the call answers `401`.                                        |
 | `user_or_client` | Uses the user token when a session exists, and otherwise a `client_credentials` token.                                                              |
-| `client`         | Uses a `client_credentials` token, cached BFF-wide for each resource and scope set and refreshed single-flight. The session is still required, because the cookie gates the API. |
+| `client`         | Uses a `client_credentials` token, cached for each frontend, resource and scope set and refreshed single-flight. The session is still required, because the cookie gates the API. |
 | `exchange`       | Uses a token-exchange grant (RFC 8693) with the session's access token as the `subject_token`, for an audience the refresh down-scoping cannot reach. |
 | `none`           | Forwards with no token. The session and anti-forgery checks still apply.                                                                           |
 
 **DPoP.**
 
-- **When.** The `DPoP` mode is `when_supported` by default: the BFF uses DPoP whenever the OP advertises
+- **When.** A frontend's `DPoP` mode is `when_supported` by default: the BFF uses DPoP whenever the OP advertises
   `dpop_signing_alg_values_supported` and that list includes the BFF key's algorithm. The other value is `required`,
   which fails the token request, the login or the refresh, when the OP does not support DPoP; it does not fail startup.
   There is no mode that turns DPoP off where the OP supports it.
-- **Which key.** The key is a **BFF-wide key ring** from `NCode.Identity.Secrets`, not a key per session. The
+- **Which key.** The key is a **key ring of the frontend** from `NCode.Identity.Secrets`, not a key per session. The
   separation is the point: tokens live in the store and the key lives elsewhere, possibly as a non-exportable key in a
   key-management service.
 - **Rotation.** Each session records the `jkt` it was bound with. The NCode OP keeps a refresh token bound to its
@@ -614,8 +621,8 @@ binds a local path prefix to **one** destination base URL. The forwarder:
 instead ([ADR-1381](decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
 decision 8). `AddReverseProxy()…AddBffTransforms()` makes every route whose metadata has `BffTokenRequirement` a
 remote API, with the optional `BffResource` and `BffScope`, and `MapReverseProxy().AsBffRemoteApis()` marks those
-routes as BFF APIs, so they need the session and the anti-forgery header. The keys have no `:`, because YARP's
-configuration loader reads a colon as a section separator.
+routes as BFF APIs, so they need the session and the anti-forgery header. The optional `BffFrontend` key limits a route
+to one frontend. The keys have no `:`, because YARP's configuration loader reads a colon as a section separator.
 
 ```jsonc
 {
@@ -636,26 +643,40 @@ configuration loader reads a colon as a section separator.
 
 - The destination allow-list is YARP's cluster configuration, and the path and forwarding headers follow the route's
   own pattern and transforms.
-- Each route's metadata is validated when YARP loads it: the requirement must be registered, and `BffResource` or
-  `BffScope` without `BffTokenRequirement` is refused.
+- Each route's metadata is validated when YARP loads it: the requirement must be registered, `BffResource` or
+  `BffScope` without `BffTokenRequirement` is refused, and `BffFrontend` must name a frontend of `Bff:Frontends`.
 - A remote API route strips the browser's `Cookie`, `Authorization`, `DPoP` and anti-forgery headers, resolves its
   token before anything is forwarded, attaches it as `MapBffRemoteApi` does, and drops every upstream `Set-Cookie`.
 - Every other route never forwards the BFF's session or login cookie, and an upstream cannot set either.
 - `AddBffTransforms()` wraps the last registered `IForwarderHttpClientFactory`, so it is called after
   `ConfigureHttpClient()`; the proxy refuses to start when a factory is registered after it.
-- A route that names a requirement but is not marked with `AsBffRemoteApis()` fails closed: the token accessor serves
-  a token only to an endpoint the BFF guards, so nothing is forwarded and YARP answers `502`.
+- The host refuses to start when such a route is not marked with `AsBffRemoteApis()`, when YARP routes are mapped
+  without `AddBffTransforms()`, or when an endpoint names an unconfigured frontend. After startup, a changed route that
+  fails the same checks is logged and answers `502`: the token accessor serves a token only to an endpoint the BFF
+  guards, so nothing is forwarded
+  ([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
 
 **The SPA contract.** Every request to `/bff/user`, local APIs, and remote APIs carries the configured anti-forgery
 header with its static value (`X-CSRF: 1` by default). Requests are same-origin and send credentials (the `fetch`
 default for same-origin). A `401` means "no session, navigate to `/bff/login`". A `403` with the
 `antiforgery_header_missing` problem type means the client is broken, not that the user is signed out.
 
+**Open tabs.** The BFF pushes nothing to the browser. A tab learns that the session ended from the answer to its next
+guarded call, which is a `401`. A frontend that wants to learn sooner follows the pattern of
+[ADR-1434](decisions/1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md):
+
+- It polls `GET /bff/user`, which never slides the idle window, and probes once more at `session.idleExpiresAt`.
+- It checks again on `visibilitychange`, when a hidden tab becomes visible.
+- It tells the other tabs of the origin through a `BroadcastChannel`, so one `401` clears them all.
+- A `401` means navigate to `/bff/login`.
+
 ### 5.7 BFF endpoints
 
-The endpoints sit under a relocatable prefix (`/bff`), a reserved sibling of the application's `/api`. They are mapped
-`AllowAnonymous`, so an application's fallback policy cannot preempt them. Each handler authenticates the session
-itself where it needs to. Each carries OpenAPI metadata (tag `Bff`, stable operation ids), and
+The endpoints sit under each frontend's relocatable `PathPrefix` (`/bff` by default), a reserved sibling of the
+application's `/api`. `MapBffEndpoints()` maps them once for each frontend and limits them to that frontend
+([§5.10](#510-frontends)), so two frontends that the host selects can both serve `/bff/login`, and two frontends that
+the path selects each have their own prefix, such as `/admin/bff`. They are mapped `AllowAnonymous`, so an
+application's fallback policy cannot preempt them. Each handler authenticates the session itself where it needs to. Each carries OpenAPI metadata (tag `Bff`, stable operation ids), and
 `.ExcludeFromDescription()` on the returned convention builder hides them. Every response sends
 `Cache-Control: no-store`.
 
@@ -666,7 +687,7 @@ itself where it needs to. Each carries OpenAPI metadata (tag `Bff`, stable opera
 | `/bff/user`                    | `GET`, `fetch`      | Session probe: allow-listed claims, expiry, `logoutUrl`, `logoutSid`        | Anti-forgery header and Fetch Metadata. Answers `401` JSON when there is no session, never a redirect.                            |
 | `/bff/logout`                  | `POST`, navigation  | Ends the session and runs RP-initiated logout                                | The form's `sid` must equal the session's logout guard ([§5.8](#58-logout-and-back-channel-logout)). `returnUrl` is allow-listed. |
 | `/bff/backchannel-logout`      | `POST` form         | Receives the OP's `logout_token`                                             | Validates the logout token ([§5.8](#58-logout-and-back-channel-logout)). No cookie or CSRF check, because it is a server-to-server call. |
-| `/bff/jwks`                    | `GET`               | Optional, mapped only when `Bff:Jwks:Enabled` is `true`. The public keys of `Bff:ClientAuthentication:KeyRing` ([ADR-1382](decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)) | Public data. Symmetric keys and the DPoP key ring are never published.                                                          |
+| `/bff/jwks`                    | `GET`               | Optional, mapped for each frontend whose `Bff:Frontends:{name}:Jwks:Enabled` is `true`. The public keys of `Bff:Frontends:{name}:ClientAuthentication:KeyRing` ([ADR-1382](decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)) | Public data. Symmetric keys and the DPoP key ring are never published.                                                          |
 
 `GET /bff/user` returns:
 
@@ -687,7 +708,8 @@ A claim leaves the BFF only when the frontend allow-lists it. Contributors may a
 
 **Return URLs** must be relative and start with exactly one `/`. They are rejected when they contain `//`, a backslash,
 a scheme, or a `..` segment. After normalization, a URL must equal an allow-listed entry or extend it at a segment
-boundary. Where an absolute URL is required (`post_logout_redirect_uri`), the BFF builds it from `Bff:PublicOrigin` and
+boundary. Where an absolute URL is required (`post_logout_redirect_uri`), the BFF builds it from the frontend's
+`Bff:Frontends:{name}:PublicOrigin` and
 the allow-listed path, never from the request's `Host`. That URL must also be registered with the OP.
 
 ### 5.8 Logout and back-channel logout
@@ -731,7 +753,10 @@ It looks the `jti` up but does not record it: the BFF calls `TryRecordHandledAsy
 ([ADR-1284](decisions/1284-a-logout-token-is-recorded-only-after-the-client-handles-it.md)).
 
 A token with a `sid` ends every session holding that OP `sid`. A token with only `sub` ends every session of that
-subject from that issuer. The BFF finds them through the membership indexes ([§5.4](#54-state-every-replica-sees)),
+subject from that issuer. A logout token ends only the sessions of the frontend that received it, because each
+frontend is its own client at the OP and its own session namespace
+([ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). The BFF
+finds them through the membership indexes ([§5.4](#54-state-every-replica-sees)),
 without needing any handle. It answers `200` once the sessions are ended and the `jti` is recorded, and `400` on an
 invalid token or when ending the sessions fails, so the OP retries a failed delivery and the retry validates again.
 Every answer carries `Cache-Control: no-store`. The client is registered with `backchannel_logout_uri` and `backchannel_logout_session_required=true`, so the OP
@@ -754,7 +779,8 @@ its session on every replica at once.
    first-party callers adds its own: explicit origins, credentials allowed, **never `*`** (ASP.NET Core refuses that
    combination anyway).
 4. **Fetch Metadata.** A request whose `Sec-Fetch-Site` is `cross-site` is rejected. `same-site` is rejected unless the
-   origin is allowed by the application's CORS policy. This stops a compromised sibling subdomain, which counts as same
+   origin is allowed by the application's CORS policy or listed in the selected frontend's
+   `Bff:Frontends:{name}:TrustedOrigins`. This stops a compromised sibling subdomain, which counts as same
    site, from forging requests (RFC 10017 §6.1.3.3.1). When the header is absent (an older browser), layers 1 to 3
    still apply.
 
@@ -771,8 +797,10 @@ It sets a strict Content-Security-Policy as a starting point
 contents depend on the application, so the library offers this helper but never imposes it. CSP is the only control
 that limits XSS riding the session (RFC 10017 §6.1.4.1).
 
-- The values come from `Bff:SecurityHeaders` (`ContentSecurityPolicy`, `ReferrerPolicy`, `CrossOriginOpenerPolicy`),
-  and `nosniff` is fixed. Startup validation refuses a blank value or a character outside printable ASCII.
+- The values come from the selected frontend's `Bff:Frontends:{name}:SecurityHeaders` (`ContentSecurityPolicy`,
+  `ReferrerPolicy`, `CrossOriginOpenerPolicy`),
+  and `nosniff` is fixed. A request that no frontend selects gets the strict defaults above. Startup validation refuses
+  a blank value or a character outside printable ASCII.
 - A header that the application sets on a response wins, so a page with a nonce-based policy sends its own.
 - The default policy names no `form-action`, because the logout form's redirect to the OP must not be blocked. A host
   that knows the OP's origin adds `form-action 'self' <OP origin>`.
@@ -780,25 +808,98 @@ that limits XSS riding the session (RFC 10017 §6.1.4.1).
 
 **Topology.** The paved path is **one origin**: the SPA and the BFF behind one reverse proxy, so no call needs a
 preflight. The absolute URLs the BFF publishes, the `redirect_uri` and the `post_logout_redirect_uri`, come from
-`Bff:PublicOrigin`, the URL the BFF is published at, never from the request's `Host` or a forwarded header
+`Bff:Frontends:{name}:PublicOrigin`, the URL the frontend is published at, never from the request's `Host` or a forwarded header
 ([ADR-1365](decisions/1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)). Startup fails outside
-Development unless it is `https`. Because `__Host-` forbids `Domain`, a split across subdomains needs one BFF per host.
+Development unless it is `https`. Because `__Host-` forbids `Domain`, a split across subdomains needs one BFF per host. Several frontends of one BFF
+deployment each have their own `PublicOrigin` and callback, and the `host` rule tells the hosts apart
+([§5.10](#510-frontends)).
 
 ### 5.10 Frontends
 
-A **frontend** is a registered descriptor. It holds a name, a selection rule, the client registration (`client_id`,
-authentication method and key), scopes and resources, the cookie name suffix, return-URL allow-lists, the claim
-allow-list for `/bff/user`, and its remote APIs. Configuration supplies one default frontend.
+A **frontend** is one browser application that the BFF serves, configured as one `Bff:Frontends:{name}` entry
+(`BffFrontendOptions`). It holds its selection rule, its client registration (`client_id`, authentication method and
+key), scopes and resources, `PublicOrigin` and `PathPrefix`, return-URL allow-lists, trusted origins, the claim
+allow-list for `/bff/user`, security headers, session and DPoP options, and its remote APIs. `Antiforgery` and `Tokens`
+stay at the root of `Bff` because they apply to the whole deployment. Frontends do not inherit from each other:
+configuration-list binding merges by index, and inheritance would hide which client a setting belongs to. One BFF
+serves a shop and its admin console, for example, and each is its own OAuth client
+([ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
 
-Several frontends give one BFF deployment several isolated sessions, each with its own cookie name and its own client
-registration. Selection is an open strategy collection with two built-in rules:
+```jsonc
+{
+  "Bff": {
+    "Frontends": {
+      "shop": {
+        // no Selection:Rule: serves every request that no other frontend selects
+        "Authority": "https://id.example.com/",
+        "PublicOrigin": "https://example.com",
+        "ClientId": "shop-web",
+        "ClientAuthentication": { "Method": "private_key_jwt", "KeyRing": "shop-web-client-key" },
+        "ReturnUrls": ["/"],
+      },
+      "admin": {
+        "Selection": { "Rule": "path", "Values": ["/admin"] },
+        "Authority": "https://id.example.com/",
+        "PublicOrigin": "https://example.com",
+        "PathPrefix": "/admin/bff", // callback: https://example.com/admin/bff/callback
+        "ClientId": "admin-web",
+        "ClientAuthentication": { "Method": "private_key_jwt", "KeyRing": "admin-web-client-key" },
+        "ReturnUrls": ["/admin"],
+      },
+    },
+  },
+}
+```
 
-- `host` selects by request host.
-- `path` selects by path prefix. The cookie still uses `Path=/` as `__Host-` requires, so isolation comes from the
-  cookie **name**.
+A frontend's name is 1 to 63 lowercase letters, digits and hyphens that start and end with a letter or digit, so it is
+a valid cookie-name suffix and a stable value in session metadata.
 
-Naming the cookie per frontend applies the same rule issue [#89](https://github.com/NCodeGroup/Identity/issues/89) sets for the OP's own interactive surface: two
-path-addressed surfaces on one origin must never share a session cookie.
+**Selection.** Selection is an open strategy collection (`IBffFrontendSelector`, by rule name,
+[ADR-1150](decisions/1150-vocabularies-are-open-unless-provably-closed.md)). A frontend's
+`Selection:Rule` names a rule and `Selection:Values` feeds it. Each rule validates its own values, says whether two
+frontends of its kind overlap, and matches requests. A rule takes no constructor dependencies: options validation reads
+every registered rule, and `IsMatch` reads only the request. Two rules are built in:
+
+| Rule   | Values                                                                                                                       | Checks at startup                                                                                                                                  |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `host` | DNS names or IPv4 addresses with an optional port. A value without a port matches any port. A value that names the default port of the `PublicOrigin`'s scheme is refused, because a browser's Host header never carries it. | The host of the frontend's `PublicOrigin` is one of the values, so its callback and back-channel URIs select it.                                    |
+| `path` | Local path prefixes, compared at segment boundaries and ignoring case, like routing. The cookie still uses `Path=/` as `__Host-` requires, so isolation comes from the cookie **name**. | The frontend's `PathPrefix` and every remote-API path lie under a value, so its endpoints select it.                                                |
+
+- **Fallback.** At most one frontend omits `Selection:Rule`. It serves every request that no other frontend selects.
+  Without one, a request that no frontend selects reaches no BFF endpoint and no session, and it gets the strict default
+  security headers.
+- **Overlap.** Startup refuses two frontends of the same rule that select the same requests, and two frontends with the
+  same `PublicOrigin` and `PathPrefix`, because each frontend needs its own callback.
+- **Ambiguity.** Frontends of different rules can still select one request, such as a host-selected and a
+  path-selected frontend. That request fails closed with `InvalidOperationException` (`500`) instead of picking one.
+- **Fixed until restart.** The frontends are read from `IOptions`, so adding or changing one needs a restart.
+
+**Isolation.** Each frontend has its own session cookie, `__Host-Http-bff.<name>`, and login cookie,
+`__Host-Http-bff-login.<name>`, so two surfaces on one origin never share a session cookie. Naming the cookie per frontend
+applies the same rule issue [#89](https://github.com/NCodeGroup/Identity/issues/89) sets for the OP's own interactive
+surface. The session metadata records its frontend, which is authenticated as associated data of the record
+([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)), and
+the resolver ignores and deletes a cookie whose session belongs to another frontend. A login transaction records its
+frontend, and the callback of another frontend is refused ([§5.2](#52-login-transaction-and-callback-binding)).
+
+**Endpoints.** The BFF endpoints of [§5.7](#57-bff-endpoints) belong to their frontend, and a routing policy keeps only
+the candidates of the frontend that the request selects. Configured remote APIs belong to the frontend that lists them.
+A local API or page serves whichever frontend the request selects, unless it is limited:
+
+- `RequireBffFrontend("admin")` on a minimal-API endpoint or group limits it to the named frontends.
+- `[BffFrontend("admin")]` does the same on a controller or an action.
+- The `BffFrontend` key in a YARP route's metadata limits the route to a frontend
+  ([§5.6](#56-accepting-the-bff-cookie-on-apis)).
+
+Names from several of these add up. A name that is not configured stops the host from starting
+([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
+
+**Tokens.** A frontend uses its own client registration for every token request: the code exchange, refresh, token
+exchange and client credentials, with its own DPoP key ring and its own `/bff/jwks`. Client-credential tokens are cached
+per frontend, resource and scope. A back-channel logout token ends only the sessions of the frontend that received it
+([§5.8](#58-logout-and-back-channel-logout)). Each frontend is registered at the OP as its own client, with its callback
+`PublicOrigin + PathPrefix + "/callback"`
+([ADR-1294](decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)).
 
 ### 5.11 Extensibility seams
 
@@ -811,7 +912,7 @@ runs.
 | `IBffSessionStore`                       | Service                       | Session and transaction persistence over the SharedState primitives. It can be replaced, for example by a durable database adapter. |
 | Client-authentication methods            | Strategy collection, by name  | How the BFF authenticates to the token, PAR, and revocation endpoints.                                                        |
 | Token requirements (`IBffTokenRequirement`) | Strategy collection, by name | How a local or remote API obtains its outbound token ([§5.5](#55-token-management)).                                          |
-| Frontend selection                       | Strategy collection, by name  | Which frontend a request belongs to.                                                                                          |
+| Frontend selection (`IBffFrontendSelector`) | Strategy collection, by name | Which frontend a request belongs to ([§5.10](#510-frontends)). The built-ins are `host` and `path`.                          |
 | Login gates (`IBffLoginGate`)            | Strategy collection           | Reject a validated login before a session exists, for example a disabled account or a missing `acr`. **Reject only.**        |
 | Session claim contributors (`IBffSessionClaimContributor`) | Strategy collection | Shape the session principal **once**, at login, before the login gates. A good place for an expensive lookup. `iss`, `sub`, `sid`, `auth_time`, `acr` and `amr` cannot be added or removed. |
 | Session validators (`IBffSessionValidator`) | Strategy collection        | Per-request checks that can only end a session, for example re-checking account status at an interval.                        |
@@ -834,7 +935,7 @@ builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the key rin
 
 var app = builder.Build();
 app.UseForwardedHeaders();
-app.UseBffSecurityHeaders();                            // optional; Bff:SecurityHeaders
+app.UseBffSecurityHeaders();                            // optional; Bff:Frontends:{name}:SecurityHeaders
 app.UseCors(myCorsPolicy);                              // optional, and always outermost
 app.UseBff();                                           // anti-forgery header + Fetch Metadata + session resolution
 app.UseAuthentication();
@@ -853,23 +954,29 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 ```jsonc
 {
   "Bff": {
-    "Authority": "https://id.example.com/",
-    "PublicOrigin": "https://orders.example.com",                 // the BFF's own URL; redirect_uri is built from it
-    "ClientId": "orders-web",
-    "ClientAuthentication": { "Method": "private_key_jwt", "KeyRing": "orders-web-client-key" }, // key from Secrets
-    "Scopes": ["openid", "profile", "email", "offline_access"],   // offline_access: this OP issues refresh tokens only for it
-    "ReturnUrls": ["/"],
-    "UserClaims": ["email", "role"],
-    "TrustedOrigins": ["https://admin.example.com"],              // same-site origins allowed to call the APIs
-    "Session": { "AbsoluteLifetime": "08:00:00", "IdleTimeout": "01:00:00", "SameSite": "Strict" },
-    "DPoP": { "Mode": "when_supported", "KeyRing": "orders-web-dpop" },
-    "Jwks": { "Enabled": true },                                  // publish the client key at /bff/jwks
-    "RemoteApis": {
-      "orders": {
-        "Path": "/api/orders",
-        "Destination": "https://orders.example.com/",
-        "TokenRequirement": "user",
-        "Resource": "https://orders.example.com",
+    "Antiforgery": { "HeaderName": "X-CSRF", "HeaderValue": "1" },   // deployment-wide
+    "Tokens": { "RefreshBeforeExpiry": "00:01:00" },                // deployment-wide
+    "Frontends": {
+      "orders-web": {                                               // the name is the cookie suffix: __Host-Http-bff.orders-web
+        "Authority": "https://id.example.com/",
+        "PublicOrigin": "https://orders.example.com",               // the frontend's own URL; redirect_uri is built from it
+        "ClientId": "orders-web",
+        "ClientAuthentication": { "Method": "private_key_jwt", "KeyRing": "orders-web-client-key" }, // key from Secrets
+        "Scopes": ["openid", "profile", "email", "offline_access"], // offline_access: this OP issues refresh tokens only for it
+        "ReturnUrls": ["/"],
+        "UserClaims": ["email", "role"],
+        "TrustedOrigins": ["https://admin.example.com"],            // same-site origins allowed to call the APIs
+        "Session": { "AbsoluteLifetime": "08:00:00", "IdleTimeout": "01:00:00", "SameSite": "Strict" },
+        "DPoP": { "Mode": "when_supported", "KeyRing": "orders-web-dpop" },
+        "Jwks": { "Enabled": true },                                // publish the client key at /bff/jwks
+        "RemoteApis": {
+          "orders": {
+            "Path": "/api/orders",
+            "Destination": "https://orders.example.com/",
+            "TokenRequirement": "user",
+            "Resource": "https://orders.example.com",
+          },
+        },
       },
     },
   },
@@ -878,21 +985,36 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 
 **Startup validation** (`ValidateOnStart`) fails when:
 
-- `Authority` is not `https` (outside Development), or `ClientId` is blank.
-- `PublicOrigin` is missing, not an absolute URL in canonical form, has user info, a query, a fragment or a trailing
-  `/`, or is not `https` (outside Development).
+- `Bff:Frontends` has no entry, or a frontend's name is not 1 to 63 lowercase letters, digits and hyphens that start
+  and end with a letter or digit.
+- More than one frontend has no `Selection:Rule`, a rule is not registered, or a rule's own checks fail: its values
+  are malformed, the host of `PublicOrigin` is not among a `host` rule's values, or the `PathPrefix` or a remote-API
+  path lies outside a `path` rule's values.
+- Two frontends of the same rule select the same requests, or two frontends have the same `PublicOrigin` and
+  `PathPrefix`, so they would share a callback.
+- `Bff:Frontends:{name}:Authority` is not `https` (outside Development), or `ClientId` is blank.
+- `Bff:Frontends:{name}:PublicOrigin` is missing, not an absolute URL in canonical form, has user info, a query, a
+  fragment or a trailing `/`, or is not `https` (outside Development).
 - The client-authentication method or the token requirement names something not registered.
-- There are no `ReturnUrls`, or an entry is not a same-origin relative path.
-- A remote API's destination is not `https` (outside Development) or overlaps another API's local prefix.
-- `Jwks:Enabled` is `true` without `ClientAuthentication:KeyRing`.
-- `SecurityHeaders` is missing, or a header value is blank or has a character outside printable ASCII.
-- `SameSite` is `None`.
-- `AbsoluteLifetime` is shorter than `IdleTimeout`.
-- A `Bff:IdToken` or `Bff:UserInfo` algorithm list has a blank entry, `none` or a duplicate; content encryption is
+- There are no `Bff:Frontends:{name}:ReturnUrls`, or an entry is not a same-origin relative path.
+- A remote API's destination is not `https` (outside Development), or its path overlaps the frontend's `PathPrefix` or
+  another of its APIs' local prefixes.
+- `Bff:Frontends:{name}:Jwks:Enabled` is `true` without `ClientAuthentication:KeyRing`.
+- `Bff:Frontends:{name}:SecurityHeaders` is missing, or a header value is blank or has a character outside printable
+  ASCII.
+- `Bff:Frontends:{name}:Session:SameSite` is `None`, or `AbsoluteLifetime` is shorter than `IdleTimeout`.
+- A frontend's `IdToken` or `UserInfo` algorithm list has a blank entry, `none` or a duplicate; content encryption is
   listed without key management; UserInfo encryption is listed without UserInfo signing; or encryption is listed without
   `ClientAuthentication:KeyRing`, which holds the decryption keys.
-- `DPoP.Mode` is `required` and the OP does not support DPoP. This check runs when discovery is first fetched, not at
-  startup.
+- `Bff:Antiforgery:HeaderName` or `HeaderValue` is blank, or the header name is one that skips a CORS preflight or
+  carries credentials, or a `Bff:Tokens` duration is out of range.
+- `Bff:Frontends:{name}:DPoP:Mode` is `required` and the OP does not support DPoP. This check runs when discovery is
+  first fetched, not at startup.
+
+The endpoint check of [ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)
+runs once the host has started: it stops the host when a YARP route that names a token requirement lacks
+`AsBffRemoteApis()`, when YARP routes are mapped without `AddBffTransforms()`, or when an endpoint names a frontend
+that is not configured. Every failure is listed in one message ([§5.6](#56-accepting-the-bff-cookie-on-apis)).
 
 ### 5.13 Observability
 
@@ -1104,7 +1226,9 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 | `NCode.Identity.Bff` core      | The scheme handler, login and callback, the session store, `/bff/user`, logout, back-channel logout, local APIs, the CSRF layers, and the `user` token requirement with single-flight refresh and DPoP ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md), [ADR-1291](decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md), [ADR-1292](decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md), [ADR-1293](decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)).                                                                                                                                                                                                                                                                  |
 | Remote APIs                    | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and token attachment for routes in YARP configuration, with the YARP support in `NCode.Identity.Bff` itself ([ADR-1381](decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Browser hardening              | `UseBffSecurityHeaders()` and the `/bff/jwks` endpoint ([ADR-1382](decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| Pending                        | Multiple frontends ([#396](https://github.com/NCodeGroup/Identity/issues/396)); serving the management console through the BFF as a confidential client of the reference host's root tenant, which takes token custody out of the console's `@ncode/auth` ([#158](https://github.com/NCodeGroup/Identity/issues/158)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Multiple frontends             | One `Bff:Frontends:{name}` entry per frontend, selected per request by the open `IBffFrontendSelector` rules `host` and `path`, with its own cookies, client registration, endpoints, tokens and security headers, validated as a whole at startup ([§5.10](#510-frontends), [ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). |
+| Endpoint startup check         | The host refuses to start when an endpoint's BFF metadata is incomplete, such as a YARP route that names a token requirement without `AsBffRemoteApis()`; the per-request `502` stays the backstop ([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)). |
+| Pending                        | Serving the management console through the BFF as a confidential client of the reference host's root tenant, which takes token custody out of the console's `@ncode/auth` ([#158](https://github.com/NCodeGroup/Identity/issues/158)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---
 
@@ -1150,6 +1274,9 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
    ([ADR-1297](decisions/1297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md)).
 3. **Telling other tabs that the session ended.** Should a back-channel logout reach open tabs immediately (for
    example through a server-sent-events endpoint), or is the next API `401` soon enough?
+   Decided: the next guarded call's `401` is the signal and the BFF pushes nothing; a frontend that wants promptness
+   polls `GET /bff/user`, checks again on `visibilitychange`, and tells its other tabs through a `BroadcastChannel`
+   ([ADR-1434](decisions/1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md)).
 4. **Server-rendered and Blazor hosts.** Is an authentication-state provider for Blazor, or guidance for Razor Pages,
    worth a separate package?
 5. **Package naming.** Should the packages be `NCode.Identity.Bff` or `NCode.Identity.OpenId.Bff`? The protocol client

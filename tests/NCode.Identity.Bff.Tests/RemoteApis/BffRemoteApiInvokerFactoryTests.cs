@@ -2,9 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Bff.Client;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 
@@ -17,9 +16,7 @@ public class BffRemoteApiInvokerFactoryTests : BaseTests
             new HttpContextAccessor(),
             new Moq.Mock<IBffTokenAccessor>().Object,
             new Moq.Mock<IDPoPProofFactory>().Object,
-            new BffClientRegistrationProvider(
-                Microsoft.Extensions.Options.Options.Create(new BffOptions())
-            )
+            BffTestFrontends.CreateCatalog()
         );
 
     #region CreateInvoker Tests

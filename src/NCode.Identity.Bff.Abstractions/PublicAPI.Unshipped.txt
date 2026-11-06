@@ -12,7 +12,6 @@ const NCode.Identity.Bff.BffDefaults.SessionCookieName = "__Host-Http-bff" -> st
 const NCode.Identity.Bff.BffDefaults.LoginCookieName = "__Host-Http-bff-login" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderName = "X-CSRF" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderValue = "1" -> string!
-const NCode.Identity.Bff.BffDefaults.FrontendName = "default" -> string!
 const NCode.Identity.Bff.BffDefaults.ConfigurationSectionName = "Bff" -> string!
 NCode.Identity.Bff.BffProblemTypes
 const NCode.Identity.Bff.BffProblemTypes.SessionRequired = "urn:ncode:identity:bff:session_required" -> string!
@@ -195,3 +194,20 @@ const NCode.Identity.Bff.BffTokenRequirementNames.Client = "client" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.Exchange = "exchange" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.None = "none" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.UserOrClient = "user_or_client" -> string!
+NCode.Identity.Bff.BffFrontendSelection
+NCode.Identity.Bff.BffFrontendSelection.BffFrontendSelection(System.Collections.Generic.IReadOnlyList<string!>! values, string! publicOrigin, System.Collections.Generic.IReadOnlyList<string!>! paths) -> void
+NCode.Identity.Bff.BffFrontendSelection.Paths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Bff.BffFrontendSelection.PublicOrigin.get -> string!
+NCode.Identity.Bff.BffFrontendSelection.Values.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Bff.BffFrontendSelectorNames
+const NCode.Identity.Bff.BffFrontendSelectorNames.Host = "host" -> string!
+const NCode.Identity.Bff.BffFrontendSelectorNames.Path = "path" -> string!
+NCode.Identity.Bff.IBffFrontendSelector
+NCode.Identity.Bff.IBffFrontendSelector.IsMatch(Microsoft.AspNetCore.Http.HttpRequest! request, NCode.Identity.Bff.BffFrontendSelection! selection) -> bool
+NCode.Identity.Bff.IBffFrontendSelector.Name.get -> string!
+NCode.Identity.Bff.IBffFrontendSelector.Overlaps(NCode.Identity.Bff.BffFrontendSelection! first, NCode.Identity.Bff.BffFrontendSelection! second) -> bool
+NCode.Identity.Bff.IBffFrontendSelector.Validate(NCode.Identity.Bff.BffFrontendSelection! selection) -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.Bff.BffFrontendAttribute
+NCode.Identity.Bff.BffFrontendAttribute.BffFrontendAttribute(string! name) -> void
+NCode.Identity.Bff.BffFrontendAttribute.Name.get -> string!
+const NCode.Identity.Bff.BffLoginFailureReasons.FrontendMismatch = "frontend_mismatch" -> string!

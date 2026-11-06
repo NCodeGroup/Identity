@@ -3,7 +3,9 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Options;
@@ -14,20 +16,53 @@ public class BffOptionsValidatorTests : BaseTests
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-        return new BffOptionsValidator(mockEnvironment.Object);
+        return new BffOptionsValidator(
+            mockEnvironment.Object,
+            [new HostBffFrontendSelector(), new PathBffFrontendSelector()]
+        );
     }
+
+    private const string WebFrontend = "web";
 
     private static BffOptions CreateValidOptions() =>
         new()
         {
-            Authority = "https://op.example.com",
-            PublicOrigin = "https://app.example.com",
-            ClientId = "bff",
-            ReturnUrls = ["/"],
-            TrustedOrigins = ["https://app.example.com"],
+            Frontends =
+            {
+                [WebFrontend] = new BffFrontendOptions
+                {
+                    Authority = "https://op.example.com",
+                    PublicOrigin = "https://app.example.com",
+                    ClientId = "bff",
+                    ReturnUrls = ["/"],
+                    TrustedOrigins = ["https://app.example.com"],
+                },
+            },
         };
 
+    private static BffFrontendOptions Frontend(BffOptions options) =>
+        options.Frontends[WebFrontend];
+
     #region Validate Tests
+
+    [Fact]
+    public void Validate_WhenARuleIsRegisteredTwice_Fails()
+    {
+        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
+        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Production").Verifiable();
+        var validator = new BffOptionsValidator(
+            mockEnvironment.Object,
+            [new HostBffFrontendSelector(), new HostBffFrontendSelector()]
+        );
+
+        var result = validator.Validate(null, CreateValidOptions());
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "The frontend selection rule 'host' is registered more than once.",
+            result.Failures ?? []
+        );
+    }
 
     [Fact]
     public void Validate_WhenValidBaseline_Succeeds()
@@ -45,19 +80,19 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenAuthorityInvalid_Fails(string authority)
     {
         var options = CreateValidOptions();
-        options.Authority = authority;
+        Frontend(options).Authority = authority;
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Authority"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:Authority"));
     }
 
     [Fact]
     public void Validate_WhenHttpAuthorityInDevelopment_Succeeds()
     {
         var options = CreateValidOptions();
-        options.Authority = "http://localhost:5000";
+        Frontend(options).Authority = "http://localhost:5000";
 
         var result = CreateValidator("Development").Validate(null, options);
 
@@ -76,19 +111,19 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenPublicOriginInvalid_Fails(string publicOrigin)
     {
         var options = CreateValidOptions();
-        options.PublicOrigin = publicOrigin;
+        Frontend(options).PublicOrigin = publicOrigin;
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:PublicOrigin"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:PublicOrigin"));
     }
 
     [Fact]
     public void Validate_WhenPublicOriginInvalid_NamesTheValue()
     {
         var options = CreateValidOptions();
-        options.PublicOrigin = "https://app.example.com/";
+        Frontend(options).PublicOrigin = "https://app.example.com/";
 
         var result = CreateValidator().Validate(null, options);
 
@@ -96,7 +131,7 @@ public class BffOptionsValidatorTests : BaseTests
             result.Failures ?? [],
             x =>
                 x.StartsWith(
-                    "Bff:PublicOrigin 'https://app.example.com/' must",
+                    "Bff:Frontends:web:PublicOrigin 'https://app.example.com/' must",
                     StringComparison.Ordinal
                 )
         );
@@ -106,11 +141,11 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenPublicOriginHasUserInfo_WithholdsTheValue()
     {
         var options = CreateValidOptions();
-        options.PublicOrigin = "https://user:secret@app.example.com";
+        Frontend(options).PublicOrigin = "https://user:secret@app.example.com";
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:PublicOrigin"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:PublicOrigin"));
         Assert.DoesNotContain(result.Failures ?? [], x => x.Contains("secret"));
     }
 
@@ -118,14 +153,17 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenAuthorityInvalid_NamesTheValue()
     {
         var options = CreateValidOptions();
-        options.Authority = "http://op.example.com";
+        Frontend(options).Authority = "http://op.example.com";
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.Contains(
             result.Failures ?? [],
             x =>
-                x.StartsWith("Bff:Authority 'http://op.example.com' must", StringComparison.Ordinal)
+                x.StartsWith(
+                    "Bff:Frontends:web:Authority 'http://op.example.com' must",
+                    StringComparison.Ordinal
+                )
         );
     }
 
@@ -133,11 +171,11 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenAuthorityHasUserInfo_WithholdsTheValue()
     {
         var options = CreateValidOptions();
-        options.Authority = "http://user:secret@op.example.com";
+        Frontend(options).Authority = "http://user:secret@op.example.com";
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Authority"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:Authority"));
         Assert.DoesNotContain(result.Failures ?? [], x => x.Contains("secret"));
     }
 
@@ -145,7 +183,7 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenPublicOriginHasAPathBase_Succeeds()
     {
         var options = CreateValidOptions();
-        options.PublicOrigin = "https://example.com/app";
+        Frontend(options).PublicOrigin = "https://example.com/app";
 
         var result = CreateValidator().Validate(null, options);
 
@@ -156,7 +194,7 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenHttpPublicOriginInDevelopment_Succeeds()
     {
         var options = CreateValidOptions();
-        options.PublicOrigin = "http://localhost:5000";
+        Frontend(options).PublicOrigin = "http://localhost:5000";
 
         var result = CreateValidator("Development").Validate(null, options);
 
@@ -167,33 +205,36 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenClientIdBlank_Fails()
     {
         var options = CreateValidOptions();
-        options.ClientId = " ";
+        Frontend(options).ClientId = " ";
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:ClientId"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:ClientId"));
     }
 
     [Fact]
     public void Validate_WhenClientAuthenticationMethodBlank_Fails()
     {
         var options = CreateValidOptions();
-        options.ClientAuthentication.Method = "";
+        Frontend(options).ClientAuthentication.Method = "";
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:ClientAuthentication:Method"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:ClientAuthentication:Method")
+        );
     }
 
     [Fact]
     public void Validate_WhenReturnUrlsEmpty_Fails()
     {
         var options = CreateValidOptions();
-        options.ReturnUrls = [];
+        Frontend(options).ReturnUrls = [];
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:ReturnUrls"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:ReturnUrls"));
     }
 
     [Theory]
@@ -203,11 +244,11 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenReturnUrlEntryInvalid_Fails(string entry)
     {
         var options = CreateValidOptions();
-        options.ReturnUrls = [entry];
+        Frontend(options).ReturnUrls = [entry];
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:ReturnUrls"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:ReturnUrls"));
     }
 
     [Theory]
@@ -217,11 +258,11 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenErrorPathInvalid_Fails(string errorPath)
     {
         var options = CreateValidOptions();
-        options.ErrorPath = errorPath;
+        Frontend(options).ErrorPath = errorPath;
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:ErrorPath"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:ErrorPath"));
     }
 
     [Theory]
@@ -232,11 +273,11 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenPathPrefixInvalid_Fails(string pathPrefix)
     {
         var options = CreateValidOptions();
-        options.PathPrefix = pathPrefix;
+        Frontend(options).PathPrefix = pathPrefix;
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:PathPrefix"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:PathPrefix"));
     }
 
     [Theory]
@@ -247,18 +288,18 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenTrustedOriginInvalid_Fails(string origin)
     {
         var options = CreateValidOptions();
-        options.TrustedOrigins = [origin];
+        Frontend(options).TrustedOrigins = [origin];
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:TrustedOrigins"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:TrustedOrigins"));
     }
 
     [Fact]
     public void Validate_WhenHttpTrustedOriginInDevelopment_Succeeds()
     {
         var options = CreateValidOptions();
-        options.TrustedOrigins = ["http://localhost:3000"];
+        Frontend(options).TrustedOrigins = ["http://localhost:3000"];
 
         var result = CreateValidator("Development").Validate(null, options);
 
@@ -272,34 +313,43 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenSameSiteInvalid_Fails(SameSiteMode sameSite)
     {
         var options = CreateValidOptions();
-        options.Session.SameSite = sameSite;
+        Frontend(options).Session.SameSite = sameSite;
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Session:SameSite"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:Session:SameSite")
+        );
     }
 
     [Fact]
     public void Validate_WhenIdleTimeoutNotPositive_Fails()
     {
         var options = CreateValidOptions();
-        options.Session.IdleTimeout = TimeSpan.Zero;
+        Frontend(options).Session.IdleTimeout = TimeSpan.Zero;
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Session:IdleTimeout"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:Session:IdleTimeout")
+        );
     }
 
     [Fact]
     public void Validate_WhenAbsoluteLifetimeBelowIdleTimeout_Fails()
     {
         var options = CreateValidOptions();
-        options.Session.IdleTimeout = TimeSpan.FromHours(2);
-        options.Session.AbsoluteLifetime = TimeSpan.FromHours(1);
+        Frontend(options).Session.IdleTimeout = TimeSpan.FromHours(2);
+        Frontend(options).Session.AbsoluteLifetime = TimeSpan.FromHours(1);
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Session:AbsoluteLifetime"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:Session:AbsoluteLifetime")
+        );
     }
 
     [Theory]
@@ -308,42 +358,45 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenLoginLifetimeOutOfRange_Fails(int seconds)
     {
         var options = CreateValidOptions();
-        options.Session.LoginLifetime = TimeSpan.FromSeconds(seconds);
+        Frontend(options).Session.LoginLifetime = TimeSpan.FromSeconds(seconds);
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Session:LoginLifetime"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:Session:LoginLifetime")
+        );
     }
 
     [Fact]
     public void Validate_WhenDPoPModeUnknown_Fails()
     {
         var options = CreateValidOptions();
-        options.DPoP.Mode = "Required";
+        Frontend(options).DPoP.Mode = "Required";
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:DPoP:Mode"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:DPoP:Mode"));
     }
 
     [Fact]
     public void Validate_WhenDPoPRequiredWithoutKeyRing_Fails()
     {
         var options = CreateValidOptions();
-        options.DPoP.Mode = BffDPoPModes.Required;
-        options.DPoP.KeyRing = " ";
+        Frontend(options).DPoP.Mode = BffDPoPModes.Required;
+        Frontend(options).DPoP.KeyRing = " ";
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:DPoP:KeyRing"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:DPoP:KeyRing"));
     }
 
     [Fact]
     public void Validate_WhenDPoPRequiredWithKeyRing_Succeeds()
     {
         var options = CreateValidOptions();
-        options.DPoP.Mode = BffDPoPModes.Required;
-        options.DPoP.KeyRing = "dpop";
+        Frontend(options).DPoP.Mode = BffDPoPModes.Required;
+        Frontend(options).DPoP.KeyRing = "dpop";
 
         var result = CreateValidator().Validate(null, options);
 
@@ -354,13 +407,13 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenIdTokenAndUserInfoProtectionIsConsistent_Succeeds()
     {
         var options = CreateValidOptions();
-        options.ClientAuthentication.KeyRing = "client-keys";
-        options.IdToken.SigningAlgorithms = ["PS256"];
-        options.IdToken.KeyManagementAlgorithms = ["RSA-OAEP-256"];
-        options.UserInfo.Load = true;
-        options.UserInfo.SigningAlgorithms = ["PS256"];
-        options.UserInfo.KeyManagementAlgorithms = ["RSA-OAEP-256"];
-        options.UserInfo.ContentEncryptionAlgorithms = ["A256GCM"];
+        Frontend(options).ClientAuthentication.KeyRing = "client-keys";
+        Frontend(options).IdToken.SigningAlgorithms = ["PS256"];
+        Frontend(options).IdToken.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+        Frontend(options).UserInfo.Load = true;
+        Frontend(options).UserInfo.SigningAlgorithms = ["PS256"];
+        Frontend(options).UserInfo.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+        Frontend(options).UserInfo.ContentEncryptionAlgorithms = ["A256GCM"];
 
         var result = CreateValidator().Validate(null, options);
 
@@ -374,41 +427,7 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenAnIdTokenAlgorithmListIsInvalid_Fails(string entry, string message)
     {
         var options = CreateValidOptions();
-        options.IdToken.SigningAlgorithms = ["PS256", entry];
-
-        var result = CreateValidator().Validate(null, options);
-
-        Assert.Contains(
-            result.Failures ?? [],
-            x =>
-                x.StartsWith("Bff:IdToken:SigningAlgorithms", StringComparison.Ordinal)
-                && x.Contains(message, StringComparison.Ordinal)
-        );
-    }
-
-    [Fact]
-    public void Validate_WhenUserInfoContentEncryptionHasNoKeyManagement_Fails()
-    {
-        var options = CreateValidOptions();
-        options.UserInfo.SigningAlgorithms = ["PS256"];
-        options.UserInfo.ContentEncryptionAlgorithms = ["A256GCM"];
-
-        var result = CreateValidator().Validate(null, options);
-
-        Assert.Contains(
-            result.Failures ?? [],
-            x =>
-                x
-                == "Bff:UserInfo:ContentEncryptionAlgorithms requires Bff:UserInfo:KeyManagementAlgorithms."
-        );
-    }
-
-    [Fact]
-    public void Validate_WhenUserInfoIsEncryptedButNotSigned_Fails()
-    {
-        var options = CreateValidOptions();
-        options.ClientAuthentication.KeyRing = "client-keys";
-        options.UserInfo.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+        Frontend(options).IdToken.SigningAlgorithms = ["PS256", entry];
 
         var result = CreateValidator().Validate(null, options);
 
@@ -416,7 +435,43 @@ public class BffOptionsValidatorTests : BaseTests
             result.Failures ?? [],
             x =>
                 x.StartsWith(
-                    "Bff:UserInfo:KeyManagementAlgorithms requires Bff:UserInfo:SigningAlgorithms",
+                    "Bff:Frontends:web:IdToken:SigningAlgorithms",
+                    StringComparison.Ordinal
+                ) && x.Contains(message, StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenUserInfoContentEncryptionHasNoKeyManagement_Fails()
+    {
+        var options = CreateValidOptions();
+        Frontend(options).UserInfo.SigningAlgorithms = ["PS256"];
+        Frontend(options).UserInfo.ContentEncryptionAlgorithms = ["A256GCM"];
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x
+                == "Bff:Frontends:web:UserInfo:ContentEncryptionAlgorithms requires Bff:Frontends:web:UserInfo:KeyManagementAlgorithms."
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenUserInfoIsEncryptedButNotSigned_Fails()
+    {
+        var options = CreateValidOptions();
+        Frontend(options).ClientAuthentication.KeyRing = "client-keys";
+        Frontend(options).UserInfo.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.StartsWith(
+                    "Bff:Frontends:web:UserInfo:KeyManagementAlgorithms requires Bff:Frontends:web:UserInfo:SigningAlgorithms",
                     StringComparison.Ordinal
                 )
         );
@@ -426,15 +481,21 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenIdTokenEncryptionHasNoKeyRing_Fails()
     {
         var options = CreateValidOptions();
-        options.IdToken.KeyManagementAlgorithms = ["RSA-OAEP-256"];
+        Frontend(options).IdToken.KeyManagementAlgorithms = ["RSA-OAEP-256"];
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.Contains(
             result.Failures ?? [],
             x =>
-                x.StartsWith("Bff:ClientAuthentication:KeyRing", StringComparison.Ordinal)
-                && x.Contains("Bff:IdToken:KeyManagementAlgorithms", StringComparison.Ordinal)
+                x.StartsWith(
+                    "Bff:Frontends:web:ClientAuthentication:KeyRing",
+                    StringComparison.Ordinal
+                )
+                && x.Contains(
+                    "Bff:Frontends:web:IdToken:KeyManagementAlgorithms",
+                    StringComparison.Ordinal
+                )
         );
     }
 
@@ -442,13 +503,13 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenTheIdTokenAndUserInfoSectionsAreMissing_Fails()
     {
         var options = CreateValidOptions();
-        options.IdToken = null!;
-        options.UserInfo = null!;
+        Frontend(options).IdToken = null!;
+        Frontend(options).UserInfo = null!;
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x == "Bff:IdToken must be set.");
-        Assert.Contains(result.Failures ?? [], x => x == "Bff:UserInfo must be set.");
+        Assert.Contains(result.Failures ?? [], x => x == "Bff:Frontends:web:IdToken must be set.");
+        Assert.Contains(result.Failures ?? [], x => x == "Bff:Frontends:web:UserInfo must be set.");
     }
 
     [Theory]
@@ -523,14 +584,14 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenSecurityHeadersContentSecurityPolicyInvalid_Fails(string value)
     {
         var options = CreateValidOptions();
-        options.SecurityHeaders.ContentSecurityPolicy = value;
+        Frontend(options).SecurityHeaders.ContentSecurityPolicy = value;
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
         Assert.Contains(
             result.Failures ?? [],
-            x => x.Contains("Bff:SecurityHeaders:ContentSecurityPolicy")
+            x => x.Contains("Bff:Frontends:web:SecurityHeaders:ContentSecurityPolicy")
         );
     }
 
@@ -538,14 +599,14 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenSecurityHeadersReferrerPolicyBlank_Fails()
     {
         var options = CreateValidOptions();
-        options.SecurityHeaders.ReferrerPolicy = "";
+        Frontend(options).SecurityHeaders.ReferrerPolicy = "";
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
         Assert.Contains(
             result.Failures ?? [],
-            x => x.Contains("Bff:SecurityHeaders:ReferrerPolicy")
+            x => x.Contains("Bff:Frontends:web:SecurityHeaders:ReferrerPolicy")
         );
     }
 
@@ -553,14 +614,14 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenSecurityHeadersCrossOriginOpenerPolicyHasControlCharacter_Fails()
     {
         var options = CreateValidOptions();
-        options.SecurityHeaders.CrossOriginOpenerPolicy = "same-origin\t";
+        Frontend(options).SecurityHeaders.CrossOriginOpenerPolicy = "same-origin\t";
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
         Assert.Contains(
             result.Failures ?? [],
-            x => x.Contains("Bff:SecurityHeaders:CrossOriginOpenerPolicy")
+            x => x.Contains("Bff:Frontends:web:SecurityHeaders:CrossOriginOpenerPolicy")
         );
     }
 
@@ -568,15 +629,17 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenJwksEnabledWithoutKeyRing_Fails()
     {
         var options = CreateValidOptions();
-        options.Jwks.Enabled = true;
-        options.ClientAuthentication.KeyRing = " ";
+        Frontend(options).Jwks.Enabled = true;
+        Frontend(options).ClientAuthentication.KeyRing = " ";
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
         Assert.Contains(
             result.Failures ?? [],
-            x => x.Contains("Bff:Jwks:Enabled") && x.Contains("Bff:ClientAuthentication:KeyRing")
+            x =>
+                x.Contains("Bff:Frontends:web:Jwks:Enabled")
+                && x.Contains("Bff:Frontends:web:ClientAuthentication:KeyRing")
         );
     }
 
@@ -584,8 +647,8 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenJwksEnabledWithKeyRing_Succeeds()
     {
         var options = CreateValidOptions();
-        options.Jwks.Enabled = true;
-        options.ClientAuthentication.KeyRing = "client-keys";
+        Frontend(options).Jwks.Enabled = true;
+        Frontend(options).ClientAuthentication.KeyRing = "client-keys";
 
         var result = CreateValidator().Validate(null, options);
 
@@ -596,24 +659,30 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenJwksNull_Fails()
     {
         var options = CreateValidOptions();
-        options.Jwks = null!;
+        Frontend(options).Jwks = null!;
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Jwks must be set."));
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:Jwks must be set.")
+        );
     }
 
     [Fact]
     public void Validate_WhenSecurityHeadersNull_Fails()
     {
         var options = CreateValidOptions();
-        options.SecurityHeaders = null!;
+        Frontend(options).SecurityHeaders = null!;
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:SecurityHeaders must be set"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:SecurityHeaders must be set")
+        );
     }
 
     [Theory]
@@ -631,18 +700,18 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenUserClaimReserved_Fails(string claim)
     {
         var options = CreateValidOptions();
-        options.UserClaims = [claim];
+        Frontend(options).UserClaims = [claim];
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:UserClaims"));
+        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:UserClaims"));
     }
 
     [Fact]
     public void Validate_WhenUserClaimAllowed_Succeeds()
     {
         var options = CreateValidOptions();
-        options.UserClaims = ["email"];
+        Frontend(options).UserClaims = ["email"];
 
         var result = CreateValidator().Validate(null, options);
 
@@ -656,18 +725,28 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenLoginParameterNotAllowed_Fails(string parameter)
     {
         var options = CreateValidOptions();
-        options.LoginParameters = [parameter];
+        Frontend(options).LoginParameters = [parameter];
 
         var result = CreateValidator().Validate(null, options);
 
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:LoginParameters"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x => x.Contains("Bff:Frontends:web:LoginParameters")
+        );
     }
 
     [Fact]
     public void Validate_WhenLoginParametersAllowed_Succeeds()
     {
         var options = CreateValidOptions();
-        options.LoginParameters = ["prompt", "max_age", "acr_values", "login_hint", "ui_locales"];
+        Frontend(options).LoginParameters =
+        [
+            "prompt",
+            "max_age",
+            "acr_values",
+            "login_hint",
+            "ui_locales",
+        ];
 
         var result = CreateValidator().Validate(null, options);
 
@@ -678,12 +757,12 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenRemoteApisValid_Succeeds()
     {
         var options = CreateValidOptions();
-        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        Frontend(options).RemoteApis["orders"] = new BffRemoteApiOptions
         {
             Path = "/api/orders",
             Destination = "https://api.example.com/v1",
         };
-        options.RemoteApis["customers"] = new BffRemoteApiOptions
+        Frontend(options).RemoteApis["customers"] = new BffRemoteApiOptions
         {
             Path = "/api/customers",
             Destination = "https://api.example.com/v1",
@@ -698,19 +777,19 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenRemoteApisNull_Fails()
     {
         var options = CreateValidOptions();
-        options.RemoteApis = null!;
+        Frontend(options).RemoteApis = null!;
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("Bff:RemoteApis must be set.", result.Failures ?? []);
+        Assert.Contains("Bff:Frontends:web:RemoteApis must be set.", result.Failures ?? []);
     }
 
     [Fact]
     public void Validate_WhenRemoteApiInvalid_FailsWithItsKey()
     {
         var options = CreateValidOptions();
-        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        Frontend(options).RemoteApis["orders"] = new BffRemoteApiOptions
         {
             Path = "/api/orders",
             Destination = "http://api.example.com",
@@ -721,7 +800,11 @@ public class BffOptionsValidatorTests : BaseTests
         Assert.True(result.Failed);
         Assert.Contains(
             result.Failures ?? [],
-            x => x.StartsWith("Bff:RemoteApis:orders:Destination", StringComparison.Ordinal)
+            x =>
+                x.StartsWith(
+                    "Bff:Frontends:web:RemoteApis:orders:Destination",
+                    StringComparison.Ordinal
+                )
         );
     }
 
@@ -729,19 +812,19 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenRemoteApiEntryNull_Fails()
     {
         var options = CreateValidOptions();
-        options.RemoteApis["orders"] = null!;
+        Frontend(options).RemoteApis["orders"] = null!;
 
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("Bff:RemoteApis:orders must be set.", result.Failures ?? []);
+        Assert.Contains("Bff:Frontends:web:RemoteApis:orders must be set.", result.Failures ?? []);
     }
 
     [Fact]
     public void Validate_WhenRemoteApiOverlapsThePathPrefix_Fails()
     {
         var options = CreateValidOptions();
-        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        Frontend(options).RemoteApis["orders"] = new BffRemoteApiOptions
         {
             Path = "/bff/orders",
             Destination = "https://api.example.com",
@@ -751,7 +834,7 @@ public class BffOptionsValidatorTests : BaseTests
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "Bff:RemoteApis:orders:Path '/bff/orders' must not overlap Bff:PathPrefix '/bff'.",
+            "Bff:Frontends:web:RemoteApis:orders:Path '/bff/orders' must not overlap Bff:Frontends:web:PathPrefix '/bff'.",
             result.Failures ?? []
         );
     }
@@ -760,12 +843,12 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenRemoteApisOverlap_Fails()
     {
         var options = CreateValidOptions();
-        options.RemoteApis["api"] = new BffRemoteApiOptions
+        Frontend(options).RemoteApis["api"] = new BffRemoteApiOptions
         {
             Path = "/api",
             Destination = "https://api.example.com",
         };
-        options.RemoteApis["orders"] = new BffRemoteApiOptions
+        Frontend(options).RemoteApis["orders"] = new BffRemoteApiOptions
         {
             Path = "/api/orders",
             Destination = "https://api.example.com",
@@ -775,7 +858,191 @@ public class BffOptionsValidatorTests : BaseTests
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "Bff:RemoteApis:orders:Path '/api/orders' must not overlap Bff:RemoteApis:api:Path '/api'.",
+            "Bff:Frontends:web:RemoteApis:orders:Path '/api/orders' must not overlap Bff:Frontends:web:RemoteApis:api:Path '/api'.",
+            result.Failures ?? []
+        );
+    }
+
+    #endregion
+
+    #region Frontends Tests
+
+    [Fact]
+    public void Validate_WhenFrontendValid_Succeeds()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = BffTestFrontends.CreateOptions();
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenNoFrontend_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends.Clear();
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends must configure at least one frontend.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendsNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:Frontends must be set.", result.Failures ?? []);
+    }
+
+    [Theory]
+    [InlineData("Web")]
+    [InlineData("-web")]
+    [InlineData("web-")]
+    [InlineData("a_b")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    public void Validate_WhenFrontendNameInvalid_Fails(string name)
+    {
+        var options = CreateValidOptions();
+        options.Frontends[name] = BffTestFrontends.CreateOptions();
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            $"Bff:Frontends key '{name}' must be 1 to 63 lowercase letters, digits and hyphens that start and end with a letter or digit.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendClientIdBlank_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = BffTestFrontends.CreateOptions(x => x.ClientId = "");
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:Frontends:web:ClientId must not be blank.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendNull_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = null!;
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains("Bff:Frontends:web must be set.", result.Failures ?? []);
+    }
+
+    [Fact]
+    public void Validate_WhenTwoFrontendsHaveNoRule_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["admin"] = BffTestFrontends.CreateOptions(x =>
+            x.PublicOrigin = "https://admin.example.com"
+        );
+        options.Frontends["web"] = BffTestFrontends.CreateOptions();
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "At most one entry of Bff:Frontends may have no Selection:Rule; it serves the requests no other frontend selects.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendRuleUnknown_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = BffTestFrontends.CreateOptions(x => x.Selection.Rule = "other");
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends:web:Selection:Rule 'other' is not a registered frontend selection rule.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenHostRuleHasNoValues_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["shop"] = BffTestFrontends.CreateOptions(x =>
+        {
+            x.PublicOrigin = "https://shop.example.com";
+            x.Selection.Rule = BffFrontendSelectorNames.Host;
+        });
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends:shop:Selection:Values must name at least one host.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenPathFrontendsOverlap_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["admin"] = BffTestFrontends.CreateOptions(x =>
+        {
+            x.PathPrefix = "/admin/bff";
+            x.Selection.Rule = BffFrontendSelectorNames.Path;
+            x.Selection.Values = ["/admin"];
+        });
+        options.Frontends["reports"] = BffTestFrontends.CreateOptions(x =>
+        {
+            x.PathPrefix = "/admin/reports/bff";
+            x.Selection.Rule = BffFrontendSelectorNames.Path;
+            x.Selection.Values = ["/admin/reports"];
+        });
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends:admin:Selection and Bff:Frontends:reports:Selection select the same requests.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenFrontendsShareTheCallback_Fails()
+    {
+        var options = CreateValidOptions();
+        options.Frontends["web"] = BffTestFrontends.CreateOptions();
+        options.Frontends["shop"] = BffTestFrontends.CreateOptions(x =>
+        {
+            x.Selection.Rule = BffFrontendSelectorNames.Host;
+            x.Selection.Values = ["app.example.com"];
+        });
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "Bff:Frontends:shop and Bff:Frontends:web have the same PublicOrigin and PathPrefix; each frontend needs its own callback URI.",
             result.Failures ?? []
         );
     }

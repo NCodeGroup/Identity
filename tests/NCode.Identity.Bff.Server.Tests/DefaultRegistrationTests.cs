@@ -19,10 +19,10 @@ public class DefaultRegistrationTests : BaseTests
             .AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["Bff:Authority"] = "https://op.example",
-                    ["Bff:PublicOrigin"] = "https://orders.example",
-                    ["Bff:ClientId"] = "orders-web",
-                    ["Bff:ReturnUrls:0"] = "/",
+                    ["Bff:Frontends:web:Authority"] = "https://op.example",
+                    ["Bff:Frontends:web:PublicOrigin"] = "https://orders.example",
+                    ["Bff:Frontends:web:ClientId"] = "orders-web",
+                    ["Bff:Frontends:web:ReturnUrls:0"] = "/",
                 }
             )
             .Build();
@@ -47,8 +47,9 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptions<BffOptions>>().Value;
-        Assert.Equal("https://op.example", options.Authority);
-        Assert.Equal("orders-web", options.ClientId);
+        Assert.Equal(["web"], options.Frontends.Keys);
+        Assert.Equal("https://op.example", options.Frontends["web"].Authority);
+        Assert.Equal("orders-web", options.Frontends["web"].ClientId);
         Assert.NotNull(provider.GetRequiredService<IBffTokenAccessor>());
         Assert.NotNull(provider.GetRequiredService<IBffSessionStore>());
         Assert.NotNull(provider.GetRequiredService<ITokenClient>());

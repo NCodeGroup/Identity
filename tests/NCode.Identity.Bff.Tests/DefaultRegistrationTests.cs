@@ -3,12 +3,15 @@
 
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.Bff.Frontends;
+using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Bff.Sessions;
@@ -113,6 +116,38 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         Assert.NotNull(provider.GetRequiredService<BffRemoteApiInvokerFactory>());
         Assert.NotNull(provider.GetRequiredService<BffRemoteApiRegistry>());
         Assert.NotNull(provider.GetRequiredService<BffRemoteApiHandler>());
+    }
+
+    [Fact]
+    public void AddBffLibrary_RegistersTheFrontendServices()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        var names = provider
+            .GetServices<IBffFrontendSelector>()
+            .Select(selector => selector.Name)
+            .Order(StringComparer.Ordinal);
+        Assert.Equal([BffFrontendSelectorNames.Host, BffFrontendSelectorNames.Path], names);
+        Assert.NotNull(provider.GetRequiredService<BffFrontendCatalog>());
+        Assert.Contains(
+            provider.GetServices<MatcherPolicy>(),
+            policy => policy is BffFrontendMatcherPolicy
+        );
+    }
+
+    [Fact]
+    public void AddBffLibrary_RegistersTheEndpointStartupCheck()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        Assert.Contains(
+            Services,
+            descriptor =>
+                descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType == typeof(BffEndpointStartupCheck)
+        );
     }
 
     [Fact]

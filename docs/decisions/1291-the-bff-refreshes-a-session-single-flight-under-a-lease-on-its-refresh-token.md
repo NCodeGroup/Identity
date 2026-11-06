@@ -6,7 +6,9 @@
   [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md): the lease is checked against
   `OpenIdClientOptions.TotalTimeout`, which replaced `RequestTimeout`; and by
   [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md): the login requests
-  `offline_access` only when `Bff:Scopes` lists it)
+  `offline_access` only when `Bff:Scopes` lists it; keys amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): its per-frontend
+  settings are configured under Bff:Frontends:{name})
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 

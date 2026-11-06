@@ -13,6 +13,11 @@ namespace NCode.Identity.Bff.Login;
 internal sealed record BffLoginTransaction
 {
     /// <summary>
+    /// Gets the name of the frontend that started the login.
+    /// </summary>
+    public string Frontend { get; init; } = string.Empty;
+
+    /// <summary>
     /// Gets the issuer that the authorization request was sent to.
     /// </summary>
     public string Issuer { get; init; } = string.Empty;

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
@@ -18,6 +19,7 @@ namespace NCode.Identity.Bff.Antiforgery;
 internal class BffMiddleware(
     RequestDelegate next,
     IOptions<BffOptions> options,
+    BffFrontendCatalog frontends,
     IBffAuditRecorder recorder
 )
 {
@@ -25,6 +27,7 @@ internal class BffMiddleware(
 
     private readonly RequestDelegate _next = next;
     private readonly IOptions<BffOptions> _options = options;
+    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly IBffAuditRecorder _recorder = recorder;
 
     /// <summary>
@@ -47,7 +50,7 @@ internal class BffMiddleware(
         if (BffGuardedEndpoints.IsGuarded(endpoint))
             feature.CheckedEndpoint = endpoint;
 
-        var refusal = GetRefusal(context.Request, endpoint);
+        var refusal = GetRefusal(context, endpoint);
         if (refusal is { } refused)
         {
             await _recorder.AntiforgeryRejectedAsync(
@@ -88,13 +91,18 @@ internal class BffMiddleware(
     }
 
     private (string Reason, int StatusCode, string Type, string Title)? GetRefusal(
-        HttpRequest request,
+        HttpContext context,
         Endpoint? endpoint
     )
     {
         if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
         {
-            var reason = BffRequestGuard.Check(request, _options.Value);
+            var trustedOrigins = _frontends.Resolve(context)?.Options.TrustedOrigins ?? [];
+            var reason = BffRequestGuard.Check(
+                context.Request,
+                _options.Value.Antiforgery,
+                trustedOrigins
+            );
             if (reason is null)
                 return null;
 
@@ -112,7 +120,7 @@ internal class BffMiddleware(
 
         if (BffGuardedEndpoints.IsPage(endpoint))
         {
-            var reason = BffRequestGuard.CheckPage(request);
+            var reason = BffRequestGuard.CheckPage(context.Request);
             if (reason is null)
                 return null;
 

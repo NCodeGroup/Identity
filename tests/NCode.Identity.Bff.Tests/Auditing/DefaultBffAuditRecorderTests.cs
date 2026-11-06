@@ -6,6 +6,7 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 using Xunit;
@@ -23,10 +24,9 @@ public class DefaultBffAuditRecorderTests : BaseTests
     public DefaultBffAuditRecorderTests()
     {
         MockPublisher = CreateStrictMock<IEventPublisher>();
-        var bffOptions = new BffOptions { ClientId = "bff-client" };
-        var options = Microsoft.Extensions.Options.Options.Create(bffOptions);
+        var frontends = BffTestFrontends.CreateCatalog(x => x.ClientId = "bff-client");
         var timeProvider = new FakeTimeProvider(Now);
-        Recorder = new DefaultBffAuditRecorder(MockPublisher.Object, options, timeProvider);
+        Recorder = new DefaultBffAuditRecorder(MockPublisher.Object, frontends, timeProvider);
     }
 
     private void SetupPublish() =>
@@ -111,6 +111,43 @@ public class DefaultBffAuditRecorderTests : BaseTests
         Assert.Equal(AuditOutcome.Denied, auditEvent.Outcome);
         Assert.Equal("missing_header", auditEvent.Error?.Code);
         Assert.Equal(AuditActor.Anonymous, auditEvent.Actor);
+    }
+
+    #endregion
+
+    #region LoginFailedAsync Tests
+
+    [Fact]
+    public async Task LoginFailedAsync_RequestWithoutAFrontend_PublishesANullClientId()
+    {
+        var frontends = BffTestFrontends.CreateCatalog(
+            new BffOptions
+            {
+                Frontends =
+                {
+                    ["admin"] = BffTestFrontends.CreateOptions(x =>
+                        x.Selection = new BffFrontendSelectionOptions
+                        {
+                            Rule = BffFrontendSelectorNames.Host,
+                            Values = ["admin.example.com"],
+                        }
+                    ),
+                },
+            }
+        );
+        var recorder = new DefaultBffAuditRecorder(
+            MockPublisher.Object,
+            frontends,
+            new FakeTimeProvider(Now)
+        );
+        SetupPublish();
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Host = new HostString("app.example.com");
+
+        await recorder.LoginFailedAsync(httpContext, "denied", CancellationToken.None);
+
+        var auditEvent = Assert.IsType<BffAuditEvent>(Captured);
+        Assert.Null(auditEvent.ClientId);
     }
 
     #endregion

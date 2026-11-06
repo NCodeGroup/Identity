@@ -70,4 +70,40 @@ public class BffEndpointConventionBuilderExtensionsTests : BaseTests
     }
 
     #endregion
+
+    #region RequireBffFrontend Tests
+
+    [Fact]
+    public void RequireBffFrontend_AddsOneAttributePerName()
+    {
+        var builder = WebApplication.CreateSlimBuilder();
+        var app = builder.Build();
+
+        app.MapGet("/api/x", () => "x").RequireBffFrontend("admin", "shop");
+
+        IEndpointRouteBuilder endpoints = app;
+        var route = Assert.Single(
+            endpoints.DataSources.SelectMany(x => x.Endpoints).OfType<RouteEndpoint>()
+        );
+
+        var names = route
+            .Metadata.GetOrderedMetadata<BffFrontendAttribute>()
+            .Select(x => x.Name)
+            .ToList();
+
+        Assert.Equal(["admin", "shop"], names);
+    }
+
+    [Fact]
+    public void RequireBffFrontend_WithNoName_Throws()
+    {
+        var builder = WebApplication.CreateSlimBuilder();
+        var app = builder.Build();
+
+        var conventions = app.MapGet("/api/x", () => "x");
+
+        Assert.Throws<ArgumentException>(() => conventions.RequireBffFrontend());
+    }
+
+    #endregion
 }

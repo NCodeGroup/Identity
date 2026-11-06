@@ -17,9 +17,9 @@ public static class BffSecurityHeadersApplicationBuilderExtensions
     {
         /// <summary>
         /// Adds a middleware that writes <c>Content-Security-Policy</c>, <c>X-Content-Type-Options: nosniff</c>,
-        /// <c>Referrer-Policy</c> and <c>Cross-Origin-Opener-Policy</c> on every response, from the
-        /// <c>Bff:SecurityHeaders</c> configuration section. A header that the application sets on a response itself
-        /// is kept.
+        /// <c>Referrer-Policy</c> and <c>Cross-Origin-Opener-Policy</c> on every response, from the selected
+        /// frontend's <c>Bff:Frontends:{name}:SecurityHeaders</c> configuration section. A header that the application
+        /// sets on a response itself is kept.
         /// </summary>
         /// <remarks>
         /// Call it early, before the static files and the endpoints, so the frontend's own pages carry the headers.

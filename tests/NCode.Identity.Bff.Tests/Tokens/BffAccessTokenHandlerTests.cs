@@ -5,8 +5,9 @@ using System.Net;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Buffers;
-using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -24,7 +25,7 @@ public class BffAccessTokenHandlerTests : BaseTests
     private readonly Mock<IHttpContextAccessor> _accessor;
     private readonly Mock<IBffTokenAccessor> _tokens;
     private readonly Mock<IDPoPProofFactory> _proofs;
-    private readonly BffClientRegistrationProvider _registrations;
+    private readonly BffFrontendCatalog _frontends;
     private readonly BffTokenRequest _tokenRequest = new(BffTokenRequirementNames.User);
 
     public BffAccessTokenHandlerTests()
@@ -32,16 +33,12 @@ public class BffAccessTokenHandlerTests : BaseTests
         _accessor = CreateStrictMock<IHttpContextAccessor>();
         _tokens = CreateStrictMock<IBffTokenAccessor>();
         _proofs = CreateStrictMock<IDPoPProofFactory>();
-        var bffOptions = new BffOptions
-        {
-            Authority = "https://op.example.com",
-            ClientId = "bff",
-            DPoP = new BffDPoPOptions { Mode = BffDPoPModes.Required, KeyRing = "dpop-keys" },
-        };
-        _registrations = new BffClientRegistrationProvider(
-            Microsoft.Extensions.Options.Options.Create(bffOptions)
+        _frontends = BffTestFrontends.CreateCatalog(x =>
+            x.DPoP = new BffDPoPOptions { Mode = BffDPoPModes.Required, KeyRing = "dpop-keys" }
         );
     }
+
+    private ClientRegistration Registration => BffTestFrontends.Get(_frontends).Registration;
 
     private HttpClient CreateClient(StubHttpMessageHandler inner)
     {
@@ -49,7 +46,7 @@ public class BffAccessTokenHandlerTests : BaseTests
             _accessor.Object,
             _tokens.Object,
             _proofs.Object,
-            _registrations,
+            _frontends,
             _tokenRequest
         )
         {
@@ -133,7 +130,7 @@ public class BffAccessTokenHandlerTests : BaseTests
             _accessor.Object,
             _tokens.Object,
             _proofs.Object,
-            _registrations,
+            _frontends,
             tokenRequest: null
         )
         {
@@ -213,7 +210,7 @@ public class BffAccessTokenHandlerTests : BaseTests
         _proofs
             .Setup(x =>
                 x.CreateResourceProofAsync(
-                    _registrations.Registration,
+                    Registration,
                     Jkt,
                     HttpMethod.Get,
                     RequestUri,
@@ -333,7 +330,7 @@ public class BffAccessTokenHandlerTests : BaseTests
         _proofs
             .Setup(x =>
                 x.CreateResourceProofAsync(
-                    _registrations.Registration,
+                    Registration,
                     Jkt,
                     HttpMethod.Post,
                     RequestUri,

@@ -50,5 +50,35 @@ public static class BffEndpointConventionBuilderExtensions
             var attribute = new BffPageAttribute();
             return builder.WithMetadata(attribute);
         }
+
+        /// <summary>
+        /// Limits the endpoint to the named BFF frontends by adding one <see cref="BffFrontendAttribute"/> per name
+        /// to its metadata.
+        /// </summary>
+        /// <remarks>
+        /// A request that selects another frontend does not match the endpoint, so routing answers <c>404</c>.
+        /// Controllers use the <see cref="BffFrontendAttribute"/> attribute instead.
+        /// </remarks>
+        /// <param name="names">The names of the frontends that the endpoint serves.</param>
+        /// <returns>The same builder, so that calls can be chained.</returns>
+        public TBuilder RequireBffFrontend(params IEnumerable<string> names)
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(names);
+
+            string[] buffered = [.. names];
+            if (buffered.Length == 0)
+            {
+                throw new ArgumentException(
+                    "At least one frontend name is required.",
+                    nameof(names)
+                );
+            }
+
+            var attributes = buffered
+                .Select(name => new BffFrontendAttribute(name))
+                .ToArray<object>();
+            return builder.WithMetadata(attributes);
+        }
     }
 }

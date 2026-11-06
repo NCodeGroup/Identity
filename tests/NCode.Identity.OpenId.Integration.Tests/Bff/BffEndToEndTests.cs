@@ -52,7 +52,10 @@ public class BffEndToEndTests
             keySet,
             valueSet,
             indexSet,
-            extraConfiguration: new Dictionary<string, string?> { ["Bff:UserInfo:Load"] = "true" },
+            extraConfiguration: new Dictionary<string, string?>
+            {
+                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:Load"] = "true",
+            },
             exchanges: exchanges
         );
 
@@ -98,8 +101,8 @@ public class BffEndToEndTests
             indexSet,
             extraConfiguration: new Dictionary<string, string?>
             {
-                ["Bff:UserInfo:Load"] = "true",
-                ["Bff:UserInfo:SigningAlgorithms:0"] = "RS256",
+                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:Load"] = "true",
+                [$"{BffTestHost.ConfigurationPrefix}:UserInfo:SigningAlgorithms:0"] = "RS256",
             },
             exchanges: exchanges
         );
@@ -229,7 +232,7 @@ public class BffEndToEndTests
         );
         var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
 
-        // The request names another host; the redirect_uri still comes from Bff:PublicOrigin, so the provider accepts it
+        // The request names another host; the redirect_uri still comes from the frontend's PublicOrigin, so the provider accepts it
         // and sends the browser back to the registered callback.
         var loginUri =
             $"https://attacker.example{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";

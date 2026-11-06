@@ -3,10 +3,9 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Navigation;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Jose;
@@ -20,7 +19,7 @@ namespace NCode.Identity.Bff.Endpoints;
 internal class BffUserHandler(
     BffSessionResolver resolver,
     IEnumerable<IBffUserContributor> contributors,
-    IOptions<BffOptions> options
+    BffFrontendCatalog frontends
 )
 {
     private const string JsonContentType = "application/json; charset=utf-8";
@@ -28,7 +27,7 @@ internal class BffUserHandler(
 
     private readonly BffSessionResolver _resolver = resolver;
     private readonly IEnumerable<IBffUserContributor> _contributors = contributors;
-    private readonly IOptions<BffOptions> _options = options;
+    private readonly BffFrontendCatalog _frontends = frontends;
 
     /// <summary>
     /// Writes the signed-in user, or a <c>401</c> problem when the request has no session.
@@ -54,7 +53,7 @@ internal class BffUserHandler(
             return;
         }
 
-        var bffOptions = _options.Value;
+        var frontend = _frontends.GetRequired(httpContext);
         var principal = BffSessionPrincipal.Create(session.Payload.Claims, session.Metadata.Issuer);
 
         // The contributors run before the response starts, so a contributor that fails leaves no partial body.
@@ -76,7 +75,7 @@ internal class BffUserHandler(
             writer.WriteString(JoseClaimNames.Payload.Name, name);
 
         writer.WriteStartObject("claims");
-        foreach (var claimType in bffOptions.UserClaims)
+        foreach (var claimType in frontend.Options.UserClaims)
         {
             var values = principal.FindAll(claimType).Select(claim => claim.Value).ToList();
             if (values.Count == 0)
@@ -106,7 +105,7 @@ internal class BffUserHandler(
 
         var logoutPath = BffNavigation.LocalUrl(
             httpContext.Request,
-            bffOptions.PathPrefix + LogoutPath
+            frontend.Options.PathPrefix + LogoutPath
         );
         writer.WriteString("logoutUrl", logoutPath);
         writer.WriteString("logoutSid", session.Payload.LogoutGuard);

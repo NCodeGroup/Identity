@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
 using Yarp.ReverseProxy.Forwarder;
@@ -17,13 +17,13 @@ namespace NCode.Identity.Bff.RemoteApis;
 /// <param name="accessor">The accessor of the current request.</param>
 /// <param name="tokens">The accessor of the BFF's tokens.</param>
 /// <param name="proofs">The factory of DPoP proofs.</param>
-/// <param name="registrations">The provider of the BFF's client registration.</param>
+/// <param name="frontends">The catalog of the frontends, whose registration signs the DPoP proofs of the request's frontend.</param>
 internal sealed class BffForwarderHttpClientFactory(
     IForwarderHttpClientFactory inner,
     IHttpContextAccessor accessor,
     IBffTokenAccessor tokens,
     IDPoPProofFactory proofs,
-    BffClientRegistrationProvider registrations
+    BffFrontendCatalog frontends
 ) : IForwarderHttpClientFactory
 {
     /// <inheritdoc />
@@ -54,7 +54,7 @@ internal sealed class BffForwarderHttpClientFactory(
                 accessor,
                 tokens,
                 proofs,
-                registrations,
+                frontends,
                 tokenRequest: null
             )
             {

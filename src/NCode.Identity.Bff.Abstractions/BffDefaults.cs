@@ -26,12 +26,14 @@ public static class BffDefaults
     public const string EndpointPrefix = "/bff";
 
     /// <summary>
-    /// The name of the cookie that holds the opaque session handle.
+    /// The base name of the cookie that holds the opaque session handle. The cookie of a frontend appends <c>.</c> and
+    /// the name of the frontend.
     /// </summary>
     public const string SessionCookieName = "__Host-Http-bff";
 
     /// <summary>
-    /// The name of the cookie that binds a login transaction to the browser that started it.
+    /// The base name of the cookie that binds a login transaction to the browser that started it. The cookie of a
+    /// frontend appends <c>.</c> and the name of the frontend.
     /// </summary>
     public const string LoginCookieName = "__Host-Http-bff-login";
 
@@ -44,11 +46,6 @@ public static class BffDefaults
     /// The default value of the static anti-forgery request header.
     /// </summary>
     public const string AntiforgeryHeaderValue = "1";
-
-    /// <summary>
-    /// The name that every session records as its frontend.
-    /// </summary>
-    public const string FrontendName = "default";
 
     /// <summary>
     /// The name of the configuration section that binds the options of the BFF.

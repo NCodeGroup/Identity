@@ -1,6 +1,8 @@
 # 1365. The BFF and the login redirect take no URL from the request's Host
 
-- **Status:** Accepted
+- **Status:** Accepted (decision 2 amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): `PublicOrigin` is per
+  frontend)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md)

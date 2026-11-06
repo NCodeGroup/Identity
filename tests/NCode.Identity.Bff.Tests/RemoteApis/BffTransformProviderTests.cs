@@ -4,9 +4,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
@@ -33,9 +33,7 @@ public sealed class BffTransformProviderTests : BaseTests
             CreateStrictMock<IHttpContextAccessor>().Object,
             MockTokens.Object,
             CreateStrictMock<IDPoPProofFactory>().Object,
-            new BffClientRegistrationProvider(
-                Microsoft.Extensions.Options.Options.Create(new BffOptions())
-            )
+            BffTestFrontends.CreateCatalog()
         );
     }
 
@@ -60,7 +58,8 @@ public sealed class BffTransformProviderTests : BaseTests
                 {
                     Antiforgery = new BffAntiforgeryOptions { HeaderName = AntiforgeryHeaderName },
                 }
-            )
+            ),
+            BffTestFrontends.CreateCatalog()
         );
     }
 
@@ -83,7 +82,8 @@ public sealed class BffTransformProviderTests : BaseTests
                 CreateStrictMock<IForwarderHttpClientFactory>().Object,
                 [],
                 MockTokens.Object,
-                Microsoft.Extensions.Options.Options.Create(new BffOptions())
+                Microsoft.Extensions.Options.Options.Create(new BffOptions()),
+                BffTestFrontends.CreateCatalog()
             )
         );
 
@@ -135,6 +135,47 @@ public sealed class BffTransformProviderTests : BaseTests
         CreateProvider().ValidateRoute(context);
 
         Assert.Empty(context.Errors);
+    }
+
+    [Fact]
+    public void ValidateRoute_ConfiguredFrontend_AddsNoError()
+    {
+        var context = new TransformRouteValidationContext
+        {
+            Services = Services,
+            Route = CreateRoute(
+                new Dictionary<string, string>
+                {
+                    [BffReverseProxyMetadataKeys.Frontend] = BffTestFrontends.Name,
+                }
+            ),
+        };
+
+        CreateProvider().ValidateRoute(context);
+
+        Assert.Empty(context.Errors);
+    }
+
+    [Fact]
+    public void ValidateRoute_UnknownFrontend_AddsAnError()
+    {
+        var context = new TransformRouteValidationContext
+        {
+            Services = Services,
+            Route = CreateRoute(
+                new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "other" }
+            ),
+        };
+
+        CreateProvider().ValidateRoute(context);
+
+        var error = Assert.Single(context.Errors);
+        Assert.IsType<ArgumentException>(error);
+        Assert.Contains(
+            "'other' is not a configured BFF frontend",
+            error.Message,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion

@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logging;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -17,39 +18,45 @@ namespace NCode.Identity.Bff.Tokens;
 /// </summary>
 internal class BffGrantClient(
     ITokenClient tokenClient,
-    BffClientRegistrationProvider registrationProvider,
     TimeProvider timeProvider,
     ILogger<BffGrantClient> logger
 )
 {
     private readonly ITokenClient _tokenClient = tokenClient;
-    private readonly BffClientRegistrationProvider _registrationProvider = registrationProvider;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<BffGrantClient> _logger = logger;
 
     /// <summary>
-    /// Requests an access token, answering <c>503</c> when the provider cannot be reached and <c>502</c> when it
-    /// refuses the request or answers without an access token.
+    /// Requests an access token as the frontend's client registration, answering <c>503</c> when the provider cannot
+    /// be reached and <c>502</c> when it refuses the request or answers without an access token.
     /// </summary>
+    /// <param name="frontend">The frontend whose client registration makes the request.</param>
     /// <param name="request">The token request.</param>
     /// <param name="cancellationToken">The token to cancel the operation.</param>
     /// <returns>The issued access token, or the failure.</returns>
-    public virtual async ValueTask<BffTokenResult> RequestAsync(
+    public virtual ValueTask<BffTokenResult> RequestAsync(
+        BffFrontend frontend,
         TokenRequest request,
         CancellationToken cancellationToken
     )
     {
+        ArgumentNullException.ThrowIfNull(frontend);
         ArgumentNullException.ThrowIfNull(request);
 
+        return RequestWithRegistrationAsync(frontend.Registration, request, cancellationToken);
+    }
+
+    private async ValueTask<BffTokenResult> RequestWithRegistrationAsync(
+        ClientRegistration registration,
+        TokenRequest request,
+        CancellationToken cancellationToken
+    )
+    {
         var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
         TokenResult result;
         try
         {
-            result = await _tokenClient.RequestTokenAsync(
-                _registrationProvider.Registration,
-                request,
-                cancellationToken
-            );
+            result = await _tokenClient.RequestTokenAsync(registration, request, cancellationToken);
         }
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))

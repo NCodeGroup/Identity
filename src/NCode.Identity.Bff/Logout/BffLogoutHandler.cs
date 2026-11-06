@@ -5,11 +5,10 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
 using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Navigation;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
@@ -26,28 +25,25 @@ internal class BffLogoutHandler
     private const string SidParameterName = "sid";
     private const string DefaultReturnUrl = "/";
 
-    private readonly IOptions<BffOptions> _options;
+    private readonly BffFrontendCatalog _frontends;
     private readonly BffSessionResolver _resolver;
     private readonly BffLogoutService _logoutService;
     private readonly IProviderMetadataResolver _metadataResolver;
-    private readonly BffClientRegistrationProvider _registrationProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BffLogoutHandler"/> class.
     /// </summary>
     public BffLogoutHandler(
-        IOptions<BffOptions> options,
+        BffFrontendCatalog frontends,
         BffSessionResolver resolver,
         BffLogoutService logoutService,
-        IProviderMetadataResolver metadataResolver,
-        BffClientRegistrationProvider registrationProvider
+        IProviderMetadataResolver metadataResolver
     )
     {
-        _options = options;
+        _frontends = frontends;
         _resolver = resolver;
         _logoutService = logoutService;
         _metadataResolver = metadataResolver;
-        _registrationProvider = registrationProvider;
     }
 
     /// <summary>
@@ -60,7 +56,8 @@ internal class BffLogoutHandler
 
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
-        var bffOptions = _options.Value;
+        var frontend = _frontends.GetRequired(httpContext);
+        var bffOptions = frontend.Options;
 
         httpContext.Response.SetNoStore();
 
@@ -116,7 +113,7 @@ internal class BffLogoutHandler
 
         await _logoutService.EndSessionAsync(httpContext, session, BffSessionEndReasons.LoggedOut);
 
-        var registration = _registrationProvider.Registration;
+        var registration = frontend.Registration;
 
         OpenIdProviderMetadata metadata;
         try

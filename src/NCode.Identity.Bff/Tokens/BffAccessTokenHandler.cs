@@ -4,7 +4,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 
@@ -16,7 +16,7 @@ namespace NCode.Identity.Bff.Tokens;
 /// <param name="accessor">The accessor of the current request.</param>
 /// <param name="tokens">The accessor of the BFF's tokens.</param>
 /// <param name="proofs">The factory of DPoP proofs.</param>
-/// <param name="registrations">The provider of the BFF's client registration.</param>
+/// <param name="frontends">The catalog of the frontends, whose registration signs the DPoP proofs of the request's frontend.</param>
 /// <param name="tokenRequest">
 /// The token request to resolve when a request carries no <see cref="ResolvedTokenKey"/>, or <see langword="null"/> to
 /// send such a request unchanged, as a YARP cluster does for a route that is not a BFF remote API.
@@ -25,7 +25,7 @@ internal class BffAccessTokenHandler(
     IHttpContextAccessor accessor,
     IBffTokenAccessor tokens,
     IDPoPProofFactory proofs,
-    BffClientRegistrationProvider registrations,
+    BffFrontendCatalog frontends,
     BffTokenRequest? tokenRequest
 ) : DelegatingHandler
 {
@@ -80,7 +80,7 @@ internal class BffAccessTokenHandler(
             );
         var requestUri =
             request.RequestUri ?? throw new InvalidOperationException("The request has no URI.");
-        var registration = registrations.Registration;
+        var registration = frontends.GetRequired(GetHttpContext()).Registration;
 
         // The content must be replayable for the one retry of a nonce challenge.
         if (request.Content is { } content)
@@ -126,14 +126,14 @@ internal class BffAccessTokenHandler(
         CancellationToken cancellationToken
     )
     {
-        var httpContext =
-            accessor.HttpContext
-            ?? throw new InvalidOperationException(
-                "The BFF access token handler requires a current HttpContext."
-            );
-
-        return await tokens.GetAccessTokenAsync(httpContext, request, cancellationToken);
+        return await tokens.GetAccessTokenAsync(GetHttpContext(), request, cancellationToken);
     }
+
+    private HttpContext GetHttpContext() =>
+        accessor.HttpContext
+        ?? throw new InvalidOperationException(
+            "The BFF access token handler requires a current HttpContext."
+        );
 
     private async Task<HttpResponseMessage> SendRecordingNonceAsync(
         HttpRequestMessage request,

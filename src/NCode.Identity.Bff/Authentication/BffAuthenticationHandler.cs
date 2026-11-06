@@ -8,9 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Navigation;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 
@@ -25,7 +25,7 @@ internal class BffAuthenticationHandler(
     ILoggerFactory loggerFactory,
     UrlEncoder encoder,
     BffSessionResolver resolver,
-    IOptions<BffOptions> options
+    BffFrontendCatalog frontends
 )
     : AuthenticationHandler<AuthenticationSchemeOptions>(schemeOptions, loggerFactory, encoder),
         IAuthenticationSignOutHandler
@@ -33,7 +33,7 @@ internal class BffAuthenticationHandler(
     private const string LoginPath = "/login";
 
     private readonly BffSessionResolver _resolver = resolver;
-    private readonly IOptions<BffOptions> _options = options;
+    private readonly BffFrontendCatalog _frontends = frontends;
 
     /// <inheritdoc />
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -74,13 +74,23 @@ internal class BffAuthenticationHandler(
             );
         }
 
-        var bffOptions = _options.Value;
+        var frontend = _frontends.Resolve(Context);
+        if (frontend is null)
+        {
+            return BffResponses.WriteProblemAsync(
+                Context,
+                StatusCodes.Status401Unauthorized,
+                BffProblemTypes.SessionRequired,
+                "A BFF session is required."
+            );
+        }
+
         var request = Request;
         var returnUrl = $"{request.Path}{request.QueryString}";
-        if (!BffReturnUrls.IsLocalUrl(returnUrl, bffOptions.ReturnUrls))
+        if (!BffReturnUrls.IsLocalUrl(returnUrl, frontend.Options.ReturnUrls))
             returnUrl = "/";
 
-        var loginUrl = BffNavigation.LocalUrl(request, bffOptions.PathPrefix + LoginPath);
+        var loginUrl = BffNavigation.LocalUrl(request, frontend.Options.PathPrefix + LoginPath);
         var escaped = Uri.EscapeDataString(returnUrl);
         Response.Redirect($"{loginUrl}?returnUrl={escaped}");
         return Task.CompletedTask;

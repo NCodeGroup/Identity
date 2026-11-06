@@ -11,9 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using NCode.Buffers;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -110,7 +110,7 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
         services.AddSingleton(MockTokens.Object);
         services.AddSingleton(CreateStrictMock<IDPoPProofFactory>().Object);
         services.AddHttpContextAccessor();
-        services.AddSingleton<BffClientRegistrationProvider>();
+        services.AddSingleton(BffTestFrontends.CreateCatalog());
 
         var upstreamFactory = CreateStrictMock<IForwarderHttpClientFactory>();
         upstreamFactory
@@ -211,6 +211,30 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
             GetEndpoint(endpoints, TokenRouteId).Metadata.GetMetadata<BffApiAttribute>()
         );
         Assert.Null(GetEndpoint(endpoints, OtherRouteId).Metadata.GetMetadata<BffApiAttribute>());
+    }
+
+    [Fact]
+    public void MapReverseProxy_AsBffRemoteApis_LimitsARouteToItsFrontend()
+    {
+        var endpoints = CreateApp(
+            CreateRoute(
+                TokenRouteId,
+                "/api/orders/{**rest}",
+                new Dictionary<string, string>
+                {
+                    [BffReverseProxyMetadataKeys.Frontend] = BffTestFrontends.Name,
+                }
+            ),
+            OtherRoute
+        );
+
+        var attribute = Assert.Single(
+            GetEndpoint(endpoints, TokenRouteId).Metadata.GetOrderedMetadata<BffFrontendAttribute>()
+        );
+        Assert.Equal(BffTestFrontends.Name, attribute.Name);
+        Assert.Empty(
+            GetEndpoint(endpoints, OtherRouteId).Metadata.GetOrderedMetadata<BffFrontendAttribute>()
+        );
     }
 
     [Fact]

@@ -17,21 +17,21 @@ public sealed class BffSecurityHeadersOptions
     /// <c>default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'</c>. It lists no
     /// <c>form-action</c>, because browsers check that directive against the redirect that follows the logout form,
     /// which leaves the origin for the OpenID Provider. The configuration key is
-    /// <c>Bff:SecurityHeaders:ContentSecurityPolicy</c>.
+    /// <c>Bff:Frontends:{name}:SecurityHeaders:ContentSecurityPolicy</c>.
     /// </summary>
     public string ContentSecurityPolicy { get; set; } =
         "default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'";
 
     /// <summary>
     /// Gets or sets the <c>Referrer-Policy</c> header. The default is <c>same-origin</c>, so no other origin learns
-    /// the frontend's URLs. The configuration key is <c>Bff:SecurityHeaders:ReferrerPolicy</c>.
+    /// the frontend's URLs. The configuration key is <c>Bff:Frontends:{name}:SecurityHeaders:ReferrerPolicy</c>.
     /// </summary>
     public string ReferrerPolicy { get; set; } = "same-origin";
 
     /// <summary>
     /// Gets or sets the <c>Cross-Origin-Opener-Policy</c> header. The default is <c>same-origin</c>, so a window the
     /// frontend opens on another origin, or that opened it, holds no reference to it. The configuration key is
-    /// <c>Bff:SecurityHeaders:CrossOriginOpenerPolicy</c>.
+    /// <c>Bff:Frontends:{name}:SecurityHeaders:CrossOriginOpenerPolicy</c>.
     /// </summary>
     public string CrossOriginOpenerPolicy { get; set; } = "same-origin";
 }

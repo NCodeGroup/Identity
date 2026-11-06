@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Frontends;
 
 namespace NCode.Identity.Bff.Sessions;
 
@@ -16,14 +15,14 @@ internal class BffSessionResolver(
     IBffSessionManager sessionManager,
     BffCookies cookies,
     IEnumerable<IBffSessionValidator> validators,
-    IOptions<BffOptions> options,
+    BffFrontendCatalog frontends,
     TimeProvider timeProvider
 )
 {
     private readonly IBffSessionManager _sessionManager = sessionManager;
     private readonly BffCookies _cookies = cookies;
     private readonly IEnumerable<IBffSessionValidator> _validators = validators;
-    private readonly IOptions<BffOptions> _options = options;
+    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly TimeProvider _timeProvider = timeProvider;
 
     /// <summary>
@@ -52,14 +51,24 @@ internal class BffSessionResolver(
         if (feature.IsResolved)
             return feature.Session;
 
-        var handle = _cookies.ReadSessionHandle(httpContext.Request);
+        var frontend = _frontends.Resolve(httpContext);
+        if (frontend is null)
+            return Complete(httpContext, feature, null);
+
+        var handle = _cookies.ReadSessionHandle(httpContext.Request, frontend);
         if (handle is null)
             return Complete(httpContext, feature, null);
 
         var state = await _sessionManager.LoadAsync(handle, cancellationToken);
         if (state is null)
         {
-            _cookies.DeleteSession(httpContext.Response);
+            _cookies.DeleteSession(httpContext.Response, frontend);
+            return Complete(httpContext, feature, null);
+        }
+
+        if (!string.Equals(state.Metadata.Frontend, frontend.Name, StringComparison.Ordinal))
+        {
+            _cookies.DeleteSession(httpContext.Response, frontend);
             return Complete(httpContext, feature, null);
         }
 
@@ -79,7 +88,7 @@ internal class BffSessionResolver(
                 endReason,
                 cancellationToken
             );
-            _cookies.DeleteSession(httpContext.Response);
+            _cookies.DeleteSession(httpContext.Response, frontend);
             return Complete(httpContext, feature, null);
         }
 
@@ -102,12 +111,12 @@ internal class BffSessionResolver(
                 BffSessionEndReasons.EndedByValidator,
                 cancellationToken
             );
-            _cookies.DeleteSession(httpContext.Response);
+            _cookies.DeleteSession(httpContext.Response, frontend);
             return Complete(httpContext, feature, null);
         }
 
         var slides = BffGuardedEndpoints.IsApi(endpoint) || BffGuardedEndpoints.IsPage(endpoint);
-        var idleTimeout = _options.Value.Session.IdleTimeout;
+        var idleTimeout = frontend.Options.Session.IdleTimeout;
         if (slides && now - state.Metadata.LastAccessedAt >= idleTimeout / 10)
         {
             var slid = await _sessionManager.UpdateAsync(
@@ -117,7 +126,7 @@ internal class BffSessionResolver(
             );
             if (slid is null)
             {
-                _cookies.DeleteSession(httpContext.Response);
+                _cookies.DeleteSession(httpContext.Response, frontend);
                 return Complete(httpContext, feature, null);
             }
 

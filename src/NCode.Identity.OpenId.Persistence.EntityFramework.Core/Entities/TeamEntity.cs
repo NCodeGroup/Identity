@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -15,7 +16,9 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// settings. The complimentary DTO for this entity is <see cref="PersistedTeam"/>.
 /// </summary>
 // See ADR-1411
+// See ADR-1426.
 [Index(nameof(NormalizedTeamId), IsUnique = true)]
+[Index(nameof(Path))]
 public sealed class TeamEntity : ISupportConcurrencyToken
 {
     /// <summary>
@@ -39,6 +42,21 @@ public sealed class TeamEntity : ISupportConcurrencyToken
     [Unicode(false)]
     [MaxLength(MaxLengths.ResourceId)]
     public required string NormalizedTeamId { get; init; }
+
+    /// <summary>
+    /// Gets the surrogate identifier of the team directly above this one, or <see langword="null"/> for a top-level
+    /// team. A team never moves.
+    /// </summary>
+    [ForeignKey(nameof(ParentTeam))]
+    public long? ParentTeamId { get; init; }
+
+    /// <summary>
+    /// Gets the team path: the identifiers of the teams from this team's top-level team down to this team, each
+    /// followed by <c>/</c>, after a leading <c>/</c>. It is built when the team is created and never changes.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(OpenIdMaxLengths.TeamPath)]
+    public required string Path { get; init; }
 
     /// <inheritdoc />
     [Unicode(false)]
@@ -84,6 +102,11 @@ public sealed class TeamEntity : ISupportConcurrencyToken
     public JsonElement? ReconciledSettingsJson { get; set; }
 
     // navigation properties
+
+    /// <summary>
+    /// Gets the team directly above this one, or <see langword="null"/> for a top-level team.
+    /// </summary>
+    public TeamEntity? ParentTeam { get; init; }
 
     // ReSharper disable once EntityFramework.ModelValidation.CircularDependency
     // We use DTOs to avoid circular dependencies.

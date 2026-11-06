@@ -539,6 +539,12 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.IsDis
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.IsDisabled.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.NormalizedTeamId.get -> string!
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.NormalizedTeamId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.ParentTeam.get -> NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.ParentTeam.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.ParentTeamId.get -> long?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.ParentTeamId.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.Path.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.Path.init -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.ReconciledSettingsFingerprint.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.ReconciledSettingsFingerprint.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.TeamEntity.ReconciledSettingsJson.get -> System.Text.Json.JsonElement?

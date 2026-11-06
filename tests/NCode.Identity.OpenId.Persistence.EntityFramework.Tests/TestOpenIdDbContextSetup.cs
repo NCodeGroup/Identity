@@ -63,6 +63,39 @@ internal static class TestOpenIdDbContextSetup
             Id = idGenerator.CreateId(),
             TeamId = teamId,
             NormalizedTeamId = normalizedTeamId,
+            Path = $"/{teamId}/",
+            ConcurrencyToken = string.Empty,
+            SettingsConcurrencyToken = string.Empty,
+            IsDisabled = false,
+            DisplayName = "Platform",
+            SettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
+                new Dictionary<string, object>()
+            ),
+            Tenants = new List<TenantEntity>(),
+        };
+        dbContext.Set<TeamEntity>().Add(entity);
+        dbContext.SaveChanges();
+        return entity;
+    }
+
+    /// <summary>
+    /// Seeds a minimal team directly beneath the given parent team and saves it. Returns the team entity.
+    /// </summary>
+    public static TeamEntity SeedChildTeam(
+        this OpenIdDbContext dbContext,
+        IIdGenerator<long> idGenerator,
+        TeamEntity parent,
+        string teamId
+    )
+    {
+        var entity = new TeamEntity
+        {
+            Id = idGenerator.CreateId(),
+            TeamId = teamId,
+            NormalizedTeamId = teamId.ToLowerInvariant(),
+            ParentTeamId = parent.Id,
+            ParentTeam = parent,
+            Path = $"{parent.Path}{teamId}/",
             ConcurrencyToken = string.Empty,
             SettingsConcurrencyToken = string.Empty,
             IsDisabled = false,

@@ -13,9 +13,10 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores;
 
 /// <summary>
 /// Provides a default implementation of <see cref="ITeamStore"/> that uses Entity Framework Core for persistence.
-/// A team is removed only when it owns no tenant, and a removed team's identifier is never reissued.
+/// A team is removed only when it holds no tenant and no team, and a removed team's identifier is never reissued.
 /// </summary>
 // See ADR-1411
+// See ADR-1426.
 internal class TeamStore(
     IStoreProvider storeProvider,
     IIdGenerator<long> idGenerator,
@@ -58,9 +59,13 @@ internal class TeamStore(
         CancellationToken cancellationToken
     )
     {
+        var teamIds = TeamPaths.Parse(entity.Path);
+
         return new PersistedTeam
         {
             TeamId = entity.TeamId,
+            ParentTeamId = teamIds.Count > 1 ? teamIds[^2] : null,
+            AncestorTeamIds = [.. teamIds.Take(teamIds.Count - 1)],
             ConcurrencyToken = entity.ConcurrencyToken,
             IsDisabled = entity.IsDisabled,
             DisplayName = entity.DisplayName,
@@ -191,11 +196,35 @@ internal class TeamStore(
         persistedTeam.ConcurrencyToken = NextConcurrencyToken();
         persistedTeam.Settings.ConcurrencyToken = NextConcurrencyToken();
 
+        TeamEntity? parent = null;
+        if (persistedTeam.ParentTeamId is { } parentTeamId)
+        {
+            parent =
+                await GetEntityOrDefaultAsync(parentTeamId, cancellationToken)
+                ?? throw new InvalidOperationException(
+                    $"The parent team with TeamId='{parentTeamId}' does not exist."
+                );
+        }
+
+        IReadOnlyList<string> teamIds = parent is null
+            ? [persistedTeam.TeamId]
+            : [.. TeamPaths.Parse(parent.Path), persistedTeam.TeamId];
+
+        if (teamIds.Count > TeamPaths.MaxDepth)
+        {
+            throw new InvalidOperationException(
+                $"The team with TeamId='{persistedTeam.TeamId}' cannot be nested deeper than {TeamPaths.MaxDepth} levels."
+            );
+        }
+
         var teamEntity = new TeamEntity
         {
             Id = NextId(),
             TeamId = persistedTeam.TeamId,
             NormalizedTeamId = Normalize(persistedTeam.TeamId),
+            ParentTeamId = parent?.Id,
+            ParentTeam = parent,
+            Path = TeamPaths.Format(teamIds),
             ConcurrencyToken = persistedTeam.ConcurrencyToken,
             SettingsConcurrencyToken = persistedTeam.Settings.ConcurrencyToken,
             IsDisabled = persistedTeam.IsDisabled,
@@ -208,6 +237,8 @@ internal class TeamStore(
         };
 
         await DbContext.Teams.AddAsync(teamEntity, cancellationToken);
+
+        persistedTeam.AncestorTeamIds = [.. teamIds.Take(teamIds.Count - 1)];
     }
 
     /// <inheritdoc />
@@ -318,7 +349,7 @@ internal class TeamStore(
         if (await HasDependentsAsync(teamEntity, cancellationToken))
         {
             throw new InvalidOperationException(
-                $"The team with TeamId='{teamId}' cannot be removed because it still has one or more tenants."
+                $"The team with TeamId='{teamId}' cannot be removed because it still has one or more tenants or teams."
             );
         }
 
@@ -383,8 +414,12 @@ internal class TeamStore(
     )
     {
         return await DbContext.Tenants.AnyAsync(
-            tenant => tenant.TeamId == entity.Id,
-            cancellationToken
-        );
+                tenant => tenant.TeamId == entity.Id,
+                cancellationToken
+            )
+            || await DbContext.Teams.AnyAsync(
+                team => team.ParentTeamId == entity.Id,
+                cancellationToken
+            );
     }
 }

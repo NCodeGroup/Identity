@@ -165,18 +165,6 @@ internal class TeamApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent);
     }
 
-    // The platform's authority node, addressed from the control-plane tenant the request runs under.
-    private static ResourceNode GetPlatformNode(HttpContext httpContext) =>
-        ResourceNode.For(
-            GetControlPlaneTenantId(httpContext),
-            ResourceNodeTypes.Platform,
-            OpenIdConstants.PlatformResourceId
-        );
-
-    // The team's authority node, addressed from the control-plane tenant the request runs under.
-    private static ResourceNode GetTeamNode(HttpContext httpContext, string teamId) =>
-        ResourceNode.For(GetControlPlaneTenantId(httpContext), ResourceNodeTypes.Team, teamId);
-
     private static string GetControlPlaneTenantId(HttpContext httpContext) =>
         httpContext.GetOpenIdContext().Tenant.TenantId;
 

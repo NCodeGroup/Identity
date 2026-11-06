@@ -31,7 +31,6 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Settings;
-using NCode.Mediator;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 using SystemTextJsonPatch;
@@ -532,22 +531,6 @@ internal class TenantApiEndpointHandler(
             tenant => toTenantResource(tenant)
         );
     }
-
-    // The platform's authority node, addressed from the control-plane tenant the request runs under.
-    private static ResourceNode GetPlatformNode(HttpContext httpContext) =>
-        ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.Platform,
-            OpenIdConstants.PlatformResourceId
-        );
-
-    // The team's authority node, addressed from the control-plane tenant the request runs under.
-    private static ResourceNode GetTeamNode(HttpContext httpContext, string teamId) =>
-        ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.Team,
-            teamId
-        );
 
     /// <summary>
     /// Gets an OpenID tenant.
@@ -2191,27 +2174,6 @@ internal class TenantApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
-    }
-
-    // The tenant's authority node: its own id addresses the tenant node.
-    private static ResourceNode GetTenantNode(string tenantId) =>
-        ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
-
-    // Announces a committed change to the tenant: this replica evicts it from the tenant cache, so the change takes effect
-    // at once, and seeds it after a settings change, so a key its new settings require is provisioned (ADR-1169). The
-    // mediator is request-scoped, so it is resolved from the request's services.
-    private static ValueTask NotifyTenantChangedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        bool settingsChanged,
-        CancellationToken cancellationToken
-    )
-    {
-        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
-        return mediator.SendAsync(
-            new TenantChangedCommand(tenantId, settingsChanged),
-            cancellationToken
-        );
     }
 
     private static async ValueTask<bool> TenantExistsAsync(

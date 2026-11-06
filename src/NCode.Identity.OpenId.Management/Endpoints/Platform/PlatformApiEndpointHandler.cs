@@ -15,7 +15,6 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
-using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -154,14 +153,6 @@ internal class PlatformApiEndpointHandler(
             cancellationToken
         );
     }
-
-    // The platform's authority node: the one deployment root, addressed from the tenant the request runs under.
-    private static ResourceNode GetPlatformNode(HttpContext httpContext) =>
-        ResourceNode.For(
-            httpContext.GetOpenIdContext().Tenant.TenantId,
-            ResourceNodeTypes.Platform,
-            OpenIdConstants.PlatformResourceId
-        );
 
     /// <summary>
     /// Gets the platform's effective (resolved) settings.

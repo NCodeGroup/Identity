@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Contexts;
@@ -17,8 +16,6 @@ using NCode.Identity.OpenId.Management.Promotions;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
-using NCode.Identity.OpenId.Tenants;
-using NCode.Mediator;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 
@@ -66,12 +63,19 @@ internal class TenantPromotionApiEndpointHandler(
         promotions
             .MapPost("/preview", PreviewPromotionAsync)
             .Produces<TenantPromotionResource>()
-            .ProducesProblem(StatusCodes.Status403Forbidden);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         promotions
             .MapPost("", PromoteAsync)
             .Produces<TenantPromotionResource>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
-            .ProducesProblem(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
     }
 
     /// <summary>
@@ -83,6 +87,10 @@ internal class TenantPromotionApiEndpointHandler(
     /// <param name="request">The tenants and the environment-bound settings the target keeps.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The report of the promotion, which is not applied.</response>
+    /// <response code="400">The request names no distinct source and target tenant.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the promotion needs.</response>
+    /// <response code="404">A tenant does not exist or is not the team's.</response>
     [EndpointName("api/teams/promotions/preview")]
     internal virtual async ValueTask<IResult> PreviewPromotionAsync(
         HttpContext httpContext,
@@ -111,7 +119,12 @@ internal class TenantPromotionApiEndpointHandler(
     /// <param name="request">The tenants and the environment-bound settings the target keeps.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The report of the promotion, which is applied.</response>
+    /// <response code="400">The request names no distinct source and target tenant.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the promotion needs.</response>
+    /// <response code="404">A tenant does not exist or is not the team's.</response>
     /// <response code="409">The promotion has errors, so nothing was written.</response>
+    /// <response code="412">Another change wrote the target first.</response>
     [EndpointName("api/teams/promotions/create")]
     internal virtual async ValueTask<IResult> PromoteAsync(
         HttpContext httpContext,
@@ -255,11 +268,7 @@ internal class TenantPromotionApiEndpointHandler(
         {
             SourceTenant = source,
             TargetTenant = target,
-            TeamNode = ResourceNode.For(
-                openIdContext.Tenant.TenantId,
-                ResourceNodeTypes.Team,
-                teamId
-            ),
+            TeamNode = GetTeamNode(httpContext, teamId),
             TargetTenantNode = GetTenantNode(target.TenantId),
             StoreManager = storeManager,
             AmbientTenantAccessor = AmbientTenantAccessor,
@@ -387,25 +396,4 @@ internal class TenantPromotionApiEndpointHandler(
             Notes = [.. context.Notes],
             Errors = [.. context.Errors],
         };
-
-    // The tenant's authority node: its own id addresses the tenant node.
-    private static ResourceNode GetTenantNode(string tenantId) =>
-        ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
-
-    // Announces a committed change to the tenant: this replica evicts it from the tenant cache, so the change takes effect
-    // at once, and seeds it after a settings change. The mediator is request-scoped, so it is resolved from the
-    // request's services.
-    private static ValueTask NotifyTenantChangedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        bool settingsChanged,
-        CancellationToken cancellationToken
-    )
-    {
-        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
-        return mediator.SendAsync(
-            new TenantChangedCommand(tenantId, settingsChanged),
-            cancellationToken
-        );
-    }
 }

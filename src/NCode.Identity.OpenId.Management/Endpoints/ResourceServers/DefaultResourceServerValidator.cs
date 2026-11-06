@@ -19,25 +19,56 @@ internal class DefaultResourceServerValidator(IAuthorizationService authorizatio
         IResourceServerValidator
 {
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateCreateAsync(
+    public ValueTask<ManagementError?> AuthorizeCreateAsync(
         ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId),
+            Operations.Create,
+            "The caller is not authorized to create this resource server.",
+            "Authentication is required to create this resource server."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeUpdateAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        string resourceServerId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Update,
+            "The caller is not authorized to update this resource server.",
+            "Authentication is required to update this resource server."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        string resourceServerId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Delete,
+            "The caller is not authorized to delete this resource server.",
+            "Authentication is required to delete this resource server."
+        );
+
+    /// <inheritdoc />
+    public async ValueTask<ManagementError?> ValidateCreateAsync(
         PersistedResourceServer resourceServer,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            resourceServer,
-            Operations.Create,
-            "The caller is not authorized to create this resource server.",
-            "Authentication is required to create this resource server."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         var store = storeManager.GetStore<IResourceServerStore>();
         var existing = await store.GetByIdentifierOrDefaultAsync(
             resourceServer.Identifier,
@@ -56,50 +87,19 @@ internal class DefaultResourceServerValidator(IAuthorizationService authorizatio
     }
 
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateUpdateAsync(
-        ClaimsPrincipal user,
+    public ValueTask<ManagementError?> ValidateUpdateAsync(
         PersistedResourceServer resourceServer,
         IStoreManager storeManager,
         CancellationToken cancellationToken
-    )
-    {
-        return await AuthorizeAsync(
-            user,
-            ResourceNode.For(
-                resourceServer.TenantId,
-                ResourceNodeTypes.ResourceServer,
-                resourceServer.ResourceServerId
-            ),
-            Operations.Update,
-            "The caller is not authorized to update this resource server.",
-            "Authentication is required to update this resource server."
-        );
-    }
+    ) => ValueTask.FromResult<ManagementError?>(null);
 
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateDeleteAsync(
-        ClaimsPrincipal user,
         PersistedResourceServer resourceServer,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            ResourceNode.For(
-                resourceServer.TenantId,
-                ResourceNodeTypes.ResourceServer,
-                resourceServer.ResourceServerId
-            ),
-            Operations.Delete,
-            "The caller is not authorized to delete this resource server.",
-            "Authentication is required to delete this resource server."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         if (resourceServer.IsSystem)
         {
             return new ManagementError

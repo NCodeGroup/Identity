@@ -152,6 +152,19 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public void AddBffLibrary_RegistersTheOptionsAccessorAsTheCatalog()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        Assert.Same(
+            provider.GetRequiredService<BffFrontendCatalog>(),
+            provider.GetRequiredService<IBffOptionsAccessor>()
+        );
+    }
+
+    [Fact]
     public void AddBffLibrary_ConfiguresHostAntiforgeryCookie()
     {
         ClientBuilder.AddBffLibrary(EventsBuilder);

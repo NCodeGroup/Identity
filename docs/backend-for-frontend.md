@@ -919,8 +919,10 @@ every registered rule, and `IsMatch` reads only the request. Two rules are built
   `Tokens` at once only when it passes. An invalid change keeps the last valid set and is logged at `Error` (event
   19009). The endpoints of `MapBffEndpoints()` and `MapBffRemoteApis()` follow the set, with the conventions added to
   their route group, and the endpoint check runs again. A source that never reloads, such as options configured in
-  code, fixes the frontends for the host's life
-  ([ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+  code, fixes the frontends for the host's life. `Bff:KeyRings` entries are registered when `AddIdentityBff` is called
+  and are not re-read by a change, so a frontend added by a change names a key ring that the host already has
+  ([ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md),
+  [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
 - **Removal.** A removed frontend serves no request, so its cookie is never read. A session records its frontend's
   `Authority` and `ClientId`: a request or a connection ends a session whose frontend is configured with another
   (`client_changed`), and a background pass on one replica, at start and after each change, ends every stored session

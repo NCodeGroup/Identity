@@ -9,8 +9,8 @@ namespace NCode.Identity.Bff;
 /// Provides the BFF options of the frontend set in effect.
 /// </summary>
 /// <remarks>
-/// A package that serves next to the BFF reads its options through this accessor on every use, so that it follows the
-/// frontends the BFF serves and not the values that the host started with.
+/// A package that serves next to the BFF reads its options through this accessor on every use, so that it reads the
+/// options of the frontends the BFF serves.
 /// </remarks>
 // See ADR-1442.
 public interface IBffOptionsAccessor

@@ -37,7 +37,10 @@ derives from its options reads the current set.**
 1. **What follows the configuration.** The whole `Bff` section is one snapshot: `Frontends`, `Antiforgery` and
    `Tokens`. Nothing in the BFF reads `IOptions<BffOptions>`; the catalog's current set is the one live view. A package
    outside the BFF reads the options in effect through `IBffOptionsAccessor.Current`, which is the current set's
-   options: the last configuration change that validated as a whole.
+   options: the last configuration change that validated as a whole. The `Bff:KeyRings` entries are the exception:
+   `AddBffConfiguration` registers a keyed provider for each entry present when it is called, and a provider reads its
+   files once when it is first resolved, so a change adds, removes and re-reads no key ring until the process starts
+   again ([ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
    `AddBffConfiguration` registers the section's `IOptionsChangeTokenSource<BffOptions>`, so a source that reloads
    drives the catalog.
 2. **No switch.** The configuration source decides whether the frontends change at run time. A host that wants fixed

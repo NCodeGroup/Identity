@@ -25,7 +25,8 @@ internal static class BffPemKeyRing
     /// and the secret-key factories.</param>
     /// <param name="name">The name of the key ring within <c>Bff:KeyRings</c>.</param>
     /// <returns>The <see cref="ISecretKeyCollectionProvider"/> that holds the keys of the key ring.</returns>
-    /// <exception cref="InvalidOperationException">A file of the key ring holds no PEM-encoded EC or RSA private key.</exception>
+    /// <exception cref="InvalidOperationException">The options have no <c>Bff:KeyRings</c> entry for the key ring, or a
+    /// file of the key ring holds no PEM-encoded EC or RSA private key.</exception>
     public static ISecretKeyCollectionProvider Load(IServiceProvider serviceProvider, string name)
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
@@ -33,14 +34,22 @@ internal static class BffPemKeyRing
 
         var options = serviceProvider.GetRequiredService<IBffOptionsAccessor>().Current;
         var environment = serviceProvider.GetRequiredService<IHostEnvironment>();
+        var contentRootPath = environment.ContentRootPath;
         var keyFactory = serviceProvider.GetRequiredService<ISecretKeyFactory>();
         var collectionFactory =
             serviceProvider.GetRequiredService<ISecretKeyCollectionProviderFactory>();
 
-        var keys = new List<SecretKey>();
-        foreach (var configuredPath in options.KeyRings[name].PemFiles)
+        if (!options.KeyRings.TryGetValue(name, out var keyRing))
         {
-            var path = Path.GetFullPath(configuredPath, environment.ContentRootPath);
+            throw new InvalidOperationException(
+                $"The key ring '{name}' has no entry in '{BffDefaults.ConfigurationSectionName}:KeyRings'."
+            );
+        }
+
+        var keys = new List<SecretKey>();
+        foreach (var configuredPath in keyRing.PemFiles)
+        {
+            var path = Path.GetFullPath(configuredPath, contentRootPath);
             keys.Add(ReadKey(keyFactory, name, path));
         }
 

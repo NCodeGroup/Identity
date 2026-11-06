@@ -191,6 +191,21 @@ public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
         );
     }
 
+    [Fact]
+    public void Load_WithAKeyRingTheOptionsLack_ThrowsNamingTheKeyRing()
+    {
+        var provider = BuildProvider(WriteEcPem("present.pem"));
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            BffPemKeyRing.Load(provider, "missing")
+        );
+
+        Assert.Equal(
+            $"The key ring 'missing' has no entry in '{BffDefaults.ConfigurationSectionName}:KeyRings'.",
+            exception.Message
+        );
+    }
+
     #endregion
 
     #region AddBffConfiguration Tests

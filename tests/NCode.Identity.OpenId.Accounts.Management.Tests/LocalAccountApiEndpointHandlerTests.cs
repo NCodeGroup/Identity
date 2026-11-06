@@ -283,6 +283,22 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     #region SetEnabledAsync Tests
 
     [Fact]
+    public async Task SetEnabledAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheAccount()
+    {
+        SetupAuthorizeUpdate(CreateForbiddenError());
+
+        var result = await Handler.DisableLocalAccountAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task SetEnabledAsync_WhenDisablingAndTheTenantIsNotServed_RefusesBeforeWriting()
     {
         SetupAuthorizeUpdate(error: null);
@@ -352,6 +368,23 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     #region ResetPasswordAsync Tests
 
     [Fact]
+    public async Task ResetPasswordAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheAccount()
+    {
+        SetupAuthorizeUpdate(CreateForbiddenError());
+
+        var result = await Handler.ResetPasswordAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            new ResetLocalAccountPasswordRequest { Password = Password },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task ResetPasswordAsync_WhenTheTenantIsNotServed_RefusesBeforeWriting()
     {
         SetupAuthorizeUpdate(error: null);
@@ -371,6 +404,48 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
                 CancellationToken.None
             )
         );
+    }
+
+    #endregion
+
+    #region SetClaimsAsync Tests
+
+    [Fact]
+    public async Task SetClaimsAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheAccount()
+    {
+        SetupAuthorizeUpdate(CreateForbiddenError());
+
+        var result = await Handler.SetClaimsAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            new SetLocalAccountClaimsRequest { Claims = [] },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region SetMetadataAsync Tests
+
+    [Fact]
+    public async Task SetMetadataAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheAccount()
+    {
+        SetupAuthorizeUpdate(CreateForbiddenError());
+
+        var result = await Handler.SetMetadataAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            new SetLocalAccountMetadataRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion

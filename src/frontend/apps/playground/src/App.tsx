@@ -21,7 +21,7 @@ export function App() {
   const runtime = useAppSelector((state) => state.config.runtime);
   const deps = useMemo(createFlowDeps, []);
 
-  if (!runtime) {
+  if (runtime?.kind !== 'openid') {
     return null;
   }
 

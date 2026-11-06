@@ -17,6 +17,8 @@ public sealed class BffReverseProxyRoutesTests
 
     private static readonly HashSet<string> Frontends = ["default", "admin"];
 
+    private static BffReverseProxyRouteNames Names { get; } = new(Requirements, Frontends);
+
     private static RouteConfig CreateRoute(Dictionary<string, string>? metadata) =>
         new()
         {
@@ -29,7 +31,7 @@ public sealed class BffReverseProxyRoutesTests
     private static List<Exception> Validate(Dictionary<string, string>? metadata)
     {
         List<Exception> errors = [];
-        BffReverseProxyRoutes.Validate(CreateRoute(metadata), Requirements, Frontends, errors);
+        BffReverseProxyRoutes.Validate(CreateRoute(metadata), Names, errors);
         return errors;
     }
 

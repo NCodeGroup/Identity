@@ -61,12 +61,13 @@ public static class BffEndpointConventionBuilderExtensions
         /// </remarks>
         /// <param name="names">The names of the frontends that the endpoint serves.</param>
         /// <returns>The same builder, so that calls can be chained.</returns>
-        public TBuilder RequireBffFrontend(params string[] names)
+        public TBuilder RequireBffFrontend(params IEnumerable<string> names)
         {
             ArgumentNullException.ThrowIfNull(builder);
             ArgumentNullException.ThrowIfNull(names);
 
-            if (names.Length == 0)
+            string[] buffered = [.. names];
+            if (buffered.Length == 0)
             {
                 throw new ArgumentException(
                     "At least one frontend name is required.",
@@ -74,7 +75,9 @@ public static class BffEndpointConventionBuilderExtensions
                 );
             }
 
-            var attributes = names.Select(name => new BffFrontendAttribute(name)).ToArray<object>();
+            var attributes = buffered
+                .Select(name => new BffFrontendAttribute(name))
+                .ToArray<object>();
             return builder.WithMetadata(attributes);
         }
     }

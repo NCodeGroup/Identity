@@ -17,7 +17,7 @@ NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffApi() -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffPage() -> TBuilder
-NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).RequireBffFrontend(params string![]! names) -> TBuilder
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).RequireBffFrontend(params System.Collections.Generic.IEnumerable<string!>! names) -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffEndpoints() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!

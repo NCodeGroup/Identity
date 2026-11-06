@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.Bff.Frontends;
+using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Bff.Sessions;
@@ -133,6 +134,19 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         Assert.Contains(
             provider.GetServices<MatcherPolicy>(),
             policy => policy is BffFrontendMatcherPolicy
+        );
+    }
+
+    [Fact]
+    public void AddBffLibrary_RegistersTheEndpointStartupCheck()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        Assert.Contains(
+            Services,
+            descriptor =>
+                descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType == typeof(BffEndpointStartupCheck)
         );
     }
 

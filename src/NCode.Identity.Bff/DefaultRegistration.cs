@@ -138,6 +138,7 @@ public static class DefaultRegistration
             );
             serviceCollection.AddAuthorization();
             serviceCollection.AddHostedService<BffStartupCheck>();
+            serviceCollection.AddHostedService<BffEndpointStartupCheck>();
 
             return newBuilder;
         }

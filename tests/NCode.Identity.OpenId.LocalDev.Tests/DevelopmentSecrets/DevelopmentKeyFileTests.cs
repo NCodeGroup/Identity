@@ -91,7 +91,7 @@ public class DevelopmentKeyFileTests : IDisposable
     #region ReadPublicJwks Tests
 
     [Fact]
-    public void ReadPublicJwks_ReturnsOneEs256SigningKeyNamedAfterTheFileStem()
+    public void ReadPublicJwks_Always_ReturnsOneEs256SigningKeyNamedAfterTheFileStem()
     {
         var path = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
 
@@ -109,7 +109,7 @@ public class DevelopmentKeyFileTests : IDisposable
     }
 
     [Fact]
-    public void ReadPublicJwks_ReturnsTheCoordinatesOfThePublicKey()
+    public void ReadPublicJwks_Always_ReturnsTheCoordinatesOfThePublicKey()
     {
         var path = DevelopmentKeyFile.EnsureEcPrivateKey(_root, FileName);
         using var key = ECDsa.Create();

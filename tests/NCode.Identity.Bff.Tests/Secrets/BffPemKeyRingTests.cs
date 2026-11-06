@@ -22,18 +22,18 @@ public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
 
     private DirectoryInfo KeysDirectory { get; } = Directory.CreateTempSubdirectory("bff-keys-");
 
-    private ServiceCollection Services { get; } = new();
+    private ServiceCollection ServiceCollection { get; } = new();
 
     private ServiceProvider? Provider { get; set; }
 
     public BffPemKeyRingTests()
     {
-        Services.AddLogging();
-        Services.AddSecretsLibrary();
+        ServiceCollection.AddLogging();
+        ServiceCollection.AddSecretsLibrary();
 
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.ContentRootPath).Returns(KeysDirectory.FullName).Verifiable();
-        Services.AddSingleton(mockEnvironment.Object);
+        ServiceCollection.AddSingleton(mockEnvironment.Object);
     }
 
     public Task InitializeAsync() => Task.CompletedTask;
@@ -75,9 +75,9 @@ public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
     {
         var options = new BffOptions();
         options.KeyRings[RingName] = new BffKeyRingOptions { PemFiles = [.. pemFiles] };
-        Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(options));
+        ServiceCollection.AddSingleton(Microsoft.Extensions.Options.Options.Create(options));
 
-        Provider = Services.BuildServiceProvider();
+        Provider = ServiceCollection.BuildServiceProvider();
         return Provider;
     }
 
@@ -110,6 +110,20 @@ public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public void Load_WithASec1EcPem_HoldsAKeyNamedAfterTheFile()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var path = WritePem("sec1.pem", ecdsa.ExportECPrivateKeyPem());
+        var provider = BuildProvider(path);
+
+        var keyRing = BffPemKeyRing.Load(provider, RingName);
+
+        var key = Assert.Single(keyRing.Collection);
+        Assert.Equal("sec1", key.KeyId);
+        Assert.IsAssignableFrom<EccSecretKey>(key);
+    }
+
+    [Fact]
     public void Load_WithARelativePath_ResolvesItAgainstTheContentRoot()
     {
         WriteEcPem("relative.pem");
@@ -119,6 +133,28 @@ public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
 
         var key = Assert.Single(keyRing.Collection);
         Assert.Equal("relative", key.KeyId);
+    }
+
+    [Fact]
+    public void Load_WithAnAbsolutePath_ReadsTheFileAsGiven()
+    {
+        var otherDirectory = Directory.CreateTempSubdirectory("bff-other-keys-");
+        try
+        {
+            var absolute = Path.Combine(otherDirectory.FullName, "absolute.pem");
+            using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            File.WriteAllText(absolute, ecdsa.ExportPkcs8PrivateKeyPem(), SecureEncoding.UTF8);
+            var provider = BuildProvider(absolute);
+
+            var keyRing = BffPemKeyRing.Load(provider, RingName);
+
+            var key = Assert.Single(keyRing.Collection);
+            Assert.Equal("absolute", key.KeyId);
+        }
+        finally
+        {
+            otherDirectory.Delete(true);
+        }
     }
 
     [Fact]
@@ -166,8 +202,8 @@ public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
                 }
             )
             .Build();
-        Services.NewBuilder<BffLibrary>().AddBffConfiguration(configuration);
-        Provider = Services.BuildServiceProvider();
+        ServiceCollection.NewBuilder<BffLibrary>().AddBffConfiguration(configuration);
+        Provider = ServiceCollection.BuildServiceProvider();
 
         var keyRing = Provider.GetRequiredKeyedService<ISecretKeyCollectionProvider>(RingName);
 

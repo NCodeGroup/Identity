@@ -22,11 +22,16 @@ public class BffOptionsValidatorTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private BffOptionsValidator CreateValidator(string environmentName = "Production")
+    private BffOptionsValidator CreateValidator(
+        string environmentName = "Production",
+        string? contentRootPath = null
+    )
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-        mockEnvironment.Setup(x => x.ContentRootPath).Returns(KeysDirectory.FullName);
+        if (contentRootPath is not null)
+            mockEnvironment.Setup(x => x.ContentRootPath).Returns(contentRootPath).Verifiable();
+
         return new BffOptionsValidator(
             mockEnvironment.Object,
             [new HostBffFrontendSelector(), new PathBffFrontendSelector()]
@@ -1209,7 +1214,8 @@ public class BffOptionsValidatorTests : BaseTests
         var options = CreateValidOptions();
         options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = ["missing.pem"] };
 
-        var result = CreateValidator().Validate(null, options);
+        var result = CreateValidator(contentRootPath: KeysDirectory.FullName)
+            .Validate(null, options);
 
         Assert.True(result.Failed);
         Assert.Contains(
@@ -1226,7 +1232,8 @@ public class BffOptionsValidatorTests : BaseTests
         var options = CreateValidOptions();
         options.KeyRings["client"] = new BffKeyRingOptions { PemFiles = [existing, "missing.pem"] };
 
-        var result = CreateValidator().Validate(null, options);
+        var result = CreateValidator(contentRootPath: KeysDirectory.FullName)
+            .Validate(null, options);
 
         Assert.True(result.Failed);
         Assert.Equal(
@@ -1247,7 +1254,8 @@ public class BffOptionsValidatorTests : BaseTests
             PemFiles = ["relative.pem", absolute],
         };
 
-        var result = CreateValidator().Validate(null, options);
+        var result = CreateValidator(contentRootPath: KeysDirectory.FullName)
+            .Validate(null, options);
 
         Assert.True(result.Succeeded);
     }

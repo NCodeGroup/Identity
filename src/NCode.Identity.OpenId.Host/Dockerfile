@@ -25,7 +25,7 @@ RUN pnpm exec turbo run build --filter=@ncode/app-auth
 
 # The host and its migration worker, published framework-dependent for the target architecture. The worker ships in
 # the host's image so the schema a release migrates to is always the schema that release's host reads (ADR-1180).
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0-noble@sha256:212fe4cb74627d5adf9817a4088906ae3edff1bd853bb27565d4b46731efe61e AS build
 ARG TARGETARCH
 # The build context carries no .git directory, so the version comes from version.json alone rather than commit height.
 ENV NBGV_GitEngine=Disabled
@@ -51,7 +51,7 @@ RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \
 
 # Visual Studio's container fast mode debugs against this stage (DockerfileFastModeStage defaults to "base"), which
 # needs a shell; the production image below is built FROM the chiseled variant instead.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble@sha256:de0ee358cdd672f7017a003bed21e9ac9ed48a27c922a59b18175b6e82fa7fee AS base
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble@sha256:1a48394b6f29d3a32c79d9edecd4abda0ecbe8776d567dbfc4590ed6979c740c AS base
 WORKDIR /app
 USER $APP_UID
 EXPOSE 8080
@@ -59,7 +59,7 @@ EXPOSE 8080
 # The production image: a chiseled (distroless) runtime with no shell or package manager, running as the non-root
 # 'app' user by numeric id so Kubernetes can enforce runAsNonRoot. The "extra" variant carries ICU and time zone data.
 # The image listens on 8080 (ASPNETCORE_HTTP_PORTS); TLS terminates at the ingress.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:9b755ea799ae649141a073e30d8b62d8095a5465af2b7694d17866e8c05131d8 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:a9298ccc39c6258ae71228479e2f3f8d2ceb6639a9927262a4b0ff7d319a0e7e AS final
 WORKDIR /app
 COPY --from=build /app/publish ./
 # Run with the working directory /app/migrations and 'dotnet NCode.Identity.OpenId.Host.MigrationService.dll'.

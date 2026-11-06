@@ -49,12 +49,12 @@ public sealed class TenantUsageStoreTests : IDisposable
         DateOnly day,
         string meter,
         long count,
-        string teamId = "platform"
+        string teamPath = "/platform/"
     ) =>
         new()
         {
             TenantId = tenantId,
-            TeamId = teamId,
+            TeamPath = teamPath,
             Day = day,
             Meter = meter,
             Count = count,
@@ -67,7 +67,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         DateOnly day,
         string meter,
         long count,
-        string teamId = "platform"
+        string teamPath = "/platform/"
     )
     {
         using var scope = _provider.CreateScope();
@@ -76,7 +76,7 @@ public sealed class TenantUsageStoreTests : IDisposable
             .AddAsync(
                 replicaId,
                 batchNumber,
-                [Usage(tenantId, day, meter, count, teamId)],
+                [Usage(tenantId, day, meter, count, teamPath)],
                 CancellationToken.None
             );
         await context.SaveChangesAsync();
@@ -87,11 +87,11 @@ public sealed class TenantUsageStoreTests : IDisposable
         DateOnly day,
         string meter,
         long count,
-        string teamId = "platform"
-    ) => AddBatchAsync(Guid.NewGuid(), 1, tenantId, day, meter, count, teamId);
+        string teamPath = "/platform/"
+    ) => AddBatchAsync(Guid.NewGuid(), 1, tenantId, day, meter, count, teamPath);
 
     private async Task<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListByTeamAsync(
-        string teamId,
+        string teamPath,
         DateOnly firstDay,
         DateOnly lastDay
     )
@@ -99,7 +99,7 @@ public sealed class TenantUsageStoreTests : IDisposable
         using var scope = _provider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<OpenIdDbContext>();
         return await CreateStore(context)
-            .ListByTeamAsync(teamId, firstDay, lastDay, CancellationToken.None);
+            .ListByTeamAsync(teamPath, firstDay, lastDay, CancellationToken.None);
     }
 
     private async Task<IReadOnlyList<DataContracts.PersistedTenantUsage>> ListAsync(
@@ -330,14 +330,14 @@ public sealed class TenantUsageStoreTests : IDisposable
     [Fact]
     public async Task ListByTeamAsync_ReturnsEveryTenantOfTheTeamInTheRange()
     {
-        await AddAsync("tenant-2", Day, Requests, 1, "team-a");
-        await AddAsync("tenant-1", Day.AddDays(1), Requests, 2, "team-a");
-        await AddAsync("tenant-1", Day, TokenRequests, 3, "team-a");
-        await AddAsync("tenant-1", Day, Requests, 4, "team-a");
-        await AddAsync("tenant-1", Day.AddDays(2), Requests, 5, "team-a");
-        await AddAsync("tenant-3", Day, Requests, 6, "team-b");
+        await AddAsync("tenant-2", Day, Requests, 1, "/team-a/");
+        await AddAsync("tenant-1", Day.AddDays(1), Requests, 2, "/team-a/");
+        await AddAsync("tenant-1", Day, TokenRequests, 3, "/team-a/");
+        await AddAsync("tenant-1", Day, Requests, 4, "/team-a/");
+        await AddAsync("tenant-1", Day.AddDays(2), Requests, 5, "/team-a/");
+        await AddAsync("tenant-3", Day, Requests, 6, "/team-b/");
 
-        var usage = await ListByTeamAsync("team-a", Day, Day.AddDays(1));
+        var usage = await ListByTeamAsync("/team-a/", Day, Day.AddDays(1));
 
         Assert.Equal(
             [
@@ -348,16 +348,31 @@ public sealed class TenantUsageStoreTests : IDisposable
             ],
             usage.Select(entry => (entry.TenantId, entry.Day, entry.Meter, entry.Count))
         );
-        Assert.All(usage, entry => Assert.Equal("team-a", entry.TeamId));
+        Assert.All(usage, entry => Assert.Equal("/team-a/", entry.TeamPath));
+    }
+
+    [Fact]
+    public async Task ListByTeamAsync_ListsTheTenantsOfEveryTeamBeneath()
+    {
+        await AddAsync("tenant-1", Day, Requests, 1, "/team-a/");
+        await AddAsync("tenant-2", Day, Requests, 2, "/team-a/team-a-web/");
+        await AddAsync("tenant-3", Day, Requests, 3, "/team-a-x/");
+
+        var usage = await ListByTeamAsync("/team-a/", Day, Day);
+
+        Assert.Equal(
+            [("tenant-1", "/team-a/"), ("tenant-2", "/team-a/team-a-web/")],
+            usage.Select(entry => (entry.TenantId, entry.TeamPath))
+        );
     }
 
     [Fact]
     public async Task ListByTeamAsync_ListsRowsOfATenantWithNoTenantRow()
     {
         // No tenant row exists for the usage row.
-        await AddAsync("deleted-tenant", Day, Requests, 7, "team-a");
+        await AddAsync("deleted-tenant", Day, Requests, 7, "/team-a/");
 
-        var entry = Assert.Single(await ListByTeamAsync("team-a", Day, Day));
+        var entry = Assert.Single(await ListByTeamAsync("/team-a/", Day, Day));
 
         Assert.Equal("deleted-tenant", entry.TenantId);
         Assert.Equal(7, entry.Count);

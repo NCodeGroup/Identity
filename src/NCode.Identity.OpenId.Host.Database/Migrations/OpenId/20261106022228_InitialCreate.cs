@@ -201,6 +201,8 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     TeamId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
                     NormalizedTeamId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    ParentTeamId = table.Column<long>(type: "bigint", nullable: true),
+                    Path = table.Column<string>(type: "character varying(513)", unicode: false, maxLength: 513, nullable: false),
                     ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     SettingsConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false),
                     IsDisabled = table.Column<bool>(type: "boolean", nullable: false),
@@ -212,6 +214,12 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Teams", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Teams_Teams_ParentTeamId",
+                        column: x => x.ParentTeamId,
+                        principalTable: "Teams",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -220,7 +228,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false),
                     TenantId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
-                    TeamId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    TeamPath = table.Column<string>(type: "character varying(513)", unicode: false, maxLength: 513, nullable: false),
                     Day = table.Column<DateOnly>(type: "date", nullable: false),
                     Meter = table.Column<string>(type: "character varying(100)", unicode: false, maxLength: 100, nullable: false),
                     Count = table.Column<long>(type: "bigint", nullable: false),
@@ -1056,6 +1064,16 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Teams_ParentTeamId",
+                table: "Teams",
+                column: "ParentTeamId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Teams_Path",
+                table: "Teams",
+                column: "Path");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Tenants_NormalizedIssuer",
                 table: "Tenants",
                 column: "NormalizedIssuer",
@@ -1102,9 +1120,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 column: "Day");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TenantUsage_TeamId_Day",
+                name: "IX_TenantUsage_TeamPath_Day",
                 table: "TenantUsage",
-                columns: new[] { "TeamId", "Day" });
+                columns: new[] { "TeamPath", "Day" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_TenantUsage_TenantId_Day_Meter",

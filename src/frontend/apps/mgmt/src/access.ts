@@ -47,10 +47,23 @@ export function soleDestination(access: CallerAccess): ConsoleRoute | null {
 }
 
 /**
- * Where a team's back control leads: the platform for a platform administrator, or while the caller's access is
- * unknown; otherwise the caller's home.
+ * Where a team's back control leads: for a child team, its parent's teams when the caller's access is unknown, the
+ * caller administers the platform or holds a role at the parent; otherwise the platform for a platform administrator,
+ * or while the caller's access is unknown; otherwise the caller's home.
  */
-export function teamExit(access: CallerAccess | undefined): ScopeExit {
+export function teamExit(
+  access: CallerAccess | undefined,
+  parentTeamId?: string | null | undefined,
+): ScopeExit {
+  if (
+    typeof parentTeamId === 'string' &&
+    parentTeamId !== '' &&
+    (access === undefined ||
+      access.isPlatformAdministrator ||
+      access.teamIds.includes(parentTeamId))
+  ) {
+    return { route: teamRoute(parentTeamId, 'teams'), label: 'Team' };
+  }
   if (access === undefined || access.isPlatformAdministrator) {
     return { route: platformRoute('teams'), label: 'Platform' };
   }

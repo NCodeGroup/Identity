@@ -12,6 +12,7 @@ public sealed class DefaultTenantUsageRecorderTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 21, 23, 59, 59, TimeSpan.Zero);
     private static readonly DateOnly Today = new(2026, 10, 21);
+    private const string TeamPath = "/team-1/";
 
     private FakeTimeProvider TimeProvider { get; } = new(Now);
     private DefaultTenantUsageRecorder Recorder { get; }
@@ -26,46 +27,46 @@ public sealed class DefaultTenantUsageRecorderTests
     [Fact]
     public void Record_CountsEachTenantDayAndMeter()
     {
-        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
-        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
-        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.TokenRequests);
-        Recorder.Record("team-1", "tenant-2", TenantUsageMeters.Requests);
+        Recorder.Record(TeamPath, "tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record(TeamPath, "tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record(TeamPath, "tenant-1", TenantUsageMeters.TokenRequests);
+        Recorder.Record(TeamPath, "tenant-2", TenantUsageMeters.Requests);
 
         var usage = Recorder.Drain();
 
         Assert.Equal(3, usage.Count);
         Assert.Equal(
             2,
-            usage[new TenantUsageKey("team-1", "tenant-1", Today, TenantUsageMeters.Requests)]
+            usage[new TenantUsageKey(TeamPath, "tenant-1", Today, TenantUsageMeters.Requests)]
         );
         Assert.Equal(
             1,
-            usage[new TenantUsageKey("team-1", "tenant-1", Today, TenantUsageMeters.TokenRequests)]
+            usage[new TenantUsageKey(TeamPath, "tenant-1", Today, TenantUsageMeters.TokenRequests)]
         );
         Assert.Equal(
             1,
-            usage[new TenantUsageKey("team-1", "tenant-2", Today, TenantUsageMeters.Requests)]
+            usage[new TenantUsageKey(TeamPath, "tenant-2", Today, TenantUsageMeters.Requests)]
         );
     }
 
     [Fact]
     public void Record_WhenTheUtcDayChanges_CountsTheNewDaySeparately()
     {
-        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record(TeamPath, "tenant-1", TenantUsageMeters.Requests);
         TimeProvider.Advance(TimeSpan.FromSeconds(1));
-        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record(TeamPath, "tenant-1", TenantUsageMeters.Requests);
 
         var usage = Recorder.Drain();
 
         Assert.Equal(
             1,
-            usage[new TenantUsageKey("team-1", "tenant-1", Today, TenantUsageMeters.Requests)]
+            usage[new TenantUsageKey(TeamPath, "tenant-1", Today, TenantUsageMeters.Requests)]
         );
         Assert.Equal(
             1,
             usage[
                 new TenantUsageKey(
-                    "team-1",
+                    TeamPath,
                     "tenant-1",
                     Today.AddDays(1),
                     TenantUsageMeters.Requests
@@ -80,16 +81,26 @@ public sealed class DefaultTenantUsageRecorderTests
     [InlineData("tenant-1", null)]
     public void Record_WhenATenantOrMeterIsEmpty_Throws(string tenantId, string? meter)
     {
-        Assert.ThrowsAny<ArgumentException>(() => Recorder.Record("team-1", tenantId, meter!));
+        Assert.ThrowsAny<ArgumentException>(() => Recorder.Record(TeamPath, tenantId, meter!));
     }
 
     [Theory]
     [InlineData("")]
     [InlineData(null)]
-    public void Record_WhenTheTeamIsEmpty_Throws(string? teamId)
+    public void Record_WhenTheTeamPathIsEmpty_Throws(string? teamPath)
     {
         Assert.ThrowsAny<ArgumentException>(() =>
-            Recorder.Record(teamId!, "tenant-1", TenantUsageMeters.Requests)
+            Recorder.Record(teamPath!, "tenant-1", TenantUsageMeters.Requests)
+        );
+    }
+
+    [Fact]
+    public void Record_WhenTheTeamPathIsTooLong_Throws()
+    {
+        var teamPath = new string('t', OpenIdMaxLengths.TeamPath + 1);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            Recorder.Record(teamPath, "tenant-1", TenantUsageMeters.Requests)
         );
     }
 
@@ -99,7 +110,7 @@ public sealed class DefaultTenantUsageRecorderTests
         var meter = new string('m', OpenIdMaxLengths.UsageMeter + 1);
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            Recorder.Record("team-1", "tenant-1", meter)
+            Recorder.Record(TeamPath, "tenant-1", meter)
         );
     }
 
@@ -110,7 +121,7 @@ public sealed class DefaultTenantUsageRecorderTests
     [Fact]
     public void Drain_TakesTheUsageOnce()
     {
-        Recorder.Record("team-1", "tenant-1", TenantUsageMeters.Requests);
+        Recorder.Record(TeamPath, "tenant-1", TenantUsageMeters.Requests);
 
         Assert.Single(Recorder.Drain());
         Assert.Empty(Recorder.Drain());

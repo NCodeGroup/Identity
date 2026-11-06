@@ -583,6 +583,18 @@ public static class OpenIdSettingKeys
     public static SettingKey<int> MaxTenants => new(OpenIdSettingNames.MaxTenants);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'max_teams' setting: the most teams that may sit beneath a
+    /// team, at every level.
+    /// </summary>
+    public static SettingKey<int> MaxTeams => new(OpenIdSettingNames.MaxTeams);
+
+    /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'max_team_depth' setting: the deepest level a team is created
+    /// at.
+    /// </summary>
+    public static SettingKey<int> MaxTeamDepth => new(OpenIdSettingNames.MaxTeamDepth);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'deletion_protection' setting.
     /// </summary>
     public static SettingKey<bool> DeletionProtection => new(OpenIdSettingNames.DeletionProtection);

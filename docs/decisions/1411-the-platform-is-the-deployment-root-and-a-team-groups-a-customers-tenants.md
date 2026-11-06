@@ -47,7 +47,8 @@
   [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md): a limit is set by the
   authority above the scope whose document carries it; amended by
   [ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md): the console opens on the
-  caller's home)
+  caller's home; amended by [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): a team can nest beneath a
+  parent team)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)

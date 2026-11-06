@@ -8,7 +8,8 @@
   [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): rate-limit descriptors
   carry the usage meters, recorded once the request completes; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): every usage row carries
-  the tenant's team)
+  the tenant's team; amended by
+  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): a usage row carries the tenant's team path)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group
 

@@ -1166,6 +1166,21 @@ public static class OpenIdSettingNames
     public const string MaxTenants = "max_tenants";
 
     /// <summary>
+    /// Contains the name of the <c>max_teams</c> setting: the most teams that may sit beneath a team, at every level;
+    /// a creation that would exceed it is refused. Unset means unlimited. It is a limit on the team scope: the
+    /// administrators above the team set it, and a team can only lower it for the teams beneath it.
+    /// </summary>
+    // See ADR-1426.
+    public const string MaxTeams = "max_teams";
+
+    /// <summary>
+    /// Contains the name of the <c>max_team_depth</c> setting: the deepest level a team is created at, a top-level
+    /// team being at level 1. It applies to the platform scope. Unset means the deepest level a team tree allows.
+    /// </summary>
+    // See ADR-1426.
+    public const string MaxTeamDepth = "max_team_depth";
+
+    /// <summary>
     /// Contains the name of the <c>client_authentication_failed_attempts_limit</c> setting: the failed client
     /// authentications that one remote address may make for one <c>client_id</c> within a window before every client
     /// authentication it presents for that <c>client_id</c> is refused until the window ends.

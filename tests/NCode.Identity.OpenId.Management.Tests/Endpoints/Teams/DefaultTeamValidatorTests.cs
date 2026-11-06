@@ -57,11 +57,13 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     private static PersistedTeam CreateTeam(
         string teamId = TeamId,
         string concurrencyToken = "team-ct",
-        string displayName = "Team One"
+        string displayName = "Team One",
+        string? parentTeamId = null
     ) =>
         new()
         {
             TeamId = teamId,
+            ParentTeamId = parentTeamId,
             ConcurrencyToken = concurrencyToken,
             IsDisabled = false,
             DisplayName = displayName,
@@ -130,10 +132,14 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             .Verifiable();
     }
 
-    private ValueTask<ManagementError?> AuthorizeCreate(bool authenticated) =>
+    private ValueTask<ManagementError?> AuthorizeCreate(
+        bool authenticated,
+        string? parentTeamId = null
+    ) =>
         Validator.AuthorizeCreateAsync(
             CreateUser(authenticated),
             ControlPlaneTenantId,
+            parentTeamId,
             CancellationToken.None
         );
 
@@ -172,8 +178,14 @@ public sealed class DefaultTeamValidatorTests : IDisposable
             CancellationToken.None
         );
 
-    private ValueTask<ManagementError?> Delete(PersistedTeam team) =>
-        Validator.ValidateDeleteAsync(team, MockStoreManager.Object, CancellationToken.None);
+    private ValueTask<ManagementError?> Delete(PersistedTeam team, bool authenticated = true) =>
+        Validator.ValidateDeleteAsync(
+            CreateUser(authenticated),
+            ControlPlaneTenantId,
+            team,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
 
     #endregion
 
@@ -224,6 +236,21 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         );
 
         var error = await AuthorizeCreate(authenticated: true);
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeCreateAsync_WithAParent_AuthorizesCreateOnTheParentTeamNode()
+    {
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Team,
+            "acme",
+            AuthorizationResult.Success(),
+            Operations.Create
+        );
+
+        var error = await AuthorizeCreate(authenticated: true, parentTeamId: "acme");
 
         Assert.Null(error);
     }
@@ -320,11 +347,11 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task AuthorizeDeleteAsync_AuthorizesDeleteOnThePlatformNode()
+    public async Task AuthorizeDeleteAsync_AuthorizesDeleteOnTheTeamNode()
     {
         SetupNodeAuthorization(
-            ResourceNodeTypes.Platform,
-            OpenIdConstants.PlatformResourceId,
+            ResourceNodeTypes.Team,
+            TeamId,
             AuthorizationResult.Success(),
             Operations.Delete
         );
@@ -395,6 +422,61 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateCreateAsync_WhenTheParentIsThePlatformsTeam_Returns409()
+    {
+        SetupTeamStore();
+
+        var error = await Create(CreateTeam(parentTeamId: RootTenantOptions.DefaultTeamId));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Equal("The platform's own team cannot hold teams.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenTheParentIsThePlatformsTeamInAnotherCase_Returns409()
+    {
+        SetupTeamStore();
+
+        var error = await Create(
+            CreateTeam(parentTeamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant())
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Equal("The platform's own team cannot hold teams.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenTheParentIsMissing_Returns404()
+    {
+        SetupTeamStore();
+        SetupExisting("acme", null);
+
+        var error = await Create(CreateTeam(parentTeamId: "acme"));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status404NotFound, error.StatusCode);
+        Assert.Equal("The parent team does not exist.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateCreateAsync_WithAParent_ReturnsNull()
+    {
+        SetupTeamStore();
+        SetupExisting("acme", CreateTeam(teamId: "acme"));
+        SetupExisting(TeamId, null);
+        MockTeamStore
+            .Setup(x => x.IsTeamIdRetiredAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var error = await Create(CreateTeam(parentTeamId: "acme"));
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateCreateAsync_WhenValid_ReturnsNull()
     {
         SetupTeamStore();
@@ -443,6 +525,21 @@ public sealed class DefaultTeamValidatorTests : IDisposable
 
         var error = await Update(
             CreateTeam(teamId: RootTenantOptions.DefaultTeamId),
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Equal("The platform's own team cannot be disabled.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateUpdateAsync_WhenDisablingThePlatformsTeamInAnotherCase_Returns409()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Update(
+            CreateTeam(teamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant()),
             new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
         );
 
@@ -503,6 +600,24 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateUpdateAsync_WhenIsDisabledChangesOnAChildTeam_AuthorizesUpdateOnTheParentTeamNode()
+    {
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Team,
+            "acme",
+            AuthorizationResult.Success(),
+            Operations.Update
+        );
+
+        var error = await Update(
+            CreateTeam(parentTeamId: "acme"),
+            new UpdateTeamRequest { DisplayName = "New", IsDisabled = true }
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateUpdateAsync_WhenIsDisabledIsUnchanged_DoesNotAuthorizeAnyNode()
     {
         var error = await Update(
@@ -532,9 +647,94 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     #region ValidateDeleteAsync Tests
 
     [Fact]
+    public async Task ValidateDeleteAsync_WhenTheCallerHasNoAuthorityAboveTheTeam_ReturnsForbidden()
+    {
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId,
+            AuthorizationResult.Failed(),
+            Operations.Delete
+        );
+
+        var error = await Delete(CreateTeam());
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+        Assert.Equal("The caller is not authorized to delete this team.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateDeleteAsync_WhenAnonymous_ReturnsUnauthorized()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Delete(CreateTeam(), authenticated: false);
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+        Assert.Equal("Authentication is required to delete this team.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateDeleteAsync_ForAChildTeam_AuthorizesDeleteOnTheParentTeamNode()
+    {
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Team,
+            "acme",
+            AuthorizationResult.Success(),
+            Operations.Delete
+        );
+        SetupTeamStore();
+        MockTeamStore
+            .Setup(x => x.HasDependentsAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var error = await Delete(CreateTeam(parentTeamId: "acme"));
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateDeleteAsync_ForATopLevelTeam_AuthorizesDeleteOnThePlatformNode()
+    {
+        SetupNodeAuthorization(
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId,
+            AuthorizationResult.Success(),
+            Operations.Delete
+        );
+        SetupTeamStore();
+        MockTeamStore
+            .Setup(x => x.HasDependentsAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var error = await Delete(CreateTeam());
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateDeleteAsync_WhenPlatformTeam_Returns409()
     {
+        SetupAuthorization(AuthorizationResult.Success());
+
         var error = await Delete(CreateTeam(teamId: RootTenantOptions.DefaultTeamId));
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
+        Assert.Equal("The platform's own team cannot be deleted.", error.Detail);
+    }
+
+    [Fact]
+    public async Task ValidateDeleteAsync_WhenThePlatformsTeamIsNamedInAnotherCase_Returns409()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Delete(
+            CreateTeam(teamId: RootTenantOptions.DefaultTeamId.ToUpperInvariant())
+        );
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
@@ -544,6 +744,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     [Fact]
     public async Task ValidateDeleteAsync_WhenTeamHasTenants_Returns409()
     {
+        SetupAuthorization(AuthorizationResult.Success());
         SetupTeamStore();
         MockTeamStore
             .Setup(x => x.HasDependentsAsync(TeamId, It.IsAny<CancellationToken>()))
@@ -554,12 +755,16 @@ public sealed class DefaultTeamValidatorTests : IDisposable
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
-        Assert.Equal("The team cannot be deleted while it still has tenants.", error.Detail);
+        Assert.Equal(
+            "The team cannot be deleted while it still has tenants or teams.",
+            error.Detail
+        );
     }
 
     [Fact]
     public async Task ValidateDeleteAsync_WhenValid_ReturnsNull()
     {
+        SetupAuthorization(AuthorizationResult.Success());
         SetupTeamStore();
         MockTeamStore
             .Setup(x => x.HasDependentsAsync(TeamId, It.IsAny<CancellationToken>()))

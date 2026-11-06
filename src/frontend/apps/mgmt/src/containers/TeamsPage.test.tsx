@@ -14,7 +14,7 @@ const runtime: RuntimeConfig = {
   features: {},
 };
 
-function renderPage(onOpenTeam = vi.fn()) {
+function renderPage(onOpenTeam = vi.fn(), parentTeamId?: string) {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -27,7 +27,7 @@ function renderPage(onOpenTeam = vi.fn()) {
   });
   render(
     <Provider store={store}>
-      <TeamsPage onOpenTeam={onOpenTeam} />
+      <TeamsPage onOpenTeam={onOpenTeam} {...(parentTeamId ? { parentTeamId } : {})} />
     </Provider>,
   );
   return onOpenTeam;
@@ -248,7 +248,7 @@ describe('TeamsPage (CRUD wiring)', () => {
     renderPage();
     fireEvent.click(await screen.findByTestId('team-delete-support'));
     expect(screen.getByRole('dialog', { name: 'Delete team' })).toHaveTextContent(
-      'Delete “Support”? Its tenants must be deleted first.',
+      'Delete “Support”? Its tenants and teams must be deleted first.',
     );
     fireEvent.click(screen.getByTestId('confirm-accept'));
 
@@ -296,5 +296,88 @@ describe('TeamsPage (CRUD wiring)', () => {
       'A team with that identifier already exists.',
     );
     expect(screen.getByTestId('team-form-submit')).toBeInTheDocument();
+  });
+});
+
+describe('TeamsPage (child teams)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const child = {
+    teamId: 'acme-web',
+    parentTeamId: 'acme',
+    concurrencyToken: 'tc2',
+    displayName: 'Acme Web',
+    isDisabled: false,
+  };
+
+  it('lists the child teams of the parent team', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/teams') && method === 'GET') {
+        return jsonResponse({ items: [child] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage(vi.fn(), 'acme');
+
+    expect(await screen.findByText('Acme Web')).toBeInTheDocument();
+    expect(calls.map((c) => c.url)).toEqual(['https://api.test/api/teams/acme/teams']);
+    expect(screen.queryByTestId('team-parent-acme-web')).not.toBeInTheDocument();
+  });
+
+  it('shows an empty message when the parent team has no child teams', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/teams') && method === 'GET') {
+        return jsonResponse({ items: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage(vi.fn(), 'acme');
+
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'No teams beneath this team yet.',
+    );
+  });
+
+  it('creates a child team under the parent team', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/teams') && method === 'POST') {
+        return jsonResponse({ ...child, teamId: 'acme-api', displayName: 'Acme API' }, 201);
+      }
+      if (url.endsWith('/api/teams/acme/teams')) {
+        return jsonResponse({ items: [child] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage(vi.fn(), 'acme');
+    expect(await screen.findByText('Acme Web')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('create-team'));
+    fireEvent.change(screen.getByTestId('team-id'), { target: { value: 'acme-api' } });
+    fireEvent.change(screen.getByTestId('team-display-name'), { target: { value: 'Acme API' } });
+    fireEvent.click(screen.getByTestId('team-form-submit'));
+
+    await waitFor(() => expect(screen.queryByTestId('team-form-submit')).not.toBeInTheDocument());
+    const post = calls.find((c) => c.method === 'POST');
+    expect(post?.url).toBe('https://api.test/api/teams/acme/teams');
+    expect(JSON.parse(post?.body ?? '{}')).toEqual({
+      teamId: 'acme-api',
+      displayName: 'Acme API',
+      isDisabled: false,
+      settings: {},
+    });
+  });
+
+  it('shows the parent team of every team in the platform list', async () => {
+    installFetch(listOnly([team, child]));
+
+    renderPage();
+
+    expect(await screen.findByTestId('team-parent-acme-web')).toHaveTextContent('acme');
+    expect(screen.getByTestId('team-parent-support')).toHaveTextContent('—');
   });
 });

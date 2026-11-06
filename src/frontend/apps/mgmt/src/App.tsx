@@ -2,7 +2,13 @@ import { Fragment, lazy, Suspense, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import { signedOut, useAppDispatch, useAppSelector, useGetTenantQuery } from '@ncode/store';
+import {
+  signedOut,
+  useAppDispatch,
+  useAppSelector,
+  useGetTeamQuery,
+  useGetTenantQuery,
+} from '@ncode/store';
 import { AppLayout } from './components/AppLayout.js';
 import { permittedRoute, teamExit, tenantExit } from './access.js';
 import { useCallerAccess } from './useCallerAccess.js';
@@ -61,7 +67,7 @@ const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surf
  * authority is sent home from a platform route, and the team and tenant back controls lead to a place the caller can
  * open. In the
  * platform scope that is the teams, the platform's settings or its encryption keys; within a team it is the
- * team's tenants, settings or usage; within a tenant it is clients, resource servers, grants, or one of the
+ * team's tenants, child teams, settings or usage; within a tenant it is clients, resource servers, grants, or one of the
  * tenant's own surfaces: secrets, encryption keys, settings, or usage (ADR-1255). All data fetching lives in the
  * child containers; this component only maps the route to a
  * surface and tab changes to navigation.
@@ -108,7 +114,14 @@ export function App() {
     }
   };
 
-  const teamBack = teamExit(access);
+  // A child team's enclosing scope is its parent team; until the team loads, or for a top-level team, the exit leads
+  // where a top-level team's exit leads. Only the current team's data counts.
+  const currentTeamId = route.kind === 'team' ? route.teamId : undefined;
+  const { currentData: currentTeam } = useGetTeamQuery(currentTeamId ?? '', {
+    skip: currentTeamId === undefined,
+  });
+
+  const teamBack = teamExit(access, currentTeam?.parentTeamId);
   const tenantBack = tenantExit(access, tenant?.teamId);
 
   return (
@@ -165,6 +178,7 @@ export function App() {
             sx={{ mb: 2 }}
           >
             <Tab value="tenants" label="Tenants" data-testid="team-tab-tenants" />
+            <Tab value="teams" label="Teams" data-testid="team-tab-teams" />
             <Tab value="settings" label="Settings" data-testid="team-tab-settings" />
             <Tab value="usage" label="Usage" data-testid="team-tab-usage" />
           </Tabs>
@@ -173,6 +187,7 @@ export function App() {
               teamId={route.teamId}
               surface={route.surface}
               onOpenTenant={openTenant}
+              onOpenTeam={openTeam}
             />
           </Suspense>
         </Fragment>

@@ -16,12 +16,16 @@ internal class DefaultOpenIdTeam(
     string concurrencyToken,
     string displayName,
     bool isDisabled,
+    string path,
     AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> settingsReference,
+    AsyncSharedReferenceLease<OpenIdTeam> parentReference,
     IPropertyBag propertyBag
 ) : OpenIdTeam
 {
     private AsyncSharedReferenceLease<IReadOnlySettingCollectionProvider> SettingsReference { get; set; } =
         settingsReference.AddReference();
+
+    private AsyncSharedReferenceLease<OpenIdTeam> ParentReference { get; set; } = parentReference;
 
     /// <inheritdoc />
     public override string TeamId { get; } = teamId;
@@ -36,6 +40,12 @@ internal class DefaultOpenIdTeam(
     public override bool IsDisabled { get; } = isDisabled;
 
     /// <inheritdoc />
+    public override OpenIdTeam? Parent => ParentReference.IsActive ? ParentReference.Value : null;
+
+    /// <inheritdoc />
+    public override string Path { get; } = path;
+
+    /// <inheritdoc />
     public override IReadOnlySettingCollectionProvider SettingsProvider => SettingsReference.Value;
 
     /// <inheritdoc />
@@ -46,5 +56,10 @@ internal class DefaultOpenIdTeam(
     {
         await SettingsReference.DisposeAsync();
         SettingsReference = default;
+
+        if (ParentReference.IsActive)
+            await ParentReference.DisposeAsync();
+
+        ParentReference = default;
     }
 }

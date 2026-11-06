@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
 using NCode.Identity.Results;
@@ -40,25 +41,50 @@ internal class DefaultOpenIdTeamProvider(
         if (cached.IsActive)
             return cached;
 
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITeamStore>();
+        PersistedTeam? persistedTeam;
+        await using (var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken))
+        {
+            var store = storeManager.GetStore<ITeamStore>();
+            persistedTeam = await store.GetOrDefaultAsync(teamId, cancellationToken);
+        }
 
-        var persistedTeam = await store.GetOrDefaultAsync(teamId, cancellationToken);
         if (persistedTeam is null)
             throw TypedResults
                 .NotFound()
                 .AsException($"A team with id '{teamId}' could not be found.");
 
-        await using var created = await TeamFactory.CreateTeamAsync(
-            openIdEnvironment,
-            openIdPlatform,
-            persistedTeam,
-            propertyBag,
-            cancellationToken
-        );
+        AsyncSharedReferenceLease<OpenIdTeam> parentTeam = default;
+        try
+        {
+            if (persistedTeam.ParentTeamId is { } parentTeamId)
+            {
+                // the tree is finite and acyclic, because a team's parent exists before it
+                parentTeam = await GetTeamAsync(
+                    openIdEnvironment,
+                    openIdPlatform,
+                    parentTeamId,
+                    propertyBag,
+                    cancellationToken
+                );
+            }
 
-        await TeamCache.SetAsync(teamId, created, propertyBag, cancellationToken);
+            await using var created = await TeamFactory.CreateTeamAsync(
+                openIdEnvironment,
+                openIdPlatform,
+                parentTeam,
+                persistedTeam,
+                propertyBag,
+                cancellationToken
+            );
 
-        return created.AddReference();
+            await TeamCache.SetAsync(teamId, created, propertyBag, cancellationToken);
+
+            return created.AddReference();
+        }
+        finally
+        {
+            if (parentTeam.IsActive)
+                await parentTeam.DisposeAsync();
+        }
     }
 }

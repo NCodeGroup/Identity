@@ -313,11 +313,20 @@ internal class TenantStore(
 
     /// <inheritdoc />
     // See ADR-1411.
+    // See ADR-1426.
     public async ValueTask<long> CountAsync(string teamId, CancellationToken cancellationToken)
     {
         var normalizedTeamId = Normalize(teamId);
+        var team = await DbContext.Teams.SingleOrDefaultAsync(
+            team => team.NormalizedTeamId == normalizedTeamId,
+            cancellationToken
+        );
+        if (team is null)
+            return 0;
+
+        var teamPath = team.Path;
         return await DbContext
-            .Tenants.Where(tenant => tenant.Team.NormalizedTeamId == normalizedTeamId)
+            .Tenants.Where(tenant => tenant.Team.Path.StartsWith(teamPath))
             .LongCountAsync(cancellationToken);
     }
 

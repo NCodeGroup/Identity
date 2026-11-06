@@ -82,13 +82,14 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
-    /// Counts the tenants that belong to a team.
+    /// Counts the tenants of a team and of every team beneath it.
     /// </summary>
     /// <param name="teamId">The identifier of the team whose tenants to count.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the number of
     /// tenants in the team.</returns>
     // See ADR-1411.
+    // See ADR-1426.
     ValueTask<long> CountAsync(string teamId, CancellationToken cancellationToken);
 
     /// <summary>

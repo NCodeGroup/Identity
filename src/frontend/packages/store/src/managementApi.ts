@@ -59,7 +59,7 @@ import { dynamicBaseQuery } from './baseQuery.js';
 /** A cache-tag id in the platform scope, which owns the teams and identifies every tenant. */
 const platformTag = (id: string): string => scopeTagId(PLATFORM_SCOPE, id);
 
-/** A cache-tag id in a team's scope, which owns the list of its tenants. */
+/** A cache-tag id in a team's scope, which owns the lists of its tenants and of its child teams. */
 const teamTag = (teamId: string, id: string): string => scopeTagId(teamScope(teamId), id);
 
 /** A cache-tag id in a tenant's scope, which owns its grants, secrets, and settings. */
@@ -123,6 +123,29 @@ export const managementApi = createApi({
     createTeam: build.mutation<TeamResource, CreateTeamRequest>({
       query: (body) => ({ url: 'api/teams', method: 'POST', body }),
       invalidatesTags: [
+        { type: 'Team', id: platformTag(LIST_TAG) },
+        { type: 'Caller', id: callerTag },
+      ],
+    }),
+    // The child teams of one team; each child's own tag lives in the platform scope, where its id is unique.
+    listChildTeams: build.query<CollectionResource<TeamResource>, { teamId: string }>({
+      query: ({ teamId }) => `api/teams/${encodeURIComponent(teamId)}/teams`,
+      providesTags: (result, _error, { teamId }) => [
+        { type: 'Team' as const, id: teamTag(teamId, LIST_TAG) },
+        ...(result?.items ?? []).map((t) => ({
+          type: 'Team' as const,
+          id: platformTag(t.teamId),
+        })),
+      ],
+    }),
+    createChildTeam: build.mutation<TeamResource, { teamId: string; body: CreateTeamRequest }>({
+      query: ({ teamId, body }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}/teams`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { teamId }) => [
+        { type: 'Team', id: teamTag(teamId, LIST_TAG) },
         { type: 'Team', id: platformTag(LIST_TAG) },
         { type: 'Caller', id: callerTag },
       ],
@@ -746,4 +769,6 @@ export const {
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
   useUpdateSettingsMutation,
+  useListChildTeamsQuery,
+  useCreateChildTeamMutation,
 } = managementApi;

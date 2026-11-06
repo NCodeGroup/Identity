@@ -292,8 +292,8 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
         mockTeamStore
-            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTeamSettings("team-1", "committed"))
+            .Setup(x => x.GetLineageAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([CreateTeam("team-1", "committed")])
             .Verifiable();
 
         var result = await Resolver.ResolveTeamAsync("team-1", CancellationToken.None);
@@ -320,8 +320,8 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
         mockTeamStore
-            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTeamSettings("team-1", "committed"))
+            .Setup(x => x.GetLineageAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([CreateTeam("team-1", "committed")])
             .Verifiable();
 
         var exception = await Assert.ThrowsAsync<UnreadableSettingsException>(async () =>
@@ -344,8 +344,8 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
         mockTeamStore
-            .Setup(x => x.GetSettingsOrDefaultAsync("team-1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((PersistedTeamSettings?)null)
+            .Setup(x => x.GetLineageAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
             .Verifiable();
 
         var exception = await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
@@ -366,10 +366,14 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
         mockPlatform.Setup(x => x.Merge(expanded)).Returns(effective).Verifiable();
         SetupPlatform(mockPlatform.Object);
-        var mockPlatformStore = SetupPlatformStore();
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
         mockPlatformStore
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetLineageAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([CreateTeam("team-1", "committed")])
             .Verifiable();
 
         var result = await Resolver.ResolveTeamAsync(
@@ -381,9 +385,185 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         Assert.Same(effective, result);
     }
 
+    [Fact]
+    public async Task ResolveTeamAsync_WithAParentTeam_MergesTheParentsDocumentFirst()
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> parentExpanded = new List<Setting>();
+        IReadOnlyCollection<Setting> childExpanded = new List<Setting>();
+        SetupExpand(OpenIdSettingScopes.Team, "parent-value", jsonOptions, parentExpanded);
+        SetupExpand(OpenIdSettingScopes.Team, "child-value", jsonOptions, childExpanded);
+        var effective = CreateLooseMock<ISettingCollection>().Object;
+        var mockParentEffective = CreateStrictMock<ISettingCollection>();
+        mockParentEffective.Setup(x => x.Merge(childExpanded)).Returns(effective).Verifiable();
+        var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
+        mockPlatform
+            .Setup(x => x.Merge(parentExpanded))
+            .Returns(mockParentEffective.Object)
+            .Verifiable();
+        SetupPlatform(mockPlatform.Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetLineageAsync("child", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                CreateTeam("parent", "parent-value"),
+                CreateTeam("child", "child-value", "parent"),
+            ])
+            .Verifiable();
+
+        var result = await Resolver.ResolveTeamAsync("child", CancellationToken.None);
+
+        Assert.Same(effective, result);
+    }
+
+    [Fact]
+    public async Task ResolveTeamAsync_WithADocumentForAChildTeam_MergesItOntoTheParentsEffectiveSettings()
+    {
+        // The child team's committed document is not set up: reading it fails the test.
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> parentExpanded = new List<Setting>();
+        IReadOnlyCollection<Setting> proposedExpanded = new List<Setting>();
+        var effective = CreateLooseMock<ISettingCollection>().Object;
+        var mockParentEffective = CreateStrictMock<ISettingCollection>();
+        mockParentEffective.Setup(x => x.Merge(proposedExpanded)).Returns(effective).Verifiable();
+        SetupExpand(OpenIdSettingScopes.Team, "parent-value", jsonOptions, parentExpanded);
+        SetupExpand(
+            OpenIdSettingScopes.Team,
+            "proposed",
+            jsonOptions,
+            proposedExpanded,
+            mockParentEffective.Object
+        );
+        var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
+        mockPlatform
+            .Setup(x => x.Merge(parentExpanded))
+            .Returns(mockParentEffective.Object)
+            .Verifiable();
+        SetupPlatform(mockPlatform.Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetLineageAsync("child", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                CreateTeam("parent", "parent-value"),
+                CreateTeam("child", "child-value", "parent"),
+            ])
+            .Verifiable();
+
+        var result = await Resolver.ResolveTeamAsync(
+            "child",
+            CreateDocument("proposed"),
+            CancellationToken.None
+        );
+
+        Assert.Same(effective, result);
+    }
+
+    #endregion
+
+    #region ResolveTeamParentAsync Tests
+
+    [Fact]
+    public async Task ResolveTeamParentAsync_ForATopLevelTeam_ReturnsThePlatformsSettings()
+    {
+        // The catalog is strict with no setup: expanding the team's own document fails the test.
+        SetupEnvironment();
+        var platform = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupPlatform(platform);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetLineageAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([CreateTeam("team-1", "committed")])
+            .Verifiable();
+
+        var result = await Resolver.ResolveTeamParentAsync("team-1", CancellationToken.None);
+
+        Assert.Same(platform, result);
+    }
+
+    [Fact]
+    public async Task ResolveTeamParentAsync_ForAChildTeam_ReturnsTheParentsEffectiveSettings()
+    {
+        // The child team's committed document is not set up: reading it fails the test.
+        var jsonOptions = new JsonSerializerOptions();
+        SetupEnvironment(jsonOptions);
+        IReadOnlyCollection<Setting> parentExpanded = new List<Setting>();
+        SetupExpand(OpenIdSettingScopes.Team, "parent-value", jsonOptions, parentExpanded);
+        var parentEffective = CreateStrictMock<ISettingCollection>().Object;
+        var mockPlatform = CreateStrictMock<IReadOnlySettingCollection>();
+        mockPlatform.Setup(x => x.Merge(parentExpanded)).Returns(parentEffective).Verifiable();
+        SetupPlatform(mockPlatform.Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetLineageAsync("child", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                CreateTeam("parent", "parent-value"),
+                CreateTeam("child", "child-value", "parent"),
+            ])
+            .Verifiable();
+
+        var result = await Resolver.ResolveTeamParentAsync("child", CancellationToken.None);
+
+        Assert.Same(parentEffective, result);
+    }
+
+    [Fact]
+    public async Task ResolveTeamParentAsync_WhenTheTeamIsMissing_Throws()
+    {
+        SetupEnvironment();
+        SetupPlatform(CreateStrictMock<IReadOnlySettingCollection>().Object);
+        var (mockPlatformStore, mockTeamStore) = SetupPlatformAndTeamStores();
+        mockPlatformStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedPlatformSettings?)null)
+            .Verifiable();
+        mockTeamStore
+            .Setup(x => x.GetLineageAsync("team-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync([])
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<KeyNotFoundException>(async () =>
+            await Resolver.ResolveTeamParentAsync("team-1", CancellationToken.None)
+        );
+
+        Assert.Equal("The team 'team-1' does not exist.", exception.Message);
+    }
+
     #endregion
 
     #region Helpers
+
+    private static PersistedTeam CreateTeam(
+        string teamId,
+        string propertyName,
+        string? parentTeamId = null
+    ) =>
+        new()
+        {
+            TeamId = teamId,
+            ConcurrencyToken = "token",
+            DisplayName = teamId,
+            IsDisabled = false,
+            ParentTeamId = parentTeamId,
+            Settings = CreateTeamSettings(teamId, propertyName),
+        };
 
     private static PersistedTeamSettings CreateTeamSettings(string teamId, string propertyName) =>
         new()
@@ -445,8 +625,16 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         IReadOnlySettingCollection? parentSettings = null
     )
     {
-        IReadOnlyCollection<Setting> deserialized = new List<Setting>();
-        IReadOnlyCollection<Setting> selected = new List<Setting>();
+        // Each list holds a distinct setting so that Moq, which matches collection arguments by their elements,
+        // tells the expansions of different documents apart.
+        IReadOnlyCollection<Setting> deserialized = new List<Setting>
+        {
+            CreateMarkerSetting(scopeName, propertyName),
+        };
+        IReadOnlyCollection<Setting> selected = new List<Setting>
+        {
+            CreateMarkerSetting(scopeName, propertyName),
+        };
 
         MockSettingSerializer
             .Setup(x =>
@@ -477,6 +665,12 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
             .Returns(expanded)
             .Verifiable();
     }
+
+    private static Setting CreateMarkerSetting(string scopeName, string propertyName) =>
+        new Setting<bool>(
+            new SettingDescriptor<bool> { Name = propertyName, AppliesTo = [scopeName] },
+            true
+        );
 
     private void SetupExpandThrows(
         string scopeName,

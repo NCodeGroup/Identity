@@ -175,6 +175,8 @@ export type TeamResource = {
   readonly concurrencyToken: string;
   readonly displayName: string;
   readonly isDisabled: boolean;
+  /** The team directly above, or null for a top-level team; it never changes. */
+  readonly parentTeamId?: string | null;
 };
 
 /** Mirror of `RoleAssignmentResource`: one role a principal holds at one node of the resource tree. */
@@ -544,6 +546,7 @@ export type TenantUsageResource = {
  * vocabulary, e.g. `requests` or `token_requests`) on a UTC calendar `day` (`YYYY-MM-DD` on the wire).
  */
 export type TeamUsageEntry = {
+  readonly teamId: string;
   readonly tenantId: string;
   readonly day: string;
   readonly meter: string;

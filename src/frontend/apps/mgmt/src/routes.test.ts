@@ -30,6 +30,11 @@ describe('routePath', () => {
     expect(routePath(teamRoute('acme', 'settings'))).toBe('/teams/acme/settings');
   });
 
+  it('nests the child teams surface under its team', () => {
+    expect(routePath(teamRoute('acme', 'teams'))).toBe('/teams/acme/teams');
+    expect(parseRoute('/teams/acme/teams')).toEqual(teamRoute('acme', 'teams'));
+  });
+
   it('opens a team on its tenants by default', () => {
     expect(routePath(teamRoute('acme'))).toBe('/teams/acme/tenants');
   });

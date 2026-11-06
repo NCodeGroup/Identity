@@ -28,4 +28,10 @@ public sealed class TeamResource : ISupportTeamId, ISupportConcurrencyToken
 
     /// <inheritdoc cref="PersistedTeam.IsDisabled"/>
     public required bool IsDisabled { get; init; }
+
+    /// <summary>
+    /// Gets the identifier of the team directly above this team, or <see langword="null"/> for a top-level team.
+    /// </summary>
+    // See ADR-1426.
+    public string? ParentTeamId { get; init; }
 }

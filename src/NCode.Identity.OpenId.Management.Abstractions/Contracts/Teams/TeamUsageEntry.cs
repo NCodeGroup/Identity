@@ -16,6 +16,11 @@ namespace NCode.Identity.OpenId.Management.Contracts.Teams;
 public sealed class TeamUsageEntry
 {
     /// <summary>
+    /// Gets the identifier of the team the tenant belonged to.
+    /// </summary>
+    public required string TeamId { get; init; }
+
+    /// <summary>
     /// Gets the identifier of the tenant that used the meter.
     /// </summary>
     public required string TenantId { get; init; }

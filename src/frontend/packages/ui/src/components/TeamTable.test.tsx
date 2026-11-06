@@ -22,6 +22,26 @@ describe('TeamTable', () => {
     expect(screen.getByText('Disabled')).toBeInTheDocument();
   });
 
+  it('shows the parent team column only with showParent', () => {
+    const nested: TeamRow[] = [
+      { teamId: 'globex', displayName: 'Globex', isDisabled: false, parentTeamId: null },
+      {
+        teamId: 'globex-web',
+        displayName: 'Globex Web',
+        isDisabled: false,
+        parentTeamId: 'globex',
+      },
+    ];
+    const { rerender } = render(<TeamTable teams={nested} />);
+    expect(screen.queryByRole('columnheader', { name: 'Parent team' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('team-parent-globex-web')).not.toBeInTheDocument();
+
+    rerender(<TeamTable teams={nested} showParent />);
+    expect(screen.getByRole('columnheader', { name: 'Parent team' })).toBeInTheDocument();
+    expect(screen.getByTestId('team-parent-globex-web')).toHaveTextContent('globex');
+    expect(screen.getByTestId('team-parent-globex')).toHaveTextContent('—');
+  });
+
   it('invokes onSelect with the team id when a row is clicked', () => {
     const onSelect = vi.fn();
     render(<TeamTable teams={teams} onSelect={onSelect} />);

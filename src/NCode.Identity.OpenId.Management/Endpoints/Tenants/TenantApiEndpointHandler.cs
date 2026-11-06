@@ -49,6 +49,7 @@ GET   api/tenants/{tenantId}
 GET   api/tenants/{tenantId}/address
 
 GET   api/tenants/{tenantId}/settings
+GET   api/tenants/{tenantId}/settings/limits
 PATCH api/tenants/{tenantId}/settings
 GET   api/tenants/{tenantId}/effective-settings
 
@@ -178,6 +179,9 @@ internal class TenantApiEndpointHandler(
             .ProducesValidationProblem();
 
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
+        tenants
+            .MapGet("/{tenantId}/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
         tenants
             .MapPatch("/{tenantId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -1245,6 +1249,39 @@ internal class TenantApiEndpointHandler(
                 return await store.GetSettingsOrDefaultAsync(tenantId, token);
             },
             ToTenantSettingsResource,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Gets the limits a tenant's settings carry and whether the caller may set them: whether it holds update authority
+    /// over the tenant's team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The tenant's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/tenants/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        async ValueTask<ResourceNode?> ReadNodeAboveAsync(CancellationToken token)
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+            var store = storeManager.GetStore<ITenantStore>();
+            var tenant = await store.GetOrDefaultAsync(tenantId, token);
+            return tenant is null ? null : GetTeamNode(httpContext, tenant.TeamId);
+        }
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            SettingSerializer.GetLimits(OpenIdSettingScopes.Tenant),
+            ReadNodeAboveAsync,
             cancellationToken
         );
     }

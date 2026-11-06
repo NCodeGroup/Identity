@@ -384,6 +384,12 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Returns(limits)
             .Verifiable();
 
+    private void SetupTenantLimits(params string[] limits) =>
+        MockSettingSerializer
+            .Setup(x => x.GetLimits(OpenIdSettingScopes.Tenant))
+            .Returns(limits)
+            .Verifiable();
+
     private void SetupInvalidSettings() =>
         MockSettingSerializer
             .Setup(x =>
@@ -1053,6 +1059,100 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
 
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region GetSettingLimitsAsync Tests
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayUpdateTheTeam_ReportsCanChange()
+    {
+        SetupTenantLimits(OpenIdSettingNames.RateLimitTenantPerMinute);
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSettingLimitsAsync(
+            httpContext,
+            TenantId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.RateLimitTenantPerMinute], json.Value?.Names);
+        Assert.True(json.Value?.CanChange);
+        Assert.False(httpContext.Response.Headers.ContainsKey("ETag"));
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayNotUpdateTheTeam_ReportsCannotChange()
+    {
+        SetupTenantLimits(OpenIdSettingNames.RateLimitTenantPerMinute);
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == TeamId
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Single() == Operations.Update
+                    )
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.RateLimitTenantPerMinute], json.Value?.Names);
+        Assert.False(json.Value?.CanChange);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheTenantIsMissing_ReturnsNotFound()
+    {
+        SetupTenantLimits(OpenIdSettingNames.RateLimitTenantPerMinute);
+        SetupStore();
+        SetupTenant(null);
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
+    {
+        SetupTenantLimits(OpenIdSettingNames.RateLimitTenantPerMinute);
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 

@@ -35,6 +35,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     private Mock<IOpenIdEnvironmentProvider> MockEnvironmentProvider { get; }
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<ITeamSettingsReconciler> MockReconciler { get; }
+    private Mock<ITeamDescendantWalker> MockWalker { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<ITeamStore> MockTeamStore { get; }
@@ -59,7 +60,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     // The teams the reconciler was called for, in call order.
     private List<string> ReconciledTeams { get; } = [];
 
-    // Completes when the store has listed the descendants of a team for the first time.
+    // Completes when the walker has walked the descendants of a team for the first time.
     private TaskCompletionSource DescendantsRead { get; } =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -72,6 +73,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
         MockEnvironmentProvider = CreateStrictMock<IOpenIdEnvironmentProvider>();
         MockEnvironment = CreateStrictMock<OpenIdEnvironment>();
         MockReconciler = CreateStrictMock<ITeamSettingsReconciler>();
+        MockWalker = CreateStrictMock<ITeamDescendantWalker>();
         MockPlatform = CreateStrictMock<OpenIdPlatform>();
         MockSettingsProvider = CreateStrictMock<IReadOnlySettingCollectionProvider>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
@@ -85,6 +87,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             MockEnvironmentProvider.Object,
             MockStoreManagerFactory.Object,
             MockReconciler.Object,
+            MockWalker.Object,
             Queue,
             Options.Create(OpenIdOptions),
             TimeProvider.System,
@@ -240,36 +243,44 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WhenReadingTheDescendantsFails_TriesTheTeamAgainAfterTheLease()
+    public async Task ExecuteAsync_WhenWalkingTheDescendantsFails_TriesTheTeamAgainAfterTheLease()
     {
         SetupPlatform();
         var listed = SetupNoTeamsListed();
         SetupReconciler(_ => ValueTask.FromResult(true));
-        var reads = 0;
-        var secondRead = new TaskCompletionSource(
+        var walks = 0;
+        var secondWalk = new TaskCompletionSource(
             TaskCreationOptions.RunContinuationsAsynchronously
         );
-        MockTeamStore
-            .Setup(x => x.GetDescendantsAsync(TeamId, It.IsAny<CancellationToken>()))
-            .Returns(() =>
-            {
-                if (Interlocked.Increment(ref reads) == 1)
+        MockWalker
+            .Setup(x =>
+                x.WalkDescendantsAsync(
+                    TeamId,
+                    It.IsAny<Func<PersistedTeam, CancellationToken, ValueTask<bool>>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (
+                    string _,
+                    Func<PersistedTeam, CancellationToken, ValueTask<bool>> _,
+                    CancellationToken _
+                ) =>
                 {
-                    return ValueTask.FromException<IReadOnlyList<PersistedTeam>>(
-                        new InvalidOperationException("boom")
-                    );
-                }
+                    if (Interlocked.Increment(ref walks) == 1)
+                        return ValueTask.FromException(new InvalidOperationException("boom"));
 
-                secondRead.TrySetResult();
-                return ValueTask.FromResult<IReadOnlyList<PersistedTeam>>([]);
-            })
+                    secondWalk.TrySetResult();
+                    return ValueTask.CompletedTask;
+                }
+            )
             .Verifiable();
 
         await Service.StartAsync(CancellationToken.None);
         await listed.Task.WaitAsync(Deadline);
         Trigger.Trigger(TeamId);
         await Calls[1].Task.WaitAsync(Deadline);
-        await secondRead.Task.WaitAsync(Deadline);
+        await secondWalk.Task.WaitAsync(Deadline);
         await Service.StopAsync(CancellationToken.None);
 
         Assert.Equal([TeamId, TeamId], ReconciledTeams.Take(2));
@@ -316,6 +327,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             MockEnvironmentProvider.Object,
             MockStoreManagerFactory.Object,
             MockReconciler.Object,
+            MockWalker.Object,
             Queue,
             Options.Create(OpenIdOptions),
             timeProvider,
@@ -552,29 +564,47 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
         return listed;
     }
 
-    // The store lists the given descendants for each team named, and none for any other team.
+    // The walker visits the given descendants for each team named, and none for any other team.
     private void SetupDescendants(params IEnumerable<(string TeamId, string[] DescendantIds)> teams)
     {
         var buffered = teams.ToArray();
-        MockTeamStore
-            .Setup(x => x.GetDescendantsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+        MockWalker
+            .Setup(x =>
+                x.WalkDescendantsAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<Func<PersistedTeam, CancellationToken, ValueTask<bool>>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
             .Returns(
-                (string teamId, CancellationToken _) =>
-                {
-                    DescendantsRead.TrySetResult();
-                    string[] descendantIds = [];
-                    foreach (var team in buffered)
-                    {
-                        if (team.TeamId == teamId)
-                            descendantIds = team.DescendantIds;
-                    }
-
-                    return ValueTask.FromResult<IReadOnlyList<PersistedTeam>>([
-                        .. descendantIds.Select(CreateTeam),
-                    ]);
-                }
+                (
+                    string teamId,
+                    Func<PersistedTeam, CancellationToken, ValueTask<bool>> visitAsync,
+                    CancellationToken cancellationToken
+                ) => WalkDescendantsAsync(buffered, teamId, visitAsync, cancellationToken)
             )
             .Verifiable();
+    }
+
+    private async ValueTask WalkDescendantsAsync(
+        (string TeamId, string[] DescendantIds)[] teams,
+        string teamId,
+        Func<PersistedTeam, CancellationToken, ValueTask<bool>> visitAsync,
+        CancellationToken cancellationToken
+    )
+    {
+        DescendantsRead.TrySetResult();
+        string[] descendantIds = [];
+        foreach (var team in teams)
+        {
+            if (team.TeamId == teamId)
+                descendantIds = team.DescendantIds;
+        }
+
+        foreach (var descendantId in descendantIds)
+        {
+            await visitAsync(CreateTeam(descendantId), cancellationToken);
+        }
     }
 
     private static PersistedTeam CreateTeam(string teamId) =>

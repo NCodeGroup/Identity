@@ -26,13 +26,14 @@ namespace NCode.Identity.OpenId.Teams;
 /// <see cref="OpenIdTeamOptions.ReconciliationLeaseDuration"/> has passed. Requests that arrive during a pass coalesce
 /// and none is lost. The service never throws on stop.
 /// </summary>
-// See ADR-1411, ADR-1412 and ADR-1426.
+// See ADR-1411, ADR-1412, ADR-1426 and ADR-1455.
 internal sealed class TeamSettingsReconciliationService(
     IMaterializedPlatformRegistry materializedPlatformRegistry,
     IOpenIdPlatformProvider platformProvider,
     IOpenIdEnvironmentProvider environmentProvider,
     IStoreManagerFactory storeManagerFactory,
     ITeamSettingsReconciler teamSettingsReconciler,
+    ITeamDescendantWalker teamDescendantWalker,
     TeamSettingsReconciliationQueue queue,
     IOptions<OpenIdOptions> optionsAccessor,
     TimeProvider timeProvider,
@@ -51,6 +52,7 @@ internal sealed class TeamSettingsReconciliationService(
     private IOpenIdEnvironmentProvider EnvironmentProvider { get; } = environmentProvider;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ITeamSettingsReconciler TeamSettingsReconciler { get; } = teamSettingsReconciler;
+    private ITeamDescendantWalker TeamDescendantWalker { get; } = teamDescendantWalker;
     private TeamSettingsReconciliationQueue Queue { get; } = queue;
     private IOptions<OpenIdOptions> OptionsAccessor { get; } = optionsAccessor;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -156,11 +158,7 @@ internal sealed class TeamSettingsReconciliationService(
         if (request.EveryTeam)
             await ReconcileEveryTeamAsync(stoppingToken);
         else
-        {
-            var reconciled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var teamId in request.TeamIds)
-                await ReconcileSubtreeAsync(teamId, reconciled, stoppingToken);
-        }
+            await ReconcileSubtreesAsync(request.TeamIds, stoppingToken);
     }
 
     private async Task RetryAsync(CancellationToken stoppingToken)
@@ -170,11 +168,7 @@ internal sealed class TeamSettingsReconciliationService(
         if (EveryTeamUnsettled)
             await ReconcileEveryTeamAsync(stoppingToken);
         else
-        {
-            var reconciled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var teamId in Unsettled.ToList())
-                await ReconcileSubtreeAsync(teamId, reconciled, stoppingToken);
-        }
+            await ReconcileSubtreesAsync(Unsettled.ToList(), stoppingToken);
 
         UpdateRetryDeadline();
     }
@@ -225,43 +219,52 @@ internal sealed class TeamSettingsReconciliationService(
         return await store.GetPageAsync(page, stoppingToken);
     }
 
-    private async ValueTask<IReadOnlyList<PersistedTeam>> GetDescendantsAsync(
-        string teamId,
+    // Reconciles each team and every team beneath it, each team once per pass. Only the requested teams are remembered,
+    // so a pass holds no set of every team it reaches.
+    private async Task ReconcileSubtreesAsync(
+        IReadOnlyCollection<string> teamIds,
         CancellationToken stoppingToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(stoppingToken);
-        var store = storeManager.GetStore<ITeamStore>();
-        return await store.GetDescendantsAsync(teamId, stoppingToken);
+        var requested = new HashSet<string>(teamIds, StringComparer.OrdinalIgnoreCase);
+        var reconciled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var teamId in teamIds)
+        {
+            // The team's subtree was reached through an ancestor in this pass.
+            if (!reconciled.Add(teamId))
+                continue;
+
+            await ReconcileTeamAsync(teamId, stoppingToken);
+
+            try
+            {
+                await TeamDescendantWalker.WalkDescendantsAsync(
+                    teamId,
+                    (team, token) => VisitDescendantAsync(team, requested, reconciled, token),
+                    stoppingToken
+                );
+            }
+            catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
+            {
+                Logger.TeamSettingsReconciliationFailed(teamId, exception);
+                Unsettled.Add(teamId);
+            }
+        }
     }
 
-    // Reconciles the team and every team beneath it, each team once for the set of teams already reconciled.
-    private async Task ReconcileSubtreeAsync(
-        string teamId,
+    // A requested team that was already reconciled was walked from itself, so its subtree is declined here.
+    private async ValueTask<bool> VisitDescendantAsync(
+        PersistedTeam team,
+        HashSet<string> requested,
         HashSet<string> reconciled,
         CancellationToken stoppingToken
     )
     {
-        // The team's subtree was reached through an ancestor in this pass.
-        if (!reconciled.Add(teamId))
-            return;
+        if (requested.Contains(team.TeamId) && !reconciled.Add(team.TeamId))
+            return false;
 
-        await ReconcileTeamAsync(teamId, stoppingToken);
-
-        try
-        {
-            var descendants = await GetDescendantsAsync(teamId, stoppingToken);
-            foreach (var descendant in descendants)
-            {
-                if (reconciled.Add(descendant.TeamId))
-                    await ReconcileTeamAsync(descendant.TeamId, stoppingToken);
-            }
-        }
-        catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
-        {
-            Logger.TeamSettingsReconciliationFailed(teamId, exception);
-            Unsettled.Add(teamId);
-        }
+        await ReconcileTeamAsync(team.TeamId, stoppingToken);
+        return true;
     }
 
     private async Task ReconcileTeamAsync(string teamId, CancellationToken stoppingToken)

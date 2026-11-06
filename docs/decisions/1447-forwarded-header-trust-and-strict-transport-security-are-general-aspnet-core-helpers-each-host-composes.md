@@ -1,8 +1,11 @@
 # 1447. Forwarded-header trust and Strict-Transport-Security are general ASP.NET Core helpers each host composes
 
 - **Status:** Accepted (amends
-  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) and
-  [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md) decision 1)
+  [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),
+  [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md) decisions 1 and 6,
+  [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) decision 1,
+  [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) decision 6 and
+  [ADR-1399](1399-failed-client-authentications-are-limited-per-remote-address-by-default.md))
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 
@@ -30,7 +33,9 @@ Issue [#611](https://github.com/NCodeGroup/Identity/issues/611) describes the ne
    `UseTrustedForwardedHeaders()` with `TrustedForwardedHeadersOptions` (section `ForwardedHeaders`: `KnownProxies`,
    `KnownNetworks`, `ForwardLimit`), and `AddStrictTransportSecurity(configuration)` and
    `UseStrictTransportSecurity()` with `StrictTransportSecurityOptions` (section `StrictTransportSecurity`). The options
-   live in namespace `NCode.AspNetCore.Options`.
+   live in namespace `NCode.AspNetCore.Options`. `ForwardedHeaders` is the section that holds the forwarded-header trust
+   which ADR-1137, ADR-1139, ADR-1258 and ADR-1399 name, and `TrustedForwardedHeadersOptionsValidator` applies the rules
+   of ADR-1139 decision 6 to it.
 2. **Both sections bind strictly and validate on start.** `NCode.AspNetCore` references `NCode.Registration` for strict
    binding ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
 3. **Each host composes both.** A host calls `UseTrustedForwardedHeaders()` and then `UseStrictTransportSecurity()`

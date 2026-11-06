@@ -1,6 +1,8 @@
 # 1399. Failed client authentications are limited per remote address by default
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
+  a host behind a reverse proxy trusts it through the `ForwardedHeaders` section)
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0144](project-template/0144-correctness-guards-fail-closed-capacity-guards-fail-open.md)

@@ -7,7 +7,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Brings everything derived from a team's effective settings in line with them whenever those settings differ from
 /// the ones they were last reconciled against.
 /// </summary>
-// See ADR-1219 and ADR-1411.
+// See ADR-1411 and ADR-1412.
 internal interface ITeamSettingsReconciler
 {
     /// <summary>

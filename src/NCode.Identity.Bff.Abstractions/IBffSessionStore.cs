@@ -82,6 +82,27 @@ public interface IBffSessionStore
     );
 
     /// <summary>
+    /// Finds the distinct clients that stored sessions were issued to; a client whose sessions all ended may still be
+    /// listed.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The distinct clients.</returns>
+    ValueTask<IReadOnlyList<BffSessionClient>> FindClientsAsync(
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Finds the store keys of the sessions of a client.
+    /// </summary>
+    /// <param name="client">The client that the sessions were issued to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The store keys of the matching sessions.</returns>
+    ValueTask<IReadOnlyList<string>> FindByClientAsync(
+        BffSessionClient client,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Adds a login transaction when none exists under the key.
     /// </summary>
     /// <param name="transactionKey">The key of the transaction.</param>

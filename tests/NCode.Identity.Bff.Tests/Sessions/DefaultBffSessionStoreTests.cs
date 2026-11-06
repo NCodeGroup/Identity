@@ -31,6 +31,8 @@ public class DefaultBffSessionStoreTests : BaseTests
         new()
         {
             Frontend = "default",
+            Authority = "https://op.example",
+            ClientId = "client-1",
             Issuer = "https://op.example",
             Subject = "sub-1",
             SessionId = sessionId,
@@ -42,6 +44,36 @@ public class DefaultBffSessionStoreTests : BaseTests
 
     private static BffSessionRecord CreateRecord(string? sessionId = "sid-1") =>
         new(StoreKey, 1, CreateMetadata(sessionId), new byte[] { 1, 2, 3 });
+
+    private static BffSessionClient CreateClient() =>
+        new("default", "https://op.example", "client-1");
+
+    private void SetupClientIndexAdds()
+    {
+        var client = CreateClient();
+        MockIndexes
+            .Setup(x =>
+                x.AddMemberAsync(
+                    BffStoreKeys.ClientIndex(client),
+                    StoreKey,
+                    Absolute,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockIndexes
+            .Setup(x =>
+                x.AddMemberAsync(
+                    BffStoreKeys.ClientsIndex,
+                    BffStoreKeys.ClientMember(client, Absolute),
+                    BffStoreKeys.ClientMemberExpiresAt(Absolute),
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+    }
 
     #region TryCreateAsync Tests
 
@@ -71,10 +103,64 @@ public class DefaultBffSessionStoreTests : BaseTests
             .Setup(x => x.AddMemberAsync(subIndex, StoreKey, Absolute, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+        SetupClientIndexAdds();
 
         var result = await Store.TryCreateAsync(CreateRecord(), CancellationToken.None);
 
         Assert.True(result);
+    }
+
+    [Fact]
+    public async Task TryCreateAsync_Always_IndexesTheSessionByItsClient()
+    {
+        var metadata = CreateMetadata();
+        var client = CreateClient();
+        var sidIndex = BffStoreKeys.SessionIdIndex(metadata.Issuer, "sid-1");
+        var subIndex = BffStoreKeys.SubjectIndex(metadata.Issuer, metadata.Subject);
+
+        MockValues
+            .Setup(x =>
+                x.TryAddAsync(
+                    "bff:session:" + StoreKey,
+                    It.IsAny<ReadOnlyMemory<byte>>(),
+                    Idle,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(true)
+            .Verifiable();
+        MockIndexes
+            .Setup(x => x.AddMemberAsync(sidIndex, StoreKey, Absolute, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockIndexes
+            .Setup(x => x.AddMemberAsync(subIndex, StoreKey, Absolute, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupClientIndexAdds();
+
+        await Store.TryCreateAsync(CreateRecord(), CancellationToken.None);
+
+        MockIndexes.Verify(
+            x =>
+                x.AddMemberAsync(
+                    BffStoreKeys.ClientIndex(client),
+                    StoreKey,
+                    Absolute,
+                    CancellationToken.None
+                ),
+            Times.Once
+        );
+        MockIndexes.Verify(
+            x =>
+                x.AddMemberAsync(
+                    BffStoreKeys.ClientsIndex,
+                    BffStoreKeys.ClientMember(client, Absolute),
+                    new DateTimeOffset(2026, 1, 3, 0, 0, 0, TimeSpan.Zero),
+                    CancellationToken.None
+                ),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -98,6 +184,7 @@ public class DefaultBffSessionStoreTests : BaseTests
             .Setup(x => x.AddMemberAsync(subIndex, StoreKey, Absolute, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+        SetupClientIndexAdds();
 
         var result = await Store.TryCreateAsync(CreateRecord(null), CancellationToken.None);
 
@@ -292,8 +379,46 @@ public class DefaultBffSessionStoreTests : BaseTests
             .Setup(x => x.RemoveMemberAsync(subIndex, StoreKey, CancellationToken.None))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+        MockIndexes
+            .Setup(x =>
+                x.RemoveMemberAsync(
+                    BffStoreKeys.ClientIndex(CreateClient()),
+                    StoreKey,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
         await Store.RemoveAsync(StoreKey, metadata, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_Always_RemovesTheClientIndexMember()
+    {
+        var metadata = CreateMetadata(null);
+        var subIndex = BffStoreKeys.SubjectIndex(metadata.Issuer, metadata.Subject);
+        var clientIndex = BffStoreKeys.ClientIndex(CreateClient());
+
+        MockValues
+            .Setup(x => x.RemoveAsync("bff:session:" + StoreKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockIndexes
+            .Setup(x => x.RemoveMemberAsync(subIndex, StoreKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockIndexes
+            .Setup(x => x.RemoveMemberAsync(clientIndex, StoreKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Store.RemoveAsync(StoreKey, metadata, CancellationToken.None);
+
+        MockIndexes.Verify(
+            x => x.RemoveMemberAsync(clientIndex, StoreKey, CancellationToken.None),
+            Times.Once
+        );
     }
 
     [Fact]
@@ -354,6 +479,56 @@ public class DefaultBffSessionStoreTests : BaseTests
         await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
             await Store.FindBySubjectAsync("iss", "sub-1", CancellationToken.None)
         );
+    }
+
+    [Fact]
+    public async Task FindClientsAsync_TwoDaysOfOneClient_ReturnsTheClientOnce()
+    {
+        var client = CreateClient();
+        var other = new BffSessionClient("other", "https://op.example", "client-2");
+        IReadOnlyList<string> members =
+        [
+            BffStoreKeys.ClientMember(client, Absolute),
+            BffStoreKeys.ClientMember(client, Absolute.AddDays(1)),
+            BffStoreKeys.ClientMember(other, Absolute),
+            "malformed",
+        ];
+        MockIndexes
+            .Setup(x => x.GetMembersAsync(BffStoreKeys.ClientsIndex, CancellationToken.None))
+            .ReturnsAsync(members)
+            .Verifiable();
+
+        var result = await Store.FindClientsAsync(CancellationToken.None);
+
+        Assert.Equal([client, other], result);
+    }
+
+    [Fact]
+    public async Task FindClientsAsync_StoreFails_ThrowsBffStoreUnavailableException()
+    {
+        MockIndexes
+            .Setup(x => x.GetMembersAsync(BffStoreKeys.ClientsIndex, CancellationToken.None))
+            .ThrowsAsync(new InvalidOperationException("boom"))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<BffStoreUnavailableException>(async () =>
+            await Store.FindClientsAsync(CancellationToken.None)
+        );
+    }
+
+    [Fact]
+    public async Task FindByClientAsync_Always_ReturnsTheIndexMembers()
+    {
+        var client = CreateClient();
+        IReadOnlyList<string> members = ["a", "b"];
+        MockIndexes
+            .Setup(x => x.GetMembersAsync(BffStoreKeys.ClientIndex(client), CancellationToken.None))
+            .ReturnsAsync(members)
+            .Verifiable();
+
+        var result = await Store.FindByClientAsync(client, CancellationToken.None);
+
+        Assert.Equal(members, result);
     }
 
     #endregion

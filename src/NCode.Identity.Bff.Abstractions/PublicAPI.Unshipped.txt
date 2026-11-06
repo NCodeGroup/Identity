@@ -127,6 +127,8 @@ NCode.Identity.Bff.BffSessionValidationContext.Principal.get -> System.Security.
 NCode.Identity.Bff.IBffSessionValidator
 NCode.Identity.Bff.IBffSessionValidator.ValidateAsync(NCode.Identity.Bff.BffSessionValidationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore
+NCode.Identity.Bff.IBffSessionStore.FindByClientAsync(NCode.Identity.Bff.BffSessionClient client, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+NCode.Identity.Bff.IBffSessionStore.FindClientsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.Bff.BffSessionClient>!>
 NCode.Identity.Bff.IBffSessionStore.FindBySessionIdAsync(string! issuer, string! sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 NCode.Identity.Bff.IBffSessionStore.FindBySubjectAsync(string! issuer, string! subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 NCode.Identity.Bff.IBffSessionStore.GetAsync(string! storeKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffSessionRecord?>

@@ -170,17 +170,16 @@ access token to the browser**. It is not offered, because the token still reache
 
 ### 3.2 Non-goals
 
-- **A browser library.** The SPA contract is small: a navigation to log in, a navigation to log out, a session probe,
+- **A JavaScript library.** The SPA contract is small: a navigation to log in, a navigation to log out, a session probe,
   and a header on API calls. It is documented ([§5.7](#57-bff-endpoints)), and the frontend platform can wrap it in a
-  few lines. A separate package is not justified.
+  few lines. A separate package is not justified. The one browser-side package is the Blazor WebAssembly client
+  ([§5.14](#514-server-rendered-and-blazor-hosts)).
 - **A resource-server validation library.** APIs behind the BFF validate bearer or DPoP tokens as they do today. A
   reusable library for that is a separate concern.
 - **The token-mediating backend** (RFC 10017 §6.2), and **implicit, hybrid, or password flows**.
 - **Adapters for one identity provider.** Anything a standard OP needs is metadata-driven.
 - **Front-channel logout and session-management iframes**, for the same reasons as
   [ADR-1074](decisions/1074-session-management-and-logout.md).
-- **Framework-specific glue** for Blazor or server-rendered page frameworks, beyond what an ASP.NET Core
-  authentication scheme already provides ([§11](#11-open-questions)).
 
 ### 3.3 Constraints
 
@@ -251,6 +250,8 @@ The flow follows RFC 10017 Figure 1:
 | `NCode.Identity.OpenId.Client`                  | the above, `.SharedState.Abstractions` (abstractions only, ADR-1016)    | Default implementations: cached discovery and JWKS, PAR, code / refresh / client-credentials / token-exchange requests, revocation, `private_key_jwt` and mTLS client authentication, DPoP with nonce handling, and ID-token and logout-token validation under the family's JWT policy ([ADR-1154](decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). It is useful on its own to any server-side client. It needs no ASP.NET Core runtime ([ADR-1285](decisions/1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md)). |
 | `NCode.Identity.Bff.Abstractions`               | the ASP.NET Core shared framework, `NCode.Identity.OpenId.Client.Abstractions`, `NCode.Identity.Events.Abstractions`, `NCode.Registration` | BFF contracts: the session record and `IBffSessionStore`, token requirements and `IBffTokenAccessor`, login gates and session validators, `[BffApi]`, the audit event, problem types and name constants ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)). |
 | `NCode.Identity.Bff`                            | the above, `NCode.Identity.SharedState.Abstractions` (abstractions only, ADR-1016), the `NCode.Identity.Jwk` model ([ADR-1119](decisions/1119-first-class-jwk-jwks-and-thumbprint.md)), YARP | The ASP.NET Core authentication scheme, the `/bff` endpoints (with the optional `/bff/jwks`), `UseBff()` with the cookie-acceptance checks, the token manager and `AddBffAccessTokenHandler`, local-API endpoint metadata (`AsBffApi`), the back-channel logout receiver, the remote-API forwarder on YARP's `IHttpForwarder` (`MapBffRemoteApi`), token attachment for routes in YARP configuration (`AddBffTransforms()`, `AsBffRemoteApis()`), and the opt-in `UseBffSecurityHeaders()`. Composed with `AddBffLibrary(events)` on the protocol client's builder and `AddBffConfiguration(configuration)`; the host registers the protocol client, events and shared-state implementations. |
+| `NCode.Identity.Bff.Blazor`                     | `NCode.Identity.Bff.Abstractions`, `NCode.Identity.Bff.Blazor.Client` | The opt-in server half for Blazor: `AddBffBlazorLibrary`, `AsBffComponents`, the revalidating server `AuthenticationStateProvider`, and the circuit handler ([§5.14](#514-server-rendered-and-blazor-hosts)). |
+| `NCode.Identity.Bff.Blazor.Client`              | `Microsoft.AspNetCore.Components.Authorization`, `Microsoft.Extensions.Http` | The opt-in WebAssembly half, which runs in the browser and holds no token: `AddBffBlazorClient`, the WebAssembly `AuthenticationStateProvider`, and `AddBffAntiforgeryHeader` ([§5.14](#514-server-rendered-and-blazor-hosts)). |
 | `NCode.Identity.Bff.Server`                     | `NCode.Identity.Bff`, and the protocol client, events, secrets, JOSE, JWT and shared-state implementations | The turnkey composition root: `AddIdentityBff(configuration)` composes every library a BFF needs in one call, with in-process shared state by default, and exposes each library's builder (`IIdentityBffBuilder`), as `AddIdentityServer()` does for the OP. The host still registers the key rings its configuration names and, with several replicas, a shared-state adapter. |
 | `NCode.Identity.SharedState(.Abstractions/.Valkey)` | (existing)                                                   | **Extended** with a versioned, expiring value primitive and expiring membership indexes ([§5.4](#54-state-every-replica-sees)).                                                                                                                                             |
 
@@ -445,7 +446,9 @@ has passed. When a refresh comes back `invalid_grant`, the session ends ([§5.5]
 §6.1.2.2 recommends ending the session when its refresh token dies.
 
 **`HttpContext.User`.** For a cookie request, `HttpContext.User` is the session principal under the BFF scheme name.
-`[Authorize]`, authorization policies, and `IAuthorizationService` therefore work unchanged.
+`[Authorize]`, authorization policies, and `IAuthorizationService` therefore work unchanged. The principal also carries
+`bff_logout_url` and `bff_logout_sid` (`BffClaimTypes`), the logout form's action and guard, so a page renders the
+logout form from `HttpContext.User`. A provider claim never carries either type.
 
 ### 5.4 State every replica sees
 
@@ -574,7 +577,7 @@ never placed in `HttpContext.Items` beyond the request, and never returned by an
 ### 5.6 Accepting the BFF cookie on APIs
 
 This is where the BFF **accepts its own cookie** and turns it into an outbound access token. There are two kinds of
-API, and a page is the one other endpoint the cookie authenticates.
+API, and a page and a hub are the other endpoints the cookie authenticates.
 
 **Local APIs** are endpoints the BFF host serves itself. Marking an endpoint with `.AsBffApi()` (or `[BffApi]` on a
 controller) adds metadata that the cookie-acceptance middleware enforces:
@@ -592,16 +595,45 @@ controller) adds metadata that the cookie-acceptance middleware enforces:
 account page. Marking an endpoint with `.AsBffPage()` (or `[BffPage]` on a controller or a Razor Page) lets the BFF
 cookie authenticate it:
 
-- A page accepts only **`GET` and `HEAD`**. It carries no anti-forgery header, so any other method is refused with
-  `405` and `Allow: GET, HEAD` as `application/problem+json` (`unsafe_method`), and audited as
-  `bff.antiforgery.rejected`.
+- A page accepts **`GET` and `HEAD`** by navigation, and any other method as a form post: Fetch Metadata must show no
+  cross-site request (a same-site request only from a trusted origin), and ASP.NET Core's antiforgery token, the one
+  Razor Pages, MVC tag helpers and Blazor's `<AntiforgeryToken>` emit, must be valid under the session's principal.
+  `UseBff()` checks both. A failure is a `403` `application/problem+json` (`cross_site_request` or
+  `antiforgery_token_invalid`), audited as `bff.antiforgery.rejected`
+  ([ADR-1436](decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)).
 - A challenge redirects to `/bff/login?returnUrl=<path and query>`, with the return URL replaced by `/` unless it is
   allow-listed. A page never gets a `401` problem.
 - The page uses `HttpContext.User`, and `IBffTokenAccessor` hands out its tokens as it does on an API. A page request
   slides the idle window, as an API request does.
 - An endpoint with **neither marker** never sees the session: the cookie authenticates nothing there, `IBffTokenAccessor`
-  throws, and a challenge on the BFF scheme throws `InvalidOperationException` that names the markers, because a
-  redirect to login would loop. `SignOutAsync` on the BFF scheme requires an API endpoint.
+  throws, and a challenge on the BFF scheme throws `InvalidOperationException` that names the markers (API, page and
+  hub), because a redirect to login would loop. `SignOutAsync` on the BFF scheme requires an API endpoint. An endpoint
+  that carries more than one marker is an API before a hub, and a hub before a page.
+
+**Hubs** are SignalR hubs, the Blazor circuit's hub among them. Marking a hub with `.AsBffHub()` (or `[BffHub]` on the
+hub class) lets the BFF cookie authenticate its requests:
+
+- A hub request may use any method. A browser `WebSocket` cannot send the anti-forgery header, so `UseBff()` refuses a
+  request whose Fetch Metadata shows a cross-site request (a same-site request only from a trusted origin) and one
+  whose `Origin` is neither the frontend's `PublicOrigin` nor a trusted origin ([§5.9](#59-browser-facing-hardening)).
+- A challenge returns **`401`** and a forbid returns **`403`**, both as `application/problem+json`. A hub never gets a
+  `302` to the login page.
+- A hub request slides the idle window, as an API request does.
+
+**Connections.** A hub request's principal carries an `IBffConnectionSession` in a `BffConnectionIdentity`, whose copies
+drop it. The connection session holds the session handle in process memory for the connection's life, revalidates the
+session, slides it from the connection's activity, and obtains tokens without an `HttpContext`
+([ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)).
+
+- A token requirement receives an `IBffTokenContext`, which is a guarded request or a connection. The token accessor's
+  rule holds: only a guarded endpoint's request, or a connection that a guarded hub request opened, gets a token. A
+  hub request obtains tokens through its connection and never writes cookies to an upgraded response.
+- `BffHubFilter`, registered for every hub, revalidates a connection on an invocation once its frontend's
+  `Session:RevalidationInterval` has passed (1 minute by default, at most half the idle timeout), slides the
+  session from the invocation, aborts the connection when the session has ended, and makes the connection current for
+  `AddBffAccessTokenHandler`.
+- A non-Blazor hub revalidates only on invocations, so a connection that never invokes keeps its last answer until it
+  closes.
 
 **Remote APIs** are forwarded to an allow-listed destination. `MapBffRemoteApi("/api/orders", destination, options)`
 binds a local path prefix to **one** destination base URL. The forwarder:
@@ -783,6 +815,10 @@ its session on every replica at once.
    `Bff:Frontends:{name}:TrustedOrigins`. This stops a compromised sibling subdomain, which counts as same
    site, from forging requests (RFC 10017 §6.1.3.3.1). When the header is absent (an older browser), layers 1 to 3
    still apply.
+5. **The antiforgery token and the `Origin` check.** A page that accepts a form post validates ASP.NET Core's
+   antiforgery token, carried in the `__Host-Http-bff-antiforgery` cookie, under the session's principal
+   ([ADR-1436](decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)).
+   A hub checks the request's `Origin`, because a browser `WebSocket` cannot send the anti-forgery header.
 
 **Middleware order.** CORS is outermost, then `UseBff()` (anti-forgery and Fetch Metadata), then authentication and
 authorization. A `403` from the CSRF check must travel back out through CORS so the browser shows the real error

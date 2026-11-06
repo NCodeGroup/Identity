@@ -4,6 +4,8 @@ The Helm chart for `NCode.Identity.OpenId.Host`, the OpenID Connect and OAuth 2.
 non-root deployment that meets the restricted Pod Security Standard, probes `/health/live` and `/health/ready`, and
 drains each pod before stopping it
 ([ADR-1179](../../docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+Setting `managementConsole.enabled` also deploys the management console host on a host name of its own
+([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
 It requires Kubernetes 1.30 or later.
 
 ## Before the first install
@@ -60,6 +62,14 @@ Rendering fails, before anything is applied, when:
 - `environment` is `Production`, `secretProtection.recovery.publicKeyConfigMap` is empty, and
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
 - `replicaCount` is above 1 without `valkey.existingSecret`, because replicas share single-use state through Valkey;
+- `managementConsole.enabled` is `true` and `managementConsole.host` is empty or contains `*`;
+- `managementConsole.enabled` is `true` and `allowedHosts` does not contain `managementConsole.host`, because the
+  management host routes `/api` to the server;
+- `managementConsole.enabled` is `true` and the console's authority is empty or does not start with `https://`;
+- `managementConsole.enabled` is `true` and `managementConsole.keys.clientKeySecret` or
+  `managementConsole.keys.dpopKeySecret` is empty;
+- `managementConsole.replicaCount` is above 1 without `managementConsole.valkey.existingSecret`, because replicas share
+  their sessions through Valkey;
 - a value is unknown or has the wrong type.
 
 ## Migrations
@@ -430,6 +440,56 @@ extraEnv:
 The host revokes the listed keys as it starts, and Data Protection creates a key in their place. The sign-in cookies and
 anti-forgery tokens that the revoked keys protected stop working. The revocation is stored in the key ring, so the
 entries may be removed afterwards.
+
+## Management console
+
+With `managementConsole.enabled=true` the chart also deploys the management console host: a Deployment, a Service, a
+ServiceAccount that mounts no token, a PodDisruptionBudget, and an Ingress on `managementConsole.host` that routes
+`/api` to the server and every other path to the console. The console runs its own image, which shares the chart's
+`appVersion`
+([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
+
+Create the two private keys the console's BFF signs with, and a Secret for each, in the release's namespace:
+
+```bash
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out mgmt-client.pem
+openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out mgmt-dpop.pem
+kubectl create secret generic identity-mgmt-client-key --from-file=mgmt-client.pem
+kubectl create secret generic identity-mgmt-dpop-key --from-file=mgmt-dpop.pem
+```
+
+Name the Secrets in `managementConsole.keys.clientKeySecret` and `managementConsole.keys.dpopKeySecret`. The chart
+mounts them read-only and points `Bff__KeyRings__mgmt-client__PemFiles__0` and
+`Bff__KeyRings__mgmt-dpop__PemFiles__0` at the files.
+
+Register `mgmt-console` with the server as a confidential client of the control-plane tenant, with the metadata of
+[ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
+decision 4: authentication method `private_key_jwt`, pushed authorization requests and DPoP-bound access tokens
+required, the grant types `authorization_code` and `refresh_token`, the redirect URI
+`https://<host>/bff/callback`, the post-logout redirect URI `https://<host>/`, the back-channel logout URI
+`https://<host>/bff/backchannel-logout`, and `jwks_uri` `https://<host>/bff/jwks`.
+
+List the console host in `allowedHosts`, because `/api` on it reaches the server. The console's authority defaults to
+`tenantResolution.staticSingle.issuer` under the `StaticSingle` strategy; set `managementConsole.authority` for any
+other strategy. `managementConsole.managementApiUrl` defaults to `https://<managementConsole.host>/api`.
+
+For more than one replica, set `managementConsole.valkey.existingSecret` to a Secret that holds the console's own
+Valkey connection string under the `connection-string` key. Never share the server's Valkey with the console.
+
+Pass console settings such as `ManagementConsole__Branding__DisplayName` through `managementConsole.extraEnv`.
+
+```bash
+helm install identity charts/ncode-identity-host \
+  --set 'allowedHosts={id.example.com,manage.example.com}' \
+  --set tenantResolution.staticSingle.issuer=https://id.example.com \
+  --set database.existingSecret=identity-database \
+  --set secretProtection.rootKeyProvider=local --set secretProtection.local.keySecret=identity-root-key --set secretProtection.recovery.publicKeyConfigMap=identity-recovery-key \
+  --set managementConsole.enabled=true --set managementConsole.host=manage.example.com \
+  --set managementConsole.keys.clientKeySecret=identity-mgmt-client-key \
+  --set managementConsole.keys.dpopKeySecret=identity-mgmt-dpop-key
+```
+
+`ci/management-console-values.yaml` shows a release with the console on its own host.
 
 ## Strict-Transport-Security
 

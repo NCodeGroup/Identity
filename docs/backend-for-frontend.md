@@ -1,7 +1,8 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
 - **Status:** In progress. SharedState, the protocol client, the `NCode.Identity.Bff` core, remote APIs, browser
-  hardening and multiple frontends are implemented; serving the management console through the BFF is pending
+  hardening, multiple frontends, and server-rendered and Blazor hosts are implemented; serving the management console
+  through the BFF is pending
   ([§9](#9-implementation-status)). The library is tracked as issue
   [#123](https://github.com/NCodeGroup/Identity/issues/123), and the management console as
   [#158](https://github.com/NCodeGroup/Identity/issues/158). Each implemented area's decisions
@@ -1398,6 +1399,11 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
    ([ADR-1434](decisions/1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md)).
 4. **Server-rendered and Blazor hosts.** Is an authentication-state provider for Blazor, or guidance for Razor Pages,
    worth a separate package?
+   Decided: Razor Pages, MVC and static Blazor rendering use the core through `[BffPage]`; two opt-in packages serve
+   Blazor's interactive server and WebAssembly render modes through BFF hubs and connections, and a WebAssembly client
+   never holds a token
+   ([ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
+   [ADR-1436](decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)).
 5. **Package naming.** Should the packages be `NCode.Identity.Bff` or `NCode.Identity.OpenId.Bff`? The protocol client
    sits under `OpenId` because it is a protocol concern, and the BFF is an application pattern.
    Decided: `NCode.Identity.Bff` and `NCode.Identity.Bff.Abstractions`, because the BFF is an application pattern

@@ -674,11 +674,15 @@ internal class ClientApiEndpointHandler(
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
+        var resourceServerId = string.IsNullOrEmpty(request.ResourceServerId)
+            ? null
+            : request.ResourceServerId;
+
         // Authorization is asserted from the route and the request, before any row is read (ADR-1424, ADR-1451).
         var authorizationError = await ClientValidator.AuthorizeCreateAsync(
             httpContext.User,
             tenantId,
-            string.IsNullOrEmpty(request.ResourceServerId) ? null : request.ResourceServerId,
+            resourceServerId,
             cancellationToken
         );
         if (authorizationError is not null)
@@ -697,9 +701,7 @@ internal class ClientApiEndpointHandler(
             ClientId = clientId,
             ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
-            ResourceServerId = string.IsNullOrEmpty(request.ResourceServerId)
-                ? null
-                : request.ResourceServerId,
+            ResourceServerId = resourceServerId,
             Settings = new PersistedClientSettings
             {
                 TenantId = tenantId,
@@ -1360,9 +1362,11 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            clientNode,
             Operations.Create,
             cancellationToken
         );
@@ -1543,9 +1547,11 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            clientNode,
             Operations.Create,
             cancellationToken
         );
@@ -1743,9 +1749,11 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            clientNode,
             Operations.Update,
             cancellationToken
         );
@@ -1836,9 +1844,11 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            clientNode,
             Operations.Delete,
             cancellationToken
         );

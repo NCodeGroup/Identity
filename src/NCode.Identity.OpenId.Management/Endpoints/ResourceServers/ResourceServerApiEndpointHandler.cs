@@ -579,9 +579,15 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             Operations.Update,
             cancellationToken
         );
@@ -682,9 +688,15 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             Operations.Update,
             cancellationToken
         );
@@ -757,9 +769,15 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             Operations.Update,
             cancellationToken
         );
@@ -1020,9 +1038,15 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             Operations.Update,
             cancellationToken
         );
@@ -1199,9 +1223,15 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             Operations.Create,
             cancellationToken
         );
@@ -1314,9 +1344,15 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             Operations.Create,
             cancellationToken
         );
@@ -1500,9 +1536,15 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             Operations.Update,
             cancellationToken
         );
@@ -1571,9 +1613,15 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
         var authorizationFailure = await GetAuthorizationFailureAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             Operations.Delete,
             cancellationToken
         );

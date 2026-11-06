@@ -553,7 +553,9 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     }
 
     // The store lists the given descendants for each team named, and none for any other team.
-    private void SetupDescendants(params (string TeamId, string[] DescendantIds)[] teams) =>
+    private void SetupDescendants(params IEnumerable<(string TeamId, string[] DescendantIds)> teams)
+    {
+        var buffered = teams.ToArray();
         MockTeamStore
             .Setup(x => x.GetDescendantsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .Returns(
@@ -561,7 +563,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
                 {
                     DescendantsRead.TrySetResult();
                     string[] descendantIds = [];
-                    foreach (var team in teams)
+                    foreach (var team in buffered)
                     {
                         if (team.TeamId == teamId)
                             descendantIds = team.DescendantIds;
@@ -573,6 +575,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
                 }
             )
             .Verifiable();
+    }
 
     private static PersistedTeam CreateTeam(string teamId) =>
         new()

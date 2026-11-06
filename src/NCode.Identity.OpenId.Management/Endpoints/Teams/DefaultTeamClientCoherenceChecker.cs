@@ -46,27 +46,22 @@ internal sealed class DefaultTeamClientCoherenceChecker(
     {
         List<SettingError> errors = [];
 
-        await CheckTenantsAsync(
-            teamId,
-            currentTeamSettings,
-            newTeamSettings,
-            storeManager,
-            errors,
-            cancellationToken
+        var teamSettings = new TeamSettingsChange(currentTeamSettings, newTeamSettings);
+
+        errors.AddRange(
+            await CheckTenantsAsync(storeManager, teamId, teamSettings, cancellationToken)
         );
 
-        var descendants = await storeManager
-            .GetStore<ITeamStore>()
-            .GetDescendantsAsync(teamId, cancellationToken);
+        var teamStore = storeManager.GetStore<ITeamStore>();
+        var descendants = await teamStore.GetDescendantsAsync(teamId, cancellationToken);
 
         // A parent precedes its children, so a team's parent is always resolved, or skipped, before the team is read.
         // A null entry marks a team whose settings document cannot be honored, or that sits beneath such a team.
-        var settingsByTeamId = new Dictionary<
-            string,
-            (IReadOnlySettingCollection Current, IReadOnlySettingCollection New)?
-        >(StringComparer.OrdinalIgnoreCase)
+        var settingsByTeamId = new Dictionary<string, TeamSettingsChange?>(
+            StringComparer.OrdinalIgnoreCase
+        )
         {
-            [teamId] = (currentTeamSettings, newTeamSettings),
+            [teamId] = teamSettings,
         };
 
         foreach (var team in descendants)
@@ -103,15 +98,11 @@ internal sealed class DefaultTeamClientCoherenceChecker(
                 continue;
             }
 
-            settingsByTeamId[team.TeamId] = (currentSettings, newSettings);
+            var childSettings = new TeamSettingsChange(currentSettings, newSettings);
+            settingsByTeamId[team.TeamId] = childSettings;
 
-            await CheckTenantsAsync(
-                team.TeamId,
-                currentSettings,
-                newSettings,
-                storeManager,
-                errors,
-                cancellationToken
+            errors.AddRange(
+                await CheckTenantsAsync(storeManager, team.TeamId, childSettings, cancellationToken)
             );
         }
 
@@ -119,15 +110,14 @@ internal sealed class DefaultTeamClientCoherenceChecker(
     }
 
     // Checks each tenant of one team against the team's current and new effective settings.
-    private async ValueTask CheckTenantsAsync(
-        string teamId,
-        IReadOnlySettingCollection currentTeamSettings,
-        IReadOnlySettingCollection newTeamSettings,
+    private async ValueTask<IReadOnlyList<SettingError>> CheckTenantsAsync(
         IStoreManager storeManager,
-        List<SettingError> errors,
+        string teamId,
+        TeamSettingsChange settings,
         CancellationToken cancellationToken
     )
     {
+        List<SettingError> errors = [];
         var tenantStore = storeManager.GetStore<ITenantStore>();
 
         var page = new PageRequest { Limit = TenantPageSize };
@@ -141,12 +131,12 @@ internal sealed class DefaultTeamClientCoherenceChecker(
                 try
                 {
                     currentTenantSettings = EffectiveSettingsResolver.Resolve(
-                        currentTeamSettings,
+                        settings.Current,
                         OpenIdSettingScopes.Tenant,
                         tenantSettings.Value
                     );
                     newTenantSettings = EffectiveSettingsResolver.Resolve(
-                        newTeamSettings,
+                        settings.New,
                         OpenIdSettingScopes.Tenant,
                         tenantSettings.Value
                     );
@@ -175,5 +165,7 @@ internal sealed class DefaultTeamClientCoherenceChecker(
 
             page = page with { Cursor = result.NextCursor };
         } while (page.Cursor is not null);
+
+        return errors;
     }
 }

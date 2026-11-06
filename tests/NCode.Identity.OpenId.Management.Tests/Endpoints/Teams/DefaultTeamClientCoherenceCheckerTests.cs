@@ -97,15 +97,19 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
             Value = CreateDocument(marker),
         };
 
-    private void SetupDescendants(string teamId, params PersistedTeam[] descendants) =>
+    private void SetupDescendants(string teamId, params IEnumerable<PersistedTeam> descendants)
+    {
+        var buffered = (IReadOnlyList<PersistedTeam>)[.. descendants];
         MockTeamStore
             .Setup(x => x.GetDescendantsAsync(teamId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(descendants)
+            .ReturnsAsync(buffered)
             .Verifiable();
+    }
 
     // Two pages, so the checker follows the cursor rather than stopping after the first page.
-    private void SetupTenants(string teamId, params PersistedTenantSettings[] tenants)
+    private void SetupTenants(string teamId, params IEnumerable<PersistedTenantSettings> tenants)
     {
+        var buffered = (IReadOnlyList<PersistedTenantSettings>)[.. tenants];
         MockTenantStore
             .Setup(x =>
                 x.GetSettingsPageAsync(
@@ -127,7 +131,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
                 )
             )
             .ReturnsAsync(
-                new PagedResult<PersistedTenantSettings> { Items = tenants, NextCursor = null }
+                new PagedResult<PersistedTenantSettings> { Items = buffered, NextCursor = null }
             )
             .Verifiable();
     }
@@ -157,7 +161,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         string tenantId,
         IReadOnlySettingCollection current,
         IReadOnlySettingCollection @new,
-        params ClientCoherenceFinding[] findings
+        params IEnumerable<ClientCoherenceFinding> findings
     ) =>
         MockTenantClientCoherenceChecker
             .Setup(x =>
@@ -169,7 +173,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(findings)
+            .ReturnsAsync([.. findings])
             .Verifiable();
 
     private static ClientCoherenceFinding CreateFinding(string clientId) =>
@@ -185,14 +189,14 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
             }
         );
 
-    private void SetupTeamUnreadableWarning()
+    private void SetupSettingsUnreadableWarning(int eventId)
     {
         MockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
         MockLogger
             .Setup(x =>
                 x.Log(
                     LogLevel.Warning,
-                    It.Is<EventId>(eventId => eventId.Id == EventIds.TeamSettingsUnreadable),
+                    It.Is<EventId>(id => id.Id == eventId),
                     It.IsAny<It.IsAnyType>(),
                     It.IsAny<Exception?>(),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()
@@ -383,7 +387,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         );
         SetupTenants(TeamId);
         SetupResolveThrows(MockCurrentSettings.Object, OpenIdSettingScopes.Team, "child");
-        SetupTeamUnreadableWarning();
+        SetupSettingsUnreadableWarning(EventIds.TeamSettingsUnreadable);
 
         var errors = await FindAsync();
 
@@ -422,18 +426,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
             mockTenantNew.Object,
             CreateFinding("client-1")
         );
-        MockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
-        MockLogger
-            .Setup(x =>
-                x.Log(
-                    LogLevel.Warning,
-                    It.Is<EventId>(eventId => eventId.Id == EventIds.TenantSettingsUnreadable),
-                    It.IsAny<It.IsAnyType>(),
-                    It.IsAny<Exception?>(),
-                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()
-                )
-            )
-            .Verifiable();
+        SetupSettingsUnreadableWarning(EventIds.TenantSettingsUnreadable);
 
         var errors = await FindAsync();
 

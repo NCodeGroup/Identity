@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (decision 1 amended by
   [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md): the
-  route keeps the front-channel marker through `WithFrontChannel()`)
+  route keeps the front-channel marker through `WithFrontChannel()`; and by
+  [ADR-1457](1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md): the assets-rooted file
+  provider is `SinglePageBundle<TIndex>`'s)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -40,7 +41,7 @@ internal class DefaultOpenIdTeamCache(
     // removes only its own entry.
     private ConcurrentDictionary<
         string,
-        (object Entry, IReadOnlyList<TeamRevision> Lineage)
+        (object Entry, ImmutableArray<TeamRevision> Lineage)
     > CachedRevisions { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     // The cached team identifiers beneath each team, so RemoveAsync finds a team's descendants without scanning the
@@ -60,14 +61,14 @@ internal class DefaultOpenIdTeamCache(
         // The index entry is removed only while it still holds this cache entry, so a late callback of a removed or
         // expired entry never deletes its live replacement.
         if (
-            state is ValueTuple<string, ValueTuple<object, IReadOnlyList<TeamRevision>>>(
+            state is ValueTuple<string, ValueTuple<object, ImmutableArray<TeamRevision>>>(
                 var teamId,
                 var cached
             )
         )
         {
             CachedRevisions.TryRemove(
-                new KeyValuePair<string, (object Entry, IReadOnlyList<TeamRevision> Lineage)>(
+                new KeyValuePair<string, (object Entry, ImmutableArray<TeamRevision> Lineage)>(
                     teamId,
                     cached
                 )
@@ -125,13 +126,7 @@ internal class DefaultOpenIdTeamCache(
         var entry = new object();
 
         // The team's own revision, then the revision of each team above it, because the team is materialized over them.
-        var lineageBuilder = new List<TeamRevision> { new(teamId, team.Value.ConcurrencyToken) };
-        for (var parent = team.Value.Parent; parent is not null; parent = parent.Parent)
-        {
-            lineageBuilder.Add(new TeamRevision(parent.TeamId, parent.ConcurrencyToken));
-        }
-
-        IReadOnlyList<TeamRevision> lineage = lineageBuilder;
+        var lineage = team.Value.GetRevisionLineage();
 
         // The generation token, the index write and the cache write share one lock, so two concurrent calls for the
         // same team leave the index holding the entry the cache holds, and a replaced entry's callback never removes

@@ -4,6 +4,7 @@
 using Moq;
 using Moq.Protected;
 using NCode.Disposables;
+using NCode.Identity.OpenId.Core.Tests;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Settings;
 using NCode.PropertyBag;
@@ -11,7 +12,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Teams;
 
-public sealed class DefaultOpenIdTeamTests
+public sealed class DefaultOpenIdTeamTests : BaseTests
 {
     private static async ValueTask<(DefaultOpenIdTeam Team, Func<int> Releases)> CreateTeamAsync()
     {
@@ -42,12 +43,7 @@ public sealed class DefaultOpenIdTeamTests
         return (team, () => Volatile.Read(ref releases));
     }
 
-    private static Mock<OpenIdTeam> CreateMockParentTeam()
-    {
-        var parent = new Mock<OpenIdTeam>(MockBehavior.Strict);
-        parent.Protected().Setup<ValueTask>("DisposeAsyncCore").Returns(ValueTask.CompletedTask);
-        return parent;
-    }
+    private Mock<OpenIdTeam> CreateMockParentTeam() => CreateStrictMock<OpenIdTeam>();
 
     #region Parent Tests
 
@@ -55,6 +51,11 @@ public sealed class DefaultOpenIdTeamTests
     public async Task Parent_WithAParentReference_IsTheParentTeam()
     {
         var parent = CreateMockParentTeam();
+        parent
+            .Protected()
+            .Setup<ValueTask>("DisposeAsyncCore")
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
         await using var parentOwner = AsyncSharedReference.Create(parent.Object);
         var provider = Mock.Of<IReadOnlySettingCollectionProvider>();
         await using var settingsOwner = AsyncSharedReference.Create(provider);

@@ -39,6 +39,7 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
     )
     {
         var mockTeam = new Mock<OpenIdTeam>(MockBehavior.Strict);
+        mockTeam.SetupGet(x => x.TeamId).Returns(teamId).Verifiable();
         mockTeam.SetupGet(x => x.ConcurrencyToken).Returns(teamConcurrencyToken).Verifiable();
         mockTeam.SetupGet(x => x.Parent).Returns(parentTeam?.Object).Verifiable();
 

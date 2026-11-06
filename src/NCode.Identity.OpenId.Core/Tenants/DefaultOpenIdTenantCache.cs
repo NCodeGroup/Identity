@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -49,7 +50,7 @@ internal class DefaultOpenIdTenantCache(
         // The index entry is removed only while it still holds this cache entry's value, so a late callback of a
         // removed or expired entry never deletes its live replacement.
         if (
-            state is ValueTuple<string, object, IReadOnlyList<TeamRevision>>(
+            state is ValueTuple<string, object, ImmutableArray<TeamRevision>>(
                 var tenantId,
                 var entry,
                 var lineage
@@ -113,16 +114,7 @@ internal class DefaultOpenIdTenantCache(
         var entry = new object();
 
         // The tenant's own team, then each team above it, because the tenant is materialized under all of them.
-        var lineageBuilder = new List<TeamRevision>
-        {
-            new(tenant.Value.TeamId, tenant.Value.Team.ConcurrencyToken),
-        };
-        for (var parent = tenant.Value.Team.Parent; parent is not null; parent = parent.Parent)
-        {
-            lineageBuilder.Add(new TeamRevision(parent.TeamId, parent.ConcurrencyToken));
-        }
-
-        IReadOnlyList<TeamRevision> lineage = lineageBuilder;
+        var lineage = tenant.Value.Team.GetRevisionLineage();
 
         // The generation token, the index write and the cache write share one lock, so two concurrent calls for the
         // same tenant leave the index holding the value of the entry the cache holds, and a replaced entry's callback

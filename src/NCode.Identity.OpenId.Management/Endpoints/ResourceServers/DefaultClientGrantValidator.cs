@@ -4,6 +4,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Persistence.Stores;
@@ -18,25 +19,54 @@ internal class DefaultClientGrantValidator(IAuthorizationService authorizationSe
         IClientGrantValidator
 {
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateCreateAsync(
+    public ValueTask<ManagementError?> AuthorizeCreateAsync(
         ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            TenantScopeResource.For(tenantId),
+            Operations.Create,
+            "The caller is not authorized to create this client grant.",
+            "Authentication is required to create this client grant."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeUpdateAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            TenantScopeResource.For(tenantId),
+            Operations.Update,
+            "The caller is not authorized to update this client grant.",
+            "Authentication is required to update this client grant."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            TenantScopeResource.For(tenantId),
+            Operations.Delete,
+            "The caller is not authorized to delete this client grant.",
+            "Authentication is required to delete this client grant."
+        );
+
+    /// <inheritdoc />
+    public async ValueTask<ManagementError?> ValidateCreateAsync(
         PersistedClientGrant grant,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            grant,
-            Operations.Create,
-            "The caller is not authorized to create this client grant.",
-            "Authentication is required to create this client grant."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         var scopeError = await ValidateScopesAsync(
             grant.ResourceServerId,
             grant.Scopes,
@@ -68,25 +98,12 @@ internal class DefaultClientGrantValidator(IAuthorizationService authorizationSe
 
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateUpdateAsync(
-        ClaimsPrincipal user,
         PersistedClientGrant grant,
         IReadOnlyList<string> scopes,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            grant,
-            Operations.Update,
-            "The caller is not authorized to update this client grant.",
-            "Authentication is required to update this client grant."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         return await ValidateScopesAsync(
             grant.ResourceServerId,
             scopes,
@@ -96,21 +113,11 @@ internal class DefaultClientGrantValidator(IAuthorizationService authorizationSe
     }
 
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateDeleteAsync(
-        ClaimsPrincipal user,
+    public ValueTask<ManagementError?> ValidateDeleteAsync(
         PersistedClientGrant grant,
         IStoreManager storeManager,
         CancellationToken cancellationToken
-    )
-    {
-        return await AuthorizeAsync(
-            user,
-            grant,
-            Operations.Delete,
-            "The caller is not authorized to delete this client grant.",
-            "Authentication is required to delete this client grant."
-        );
-    }
+    ) => ValueTask.FromResult<ManagementError?>(null);
 
     private static async ValueTask<ManagementError?> ValidateScopesAsync(
         string resourceServerId,

@@ -109,7 +109,7 @@ internal static class DefaultRegistration
             );
 
             // A change to a team's effective settings seeds every tenant of the team that lacks a key its settings use
-            // (ADR-1219).
+            // (ADR-1412).
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     ICommandHandler<ReconcileTeamSettingsCommand>,

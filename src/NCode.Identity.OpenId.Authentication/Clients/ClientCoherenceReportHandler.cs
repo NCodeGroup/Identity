@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// changes a client. A tenant that cannot be checked is logged and skipped, and the pass continues. The handler is
 /// idempotent, because it reads and logs only.
 /// </remarks>
-// See ADR-1206, ADR-1219 and ADR-1234.
+// See ADR-1206, ADR-1234 and ADR-1412.
 internal sealed class ClientCoherenceReportHandler(
     IStoreManagerFactory storeManagerFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,

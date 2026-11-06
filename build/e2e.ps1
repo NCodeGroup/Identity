@@ -80,7 +80,8 @@ try {
         foreach ($reason in $selection.Reasons) {
             Write-Host $reason
         }
-        $projects = if ($selection.All) { @($tiers.EndToEnd) } else { @($selection.EndToEndProjects) }
+        # An if statement unrolls its output, so the array subexpression wraps it: an empty selection stays an array.
+        $projects = @(if ($selection.All) { $tiers.EndToEnd } else { $selection.EndToEndProjects })
         if ($projects.Count -eq 0) {
             Write-Host 'No end-to-end suite is affected; skipping.'
             Write-Host "`nEnd-to-end: PASSED" -ForegroundColor Green

@@ -12,3 +12,20 @@ const NCode.Identity.Bff.BffDefaults.ConfigurationSectionName = "Bff" -> string!
 NCode.Identity.Bff.BffClaimTypes
 const NCode.Identity.Bff.BffClaimTypes.LogoutUrl = "bff_logout_url" -> string!
 const NCode.Identity.Bff.BffClaimTypes.LogoutSid = "bff_logout_sid" -> string!
+NCode.Identity.Bff.BffEndpointPaths
+const NCode.Identity.Bff.BffEndpointPaths.Login = "/login" -> string!
+const NCode.Identity.Bff.BffEndpointPaths.Callback = "/callback" -> string!
+const NCode.Identity.Bff.BffEndpointPaths.User = "/user" -> string!
+const NCode.Identity.Bff.BffEndpointPaths.Logout = "/logout" -> string!
+const NCode.Identity.Bff.BffEndpointPaths.BackChannelLogout = "/backchannel-logout" -> string!
+const NCode.Identity.Bff.BffEndpointPaths.Jwks = "/jwks" -> string!
+NCode.Identity.Bff.BffUserDocumentNames
+const NCode.Identity.Bff.BffUserDocumentNames.Subject = "sub" -> string!
+const NCode.Identity.Bff.BffUserDocumentNames.Name = "name" -> string!
+const NCode.Identity.Bff.BffUserDocumentNames.Claims = "claims" -> string!
+const NCode.Identity.Bff.BffUserDocumentNames.Session = "session" -> string!
+const NCode.Identity.Bff.BffUserDocumentNames.ExpiresAt = "expiresAt" -> string!
+const NCode.Identity.Bff.BffUserDocumentNames.IdleExpiresAt = "idleExpiresAt" -> string!
+const NCode.Identity.Bff.BffUserDocumentNames.LogoutUrl = "logoutUrl" -> string!
+const NCode.Identity.Bff.BffUserDocumentNames.LogoutSid = "logoutSid" -> string!
+const NCode.Identity.Bff.BffUserDocumentNames.PersistedStateKey = "NCode.Identity.Bff.User" -> string!

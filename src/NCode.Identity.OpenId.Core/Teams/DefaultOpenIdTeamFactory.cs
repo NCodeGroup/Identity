@@ -6,6 +6,7 @@ using NCode.Collections.Providers;
 using NCode.Collections.Providers.PeriodicPolling;
 using NCode.Disposables;
 using NCode.Identity.OpenId.Environments;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Platform;
@@ -18,9 +19,11 @@ namespace NCode.Identity.OpenId.Teams;
 
 /// <summary>
 /// Provides the default implementation of the <see cref="IOpenIdTeamFactory"/> abstraction. A team's settings layer
-/// its document, read at the team scope, over the platform's settings, and refresh periodically from the store.
+/// its document, read at the team scope, over its parent team's settings, or the platform's for a top-level team, and
+/// refresh periodically from the store.
 /// </summary>
 // See ADR-1411
+// See ADR-1426
 internal class DefaultOpenIdTeamFactory(
     IOptions<OpenIdOptions> optionsAccessor,
     IStoreManagerFactory storeManagerFactory,
@@ -42,19 +45,24 @@ internal class DefaultOpenIdTeamFactory(
     public async ValueTask<AsyncSharedReferenceLease<OpenIdTeam>> CreateTeamAsync(
         OpenIdEnvironment openIdEnvironment,
         OpenIdPlatform openIdPlatform,
+        AsyncSharedReferenceLease<OpenIdTeam> parentTeam,
         PersistedTeam persistedTeam,
         IPropertyBag propertyBag,
         CancellationToken cancellationToken
     )
     {
+        var parentSettingsProvider = parentTeam.IsActive
+            ? parentTeam.Value.SettingsProvider
+            : openIdPlatform.SettingsProvider;
+
         var initialSettings = EffectiveSettingsResolver.ReadScopeSettings(
-            openIdPlatform.SettingsProvider.Collection,
+            parentSettingsProvider.Collection,
             OpenIdSettingScopes.Team,
             persistedTeam.Settings.Value
         );
 
         var periodicPollingSource = CollectionDataSourceFactory.CreatePeriodicPolling(
-            new RefreshSettingsState(openIdPlatform, persistedTeam),
+            new RefreshSettingsState(parentSettingsProvider, persistedTeam),
             initialSettings,
             OptionsAccessor.Value.Team.SettingsPeriodicRefreshInterval,
             RefreshSettingsAsync
@@ -62,7 +70,7 @@ internal class DefaultOpenIdTeamFactory(
 
         var dataSources = new List<ICollectionDataSource<Setting>>
         {
-            openIdPlatform.SettingsProvider.AsDataSource(),
+            parentSettingsProvider.AsDataSource(),
             periodicPollingSource,
         };
 
@@ -74,8 +82,10 @@ internal class DefaultOpenIdTeamFactory(
             persistedTeam.TeamId,
             persistedTeam.ConcurrencyToken,
             persistedTeam.DisplayName,
-            persistedTeam.IsDisabled,
+            persistedTeam.IsDisabled || (parentTeam.IsActive && parentTeam.Value.IsDisabled),
+            TeamPaths.Format([.. persistedTeam.AncestorTeamIds, persistedTeam.TeamId]),
             settingsReference,
+            parentTeam.IsActive ? parentTeam.AddReference() : default,
             propertyBag
         );
 
@@ -83,7 +93,7 @@ internal class DefaultOpenIdTeamFactory(
     }
 
     private readonly record struct RefreshSettingsState(
-        OpenIdPlatform OpenIdPlatform,
+        IReadOnlySettingCollectionProvider ParentSettingsProvider,
         PersistedTeam PersistedTeam
     );
 
@@ -107,7 +117,7 @@ internal class DefaultOpenIdTeamFactory(
             return RefreshCollectionResultFactory.Unchanged<Setting>();
 
         var settings = EffectiveSettingsResolver.ReadScopeSettings(
-            state.OpenIdPlatform.SettingsProvider.Collection,
+            state.ParentSettingsProvider.Collection,
             OpenIdSettingScopes.Team,
             newSettings.Value
         );

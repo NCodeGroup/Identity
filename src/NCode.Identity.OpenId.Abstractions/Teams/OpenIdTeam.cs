@@ -8,10 +8,11 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Teams;
 
 /// <summary>
-/// Represents a team: the grouping of related tenants beneath the platform, whose effective settings are its tenants'
-/// parent.
+/// Represents a team: the grouping of related tenants whose effective settings are its tenants' parent. A team sits
+/// beneath the platform or beneath a parent team.
 /// </summary>
 // See ADR-1411
+// See ADR-1426
 [PublicAPI]
 public abstract class OpenIdTeam : IAsyncDisposable
 {
@@ -32,9 +33,21 @@ public abstract class OpenIdTeam : IAsyncDisposable
     public abstract string DisplayName { get; }
 
     /// <summary>
-    /// Gets a value indicating whether the team is disabled.
+    /// Gets a value indicating whether the team or any team above it is disabled. The tenants beneath a disabled team
+    /// are not served.
     /// </summary>
     public abstract bool IsDisabled { get; }
+
+    /// <summary>
+    /// Gets the materialized team directly above, whose settings this team's are layered over, or <see langword="null"/>
+    /// for a top-level team.
+    /// </summary>
+    public abstract OpenIdTeam? Parent { get; }
+
+    /// <summary>
+    /// Gets the team's path in the <c>TeamPaths</c> form, from its top-level team down to itself.
+    /// </summary>
+    public abstract string Path { get; }
 
     /// <summary>
     /// Gets the <see cref="IReadOnlySettingCollectionProvider"/> that contains team settings merged with platform settings.

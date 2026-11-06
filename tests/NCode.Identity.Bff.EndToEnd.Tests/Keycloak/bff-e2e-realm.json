@@ -98,7 +98,10 @@
       "secret": "${E2E_ADMIN_SECRET}",
       "serviceAccountsEnabled": true,
       "standardFlowEnabled": false,
-      "directAccessGrantsEnabled": false
+      "directAccessGrantsEnabled": false,
+      "optionalClientScopes": [
+        "kc-admin-api"
+      ]
     }
   ]
 }

@@ -177,6 +177,10 @@ try {
         & (Join-Path $PSScriptRoot 'tests\test-projects.tests.ps1')
         $global:LASTEXITCODE = 0
     }
+    Invoke-Step 'e2e runner' {
+        & (Join-Path $PSScriptRoot 'tests\e2e.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
     Invoke-Step 'build script help' {
         & (Join-Path $PSScriptRoot 'tests\script-help.tests.ps1')
         $global:LASTEXITCODE = 0

@@ -23,7 +23,6 @@ internal class BffUserHandler(
 )
 {
     private const string JsonContentType = "application/json; charset=utf-8";
-    private const string LogoutPath = "/logout";
 
     private readonly BffSessionResolver _resolver = resolver;
     private readonly IEnumerable<IBffUserContributor> _contributors = contributors;
@@ -103,10 +102,7 @@ internal class BffUserHandler(
         writer.WriteNumber("idleExpiresAt", session.Metadata.IdleExpiresAt.ToUnixTimeSeconds());
         writer.WriteEndObject();
 
-        var logoutPath = BffNavigation.LocalUrl(
-            httpContext.Request,
-            frontend.Options.PathPrefix + LogoutPath
-        );
+        var logoutPath = BffNavigation.LogoutUrl(httpContext.Request, frontend.Options);
         writer.WriteString("logoutUrl", logoutPath);
         writer.WriteString("logoutSid", session.Payload.LogoutGuard);
 

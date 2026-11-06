@@ -28,6 +28,14 @@ internal static class BffNavigation
     public static string LocalUrl(HttpRequest request, string path) => $"{request.PathBase}{path}";
 
     /// <summary>
+    /// Gets the local URL of the logout endpoint of a frontend.
+    /// </summary>
+    /// <param name="request">The current request.</param>
+    /// <param name="options">The options of the frontend.</param>
+    public static string LogoutUrl(HttpRequest request, BffFrontendOptions options) =>
+        LocalUrl(request, options.PathPrefix + "/logout");
+
+    /// <summary>
     /// Gets the local URL of the error page of a frontend with the reason in the <c>error</c> query parameter.
     /// </summary>
     /// <param name="request">The current request.</param>

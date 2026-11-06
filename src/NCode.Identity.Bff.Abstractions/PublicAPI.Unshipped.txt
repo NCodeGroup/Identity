@@ -119,8 +119,8 @@ NCode.Identity.Bff.IBffConnectionSessionAccessor
 NCode.Identity.Bff.IBffConnectionSessionAccessor.Current.get -> NCode.Identity.Bff.IBffConnectionSession?
 NCode.Identity.Bff.IBffConnectionSessionAccessor.Use(NCode.Identity.Bff.IBffConnectionSession! session) -> System.IDisposable!
 NCode.Identity.Bff.BffSessionValidationContext
-NCode.Identity.Bff.BffSessionValidationContext.BffSessionValidationContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Security.Claims.ClaimsPrincipal! principal) -> void
-NCode.Identity.Bff.BffSessionValidationContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!
+NCode.Identity.Bff.BffSessionValidationContext.BffSessionValidationContext(Microsoft.AspNetCore.Http.HttpContext? httpContext, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Security.Claims.ClaimsPrincipal! principal) -> void
+NCode.Identity.Bff.BffSessionValidationContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext?
 NCode.Identity.Bff.BffSessionValidationContext.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
 NCode.Identity.Bff.BffSessionValidationContext.Principal.get -> System.Security.Claims.ClaimsPrincipal!
 NCode.Identity.Bff.IBffSessionValidator

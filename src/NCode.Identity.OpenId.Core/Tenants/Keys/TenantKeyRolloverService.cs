@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Frozen;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -150,15 +151,16 @@ internal sealed class TenantKeyRolloverService(
         do
         {
             var teams = await GetTeamPageAsync(teamPage, cancellationToken);
+
+            // A page whose ancestors cannot be read ends the pass, as a page that cannot be read does, and
+            // RollOverAsync logs it.
+            var disabledAncestorTeamIds = await GetDisabledAncestorTeamIdsAsync(
+                teams.Items,
+                cancellationToken
+            );
             foreach (var team in teams.Items)
             {
-                if (team.IsDisabled)
-                    continue;
-
-                if (
-                    team.AncestorTeamIds.Count > 0
-                    && await IsBeneathADisabledTeamAsync(team.TeamId, cancellationToken)
-                )
+                if (team.IsDisabled || team.AncestorTeamIds.Any(disabledAncestorTeamIds.Contains))
                     continue;
 
                 try
@@ -192,15 +194,27 @@ internal sealed class TenantKeyRolloverService(
         return await teamStore.GetPageAsync(page, cancellationToken);
     }
 
-    private async ValueTask<bool> IsBeneathADisabledTeamAsync(
-        string teamId,
+    // Reads the ancestors of a page's enabled teams in one read and returns the identifiers of the disabled ones.
+    private async ValueTask<IReadOnlySet<string>> GetDisabledAncestorTeamIdsAsync(
+        IReadOnlyCollection<PersistedTeam> teams,
         CancellationToken cancellationToken
     )
     {
+        var ancestorTeamIds = teams
+            .Where(team => !team.IsDisabled)
+            .SelectMany(team => team.AncestorTeamIds)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (ancestorTeamIds.Count == 0)
+            return FrozenSet<string>.Empty;
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var teamStore = storeManager.GetStore<ITeamStore>();
-        var lineage = await teamStore.GetLineageAsync(teamId, cancellationToken);
-        return lineage.Any(team => team.IsDisabled);
+        var ancestors = await teamStore.GetManyAsync(ancestorTeamIds, cancellationToken);
+        return ancestors
+            .Where(team => team.IsDisabled)
+            .Select(team => team.TeamId)
+            .ToFrozenSet(StringComparer.OrdinalIgnoreCase);
     }
 
     private async ValueTask RollOverTeamAsync(

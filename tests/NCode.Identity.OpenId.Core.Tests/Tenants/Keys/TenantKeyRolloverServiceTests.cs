@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
@@ -56,6 +57,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     private IReadOnlySettingCollection TeamSettings { get; }
     private ServiceProvider ServiceProvider { get; }
     private FakeTimeProvider TimeProvider { get; } = new(Now);
+    private FakeLogger<TenantKeyRolloverService> Logger { get; } = new();
     private TenantKeyRolloverService Service { get; }
 
     public TenantKeyRolloverServiceTests()
@@ -99,7 +101,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             MockEventPublisher.Object,
             ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
             timeProvider,
-            CreateLooseMock<ILogger<TenantKeyRolloverService>>().Object
+            Logger
         );
 
     protected override void Dispose(bool disposing)
@@ -403,8 +405,8 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     [Fact]
     public async Task RollOverAsync_WithADisabledTeam_SkipsItsTenantsAndJudgesEachEnabledTeamsTenantsByItsOwnSettings()
     {
-        // The disabled team has no settings, tenant page or secrets setup on the strict mocks: touching it fails the
-        // test.
+        // The disabled team has no settings, tenant page or secrets setup on the strict mocks, and the log holds no
+        // failure, so no work ran for it.
         var firstTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var otherTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         SetupSpecifications();
@@ -431,13 +433,18 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         SetupPlan([second], empty: true);
 
         await Service.RollOverAsync(CancellationToken.None);
+
+        Assert.DoesNotContain(
+            Logger.Collector.GetSnapshot(),
+            record => record.Level >= LogLevel.Warning
+        );
     }
 
     [Fact]
     public async Task RollOverAsync_WhenAnAncestorTeamIsDisabled_SkipsTheTeam()
     {
-        // The child team has no settings, tenant page or secrets setup on the strict mocks: touching it fails the
-        // test.
+        // The child team has no settings, tenant page or secrets setup on the strict mocks, and the log holds no
+        // failure, so no work ran for it.
         SetupSpecifications();
         SetupLease(acquired: true);
         MockStoreManagerFactory
@@ -465,14 +472,92 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             )
             .Verifiable();
         MockTeamStore
-            .Setup(x => x.GetLineageAsync(ChildTeamId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync([
-                CreateTeam("acme", isDisabled: true, []),
-                CreateTeam(ChildTeamId, isDisabled: false, ["acme"]),
-            ])
+            .Setup(x =>
+                x.GetManyAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids => ids.SequenceEqual(new[] { "acme" })),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateTeam("acme", isDisabled: true, [])])
             .Verifiable();
 
         await Service.RollOverAsync(CancellationToken.None);
+
+        Assert.DoesNotContain(
+            Logger.Collector.GetSnapshot(),
+            record => record.Level >= LogLevel.Warning
+        );
+    }
+
+    [Fact]
+    public async Task RollOverAsync_WhenTwoTeamsShareAnEnabledAncestor_ReadsTheAncestorsOnceAndRollsBothOver()
+    {
+        const string SecondChildTeamId = "acme-api";
+        var firstChildSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        var secondChildSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        SetupStoreManager();
+        MockTeamStore
+            .Setup(x =>
+                x.GetPageAsync(
+                    It.Is<PageRequest>(page => page.Cursor == null && page.Limit == 100),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<PersistedTeam>
+                {
+                    Items =
+                    [
+                        CreateTeam(ChildTeamId, isDisabled: false, ["acme"]),
+                        CreateTeam(SecondChildTeamId, isDisabled: false, ["acme"]),
+                    ],
+                    NextCursor = null,
+                }
+            )
+            .Verifiable();
+        MockTeamStore
+            .Setup(x =>
+                x.GetManyAsync(
+                    It.Is<IReadOnlyCollection<string>>(ids => ids.SequenceEqual(new[] { "acme" })),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateTeam("acme", isDisabled: false, [])])
+            .Verifiable();
+        SetupTeamSettings(ChildTeamId, firstChildSettings);
+        SetupTeamSettings(SecondChildTeamId, secondChildSettings);
+        SetupTeamTenantPage(ChildTeamId, cursor: null, nextCursor: null, FirstTenantId);
+        SetupTeamTenantPage(SecondChildTeamId, cursor: null, nextCursor: null, SecondTenantId);
+
+        var first = CreateSecret("first");
+        var second = CreateSecret("second");
+        SetupTenantSettings(FirstTenantId, firstChildSettings);
+        SetupSecrets(FirstTenantId, [first]);
+        var firstPlan = SetupPlan([first], empty: false);
+        SetupApply(FirstTenantId, [first], firstPlan);
+        SetupTenantSettings(SecondTenantId, secondChildSettings);
+        SetupSecrets(SecondTenantId, [second]);
+        var secondPlan = SetupPlan([second], empty: false);
+        SetupApply(SecondTenantId, [second], secondPlan);
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Exactly(2));
+        SetupAnnouncement(FirstTenantId);
+        SetupAnnouncement(SecondTenantId);
+
+        await Service.RollOverAsync(CancellationToken.None);
+
+        MockTeamStore.Verify(
+            x =>
+                x.GetManyAsync(
+                    It.IsAny<IReadOnlyCollection<string>>(),
+                    It.IsAny<CancellationToken>()
+                ),
+            Times.Once()
+        );
     }
 
     [Fact]

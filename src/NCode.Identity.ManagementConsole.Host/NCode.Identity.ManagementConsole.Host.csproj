@@ -2,6 +2,7 @@
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
         <UserSecretsId>594bdda7-a1e9-46a6-806c-5655318a3b7d</UserSecretsId>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
         <LangVersion>latest</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -11,5 +12,9 @@
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.ManagementConsole\NCode.Identity.ManagementConsole.csproj" />
         <ProjectReference Include="..\NCode.Identity.SharedState.Valkey\NCode.Identity.SharedState.Valkey.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
     </ItemGroup>
 </Project>

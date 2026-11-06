@@ -509,6 +509,18 @@ public class BffCallbackHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_Success_RecordsTheFrontendsAuthorityAndClientId()
+    {
+        SetupSuccess(new TokenResponse { AccessToken = "at", IdToken = "idt" });
+
+        await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc"));
+
+        var metadata = Assert.IsType<BffSessionMetadata>(_createdMetadata);
+        Assert.Equal(BffTestFrontends.Authority, metadata.Authority);
+        Assert.Equal(BffTestFrontends.ClientId, metadata.ClientId);
+    }
+
+    [Fact]
     public async Task HandleAsync_RefreshTokenExpiresIn_CapsAbsoluteExpiry()
     {
         var response = new TokenResponse

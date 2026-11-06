@@ -534,6 +534,8 @@ internal class DefaultBffUserTokenService(
         var capped = new BffSessionMetadata
         {
             Frontend = metadata.Frontend,
+            Authority = metadata.Authority,
+            ClientId = metadata.ClientId,
             Issuer = metadata.Issuer,
             Subject = metadata.Subject,
             SessionId = metadata.SessionId,

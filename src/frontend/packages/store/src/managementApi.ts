@@ -9,8 +9,11 @@ import {
   ownerScope,
   ownerTagId,
   replacePatch,
+  roleListApiPath,
+  roleListTagId,
   scopeTagId,
   teamScope,
+  type AddOwnerRequest,
   type CallerResource,
   type ClientOwner,
   type ClientResource,
@@ -36,9 +39,11 @@ import {
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
+  type OwnerResource,
   type PromoteTenantRequest,
   type PublicKeyResource,
   type ResourceServerResource,
+  type RoleList,
   type ScopeResource,
   type SecretsResource,
   type SecretOwner,
@@ -90,6 +95,7 @@ export const managementApi = createApi({
     'Secret',
     'Settings',
     'SettingLimits',
+    'RoleAssignment',
     'EncryptionKey',
     'Caller',
   ],
@@ -726,6 +732,39 @@ export const managementApi = createApi({
         { type: 'Secret', id: ownerTagId(owner) },
       ],
     }),
+    // The owners of a team, tenant, client or resource server and the administrators of a team or tenant, addressed by
+    // a role list (ADR-1257).
+    listRoleAssignments: build.query<CollectionResource<OwnerResource>, RoleList>({
+      query: (list) => roleListApiPath(list),
+      providesTags: (_result, _error, list) => [
+        { type: 'RoleAssignment', id: roleListTagId(list) },
+      ],
+    }),
+    addRoleAssignment: build.mutation<OwnerResource, { list: RoleList; principalId: string }>({
+      query: ({ list, principalId }) => ({
+        url: roleListApiPath(list),
+        method: 'POST',
+        body: { principalId } satisfies AddOwnerRequest,
+      }),
+      // A role change can change the caller's own access and its authority over any scope's limits.
+      invalidatesTags: (_result, _error, { list }) => [
+        { type: 'RoleAssignment', id: roleListTagId(list) },
+        { type: 'Caller', id: callerTag },
+        'SettingLimits',
+      ],
+    }),
+    removeRoleAssignment: build.mutation<void, { list: RoleList; principalId: string }>({
+      query: ({ list, principalId }) => ({
+        url: `${roleListApiPath(list)}/${encodeURIComponent(principalId)}`,
+        method: 'DELETE',
+      }),
+      // A role change can change the caller's own access and its authority over any scope's limits.
+      invalidatesTags: (_result, _error, { list }) => [
+        { type: 'RoleAssignment', id: roleListTagId(list) },
+        { type: 'Caller', id: callerTag },
+        'SettingLimits',
+      ],
+    }),
   }),
 });
 
@@ -779,6 +818,9 @@ export const {
   useGetEffectiveSettingsQuery,
   useGetSettingLimitsQuery,
   useUpdateSettingsMutation,
+  useListRoleAssignmentsQuery,
+  useAddRoleAssignmentMutation,
+  useRemoveRoleAssignmentMutation,
   useListChildTeamsQuery,
   useCreateChildTeamMutation,
 } = managementApi;

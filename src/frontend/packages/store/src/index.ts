@@ -64,6 +64,9 @@ export {
   useGetEffectiveSettingsQuery,
   useGetSettingLimitsQuery,
   useUpdateSettingsMutation,
+  useListRoleAssignmentsQuery,
+  useAddRoleAssignmentMutation,
+  useRemoveRoleAssignmentMutation,
   useListChildTeamsQuery,
   useCreateChildTeamMutation,
 } from './managementApi.js';

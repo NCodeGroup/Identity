@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
+using NCode.Buffers;
 using NCode.Identity.Bff;
 using NCode.Identity.ManagementConsole.Options;
 
@@ -47,6 +48,10 @@ internal sealed class ManagementConsolePageHandler(
         );
 
         httpContext.Response.SetHtmlPageSecurity(security.Policy);
-        return TypedResults.Text(page.Render(security.Nonce), "text/html; charset=utf-8");
+        return TypedResults.Text(
+            page.Render(security.Nonce),
+            "text/html",
+            contentEncoding: SecureEncoding.UTF8
+        );
     }
 }

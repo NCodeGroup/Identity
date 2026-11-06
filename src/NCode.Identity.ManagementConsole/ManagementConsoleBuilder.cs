@@ -77,6 +77,12 @@ internal sealed class ManagementConsoleBuilder
         serviceCollection.TryAddSingleton<ManagementConsolePageHandler>();
     }
 
+    /// <summary>
+    /// Creates the console's single-page bundle from the configured bundle root, resolved against the host's content
+    /// root.
+    /// </summary>
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/> that supplies the options and the host environment.</param>
+    /// <returns>The <see cref="SinglePageBundle{TIndex}"/> for the console.</returns>
     private static SinglePageBundle<ManagementConsolePage> CreateBundle(
         IServiceProvider serviceProvider
     )

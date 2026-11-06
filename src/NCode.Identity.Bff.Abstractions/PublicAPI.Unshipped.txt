@@ -220,3 +220,10 @@ NCode.Identity.Bff.BffFrontendAttribute
 NCode.Identity.Bff.BffFrontendAttribute.BffFrontendAttribute(string! name) -> void
 NCode.Identity.Bff.BffFrontendAttribute.Name.get -> string!
 const NCode.Identity.Bff.BffLoginFailureReasons.FrontendMismatch = "frontend_mismatch" -> string!
+NCode.Identity.Bff.BffConnectionIdentity
+NCode.Identity.Bff.BffConnectionIdentity.BffConnectionIdentity(System.Security.Claims.ClaimsIdentity! identity, NCode.Identity.Bff.IBffConnectionSession! session) -> void
+NCode.Identity.Bff.BffConnectionIdentity.Session.get -> NCode.Identity.Bff.IBffConnectionSession!
+override NCode.Identity.Bff.BffConnectionIdentity.Clone() -> System.Security.Claims.ClaimsIdentity!
+NCode.Identity.Bff.BffClaimsPrincipalExtensions
+NCode.Identity.Bff.BffClaimsPrincipalExtensions.extension(System.Security.Claims.ClaimsPrincipal!)
+NCode.Identity.Bff.BffClaimsPrincipalExtensions.extension(System.Security.Claims.ClaimsPrincipal!).GetBffConnectionSession() -> NCode.Identity.Bff.IBffConnectionSession?

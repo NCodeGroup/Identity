@@ -14,10 +14,22 @@ namespace NCode.Identity.Bff.Tests.Endpoints;
 
 public class BffEndpointRouteBuilderExtensionsTests : BaseTests
 {
+    private sealed record Marker;
+
     private static List<RouteEndpoint> MapEndpoints(Action<BffFrontendOptions>? configure = null) =>
         MapEndpoints(BffTestFrontends.CreateCatalog(configure));
 
     private static List<RouteEndpoint> MapEndpoints(BffFrontendCatalog catalog)
+    {
+        var endpoints = MapEndpointRoutes(catalog, out _);
+
+        return ReadEndpoints(endpoints);
+    }
+
+    private static IEndpointRouteBuilder MapEndpointRoutes(
+        BffFrontendCatalog catalog,
+        out RouteGroupBuilder group
+    )
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.Services.AddSingleton(catalog);
@@ -25,10 +37,26 @@ public class BffEndpointRouteBuilderExtensionsTests : BaseTests
         var app = builder.Build();
         IEndpointRouteBuilder endpoints = app;
 
-        endpoints.MapBffEndpoints();
+        group = endpoints.MapBffEndpoints();
 
-        return endpoints.DataSources.SelectMany(x => x.Endpoints).OfType<RouteEndpoint>().ToList();
+        return endpoints;
     }
+
+    private static List<RouteEndpoint> ReadEndpoints(IEndpointRouteBuilder endpoints) =>
+        endpoints.DataSources.SelectMany(x => x.Endpoints).OfType<RouteEndpoint>().ToList();
+
+    private static BffOptions CreateOptionsWithShop() =>
+        BffTestFrontends.CreateBffOptions(x =>
+            x.Frontends["shop"] = BffTestFrontends.CreateOptions(y =>
+            {
+                y.PathPrefix = "/shop/bff";
+                y.Selection = new BffFrontendSelectionOptions
+                {
+                    Rule = BffFrontendSelectorNames.Host,
+                    Values = ["shop.example.com"],
+                };
+            })
+        );
 
     #region MapBffEndpoints Tests
 
@@ -195,6 +223,81 @@ public class BffEndpointRouteBuilderExtensionsTests : BaseTests
                 "/admin/bff/user",
             ],
             admin
+        );
+    }
+
+    [Fact]
+    public void MapBffEndpoints_FrontendAddedByAChange_MapsItsEndpoints()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var endpoints = MapEndpointRoutes(BffTestFrontends.CreateCatalog(source), out _);
+        Assert.DoesNotContain(
+            ReadEndpoints(endpoints),
+            x => x.Metadata.GetMetadata<BffFrontendAttribute>()?.Name == "shop"
+        );
+
+        source.Change(CreateOptionsWithShop());
+
+        var shop = ReadEndpoints(endpoints)
+            .Where(x => x.Metadata.GetMetadata<BffFrontendAttribute>()?.Name == "shop")
+            .Select(x => x.RoutePattern.RawText)
+            .Order()
+            .ToList();
+        Assert.Equal(
+            [
+                "/shop/bff/backchannel-logout",
+                "/shop/bff/callback",
+                "/shop/bff/login",
+                "/shop/bff/logout",
+                "/shop/bff/user",
+            ],
+            shop
+        );
+    }
+
+    [Fact]
+    public void MapBffEndpoints_FrontendRemovedByAChange_UnmapsItsEndpoints()
+    {
+        var source = new BffTestOptionsSource(CreateOptionsWithShop());
+        var endpoints = MapEndpointRoutes(BffTestFrontends.CreateCatalog(source), out _);
+        Assert.Contains(
+            ReadEndpoints(endpoints),
+            x => x.Metadata.GetMetadata<BffFrontendAttribute>()?.Name == "shop"
+        );
+
+        source.Change(BffTestFrontends.CreateBffOptions());
+
+        var remaining = ReadEndpoints(endpoints);
+        Assert.NotEmpty(remaining);
+        Assert.All(
+            remaining,
+            x =>
+                Assert.Equal(
+                    BffTestFrontends.Name,
+                    x.Metadata.GetMetadata<BffFrontendAttribute>()?.Name
+                )
+        );
+    }
+
+    [Fact]
+    public void MapBffEndpoints_GroupConvention_ReachesAFrontendAddedByAChange()
+    {
+        var marker = new Marker();
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var endpoints = MapEndpointRoutes(BffTestFrontends.CreateCatalog(source), out var group);
+        group.WithMetadata(marker);
+        var token = endpoints.DataSources.Single().GetChangeToken();
+
+        source.Change(CreateOptionsWithShop());
+
+        Assert.True(token.HasChanged);
+        var shop = ReadEndpoints(endpoints)
+            .Where(x => x.Metadata.GetMetadata<BffFrontendAttribute>()?.Name == "shop")
+            .ToList();
+        Assert.NotEmpty(shop);
+        Assert.All(
+            ReadEndpoints(endpoints),
+            x => Assert.Same(marker, x.Metadata.GetMetadata<Marker>())
         );
     }
 

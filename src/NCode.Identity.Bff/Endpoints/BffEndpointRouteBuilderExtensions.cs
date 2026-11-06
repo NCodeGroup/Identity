@@ -29,6 +29,8 @@ public static class BffEndpointRouteBuilderExtensions
         /// Maps the <c>login</c>, <c>callback</c>, <c>user</c>, <c>logout</c> and <c>backchannel-logout</c> endpoints of
         /// each frontend under its <see cref="BffFrontendOptions.PathPrefix"/>, limited to that frontend, and the
         /// <c>jwks</c> endpoint of each frontend whose <see cref="BffJwksOptions.Enabled"/> is <c>true</c>.
+        /// The endpoints follow the frontends: a configuration change that adds, changes or removes a frontend maps
+        /// them again, and conventions added to the returned group apply to every frontend's endpoints.
         /// </summary>
         /// <returns>The <see cref="RouteGroupBuilder"/> of the endpoints, so that the application can add a rate
         /// limiter or exclude them from the API description.</returns>
@@ -40,14 +42,13 @@ public static class BffEndpointRouteBuilderExtensions
 
             var group = endpoints.MapGroup(string.Empty).AllowAnonymous().WithTags(Tag);
 
-            foreach (var frontend in catalog.Frontends)
-            {
-                var frontendGroup = group
-                    .MapGroup(frontend.Options.PathPrefix)
-                    .RequireBffFrontend(frontend.Name);
-
-                MapFrontendEndpoints(frontendGroup, frontend);
-            }
+            ((IEndpointRouteBuilder)group).DataSources.Add(
+                new BffFrontendEndpointDataSource(
+                    catalog,
+                    endpoints.ServiceProvider,
+                    MapFrontendEndpoints
+                )
+            );
 
             return group;
         }
@@ -119,8 +120,12 @@ public static class BffEndpointRouteBuilderExtensions
         }
     }
 
-    private static void MapFrontendEndpoints(RouteGroupBuilder group, BffFrontend frontend)
+    private static void MapFrontendEndpoints(IEndpointRouteBuilder endpoints, BffFrontend frontend)
     {
+        var group = endpoints
+            .MapGroup(frontend.Options.PathPrefix)
+            .RequireBffFrontend(frontend.Name);
+
         group
             .MapGet(
                 "/login",

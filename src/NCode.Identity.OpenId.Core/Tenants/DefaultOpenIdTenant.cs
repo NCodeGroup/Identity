@@ -39,10 +39,8 @@ internal class DefaultOpenIdTenant(
     /// <inheritdoc />
     public override string TeamId { get; } = teamId;
 
-    /// <summary>
-    /// Gets the concurrency token of the persisted tenant this instance was materialized from.
-    /// </summary>
-    public string ConcurrencyToken { get; } = concurrencyToken;
+    /// <inheritdoc />
+    public override string ConcurrencyToken { get; } = concurrencyToken;
 
     /// <inheritdoc />
     public override OpenIdTeam Team => TeamReference.Value;

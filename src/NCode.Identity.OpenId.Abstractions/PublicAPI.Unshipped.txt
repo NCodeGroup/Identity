@@ -25,6 +25,7 @@ abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.PropertyBag.get -> NCode.
 abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.RefreshSettingsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 abstract NCode.Identity.OpenId.Platform.OpenIdPlatform.SettingsProvider.get -> NCode.Identity.Settings.IReadOnlySettingCollectionProvider!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.BaseAddress.get -> NCode.Identity.Models.UriDescriptor
+abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.ConcurrencyToken.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisplayName.get -> string!
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.DisposeAsyncCore() -> System.Threading.Tasks.ValueTask
 abstract NCode.Identity.OpenId.Tenants.OpenIdTenant.Issuer.get -> string!

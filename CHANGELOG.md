@@ -3713,9 +3713,10 @@ describes the family as it is rather than its changes
   (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants.
   The teams beneath a team are walked depth first through `ITeamDescendantWalker`, which reads each team's child teams
   a page at a time (`ITeamStore.GetChildPageAsync`) in a unit of work of its own and holds at most one page per level,
-  so a subtree of any size is reconciled in bounded memory. Requests that arrive during a pass coalesce, one per team, and a request for every team covers them all, so none is
-  dropped however many arrive ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A
-  team change evicts the team, every team beneath it and their tenants on every replica over the `team-changed` channel
+  so a subtree of any size is reconciled in bounded memory. Requests that arrive during a pass coalesce, one per team,
+  and a request for every team covers them all, so none is dropped however many arrive
+  ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A team change evicts the team, every team beneath it and
+  their tenants on every replica over the `team-changed` channel
   ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md),

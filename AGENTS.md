@@ -55,11 +55,15 @@ End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./buil
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
   ([ADR-1270](docs/decisions/1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))
 - **Backend for frontend** — `NCode.Identity.Bff(.Abstractions)`: makes an ASP.NET Core app the confidential client of
-  its browser frontend, with an opaque `__Host-` cookie over an encrypted server-side session every replica sees
+  its browser frontend, or several, each a `Bff:Frontends:<name>` entry that a registered rule selects per request
+  ([ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)),
+  with an opaque `__Host-` cookie over an encrypted server-side session every replica sees
   ([ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)),
   forwards remote APIs with the right token through YARP, its own `MapBffRemoteApi` or configured routes
   (`AddBffTransforms()`, `AsBffRemoteApis()`)
   ([ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)),
+  refuses to start when an endpoint's BFF metadata is incomplete
+  ([ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)),
   and on opt-in sends browser security headers (`UseBffSecurityHeaders()`) and publishes its client keys at `/bff/jwks`
   ([ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md));
   `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`)

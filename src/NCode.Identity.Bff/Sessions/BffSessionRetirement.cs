@@ -36,14 +36,19 @@ internal class BffSessionRetirement(
     /// </summary>
     /// <param name="frontends">The set of frontends that the BFF serves.</param>
     /// <param name="cancellationToken">The token to cancel the pass.</param>
+    /// <returns>
+    /// <see langword="true"/> when no stale frontend was left to another holder of its lease; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
     /// <exception cref="BffStoreUnavailableException">The session store could not be read or written.</exception>
-    public virtual async ValueTask RetireAsync(
+    public virtual async ValueTask<bool> RetireAsync(
         BffFrontendSet frontends,
         CancellationToken cancellationToken
     )
     {
         ArgumentNullException.ThrowIfNull(frontends);
 
+        var complete = true;
         var clients = await store.FindClientsAsync(cancellationToken);
         var groups = clients.GroupBy(x => x.Frontend, StringComparer.Ordinal);
         foreach (var group in groups)
@@ -63,7 +68,10 @@ internal class BffSessionRetirement(
                 cancellationToken
             );
             if (lease is null)
+            {
+                complete = false;
                 continue;
+            }
 
             try
             {
@@ -75,6 +83,8 @@ internal class BffSessionRetirement(
                 await store.ReleaseRefreshLeaseAsync(lease.Value, CancellationToken.None);
             }
         }
+
+        return complete;
     }
 
     private async ValueTask RetireClientAsync(

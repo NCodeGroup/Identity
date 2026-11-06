@@ -42,8 +42,9 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     private BffSessionRetirementService CreateService() =>
         new(_frontends, _retirement.Object, _timeProvider, _logger);
 
-    private void SetupRetire(Func<int, bool> fails)
+    private void SetupRetire(Func<int, bool> fails, Func<int, bool>? complete = null)
     {
+        complete ??= _ => true;
         var calls = 0;
         _retirement
             .Setup(x => x.RetireAsync(It.IsAny<BffFrontendSet>(), It.IsAny<CancellationToken>()))
@@ -54,7 +55,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
                     _passes.Writer.TryWrite(set);
                     return fails(call)
                         ? throw new BffStoreUnavailableException("The store is unavailable.")
-                        : ValueTask.CompletedTask;
+                        : ValueTask.FromResult(complete(call));
                 }
             )
             .Verifiable();
@@ -131,6 +132,30 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
                 record.Id.Id == EventIds.FrontendRetirementFailed
                 && record.Exception is BffStoreUnavailableException
         );
+        _retirement.Verify(
+            x => x.RetireAsync(It.IsAny<BffFrontendSet>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2)
+        );
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_LeaseLeftToAnotherHolder_RetriesAfterTheDelay()
+    {
+        SetupRetire(_ => false, call => call != 1);
+        using var service = CreateService();
+
+        await service.StartAsync(CancellationToken.None);
+        await ReadPassAsync();
+        var retried = ReadPassAsync();
+        while (!retried.IsCompleted)
+        {
+            _timeProvider.Advance(BffSessionRetirementService.RetryDelay);
+            await Task.Delay(10);
+        }
+
+        await retried;
+        await service.StopAsync(CancellationToken.None);
+
         _retirement.Verify(
             x => x.RetireAsync(It.IsAny<BffFrontendSet>(), It.IsAny<CancellationToken>()),
             Times.Exactly(2)

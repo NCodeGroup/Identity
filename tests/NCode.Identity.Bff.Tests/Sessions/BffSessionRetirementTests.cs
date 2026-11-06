@@ -119,7 +119,7 @@ public class BffSessionRetirementTests : BaseTests
         SetupFindClients(CurrentClient);
         var retirement = CreateRetirement();
 
-        await retirement.RetireAsync(CreateSet(), CancellationToken.None);
+        Assert.True(await retirement.RetireAsync(CreateSet(), CancellationToken.None));
     }
 
     [Fact]
@@ -139,7 +139,7 @@ public class BffSessionRetirementTests : BaseTests
         SetupRelease(lease);
         var retirement = CreateRetirement();
 
-        await retirement.RetireAsync(CreateSet(), CancellationToken.None);
+        Assert.True(await retirement.RetireAsync(CreateSet(), CancellationToken.None));
     }
 
     [Fact]
@@ -155,21 +155,23 @@ public class BffSessionRetirementTests : BaseTests
         SetupRelease(lease);
         var retirement = CreateRetirement();
 
-        await retirement.RetireAsync(
-            CreateSet(options => options.ClientId = "another-client"),
-            CancellationToken.None
+        Assert.True(
+            await retirement.RetireAsync(
+                CreateSet(options => options.ClientId = "another-client"),
+                CancellationToken.None
+            )
         );
     }
 
     [Fact]
-    public async Task RetireAsync_LeaseHeldElsewhere_EndsNothing()
+    public async Task RetireAsync_LeaseHeldElsewhere_EndsNothingAndReportsIncomplete()
     {
         var client = CurrentClient with { Frontend = RemovedFrontend };
         SetupFindClients(client);
         SetupAcquire(RemovedFrontend, null);
         var retirement = CreateRetirement();
 
-        await retirement.RetireAsync(CreateSet(), CancellationToken.None);
+        Assert.False(await retirement.RetireAsync(CreateSet(), CancellationToken.None));
     }
 
     [Fact]
@@ -187,7 +189,7 @@ public class BffSessionRetirementTests : BaseTests
         SetupRelease(lease);
         var retirement = CreateRetirement();
 
-        await retirement.RetireAsync(CreateSet(), CancellationToken.None);
+        Assert.True(await retirement.RetireAsync(CreateSet(), CancellationToken.None));
     }
 
     [Fact]

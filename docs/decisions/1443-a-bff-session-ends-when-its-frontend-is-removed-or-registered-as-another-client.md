@@ -46,8 +46,9 @@ client; and a background pass on one replica ends every stored session whose fro
    five minutes, reads each of the client's records and ends each session whose own metadata names a removed frontend
    (`frontend_removed`, `BffSessionEndReasons.FrontendRemoved`) or another client (`client_changed`), recording the
    session-ended audit event and logging event 19010. A replica that cannot take the lease leaves the frontend to the
-   one that holds it. A store failure is logged as event 19011, and the pass runs again a minute later or at the next
-   change.
+   one that holds it and runs the pass again a minute later, so a lease that its holder could not release delays the
+   pass by at most its five minutes. A store failure is logged as event 19011, and the pass runs again a minute later
+   or at the next change.
 5. **Restarts and interruptions converge.** The pass reads the store, not a remembered set, so a frontend removed by
    restarting the replicas is reconciled at their next start, and a pass that a crash interrupted runs again at the
    next start or change.

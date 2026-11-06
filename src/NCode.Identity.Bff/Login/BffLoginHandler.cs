@@ -3,11 +3,11 @@
 
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
@@ -26,8 +26,7 @@ internal class BffLoginHandler
     private const string ReturnUrlParameterName = "returnUrl";
     private const string DefaultReturnUrl = "/";
 
-    private readonly IOptions<BffOptions> _options;
-    private readonly BffClientRegistrationProvider _registrationProvider;
+    private readonly BffFrontendCatalog _frontends;
     private readonly IAuthorizationRequestClient _authorizationRequestClient;
     private readonly BffLoginTransactionService _transactionService;
     private readonly BffCookies _cookies;
@@ -38,8 +37,7 @@ internal class BffLoginHandler
     /// Initializes a new instance of the <see cref="BffLoginHandler"/> class.
     /// </summary>
     public BffLoginHandler(
-        IOptions<BffOptions> options,
-        BffClientRegistrationProvider registrationProvider,
+        BffFrontendCatalog frontends,
         IAuthorizationRequestClient authorizationRequestClient,
         BffLoginTransactionService transactionService,
         BffCookies cookies,
@@ -47,8 +45,7 @@ internal class BffLoginHandler
         TimeProvider timeProvider
     )
     {
-        _options = options;
-        _registrationProvider = registrationProvider;
+        _frontends = frontends;
         _authorizationRequestClient = authorizationRequestClient;
         _transactionService = transactionService;
         _cookies = cookies;
@@ -64,7 +61,8 @@ internal class BffLoginHandler
     {
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
-        var bffOptions = _options.Value;
+        var frontend = _frontends.GetRequired(httpContext);
+        var options = frontend.Options;
 
         httpContext.Response.SetNoStore();
 
@@ -79,14 +77,14 @@ internal class BffLoginHandler
         }
 
         var returnUrl = returnUrlValues.Count == 0 ? DefaultReturnUrl : returnUrlValues[0];
-        if (returnUrl is null || !BffReturnUrls.IsLocalUrl(returnUrl, bffOptions.ReturnUrls))
+        if (returnUrl is null || !BffReturnUrls.IsLocalUrl(returnUrl, options.ReturnUrls))
         {
             await WriteInvalidRequestAsync(httpContext, "The returnUrl parameter is not allowed.");
             return;
         }
 
         var additionalParameters = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var name in bffOptions.LoginParameters)
+        foreach (var name in options.LoginParameters)
         {
             var values = request.Query[name];
             if (values.Count == 0)
@@ -128,7 +126,7 @@ internal class BffLoginHandler
             parsedMaxAge = maxAgeSeconds;
         }
 
-        var redirectUri = BffNavigation.CallbackUri(bffOptions);
+        var redirectUri = BffNavigation.CallbackUri(options);
 
         var state = BffKeyDerivation.CreateSecret();
         var initiator = BffKeyDerivation.CreateSecret();
@@ -136,7 +134,7 @@ internal class BffLoginHandler
         var nonce = BffKeyDerivation.CreateSecret();
 
         var scopes = new List<string> { OpenIdProtocol.ScopeTypes.OpenId };
-        scopes.AddRange(bffOptions.Scopes);
+        scopes.AddRange(options.Scopes);
         scopes.Add(OpenIdProtocol.ScopeTypes.OfflineAccess);
         var scope = string.Join(' ', scopes.Distinct(StringComparer.Ordinal));
 
@@ -145,11 +143,11 @@ internal class BffLoginHandler
             Nonce = nonce,
             Scope = scope,
             ResponseMode = OpenIdProtocol.ResponseModes.Query,
-            Resources = [.. bffOptions.Resources],
+            Resources = [.. options.Resources],
             AdditionalParameters = additionalParameters.Count == 0 ? null : additionalParameters,
         };
 
-        var registration = _registrationProvider.Registration;
+        var registration = frontend.Registration;
         AuthorizationRequestResult result;
         try
         {
@@ -162,7 +160,7 @@ internal class BffLoginHandler
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, bffOptions, BffLoginFailureReasons.ProviderUnavailable);
+            await FailAsync(httpContext, options, BffLoginFailureReasons.ProviderUnavailable);
             return;
         }
 
@@ -170,7 +168,7 @@ internal class BffLoginHandler
         {
             await FailAsync(
                 httpContext,
-                bffOptions,
+                options,
                 BffLoginFailureReasons.AuthorizationRequestFailed
             );
             return;
@@ -178,6 +176,7 @@ internal class BffLoginHandler
 
         var transaction = new BffLoginTransaction
         {
+            Frontend = frontend.Name,
             Issuer = registration.Authority,
             RedirectUri = redirectUri,
             CodeVerifier = verifier,
@@ -187,7 +186,7 @@ internal class BffLoginHandler
             MaxAge = parsedMaxAge,
         };
         var expiresWhen =
-            _timeProvider.GetUtcNowWithPrecisionInSeconds() + bffOptions.Session.LoginLifetime;
+            _timeProvider.GetUtcNowWithPrecisionInSeconds() + options.Session.LoginLifetime;
         await _transactionService.StoreAsync(
             state,
             initiator,
@@ -196,14 +195,18 @@ internal class BffLoginHandler
             cancellationToken
         );
 
-        _cookies.SetLogin(httpContext.Response, initiator);
+        _cookies.SetLogin(httpContext.Response, frontend, initiator);
         httpContext.Response.Redirect(result.AuthorizationUri.AbsoluteUri);
     }
 
-    private async ValueTask FailAsync(HttpContext httpContext, BffOptions bffOptions, string reason)
+    private async ValueTask FailAsync(
+        HttpContext httpContext,
+        BffFrontendOptions options,
+        string reason
+    )
     {
         await _auditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
-        var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, bffOptions, reason);
+        var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, options, reason);
         httpContext.Response.Redirect(errorUrl);
     }
 

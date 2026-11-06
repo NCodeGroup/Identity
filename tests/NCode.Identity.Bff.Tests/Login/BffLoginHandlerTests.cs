@@ -6,12 +6,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Diagnostics;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using NCode.Identity.SharedState;
@@ -35,15 +35,18 @@ public class BffLoginHandlerTests : BaseTests
     }
 
     private BffLoginHandler CreateHandler(
-        BffOptions bffOptions,
+        Action<BffFrontendOptions>? configure = null,
         BffLoginTransactionService? transactionService = null
     )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(bffOptions);
+        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
         return new BffLoginHandler(
-            options,
-            new BffClientRegistrationProvider(options),
+            BffTestFrontends.CreateCatalog(x =>
+            {
+                ConfigureDefaults(x);
+                configure?.Invoke(x);
+            }),
             _client.Object,
             transactionService
                 ?? new BffLoginTransactionService(BffTestTelemetry.Instrument(_store.Object)),
@@ -53,16 +56,12 @@ public class BffLoginHandlerTests : BaseTests
         );
     }
 
-    private static BffOptions CreateOptions() =>
-        new()
-        {
-            Authority = "https://op.example.com",
-            PublicOrigin = "https://app.example.com",
-            ClientId = "bff",
-            Scopes = ["profile"],
-            ReturnUrls = ["/app"],
-            LoginParameters = [OpenIdProtocol.Parameters.Prompt],
-        };
+    private static void ConfigureDefaults(BffFrontendOptions options)
+    {
+        options.Scopes = ["profile"];
+        options.ReturnUrls = ["/app"];
+        options.LoginParameters = [OpenIdProtocol.Parameters.Prompt];
+    }
 
     private static DefaultHttpContext CreateHttpContext(string query)
     {
@@ -81,7 +80,7 @@ public class BffLoginHandlerTests : BaseTests
     {
         var httpContext = CreateHttpContext("?returnUrl=/other");
 
-        await CreateHandler(CreateOptions()).HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -95,7 +94,7 @@ public class BffLoginHandlerTests : BaseTests
     {
         var httpContext = CreateHttpContext("?returnUrl=/app&prompt=login&prompt=consent");
 
-        await CreateHandler(CreateOptions()).HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -103,11 +102,10 @@ public class BffLoginHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_InvalidMaxAge_AnswersBadRequest()
     {
-        var bffOptions = CreateOptions();
-        bffOptions.LoginParameters = [OpenIdProtocol.Parameters.MaxAge];
         var httpContext = CreateHttpContext("?returnUrl=/app&max_age=-5");
 
-        await CreateHandler(bffOptions).HandleAsync(httpContext);
+        await CreateHandler(x => x.LoginParameters = [OpenIdProtocol.Parameters.MaxAge])
+            .HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status400BadRequest, httpContext.Response.StatusCode);
     }
@@ -147,7 +145,7 @@ public class BffLoginHandlerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await CreateHandler(CreateOptions()).HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -192,7 +190,7 @@ public class BffLoginHandlerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await CreateHandler(CreateOptions()).HandleAsync(httpContext);
+        await CreateHandler().HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -239,7 +237,7 @@ public class BffLoginHandlerTests : BaseTests
             )
             .Verifiable();
 
-        await CreateHandler(CreateOptions(), transactionService).HandleAsync(httpContext);
+        await CreateHandler(transactionService: transactionService).HandleAsync(httpContext);
 
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal(
@@ -247,7 +245,7 @@ public class BffLoginHandlerTests : BaseTests
             httpContext.Response.Headers.Location.ToString()
         );
         var setCookie = httpContext.Response.Headers.SetCookie.ToString();
-        var cookiePrefix = BffDefaults.LoginCookieName + "=";
+        var cookiePrefix = BffTestFrontends.LoginCookieName + "=";
         Assert.StartsWith(cookiePrefix, setCookie);
         var initiator = setCookie[cookiePrefix.Length..].Split(';')[0];
 
@@ -261,6 +259,7 @@ public class BffLoginHandlerTests : BaseTests
         Assert.Null(result.FailureReason);
         var transaction = Assert.IsType<BffLoginTransaction>(result.Transaction);
         Assert.Equal("/app", transaction.ReturnUrl);
+        Assert.Equal(BffTestFrontends.Name, transaction.Frontend);
         Assert.Equal("jkt", transaction.DPoPJwkThumbprint);
         Assert.Equal(captured.Nonce, transaction.Nonce);
     }

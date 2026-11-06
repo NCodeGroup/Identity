@@ -3863,11 +3863,15 @@ describes the family as it is rather than its changes
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
-- **A team or tenant route answers a caller without authority the same for any identifier.** It authorizes at the team
-  or tenant its route names before it reads, so a `401` or `403` never depends on whether the team, tenant, setting,
-  secret, key, owner or administrator exists, and no row is read for the caller
+- **A management route answers a caller without authority the same for any identifier.** Every team, tenant, client,
+  resource-server, scope, client-grant, local-account and platform route authorizes at the node its route names, and
+  at a resource server its request names, before it reads, so a `401` or `403` never depends on whether the team,
+  tenant, client, resource server, scope, grant, account, setting, secret, key, owner or administrator exists, and no
+  row is read for the caller. A client's or resource server's settings, scopes and secrets are authorized at its own
+  node, so its owner edits them, and creating or rotating a secret takes the authority to create there
   ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
-  [#558](https://github.com/NCodeGroup/Identity/issues/558)).
+  [ADR-1451](docs/decisions/1451-every-management-route-authorizes-at-its-node-before-it-reads.md),
+  [#558](https://github.com/NCodeGroup/Identity/issues/558), [#596](https://github.com/NCodeGroup/Identity/issues/596)).
 
 - **A unit of work resolves a tracked row only in its ambient tenant.** A store's lookup that the change tracker answers
   applies the same tenant scope as the query filter, so a row tracked for one tenant is never returned in another

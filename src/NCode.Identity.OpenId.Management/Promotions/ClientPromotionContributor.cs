@@ -13,6 +13,7 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
+using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
@@ -157,7 +158,6 @@ internal class ClientPromotionContributor(
     )
     {
         var computation = await ComputeAsync(context, cancellationToken);
-        var store = context.StoreManager.GetStore<IClientStore>();
 
         foreach (var promotion in computation.Promotions)
         {
@@ -170,22 +170,22 @@ internal class ClientPromotionContributor(
 
             if (promotion.Target is null)
             {
-                await CreateAsync(context, store, promotion, cancellationToken);
+                await CreateAsync(context, promotion, cancellationToken);
             }
             else
             {
-                await UpdateAsync(context, store, promotion, promotion.Target, cancellationToken);
+                await UpdateAsync(context, promotion, promotion.Target, cancellationToken);
             }
         }
     }
 
     private static async ValueTask CreateAsync(
         TenantPromotionContext context,
-        IClientStore store,
         ClientPromotion promotion,
         CancellationToken cancellationToken
     )
     {
+        var store = context.StoreManager.GetStore<IClientStore>();
         var tenantId = context.TargetTenant.TenantId;
         var source = promotion.Source;
 
@@ -219,12 +219,13 @@ internal class ClientPromotionContributor(
 
     private static async ValueTask UpdateAsync(
         TenantPromotionContext context,
-        IClientStore store,
         ClientPromotion promotion,
         PersistedClient target,
         CancellationToken cancellationToken
     )
     {
+        var store = context.StoreManager.GetStore<IClientStore>();
+
         if (target.IsDisabled != promotion.Source.IsDisabled)
         {
             target.IsDisabled = promotion.Source.IsDisabled;
@@ -277,11 +278,13 @@ internal class ClientPromotionContributor(
         string? method = null;
         if (
             settings.ValueKind == JsonValueKind.Object
-            && settings.TryGetProperty(OpenIdSettingNames.TokenEndpointAuthMethod, out var value)
-            && value.ValueKind == JsonValueKind.String
+            && settings.TryGetPropertyValue<string>(
+                OpenIdSettingNames.TokenEndpointAuthMethod,
+                out var value
+            )
         )
         {
-            method = value.GetString();
+            method = value;
         }
 
         return !string.Equals(
@@ -331,7 +334,7 @@ internal class ClientPromotionContributor(
 
     private async ValueTask AddIntroducedViolationsAsync(
         TenantPromotionContext context,
-        Computation computation,
+        ClientPromotionComputation computation,
         CancellationToken cancellationToken
     )
     {
@@ -395,13 +398,13 @@ internal class ClientPromotionContributor(
         }
     }
 
-    private async ValueTask<Computation> ComputeAsync(
+    private async ValueTask<ClientPromotionComputation> ComputeAsync(
         TenantPromotionContext context,
         CancellationToken cancellationToken
     )
     {
         var store = context.StoreManager.GetStore<IClientStore>();
-        var computation = new Computation();
+        var computation = new ClientPromotionComputation();
 
         var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
             context.TargetTenant.TeamId,
@@ -616,16 +619,5 @@ internal class ClientPromotionContributor(
         } while (cursor is not null);
 
         return clients;
-    }
-
-    private sealed class Computation
-    {
-        public List<ClientPromotion> Promotions { get; } = [];
-
-        public List<string> HostManagedSourceClientIds { get; } = [];
-
-        public IReadOnlySettingCollection? TeamSettings { get; set; }
-
-        public IReadOnlySettingCollection? NewTenantSettings { get; set; }
     }
 }

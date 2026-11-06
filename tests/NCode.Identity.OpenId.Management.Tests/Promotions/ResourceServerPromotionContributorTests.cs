@@ -328,6 +328,82 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     }
 
     [Fact]
+    public async Task PlanAsync_MapsEachResourceServerIncludingSystemOnes()
+    {
+        var context = CreateContext();
+        var created = CreateServer(
+            SourceTenantId,
+            "rs-created",
+            "https://created",
+            settingsJson: """{"a":1}"""
+        );
+        var updatedSource = CreateServer(
+            SourceTenantId,
+            "rs-updated-source",
+            "https://updated",
+            name: "New",
+            settingsJson: """{"b":1}"""
+        );
+        var updatedTarget = CreateServer(
+            TargetTenantId,
+            "rs-updated-target",
+            "https://updated",
+            name: "Old",
+            settingsJson: """{"b":1}"""
+        );
+        var system = CreateServer(
+            SourceTenantId,
+            "rs-system-source",
+            "https://system",
+            isSystem: true
+        );
+        var systemTarget = CreateServer(
+            TargetTenantId,
+            "rs-system-target",
+            "https://system",
+            isSystem: true
+        );
+        var createdPromoted = CreatePromotedSettings("""{"a":1}""");
+        var updatedPromoted = CreatePromotedSettings("""{"b":1}""");
+        SetupSource(created, updatedSource, system);
+        SetupTarget("https://created", null);
+        SetupHolder("rs-created", null);
+        SetupCompose(created, null, createdPromoted);
+        SetupValidate(context, createdPromoted);
+        SetupTarget("https://updated", updatedTarget);
+        SetupCompose(updatedSource, updatedTarget, updatedPromoted);
+        SetupValidate(context, updatedPromoted);
+        SetupTarget("https://system", systemTarget);
+
+        await CreateContributor().PlanAsync(context, CancellationToken.None);
+
+        Assert.True(
+            context.TryGetTargetIdentifier(
+                ManagementResourceTypes.ResourceServer,
+                "rs-created",
+                out var createdId
+            )
+        );
+        Assert.Equal("rs-created", createdId);
+        Assert.True(
+            context.TryGetTargetIdentifier(
+                ManagementResourceTypes.ResourceServer,
+                "rs-updated-source",
+                out var updatedId
+            )
+        );
+        Assert.Equal("rs-updated-target", updatedId);
+        Assert.True(
+            context.TryGetTargetIdentifier(
+                ManagementResourceTypes.ResourceServer,
+                "rs-system-source",
+                out var systemId
+            )
+        );
+        Assert.Equal("rs-system-target", systemId);
+    }
+
+    [Fact]
     public async Task PlanAsync_WhenEverythingMatches_RecordsAnUnchangedChange()
     {
         var context = CreateContext();

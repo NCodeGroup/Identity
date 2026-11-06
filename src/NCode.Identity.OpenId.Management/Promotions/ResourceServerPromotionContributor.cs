@@ -40,9 +40,10 @@ internal class ResourceServerPromotionContributor(
         CancellationToken cancellationToken
     )
     {
-        var promotions = await ComputeAsync(context, cancellationToken);
+        var computation = await ComputeAsync(context, cancellationToken);
+        MapIdentifiers(context, computation);
 
-        foreach (var promotion in promotions)
+        foreach (var promotion in computation.Promotions)
         {
             foreach (var detail in promotion.Errors)
             {
@@ -103,10 +104,10 @@ internal class ResourceServerPromotionContributor(
         CancellationToken cancellationToken
     )
     {
-        var promotions = await ComputeAsync(context, cancellationToken);
-        var store = context.StoreManager.GetStore<IResourceServerStore>();
+        var computation = await ComputeAsync(context, cancellationToken);
+        MapIdentifiers(context, computation);
 
-        foreach (var promotion in promotions)
+        foreach (var promotion in computation.Promotions)
         {
             if (promotion.Action == TenantPromotionActions.Unchanged)
             {
@@ -117,22 +118,33 @@ internal class ResourceServerPromotionContributor(
 
             if (promotion.Target is null)
             {
-                await CreateAsync(context, store, promotion, cancellationToken);
+                await CreateAsync(context, promotion, cancellationToken);
             }
             else
             {
-                await UpdateAsync(context, store, promotion, promotion.Target, cancellationToken);
+                await UpdateAsync(context, promotion, promotion.Target, cancellationToken);
             }
+        }
+    }
+
+    private static void MapIdentifiers(
+        TenantPromotionContext context,
+        ResourceServerPromotionComputation computation
+    )
+    {
+        foreach (var (sourceId, targetId) in computation.TargetIdentifiers)
+        {
+            context.MapIdentifier(ManagementResourceTypes.ResourceServer, sourceId, targetId);
         }
     }
 
     private static async ValueTask CreateAsync(
         TenantPromotionContext context,
-        IResourceServerStore store,
         ResourceServerPromotion promotion,
         CancellationToken cancellationToken
     )
     {
+        var store = context.StoreManager.GetStore<IResourceServerStore>();
         var tenantId = context.TargetTenant.TenantId;
         var source = promotion.Source;
 
@@ -167,12 +179,12 @@ internal class ResourceServerPromotionContributor(
 
     private static async ValueTask UpdateAsync(
         TenantPromotionContext context,
-        IResourceServerStore store,
         ResourceServerPromotion promotion,
         PersistedResourceServer target,
         CancellationToken cancellationToken
     )
     {
+        var store = context.StoreManager.GetStore<IResourceServerStore>();
         var source = promotion.Source;
 
         if (
@@ -252,14 +264,14 @@ internal class ResourceServerPromotionContributor(
             IsSystem = false,
         };
 
-    private async ValueTask<List<ResourceServerPromotion>> ComputeAsync(
+    private async ValueTask<ResourceServerPromotionComputation> ComputeAsync(
         TenantPromotionContext context,
         CancellationToken cancellationToken
     )
     {
         var store = context.StoreManager.GetStore<IResourceServerStore>();
         var sources = await GetSourceResourceServersAsync(context, store, cancellationToken);
-        var promotions = new List<ResourceServerPromotion>();
+        var computation = new ResourceServerPromotionComputation();
 
         foreach (var source in sources)
         {
@@ -274,11 +286,8 @@ internal class ResourceServerPromotionContributor(
             {
                 if (target is not null)
                 {
-                    context.MapIdentifier(
-                        ManagementResourceTypes.ResourceServer,
-                        source.ResourceServerId,
-                        target.ResourceServerId
-                    );
+                    computation.TargetIdentifiers[source.ResourceServerId] =
+                        target.ResourceServerId;
                 }
 
                 continue;
@@ -308,11 +317,7 @@ internal class ResourceServerPromotionContributor(
                 }
             }
 
-            context.MapIdentifier(
-                ManagementResourceTypes.ResourceServer,
-                source.ResourceServerId,
-                targetId
-            );
+            computation.TargetIdentifiers[source.ResourceServerId] = targetId;
 
             var promoted = PromotedSettingsComposer.Compose(
                 source.Settings.Value,
@@ -396,7 +401,7 @@ internal class ResourceServerPromotionContributor(
                 action = TenantPromotionActions.Unchanged;
             }
 
-            promotions.Add(
+            computation.Promotions.Add(
                 new ResourceServerPromotion
                 {
                     Source = source,
@@ -412,7 +417,7 @@ internal class ResourceServerPromotionContributor(
             );
         }
 
-        return promotions;
+        return computation;
     }
 
     private static async ValueTask<List<PersistedResourceServer>> GetSourceResourceServersAsync(

@@ -132,11 +132,16 @@ describes the family as it is rather than its changes
   the 2.x line that stack targets, and the OpenID endpoint operation builders (`DefaultAuthorizationEndpointHandler`,
   `DefaultTokenEndpointProvider`) use the 2.x `OpenApiMediaType` model.
 
-- **The reference host separates liveness from readiness.** `/health/live` runs no checks and reports only that the
-  process answers, so a dependency outage never makes Kubernetes restart a replica. `/health/ready` runs every check
-  tagged `ready` and returns `503` while any of them fails, taking the replica out of rotation until its dependencies
-  return; those checks are the database (`AddDbContextCheck<OpenIdDbContext>`, registered with the `openiddb` connection
-  string) and Valkey when configured. The Aspire orchestrator gates dependents on `/health/ready`.
+- **The reference hosts separate liveness from readiness through one helper.** `MapHealthProbes()`
+  (`NCode.AspNetCore`) maps `/health/live`, which runs no checks and reports only that the process answers, so a
+  dependency outage never makes Kubernetes restart a replica, and `/health/ready`, which runs every check tagged
+  `HealthCheckTags.Readiness` and returns `503` while any of them fails, taking the replica out of rotation until its
+  dependencies return; it returns their route group, so a host adds a convention such as `RequireHost` to both.
+  `NCode.Identity.OpenId.Host` and `NCode.Identity.ManagementConsole.Host` call it. The server's readiness checks are the
+  database (`AddDbContextCheck<OpenIdDbContext>`, registered with the `openiddb` connection string) and Valkey when
+  configured. The Aspire orchestrator gates dependents on `/health/ready`
+  ([ADR-1456](docs/decisions/1456-the-hosts-map-their-health-probes-through-one-general-helper.md), issue
+  [#609](https://github.com/NCodeGroup/Identity/issues/609)).
 
 - **The reference hosts write logs to standard output only.** `NCode.Identity.OpenId.Host` and
   `NCode.Identity.OpenId.Host.MigrationService` register the console and EventSource logging providers on every
@@ -333,6 +338,13 @@ describes the family as it is rather than its changes
   ([ADR-1248](docs/decisions/1248-the-host-image-writes-one-line-json-logs.md), issue
   [#265](https://github.com/NCodeGroup/Identity/issues/265)).
 
+- **The management console host ships a production container image.**
+  `src/NCode.Identity.ManagementConsole.Host/Dockerfile` builds the console host on the host image's pinned chiseled
+  base images: no shell, the non-root `app` user, port 8080, the `apps/mgmt` bundle served from `/app/mgmt`, and
+  one-line JSON logs; the `Console image` CI workflow builds it for `linux/amd64` and `linux/arm64`
+  ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+  issue [#610](https://github.com/NCodeGroup/Identity/issues/610)).
+
 - **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` on Kubernetes 1.30 or
   later under the restricted Pod Security Standard: non-root, read-only root filesystem, no capabilities, and no default
   service-account token (a cloud root-key provider gets only the projected token its workload identity exchanges). The
@@ -348,6 +360,16 @@ describes the family as it is rather than its changes
   old pod to terminate before starting the next, so it never runs two replicas at once. The `Host chart` CI workflow
   lints the chart, renders each example release, and checks that each unsafe release is refused
   ([ADR-1179](docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+
+- **The host chart deploys the management console on a host of its own.** With `managementConsole.enabled`,
+  `charts/ncode-identity-host` runs the console host under the restricted Pod Security Standard with its own
+  ServiceAccount without a token, mounts its `mgmt-client` and `mgmt-dpop` keys read-only from Secrets, probes
+  `/health/live` and `/health/ready`, and routes `managementConsole.host` through an Ingress that sends `/api` to the
+  server and every other path to the console. Rendering fails for a missing or wildcard console host, an `allowedHosts`
+  that does not list it, an authority that is not `https`, a missing key Secret, or more than one console replica
+  without the console's own Valkey
+  ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+  issue [#610](https://github.com/NCodeGroup/Identity/issues/610)).
 
 - **The host's chart migrates the database before each rollout.** The chart runs the image's migration worker as a Helm
   `pre-install` and `pre-upgrade` Job, so a failed migration fails the release before any pod is replaced. The Job runs
@@ -1827,12 +1849,20 @@ describes the family as it is rather than its changes
 
 - **The server-rendered pages stream into the response from a cached, pre-split bundle index.** The login, consent and
   error pages and the `form_post` authorization response render into a pooled `Sequence<char>` transcoded straight into
-  `HttpResponse.BodyWriter`, without building a document string. `InteractiveBundleReader` reads the bundle's
-  `index.html` once per version and splits it at its `<div id="root"></div>` mount point into an
+  `HttpResponse.BodyWriter`, without building a document string. `SinglePageBundle<InteractiveBundleShell>` reads the
+  bundle's `index.html` once per version and splits it at its `<div id="root"></div>` mount point into an
   `InteractiveBundleShell`, so each page writes the cached head, its form and the cached tail; the renderer's page
   methods take an `IBufferWriter<char>` and the split shell. Each request compares the file's last-write time and length
   with the cached copy's, so a rebuilt bundle is picked up without a restart, including on bind-mounted and network file
   systems where change notifications are unreliable.
+
+- **`SinglePageBundle<TIndex>` reads and serves a built single-page bundle.** `NCode.AspNetCore` reads a bundle's
+  `index.html` once per version into the index type its surface parses, revalidated per request by the file's last-write
+  time and length, resolves only the files of its `assets` directory, and serves them with
+  `Cache-Control: public, max-age=31536000, immutable`, validators and range requests; the interactive surface and the
+  management console each register one
+  ([ADR-1457](docs/decisions/1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md), issue
+  [#612](https://github.com/NCodeGroup/Identity/issues/612)).
 
 - **The consent screen shows the real client and a per-scope choice with friendly names, every requested scope
   pre-selected** ([ADR-1076](docs/decisions/1076-consent-persistence-and-enforcement.md),
@@ -2873,9 +2903,9 @@ describes the family as it is rather than its changes
   ([ADR-1267](docs/decisions/1267-replicas-share-versioned-expiring-values-and-membership-indexes.md), issue
   [#123](https://github.com/NCodeGroup/Identity/issues/123)).
 
-- **`HealthCheckTags.Readiness` tags every readiness health check.** `NCode.Identity.Abstractions` publishes the tag
+- **`HealthCheckTags.Readiness` tags every readiness health check.** `NCode.Registration` publishes the tag
   (`"ready"`) of every health check that decides whether a replica can serve requests. The Valkey adapter tags its check
-  with it and the reference host's `/health/ready` endpoint runs the checks that carry it, so a package that adds a
+  with it and `MapHealthProbes()`'s `/health/ready` endpoint runs the checks that carry it, so a package that adds a
   readiness check uses the constant.
 
 - **`IReplicaBroadcaster` and `IReplicaBroadcastHandler` announce a change to every replica.** A replica publishes a
@@ -4022,9 +4052,10 @@ describes the family as it is rather than its changes
   stored secrets unreadable after the next restart, recoverable only with the recovery key
   ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
-- **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the Dockerfile names
-  its tag and the digest of its multi-architecture index, and the Dockerfile takes its .NET and Node versions from those
-  lines alone, with no version build argument; a weekly `docker` Dependabot stream moves the digests, and the `Host
+- **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the host and console
+  Dockerfiles names its tag and the digest of its multi-architecture index, and each Dockerfile takes its .NET and Node
+  versions from those lines alone, with no version build argument; a weekly `docker` Dependabot stream moves the digests
+  of both images in one pull request, and the `Host
   image` workflow checks the Node major against `.node-version`
   ([ADR-1249](docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md), issue
   [#226](https://github.com/NCodeGroup/Identity/issues/226)).

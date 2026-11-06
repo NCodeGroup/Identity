@@ -27,4 +27,10 @@ public static class BffReverseProxyMetadataKeys
     /// The key whose value is the scope that the route's token is requested for.
     /// </summary>
     public const string Scope = "BffScope";
+
+    /// <summary>
+    /// The key whose value is the name of the BFF frontend that the route serves. A route without it serves every
+    /// frontend.
+    /// </summary>
+    public const string Frontend = "BffFrontend";
 }

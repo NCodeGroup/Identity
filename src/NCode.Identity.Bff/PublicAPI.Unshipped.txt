@@ -157,6 +157,7 @@ NCode.Identity.Bff.RemoteApis.BffReverseProxyConventionBuilderExtensions
 NCode.Identity.Bff.RemoteApis.BffReverseProxyConventionBuilderExtensions.extension(Microsoft.AspNetCore.Builder.ReverseProxyConventionBuilder!)
 NCode.Identity.Bff.RemoteApis.BffReverseProxyConventionBuilderExtensions.extension(Microsoft.AspNetCore.Builder.ReverseProxyConventionBuilder!).AsBffRemoteApis() -> Microsoft.AspNetCore.Builder.ReverseProxyConventionBuilder!
 NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys
+const NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys.Frontend = "BffFrontend" -> string!
 const NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys.Resource = "BffResource" -> string!
 const NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys.Scope = "BffScope" -> string!
 const NCode.Identity.Bff.RemoteApis.BffReverseProxyMetadataKeys.TokenRequirement = "BffTokenRequirement" -> string!

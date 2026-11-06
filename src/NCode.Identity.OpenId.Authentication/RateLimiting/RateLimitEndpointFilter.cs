@@ -56,10 +56,10 @@ internal sealed class RateLimitEndpointFilter(
         if (state.IsRefused)
             return result;
 
-        var teamId = openIdContext.Tenant.TeamId;
+        var teamPath = openIdContext.Tenant.Team.Path;
         var tenantId = openIdContext.Tenant.TenantId;
         foreach (var meter in state.UsageMeters)
-            UsageRecorder.Record(teamId, tenantId, meter);
+            UsageRecorder.Record(teamPath, tenantId, meter);
 
         return result;
     }

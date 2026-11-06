@@ -1727,6 +1727,7 @@ internal class ClientApiEndpointHandler(
     /// Updates a client secret's metadata.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
@@ -1736,6 +1737,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string secretId,
         [FromBody] UpdateSecretRequest request,
@@ -1743,6 +1745,17 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Update,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1757,17 +1770,6 @@ internal class ClientApiEndpointHandler(
         }
 
         var secret = clientSecret.Value;
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(clientSecret.TenantId, secret),
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
 
         var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
         if (client is null)
@@ -1822,6 +1824,7 @@ internal class ClientApiEndpointHandler(
     /// Deletes a client secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -1829,11 +1832,23 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string secretId,
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Delete,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1845,17 +1860,6 @@ internal class ClientApiEndpointHandler(
         if (clientSecret is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value),
-            Operations.Delete
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);

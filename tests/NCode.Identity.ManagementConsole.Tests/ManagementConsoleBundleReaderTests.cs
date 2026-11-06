@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
@@ -252,6 +253,27 @@ public class ManagementConsoleBundleReaderTests : BaseTests
         var rendered = ManagementConsoleBundleReader.RenderIndex("<html></html>", "abc");
 
         Assert.Equal("<html></html>", rendered);
+    }
+
+    [BuiltConsoleBundleFact]
+    public async Task RenderIndex_WhenGivenTheBuiltBundlesIndex_LeavesNoPlaceholderAndNoncesEveryScript()
+    {
+        var html = await File.ReadAllTextAsync(
+            BuiltConsoleBundleFactAttribute.IndexPath ?? string.Empty,
+            SecureEncoding.UTF8
+        );
+
+        var rendered = ManagementConsoleBundleReader.RenderIndex(html, "n0nce");
+
+        Assert.DoesNotContain("__NCODE_CSP_NONCE__", rendered, StringComparison.Ordinal);
+        Assert.Matches("<meta property=\"csp-nonce\"[^>]*nonce=\"n0nce\"", rendered);
+
+        var scriptTags = Regex.Matches(rendered, "<script\\b[^>]*>");
+        Assert.NotEmpty(scriptTags);
+        Assert.All(
+            scriptTags,
+            tag => Assert.Contains("nonce=\"n0nce\"", tag.Value, StringComparison.Ordinal)
+        );
     }
 
     #endregion

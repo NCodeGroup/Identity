@@ -188,6 +188,14 @@ jobs:
           NCODE_AUTH_BUNDLE_INDEX: ${{ github.workspace }}/src/frontend/apps/auth/dist/index.html
         run: dotnet test tests/NCode.Identity.OpenId.Authentication.Interactive.Tests/NCode.Identity.OpenId.Authentication.Interactive.Tests.csproj --nologo --filter "FullyQualifiedName~InteractiveBundleShellTests.TryCreate_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
 
+      - name: Test the console host against the built console bundle
+        if: steps.build.outcome == 'success'
+        shell: pwsh
+        working-directory: .
+        env:
+          NCODE_MGMT_BUNDLE_INDEX: ${{ github.workspace }}/src/frontend/apps/mgmt/dist/index.html
+        run: dotnet test tests/NCode.Identity.ManagementConsole.Tests/NCode.Identity.ManagementConsole.Tests.csproj --nologo --filter "FullyQualifiedName~ManagementConsoleBundleReaderTests.RenderIndex_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7

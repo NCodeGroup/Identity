@@ -35,7 +35,8 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         TaskCompletionSource? disposed = null,
         string teamId = "platform",
         string teamConcurrencyToken = "team-ct",
-        Mock<OpenIdTeam>? parentTeam = null
+        Mock<OpenIdTeam>? parentTeam = null,
+        string concurrencyToken = "tenant-ct"
     )
     {
         var mockTeam = new Mock<OpenIdTeam>(MockBehavior.Strict);
@@ -46,6 +47,7 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Strict);
         mockTenant.SetupGet(x => x.TeamId).Returns(teamId).Verifiable();
         mockTenant.SetupGet(x => x.Team).Returns(mockTeam.Object).Verifiable();
+        mockTenant.SetupGet(x => x.ConcurrencyToken).Returns(concurrencyToken).Verifiable();
         mockTenant
             .Protected()
             .Setup<ValueTask>("DisposeAsyncCore")
@@ -413,6 +415,94 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         Assert.Equal(2, revisions.Count);
         Assert.Contains(new TeamRevision("team-a-web", "w1"), revisions);
         Assert.Contains(new TeamRevision("team-a", "a1"), revisions);
+    }
+
+    #endregion
+
+    #region GetRevisionsAsync Tests
+
+    [Fact]
+    public async Task GetRevisionsAsync_ReturnsTheRevisionOfEachCachedTenant()
+    {
+        var firstTenant = CreateMockTenant(concurrencyToken: "t1");
+        var secondTenant = CreateMockTenant(concurrencyToken: "t2");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+        await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+        {
+            await Cache.SetAsync("acme", first, propertyBag, CancellationToken.None);
+            await Cache.SetAsync("globex", second, propertyBag, CancellationToken.None);
+        }
+
+        var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+
+        Assert.Equal(2, revisions.Count);
+        Assert.Contains(new TenantRevision("acme", "t1"), revisions);
+        Assert.Contains(new TenantRevision("globex", "t2"), revisions);
+    }
+
+    [Fact]
+    public async Task GetRevisionsAsync_AfterRemoveAsync_OmitsTheTenant()
+    {
+        var firstTenant = CreateMockTenant(concurrencyToken: "t1");
+        var secondTenant = CreateMockTenant(concurrencyToken: "t2");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+        await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+        {
+            await Cache.SetAsync("acme", first, propertyBag, CancellationToken.None);
+            await Cache.SetAsync("globex", second, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveAsync("acme", propertyBag, CancellationToken.None);
+
+        // The eviction callback runs off the calling thread.
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+        while (true)
+        {
+            var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+
+            if (revisions.Count == 1)
+            {
+                Assert.Equal(new TenantRevision("globex", "t2"), Assert.Single(revisions));
+                break;
+            }
+
+            Assert.True(
+                DateTime.UtcNow < deadline,
+                "The tenant revision was not removed within 5 seconds."
+            );
+
+            await Task.Delay(TimeSpan.FromMilliseconds(20), CancellationToken.None);
+        }
+    }
+
+    [Fact]
+    public async Task GetRevisionsAsync_WhenATenantIsCachedAgain_ReportsOnlyTheLatestRevision()
+    {
+        var firstDisposed = CreateCompletionSource();
+        var firstTenant = CreateMockTenant(firstDisposed, concurrencyToken: "t1");
+        var secondTenant = CreateMockTenant(concurrencyToken: "t2");
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var first = AsyncSharedReference.Create(firstTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, first, propertyBag, CancellationToken.None);
+        }
+
+        await using (var second = AsyncSharedReference.Create(secondTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, second, propertyBag, CancellationToken.None);
+        }
+
+        // The first entry's eviction callback has run once its lease is disposed.
+        await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+
+        var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+
+        Assert.Equal(new TenantRevision(TenantId, "t2"), Assert.Single(revisions));
     }
 
     #endregion

@@ -42,6 +42,14 @@ internal class DefaultOpenIdTenantCache(
         ConcurrentDictionary<string, (object Entry, string TeamConcurrencyToken)>
     > TenantIdsByTeam { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+    // The row token of each cached tenant (compared ordinally, as the cache keys them), which GetRevisionsAsync
+    // reports. Each value holds the token of the cache entry that registered it, so an eviction callback removes only
+    // its own entry.
+    private ConcurrentDictionary<
+        string,
+        (object Entry, string ConcurrencyToken)
+    > RevisionsByTenantId { get; } = new(StringComparer.Ordinal);
+
     private static string GetCacheKey(string tenantId) =>
         $"NCode.Identity.OpenId.Tenants.DefaultOpenIdTenantCache:{tenantId}";
 
@@ -50,13 +58,21 @@ internal class DefaultOpenIdTenantCache(
         // The index entry is removed only while it still holds this cache entry's value, so a late callback of a
         // removed or expired entry never deletes its live replacement.
         if (
-            state is ValueTuple<string, object, ImmutableArray<TeamRevision>>(
+            state is ValueTuple<string, object, string, ImmutableArray<TeamRevision>>(
                 var tenantId,
                 var entry,
+                var concurrencyToken,
                 var lineage
             )
         )
         {
+            RevisionsByTenantId.TryRemove(
+                new KeyValuePair<string, (object Entry, string ConcurrencyToken)>(
+                    tenantId,
+                    (entry, concurrencyToken)
+                )
+            );
+
             foreach (var revision in lineage)
             {
                 if (TenantIdsByTeam.TryGetValue(revision.TeamId, out var tenantIds))
@@ -115,6 +131,7 @@ internal class DefaultOpenIdTenantCache(
 
         // The tenant's own team, then each team above it, because the tenant is materialized under all of them.
         var lineage = tenant.Value.Team.GetRevisionLineage();
+        var concurrencyToken = tenant.Value.ConcurrencyToken;
 
         // The generation token, the index write and the cache write share one lock, so two concurrent calls for the
         // same tenant leave the index holding the value of the entry the cache holds, and a replaced entry's callback
@@ -130,10 +147,12 @@ internal class DefaultOpenIdTenantCache(
                     new PostEvictionCallbackRegistration
                     {
                         EvictionCallback = EvictionCallback,
-                        State = (tenantId, entry, lineage),
+                        State = (tenantId, entry, concurrencyToken, lineage),
                     },
                 },
             };
+
+            RevisionsByTenantId[tenantId] = (entry, concurrencyToken);
 
             foreach (var revision in lineage)
             {
@@ -214,6 +233,26 @@ internal class DefaultOpenIdTenantCache(
                     ))
                 )
                 .Distinct(),
+        ];
+
+        return ValueTask.FromResult(revisions);
+    }
+
+    /// <summary>
+    /// Gets the revision of each cached <see cref="OpenIdTenant"/> instance: its identifier and the concurrency token
+    /// of the persisted tenant it was materialized from.
+    /// </summary>
+    public ValueTask<IReadOnlyCollection<TenantRevision>> GetRevisionsAsync(
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    )
+    {
+        IReadOnlyCollection<TenantRevision> revisions =
+        [
+            .. RevisionsByTenantId.Select(pair => new TenantRevision(
+                pair.Key,
+                pair.Value.ConcurrencyToken
+            )),
         ];
 
         return ValueTask.FromResult(revisions);

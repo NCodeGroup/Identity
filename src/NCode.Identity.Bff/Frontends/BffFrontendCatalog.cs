@@ -3,7 +3,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
+using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Options;
 
 namespace NCode.Identity.Bff.Frontends;
@@ -13,64 +16,184 @@ namespace NCode.Identity.Bff.Frontends;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The frontends are built once, on first access, so resolving a service that depends on the catalog never reads or
-/// validates the options.
+/// The set of frontends is built on first use, so resolving a service that depends on the catalog never reads or
+/// validates the options. When the options change, the catalog builds a candidate set and replaces the current set
+/// only with a candidate that passes every registered check; an invalid candidate is logged and the current set stays.
+/// A request keeps the frontend it resolved.
 /// </para>
 /// <para>
 /// A frontend that names a selection rule is selected by that rule. The frontend that names no rule serves every
 /// request that no other frontend selects. A request that two frontends select fails closed.
 /// </para>
 /// </remarks>
-internal sealed class BffFrontendCatalog(
-    IOptions<BffOptions> options,
-    IEnumerable<IBffFrontendSelector> selectors
-)
+// See ADR-1442.
+internal sealed class BffFrontendCatalog : IDisposable
 {
-    private static List<BffFrontend> Create(
-        BffOptions bffOptions,
-        IEnumerable<IBffFrontendSelector> selectors
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BffFrontendCatalog"/> class.
+    /// </summary>
+    /// <param name="optionsFactory">Creates and validates the options of the BFF.</param>
+    /// <param name="changeTokenSources">Signal that the options changed.</param>
+    /// <param name="selectors">The registered frontend selection rules.</param>
+    /// <param name="checks">The checks that every set of frontends must pass.</param>
+    /// <param name="logger">The logger.</param>
+    public BffFrontendCatalog(
+        IOptionsFactory<BffOptions> optionsFactory,
+        IEnumerable<IOptionsChangeTokenSource<BffOptions>> changeTokenSources,
+        IEnumerable<IBffFrontendSelector> selectors,
+        IEnumerable<IBffFrontendSetCheck> checks,
+        ILogger<BffFrontendCatalog> logger
     )
     {
-        var selectorsByName = new Dictionary<string, IBffFrontendSelector>(StringComparer.Ordinal);
-        foreach (var selector in selectors)
-        {
-            if (!selectorsByName.TryAdd(selector.Name, selector))
-                throw new InvalidOperationException(
-                    $"The frontend selection rule '{selector.Name}' is registered more than once."
-                );
-        }
+        OptionsFactory = optionsFactory;
+        Selectors = [.. selectors];
+        Checks = [.. checks];
+        Logger = logger;
 
-        var frontends = new List<BffFrontend>();
-        foreach (
-            var (name, frontendOptions) in bffOptions.Frontends.OrderBy(
-                x => x.Key,
-                StringComparer.Ordinal
+        var sources = changeTokenSources
+            .Where(x =>
+                string.Equals(
+                    x.Name ?? Microsoft.Extensions.Options.Options.DefaultName,
+                    Microsoft.Extensions.Options.Options.DefaultName,
+                    StringComparison.Ordinal
+                )
             )
-        )
+            .ToArray();
+
+        if (sources.Length > 0)
         {
-            IBffFrontendSelector? selector = null;
-            var rule = frontendOptions.Selection?.Rule;
-            if (
-                !string.IsNullOrWhiteSpace(rule) && !selectorsByName.TryGetValue(rule, out selector)
-            )
-                throw new InvalidOperationException(
-                    $"Bff:Frontends:{name}:Selection:Rule '{rule}' is not a registered frontend selection rule."
-                );
-
-            frontends.Add(new BffFrontend(name, frontendOptions, selector));
+            Subscription = ChangeToken.OnChange(
+                () => new CompositeChangeToken([.. sources.Select(x => x.GetChangeToken())]),
+                Reload
+            );
         }
-
-        return frontends;
     }
 
-    private readonly Lazy<IReadOnlyList<BffFrontend>> _frontends = new(() =>
-        Create(options.Value, selectors)
-    );
+    private IOptionsFactory<BffOptions> OptionsFactory { get; }
+
+    private IBffFrontendSelector[] Selectors { get; }
+
+    private IBffFrontendSetCheck[] Checks { get; }
+
+    private ILogger<BffFrontendCatalog> Logger { get; }
+
+    private IDisposable? Subscription { get; }
+
+    private Lock Gate { get; } = new();
+
+    private List<IBffFrontendSetCheck> AddedChecks { get; } = [];
+
+    private CancellationTokenSource ChangeSource { get; set; } = new();
+
+    private BffFrontendSet? _current;
+
+    private BffFrontendSet Build()
+    {
+        var options = OptionsFactory.Create(Microsoft.Extensions.Options.Options.DefaultName);
+        var set = BffFrontendSet.Create(options, Selectors);
+
+        var failures = new List<string>();
+        foreach (var check in Checks)
+            check.Check(set, failures);
+        foreach (var check in AddedChecks)
+            check.Check(set, failures);
+
+        if (failures.Count > 0)
+            throw new InvalidOperationException(string.Join(" ", failures));
+
+        return set;
+    }
+
+    private void Reload()
+    {
+        BffFrontendSet next;
+        CancellationTokenSource previous;
+
+        lock (Gate)
+        {
+            try
+            {
+                next = Build();
+            }
+            catch (Exception exception)
+                when (exception is OptionsValidationException or InvalidOperationException)
+            {
+                Logger.FrontendsChangeRejected(exception.Message);
+                return;
+            }
+
+            Volatile.Write(ref _current, next);
+            previous = ChangeSource;
+            ChangeSource = new CancellationTokenSource();
+        }
+
+        if (Logger.IsEnabled(LogLevel.Information))
+            Logger.FrontendsChanged(string.Join(", ", next.Frontends.Select(x => x.Name)));
+        previous.Cancel();
+    }
+
+    /// <summary>
+    /// Gets the current set of frontends and the options that they were built from.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The first set of frontends is not valid.</exception>
+    public BffFrontendSet Current
+    {
+        get
+        {
+            var current = Volatile.Read(ref _current);
+            if (current is not null)
+                return current;
+
+            lock (Gate)
+            {
+                current = Volatile.Read(ref _current);
+                if (current is null)
+                {
+                    current = Build();
+                    Volatile.Write(ref _current, current);
+                }
+
+                return current;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the frontends that the BFF serves, ordered by name.
     /// </summary>
-    public IReadOnlyList<BffFrontend> Frontends => _frontends.Value;
+    public IReadOnlyList<BffFrontend> Frontends => Current.Frontends;
+
+    /// <summary>
+    /// Adds a check that the current set and every later candidate set must pass.
+    /// </summary>
+    /// <param name="check">The check to add.</param>
+    /// <exception cref="InvalidOperationException">The current set fails the check.</exception>
+    public void AddCheck(IBffFrontendSetCheck check)
+    {
+        ArgumentNullException.ThrowIfNull(check);
+
+        var failures = new List<string>();
+        check.Check(Current, failures);
+        if (failures.Count > 0)
+            throw new InvalidOperationException(string.Join(" ", failures));
+
+        lock (Gate)
+        {
+            AddedChecks.Add(check);
+        }
+    }
+
+    /// <summary>
+    /// Gets a token that signals when the set of frontends is replaced.
+    /// </summary>
+    /// <returns>A change token that fires once for the replacement of the current set.</returns>
+    public IChangeToken GetChangeToken()
+    {
+        lock (Gate)
+        {
+            return new CancellationChangeToken(ChangeSource.Token);
+        }
+    }
 
     /// <summary>
     /// Gets a frontend by its name.
@@ -78,20 +201,11 @@ internal sealed class BffFrontendCatalog(
     /// <param name="name">The name of the frontend.</param>
     /// <param name="frontend">The frontend, when one has the name.</param>
     /// <returns><see langword="true"/> when a frontend has the name; otherwise, <see langword="false"/>.</returns>
-    public bool TryGet(string name, [NotNullWhen(true)] out BffFrontend? frontend)
-    {
-        foreach (var candidate in Frontends)
-        {
-            if (!string.Equals(candidate.Name, name, StringComparison.Ordinal))
-                continue;
+    public bool TryGet(string name, [NotNullWhen(true)] out BffFrontend? frontend) =>
+        Current.TryGet(name, out frontend);
 
-            frontend = candidate;
-            return true;
-        }
-
-        frontend = null;
-        return false;
-    }
+    /// <inheritdoc />
+    public void Dispose() => Subscription?.Dispose();
 
     /// <summary>
     /// Selects the frontend that serves a request, and keeps the answer for the rest of the request.
@@ -107,28 +221,7 @@ internal sealed class BffFrontendCatalog(
         if (feature is not null)
             return feature.Frontend;
 
-        BffFrontend? selected = null;
-        BffFrontend? fallback = null;
-        foreach (var frontend in Frontends)
-        {
-            if (frontend.IsFallback)
-            {
-                fallback ??= frontend;
-                continue;
-            }
-
-            if (!frontend.IsMatch(httpContext.Request))
-                continue;
-
-            if (selected is not null)
-                throw new InvalidOperationException(
-                    $"The request is selected by the BFF frontends '{selected.Name}' and '{frontend.Name}'; their selection rules must not overlap."
-                );
-
-            selected = frontend;
-        }
-
-        var result = selected ?? fallback;
+        var result = Current.Select(httpContext.Request);
         httpContext.Features.Set(new BffFrontendFeature(result));
         return result;
     }

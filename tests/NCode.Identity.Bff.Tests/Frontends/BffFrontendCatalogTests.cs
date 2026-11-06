@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using Xunit;
@@ -10,6 +12,24 @@ namespace NCode.Identity.Bff.Tests.Frontends;
 
 public class BffFrontendCatalogTests : BaseTests
 {
+    private sealed class StubCheck(Func<BffFrontendSet, string?> failure) : IBffFrontendSetCheck
+    {
+        public void Check(BffFrontendSet frontends, ICollection<string> failures)
+        {
+            var message = failure(frontends);
+            if (message is not null)
+                failures.Add(message);
+        }
+    }
+
+    private static string? RefuseShop(BffFrontendSet set) =>
+        set.TryGet("shop", out _) ? "shop is refused" : null;
+
+    private static BffOptions CreateOptionsWithShop(string? rule = BffFrontendSelectorNames.Host) =>
+        BffTestFrontends.CreateBffOptions(x =>
+            x.Frontends["shop"] = CreateOptions(rule, "shop.example.com")
+        );
+
     private static BffFrontendOptions CreateOptions(string? rule = null, params string[] values) =>
         BffTestFrontends.CreateOptions(x =>
         {
@@ -30,15 +50,18 @@ public class BffFrontendCatalogTests : BaseTests
     [Fact]
     public void Constructor_Always_DefersReadingTheOptionsToFirstUse()
     {
-        var mockOptions = CreateStrictMock<Microsoft.Extensions.Options.IOptions<BffOptions>>();
+        var mockFactory = CreateStrictMock<IOptionsFactory<BffOptions>>();
 
         var catalog = new BffFrontendCatalog(
-            mockOptions.Object,
-            [new HostBffFrontendSelector(), new PathBffFrontendSelector()]
+            mockFactory.Object,
+            [],
+            [new HostBffFrontendSelector(), new PathBffFrontendSelector()],
+            [],
+            NullLogger<BffFrontendCatalog>.Instance
         );
 
-        mockOptions
-            .SetupGet(x => x.Value)
+        mockFactory
+            .Setup(x => x.Create(Microsoft.Extensions.Options.Options.DefaultName))
             .Returns(
                 new BffOptions
                 {
@@ -91,9 +114,13 @@ public class BffFrontendCatalogTests : BaseTests
     [Fact]
     public void Frontends_RuleRegisteredTwice_Throws()
     {
+        var source = new BffTestOptionsSource(new BffOptions());
         var catalog = new BffFrontendCatalog(
-            Microsoft.Extensions.Options.Options.Create(new BffOptions()),
-            [new HostBffFrontendSelector(), new HostBffFrontendSelector()]
+            source,
+            [source],
+            [new HostBffFrontendSelector(), new HostBffFrontendSelector()],
+            [],
+            NullLogger<BffFrontendCatalog>.Instance
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() => catalog.Frontends);
@@ -132,7 +159,131 @@ public class BffFrontendCatalogTests : BaseTests
 
     #endregion
 
+    #region Change Tests
+
+    [Fact]
+    public void Change_ValidSet_ReplacesTheFrontends()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        var before = catalog.Current;
+
+        source.Change(CreateOptionsWithShop());
+
+        Assert.NotSame(before, catalog.Current);
+        Assert.Equal([BffTestFrontends.Name, "shop"], catalog.Frontends.Select(x => x.Name));
+    }
+
+    [Fact]
+    public void Change_ValidSet_SignalsTheChangeToken()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        _ = catalog.Frontends;
+        var token = catalog.GetChangeToken();
+        Assert.False(token.HasChanged);
+
+        source.Change(CreateOptionsWithShop());
+
+        Assert.True(token.HasChanged);
+        Assert.False(catalog.GetChangeToken().HasChanged);
+    }
+
+    [Fact]
+    public void Change_InvalidOptions_KeepsTheLastSet()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        var before = catalog.Current;
+        var token = catalog.GetChangeToken();
+
+        source.Fail(
+            new OptionsValidationException(
+                Microsoft.Extensions.Options.Options.DefaultName,
+                typeof(BffOptions),
+                ["invalid"]
+            )
+        );
+
+        Assert.Same(before, catalog.Current);
+        Assert.False(token.HasChanged);
+    }
+
+    [Fact]
+    public void Change_UnregisteredRule_KeepsTheLastSet()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        var before = catalog.Current;
+
+        source.Change(CreateOptionsWithShop("custom"));
+
+        Assert.Same(before, catalog.Current);
+    }
+
+    [Fact]
+    public void Change_FailingCheck_KeepsTheLastSet()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source, new StubCheck(RefuseShop));
+        var before = catalog.Current;
+        var token = catalog.GetChangeToken();
+
+        source.Change(CreateOptionsWithShop());
+
+        Assert.Same(before, catalog.Current);
+        Assert.False(token.HasChanged);
+    }
+
+    #endregion
+
+    #region AddCheck Tests
+
+    [Fact]
+    public void AddCheck_CurrentSetFails_Throws()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            catalog.AddCheck(new StubCheck(_ => "the set is refused"))
+        );
+
+        Assert.Equal("the set is refused", exception.Message);
+    }
+
+    [Fact]
+    public void AddCheck_Passes_RefusesALaterFailingSet()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        catalog.AddCheck(new StubCheck(RefuseShop));
+        var before = catalog.Current;
+
+        source.Change(CreateOptionsWithShop());
+
+        Assert.Same(before, catalog.Current);
+    }
+
+    #endregion
+
     #region Resolve Tests
+
+    [Fact]
+    public void Resolve_AfterAChange_KeepsTheFrontendOfTheRequest()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        var httpContext = CreateContext("app.example.com");
+        var first = catalog.Resolve(httpContext);
+
+        source.Change(BffTestFrontends.CreateBffOptions());
+        var second = catalog.Resolve(httpContext);
+        var other = catalog.Resolve(CreateContext("app.example.com"));
+
+        Assert.NotNull(first);
+        Assert.Same(first, second);
+        Assert.NotSame(first, other);
+    }
 
     [Fact]
     public void Resolve_OneFallbackFrontend_SelectsAnyRequest()
@@ -228,6 +379,23 @@ public class BffFrontendCatalogTests : BaseTests
 
         Assert.Equal("admin", first?.Name);
         Assert.Same(first, second);
+    }
+
+    #endregion
+
+    #region Dispose Tests
+
+    [Fact]
+    public void Dispose_Always_StopsFollowingChanges()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        var before = catalog.Current;
+
+        catalog.Dispose();
+        source.Change(CreateOptionsWithShop());
+
+        Assert.Same(before, catalog.Current);
     }
 
     #endregion

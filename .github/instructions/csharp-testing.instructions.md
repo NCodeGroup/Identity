@@ -411,3 +411,9 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `ContinuousIntegrationBuild` that maps source paths to `/_/`, so a path found from the source, such as
   `[CallerFilePath]` or Testcontainers' `CommonDirectoryPath.GetProjectDirectory()`, exists only on a developer's
   machine.
+- 👁 **Reproduce a pull request's `End-to-end` failure on its merge with `main`.** The check runs on that merge, and
+  Dependabot moves the provider image there, so a branch can pass locally against an older provider than the one CI
+  runs.
+- 👁 **A client that calls Keycloak's Admin API requests the `kc-admin-api` scope.** Keycloak accepts only a token whose
+  audience is the realm's Admin API, which that client scope adds, so the realm lists it among the client's
+  `optionalClientScopes` and the token request asks for it.

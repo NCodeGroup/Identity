@@ -25,6 +25,9 @@ public sealed class KeycloakProvider : IAsyncDisposable
     private const string CertificatePath = "/opt/keycloak/conf/e2e-tls.crt";
     private const string PrivateKeyPath = "/opt/keycloak/conf/e2e-tls.key";
     private const string AdminClientId = "e2e-admin";
+
+    // Keycloak's Admin API accepts only a token whose audience is the realm's Admin API, which this client scope adds.
+    private const string AdminApiScope = "kc-admin-api";
     private const int LogLinesOnFailure = 120;
 
     /// <summary>
@@ -112,10 +115,10 @@ public sealed class KeycloakProvider : IAsyncDisposable
             .WithEnvironment("KC_HTTPS_CERTIFICATE_FILE", CertificatePath)
             .WithEnvironment("KC_HTTPS_CERTIFICATE_KEY_FILE", PrivateKeyPath)
             .WithEnvironment("KC_TRUSTSTORE_PATHS", CertificatePath)
-            // Token verification logs why it rejects a token only at debug.
+            // Token verification and admin authentication log why they reject a token only at debug.
             .WithEnvironment(
                 "KC_LOG_LEVEL",
-                "INFO,org.keycloak.services:DEBUG,org.keycloak.protocol.oidc.TokenManager:DEBUG"
+                "INFO,org.keycloak.services.managers:DEBUG,org.keycloak.services.resources.admin:DEBUG"
             )
             .WithEnvironment("E2E_USER_PASSWORD", userPassword)
             .WithEnvironment("E2E_ADMIN_SECRET", adminSecret)
@@ -183,6 +186,7 @@ public sealed class KeycloakProvider : IAsyncDisposable
                     [OpenIdProtocol.Parameters.GrantType] = OpenIdProtocol
                         .GrantTypes
                         .ClientCredentials,
+                    [OpenIdProtocol.Parameters.Scope] = AdminApiScope,
                 }
             ),
         };

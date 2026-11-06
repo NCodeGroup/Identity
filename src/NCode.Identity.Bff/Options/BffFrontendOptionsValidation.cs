@@ -6,6 +6,7 @@ using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId;
+using NCode.Time;
 
 namespace NCode.Identity.Bff.Options;
 
@@ -122,6 +123,18 @@ internal static class BffFrontendOptionsValidation
         {
             failures.Add(
                 $"{key}:Session:AbsoluteLifetime must be greater than or equal to {key}:Session:IdleTimeout."
+            );
+        }
+
+        if (!TimerPeriod.IsValid(session.RevalidationInterval))
+        {
+            failures.Add($"{key}:Session:RevalidationInterval must be a valid timer period.");
+        }
+
+        if (session.RevalidationInterval > session.IdleTimeout / 2)
+        {
+            failures.Add(
+                $"{key}:Session:RevalidationInterval must be at most half of {key}:Session:IdleTimeout."
             );
         }
 

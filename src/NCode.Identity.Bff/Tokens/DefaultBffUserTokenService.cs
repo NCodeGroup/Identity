@@ -4,12 +4,11 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Diagnostics;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logging;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -27,7 +26,7 @@ internal class DefaultBffUserTokenService(
     BffRefreshLocks refreshLocks,
     BffMetrics metrics,
     IBffAuditRecorder auditRecorder,
-    IOptions<BffOptions> options,
+    BffFrontendCatalog frontends,
     TimeProvider timeProvider,
     ILogger<DefaultBffUserTokenService> logger
 ) : IBffUserTokenService
@@ -38,7 +37,7 @@ internal class DefaultBffUserTokenService(
     private readonly BffRefreshLocks _refreshLocks = refreshLocks;
     private readonly BffMetrics _metrics = metrics;
     private readonly IBffAuditRecorder _auditRecorder = auditRecorder;
-    private readonly IOptions<BffOptions> _options = options;
+    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<DefaultBffUserTokenService> _logger = logger;
 
@@ -60,7 +59,7 @@ internal class DefaultBffUserTokenService(
             );
 
         var now = _timeProvider.GetUtcNow();
-        var refreshBeforeExpiry = _options.Value.Tokens.RefreshBeforeExpiry;
+        var refreshBeforeExpiry = _frontends.Current.Options.Tokens.RefreshBeforeExpiry;
         if (
             BffTokenCache.TryGetFresh(
                 state.Payload,
@@ -162,7 +161,7 @@ internal class DefaultBffUserTokenService(
         CancellationToken cancellationToken
     )
     {
-        var tokenOptions = _options.Value.Tokens;
+        var tokenOptions = _frontends.Current.Options.Tokens;
 
         // inside a replica, refreshes of one session wait on that session's own lock
         using var held = await _refreshLocks.TryEnterAsync(
@@ -221,7 +220,7 @@ internal class DefaultBffUserTokenService(
                 request.Resource,
                 request.Scope,
                 now,
-                _options.Value.Tokens.RefreshBeforeExpiry,
+                _frontends.Current.Options.Tokens.RefreshBeforeExpiry,
                 out var cached
             )
         )
@@ -253,7 +252,7 @@ internal class DefaultBffUserTokenService(
         CancellationToken cancellationToken
     )
     {
-        var tokenOptions = _options.Value.Tokens;
+        var tokenOptions = _frontends.Current.Options.Tokens;
 
         var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
         var fresh = TryGetFresh(current.Payload, request, now);
@@ -317,7 +316,8 @@ internal class DefaultBffUserTokenService(
         // the old refresh token is never presented again: wait for the winner's write
         var seenToken = seen.Payload.RefreshToken ?? string.Empty;
         var leaseKey = GetLeaseKey(seen, seenToken);
-        var deadline = _timeProvider.GetUtcNow() + _options.Value.Tokens.RefreshLeaseDuration;
+        var deadline =
+            _timeProvider.GetUtcNow() + _frontends.Current.Options.Tokens.RefreshLeaseDuration;
         var delay = TimeSpan.FromMilliseconds(50);
         var maxDelay = TimeSpan.FromMilliseconds(800);
 

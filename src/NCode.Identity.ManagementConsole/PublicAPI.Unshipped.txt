@@ -27,6 +27,9 @@ NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.PrimaryColor.s
 NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.SecondaryColor.get -> string?
 NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.SecondaryColor.set -> void
 NCode.Identity.ManagementConsole.ManagementConsoleDefaults
+NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions
+NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
+NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapManagementConsole() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
 NCode.Identity.ManagementConsole.ManagementConsoleOptions
 NCode.Identity.ManagementConsole.ManagementConsoleOptions.Branding.get -> NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions!
 NCode.Identity.ManagementConsole.ManagementConsoleOptions.Branding.set -> void

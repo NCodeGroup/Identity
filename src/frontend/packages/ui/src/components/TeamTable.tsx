@@ -15,10 +15,12 @@ export type TeamRow = {
   readonly teamId: string;
   readonly displayName: string;
   readonly isDisabled: boolean;
+  readonly parentTeamId?: string | null;
 };
 
 export type TeamTableProps = {
   readonly teams: readonly TeamRow[];
+  readonly showParent?: boolean;
   readonly onSelect?: (teamId: string) => void;
   readonly onEdit?: (teamId: string) => void;
   readonly onDelete?: (teamId: string) => void;
@@ -30,7 +32,7 @@ export type TeamTableProps = {
  * row-level edit/delete controls appear only when their callbacks are supplied, and stop
  * propagation so they never trigger row selection.
  */
-export function TeamTable({ teams, onSelect, onEdit, onDelete }: TeamTableProps) {
+export function TeamTable({ teams, showParent, onSelect, onEdit, onDelete }: TeamTableProps) {
   const showActions = Boolean(onEdit || onDelete);
   return (
     <Table size="small" aria-label="Teams">
@@ -38,6 +40,7 @@ export function TeamTable({ teams, onSelect, onEdit, onDelete }: TeamTableProps)
         <TableRow>
           <TableCell>Display name</TableCell>
           <TableCell>Team ID</TableCell>
+          {showParent && <TableCell>Parent team</TableCell>}
           <TableCell>Status</TableCell>
           {showActions && <TableCell align="right">Actions</TableCell>}
         </TableRow>
@@ -54,6 +57,11 @@ export function TeamTable({ teams, onSelect, onEdit, onDelete }: TeamTableProps)
           >
             <TableCell>{team.displayName}</TableCell>
             <TableCell>{team.teamId}</TableCell>
+            {showParent && (
+              <TableCell data-testid={`team-parent-${team.teamId}`}>
+                {team.parentTeamId ?? '—'}
+              </TableCell>
+            )}
             <TableCell>
               <Chip
                 size="small"

@@ -28,6 +28,9 @@ public class DefaultBffClientTokenServiceTests : BaseTests
     private FakeTimeProvider TimeProvider { get; }
     private BffCookies Cookies { get; }
     private BffRefreshLocks Locks { get; } = new();
+
+    // one catalog for every scope of a test, so the scopes share the frontend instance that owns the cache
+    private BffFrontendCatalog Frontends { get; } = BffTestFrontends.CreateCatalog();
     private DefaultBffClientTokenService Service { get; }
 
     public DefaultBffClientTokenServiceTests()
@@ -38,17 +41,24 @@ public class DefaultBffClientTokenServiceTests : BaseTests
         Service = CreateService(TimeSpan.FromSeconds(40));
     }
 
-    private DefaultBffClientTokenService CreateService(TimeSpan refreshLeaseDuration)
+    private DefaultBffClientTokenService CreateService(
+        TimeSpan refreshLeaseDuration,
+        BffFrontendCatalog? frontends = null
+    )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Tokens = { RefreshLeaseDuration = refreshLeaseDuration } }
-        );
+        var catalog =
+            frontends
+            ?? BffTestFrontends.CreateCatalog(
+                BffTestFrontends.CreateBffOptions(x =>
+                    x.Tokens.RefreshLeaseDuration = refreshLeaseDuration
+                )
+            );
         var grantClient = new BffGrantClient(
             MockTokenClient.Object,
             TimeProvider,
             CreateLooseMock<ILogger<BffGrantClient>>().Object
         );
-        return new DefaultBffClientTokenService(grantClient, Locks, options, TimeProvider);
+        return new DefaultBffClientTokenService(grantClient, Locks, catalog, TimeProvider);
     }
 
     // the scope selects its frontend by the request's host; the service never resolves a session
@@ -57,7 +67,7 @@ public class DefaultBffClientTokenServiceTests : BaseTests
         BffFrontendCatalog? frontends = null
     )
     {
-        var catalog = frontends ?? BffTestFrontends.CreateCatalog();
+        var catalog = frontends ?? Frontends;
         var resolver = new BffSessionResolver(
             CreateStrictMock<IBffSessionManager>().Object,
             Cookies,
@@ -213,6 +223,31 @@ public class DefaultBffClientTokenServiceTests : BaseTests
 
         Assert.Equal("access-a", a.Token?.Value);
         Assert.Equal("access-b", b.Token?.Value);
+    }
+
+    [Fact]
+    public async Task GetAccessTokenAsync_FrontendRebuiltByAChange_RequestsAnotherToken()
+    {
+        var options = BffTestFrontends.CreateBffOptions();
+        var source = new BffTestOptionsSource(options);
+        var frontends = BffTestFrontends.CreateCatalog(source);
+        var service = CreateService(TimeSpan.FromSeconds(40), frontends);
+        SetupIssue(null, null, "client-access", 2);
+        await service.GetAccessTokenAsync(
+            CreateScope(frontends: frontends),
+            DefaultRequest,
+            CancellationToken.None
+        );
+
+        source.Change(options);
+        var result = await service.GetAccessTokenAsync(
+            CreateScope(frontends: frontends),
+            DefaultRequest,
+            CancellationToken.None
+        );
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("client-access", result.Token?.Value);
     }
 
     [Fact]

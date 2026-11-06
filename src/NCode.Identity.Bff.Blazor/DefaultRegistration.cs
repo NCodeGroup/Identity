@@ -30,6 +30,11 @@ public static class DefaultRegistration
         /// <c>UseBff()</c> to the pipeline before <c>UseAuthentication()</c>, <c>UseAuthorization()</c> and
         /// <c>UseAntiforgery()</c>.
         /// </summary>
+        /// <remarks>
+        /// It removes any other <see cref="AuthenticationStateProvider"/> registration, such as the one
+        /// <c>AddRazorComponents()</c> adds, whichever runs first, so the BFF session is the circuit's only source of
+        /// identity.
+        /// </remarks>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         public IServiceBuilder<BffBlazorLibrary> AddBffBlazorLibrary()
         {

@@ -31,7 +31,10 @@ public class BffBlazorClientOptionsValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("UserPath must start with one '/' and not '//'.", result.Failures ?? []);
+        Assert.Contains(
+            $"BffBlazorClientOptions.UserPath '{path}' must start with one '/' and not '//'.",
+            result.Failures ?? []
+        );
     }
 
     [Theory]
@@ -44,7 +47,27 @@ public class BffBlazorClientOptionsValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("AntiforgeryHeaderName must not be blank.", result.Failures ?? []);
+        Assert.Contains(
+            "BffBlazorClientOptions.AntiforgeryHeaderName must not be blank.",
+            result.Failures ?? []
+        );
+    }
+
+    [Theory]
+    [InlineData("Content-Type")]
+    [InlineData("authorization")]
+    [InlineData("DPoP")]
+    public void Validate_WhenAntiforgeryHeaderNameIsForbidden_Fails(string value)
+    {
+        var options = new BffBlazorClientOptions { AntiforgeryHeaderName = value };
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            $"BffBlazorClientOptions.AntiforgeryHeaderName '{value}' must not be a header that skips a CORS preflight or carries credentials.",
+            result.Failures ?? []
+        );
     }
 
     [Theory]
@@ -57,7 +80,10 @@ public class BffBlazorClientOptionsValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("AntiforgeryHeaderValue must not be blank.", result.Failures ?? []);
+        Assert.Contains(
+            "BffBlazorClientOptions.AntiforgeryHeaderValue must not be blank.",
+            result.Failures ?? []
+        );
     }
 
     [Fact]
@@ -68,7 +94,10 @@ public class BffBlazorClientOptionsValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("ProbeInterval must be a valid timer period.", result.Failures ?? []);
+        Assert.Contains(
+            $"BffBlazorClientOptions.ProbeInterval '{options.ProbeInterval}' must be a valid timer period.",
+            result.Failures ?? []
+        );
     }
 
     #endregion

@@ -28,6 +28,13 @@ public static class DefaultRegistration
         /// <see cref="BffBlazorClientHttpClientBuilderExtensions.AddBffAntiforgeryHeader"/> to the
         /// <see cref="HttpClient"/> of each of its calls to the frontend's BFF APIs.
         /// </summary>
+        /// <remarks>
+        /// Call it only in the WebAssembly project. It keeps the browser's one user in a singleton, so a server host
+        /// composes <c>AddBffBlazorLibrary()</c> instead, whose <see cref="AuthenticationStateProvider"/> also serves
+        /// prerendering. It removes any other <see cref="AuthenticationStateProvider"/> registration, so the BFF
+        /// session is the only source of the user. A WebAssembly host runs no startup validation, so the
+        /// <see cref="BffBlazorClientOptions"/> are validated when the session is first created.
+        /// </remarks>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
         public IServiceBuilder<BffBlazorClientLibrary> AddBffBlazorClient()
         {

@@ -1147,6 +1147,8 @@ The client's provider reads the persisted document or probes `GET /bff/user`, an
 at the idle expiry and after a `401`
 ([ADR-1434](decisions/1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md)). The
 document carries only the frontend's allow-listed claims, the logout URL and the guard.
+`AddBffBlazorClient()` belongs to the `.Client` project alone, because it keeps the browser's one user in a singleton;
+the server's `AddBffBlazorLibrary()` provider serves prerendering.
 
 **Logout.** The session principal carries `bff_logout_url` and `bff_logout_sid`, and the client principal carries the
 same two claims from the document. A page renders the logout form from them in every render mode: a `POST` to

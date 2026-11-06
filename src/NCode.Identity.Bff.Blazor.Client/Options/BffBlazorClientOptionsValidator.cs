@@ -12,6 +12,19 @@ namespace NCode.Identity.Bff.Blazor.Client.Options;
 /// </summary>
 internal sealed class BffBlazorClientOptionsValidator : IValidateOptions<BffBlazorClientOptions>
 {
+    // The server's BffOptionsValidator refuses the same names for Bff:Antiforgery:HeaderName.
+    private static readonly string[] ForbiddenHeaderNames =
+    [
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Range",
+        "Cookie",
+        "Authorization",
+        "DPoP",
+    ];
+
     /// <inheritdoc />
     public ValidateOptionsResult Validate(string? name, BffBlazorClientOptions options)
     {
@@ -26,22 +39,37 @@ internal sealed class BffBlazorClientOptionsValidator : IValidateOptions<BffBlaz
             || (userPath.Length > 1 && userPath[1] == '/')
         )
         {
-            failures.Add("UserPath must start with one '/' and not '//'.");
+            failures.Add(
+                $"BffBlazorClientOptions.UserPath '{userPath}' must start with one '/' and not '//'."
+            );
         }
 
-        if (string.IsNullOrWhiteSpace(options.AntiforgeryHeaderName))
+        var headerName = options.AntiforgeryHeaderName;
+        if (string.IsNullOrWhiteSpace(headerName))
         {
-            failures.Add("AntiforgeryHeaderName must not be blank.");
+            failures.Add("BffBlazorClientOptions.AntiforgeryHeaderName must not be blank.");
+        }
+        else if (
+            ForbiddenHeaderNames.Any(x =>
+                string.Equals(x, headerName, StringComparison.OrdinalIgnoreCase)
+            )
+        )
+        {
+            failures.Add(
+                $"BffBlazorClientOptions.AntiforgeryHeaderName '{headerName}' must not be a header that skips a CORS preflight or carries credentials."
+            );
         }
 
         if (string.IsNullOrWhiteSpace(options.AntiforgeryHeaderValue))
         {
-            failures.Add("AntiforgeryHeaderValue must not be blank.");
+            failures.Add("BffBlazorClientOptions.AntiforgeryHeaderValue must not be blank.");
         }
 
         if (!TimerPeriod.IsValid(options.ProbeInterval))
         {
-            failures.Add("ProbeInterval must be a valid timer period.");
+            failures.Add(
+                $"BffBlazorClientOptions.ProbeInterval '{options.ProbeInterval}' must be a valid timer period."
+            );
         }
 
         return failures.Count == 0

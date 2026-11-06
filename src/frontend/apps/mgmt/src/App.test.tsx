@@ -754,6 +754,15 @@ describe('App (caller access)', () => {
     await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Home'));
   });
 
+  it('exits a child team home for a caller without a role at its parent', async () => {
+    stubCaller({ isPlatformAdministrator: false, teams: [acmeWebTeam], tenants: [] });
+    window.history.replaceState(null, '', '/teams/acme-web/tenants');
+
+    renderApp();
+
+    await waitFor(() => expect(screen.getByTestId('exit-scope')).toHaveTextContent('Home'));
+  });
+
   it("leads a tenant-only caller's tenant back to its home", async () => {
     stubCaller({ isPlatformAdministrator: false, teams: [], tenants: [acmeTenant] });
     window.history.replaceState(null, '', '/tenants/acme/clients');

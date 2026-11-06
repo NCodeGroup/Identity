@@ -121,10 +121,7 @@ export function App() {
     skip: currentTeamId === undefined,
   });
 
-  const parentTeamId = currentTeam?.parentTeamId;
-  const teamBack = parentTeamId
-    ? { route: teamRoute(parentTeamId, 'teams'), label: 'Team' }
-    : teamExit(access);
+  const teamBack = teamExit(access, currentTeam?.parentTeamId);
   const tenantBack = tenantExit(access, tenant?.teamId);
 
   return (

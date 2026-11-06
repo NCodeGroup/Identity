@@ -181,36 +181,22 @@ public class BffRequestGuardTests : BaseTests
 
     #endregion
 
-    #region CheckPage Tests
+    #region IsSafeMethod Tests
 
     [Theory]
-    [InlineData("GET")]
-    [InlineData("HEAD")]
-    public void CheckPage_SafeMethod_ReturnsNull(string method)
+    [InlineData("GET", true)]
+    [InlineData("HEAD", true)]
+    [InlineData("OPTIONS", true)]
+    [InlineData("TRACE", true)]
+    [InlineData("POST", false)]
+    [InlineData("PUT", false)]
+    [InlineData("PATCH", false)]
+    [InlineData("DELETE", false)]
+    public void IsSafeMethod_Method_ReturnsExpected(string method, bool expected)
     {
-        var options = CreateOptions();
-        var request = CreateRequest(options, []);
-        request.Method = method;
+        var result = BffRequestGuard.IsSafeMethod(method);
 
-        var reason = BffRequestGuard.CheckPage(request);
-
-        Assert.Null(reason);
-    }
-
-    [Theory]
-    [InlineData("POST")]
-    [InlineData("PUT")]
-    [InlineData("PATCH")]
-    [InlineData("DELETE")]
-    public void CheckPage_UnsafeMethod_ReturnsUnsafeMethod(string method)
-    {
-        var options = CreateOptions();
-        var request = CreateRequest(options, []);
-        request.Method = method;
-
-        var reason = BffRequestGuard.CheckPage(request);
-
-        Assert.Equal(BffRequestGuard.UnsafeMethod, reason);
+        Assert.Equal(expected, result);
     }
 
     #endregion

@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Security.Claims;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -20,14 +22,16 @@ internal class BffMiddleware(
     RequestDelegate next,
     IOptions<BffOptions> options,
     BffFrontendCatalog frontends,
+    BffSessionResolver resolver,
+    IAntiforgery antiforgery,
     IBffAuditRecorder recorder
 )
 {
-    private const string PageAllowedMethods = "GET, HEAD";
-
     private readonly RequestDelegate _next = next;
     private readonly IOptions<BffOptions> _options = options;
     private readonly BffFrontendCatalog _frontends = frontends;
+    private readonly BffSessionResolver _resolver = resolver;
+    private readonly IAntiforgery _antiforgery = antiforgery;
     private readonly IBffAuditRecorder _recorder = recorder;
 
     /// <summary>
@@ -50,29 +54,26 @@ internal class BffMiddleware(
         if (BffGuardedEndpoints.IsGuarded(endpoint))
             feature.CheckedEndpoint = endpoint;
 
-        var refusal = GetRefusal(context, endpoint);
-        if (refusal is { } refused)
-        {
-            await _recorder.AntiforgeryRejectedAsync(
-                context,
-                refused.Reason,
-                context.RequestAborted
-            );
-
-            if (refused.StatusCode == StatusCodes.Status405MethodNotAllowed)
-                context.Response.Headers.Allow = PageAllowedMethods;
-
-            await BffResponses.WriteProblemAsync(
-                context,
-                refused.StatusCode,
-                refused.Type,
-                refused.Title
-            );
-            return;
-        }
-
         try
         {
+            var refusal = await GetRefusalAsync(context, endpoint, feature);
+            if (refusal is { } refused)
+            {
+                await _recorder.AntiforgeryRejectedAsync(
+                    context,
+                    refused.Reason,
+                    context.RequestAborted
+                );
+
+                await BffResponses.WriteProblemAsync(
+                    context,
+                    refused.StatusCode,
+                    refused.Type,
+                    refused.Title
+                );
+                return;
+            }
+
             await _next(context);
         }
         catch (BffStoreUnavailableException) when (!context.Response.HasStarted)
@@ -90,10 +91,12 @@ internal class BffMiddleware(
         }
     }
 
-    private (string Reason, int StatusCode, string Type, string Title)? GetRefusal(
-        HttpContext context,
-        Endpoint? endpoint
-    )
+    private async ValueTask<(
+        string Reason,
+        int StatusCode,
+        string Type,
+        string Title
+    )?> GetRefusalAsync(HttpContext context, Endpoint? endpoint, BffRequestFeature feature)
     {
         if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
         {
@@ -139,18 +142,58 @@ internal class BffMiddleware(
 
         if (BffGuardedEndpoints.IsPage(endpoint))
         {
-            var reason = BffRequestGuard.CheckPage(context.Request);
-            if (reason is null)
+            if (BffRequestGuard.IsSafeMethod(context.Request.Method))
+                return null;
+
+            var frontend = _frontends.Resolve(context);
+            var reason = BffRequestGuard.CheckFetchMetadata(
+                context.Request,
+                frontend?.Options.TrustedOrigins ?? []
+            );
+            if (reason is not null)
+            {
+                return (
+                    reason,
+                    StatusCodes.Status403Forbidden,
+                    BffProblemTypes.CrossSiteRequest,
+                    "Cross-site requests are not allowed."
+                );
+            }
+
+            await _resolver.ResolveAsync(context, context.RequestAborted);
+
+            if (await IsAntiforgeryTokenValidAsync(context, feature.Principal))
                 return null;
 
             return (
-                reason,
-                StatusCodes.Status405MethodNotAllowed,
-                BffProblemTypes.UnsafeMethod,
-                "A page accepts only GET and HEAD."
+                BffRequestGuard.AntiforgeryTokenInvalid,
+                StatusCodes.Status403Forbidden,
+                BffProblemTypes.AntiforgeryTokenInvalid,
+                "The antiforgery token is missing or invalid."
             );
         }
 
         return null;
+    }
+
+    private async ValueTask<bool> IsAntiforgeryTokenValidAsync(
+        HttpContext context,
+        ClaimsPrincipal? principal
+    )
+    {
+        var original = context.User;
+        context.User = principal ?? new ClaimsPrincipal();
+        try
+        {
+            return await _antiforgery.IsRequestValidAsync(context);
+        }
+        catch (AntiforgeryValidationException)
+        {
+            return false;
+        }
+        finally
+        {
+            context.User = original;
+        }
     }
 }

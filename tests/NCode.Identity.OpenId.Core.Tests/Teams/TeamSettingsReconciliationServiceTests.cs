@@ -23,6 +23,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
 {
     private const string TeamId = "acme";
     private const string OtherTeamId = "globex";
+    private const string ChildTeamId = "acme-web";
 
     private static TimeSpan Deadline { get; } = TimeSpan.FromSeconds(5);
 
@@ -57,6 +58,10 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
 
     // The teams the reconciler was called for, in call order.
     private List<string> ReconciledTeams { get; } = [];
+
+    // Completes when the store has listed the descendants of a team for the first time.
+    private TaskCompletionSource DescendantsRead { get; } =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private int _callCount;
 
@@ -163,14 +168,111 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             .ReturnsAsync(new PagedResult<PersistedTeam> { Items = [], NextCursor = null })
             .Verifiable();
         SetupReconciler(_ => ValueTask.FromResult(true));
+        SetupDescendants();
 
         await Service.StartAsync(CancellationToken.None);
         await listed.Task.WaitAsync(Deadline);
         Trigger.Trigger(OtherTeamId);
         await Calls[0].Task.WaitAsync(Deadline);
+        await DescendantsRead.Task.WaitAsync(Deadline);
         await Service.StopAsync(CancellationToken.None);
 
         Assert.Equal([OtherTeamId], ReconciledTeams);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenATeamWithAChildIsTriggered_ReconcilesBoth()
+    {
+        SetupPlatform();
+        var listed = SetupNoTeamsListed();
+        SetupReconciler(_ => ValueTask.FromResult(true));
+        SetupDescendants((TeamId, [ChildTeamId]));
+
+        await Service.StartAsync(CancellationToken.None);
+        await listed.Task.WaitAsync(Deadline);
+        Trigger.Trigger(TeamId);
+        await Calls[1].Task.WaitAsync(Deadline);
+        await Service.StopAsync(CancellationToken.None);
+
+        Assert.Equal([TeamId, ChildTeamId], ReconciledTeams);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenAParentAndItsChildAreTriggeredTogether_ReconcilesTheChildOnce()
+    {
+        // The pass over every team blocks on the parent, so both triggers coalesce into one request. The team
+        // triggered last proves that the request has finished.
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reconciled = Channel.CreateUnbounded<string>();
+        MockReconciler
+            .Setup(x => x.ReconcileAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(
+                (string teamId, CancellationToken _) =>
+                    ReconcileAfterReleaseAsync(teamId, started, release, reconciled.Writer)
+            )
+            .Verifiable();
+        SetupPlatform();
+        SetupTeams(TeamId);
+        SetupDescendants((TeamId, [ChildTeamId]));
+
+        await Service.StartAsync(CancellationToken.None);
+        await started.Task.WaitAsync(Deadline);
+        Trigger.Trigger(TeamId);
+        Trigger.Trigger(ChildTeamId);
+        release.TrySetResult();
+
+        var seen = new List<string>();
+        while (seen.Count < 3)
+        {
+            seen.Add(await reconciled.Reader.ReadAsync().AsTask().WaitAsync(Deadline));
+        }
+
+        Trigger.Trigger(OtherTeamId);
+        while (seen[^1] != OtherTeamId)
+        {
+            seen.Add(await reconciled.Reader.ReadAsync().AsTask().WaitAsync(Deadline));
+        }
+
+        await Service.StopAsync(CancellationToken.None);
+
+        Assert.Equal(1, seen.Count(x => x == ChildTeamId));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenReadingTheDescendantsFails_TriesTheTeamAgainAfterTheLease()
+    {
+        SetupPlatform();
+        var listed = SetupNoTeamsListed();
+        SetupReconciler(_ => ValueTask.FromResult(true));
+        var reads = 0;
+        var secondRead = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
+        MockTeamStore
+            .Setup(x => x.GetDescendantsAsync(TeamId, It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                if (Interlocked.Increment(ref reads) == 1)
+                {
+                    return ValueTask.FromException<IReadOnlyList<PersistedTeam>>(
+                        new InvalidOperationException("boom")
+                    );
+                }
+
+                secondRead.TrySetResult();
+                return ValueTask.FromResult<IReadOnlyList<PersistedTeam>>([]);
+            })
+            .Verifiable();
+
+        await Service.StartAsync(CancellationToken.None);
+        await listed.Task.WaitAsync(Deadline);
+        Trigger.Trigger(TeamId);
+        await Calls[1].Task.WaitAsync(Deadline);
+        await secondRead.Task.WaitAsync(Deadline);
+        await Service.StopAsync(CancellationToken.None);
+
+        Assert.Equal([TeamId, TeamId], ReconciledTeams.Take(2));
     }
 
     [Fact]
@@ -179,9 +281,11 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
         SetupPlatform();
         SetupTeams(TeamId);
         SetupReconciler(call => ValueTask.FromResult(call > 1));
+        SetupDescendants();
 
         await Service.StartAsync(CancellationToken.None);
         await Calls[1].Task.WaitAsync(Deadline);
+        await DescendantsRead.Task.WaitAsync(Deadline);
         await Service.StopAsync(CancellationToken.None);
     }
 
@@ -205,6 +309,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             .Verifiable();
         SetupPlatform();
         SetupTeams(TeamId);
+        SetupDescendants();
         using var service = new TeamSettingsReconciliationService(
             MockRegistry.Object,
             MockPlatformProvider.Object,
@@ -258,6 +363,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             .Verifiable();
         SetupPlatform();
         SetupTeams(TeamId);
+        SetupDescendants();
 
         await Service.StartAsync(CancellationToken.None);
         await started.Task.WaitAsync(Deadline);
@@ -288,9 +394,11 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
                 ? ValueTask.FromResult(true)
                 : ValueTask.FromException<bool>(new InvalidOperationException("boom"))
         );
+        SetupDescendants();
 
         await Service.StartAsync(CancellationToken.None);
         await Calls[1].Task.WaitAsync(Deadline);
+        await DescendantsRead.Task.WaitAsync(Deadline);
         await Service.StopAsync(CancellationToken.None);
     }
 
@@ -429,6 +537,42 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
             )
             .Verifiable();
     }
+
+    // The pass over every team lists no team. The returned source completes once that page is listed, which is after
+    // the pass has taken its request, so a team triggered then is reconciled on its own.
+    private TaskCompletionSource SetupNoTeamsListed()
+    {
+        SetupTeams();
+        var listed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        MockTeamStore
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
+            .Callback(() => listed.TrySetResult())
+            .ReturnsAsync(new PagedResult<PersistedTeam> { Items = [], NextCursor = null })
+            .Verifiable();
+        return listed;
+    }
+
+    // The store lists the given descendants for each team named, and none for any other team.
+    private void SetupDescendants(params (string TeamId, string[] DescendantIds)[] teams) =>
+        MockTeamStore
+            .Setup(x => x.GetDescendantsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(
+                (string teamId, CancellationToken _) =>
+                {
+                    DescendantsRead.TrySetResult();
+                    string[] descendantIds = [];
+                    foreach (var team in teams)
+                    {
+                        if (team.TeamId == teamId)
+                            descendantIds = team.DescendantIds;
+                    }
+
+                    return ValueTask.FromResult<IReadOnlyList<PersistedTeam>>([
+                        .. descendantIds.Select(CreateTeam),
+                    ]);
+                }
+            )
+            .Verifiable();
 
     private static PersistedTeam CreateTeam(string teamId) =>
         new()

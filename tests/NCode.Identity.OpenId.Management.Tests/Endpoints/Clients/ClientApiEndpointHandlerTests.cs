@@ -1632,6 +1632,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateAddPatch("name", "value"),
             ifMatch: null,
@@ -1667,6 +1668,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateAddPatch("unregistered_setting", "value"),
             ifMatch: null,
@@ -1701,6 +1703,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateAddPatch(OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256"),
             ifMatch: null,
@@ -1713,6 +1716,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenNotFound_ReturnsNotFound()
     {
+        SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -1723,6 +1727,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateAddPatch("name", "value"),
             ifMatch: null,
@@ -1752,6 +1757,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateAddPatch(OpenIdSettingNames.JwksUri, "https://client.example/jwks"),
             ifMatch: null,
@@ -1799,6 +1805,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateAddPatch(OpenIdSettingNames.JwksUri, "https://client.example/jwks"),
             ifMatch: null,
@@ -1936,6 +1943,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
+            TenantId,
             ClientId,
             CreateAddPatch(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post"),
             ifMatch: null,
@@ -1989,6 +1997,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var result = await Handler.UpdateSettingsAsync(
             CreateHttpContext(authenticated: true),
+            TenantId,
             ClientId,
             CreateAddPatch(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post"),
             ifMatch: null,
@@ -2041,6 +2050,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Strict mocks: no UpdateSettingsAsync / AddSecretAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             CreateHttpContext(authenticated: true),
+            TenantId,
             ClientId,
             CreateAddPatch(OpenIdSettingNames.TokenEndpointAuthMethod, "client_secret_post"),
             ifMatch: null,
@@ -2065,23 +2075,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task UpdateSettingsAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReturnsForbiddenWithoutWriting()
     {
         SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
         SetupStore();
         SetupClientLookup();
-        MockAuthorizationService
-            .Setup(x =>
-                x.AuthorizeAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.Is<object?>(resource => resource is PersistedClientSettings),
-                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
-                )
-            )
-            .ReturnsAsync(AuthorizationResult.Success())
-            .Verifiable();
         SetupRoleNodeAuthorization(AuthorizationResult.Failed());
 
         // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             CreateHttpContext(authenticated: true),
+            TenantId,
             ClientId,
             CreateAddPatch("name", "value"),
             ifMatch: null,
@@ -2126,6 +2128,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Strict mocks: no effective-settings or store-write setup, so continuing past the refusal would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             CreateHttpContext(authenticated: true),
+            TenantId,
             ClientId,
             CreateAddPatch(OpenIdSettingNames.RateLimitClientPerMinute, "10"),
             ifMatch: null,
@@ -2151,6 +2154,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // Strict mocks: no validation or store-write setup, so continuing past the refusal would fail the test.
         var result = await handler.UpdateSettingsAsync(
             CreateHttpContext(authenticated: true),
+            TenantId,
             ClientId,
             CreateAddPatch("name", "value"),
             ifMatch: null,
@@ -2164,18 +2168,15 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public async Task UpdateSettingsAsync_WhenTheCallerIsUnauthorizedForAHostManagedClient_ReturnsForbidden()
     {
-        SetupStore();
-        MockClientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateClient("client-ct"))
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
-        // Strict mocks: the policy has no setup, so consulting it before the authorization would fail the test.
+        // Strict mocks: the store and the policy have no setup, so reading the client or consulting the policy before
+        // the authorization would fail the test.
         var handler = CreateHandler(MockHostManagedClientPolicy.Object);
 
         var result = await handler.UpdateSettingsAsync(
             CreateHttpContext(authenticated: true),
+            TenantId,
             ClientId,
             CreateAddPatch("name", "value"),
             ifMatch: null,
@@ -2184,6 +2185,51 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheClient()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store setup, so opening the store or reading the client would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CreateAddPatch("name", "value"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_RequestsUpdateOnTheClientNode()
+    {
+        SetupClientRoleAssignments();
+        SetupStore();
+        SetupClientLookup();
+        object? authorizedResource = null;
+        SetupAuthorizationCapture(resource => authorizedResource ??= resource);
+
+        // The stale If-Match ends the route right after its own authorization.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CreateAddPatch("name", "value"),
+            ifMatch: "stale-token",
+            CancellationToken.None
+        );
+
+        Assert.IsType<StatusCodeHttpResult>(result);
+        var node = Assert.IsType<ResourceNode>(authorizedResource);
+        Assert.Equal(ResourceNodeTypes.Client, node.ResourceType);
+        Assert.Equal(ClientId, node.ResourceId);
+        Assert.Equal(TenantId, node.TenantId);
     }
 
     #endregion

@@ -1058,6 +1058,7 @@ internal class ClientApiEndpointHandler(
     /// revealed in this response only. Settings that leave the method as it is leave the secrets as they are.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
@@ -1068,12 +1069,26 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromBody] JsonPatchDocument<JsonObject> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Update,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1084,17 +1099,6 @@ internal class ClientApiEndpointHandler(
         }
 
         var clientSettings = client.Settings;
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            clientSettings,
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
@@ -1221,14 +1225,15 @@ internal class ClientApiEndpointHandler(
         // Issuing a secret is creating one, which needs the authority CreateSecretAsync needs.
         if (reconciliation.IssuedSecret is not null)
         {
-            var createResult = await AuthorizationService.AuthorizeAsync(
-                httpContext.User,
-                client,
-                Operations.Create
+            var createFailure = await GetAuthorizationFailureAsync(
+                httpContext,
+                clientNode,
+                Operations.Create,
+                cancellationToken
             );
-            if (!createResult.Succeeded)
+            if (createFailure is not null)
             {
-                return AuthorizationFailed(httpContext);
+                return createFailure;
             }
         }
 

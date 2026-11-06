@@ -212,6 +212,16 @@ public class HostBffFrontendSelectorTests : BaseTests
         Assert.Empty(failures);
     }
 
+    [Fact]
+    public void Validate_WhenPublicOriginIsNotAnAbsoluteUri_SkipsTheOriginChecks()
+    {
+        var selection = CreateSelection(["app.example.com"], "/app");
+
+        var failures = _selector.Validate(selection);
+
+        Assert.Empty(failures);
+    }
+
     #endregion
 
     #region Overlaps Tests

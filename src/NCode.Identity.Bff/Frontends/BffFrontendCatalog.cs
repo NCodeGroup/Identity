@@ -26,6 +26,43 @@ internal sealed class BffFrontendCatalog(
     IEnumerable<IBffFrontendSelector> selectors
 )
 {
+    private static List<BffFrontend> Create(
+        BffOptions bffOptions,
+        IEnumerable<IBffFrontendSelector> selectors
+    )
+    {
+        var selectorsByName = new Dictionary<string, IBffFrontendSelector>(StringComparer.Ordinal);
+        foreach (var selector in selectors)
+        {
+            if (!selectorsByName.TryAdd(selector.Name, selector))
+                throw new InvalidOperationException(
+                    $"The frontend selection rule '{selector.Name}' is registered more than once."
+                );
+        }
+
+        var frontends = new List<BffFrontend>();
+        foreach (
+            var (name, frontendOptions) in bffOptions.Frontends.OrderBy(
+                x => x.Key,
+                StringComparer.Ordinal
+            )
+        )
+        {
+            IBffFrontendSelector? selector = null;
+            var rule = frontendOptions.Selection?.Rule;
+            if (
+                !string.IsNullOrWhiteSpace(rule) && !selectorsByName.TryGetValue(rule, out selector)
+            )
+                throw new InvalidOperationException(
+                    $"Bff:Frontends:{name}:Selection:Rule '{rule}' is not a registered frontend selection rule."
+                );
+
+            frontends.Add(new BffFrontend(name, frontendOptions, selector));
+        }
+
+        return frontends;
+    }
+
     private readonly Lazy<IReadOnlyList<BffFrontend>> _frontends = new(() =>
         Create(options.Value, selectors)
     );
@@ -109,41 +146,4 @@ internal sealed class BffFrontendCatalog(
         ?? throw new InvalidOperationException(
             "No BFF frontend serves this request: a frontend's Bff:Frontends:<name>:Selection must select it, or one frontend must have no selection rule."
         );
-
-    private static List<BffFrontend> Create(
-        BffOptions bffOptions,
-        IEnumerable<IBffFrontendSelector> selectors
-    )
-    {
-        var selectorsByName = new Dictionary<string, IBffFrontendSelector>(StringComparer.Ordinal);
-        foreach (var selector in selectors)
-        {
-            if (!selectorsByName.TryAdd(selector.Name, selector))
-                throw new InvalidOperationException(
-                    $"The frontend selection rule '{selector.Name}' is registered more than once."
-                );
-        }
-
-        var frontends = new List<BffFrontend>();
-        foreach (
-            var (name, frontendOptions) in bffOptions.Frontends.OrderBy(
-                x => x.Key,
-                StringComparer.Ordinal
-            )
-        )
-        {
-            IBffFrontendSelector? selector = null;
-            var rule = frontendOptions.Selection?.Rule;
-            if (
-                !string.IsNullOrWhiteSpace(rule) && !selectorsByName.TryGetValue(rule, out selector)
-            )
-                throw new InvalidOperationException(
-                    $"Bff:Frontends:{name}:Selection:Rule '{rule}' is not a registered frontend selection rule."
-                );
-
-            frontends.Add(new BffFrontend(name, frontendOptions, selector));
-        }
-
-        return frontends;
-    }
 }

@@ -18,6 +18,17 @@ internal sealed class BffFrontendMatcherPolicy(BffFrontendCatalog frontends)
     : MatcherPolicy,
         IEndpointSelectorPolicy
 {
+    private static bool Names(IReadOnlyList<BffFrontendAttribute> attributes, string name)
+    {
+        foreach (var attribute in attributes)
+        {
+            if (string.Equals(attribute.Name, name, StringComparison.Ordinal))
+                return true;
+        }
+
+        return false;
+    }
+
     /// <inheritdoc />
     public override int Order => 0;
 
@@ -64,16 +75,5 @@ internal sealed class BffFrontendMatcherPolicy(BffFrontendCatalog frontends)
         }
 
         return Task.CompletedTask;
-    }
-
-    private static bool Names(IReadOnlyList<BffFrontendAttribute> attributes, string name)
-    {
-        foreach (var attribute in attributes)
-        {
-            if (string.Equals(attribute.Name, name, StringComparison.Ordinal))
-                return true;
-        }
-
-        return false;
     }
 }

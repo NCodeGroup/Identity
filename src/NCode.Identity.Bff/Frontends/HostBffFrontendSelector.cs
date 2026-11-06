@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.OpenId;
 
 namespace NCode.Identity.Bff.Frontends;
 
@@ -12,6 +13,49 @@ namespace NCode.Identity.Bff.Frontends;
 /// </summary>
 internal sealed class HostBffFrontendSelector : IBffFrontendSelector
 {
+    private const int DefaultHttpsPort = 443;
+    private const int DefaultHttpPort = 80;
+    private const int MinPort = 1;
+    private const int MaxPort = 65535;
+
+    private static int? GetDefaultPort(Uri origin) =>
+        origin.Scheme switch
+        {
+            "https" => DefaultHttpsPort,
+            "http" => DefaultHttpPort,
+            _ => null,
+        };
+
+    private static bool IsOriginHost(HostString host, Uri origin) =>
+        string.Equals(host.Host, origin.Host, StringComparison.OrdinalIgnoreCase)
+        && (host.Port is null || host.Port == origin.Port);
+
+    private static bool TryParse(string? value, out HostString host)
+    {
+        host = default;
+
+        if (string.IsNullOrWhiteSpace(value) || value.Any(char.IsWhiteSpace))
+            return false;
+
+        var candidate = new HostString(value);
+        if (
+            Uri.CheckHostName(candidate.Host) is not (UriHostNameType.Dns or UriHostNameType.IPv4)
+            || candidate.Port is < MinPort or > MaxPort
+            || !string.Equals(candidate.ToUriComponent(), value, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(
+                candidate.Port is { } port ? $"{candidate.Host}:{port}" : candidate.Host,
+                value,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
+            return false;
+        }
+
+        host = candidate;
+        return true;
+    }
+
     /// <inheritdoc />
     public string Name => BffFrontendSelectorNames.Host;
 
@@ -25,9 +69,7 @@ internal sealed class HostBffFrontendSelector : IBffFrontendSelector
 
         List<string> failures = [];
         List<HostString> hosts = [];
-        var origin = Uri.TryCreate(selection.PublicOrigin, UriKind.Absolute, out var parsed)
-            ? parsed
-            : null;
+        var origin = AbsoluteUri.TryParse(selection.PublicOrigin, out var parsed) ? parsed : null;
         foreach (var value in selection.Values)
         {
             if (TryParse(value, out var host))
@@ -116,43 +158,5 @@ internal sealed class HostBffFrontendSelector : IBffFrontendSelector
         }
 
         return false;
-    }
-
-    private static int? GetDefaultPort(Uri origin) =>
-        origin.Scheme switch
-        {
-            "https" => 443,
-            "http" => 80,
-            _ => null,
-        };
-
-    private static bool IsOriginHost(HostString host, Uri origin) =>
-        string.Equals(host.Host, origin.Host, StringComparison.OrdinalIgnoreCase)
-        && (host.Port is null || host.Port == origin.Port);
-
-    private static bool TryParse(string? value, out HostString host)
-    {
-        host = default;
-
-        if (string.IsNullOrWhiteSpace(value) || value.Any(char.IsWhiteSpace))
-            return false;
-
-        var candidate = new HostString(value);
-        if (
-            Uri.CheckHostName(candidate.Host) is not (UriHostNameType.Dns or UriHostNameType.IPv4)
-            || candidate.Port is < 1 or > 65535
-            || !string.Equals(candidate.ToUriComponent(), value, StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(
-                candidate.Port is { } port ? $"{candidate.Host}:{port}" : candidate.Host,
-                value,
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
-        {
-            return false;
-        }
-
-        host = candidate;
-        return true;
     }
 }

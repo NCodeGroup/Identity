@@ -32,10 +32,6 @@ internal sealed class BffEndpointStartupCheck(
     ILogger<BffEndpointStartupCheck> logger
 ) : IHostedLifecycleService, IDisposable
 {
-    private IDisposable? Subscription { get; set; }
-
-    private bool HasBffTransforms => transformProviders.OfType<BffTransformProvider>().Any();
-
     /// <summary>
     /// Finds the incomplete BFF metadata of the endpoints.
     /// </summary>
@@ -106,6 +102,10 @@ internal sealed class BffEndpointStartupCheck(
 
         return failures;
     }
+
+    private IDisposable? Subscription { get; set; }
+
+    private bool HasBffTransforms => transformProviders.OfType<BffTransformProvider>().Any();
 
     /// <inheritdoc />
     public Task StartingAsync(CancellationToken cancellationToken) => Task.CompletedTask;

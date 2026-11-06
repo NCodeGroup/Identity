@@ -13,6 +13,39 @@ namespace NCode.Identity.Bff.Frontends;
 internal sealed class BffFrontend
 {
     /// <summary>
+    /// Creates what a frontend's selection rule is given from the frontend's options.
+    /// </summary>
+    /// <param name="options">The options of the frontend.</param>
+    /// <returns>The selection, or <see langword="null"/> when the frontend names no rule.</returns>
+    internal static BffFrontendSelection? CreateSelection(BffFrontendOptions options)
+    {
+        if (string.IsNullOrWhiteSpace(options.Selection?.Rule))
+            return null;
+
+        List<string> paths =
+        [
+            options.PathPrefix,
+            .. options.RemoteApis.Values.OfType<BffRemoteApiOptions>().Select(x => x.Path),
+        ];
+        return new BffFrontendSelection(options.Selection.Values, options.PublicOrigin, paths);
+    }
+
+    private static ClientRegistration CreateRegistration(BffFrontendOptions options) =>
+        new(options.Authority, options.ClientId, options.ClientAuthentication.Method)
+        {
+            KeyRing = options.ClientAuthentication.KeyRing,
+            DPoPKeyRing = options.DPoP.KeyRing,
+            DPoPBoundAccessTokens = options.DPoP.Mode == BffDPoPModes.Required,
+            BackchannelLogoutSessionRequired = options.BackchannelLogoutSessionRequired,
+            IdTokenSigningAlgorithms = options.IdToken.SigningAlgorithms,
+            IdTokenKeyManagementAlgorithms = options.IdToken.KeyManagementAlgorithms,
+            IdTokenContentEncryptionAlgorithms = options.IdToken.ContentEncryptionAlgorithms,
+            UserInfoSigningAlgorithms = options.UserInfo.SigningAlgorithms,
+            UserInfoKeyManagementAlgorithms = options.UserInfo.KeyManagementAlgorithms,
+            UserInfoContentEncryptionAlgorithms = options.UserInfo.ContentEncryptionAlgorithms,
+        };
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="BffFrontend"/> class.
     /// </summary>
     /// <param name="name">The name of the frontend.</param>
@@ -107,37 +140,4 @@ internal sealed class BffFrontend
     /// </returns>
     public bool IsMatch(HttpRequest request) =>
         Selector is not null && Selection is not null && Selector.IsMatch(request, Selection);
-
-    /// <summary>
-    /// Creates what a frontend's selection rule is given from the frontend's options.
-    /// </summary>
-    /// <param name="options">The options of the frontend.</param>
-    /// <returns>The selection, or <see langword="null"/> when the frontend names no rule.</returns>
-    internal static BffFrontendSelection? CreateSelection(BffFrontendOptions options)
-    {
-        if (string.IsNullOrWhiteSpace(options.Selection?.Rule))
-            return null;
-
-        List<string> paths =
-        [
-            options.PathPrefix,
-            .. options.RemoteApis.Values.OfType<BffRemoteApiOptions>().Select(x => x.Path),
-        ];
-        return new BffFrontendSelection(options.Selection.Values, options.PublicOrigin, paths);
-    }
-
-    private static ClientRegistration CreateRegistration(BffFrontendOptions options) =>
-        new(options.Authority, options.ClientId, options.ClientAuthentication.Method)
-        {
-            KeyRing = options.ClientAuthentication.KeyRing,
-            DPoPKeyRing = options.DPoP.KeyRing,
-            DPoPBoundAccessTokens = options.DPoP.Mode == BffDPoPModes.Required,
-            BackchannelLogoutSessionRequired = options.BackchannelLogoutSessionRequired,
-            IdTokenSigningAlgorithms = options.IdToken.SigningAlgorithms,
-            IdTokenKeyManagementAlgorithms = options.IdToken.KeyManagementAlgorithms,
-            IdTokenContentEncryptionAlgorithms = options.IdToken.ContentEncryptionAlgorithms,
-            UserInfoSigningAlgorithms = options.UserInfo.SigningAlgorithms,
-            UserInfoKeyManagementAlgorithms = options.UserInfo.KeyManagementAlgorithms,
-            UserInfoContentEncryptionAlgorithms = options.UserInfo.ContentEncryptionAlgorithms,
-        };
 }

@@ -12,6 +12,21 @@ namespace NCode.Identity.Bff.Frontends;
 /// </summary>
 internal sealed class PathBffFrontendSelector : IBffFrontendSelector
 {
+    private static bool IsValidPrefix(string? value) =>
+        !string.IsNullOrEmpty(value)
+        && value.Length > 1
+        && value[^1] != '/'
+        && !value.Contains('?', StringComparison.Ordinal)
+        && BffReturnUrls.IsWellFormedPath(value);
+
+    private static bool IsLocalPath(string? value) =>
+        !string.IsNullOrEmpty(value) && value[0] == '/';
+
+    private static bool Covers(string? prefix, string? path) =>
+        IsLocalPath(prefix)
+        && IsLocalPath(path)
+        && new PathString(path).StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase);
+
     /// <inheritdoc />
     public string Name => BffFrontendSelectorNames.Path;
 
@@ -86,19 +101,4 @@ internal sealed class PathBffFrontendSelector : IBffFrontendSelector
 
         return false;
     }
-
-    private static bool IsValidPrefix(string? value) =>
-        !string.IsNullOrEmpty(value)
-        && value.Length > 1
-        && value[^1] != '/'
-        && !value.Contains('?', StringComparison.Ordinal)
-        && BffReturnUrls.IsWellFormedPath(value);
-
-    private static bool IsLocalPath(string? value) =>
-        !string.IsNullOrEmpty(value) && value[0] == '/';
-
-    private static bool Covers(string? prefix, string? path) =>
-        IsLocalPath(prefix)
-        && IsLocalPath(path)
-        && new PathString(path).StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase);
 }

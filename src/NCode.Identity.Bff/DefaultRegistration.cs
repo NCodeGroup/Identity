@@ -85,6 +85,11 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IBffAuditRecorder, DefaultBffAuditRecorder>();
             serviceCollection.TryAddSingleton<BffCookies>();
             serviceCollection.TryAddSingleton<BffSessionResolver>();
+            serviceCollection.TryAddSingleton<BffConnectionSessions>();
+            serviceCollection.TryAddSingleton<
+                IBffConnectionSessionAccessor,
+                DefaultBffConnectionSessionAccessor
+            >();
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
             serviceCollection.TryAddSingleton<BffLoginHandler>();
             serviceCollection.TryAddSingleton<BffCallbackHandler>();

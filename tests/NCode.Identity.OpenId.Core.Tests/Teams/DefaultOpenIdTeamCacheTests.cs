@@ -32,17 +32,31 @@ public sealed class DefaultOpenIdTeamCacheTests : IDisposable
 
     private static Mock<OpenIdTeam> CreateMockTeam(
         TaskCompletionSource? disposed = null,
-        string concurrencyToken = "team-ct"
+        string concurrencyToken = "team-ct",
+        Mock<OpenIdTeam>? parent = null
     )
     {
         var mockTeam = new Mock<OpenIdTeam>(MockBehavior.Strict);
         mockTeam.SetupGet(x => x.ConcurrencyToken).Returns(concurrencyToken).Verifiable();
+        mockTeam.SetupGet(x => x.Parent).Returns(parent?.Object).Verifiable();
         mockTeam
             .Protected()
             .Setup<ValueTask>("DisposeAsyncCore")
             .Callback(() => disposed?.TrySetResult())
             .Returns(ValueTask.CompletedTask);
         return mockTeam;
+    }
+
+    private static Mock<OpenIdTeam> CreateMockParentTeam(
+        string teamId,
+        string concurrencyToken = "parent-ct"
+    )
+    {
+        var mockParent = new Mock<OpenIdTeam>(MockBehavior.Strict);
+        mockParent.SetupGet(x => x.TeamId).Returns(teamId).Verifiable();
+        mockParent.SetupGet(x => x.ConcurrencyToken).Returns(concurrencyToken).Verifiable();
+        mockParent.SetupGet(x => x.Parent).Returns((OpenIdTeam?)null).Verifiable();
+        return mockParent;
     }
 
     private static TaskCompletionSource CreateCompletionSource() =>
@@ -156,6 +170,71 @@ public sealed class DefaultOpenIdTeamCacheTests : IDisposable
             CancellationToken.None
         );
         Assert.False(lease.IsActive);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WithACachedChildTeam_RemovesTheChildToo()
+    {
+        const string childTeamId = "acme-web";
+        var childDisposed = CreateCompletionSource();
+        var parentTeam = CreateMockTeam();
+        var childTeam = CreateMockTeam(
+            childDisposed,
+            parent: CreateMockParentTeam(TeamId, "parent-ct")
+        );
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var parentOwner = AsyncSharedReference.Create(parentTeam.Object))
+        await using (var childOwner = AsyncSharedReference.Create(childTeam.Object))
+        {
+            await Cache.SetAsync(TeamId, parentOwner, propertyBag, CancellationToken.None);
+            await Cache.SetAsync(childTeamId, childOwner, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveAsync(TeamId, propertyBag, CancellationToken.None);
+
+        foreach (var removedId in new[] { TeamId, childTeamId })
+        {
+            await using var removed = await Cache.TryGetAsync(
+                removedId,
+                propertyBag,
+                CancellationToken.None
+            );
+            Assert.False(removed.IsActive);
+        }
+
+        await childDisposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_WithAChildTeam_LeavesTheParentCached()
+    {
+        const string childTeamId = "acme-web";
+        var parentTeam = CreateMockTeam();
+        var childTeam = CreateMockTeam(parent: CreateMockParentTeam(TeamId, "parent-ct"));
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using var parentOwner = AsyncSharedReference.Create(parentTeam.Object);
+        await using var childOwner = AsyncSharedReference.Create(childTeam.Object);
+        await Cache.SetAsync(TeamId, parentOwner, propertyBag, CancellationToken.None);
+        await Cache.SetAsync(childTeamId, childOwner, propertyBag, CancellationToken.None);
+
+        await Cache.RemoveAsync(childTeamId, propertyBag, CancellationToken.None);
+
+        await using var parentLease = await Cache.TryGetAsync(
+            TeamId,
+            propertyBag,
+            CancellationToken.None
+        );
+        Assert.True(parentLease.IsActive);
+        Assert.Same(parentTeam.Object, parentLease.Value);
+
+        await using var childLease = await Cache.TryGetAsync(
+            childTeamId,
+            propertyBag,
+            CancellationToken.None
+        );
+        Assert.False(childLease.IsActive);
     }
 
     #endregion
@@ -369,6 +448,27 @@ public sealed class DefaultOpenIdTeamCacheTests : IDisposable
         var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
 
         Assert.Equal(new TeamRevision(TeamId, "replacement-ct"), Assert.Single(revisions));
+    }
+
+    [Fact]
+    public async Task GetRevisionsAsync_WithACachedChildTeam_ReportsItsParentsRevision()
+    {
+        const string childTeamId = "acme-web";
+        var childTeam = CreateMockTeam(
+            concurrencyToken: "child-ct",
+            parent: CreateMockParentTeam(TeamId, "parent-ct")
+        );
+        var propertyBag = PropertyBagFactory.Create();
+
+        // Only the child is cached; its revision lists the parent it was materialized over.
+        await using var owner = AsyncSharedReference.Create(childTeam.Object);
+        await Cache.SetAsync(childTeamId, owner, propertyBag, CancellationToken.None);
+
+        var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+
+        Assert.Equal(2, revisions.Count);
+        Assert.Contains(new TeamRevision(childTeamId, "child-ct"), revisions);
+        Assert.Contains(new TeamRevision(TeamId, "parent-ct"), revisions);
     }
 
     #endregion

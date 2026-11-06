@@ -8,12 +8,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Diagnostics;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -59,15 +59,17 @@ public class BffCallbackHandlerTests : BaseTests
 
     private BffCallbackHandler CreateHandler()
     {
-        var bffOptions = CreateOptions();
-        bffOptions.UserInfo.Load = _loadUserInfo;
-        var options = Microsoft.Extensions.Options.Options.Create(bffOptions);
+        var frontends = BffTestFrontends.CreateCatalog(options =>
+            options.UserInfo.Load = _loadUserInfo
+        );
         var timeProvider = _timeProvider;
         return new BffCallbackHandler(
-            options,
-            new BffClientRegistrationProvider(options),
+            frontends,
             _transactionService.Object,
-            new BffCookies(options, timeProvider),
+            new BffCookies(
+                Microsoft.Extensions.Options.Options.Create(new BffOptions()),
+                timeProvider
+            ),
             _metadataResolver.Object,
             _tokenClient.Object,
             _idTokenValidator.Object,
@@ -81,17 +83,15 @@ public class BffCallbackHandlerTests : BaseTests
         );
     }
 
-    private static BffOptions CreateOptions() => new() { Authority = Issuer, ClientId = "bff" };
-
     private static DefaultHttpContext CreateHttpContext(string query, string? oldHandle = null)
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Scheme = "https";
         httpContext.Request.Host = new HostString("app.example.com");
         httpContext.Request.QueryString = new QueryString(query);
-        var cookie = $"{BffDefaults.LoginCookieName}={LoginSecret}";
+        var cookie = $"{BffTestFrontends.LoginCookieName}={LoginSecret}";
         if (oldHandle is not null)
-            cookie += $"; {BffDefaults.SessionCookieName}={oldHandle}";
+            cookie += $"; {BffTestFrontends.SessionCookieName}={oldHandle}";
         httpContext.Request.Headers.Cookie = cookie;
         httpContext.Response.Body = new MemoryStream();
         return httpContext;
@@ -107,6 +107,7 @@ public class BffCallbackHandlerTests : BaseTests
     {
         var transaction = new BffLoginTransaction
         {
+            Frontend = BffTestFrontends.Name,
             Issuer = Issuer,
             RedirectUri = "https://app.example.com/bff/callback",
             CodeVerifier = "verifier",
@@ -180,9 +181,28 @@ public class BffCallbackHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_TransactionOfAnotherFrontend_FailsWithFrontendMismatch()
+    {
+        var transaction = new BffLoginTransaction { Frontend = "other", Issuer = Issuer };
+        SetupTake(State, new BffLoginTransactionResult(transaction, null));
+        SetupAudit(BffLoginFailureReasons.FrontendMismatch);
+
+        await AssertFailsAsync(
+            CreateHttpContext($"?state={State}&code=abc"),
+            BffLoginFailureReasons.FrontendMismatch
+        );
+    }
+
+    [Fact]
     public async Task HandleAsync_ErrorResponse_FailsWithAuthorizationError()
     {
-        SetupTake(State, new BffLoginTransactionResult(new BffLoginTransaction(), null));
+        SetupTake(
+            State,
+            new BffLoginTransactionResult(
+                new BffLoginTransaction { Frontend = BffTestFrontends.Name },
+                null
+            )
+        );
         SetupAudit(BffLoginFailureReasons.AuthorizationError);
 
         await AssertFailsAsync(
@@ -287,7 +307,11 @@ public class BffCallbackHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_MetadataUnavailable_FailsWithProviderUnavailable()
     {
-        var transaction = new BffLoginTransaction { Issuer = Issuer };
+        var transaction = new BffLoginTransaction
+        {
+            Frontend = BffTestFrontends.Name,
+            Issuer = Issuer,
+        };
         SetupTake(State, new BffLoginTransactionResult(transaction, null));
         _metadataResolver
             .Setup(x => x.GetMetadataAsync(Issuer, It.IsAny<CancellationToken>()))
@@ -463,13 +487,14 @@ public class BffCallbackHandlerTests : BaseTests
 
         var now = _timeProvider.GetUtcNow();
         var metadata = Assert.IsType<BffSessionMetadata>(_createdMetadata);
-        Assert.Equal(BffDefaults.FrontendName, metadata.Frontend);
+        Assert.Equal(BffTestFrontends.Name, metadata.Frontend);
         Assert.Equal(Issuer, metadata.Issuer);
         Assert.Equal("user-1", metadata.Subject);
         Assert.Equal("sid-1", metadata.SessionId);
         Assert.Equal(now, metadata.CreatedAt);
-        Assert.Equal(now + CreateOptions().Session.AbsoluteLifetime, metadata.AbsoluteExpiresAt);
-        Assert.Equal(now + CreateOptions().Session.IdleTimeout, metadata.IdleExpiresAt);
+        var sessionOptions = BffTestFrontends.CreateOptions().Session;
+        Assert.Equal(now + sessionOptions.AbsoluteLifetime, metadata.AbsoluteExpiresAt);
+        Assert.Equal(now + sessionOptions.IdleTimeout, metadata.IdleExpiresAt);
         var payload = Assert.IsType<BffSessionPayload>(_createdPayload);
         Assert.Equal("idt", payload.IdToken);
         Assert.Equal("rt", payload.RefreshToken);
@@ -482,7 +507,7 @@ public class BffCallbackHandlerTests : BaseTests
         Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
         Assert.Equal("/home", httpContext.Response.Headers.Location.ToString());
         Assert.Contains(
-            BffDefaults.SessionCookieName,
+            BffTestFrontends.SessionCookieName,
             httpContext.Response.Headers.SetCookie.ToString()
         );
     }

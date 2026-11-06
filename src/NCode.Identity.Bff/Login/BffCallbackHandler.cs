@@ -4,14 +4,13 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Navigation;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId;
@@ -25,8 +24,7 @@ namespace NCode.Identity.Bff.Login;
 /// </summary>
 internal class BffCallbackHandler
 {
-    private readonly IOptions<BffOptions> _options;
-    private readonly BffClientRegistrationProvider _registrationProvider;
+    private readonly BffFrontendCatalog _frontends;
     private readonly BffLoginTransactionService _transactionService;
     private readonly BffCookies _cookies;
     private readonly IProviderMetadataResolver _metadataResolver;
@@ -44,8 +42,7 @@ internal class BffCallbackHandler
     /// Initializes a new instance of the <see cref="BffCallbackHandler"/> class.
     /// </summary>
     public BffCallbackHandler(
-        IOptions<BffOptions> options,
-        BffClientRegistrationProvider registrationProvider,
+        BffFrontendCatalog frontends,
         BffLoginTransactionService transactionService,
         BffCookies cookies,
         IProviderMetadataResolver metadataResolver,
@@ -60,8 +57,7 @@ internal class BffCallbackHandler
         ILogger<BffCallbackHandler> logger
     )
     {
-        _options = options;
-        _registrationProvider = registrationProvider;
+        _frontends = frontends;
         _transactionService = transactionService;
         _cookies = cookies;
         _metadataResolver = metadataResolver;
@@ -85,25 +81,34 @@ internal class BffCallbackHandler
         var request = httpContext.Request;
         var cancellationToken = httpContext.RequestAborted;
 
+        var frontend = _frontends.GetRequired(httpContext);
+
         httpContext.Response.SetNoStore();
-        _cookies.DeleteLogin(httpContext.Response);
+        _cookies.DeleteLogin(httpContext.Response, frontend);
 
         var stateValues = request.Query[OpenIdProtocol.Parameters.State];
         var state = stateValues.Count == 1 ? stateValues[0] : null;
-        var loginSecret = _cookies.ReadLoginSecret(request);
+        var loginSecret = _cookies.ReadLoginSecret(request, frontend);
         var taken = await _transactionService.TakeAsync(state, loginSecret, cancellationToken);
         if (taken.Transaction is not { } transaction)
         {
             await FailAsync(
                 httpContext,
+                frontend,
                 taken.FailureReason ?? BffLoginFailureReasons.UnknownState
             );
             return;
         }
 
+        if (!string.Equals(transaction.Frontend, frontend.Name, StringComparison.Ordinal))
+        {
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.FrontendMismatch);
+            return;
+        }
+
         if (request.Query.ContainsKey(OpenIdProtocol.Parameters.ErrorCode))
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.AuthorizationError);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.AuthorizationError);
             return;
         }
 
@@ -118,7 +123,7 @@ internal class BffCallbackHandler
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.ProviderUnavailable);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.ProviderUnavailable);
             return;
         }
 
@@ -132,7 +137,7 @@ internal class BffCallbackHandler
             );
         if (issMismatch || (issMissing && metadata.AuthorizationResponseIssParameterSupported))
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.IssuerMismatch);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.IssuerMismatch);
             return;
         }
 
@@ -140,11 +145,11 @@ internal class BffCallbackHandler
         var code = codeValues.Count == 1 ? codeValues[0] : null;
         if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state))
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.InvalidResponse);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.InvalidResponse);
             return;
         }
 
-        var registration = _registrationProvider.Registration;
+        var registration = frontend.Registration;
         var tokenRequest = new AuthorizationCodeTokenRequest(
             code,
             transaction.RedirectUri,
@@ -166,13 +171,13 @@ internal class BffCallbackHandler
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.ProviderUnavailable);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.ProviderUnavailable);
             return;
         }
 
         if (tokenResult.Response is not { IdToken: { } idToken, AccessToken: { } accessToken })
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.TokenError);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.TokenError);
             return;
         }
 
@@ -199,7 +204,7 @@ internal class BffCallbackHandler
         catch (Exception exception)
             when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.ProviderUnavailable);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.ProviderUnavailable);
             return;
         }
 
@@ -212,20 +217,20 @@ internal class BffCallbackHandler
             )
                 ? BffLoginFailureReasons.NonceMismatch
                 : BffLoginFailureReasons.IdTokenInvalid;
-            await FailAsync(httpContext, reason);
+            await FailAsync(httpContext, frontend, reason);
             return;
         }
 
         var subject = identity.FindFirst(JoseClaimNames.Payload.Sub)?.Value;
         if (string.IsNullOrEmpty(subject))
         {
-            await FailAsync(httpContext, BffLoginFailureReasons.IdTokenInvalid);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.IdTokenInvalid);
             return;
         }
 
-        var bffOptions = _options.Value;
+        var options = frontend.Options;
         IEnumerable<Claim> sessionClaims = BffSessionPrincipal.SelectSessionClaims(identity);
-        if (bffOptions.UserInfo.Load)
+        if (options.UserInfo.Load)
         {
             // UserInfo is requested with the new access token, the way it was issued, and must be about the ID token's
             // subject (OpenID Connect Core 1.0 §5.3.2). See ADR-1299.
@@ -245,13 +250,13 @@ internal class BffCallbackHandler
             catch (Exception exception)
                 when (BffProviderFailures.IsUnavailable(exception, cancellationToken))
             {
-                await FailAsync(httpContext, BffLoginFailureReasons.ProviderUnavailable);
+                await FailAsync(httpContext, frontend, BffLoginFailureReasons.ProviderUnavailable);
                 return;
             }
 
             if (!userInfo.IsSuccess)
             {
-                await FailAsync(httpContext, BffLoginFailureReasons.UserInfoFailed);
+                await FailAsync(httpContext, frontend, BffLoginFailureReasons.UserInfoFailed);
                 return;
             }
 
@@ -280,14 +285,14 @@ internal class BffCallbackHandler
             if (allowed)
                 continue;
 
-            await FailAsync(httpContext, BffLoginFailureReasons.RejectedByGate);
+            await FailAsync(httpContext, frontend, BffLoginFailureReasons.RejectedByGate);
             return;
         }
 
         var response = tokenResult.Response;
         var now = _timeProvider.GetUtcNowWithPrecisionInSeconds();
 
-        var absolute = now + bffOptions.Session.AbsoluteLifetime;
+        var absolute = now + options.Session.AbsoluteLifetime;
         if (response.RefreshTokenExpiresIn is { } refreshSeconds)
         {
             var refreshExpiresAt = now + TimeSpan.FromSeconds(refreshSeconds);
@@ -295,13 +300,13 @@ internal class BffCallbackHandler
                 absolute = refreshExpiresAt;
         }
 
-        var idle = now + bffOptions.Session.IdleTimeout;
+        var idle = now + options.Session.IdleTimeout;
         if (absolute < idle)
             idle = absolute;
 
         var sessionMetadata = new BffSessionMetadata
         {
-            Frontend = BffDefaults.FrontendName,
+            Frontend = frontend.Name,
             Issuer = transaction.Issuer,
             Subject = subject,
             SessionId = identity.FindFirst(JoseClaimNames.Payload.Sid)?.Value,
@@ -336,7 +341,7 @@ internal class BffCallbackHandler
             ],
         };
 
-        var oldHandle = _cookies.ReadSessionHandle(request);
+        var oldHandle = _cookies.ReadSessionHandle(request, frontend);
         if (oldHandle is not null)
         {
             var old = await _sessionManager.LoadAsync(oldHandle, cancellationToken);
@@ -357,18 +362,18 @@ internal class BffCallbackHandler
             payload,
             cancellationToken
         );
-        _cookies.SetSession(httpContext.Response, created.Handle, absolute);
+        _cookies.SetSession(httpContext.Response, frontend, created.Handle, absolute);
         await _auditRecorder.LoginSucceededAsync(httpContext, subject, cancellationToken);
 
         var returnUrl = BffNavigation.LocalUrl(request, transaction.ReturnUrl);
         httpContext.Response.Redirect(returnUrl);
     }
 
-    private async ValueTask FailAsync(HttpContext httpContext, string reason)
+    private async ValueTask FailAsync(HttpContext httpContext, BffFrontend frontend, string reason)
     {
         _logger.LoginFailed(reason);
         await _auditRecorder.LoginFailedAsync(httpContext, reason, httpContext.RequestAborted);
-        var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, _options.Value, reason);
+        var errorUrl = BffNavigation.ErrorUrl(httpContext.Request, frontend.Options, reason);
         httpContext.Response.Redirect(errorUrl);
     }
 }

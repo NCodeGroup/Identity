@@ -15,8 +15,6 @@ public class SinglePageBundleTests : BaseTests
 
     private const string RebuiltIndexHtml = "<!doctype html><html><body>rebuilt</body></html>";
 
-    private sealed record TestIndex(string Html);
-
     private DirectoryInfo Root { get; } = Directory.CreateTempSubdirectory("bundle-");
 
     private int ParseCalls { get; set; }
@@ -39,20 +37,20 @@ public class SinglePageBundleTests : BaseTests
 
     #region Helpers
 
-    private SinglePageBundle<TestIndex> CreateBundle(
+    private SinglePageBundle<SinglePageTestIndex> CreateBundle(
         string? rootPath,
-        Func<string, TestIndex?>? parseIndex = null
+        Func<string, SinglePageTestIndex?>? parseIndex = null
     ) =>
         new(
             rootPath,
             html =>
             {
                 ParseCalls++;
-                return parseIndex is null ? new TestIndex(html) : parseIndex(html);
+                return parseIndex is null ? new SinglePageTestIndex(html) : parseIndex(html);
             }
         );
 
-    private SinglePageBundle<TestIndex> CreateBundle() => CreateBundle(DistPath);
+    private SinglePageBundle<SinglePageTestIndex> CreateBundle() => CreateBundle(DistPath);
 
     private void WriteIndex(string html, DateTime lastWriteTimeUtc)
     {
@@ -278,6 +276,7 @@ public class SinglePageBundleTests : BaseTests
     public void ServeAsset_WhenTheAssetExists_ServesItWithAnImmutableCacheLifetime()
     {
         WriteAsset("index-abc123.js", "console.log('hi');");
+        var assetPath = Path.Combine(AssetsPath, "index-abc123.js");
         using var bundle = CreateBundle();
         var httpContext = new DefaultHttpContext();
 
@@ -285,6 +284,7 @@ public class SinglePageBundleTests : BaseTests
 
         var file = Assert.IsType<PhysicalFileHttpResult>(result);
         Assert.EndsWith("index-abc123.js", file.FileName, StringComparison.Ordinal);
+        Assert.Equal(new DateTimeOffset(File.GetLastWriteTimeUtc(assetPath)), file.LastModified);
         Assert.NotNull(file.EntityTag);
         Assert.True(file.EnableRangeProcessing);
         Assert.Equal(

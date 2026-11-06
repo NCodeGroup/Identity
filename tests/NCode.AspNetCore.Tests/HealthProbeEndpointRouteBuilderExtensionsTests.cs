@@ -47,7 +47,9 @@ public class HealthProbeEndpointRouteBuilderExtensionsTests : BaseTests
     {
         var httpContext = new DefaultHttpContext { RequestServices = app.Services };
 
-        await endpoint.RequestDelegate!(httpContext);
+        var requestDelegate = Assert.IsType<RequestDelegate>(endpoint.RequestDelegate);
+
+        await requestDelegate(httpContext);
 
         return httpContext.Response.StatusCode;
     }

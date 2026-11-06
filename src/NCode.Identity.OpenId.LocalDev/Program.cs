@@ -38,6 +38,20 @@ var bootstrapAdminClientSecret = DevelopmentSecretFile.ReadBase64UrlEncoded(
 var adminPasswordPath = DevelopmentSecretFile.Ensure(developmentSecretsDirectory, "admin-password");
 var adminPassword = DevelopmentSecretFile.ReadText(adminPasswordPath);
 
+// The management console's BFF host (`console`) is a confidential client of the `api`, so its two private keys — the
+// private_key_jwt client key and the DPoP key — are generated once per machine as P-256 PEM files beside the root key,
+// and the console is handed their paths. The OP's outbound guard never fetches a loopback jwks_uri, so the `api`
+// registers the client key's public JWKS by value instead.
+var consoleClientKeyPath = DevelopmentKeyFile.EnsureEcPrivateKey(
+    developmentSecretsDirectory,
+    "mgmt-client.pem"
+);
+var consoleDPoPKeyPath = DevelopmentKeyFile.EnsureEcPrivateKey(
+    developmentSecretsDirectory,
+    "mgmt-dpop.pem"
+);
+var consoleClientJwks = DevelopmentKeyFile.ReadPublicJwks(consoleClientKeyPath);
+
 // The conformance seed's client secrets and test user password are generated per machine too, beside the root key,
 // where the conformance runner (build/conformance/run-conformance.ps1) reads the same files.
 var conformanceSeedEnvironment = ConformanceSeedSecrets.GetEnvironment(developmentSecretsDirectory);
@@ -84,6 +98,7 @@ var api = builder
     .WithEnvironment("SecretProtection__RootKeyProviders__Local__KeyPath", rootKeyPath)
     .WithEnvironment("BootstrapAdmin__ClientSecret", bootstrapAdminClientSecret)
     .WithEnvironment("DeveloperInteractiveSeed__AdminPassword", adminPassword)
+    .WithEnvironment("DeveloperInteractiveSeed__BffClients__0__Jwks", consoleClientJwks)
     .WaitFor(valkey)
     .WaitForCompletion(migrations)
     .WithExternalHttpEndpoints();
@@ -125,41 +140,34 @@ var conformanceApi = builder
 // collide (ERR_PNPM_EBUSY).
 builder.AddJavaScriptApp("auth", "../frontend/apps/auth").WithPnpm(install: false);
 
-// The Management console (apps/mgmt) is a STANDALONE Vite dev server. It is pinned to https://localhost:5173 (direct,
-// un-proxied, so HMR and the OAuth authorization-code callback work) because the developer seed registers
-// https://localhost:5173/callback as the SPA redirect URI and AddDeveloperCors allowlists localhost:5173. Like every
-// standalone surface below, it serves HTTPS with the ASP.NET Core development certificate the OP hosts use
-// (WithHttpsDeveloperCertificate): Aspire runs Vite under a wrapper config that sets `server.https` from that
-// certificate and switches the endpoint's scheme to https, so the browser sees one trusted certificate across the stack.
-// The browser SPA discovers the API from the host-published bootstrap document (ADR-1064); because this bundle is NOT
-// served by the OP host, its Vite dev server proxies /config/bootstrap.json to the api so local dev consumes the real
-// runtime endpoint instead of a static copy. WithReference injects the service-discovery variable that proxy targets
-// AND exposes Aspire service discovery to the Vite process; WaitFor holds startup until the API is healthy so the first
-// discovery/management call cannot race the API.
+// The management console bundle (apps/mgmt) is a BFF-SERVED bundle, like `auth`: its `dev` script is `vite build
+// --watch`, which continuously rebuilds `dist` for the console host below to serve. It is a build-watcher with no HTTP
+// endpoint of its own, so it is a plain JavaScript app resource, not a Vite dev server. The console host serves
+// whatever `dist` exists; on a cold start give the first build a moment to finish.
+builder.AddJavaScriptApp("mgmt", "../frontend/apps/mgmt").WithPnpm(install: false);
+
+// The management console's BFF host (`console`) is a confidential client of the `api` on https://localhost:5005 (the
+// origin the developer seed's `mgmt-console` redirect URIs assume). It serves the `mgmt` bundle, its own /bff/*
+// endpoints and the forwarded management API on one origin, and holds the browser's tokens. Its private_key_jwt and
+// DPoP keys are the per-machine PEM files generated above, handed over by path as the `mgmt-client` and `mgmt-dpop`
+// key rings. WaitFor holds startup until the `api` is healthy so the first sign-in cannot race it.
 builder
-    .AddViteApp("mgmt", "../frontend/apps/mgmt")
-    .WithPnpm(install: false)
-    .WithHttpsDeveloperCertificate()
-    .WithEndpoint(
-        "http",
-        endpoint =>
-        {
-            endpoint.Port = 5173;
-            endpoint.TargetPort = 5173;
-            endpoint.IsProxied = false;
-        },
-        createIfNotExists: false
-    )
-    .WithReference(api)
+    .AddProject<Projects.NCode_Identity_ManagementConsole_Host>("console")
+    .WithHttpHealthCheck("/health/ready")
+    .WithEnvironment("Bff__KeyRings__mgmt-client__PemFiles__0", consoleClientKeyPath)
+    .WithEnvironment("Bff__KeyRings__mgmt-dpop__PemFiles__0", consoleDPoPKeyPath)
     .WaitFor(api)
     .WithExternalHttpEndpoints();
 
 // The Playground flow explorer (apps/playground) is a STANDALONE Vite dev server pinned to https://localhost:5174 (the
 // port the seeded `playground-spa` redirect URI and AddDeveloperCors allowlist assume). It drives a live
-// authorization-code + PKCE round trip against the OP, so — like `mgmt` — it has its own seeded public client and CORS
-// origin, and proxies /config/bootstrap.json to the api, discovering its `playground` surface coordinates at boot
-// (ADR-1064). The same un-proxied fixed-port and development-certificate rules as `mgmt` apply so the OAuth redirect
-// callback resolves.
+// authorization-code + PKCE round trip against the OP, so it has its own seeded public client and CORS origin, and
+// proxies /config/bootstrap.json to the api, discovering its `playground` surface coordinates at boot (ADR-1064). Like
+// every standalone surface below, it serves HTTPS with the ASP.NET Core development certificate the OP hosts use
+// (WithHttpsDeveloperCertificate): Aspire runs Vite under a wrapper config that sets `server.https` from that
+// certificate and switches the endpoint's scheme to https, so the browser sees one trusted certificate across the
+// stack. WithReference injects the service-discovery variable the proxy targets, WaitFor holds startup until the API is
+// healthy, and the un-proxied fixed port lets the OAuth redirect callback resolve.
 builder
     .AddViteApp("playground", "../frontend/apps/playground")
     .WithPnpm(install: false)
@@ -179,7 +187,7 @@ builder
     .WithExternalHttpEndpoints();
 
 // The conformance posture dashboard (apps/conformance) is a STANDALONE, read-only Vite dev server pinned to
-// https://localhost:5175, served with the same development certificate as `mgmt`. It only audits the OP's published
+// https://localhost:5175, served with the same development certificate as the Playground. It only audits the OP's published
 // discovery metadata, so it needs no OAuth client; it proxies /config/bootstrap.json to the dedicated conformance OP
 // (`conformanceapi`, which advertises the opt-in capabilities) to learn its issuer, then reads that issuer's discovery
 // cross-origin (allowlisted by the Conformance overlay's Cors:AllowedOrigins). WaitFor holds startup until that OP is

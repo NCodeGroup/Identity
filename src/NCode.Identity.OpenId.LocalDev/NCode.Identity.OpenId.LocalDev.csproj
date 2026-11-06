@@ -37,5 +37,6 @@
              reference; it is a build-time orchestration link, not a runtime dependency. -->
         <ProjectReference Include="..\NCode.Identity.OpenId.Host\NCode.Identity.OpenId.Host.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Host.MigrationService\NCode.Identity.OpenId.Host.MigrationService.csproj" />
+        <ProjectReference Include="..\NCode.Identity.ManagementConsole.Host\NCode.Identity.ManagementConsole.Host.csproj" />
     </ItemGroup>
 </Project>

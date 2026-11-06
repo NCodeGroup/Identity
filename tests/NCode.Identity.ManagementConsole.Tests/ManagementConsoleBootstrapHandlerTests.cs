@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.Bff;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.ManagementConsole.Options;
 using Xunit;
@@ -12,6 +13,11 @@ namespace NCode.Identity.ManagementConsole.Tests;
 
 public class ManagementConsoleBootstrapHandlerTests : BaseTests
 {
+    private sealed class StubBffOptionsAccessor(BffOptions current) : IBffOptionsAccessor
+    {
+        public BffOptions Current { get; } = current;
+    }
+
     private static BffOptions CreateBffOptions(string pathPrefix = "/bff") =>
         new()
         {
@@ -30,7 +36,7 @@ public class ManagementConsoleBootstrapHandlerTests : BaseTests
     ) =>
         new(
             Microsoft.Extensions.Options.Options.Create(options),
-            Microsoft.Extensions.Options.Options.Create(bffOptions)
+            new StubBffOptionsAccessor(bffOptions)
         );
 
     private static async Task<(DefaultHttpContext HttpContext, JsonElement Document)> HandleAsync(

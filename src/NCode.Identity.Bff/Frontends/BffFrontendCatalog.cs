@@ -27,7 +27,7 @@ namespace NCode.Identity.Bff.Frontends;
 /// </para>
 /// </remarks>
 // See ADR-1442.
-internal sealed class BffFrontendCatalog : IDisposable
+internal sealed class BffFrontendCatalog : IBffOptionsAccessor, IDisposable
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BffFrontendCatalog"/> class.
@@ -161,6 +161,9 @@ internal sealed class BffFrontendCatalog : IDisposable
             }
         }
     }
+
+    /// <inheritdoc />
+    BffOptions IBffOptionsAccessor.Current => Current.Options;
 
     /// <summary>
     /// Gets the frontends that the BFF serves, ordered by name.

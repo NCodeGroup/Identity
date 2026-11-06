@@ -4,9 +4,7 @@
 using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using NCode.Buffers;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
@@ -33,7 +31,7 @@ internal static class BffPemKeyRing
         ArgumentNullException.ThrowIfNull(serviceProvider);
         ArgumentException.ThrowIfNullOrEmpty(name);
 
-        var options = serviceProvider.GetRequiredService<IOptions<BffOptions>>().Value;
+        var options = serviceProvider.GetRequiredService<IBffOptionsAccessor>().Current;
         var environment = serviceProvider.GetRequiredService<IHostEnvironment>();
         var keyFactory = serviceProvider.GetRequiredService<ISecretKeyFactory>();
         var collectionFactory =

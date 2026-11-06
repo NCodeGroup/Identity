@@ -196,3 +196,5 @@ NCode.Identity.Bff.Options.BffOptions.Frontends.get -> System.Collections.Generi
 NCode.Identity.Bff.Options.BffOptions.Frontends.set -> void
 NCode.Identity.Bff.Options.BffOptions.KeyRings.get -> System.Collections.Generic.Dictionary<string!, NCode.Identity.Bff.Options.BffKeyRingOptions!>!
 NCode.Identity.Bff.Options.BffOptions.KeyRings.set -> void
+NCode.Identity.Bff.IBffOptionsAccessor
+NCode.Identity.Bff.IBffOptionsAccessor.Current.get -> NCode.Identity.Bff.Options.BffOptions!

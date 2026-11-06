@@ -95,6 +95,9 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IBffFrontendSelector, PathBffFrontendSelector>()
             );
             serviceCollection.TryAddSingleton<BffFrontendCatalog>();
+            serviceCollection.TryAddSingleton<IBffOptionsAccessor>(serviceProvider =>
+                serviceProvider.GetRequiredService<BffFrontendCatalog>()
+            );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IBffFrontendSetCheck, BffClientAuthenticationCheck>()
             );

@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Secrets;
@@ -19,6 +20,11 @@ namespace NCode.Identity.Bff.Tests.Secrets;
 public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
 {
     private const string RingName = "ring";
+
+    private sealed class StubBffOptionsAccessor(BffOptions current) : IBffOptionsAccessor
+    {
+        public BffOptions Current { get; } = current;
+    }
 
     private DirectoryInfo KeysDirectory { get; } = Directory.CreateTempSubdirectory("bff-keys-");
 
@@ -75,7 +81,7 @@ public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
     {
         var options = new BffOptions();
         options.KeyRings[RingName] = new BffKeyRingOptions { PemFiles = [.. pemFiles] };
-        ServiceCollection.AddSingleton(Microsoft.Extensions.Options.Options.Create(options));
+        ServiceCollection.AddSingleton<IBffOptionsAccessor>(new StubBffOptionsAccessor(options));
 
         Provider = ServiceCollection.BuildServiceProvider();
         return Provider;
@@ -203,6 +209,11 @@ public sealed class BffPemKeyRingTests : BaseTests, IAsyncLifetime
             )
             .Build();
         ServiceCollection.NewBuilder<BffLibrary>().AddBffConfiguration(configuration);
+        ServiceCollection.AddSingleton<IBffOptionsAccessor>(
+            serviceProvider => new StubBffOptionsAccessor(
+                serviceProvider.GetRequiredService<IOptions<BffOptions>>().Value
+            )
+        );
         Provider = ServiceCollection.BuildServiceProvider();
 
         var keyRing = Provider.GetRequiredKeyedService<ISecretKeyCollectionProvider>(RingName);

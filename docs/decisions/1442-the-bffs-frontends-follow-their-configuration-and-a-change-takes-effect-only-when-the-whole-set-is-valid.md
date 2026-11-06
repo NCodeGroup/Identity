@@ -35,7 +35,9 @@ them) and replaces it when the options' change tokens fire and the candidate set
 derives from its options reads the current set.**
 
 1. **What follows the configuration.** The whole `Bff` section is one snapshot: `Frontends`, `Antiforgery` and
-   `Tokens`. Nothing in the BFF reads `IOptions<BffOptions>`; the catalog's current set is the one live view.
+   `Tokens`. Nothing in the BFF reads `IOptions<BffOptions>`; the catalog's current set is the one live view. A package
+   outside the BFF reads the options in effect through `IBffOptionsAccessor.Current`, which is the current set's
+   options: the last configuration change that validated as a whole.
    `AddBffConfiguration` registers the section's `IOptionsChangeTokenSource<BffOptions>`, so a source that reloads
    drives the catalog.
 2. **No switch.** The configuration source decides whether the frontends change at run time. A host that wants fixed

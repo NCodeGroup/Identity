@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NCode.Buffers;
+using NCode.Identity.Bff;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.ManagementConsole.Options;
 using Xunit;
@@ -14,6 +15,11 @@ namespace NCode.Identity.ManagementConsole.Tests;
 
 public partial class ManagementConsolePageHandlerTests : BaseTests
 {
+    private sealed class StubBffOptionsAccessor(BffOptions current) : IBffOptionsAccessor
+    {
+        public BffOptions Current { get; } = current;
+    }
+
     private const string IndexHtml =
         "<!doctype html><html><head><meta property=\"csp-nonce\" content=\"__NCODE_CSP_NONCE__\"></head><body></body></html>";
 
@@ -62,7 +68,7 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         );
         reader = new ManagementConsoleBundleReader(options, mockEnvironment.Object);
 
-        var bffOptions = Microsoft.Extensions.Options.Options.Create(
+        var bffOptions = new StubBffOptionsAccessor(
             new BffOptions
             {
                 Frontends =

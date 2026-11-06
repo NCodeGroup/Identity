@@ -136,6 +136,41 @@ public class BffFrontendCatalogTests : BaseTests
 
     #endregion
 
+    #region IBffOptionsAccessor.Current Tests
+
+    [Fact]
+    public void OptionsAccessorCurrent_BeforeAndAfterAValidChange_IsTheOptionsOfTheCurrentSet()
+    {
+        var initial = BffTestFrontends.CreateBffOptions();
+        var source = new BffTestOptionsSource(initial);
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        IBffOptionsAccessor accessor = catalog;
+        Assert.Same(initial, accessor.Current);
+        Assert.Same(catalog.Current.Options, accessor.Current);
+
+        var next = CreateOptionsWithShop();
+        source.Change(next);
+
+        Assert.Same(next, accessor.Current);
+        Assert.Same(catalog.Current.Options, accessor.Current);
+    }
+
+    [Fact]
+    public void OptionsAccessorCurrent_AfterARejectedChange_IsTheLastValidOptions()
+    {
+        var initial = BffTestFrontends.CreateBffOptions();
+        var source = new BffTestOptionsSource(initial);
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        IBffOptionsAccessor accessor = catalog;
+        Assert.Same(initial, accessor.Current);
+
+        source.Change(CreateOptionsWithShop("custom"));
+
+        Assert.Same(initial, accessor.Current);
+    }
+
+    #endregion
+
     #region TryGet Tests
 
     [Fact]

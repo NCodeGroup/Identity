@@ -312,13 +312,21 @@ than inlining the rationale.
   failed publish once the write has committed
   ([ADR-1205](../../docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md)). A handler also implements
   `HandleMissedMessagesAsync`, which the Valkey subscriber calls once it subscribes and whenever its connection is
-  restored: drop or read again everything a lost message on the channel could have made stale.
+  restored: drop or read again everything a lost message on the channel could have made stale. When each cached entry
+  records the store revision it was materialized from and every change the channel announces commits that revision, the
+  handler revalidates instead: it compares each entry's revision with the store's, evicts only what changed, and drops
+  everything only when it cannot read the revisions
+  ([ADR-1416](../../docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
+  [ADR-1454](../../docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md)).
 - 👁 **Work proportional to the deployment never runs inside a request.** A pass over every tenant or every client
   reads a settings projection (`GetSettingsPageAsync`, untracked, no secrets) and skips when the change cannot affect
   it. A pass that brings tenants or clients in line with their team's settings is a handler of
   `ReconcileTeamSettingsCommand`, which `TeamSettingsReconciliationService` sends per team and one replica runs in the
   background whenever the team's effective settings change
   ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md));
+  walk the teams beneath a team only through `ITeamDescendantWalker`, which holds one page of child teams per level, and
+  never read a whole subtree into memory
+  ([ADR-1455](../../docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md));
   never put such a pass on the in-process job dispatcher, whose bounded workers it would hold.
 - 👁 **State derived from settings converges by reconciliation, not by replaying an event.** A background pass reads the
   current state and repairs what differs, so a pass that a restart interrupted is run again and nothing depends on a
@@ -329,7 +337,7 @@ than inlining the rationale.
   its input, discard the compared input when a second change arrives before the first was reconciled, write the
   record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
   version so one replica runs each pass
-  ([ADR-1219](../../docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
+  ([ADR-1412](../../docs/decisions/1412-settings-are-reconciled-per-team.md),
   [ADR-1234](../../docs/decisions/1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md)).
 - 👁 **Build a protocol endpoint to the canonical shape** per [ADR-1086](../../docs/decisions/1086-canonical-openid-endpoint-shape.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →

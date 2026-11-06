@@ -579,8 +579,9 @@ internal class PlatformApiEndpointHandler(
     }
 
     // Announces a committed change to the platform's settings document, so every handler of the change (the default one
-    // reads the document again on every replica, whose reconciliation then seeds the tenants and checks the clients,
-    // ADR-1219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
+    // reads the document again on every replica, ADR-1219, and each team's reconciliation then seeds the tenants and
+    // checks the clients, ADR-1412) runs after the write. The mediator is request-scoped, so it is resolved from the
+    // request's services.
     private static ValueTask NotifyPlatformSettingsChangedAsync(
         HttpContext httpContext,
         JsonElement previousSettings,

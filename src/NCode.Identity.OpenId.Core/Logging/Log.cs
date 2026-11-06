@@ -273,6 +273,27 @@ internal static partial class Log
     );
 
     [LoggerMessage(
+        EventId = EventIds.TenantCacheRevalidationFailed,
+        Level = LogLevel.Warning,
+        Message = "Reading the revisions of the tenants this replica serves failed; every cached tenant and master key is evicted instead"
+    )]
+    internal static partial void TenantCacheRevalidationFailed(
+        this ILogger logger,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.TenantCacheEvictionFailed,
+        Level = LogLevel.Warning,
+        Message = "Evicting the cached tenant {TenantId} after a possibly missed announcement failed; every cached tenant and master key is evicted instead"
+    )]
+    internal static partial void TenantCacheEvictionFailed(
+        this ILogger logger,
+        Exception exception,
+        string tenantId
+    );
+
+    [LoggerMessage(
         EventId = EventIds.ProtectedValuePageConflict,
         Level = LogLevel.Debug,
         Message = "Another writer changed a page of the protected values of '{Owner}' while it was rewrapped; reading the page again (attempt {Attempt})"

@@ -7,6 +7,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
@@ -14,15 +15,18 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ITeamClientCoherenceChecker"/>, which checks the team's tenants,
-/// then walks the teams beneath it from the top down, resolving each team's settings document onto its parent's
-/// current and new settings through the <see cref="IEffectiveSettingsResolver"/> and checking that team's tenants
-/// through the <see cref="ITenantClientCoherenceChecker"/>. Tenants are read as an untracked, secret-free projection
+/// then walks the teams beneath it depth first through the <see cref="ITeamDescendantWalker"/>, resolving each team's
+/// settings document onto its parent's current and new settings through the <see cref="IEffectiveSettingsResolver"/>
+/// and checking that team's tenants through the <see cref="ITenantClientCoherenceChecker"/>. A team whose settings
+/// document cannot be read is skipped together with the teams beneath it, and only the settings of the teams on the
+/// path to the visited team are held. Tenants are read as an untracked, secret-free projection
 /// (<see cref="ITenantStore.GetSettingsPageAsync(string, PageRequest, CancellationToken)"/>).
 /// </summary>
-// See ADR-1206, ADR-1241 and ADR-1426.
+// See ADR-1206, ADR-1241, ADR-1426 and ADR-1455.
 internal sealed class DefaultTeamClientCoherenceChecker(
     IEffectiveSettingsResolver effectiveSettingsResolver,
     ITenantClientCoherenceChecker tenantClientCoherenceChecker,
+    ITeamDescendantWalker teamDescendantWalker,
     ILogger<DefaultTeamClientCoherenceChecker> logger
 ) : ITeamClientCoherenceChecker
 {
@@ -33,6 +37,7 @@ internal sealed class DefaultTeamClientCoherenceChecker(
         effectiveSettingsResolver;
     private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
         tenantClientCoherenceChecker;
+    private ITeamDescendantWalker TeamDescendantWalker { get; } = teamDescendantWalker;
     private ILogger<DefaultTeamClientCoherenceChecker> Logger { get; } = logger;
 
     /// <inheritdoc />
@@ -48,63 +53,80 @@ internal sealed class DefaultTeamClientCoherenceChecker(
 
         var teamSettings = new TeamSettingsChange(currentTeamSettings, newTeamSettings);
 
-        errors.AddRange(
-            await CheckTenantsAsync(storeManager, teamId, teamSettings, cancellationToken)
+        var teamViolations = await CheckTenantsAsync(
+            storeManager,
+            teamId,
+            teamSettings,
+            cancellationToken
         );
+        errors.AddRange(teamViolations);
 
-        var teamStore = storeManager.GetStore<ITeamStore>();
-        var descendants = await teamStore.GetDescendantsAsync(teamId, cancellationToken);
-
-        // A parent precedes its children, so a team's parent is always resolved, or skipped, before the team is read.
-        // A null entry marks a team whose settings document cannot be honored, or that sits beneath such a team.
-        var settingsByTeamId = new Dictionary<string, TeamSettingsChange?>(
-            StringComparer.OrdinalIgnoreCase
-        )
+        // The walk visits each parent before its children and returns to a shallower team after a deeper branch, so
+        // the settings of the teams on the path from the changed team to the visited team are all that is kept.
+        var path = new List<(string TeamId, TeamSettingsChange Settings)>
         {
-            [teamId] = teamSettings,
+            (teamId, teamSettings),
         };
 
-        foreach (var team in descendants)
-        {
-            if (
-                team.ParentTeamId is null
-                || !settingsByTeamId.TryGetValue(team.ParentTeamId, out var parentSettings)
-                || parentSettings is not { } parent
-            )
+        await TeamDescendantWalker.WalkDescendantsAsync(
+            teamId,
+            async (team, token) =>
             {
-                settingsByTeamId[team.TeamId] = null;
-                continue;
-            }
+                while (
+                    path.Count > 0
+                    && !string.Equals(
+                        path[^1].TeamId,
+                        team.ParentTeamId,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                {
+                    path.RemoveAt(path.Count - 1);
+                }
 
-            IReadOnlySettingCollection currentSettings;
-            IReadOnlySettingCollection newSettings;
-            try
-            {
-                currentSettings = EffectiveSettingsResolver.Resolve(
-                    parent.Current,
-                    OpenIdSettingScopes.Team,
-                    team.Settings.Value
+                if (path.Count == 0)
+                {
+                    return false;
+                }
+
+                var parent = path[^1].Settings;
+
+                IReadOnlySettingCollection currentSettings;
+                IReadOnlySettingCollection newSettings;
+                try
+                {
+                    currentSettings = EffectiveSettingsResolver.Resolve(
+                        parent.Current,
+                        OpenIdSettingScopes.Team,
+                        team.Settings.Value
+                    );
+                    newSettings = EffectiveSettingsResolver.Resolve(
+                        parent.New,
+                        OpenIdSettingScopes.Team,
+                        team.Settings.Value
+                    );
+                }
+                catch (JsonException exception)
+                {
+                    Logger.TeamSettingsUnreadable(team.TeamId, exception.Message);
+                    return false;
+                }
+
+                var childSettings = new TeamSettingsChange(currentSettings, newSettings);
+                path.Add((team.TeamId, childSettings));
+
+                var childViolations = await CheckTenantsAsync(
+                    storeManager,
+                    team.TeamId,
+                    childSettings,
+                    token
                 );
-                newSettings = EffectiveSettingsResolver.Resolve(
-                    parent.New,
-                    OpenIdSettingScopes.Team,
-                    team.Settings.Value
-                );
-            }
-            catch (JsonException exception)
-            {
-                Logger.TeamSettingsUnreadable(team.TeamId, exception.Message);
-                settingsByTeamId[team.TeamId] = null;
-                continue;
-            }
+                errors.AddRange(childViolations);
 
-            var childSettings = new TeamSettingsChange(currentSettings, newSettings);
-            settingsByTeamId[team.TeamId] = childSettings;
-
-            errors.AddRange(
-                await CheckTenantsAsync(storeManager, team.TeamId, childSettings, cancellationToken)
-            );
-        }
+                return true;
+            },
+            cancellationToken
+        );
 
         return errors;
     }

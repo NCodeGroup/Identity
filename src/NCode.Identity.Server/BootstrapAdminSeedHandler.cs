@@ -33,7 +33,7 @@ namespace NCode.Identity.Server;
 /// settings, team by team, reports it, as it reports every stored client, when the settings make it incoherent.
 /// </summary>
 // See ADR-1044 (the bootstrap administrator), ADR-1166 (a seeder that names a tenant seeds exactly that tenant), and
-// ADR-1219 (an existing client is reported by the reconciliation).
+// ADR-1412 (an existing client is reported by the per-team reconciliation).
 internal sealed class BootstrapAdminSeedHandler(
     IOptions<BootstrapAdminOptions> bootstrapOptionsAccessor,
     IClientSecretIssuer clientSecretIssuer,

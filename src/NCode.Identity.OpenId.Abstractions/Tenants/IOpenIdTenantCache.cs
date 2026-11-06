@@ -82,6 +82,18 @@ public interface IOpenIdTenantCache
     ValueTask ClearAsync(IPropertyBag propertyBag, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Gets the revision of each cached <see cref="OpenIdTenant"/> instance: its identifier and the concurrency token
+    /// of the persisted tenant it was materialized from.
+    /// </summary>
+    /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="TenantRevision"/> of each cached tenant.</returns>
+    ValueTask<IReadOnlyCollection<TenantRevision>> GetRevisionsAsync(
+        IPropertyBag propertyBag,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets the distinct revisions of the teams that the cached <see cref="OpenIdTenant"/> instances were materialized
     /// under: each tenant's own team and every team above it.
     /// </summary>

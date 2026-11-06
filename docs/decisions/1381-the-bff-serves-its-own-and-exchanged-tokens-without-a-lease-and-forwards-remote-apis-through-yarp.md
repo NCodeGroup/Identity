@@ -1,6 +1,8 @@
 # 1381. The BFF serves its own and exchanged tokens without a lease and forwards remote APIs through YARP
 
-- **Status:** Accepted
+- **Status:** Accepted (decisions 7 and 8 amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): configured remote APIs
+  and YARP routes belong to a frontend)
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 

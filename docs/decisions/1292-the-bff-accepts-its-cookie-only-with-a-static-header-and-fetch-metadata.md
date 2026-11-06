@@ -1,6 +1,8 @@
 # 1292. The BFF accepts its cookie only with a static header and Fetch Metadata
 
-- **Status:** Accepted
+- **Status:** Accepted (decision 3 amended by
+  [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): trusted origins are
+  per frontend)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)

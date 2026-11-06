@@ -248,3 +248,4 @@ NCode.Identity.Bff.IBffUserDocumentFactory.CreateAsync(Microsoft.AspNetCore.Http
 NCode.Identity.Bff.IBffEndpointStartupRequirement
 NCode.Identity.Bff.IBffEndpointStartupRequirement.Validate(System.IServiceProvider! services) -> string?
 NCode.Identity.Bff.BffSessionMetadata.Client.get -> NCode.Identity.Bff.BffSessionClient
+NCode.Identity.Bff.IBffConnectionSession.SessionEnded.get -> System.Threading.CancellationToken

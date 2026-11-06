@@ -123,6 +123,52 @@ public class DefaultBffConnectionSessionTests : BaseTests
     }
 
     [Fact]
+    public async Task ValidateAsync_SessionEnded_CancelsSessionEnded()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        resolver
+            .Setup(x =>
+                x.ValidateAsync(frontend, Handle, null, null, It.IsAny<CancellationToken>())
+            )
+            .Returns(new ValueTask<BffSessionState?>((BffSessionState?)null))
+            .Verifiable();
+        var session = CreateSession(catalog, frontend, resolver);
+
+        await session.ValidateAsync(null, CancellationToken.None);
+
+        Assert.True(session.SessionEnded.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_AfterSessionEnded_ReturnsNullWithoutResolving()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        var calls = 0;
+        resolver
+            .Setup(x =>
+                x.ValidateAsync(frontend, Handle, null, null, It.IsAny<CancellationToken>())
+            )
+            .Returns(() =>
+            {
+                calls++;
+                return new ValueTask<BffSessionState?>((BffSessionState?)null);
+            })
+            .Verifiable();
+        var session = CreateSession(catalog, frontend, resolver);
+
+        var first = await session.ValidateAsync(null, CancellationToken.None);
+        var second = await session.ValidateAsync(null, CancellationToken.None);
+
+        Assert.Null(first);
+        Assert.Null(second);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
     public async Task ValidateAsync_PassesActivityWithoutHttpContext()
     {
         var catalog = BffTestFrontends.CreateCatalog();
@@ -155,11 +201,32 @@ public class DefaultBffConnectionSessionTests : BaseTests
         var principal = await session.ValidateAsync(null, CancellationToken.None);
 
         Assert.Null(principal);
+        Assert.True(session.SessionEnded.IsCancellationRequested);
     }
 
     #endregion
 
     #region ResolveAsync Tests
+
+    [Fact]
+    public async Task ResolveAsync_SessionEnded_CancelsSessionEnded()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        resolver
+            .Setup(x =>
+                x.ValidateAsync(frontend, Handle, null, null, It.IsAny<CancellationToken>())
+            )
+            .Returns(new ValueTask<BffSessionState?>((BffSessionState?)null))
+            .Verifiable();
+        var session = CreateSession(catalog, frontend, resolver);
+
+        var result = await session.ResolveAsync(CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.True(session.SessionEnded.IsCancellationRequested);
+    }
 
     [Fact]
     public async Task ResolveAsync_ValidatesWithoutSliding()
@@ -290,7 +357,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
     #region OnSessionEnded Tests
 
     [Fact]
-    public void OnSessionEnded_DoesNothing()
+    public void OnSessionEnded_CancelsSessionEnded()
     {
         var catalog = BffTestFrontends.CreateCatalog();
         var frontend = BffTestFrontends.Get(catalog);
@@ -298,6 +365,23 @@ public class DefaultBffConnectionSessionTests : BaseTests
         var session = CreateSession(catalog, frontend, resolver);
 
         session.OnSessionEnded();
+
+        Assert.True(session.SessionEnded.IsCancellationRequested);
+    }
+
+    #endregion
+
+    #region SessionEnded Property Tests
+
+    [Fact]
+    public void SessionEnded_WhileTheSessionLives_IsNotCancelled()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        var session = CreateSession(catalog, frontend, resolver);
+
+        Assert.False(session.SessionEnded.IsCancellationRequested);
     }
 
     #endregion

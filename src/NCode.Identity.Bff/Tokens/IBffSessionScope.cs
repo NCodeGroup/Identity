@@ -23,8 +23,8 @@ internal interface IBffSessionScope : IBffTokenContext
     ValueTask<BffSessionState?> ResolveAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Called when the session of the scope has ended: a request deletes its session cookie, and a connection, which
-    /// has none, does nothing.
+    /// Called when the session of the scope has ended: a request deletes its session cookie, and a connection cancels
+    /// its <see cref="IBffConnectionSession.SessionEnded"/> token.
     /// </summary>
     void OnSessionEnded();
 

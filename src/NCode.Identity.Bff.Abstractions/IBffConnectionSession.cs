@@ -19,6 +19,13 @@ public interface IBffConnectionSession : IBffTokenContext
     TimeSpan RevalidationInterval { get; }
 
     /// <summary>
+    /// Gets a token that is cancelled once a use of the connection finds that its session ended: a revalidation, a
+    /// token request, or a refresh that ends the session. From then on <see cref="ValidateAsync"/> returns
+    /// <see langword="null"/> without reloading the session.
+    /// </summary>
+    CancellationToken SessionEnded { get; }
+
+    /// <summary>
     /// Reloads the session, ends it when it expired or a validator refuses it, and slides its idle window from
     /// <paramref name="lastActivityAt"/> when that is later than its last access.
     /// </summary>

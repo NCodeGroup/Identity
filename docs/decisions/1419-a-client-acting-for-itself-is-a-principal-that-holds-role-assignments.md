@@ -1,7 +1,8 @@
 # 1419. A client acting for itself is a principal that holds role assignments
 
-- **Status:** Accepted
-- **Date:** 2026-11-05
+- **Status:** Accepted (amended by
+  [ADR-1450](1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md): a
+  client-credentials token names the client's principal as its subject)
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) (a client acting for itself is the
   client case of the abstract principal);

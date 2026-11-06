@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
 
@@ -15,12 +14,12 @@ namespace NCode.Identity.Bff.Auditing;
 /// </summary>
 internal class DefaultBffAuditRecorder(
     IEventPublisher publisher,
-    IOptions<BffOptions> options,
+    BffFrontendCatalog frontends,
     TimeProvider timeProvider
 ) : IBffAuditRecorder
 {
     private IEventPublisher Publisher { get; } = publisher;
-    private IOptions<BffOptions> Options { get; } = options;
+    private BffFrontendCatalog Frontends { get; } = frontends;
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
@@ -177,7 +176,9 @@ internal class DefaultBffAuditRecorder(
             EventSource = BffAuditEventNames.Source,
             Name = name,
             Category = category,
-            ClientId = Options.Value.ClientId,
+            ClientId = httpContext is null
+                ? null
+                : Frontends.Resolve(httpContext)?.Options.ClientId,
             SubjectId = subject,
             Actor = actor,
             Request = request,

@@ -53,9 +53,13 @@ internal sealed class DefaultTeamClientCoherenceChecker(
 
         var teamSettings = new TeamSettingsChange(currentTeamSettings, newTeamSettings);
 
-        errors.AddRange(
-            await CheckTenantsAsync(storeManager, teamId, teamSettings, cancellationToken)
+        var teamViolations = await CheckTenantsAsync(
+            storeManager,
+            teamId,
+            teamSettings,
+            cancellationToken
         );
+        errors.AddRange(teamViolations);
 
         // The walk visits each parent before its children and returns to a shallower team after a deeper branch, so
         // the settings of the teams on the path from the changed team to the visited team are all that is kept.
@@ -111,9 +115,13 @@ internal sealed class DefaultTeamClientCoherenceChecker(
                 var childSettings = new TeamSettingsChange(currentSettings, newSettings);
                 path.Add((team.TeamId, childSettings));
 
-                errors.AddRange(
-                    await CheckTenantsAsync(storeManager, team.TeamId, childSettings, token)
+                var childViolations = await CheckTenantsAsync(
+                    storeManager,
+                    team.TeamId,
+                    childSettings,
+                    token
                 );
+                errors.AddRange(childViolations);
 
                 return true;
             },

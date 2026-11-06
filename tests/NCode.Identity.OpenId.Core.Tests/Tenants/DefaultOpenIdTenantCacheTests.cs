@@ -445,7 +445,8 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
     [Fact]
     public async Task GetRevisionsAsync_AfterRemoveAsync_OmitsTheTenant()
     {
-        var firstTenant = CreateMockTenant(concurrencyToken: "t1");
+        var firstDisposed = CreateCompletionSource();
+        var firstTenant = CreateMockTenant(firstDisposed, concurrencyToken: "t1");
         var secondTenant = CreateMockTenant(concurrencyToken: "t2");
         var propertyBag = PropertyBagFactory.Create();
 
@@ -458,25 +459,12 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
 
         await Cache.RemoveAsync("acme", propertyBag, CancellationToken.None);
 
-        // The eviction callback runs off the calling thread.
-        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-        while (true)
-        {
-            var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+        // The eviction callback has run once the removed tenant is disposed.
+        await firstDisposed.Task.WaitAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
 
-            if (revisions.Count == 1)
-            {
-                Assert.Equal(new TenantRevision("globex", "t2"), Assert.Single(revisions));
-                break;
-            }
+        var revisions = await Cache.GetRevisionsAsync(propertyBag, CancellationToken.None);
 
-            Assert.True(
-                DateTime.UtcNow < deadline,
-                "The tenant revision was not removed within 5 seconds."
-            );
-
-            await Task.Delay(TimeSpan.FromMilliseconds(20), CancellationToken.None);
-        }
+        Assert.Equal(new TenantRevision("globex", "t2"), Assert.Single(revisions));
     }
 
     [Fact]

@@ -1,4 +1,7 @@
 #nullable enable
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientHttpClientBuilderExtensions
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!)
+NCode.Identity.Bff.Blazor.Client.BffBlazorClientHttpClientBuilderExtensions.extension(Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!).AddBffAntiforgeryHeader() -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!
 NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary
 NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary.BffBlazorClientLibrary() -> void
 const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.AuthenticationType = "NCode.Identity.Bff" -> string!

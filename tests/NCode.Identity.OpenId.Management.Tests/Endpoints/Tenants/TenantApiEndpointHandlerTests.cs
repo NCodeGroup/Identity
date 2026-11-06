@@ -1188,7 +1188,8 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     private void SetupTeamForCreate(
         bool resolveSettings,
         int? maxTenants = null,
-        long? tenantCount = null
+        long? tenantCount = null,
+        IReadOnlyList<string>? ancestorTeamIds = null
     )
     {
         SetupTenantCreateAuthorization(null);
@@ -1198,7 +1199,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockTeamStore
             .Setup(x => x.GetOrDefaultAsync(TeamId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTeam())
+            .ReturnsAsync(CreateTeam(ancestorTeamIds))
             .Verifiable();
 
         if (resolveSettings)
@@ -1220,13 +1221,14 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         }
     }
 
-    private static PersistedTeam CreateTeam() =>
+    private static PersistedTeam CreateTeam(IReadOnlyList<string>? ancestorTeamIds = null) =>
         new()
         {
             TeamId = TeamId,
             ConcurrencyToken = "team-ct",
             IsDisabled = false,
             DisplayName = "Team One",
+            AncestorTeamIds = ancestorTeamIds ?? [],
             Settings = new PersistedTeamSettings
             {
                 TeamId = TeamId,
@@ -2907,7 +2909,49 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
-        Assert.Equal("The team holds its maximum of 2 tenants.", problem.ProblemDetails.Detail);
+        Assert.Equal(
+            "The team 'platform' holds its maximum of 2 tenants.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public async Task CreateTenantAsync_WhenTheParentTeamIsFull_ReturnsConflict()
+    {
+        SetupTeamForCreate(resolveSettings: true, ancestorTeamIds: ["acme"]);
+        var parentSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        var configured = 1;
+        parentSettings
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.MaxTenants, out configured))
+            .Returns(true)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveTeamAsync("acme", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(parentSettings.Object)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.CountAsync("acme", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1)
+            .Verifiable();
+        SetupDefaultAlias("acme", alias: null);
+        SetupStore();
+        SetupDefaultIssuer("acme", DerivedIssuer);
+        SetupCreateValidation();
+
+        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the tenant would fail the test.
+        var result = await Handler.CreateTenantAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateTenantRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "The team 'acme' holds its maximum of 1 tenants.",
+            problem.ProblemDetails.Detail
+        );
     }
 
     [Fact]

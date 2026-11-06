@@ -578,7 +578,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created tenant.</response>
     /// <response code="404">The team does not exist.</response>
-    /// <response code="409">The team holds its maximum number of tenants.</response>
+    /// <response code="409">The team or a team above it holds its maximum number of tenants.</response>
     [EndpointName("api/teams/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
@@ -662,23 +662,33 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // A team holds at most its 'max_tenants' tenants; unset means unlimited (ADR-1411).
-        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+        // A team's 'max_tenants' bounds the tenants of the team and of every team beneath it; unset means unlimited
+        // (ADR-1411, ADR-1426).
+        IReadOnlyList<string> lineageTeamIds =
+        [
             teamId,
-            cancellationToken
-        );
-        if (
-            teamSettings.TryGetValue(OpenIdSettingKeys.MaxTenants, out var maxTenants)
-            && await store.CountAsync(teamId, cancellationToken) >= maxTenants
-        )
+            .. Enumerable.Reverse(team.AncestorTeamIds),
+        ];
+        foreach (var lineageTeamId in lineageTeamIds)
         {
-            return ToErrorResult(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status409Conflict,
-                    Detail = $"The team holds its maximum of {maxTenants} tenants.",
-                }
+            var lineageSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+                lineageTeamId,
+                cancellationToken
             );
+            if (
+                lineageSettings.TryGetValue(OpenIdSettingKeys.MaxTenants, out var maxTenants)
+                && await store.CountAsync(lineageTeamId, cancellationToken) >= maxTenants
+            )
+            {
+                return ToErrorResult(
+                    new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status409Conflict,
+                        Detail =
+                            $"The team '{lineageTeamId}' holds its maximum of {maxTenants} tenants.",
+                    }
+                );
+            }
         }
 
         // Setting names are a closed vocabulary (ADR-1139), and a tenant carries only the settings that apply within it

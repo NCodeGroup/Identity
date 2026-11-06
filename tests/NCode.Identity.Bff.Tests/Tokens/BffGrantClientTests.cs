@@ -6,6 +6,7 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -140,6 +141,29 @@ public class BffGrantClientTests : BaseTests
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             Client.RequestAsync(request, CancellationToken.None).AsTask()
         );
+    }
+
+    [Fact]
+    public async Task RequestAsync_WithFrontend_UsesItsRegistration()
+    {
+        var frontend = BffTestFrontends.Get(
+            BffTestFrontends.CreateCatalog(x => x.ClientId = "frontend-client")
+        );
+        var request = new ClientCredentialsTokenRequest();
+        MockTokenClient
+            .Setup(x =>
+                x.RequestTokenAsync(
+                    It.Is<ClientRegistration>(r => r.ClientId == "frontend-client"),
+                    request,
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(new TokenResult(new TokenResponse { AccessToken = "access" }))
+            .Verifiable();
+
+        var result = await Client.RequestAsync(frontend, request, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]

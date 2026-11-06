@@ -78,7 +78,7 @@
         }
       }
     },
-    "reverseProxy": {
+    "forwardedHeaders": {
       "type": "object",
       "additionalProperties": false,
       "properties": {

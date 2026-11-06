@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Options;
 
-namespace NCode.Identity.Server.StrictTransportSecurity;
+namespace NCode.AspNetCore.Options;
 
 /// <summary>
 /// Validates <see cref="StrictTransportSecurityOptions"/>, so a policy that a browser or the HSTS preload list would

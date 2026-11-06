@@ -274,16 +274,16 @@ same configuration the pods it rewraps keys for read.
 - name: OpenId__TenantResolution__StaticSingle__Issuer
   value: {{ . | quote }}
 {{- end }}
-{{- range $index, $network := .Values.reverseProxy.knownNetworks }}
-- name: ReverseProxy__KnownNetworks__{{ $index }}
+{{- range $index, $network := .Values.forwardedHeaders.knownNetworks }}
+- name: ForwardedHeaders__KnownNetworks__{{ $index }}
   value: {{ $network | quote }}
 {{- end }}
-{{- range $index, $proxy := .Values.reverseProxy.knownProxies }}
-- name: ReverseProxy__KnownProxies__{{ $index }}
+{{- range $index, $proxy := .Values.forwardedHeaders.knownProxies }}
+- name: ForwardedHeaders__KnownProxies__{{ $index }}
   value: {{ $proxy | quote }}
 {{- end }}
-- name: ReverseProxy__ForwardLimit
-  value: {{ .Values.reverseProxy.forwardLimit | quote }}
+- name: ForwardedHeaders__ForwardLimit
+  value: {{ .Values.forwardedHeaders.forwardLimit | quote }}
 - name: ConnectionStrings__openiddb
   valueFrom:
     secretKeyRef:

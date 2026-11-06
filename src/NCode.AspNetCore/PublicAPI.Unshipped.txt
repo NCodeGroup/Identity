@@ -55,3 +55,38 @@ NCode.AspNetCore.HtmlPageSecurityPolicy.ToContentSecurityPolicy() -> string!
 NCode.AspNetCore.HtmlPageSecurityResponseExtensions
 NCode.AspNetCore.HtmlPageSecurityResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!)
 NCode.AspNetCore.HtmlPageSecurityResponseExtensions.extension(Microsoft.AspNetCore.Http.HttpResponse!).SetHtmlPageSecurity(NCode.AspNetCore.HtmlPageSecurityPolicy! policy) -> void
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.ForwardLimit.get -> int
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.ForwardLimit.set -> void
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.HasTrustedProxy.get -> bool
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.KnownNetworks.get -> string![]!
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.KnownNetworks.set -> void
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.KnownProxies.get -> string![]!
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.KnownProxies.set -> void
+NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.TrustedForwardedHeadersOptions() -> void
+const NCode.AspNetCore.Options.TrustedForwardedHeadersOptions.DefaultSectionName = "ForwardedHeaders" -> string!
+NCode.AspNetCore.TrustedForwardedHeadersRegistration
+NCode.AspNetCore.TrustedForwardedHeadersRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.AspNetCore.TrustedForwardedHeadersRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddTrustedForwardedHeaders(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.AspNetCore.TrustedForwardedHeadersApplicationBuilderExtensions
+NCode.AspNetCore.TrustedForwardedHeadersApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.AspNetCore.TrustedForwardedHeadersApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseTrustedForwardedHeaders() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.AspNetCore.StrictTransportSecurityApplicationBuilderExtensions
+NCode.AspNetCore.StrictTransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
+NCode.AspNetCore.StrictTransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseStrictTransportSecurity() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.AspNetCore.StrictTransportSecurityRegistration
+NCode.AspNetCore.StrictTransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.AspNetCore.StrictTransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddStrictTransportSecurity(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+const NCode.AspNetCore.Options.StrictTransportSecurityOptions.DefaultSectionName = "StrictTransportSecurity" -> string!
+NCode.AspNetCore.Options.StrictTransportSecurityOptions
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.Enabled.get -> bool
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.Enabled.set -> void
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.ExcludedHosts.get -> string![]!
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.ExcludedHosts.set -> void
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.IncludeSubDomains.get -> bool
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.IncludeSubDomains.set -> void
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.MaxAge.get -> System.TimeSpan
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.MaxAge.set -> void
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.Preload.get -> bool
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.Preload.set -> void
+NCode.AspNetCore.Options.StrictTransportSecurityOptions.StrictTransportSecurityOptions() -> void

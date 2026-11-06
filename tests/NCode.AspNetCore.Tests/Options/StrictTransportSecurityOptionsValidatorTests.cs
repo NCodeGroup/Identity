@@ -1,10 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using NCode.Identity.Server.StrictTransportSecurity;
+using NCode.AspNetCore.Options;
 using Xunit;
 
-namespace NCode.Identity.Server.Tests.StrictTransportSecurity;
+namespace NCode.AspNetCore.Tests.Options;
 
 public sealed class StrictTransportSecurityOptionsValidatorTests
 {

@@ -298,7 +298,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `'sha256-…'` source by hashing the page's own `<script>` text (`HtmlPageSecurityTests`).
 - 👁 **Prove a header that depends on the forwarded scheme with a forwarded request** — template
   [Integration Tests](csharp-tests.instructions.md#integration-tests): send `X-Forwarded-Proto: https` over `http`
-  through a host that trusts `127.0.0.1` in `ReverseProxy:KnownProxies`, with a control whose host trusts no proxy
+  through a host that trusts `127.0.0.1` in `ForwardedHeaders:KnownProxies`, with a control whose host trusts no proxy
   (`StrictTransportSecurityTests`).
 - 👁 **A password a test sets through an entry point meets the password policy.** The management API, the
   change-password page and the seeders refuse a password shorter than 15 characters or on the common-password list

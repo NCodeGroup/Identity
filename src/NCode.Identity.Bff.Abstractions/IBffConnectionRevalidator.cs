@@ -14,8 +14,9 @@ public interface IBffConnectionRevalidator
     /// <summary>
     /// Revalidates the session that <paramref name="connection"/> holds every
     /// <see cref="IBffConnectionSession.RevalidationInterval"/> without sliding it, logs an unavailable session
-    /// store and tries again at the next interval, and completes once the session ended or revalidating it failed
-    /// for any other reason.
+    /// store and tries again at the next interval, and completes once the session ended, at the next revalidation or
+    /// as soon as <see cref="IBffConnectionSession.SessionEnded"/> is cancelled, or revalidating it failed for any
+    /// other reason.
     /// </summary>
     /// <param name="connection">The session that the connection holds.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>

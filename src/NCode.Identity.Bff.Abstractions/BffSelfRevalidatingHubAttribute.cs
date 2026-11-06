@@ -7,8 +7,8 @@ namespace NCode.Identity.Bff;
 
 /// <summary>
 /// Marks a BFF hub whose application signs a connection's user out itself when the session ends, such as the Blazor hub
-/// whose circuit signs out, so the BFF does not close an idle connection of the hub. An invocation still revalidates the
-/// session and closes the connection when it ended.
+/// whose circuit signs out. The BFF never closes such a connection: it does not watch it while idle, an invocation that
+/// finds the session ended fails, and once the session ended the connection's invocations run without the session.
 /// </summary>
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]

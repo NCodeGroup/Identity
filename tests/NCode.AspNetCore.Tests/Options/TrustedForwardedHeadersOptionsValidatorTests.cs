@@ -1,21 +1,21 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using NCode.Identity.Server.ReverseProxy;
+using NCode.AspNetCore.Options;
 using Xunit;
 
-namespace NCode.Identity.Server.Tests.ReverseProxy;
+namespace NCode.AspNetCore.Tests.Options;
 
-public sealed class ReverseProxyOptionsValidatorTests
+public sealed class TrustedForwardedHeadersOptionsValidatorTests
 {
-    private static ReverseProxyOptionsValidator Validator { get; } = new();
+    private static TrustedForwardedHeadersOptionsValidator Validator { get; } = new();
 
     #region Validate Tests
 
     [Fact]
     public void Validate_WhenDefaults_Succeeds()
     {
-        var result = Validator.Validate(name: null, new ReverseProxyOptions());
+        var result = Validator.Validate(name: null, new TrustedForwardedHeadersOptions());
 
         Assert.True(result.Succeeded);
     }
@@ -28,7 +28,7 @@ public sealed class ReverseProxyOptionsValidatorTests
     {
         var result = Validator.Validate(
             name: null,
-            new ReverseProxyOptions { KnownProxies = [proxy] }
+            new TrustedForwardedHeadersOptions { KnownProxies = [proxy] }
         );
 
         Assert.True(result.Succeeded);
@@ -45,13 +45,13 @@ public sealed class ReverseProxyOptionsValidatorTests
     {
         var result = Validator.Validate(
             name: null,
-            new ReverseProxyOptions { KnownProxies = ["10.0.0.4", proxy] }
+            new TrustedForwardedHeadersOptions { KnownProxies = ["10.0.0.4", proxy] }
         );
 
         Assert.True(result.Failed);
         var failure = Assert.Single(result.Failures);
         Assert.StartsWith(
-            $"ReverseProxy:KnownProxies:1 '{proxy}'",
+            $"ForwardedHeaders:KnownProxies:1 '{proxy}'",
             failure,
             StringComparison.Ordinal
         );
@@ -65,7 +65,7 @@ public sealed class ReverseProxyOptionsValidatorTests
     {
         var result = Validator.Validate(
             name: null,
-            new ReverseProxyOptions { KnownNetworks = [network] }
+            new TrustedForwardedHeadersOptions { KnownNetworks = [network] }
         );
 
         Assert.True(result.Succeeded);
@@ -81,13 +81,13 @@ public sealed class ReverseProxyOptionsValidatorTests
     {
         var result = Validator.Validate(
             name: null,
-            new ReverseProxyOptions { KnownNetworks = [network] }
+            new TrustedForwardedHeadersOptions { KnownNetworks = [network] }
         );
 
         Assert.True(result.Failed);
         var failure = Assert.Single(result.Failures);
         Assert.StartsWith(
-            $"ReverseProxy:KnownNetworks:0 '{network}'",
+            $"ForwardedHeaders:KnownNetworks:0 '{network}'",
             failure,
             StringComparison.Ordinal
         );
@@ -100,12 +100,12 @@ public sealed class ReverseProxyOptionsValidatorTests
     {
         var result = Validator.Validate(
             name: null,
-            new ReverseProxyOptions { ForwardLimit = forwardLimit }
+            new TrustedForwardedHeadersOptions { ForwardLimit = forwardLimit }
         );
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "ReverseProxy:ForwardLimit",
+            "ForwardedHeaders:ForwardLimit",
             result.FailureMessage,
             StringComparison.Ordinal
         );
@@ -116,7 +116,7 @@ public sealed class ReverseProxyOptionsValidatorTests
     {
         var result = Validator.Validate(
             name: null,
-            new ReverseProxyOptions
+            new TrustedForwardedHeadersOptions
             {
                 KnownProxies = ["bad"],
                 KnownNetworks = ["bad"],

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
+using NCode.AspNetCore;
 using NCode.Identity;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
@@ -62,9 +63,9 @@ serviceCollection.AddHttpLogging(options =>
     options.LoggingFields = HttpLoggingFields.All;
 });
 
-// Trust a reverse proxy's X-Forwarded-* headers, but only the proxies named in the 'ReverseProxy' configuration
+// Trust a reverse proxy's X-Forwarded-* headers, but only the proxies named in the 'ForwardedHeaders' configuration
 // section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
-serviceCollection.AddReverseProxy(configuration);
+serviceCollection.AddTrustedForwardedHeaders(configuration);
 
 // Send Strict-Transport-Security on every HTTPS response outside Development, as configured by the
 // 'StrictTransportSecurity' section (one year with includeSubDomains by default). A deployment whose TLS-terminating
@@ -180,10 +181,10 @@ if (secretProtectionCommand is not null)
 
 // MUST be the first middleware: everything downstream that reads the scheme or host — the HTTPS redirect, request
 // logging's client IP, and the tenant's base address — has to observe the original request rather than the
-// proxy-to-application hop. A no-op unless 'ReverseProxy' names a trusted proxy.
-app.UseReverseProxy();
+// proxy-to-application hop. A no-op unless 'ForwardedHeaders' names a trusted proxy.
+app.UseTrustedForwardedHeaders();
 
-// After the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op in
+// Right after the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op in
 // Development. See ADR-1258.
 app.UseStrictTransportSecurity();
 

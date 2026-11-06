@@ -638,7 +638,7 @@ speed-test endpoint from the Denver network the users are on.
   ([ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
   [#165](https://github.com/NCodeGroup/Identity/issues/165)).
 - **Kubernetes deployment artifacts** — issue [#85](https://github.com/NCodeGroup/Identity/issues/85), done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
-  only from configured proxies (set `ReverseProxy:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
+  only from configured proxies (set `ForwardedHeaders:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
   developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
   carries the login bundle

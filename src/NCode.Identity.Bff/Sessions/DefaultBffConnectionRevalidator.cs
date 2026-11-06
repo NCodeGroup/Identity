@@ -8,7 +8,8 @@ namespace NCode.Identity.Bff.Sessions;
 
 /// <summary>
 /// The default <see cref="IBffConnectionRevalidator"/>: it validates the session of a connection at every revalidation
-/// interval without sliding it, so the idle timeout still ends the session of an idle connection.
+/// interval without sliding it, so the idle timeout still ends the session of an idle connection. It returns as soon as
+/// the connection's SessionEnded token is cancelled.
 /// </summary>
 /// <param name="timeProvider">The provider of the revalidation delay.</param>
 /// <param name="logger">The logger.</param>
@@ -30,7 +31,25 @@ internal sealed class DefaultBffConnectionRevalidator(
 
         while (true)
         {
-            await Task.Delay(connection.RevalidationInterval, TimeProvider, cancellationToken);
+            if (connection.SessionEnded.IsCancellationRequested)
+                return;
+
+            using (
+                var wait = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    connection.SessionEnded
+                )
+            )
+            {
+                try
+                {
+                    await Task.Delay(connection.RevalidationInterval, TimeProvider, wait.Token);
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+            }
 
             try
             {

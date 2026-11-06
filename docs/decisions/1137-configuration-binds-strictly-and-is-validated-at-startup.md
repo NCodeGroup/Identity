@@ -5,7 +5,9 @@
   [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md): each tenant strategy validates its
   own options, by the same rules that judge the tenants written while the host runs; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the `OpenId:Platform`
-  and `OpenId:Team` sections bind strictly and are validated at startup)
+  and `OpenId:Team` sections bind strictly and are validated at startup; amended by
+  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
+  forwarded-header trust binds strictly from the `ForwardedHeaders` section)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)

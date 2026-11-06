@@ -8,7 +8,7 @@ allowedHosts:
 tenantResolution:
   staticSingle:
     issuer: https://id.example.com
-reverseProxy:
+forwardedHeaders:
   knownNetworks:
     - 10.42.0.0/16
 database:

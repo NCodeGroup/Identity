@@ -11,7 +11,8 @@ namespace NCode.Identity.Bff.Sessions;
 /// <summary>
 /// The BFF session that a long-lived connection holds. The session handle lives only in this object, in memory, for
 /// the connection's life. The connection looks its frontend up by name on every use, so a frontend that a
-/// configuration change removes ends the session at the next revalidation.
+/// configuration change removes ends the session at the next revalidation. Once a use finds the session ended, the
+/// connection cancels its SessionEnded token and reports the session ended without reading the store.
 /// </summary>
 /// <param name="frontend">The name of the frontend that the session belongs to.</param>
 /// <param name="handle">The session handle.</param>
@@ -32,6 +33,7 @@ internal sealed class DefaultBffConnectionSession(
     private string LogoutUrl { get; } = logoutUrl;
     private BffSessionResolver Resolver { get; } = resolver;
     private BffFrontendCatalog Frontends { get; } = frontends;
+    private CancellationTokenSource EndedSource { get; } = new();
 
     /// <inheritdoc />
     public string? Frontend => FrontendName;
@@ -48,10 +50,11 @@ internal sealed class DefaultBffConnectionSession(
         SelectedFrontend?.Options.Session.RevalidationInterval ?? TimeSpan.Zero;
 
     /// <inheritdoc />
+    public CancellationToken SessionEnded => EndedSource.Token;
+
+    /// <inheritdoc />
     public ValueTask<BffSessionState?> ResolveAsync(CancellationToken cancellationToken) =>
-        SelectedFrontend is { } selected
-            ? Resolver.ValidateAsync(selected, Handle, null, null, cancellationToken)
-            : new ValueTask<BffSessionState?>((BffSessionState?)null);
+        LoadAsync(null, cancellationToken);
 
     /// <inheritdoc />
     public async ValueTask<ClaimsPrincipal?> ValidateAsync(
@@ -59,19 +62,36 @@ internal sealed class DefaultBffConnectionSession(
         CancellationToken cancellationToken
     )
     {
-        if (SelectedFrontend is not { } selected)
-            return null;
-
-        var state = await Resolver.ValidateAsync(
-            selected,
-            Handle,
-            null,
-            lastActivityAt,
-            cancellationToken
-        );
+        var state = await LoadAsync(lastActivityAt, cancellationToken);
         return state is null ? null : BffSessionPrincipal.Create(state, LogoutUrl);
     }
 
     /// <inheritdoc />
-    public void OnSessionEnded() { }
+    public void OnSessionEnded() => MarkEnded();
+
+    private async ValueTask<BffSessionState?> LoadAsync(
+        DateTimeOffset? lastActivityAt,
+        CancellationToken cancellationToken
+    )
+    {
+        if (EndedSource.IsCancellationRequested)
+            return null;
+
+        var state = SelectedFrontend is { } selected
+            ? await Resolver.ValidateAsync(
+                selected,
+                Handle,
+                null,
+                lastActivityAt,
+                cancellationToken
+            )
+            : null;
+
+        if (state is null)
+            MarkEnded();
+
+        return state;
+    }
+
+    private void MarkEnded() => _ = EndedSource.CancelAsync();
 }

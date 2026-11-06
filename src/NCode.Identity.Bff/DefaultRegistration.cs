@@ -102,6 +102,9 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IBffFrontendSetCheck, BffClientAuthenticationCheck>()
             );
             serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffFrontendSetCheck, BffKeyRingCheck>()
+            );
+            serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<MatcherPolicy, BffFrontendMatcherPolicy>()
             );
 

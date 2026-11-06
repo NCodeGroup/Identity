@@ -54,7 +54,10 @@ public class SharedSecretClientAuthenticatorTests : BaseTests, IAsyncLifetime
             .CreateRsa(new KeyMetadata { KeyId = "r1" }, RSA.Create(2048));
 
     private IClientKeyRingProvider CreateKeyRingProvider() =>
-        new DefaultClientKeyRingProvider(ServiceProvider);
+        new DefaultClientKeyRingProvider(
+            ServiceProvider,
+            ServiceProvider.GetRequiredService<IServiceProviderIsKeyedService>()
+        );
 
     private static ClientRegistration CreateRegistration(string method, string? keyRing) =>
         new("https://op.example.test", "client:1", method) { KeyRing = keyRing };

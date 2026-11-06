@@ -2573,14 +2573,19 @@ describes the family as it is rather than its changes
   `BffDefaults`, `BffClaimTypes` (the `bff_logout_url` and `bff_logout_sid` claims that render the logout form in every
   render mode), `BffEndpointPaths` and `BffUserDocumentNames`. `IBffUserDocumentFactory` builds the `/bff/user`
   document, and a frontend's `Session:RevalidationInterval` sets how often `IBffConnectionRevalidator` revalidates the
-  session a hub connection or a circuit holds, idle or not. The Blazor packages build against the Microsoft package
+  session a hub connection or a circuit holds, idle or not. `IBffConnectionSession.SessionEnded` is cancelled once any
+  use of a connection finds its session ended, which wakes every watcher of the connection at once, and an invocation
+  of a `[BffSelfRevalidatingHub]` hub, such as Blazor's, that finds the session ended fails without closing the
+  connection, so the circuit signs out instead of reconnecting. The Blazor packages build against the Microsoft package
   band 10.0.14
   ([#524](https://github.com/NCodeGroup/Identity/issues/524),
   [#604](https://github.com/NCodeGroup/Identity/issues/604),
   [#605](https://github.com/NCodeGroup/Identity/issues/605),
+  [#613](https://github.com/NCodeGroup/Identity/issues/613),
   [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
   [ADR-1440](docs/decisions/1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md),
-  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+  [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
+  [ADR-1445](docs/decisions/1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md)).
 
 - **The management console is served by a BFF host of its own.** `NCode.Identity.ManagementConsole`
   (`AddManagementConsole(configuration)`, `MapManagementConsole()`) and `NCode.Identity.ManagementConsole.Host` serve
@@ -2588,14 +2593,21 @@ describes the family as it is rather than its changes
   endpoints, and `/management/api/*` forwarded to `ManagementConsole:ManagementApiUrl` with the user's DPoP-bound
   `urn:ncode:management` token. The console is the confidential client `mgmt-console` of the control-plane tenant
   (`private_key_jwt`, PAR, DPoP, back-channel logout) and listens on `https://localhost:5005` under the AppHost, which
-  generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` in Production
+  generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` in Production,
+  trusts forwarded headers only from the proxies its `ForwardedHeaders` section names, and sends
+  `Strict-Transport-Security` outside Development
   ([#158](https://github.com/NCodeGroup/Identity/issues/158),
-  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+  [#611](https://github.com/NCodeGroup/Identity/issues/611),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
 
 - **A BFF loads its key rings from PEM files.** `Bff:KeyRings:{name}:PemFiles` registers a key ring from EC or RSA
   private-key PEM files, each key's `kid` is its file name without the extension, and the host validates the files when
-  it starts
-  ([ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+  it starts. A set of frontends whose `ClientAuthentication:KeyRing` or `DPoP:KeyRing` names a key ring that
+  `IClientKeyRingProvider.HasKeyRing` does not find is refused, when the host starts and on every configuration change
+  ([#614](https://github.com/NCodeGroup/Identity/issues/614),
+  [ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
+  [ADR-1446](docs/decisions/1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md)).
 
 - **The management console reads its session from its BFF.** The `RuntimeConfig` union and `loadBffRuntimeConfig`, the
   `session` slice and `fetchBffUser`, `SessionGate` (poll, expiry and visibility probes, `BroadcastChannel`), sign-out
@@ -3006,9 +3018,9 @@ describes the family as it is rather than its changes
 
 - **Configuration is bound strictly and checked before the host accepts traffic.** A key that maps to no option stops
   the host with an error naming the section, the options type and the key. This covers the whole OpenID section and the
-  `BootstrapAdmin`, `Frontend`, `ReverseProxy`, `ConformanceSeed` and `DeveloperInteractiveSeed` sections. Every bound
-  options type is validated on start, and a tenant-resolution configuration that cannot work (an unknown strategy, a
-  path route without its tenant parameter, an invalid host pattern, a static issuer that does not end with the tenant
+  `BootstrapAdmin`, `Frontend`, `ForwardedHeaders`, `ConformanceSeed` and `DeveloperInteractiveSeed` sections. Every
+  bound options type is validated on start, and a tenant-resolution configuration that cannot work (an unknown strategy,
+  a path route without its tenant parameter, an invalid host pattern, a static issuer that does not end with the tenant
   path) stops the host before it reports ready. `AddConfiguration` owns the OpenID section's shape: `Platform` (including
   `Settings`, carried by `OpenIdPlatformOptions.Settings`), `Team` (team settings reconciliation), `Tenant` (tenant materialization and caching),
   `TenantResolution` (tenant selection), `MutualTls`, `GrantRetention` and `TenantUsage`; any other subsection is
@@ -3938,34 +3950,40 @@ describes the family as it is rather than its changes
   `IXmlEncryptor`
   ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
-- **Forwarded headers are trusted only from configured proxies (`AddReverseProxy` / `UseReverseProxy`).** When TLS
-  terminates at a proxy, the connection the application sees is plaintext HTTP to an internal address. The framework
-  defaults are wrong in both directions — they trust loopback, so a proxy in another container is not trusted, while
-  clearing the allow-lists trusts every peer — so trust is granted only to the proxies and CIDR networks named in the
-  `ReverseProxy` configuration section. No middleware is added when none are configured, the correct posture for a
-  direct-TLS deployment, and `ForwardLimit` defaults to a single hop so a client cannot prepend its own entries. The
-  section is validated: a trusted proxy that is not an IP address (IPv4 written as four decimal octets, so `10.0.0` is
-  never read as another address), a trusted network that is not CIDR notation or has bits set past its prefix (so
-  `10.0.0.4/8` is never masked to `10.0.0.0/8`), and a forward limit below one stop the host
-  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
+- **Forwarded headers are trusted only from configured proxies (`AddTrustedForwardedHeaders` /
+  `UseTrustedForwardedHeaders`).** When TLS terminates at a proxy, the connection the application sees is plaintext
+  HTTP to an internal address. The framework defaults are wrong in both directions — they trust loopback, so a proxy in
+  another container is not trusted, while clearing the allow-lists trusts every peer — so trust is granted only to the
+  proxies and CIDR networks named in the `ForwardedHeaders` configuration section. No middleware is added when none are
+  configured, the correct posture for a direct-TLS deployment, and `ForwardLimit` defaults to a single hop so a client
+  cannot prepend its own entries. The section is validated: a trusted proxy that is not an IP address (IPv4 written as
+  four decimal octets, so `10.0.0` is never read as another address), a trusted network that is not CIDR notation or
+  has bits set past its prefix (so `10.0.0.4/8` is never masked to `10.0.0.0/8`), and a forward limit below one stop
+  the host. `NCode.AspNetCore` holds it, and the reference host and the management console host compose it
+  ([#611](https://github.com/NCodeGroup/Identity/issues/611),
+  [ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md),
+  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
 
 - **Host configuration sections are bound strictly and validated.** `InteractiveAuthentication`, `DeveloperKeys` and
   `Cors` are bound strictly into `InteractiveAuthenticationOptions`, `DeveloperKeysOptions` (read through
   `DeveloperKeysConfiguration.GetDeveloperKeysOptions()`) and `DeveloperCorsOptions`, so a key that maps to no option
   stops the host, and an allowed origin that can never match a browser's `Origin` header (a trailing slash, a path, a
-  wildcard) stops the host with an error naming the entry. `ReverseProxyOptions` and `InteractiveAuthenticationOptions`
+  wildcard) stops the host with an error naming the entry. `TrustedForwardedHeadersOptions` and `InteractiveAuthenticationOptions`
   are resolved through `IOptions<T>` ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
 
-- **The server sends `Strict-Transport-Security` on every HTTPS response outside Development.**
-  `AddStrictTransportSecurity` binds `StrictTransportSecurityOptions` strictly from the `StrictTransportSecurity`
-  section (`Enabled`, `MaxAge`, `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and validates it when the host starts,
-  and `UseStrictTransportSecurity`, which the reference host calls right after `UseReverseProxy`, adds the header to
-  every response to a request that arrived over HTTPS, directly or through a trusted proxy. The default is
+- **The reference host and the management console host send `Strict-Transport-Security` on every HTTPS response outside
+  Development.** `AddStrictTransportSecurity` (`NCode.AspNetCore`) binds `StrictTransportSecurityOptions` strictly from
+  the `StrictTransportSecurity` section (`Enabled`, `MaxAge`, `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and
+  validates it when the host starts, and `UseStrictTransportSecurity`, which a host calls right after
+  `UseTrustedForwardedHeaders`, adds the header to every response to a request that arrived over HTTPS, directly or
+  through a trusted proxy. The default is
   `max-age=31536000; includeSubDomains`; `Preload` requires `IncludeSubDomains` and a `MaxAge` of at least 365 days;
   `localhost`, `127.0.0.1` and `[::1]` never receive it; a deployment whose TLS-terminating proxy sends the header sets
   `StrictTransportSecurity:Enabled` to `false`
-  ([ADR-1258](docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md), issue
-  [#304](https://github.com/NCodeGroup/Identity/issues/304)).
+  ([ADR-1258](docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md),
+  [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
+  issues [#304](https://github.com/NCodeGroup/Identity/issues/304),
+  [#611](https://github.com/NCodeGroup/Identity/issues/611)).
 
 - **The reference host runs `UseAntiforgery` after `UseAuthentication` and `UseAuthorization`.** The interactive
   surface's single cookie scheme is the default authenticate scheme, so the login POST validates its claims-bound

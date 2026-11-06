@@ -6,21 +6,23 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Options;
 
-namespace NCode.Identity.Server.ReverseProxy;
+namespace NCode.AspNetCore.Options;
 
 /// <summary>
-/// Validates <see cref="ReverseProxyOptions"/>, so a trusted-proxy entry the server cannot honor stops the host when it
-/// starts. Skipping such an entry would leave a deployment that meant to trust its proxy trusting nothing (forwarded
-/// headers silently ignored, so the server publishes an <c>http://</c> issuer for an internal host), and the IPv4
-/// parser's shorthand forms (<c>10.0.0</c>, <c>010.0.0.1</c>) would trust an address other than the one written.
+/// Validates <see cref="TrustedForwardedHeadersOptions"/>, so a trusted-proxy entry the application cannot honor stops
+/// the host when it starts. Skipping such an entry would leave a deployment that meant to trust its proxy trusting
+/// nothing (forwarded headers silently ignored, so the application reads an <c>http://</c> scheme and an internal
+/// host), and the IPv4 parser's shorthand forms (<c>10.0.0</c>, <c>010.0.0.1</c>) would trust an address other than the
+/// one written.
 /// </summary>
 // See ADR-1137.
-internal class ReverseProxyOptionsValidator : IValidateOptions<ReverseProxyOptions>
+internal sealed class TrustedForwardedHeadersOptionsValidator
+    : IValidateOptions<TrustedForwardedHeadersOptions>
 {
-    private const string Prefix = ReverseProxyOptions.DefaultSectionName;
+    private const string Prefix = TrustedForwardedHeadersOptions.DefaultSectionName;
 
     /// <inheritdoc />
-    public ValidateOptionsResult Validate(string? name, ReverseProxyOptions options)
+    public ValidateOptionsResult Validate(string? name, TrustedForwardedHeadersOptions options)
     {
         var failures = new List<string>();
 

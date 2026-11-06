@@ -3,26 +3,25 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Server.ReverseProxy;
+namespace NCode.AspNetCore.Options;
 
 /// <summary>
-/// Configures which reverse proxies the OpenID server trusts to describe the original request through
-/// <c>X-Forwarded-For</c>, <c>X-Forwarded-Proto</c>, and <c>X-Forwarded-Host</c>. Bound from the <c>ReverseProxy</c>
+/// Configures which reverse proxies the application trusts to describe the original request through
+/// <c>X-Forwarded-For</c>, <c>X-Forwarded-Proto</c>, and <c>X-Forwarded-Host</c>. Bound from the <c>ForwardedHeaders</c>
 /// configuration section.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This matters more here than in a typical application because the server derives a tenant's base address — and
-/// therefore its <c>issuer</c> and every endpoint URL it publishes in discovery — from the scheme and host of the
-/// incoming request. When TLS terminates at a proxy, the connection the application sees is plaintext HTTP to an
-/// internal address, so without these headers the server would advertise an <c>http://</c> issuer pointing at a
-/// container-internal name.
+/// An application behind a TLS-terminating proxy sees a plaintext HTTP connection to an internal address. Without these
+/// headers it reads the wrong scheme and host: an OpenID provider publishes an <c>http://</c> issuer for a
+/// container-internal name, and an HTTPS-only policy never applies.
 /// </para>
 /// <para>
 /// Trusting those headers from an untrusted peer is the mirror-image failure: a client that can reach the application
-/// directly could assert any scheme and host and make the server mint tokens whose <c>iss</c> it chose. Forwarding is
-/// therefore <b>off unless a trusted proxy is configured</b>, and it is never enabled by trusting every peer — leave
-/// both lists empty for a direct-TLS deployment, where the connection already carries the truth.
+/// directly could assert any scheme and host and make the application build URLs, such as an issuer, from a scheme and
+/// host it chose. Forwarding is therefore <b>off unless a trusted proxy is configured</b>, and it is never enabled by
+/// trusting every peer — leave both lists empty for a direct-TLS deployment, where the connection already carries the
+/// truth.
 /// </para>
 /// <para>
 /// Configuring a trusted proxy is necessary but not sufficient: the proxy itself must overwrite these headers on
@@ -30,13 +29,14 @@ namespace NCode.Identity.Server.ReverseProxy;
 /// <c>AllowedHosts</c> setting so a trusted proxy cannot be induced to forward an arbitrary host.
 /// </para>
 /// </remarks>
+// See ADR-1447.
 [PublicAPI]
-public sealed class ReverseProxyOptions
+public sealed class TrustedForwardedHeadersOptions
 {
     /// <summary>
-    /// The configuration section (<c>ReverseProxy</c>) bound to <see cref="ReverseProxyOptions"/>.
+    /// The configuration section (<c>ForwardedHeaders</c>) bound to <see cref="TrustedForwardedHeadersOptions"/>.
     /// </summary>
-    public const string DefaultSectionName = "ReverseProxy";
+    public const string DefaultSectionName = "ForwardedHeaders";
 
     /// <summary>
     /// Gets or sets the individual proxy IP addresses whose forwarded headers are trusted (for example

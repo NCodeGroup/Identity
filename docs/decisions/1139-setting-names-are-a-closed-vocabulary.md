@@ -16,7 +16,10 @@
   supersedes ADR-1251: until the first stable release a setting is renamed, removed or narrowed outright, and no
   retired descriptor stays registered; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform's
-  settings, the root of the settings cascade, are configured under `OpenId:Platform:Settings`)
+  settings, the root of the settings cascade, are configured under `OpenId:Platform:Settings`; amended by
+  [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
+  forwarded-header trust is `TrustedForwardedHeadersOptions` in the `ForwardedHeaders` section, validated by
+  `NCode.AspNetCore`'s `TrustedForwardedHeadersOptionsValidator`)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0106](project-template/0106-configuration-binds-strictly-and-is-validated-at-startup.md)

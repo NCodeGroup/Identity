@@ -9,19 +9,19 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.Server.ReverseProxy;
+using NCode.AspNetCore.Options;
 using Xunit;
 // Both System.Net and Microsoft.AspNetCore.HttpOverrides declare an IPNetwork; KnownIPNetworks takes the former.
 using IPNetwork = System.Net.IPNetwork;
 
-namespace NCode.Identity.Server.Tests.ReverseProxy;
+namespace NCode.AspNetCore.Tests;
 
-public sealed class ReverseProxyRegistrationTests : BaseTests
+public sealed class TrustedForwardedHeadersRegistrationTests : BaseTests
 {
-    #region AddReverseProxy Tests
+    #region AddTrustedForwardedHeaders Tests
 
     [Fact]
-    public void AddReverseProxy_WhenNotConfigured_TrustsNoProxy()
+    public void AddTrustedForwardedHeaders_WhenNotConfigured_TrustsNoProxy()
     {
         var (options, forwarded) = Resolve([]);
 
@@ -34,13 +34,13 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
     }
 
     [Fact]
-    public void AddReverseProxy_WhenKnownProxyConfigured_TrustsOnlyThatAddress()
+    public void AddTrustedForwardedHeaders_WhenKnownProxyConfigured_TrustsOnlyThatAddress()
     {
         var (options, forwarded) = Resolve(
             new Dictionary<string, string?>
             {
-                ["ReverseProxy:KnownProxies:0"] = "10.0.0.4",
-                ["ReverseProxy:KnownProxies:1"] = "10.0.0.5",
+                ["ForwardedHeaders:KnownProxies:0"] = "10.0.0.4",
+                ["ForwardedHeaders:KnownProxies:1"] = "10.0.0.5",
             }
         );
 
@@ -52,10 +52,13 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
     }
 
     [Fact]
-    public void AddReverseProxy_WhenKnownNetworkConfigured_TrustsThatNetwork()
+    public void AddTrustedForwardedHeaders_WhenKnownNetworkConfigured_TrustsThatNetwork()
     {
         var (options, forwarded) = Resolve(
-            new Dictionary<string, string?> { ["ReverseProxy:KnownNetworks:0"] = "172.16.0.0/12" }
+            new Dictionary<string, string?>
+            {
+                ["ForwardedHeaders:KnownNetworks:0"] = "172.16.0.0/12",
+            }
         );
 
         Assert.True(options.HasTrustedProxy);
@@ -67,21 +70,21 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
     [InlineData("KnownProxies", "10.0.0")]
     [InlineData("KnownNetworks", "not-a-network")]
     [InlineData("KnownNetworks", "10.0.0.4/8")]
-    public void AddReverseProxy_WhenEntryCannotBeHonored_Throws(string key, string entry)
+    public void AddTrustedForwardedHeaders_WhenEntryCannotBeHonored_Throws(string key, string entry)
     {
         var exception = Assert.Throws<OptionsValidationException>(() =>
-            Resolve(new Dictionary<string, string?> { [$"ReverseProxy:{key}:0"] = entry })
+            Resolve(new Dictionary<string, string?> { [$"ForwardedHeaders:{key}:0"] = entry })
         );
 
         Assert.Contains(
-            $"ReverseProxy:{key}:0 '{entry}'",
+            $"ForwardedHeaders:{key}:0 '{entry}'",
             exception.Message,
             StringComparison.Ordinal
         );
     }
 
     [Fact]
-    public void AddReverseProxy_WhenForwardLimitNotConfigured_AllowsOneHop()
+    public void AddTrustedForwardedHeaders_WhenForwardLimitNotConfigured_AllowsOneHop()
     {
         var (options, forwarded) = Resolve([]);
 
@@ -90,17 +93,17 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
     }
 
     [Fact]
-    public void AddReverseProxy_WhenForwardLimitConfigured_UsesIt()
+    public void AddTrustedForwardedHeaders_WhenForwardLimitConfigured_UsesIt()
     {
         var (_, forwarded) = Resolve(
-            new Dictionary<string, string?> { ["ReverseProxy:ForwardLimit"] = "2" }
+            new Dictionary<string, string?> { ["ForwardedHeaders:ForwardLimit"] = "2" }
         );
 
         Assert.Equal(2, forwarded.ForwardLimit);
     }
 
     [Fact]
-    public void AddReverseProxy_Always_ForwardsForProtoAndHost()
+    public void AddTrustedForwardedHeaders_Always_ForwardsForProtoAndHost()
     {
         var (_, forwarded) = Resolve([]);
 
@@ -113,22 +116,24 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
     }
 
     [Fact]
-    public void AddReverseProxy_WhenSectionHasUnknownKey_Throws()
+    public void AddTrustedForwardedHeaders_WhenSectionHasUnknownKey_Throws()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            Resolve(new Dictionary<string, string?> { ["ReverseProxy:KnownProxy:0"] = "10.0.0.4" })
+            Resolve(
+                new Dictionary<string, string?> { ["ForwardedHeaders:KnownProxy:0"] = "10.0.0.4" }
+            )
         );
 
-        Assert.Contains("'ReverseProxy'", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("'ForwardedHeaders'", exception.Message, StringComparison.Ordinal);
         Assert.Contains("'KnownProxy'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion
 
-    #region UseReverseProxy Tests
+    #region UseTrustedForwardedHeaders Tests
 
     [Fact]
-    public void UseReverseProxy_WhenNoTrustedProxy_AddsNoMiddleware()
+    public void UseTrustedForwardedHeaders_WhenNoTrustedProxy_AddsNoMiddleware()
     {
         var serviceProvider = BuildServiceProvider([]);
 
@@ -137,16 +142,16 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
         var app = CreateStrictMock<IApplicationBuilder>();
         app.Setup(x => x.ApplicationServices).Returns(serviceProvider).Verifiable();
 
-        var result = app.Object.UseReverseProxy();
+        var result = app.Object.UseTrustedForwardedHeaders();
 
         Assert.Same(app.Object, result);
     }
 
     [Fact]
-    public void UseReverseProxy_WhenTrustedProxyConfigured_AddsMiddleware()
+    public void UseTrustedForwardedHeaders_WhenTrustedProxyConfigured_AddsMiddleware()
     {
         var serviceProvider = BuildServiceProvider(
-            new Dictionary<string, string?> { ["ReverseProxy:KnownProxies:0"] = "10.0.0.4" }
+            new Dictionary<string, string?> { ["ForwardedHeaders:KnownProxies:0"] = "10.0.0.4" }
         );
 
         var app = CreateStrictMock<IApplicationBuilder>();
@@ -156,7 +161,7 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
             .Returns(app.Object)
             .Verifiable();
 
-        var result = app.Object.UseReverseProxy();
+        var result = app.Object.UseTrustedForwardedHeaders();
 
         Assert.Same(app.Object, result);
     }
@@ -173,19 +178,20 @@ public sealed class ReverseProxyRegistrationTests : BaseTests
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddReverseProxy(configuration);
+        serviceCollection.AddTrustedForwardedHeaders(configuration);
 
         return serviceCollection.BuildServiceProvider();
     }
 
-    private static (ReverseProxyOptions Options, ForwardedHeadersOptions Forwarded) Resolve(
-        Dictionary<string, string?> configurationData
-    )
+    private static (
+        TrustedForwardedHeadersOptions Options,
+        ForwardedHeadersOptions Forwarded
+    ) Resolve(Dictionary<string, string?> configurationData)
     {
         using var serviceProvider = BuildServiceProvider(configurationData);
 
         return (
-            serviceProvider.GetRequiredService<IOptions<ReverseProxyOptions>>().Value,
+            serviceProvider.GetRequiredService<IOptions<TrustedForwardedHeadersOptions>>().Value,
             serviceProvider.GetRequiredService<IOptions<ForwardedHeadersOptions>>().Value
         );
     }

@@ -30,9 +30,9 @@ tenantResolution:
     # The public issuer URL, for example https://id.example.com. Required by the StaticSingle strategy.
     issuer: ""
 
-# The proxies whose X-Forwarded-* headers the host trusts (ReverseProxy). Set knownNetworks to the pod CIDR when the
+# The proxies whose X-Forwarded-* headers the host trusts (ForwardedHeaders). Set knownNetworks to the pod CIDR when the
 # ingress controller runs in the cluster.
-reverseProxy:
+forwardedHeaders:
   knownNetworks: []
   knownProxies: []
   forwardLimit: 1

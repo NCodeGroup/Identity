@@ -22,4 +22,13 @@ public interface IClientKeyRingProvider
     /// <param name="keyRing">The name of the key ring.</param>
     /// <exception cref="InvalidOperationException">The key ring is not registered.</exception>
     ISecretKeyCollection GetKeyRing(string keyRing);
+
+    /// <summary>
+    /// Gets whether a key ring of the specified name is registered, without loading its keys.
+    /// </summary>
+    /// <param name="keyRing">The name of the key ring.</param>
+    /// <returns>
+    /// <see langword="true"/> when <see cref="GetKeyRing"/> finds the key ring; otherwise <see langword="false"/>.
+    /// </returns>
+    bool HasKeyRing(string keyRing);
 }

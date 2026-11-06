@@ -437,8 +437,8 @@ Outside Development, the host sends `Strict-Transport-Security: max-age=31536000
 to a request that reached it over HTTPS
 ([ADR-1258](../../docs/decisions/1258-the-server-sends-strict-transport-security-outside-development.md)). Behind the
 ingress the pod serves plain HTTP, so the host sees HTTPS only through the `X-Forwarded-Proto` header of a proxy that
-`reverseProxy` trusts: set `reverseProxy.knownNetworks` or `reverseProxy.knownProxies` to cover the ingress controller,
-or the header is not sent.
+`forwardedHeaders` trusts: set `forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies` to cover the ingress
+controller, or the header is not sent.
 
 When the ingress controller sends the header itself, set `StrictTransportSecurity__Enabled=false` in `extraEnv`, so
 one component owns it. Change the policy the same way with `StrictTransportSecurity__MaxAge` (for example

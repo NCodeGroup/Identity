@@ -3,10 +3,10 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Server.StrictTransportSecurity;
+namespace NCode.AspNetCore.Options;
 
 /// <summary>
-/// Configures the <c>Strict-Transport-Security</c> header (RFC 6797) that the server sends on every response to a
+/// Configures the <c>Strict-Transport-Security</c> header (RFC 6797) that the application sends on every response to a
 /// request that arrived over HTTPS. Bound from the <c>StrictTransportSecurity</c> configuration section.
 /// </summary>
 /// <remarks>
@@ -16,7 +16,7 @@ namespace NCode.Identity.Server.StrictTransportSecurity;
 /// </para>
 /// <para>
 /// A request that a trusted reverse proxy received over HTTPS counts as HTTPS, so behind a TLS-terminating proxy either
-/// trust the proxy in <c>ReverseProxy</c> or let the proxy send the header and set <see cref="Enabled"/> to
+/// trust the proxy in <c>ForwardedHeaders</c> or let the proxy send the header and set <see cref="Enabled"/> to
 /// <c>false</c>.
 /// </para>
 /// </remarks>
@@ -29,8 +29,8 @@ public sealed class StrictTransportSecurityOptions
     public const string DefaultSectionName = "StrictTransportSecurity";
 
     /// <summary>
-    /// Gets or sets a value indicating whether the server sends the header. Defaults to <c>true</c>. Set it to
-    /// <c>false</c> when a proxy in front of the server sends the header, so that one component owns it.
+    /// Gets or sets a value indicating whether the application sends the header. Defaults to <c>true</c>. Set it to
+    /// <c>false</c> when a proxy in front of the application sends the header, so that one component owns it.
     /// </summary>
     public bool Enabled { get; set; } = true;
 

@@ -152,12 +152,7 @@ export const managementApi = createApi({
     }),
     updateTeam: build.mutation<
       void,
-      {
-        teamId: string;
-        parentTeamId?: string | null | undefined;
-        concurrencyToken: string;
-        fields: UpdateTeamFields;
-      }
+      { teamId: string; concurrencyToken: string; fields: UpdateTeamFields }
     >({
       query: ({ teamId, concurrencyToken, fields }) => ({
         url: `api/teams/${encodeURIComponent(teamId)}`,
@@ -165,22 +160,20 @@ export const managementApi = createApi({
         body: replacePatch({ ...fields }),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { teamId, parentTeamId }) => [
+      invalidatesTags: (_result, _error, { teamId }) => [
         { type: 'Team', id: platformTag(LIST_TAG) },
         { type: 'Team', id: platformTag(teamId) },
-        ...(parentTeamId ? [{ type: 'Team' as const, id: teamTag(parentTeamId, LIST_TAG) }] : []),
         { type: 'Caller', id: callerTag },
       ],
     }),
-    deleteTeam: build.mutation<void, { teamId: string; parentTeamId?: string | null | undefined }>({
+    deleteTeam: build.mutation<void, { teamId: string }>({
       query: ({ teamId }) => ({
         url: `api/teams/${encodeURIComponent(teamId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { teamId, parentTeamId }) => [
+      invalidatesTags: (_result, _error, { teamId }) => [
         { type: 'Team', id: platformTag(LIST_TAG) },
         { type: 'Team', id: platformTag(teamId) },
-        ...(parentTeamId ? [{ type: 'Team' as const, id: teamTag(parentTeamId, LIST_TAG) }] : []),
         { type: 'Caller', id: callerTag },
       ],
     }),

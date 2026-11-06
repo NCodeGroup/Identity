@@ -831,37 +831,6 @@ describe('managementApi team CRUD endpoints (platform scope)', () => {
     expect(captured[0]?.method).toBe('DELETE');
   });
 
-  it('updateTeam of a child team invalidates its parent list', async () => {
-    const captured = mockFetch(new Response(null, { status: 204 }));
-    const store = createStore();
-
-    const result = await store.dispatch(
-      managementApi.endpoints.updateTeam.initiate({
-        teamId: 'acme-web',
-        parentTeamId: 'acme',
-        concurrencyToken: 'etag-1',
-        fields: { displayName: 'Web', isDisabled: false },
-      }),
-    );
-
-    expect('error' in result).toBe(false);
-    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme-web');
-    expect(captured[0]?.method).toBe('PATCH');
-  });
-
-  it('deleteTeam of a child team invalidates its parent list', async () => {
-    const captured = mockFetch(new Response(null, { status: 204 }));
-    const store = createStore();
-
-    const result = await store.dispatch(
-      managementApi.endpoints.deleteTeam.initiate({ teamId: 'acme-web', parentTeamId: 'acme' }),
-    );
-
-    expect('error' in result).toBe(false);
-    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme-web');
-    expect(captured[0]?.method).toBe('DELETE');
-  });
-
   it('listChildTeams reports a failure without provided tags', async () => {
     mockFetch(new Response(null, { status: 404 }));
     const store = createStore();
@@ -1513,6 +1482,20 @@ const cachedQueries: readonly CachedQuery[] = [
     subscribe: (s) => s.dispatch(managementApi.endpoints.getTeam.initiate('globex')),
   },
   {
+    label: 'childTeams:acme',
+    path: '/api/teams/acme/teams',
+    body: { items: [{ teamId: 'acme-web' }] },
+    subscribe: (s) =>
+      s.dispatch(managementApi.endpoints.listChildTeams.initiate({ teamId: 'acme' })),
+  },
+  {
+    label: 'childTeams:globex',
+    path: '/api/teams/globex/teams',
+    body: { items: [{ teamId: 'globex-web' }] },
+    subscribe: (s) =>
+      s.dispatch(managementApi.endpoints.listChildTeams.initiate({ teamId: 'globex' })),
+  },
+  {
     label: 'clients',
     path: '/api/tenants/acme/clients',
     body: { items: [{ clientId: 'web' }] },
@@ -1658,6 +1641,34 @@ const invalidationCases: readonly InvalidationCase[] = [
     name: 'deleteTeam',
     mutate: (s) => s.dispatch(managementApi.endpoints.deleteTeam.initiate({ teamId: 'acme' })),
     refetches: ['teams', 'team:acme'],
+  },
+  {
+    name: 'updateTeam of a child team',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.updateTeam.initiate({
+          teamId: 'acme-web',
+          concurrencyToken: 'etag',
+          fields: { displayName: 'Web', isDisabled: false },
+        }),
+      ),
+    refetches: ['teams', 'childTeams:acme'],
+  },
+  {
+    name: 'deleteTeam of a child team',
+    mutate: (s) => s.dispatch(managementApi.endpoints.deleteTeam.initiate({ teamId: 'acme-web' })),
+    refetches: ['teams', 'childTeams:acme'],
+  },
+  {
+    name: 'createChildTeam',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.createChildTeam.initiate({
+          teamId: 'acme',
+          body: { teamId: 'new', displayName: 'New', isDisabled: false, settings: {} },
+        }),
+      ),
+    refetches: ['teams', 'childTeams:acme'],
   },
   {
     name: 'createClient',

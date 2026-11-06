@@ -112,7 +112,6 @@ export function TeamsPage({ onOpenTeam, parentTeamId }: TeamsPageProps) {
       } else if (dialog.kind === 'edit') {
         await updateTeam({
           teamId: dialog.team.teamId,
-          parentTeamId: dialog.team.parentTeamId,
           concurrencyToken: dialog.team.concurrencyToken,
           fields: { displayName: values.displayName, isDisabled: values.isDisabled },
         }).unwrap();
@@ -129,10 +128,7 @@ export function TeamsPage({ onOpenTeam, parentTeamId }: TeamsPageProps) {
     }
     setDeleteError(undefined);
     try {
-      await deleteTeam({
-        teamId: dialog.team.teamId,
-        parentTeamId: dialog.team.parentTeamId,
-      }).unwrap();
+      await deleteTeam({ teamId: dialog.team.teamId }).unwrap();
       setDialog(closed);
     } catch (removeError) {
       setDeleteError(apiErrorMessage(removeError as ApiError));

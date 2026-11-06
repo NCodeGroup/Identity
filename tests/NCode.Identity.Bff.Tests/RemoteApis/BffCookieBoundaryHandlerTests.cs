@@ -65,6 +65,20 @@ public sealed class BffCookieBoundaryHandlerTests
     }
 
     [Fact]
+    public async Task SendAsync_OtherRouteWithFrontendCookies_RemovesOnlyTheFrontendCookies()
+    {
+        using var invoker = CreateInvoker();
+        using var request = CreateRequest(
+            "theme=dark; __Host-Http-bff.shop=handle; __Host-Http-bff-login.shop=state; __Host-Http-bffx=1"
+        );
+
+        using var response = await invoker.SendAsync(request, CancellationToken.None);
+
+        Assert.NotNull(SentCookies);
+        Assert.Equal("theme=dark; __Host-Http-bffx=1", Assert.Single(SentCookies));
+    }
+
+    [Fact]
     public async Task SendAsync_OtherRouteWithOnlyBffCookies_RemovesTheCookieHeader()
     {
         using var invoker = CreateInvoker();
@@ -111,6 +125,22 @@ public sealed class BffCookieBoundaryHandlerTests
         using var response = await invoker.SendAsync(request, CancellationToken.None);
 
         Assert.Equal([OtherSetCookie], GetSetCookies(response));
+    }
+
+    [Fact]
+    public async Task SendAsync_OtherRoute_DropsTheFrontendSetCookiesAndKeepsSimilarNames()
+    {
+        using var invoker = CreateInvoker(
+            "__Host-Http-bff.shop=forged; Path=/; Secure",
+            "__Host-Http-bff-login.shop=forged; Path=/; Secure",
+            "__Host-Http-bffx=1; Path=/",
+            OtherSetCookie
+        );
+        using var request = CreateRequest(null);
+
+        using var response = await invoker.SendAsync(request, CancellationToken.None);
+
+        Assert.Equal(["__Host-Http-bffx=1; Path=/", OtherSetCookie], GetSetCookies(response));
     }
 
     [Fact]

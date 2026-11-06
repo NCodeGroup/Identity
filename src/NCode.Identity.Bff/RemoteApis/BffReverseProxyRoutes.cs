@@ -69,11 +69,12 @@ internal static class BffReverseProxyRoutes
     /// Checks the route's BFF metadata: a token requirement must be registered, a resource or a scope needs a token
     /// requirement and must not be blank, and a frontend must be a valid frontend name; whether the frontends
     /// configure it is the endpoint check's to say, because YARP and the BFF apply one configuration change
-    /// separately (ADR-1442).
+    /// separately.
     /// </summary>
     /// <param name="route">The route to check.</param>
     /// <param name="requirements">The names of the registered token requirements.</param>
     /// <param name="errors">The list that each failure is added to.</param>
+    // See ADR-1442.
     public static void Validate(
         RouteConfig route,
         IReadOnlySet<string> requirements,

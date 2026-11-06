@@ -11,13 +11,14 @@ namespace NCode.Identity.Bff.Sessions;
 /// <summary>
 /// The BFF session that a long-lived connection holds. The session handle lives only in this object, in memory, for
 /// the connection's life. The connection looks its frontend up by name on every use, so a frontend that a
-/// configuration change removes ends the session at the next revalidation (ADR-1442).
+/// configuration change removes ends the session at the next revalidation.
 /// </summary>
 /// <param name="frontend">The name of the frontend that the session belongs to.</param>
 /// <param name="handle">The session handle.</param>
 /// <param name="logoutUrl">The local URL of the frontend's logout endpoint.</param>
 /// <param name="resolver">Loads and validates the session.</param>
 /// <param name="frontends">The frontends that the connection's frontend is looked up in.</param>
+// See ADR-1442.
 internal sealed class DefaultBffConnectionSession(
     string frontend,
     string handle,

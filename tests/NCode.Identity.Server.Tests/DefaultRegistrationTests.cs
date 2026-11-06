@@ -320,6 +320,18 @@ public sealed class DefaultRegistrationTests
     }
 
     [Fact]
+    public void AddIdentityServer_RegistersTheTeamDescendantWalker()
+    {
+        // A team's subtree is walked one page of child teams per level (ADR-1455).
+        using var host = BuildHost([]);
+
+        Assert.Equal(
+            "DefaultTeamDescendantWalker",
+            host.Services.GetRequiredService<ITeamDescendantWalker>().GetType().Name
+        );
+    }
+
+    [Fact]
     public void AddIdentityServer_ResolvesTheMaterializedPlatformAccessorToTheRegistry()
     {
         // Background work in another package waits for the replica's platform through the public accessor, which is

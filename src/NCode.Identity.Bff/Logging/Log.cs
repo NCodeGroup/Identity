@@ -78,7 +78,40 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.EndpointCheckFailed,
         Level = LogLevel.Error,
-        Message = "The BFF endpoint check failed after the endpoints changed: {Failure}"
+        Message = "The BFF endpoint check failed after the endpoints or the frontends changed: {Failure}"
     )]
     internal static partial void EndpointCheckFailed(this ILogger logger, string failure);
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendsChanged,
+        Level = LogLevel.Information,
+        Message = "The BFF frontends changed: {Frontends}"
+    )]
+    internal static partial void FrontendsChanged(this ILogger logger, string frontends);
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendsChangeRejected,
+        Level = LogLevel.Error,
+        Message = "The BFF kept its frontends because the changed configuration is invalid: {Failures}"
+    )]
+    internal static partial void FrontendsChangeRejected(this ILogger logger, string failures);
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendSessionsEnded,
+        Level = LogLevel.Information,
+        Message = "The BFF ended {Count} sessions of the frontend {Frontend}: {Reason}"
+    )]
+    internal static partial void FrontendSessionsEnded(
+        this ILogger logger,
+        int count,
+        string frontend,
+        string reason
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendRetirementFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF could not end the sessions of a removed or changed frontend and tries again"
+    )]
+    internal static partial void FrontendRetirementFailed(this ILogger logger, Exception exception);
 }

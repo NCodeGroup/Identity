@@ -21,4 +21,8 @@ internal static class EventIds
     public const int TokenRequestFailed = Base + 5;
     public const int RemoteApiForwardFailed = Base + 6;
     public const int EndpointCheckFailed = Base + 7;
+    public const int FrontendsChanged = Base + 8;
+    public const int FrontendsChangeRejected = Base + 9;
+    public const int FrontendSessionsEnded = Base + 10;
+    public const int FrontendRetirementFailed = Base + 11;
 }

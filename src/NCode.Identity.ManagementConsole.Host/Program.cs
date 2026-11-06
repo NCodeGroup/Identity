@@ -1,13 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using NCode.AspNetCore;
 using NCode.Identity.Bff.Antiforgery;
 using NCode.Identity.Bff.Hardening;
 using NCode.Identity.ManagementConsole;
 using NCode.Identity.SharedState.Valkey;
-using NCode.Registration;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or
 // developer-only startup logic does NOT belong here — put it in the owning package as an extension
@@ -42,18 +40,8 @@ app.UseAuthorization();
 
 app.MapManagementConsole();
 
-// Liveness runs no checks: it reports only that the process answers, so a dependency outage never restarts a replica.
-// Readiness runs the checks tagged 'ready' (Valkey when configured) and takes the replica out of rotation while a
-// dependency it needs is unreachable.
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
-    .WithName("health_live_endpoint");
-app.MapHealthChecks(
-        "/health/ready",
-        new HealthCheckOptions
-        {
-            Predicate = check => check.Tags.Contains(HealthCheckTags.Readiness),
-        }
-    )
-    .WithName("health_ready_endpoint");
+// Liveness runs no checks, so a dependency outage never restarts a replica.
+// Readiness runs the checks tagged ready.
+app.MapHealthProbes();
 
 await app.RunAsync();

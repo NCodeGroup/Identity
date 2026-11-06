@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using NCode.AspNetCore;
@@ -219,19 +218,9 @@ app.UseAntiforgery();
 
 app.MapEndpointGroups();
 
-// Liveness runs no checks: it reports only that the process answers, so a dependency outage never restarts a replica.
-// Readiness runs the checks tagged 'ready' (the database, and Valkey when configured) and takes the replica out of
-// rotation while a dependency it needs is unreachable.
-app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
-    .WithName("health_live_endpoint");
-app.MapHealthChecks(
-        "/health/ready",
-        new HealthCheckOptions
-        {
-            Predicate = check => check.Tags.Contains(HealthCheckTags.Readiness),
-        }
-    )
-    .WithName("health_ready_endpoint");
+// Liveness runs no checks, so a dependency outage never restarts a replica.
+// Readiness runs the checks tagged ready.
+app.MapHealthProbes();
 
 await app.RunAsync();
 

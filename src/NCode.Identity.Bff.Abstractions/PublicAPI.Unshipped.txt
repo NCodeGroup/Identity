@@ -237,6 +237,8 @@ const NCode.Identity.Bff.BffClaimTypes.LogoutUrl = "bff_logout_url" -> string!
 const NCode.Identity.Bff.BffClaimTypes.LogoutSid = "bff_logout_sid" -> string!
 NCode.Identity.Bff.BffHubAttribute
 NCode.Identity.Bff.BffHubAttribute.BffHubAttribute() -> void
+NCode.Identity.Bff.BffSelfRevalidatingHubAttribute
+NCode.Identity.Bff.BffSelfRevalidatingHubAttribute.BffSelfRevalidatingHubAttribute() -> void
 NCode.Identity.Bff.IBffUserDocumentFactory
 NCode.Identity.Bff.IBffUserDocumentFactory.CreateAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Text.Json.JsonElement?>
 NCode.Identity.Bff.IBffEndpointStartupRequirement

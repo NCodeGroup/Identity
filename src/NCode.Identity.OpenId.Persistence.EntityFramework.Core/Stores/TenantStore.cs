@@ -355,10 +355,7 @@ internal class TenantStore(
         return tenants;
     }
 
-    /// <summary>
-    /// Gets the concurrency token of the row of each existing tenant, keyed by tenant identifier without regard to
-    /// case. A tenant that does not exist has no entry.
-    /// </summary>
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyDictionary<string, string>> GetConcurrencyTokensAsync(
         IReadOnlyCollection<string> tenantIds,
         CancellationToken cancellationToken
@@ -787,11 +784,7 @@ internal class TenantStore(
         return true;
     }
 
-    /// <summary>
-    /// Issues a new secrets token and a new row token for the tenant, without changing its secrets, so that every
-    /// replica that reads the tenant's secrets or its row token sees a change. Returns <c>false</c> when the tenant
-    /// does not exist.
-    /// </summary>
+    /// <inheritdoc />
     public async ValueTask<bool> MarkSecretsChangedAsync(
         string tenantId,
         CancellationToken cancellationToken

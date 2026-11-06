@@ -942,9 +942,9 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
-    /// Gets a team's usage from the durable daily ledger: the count of each meter of each of the team's tenants on each UTC
-    /// calendar day of a range, which the platform bills a plan by and reports to the customer. The ledger keeps a
-    /// deleted tenant's usage, so it can still be read.
+    /// Gets a team's usage from the durable daily ledger: the count of each meter of each tenant of the team and of every
+    /// team beneath it on each UTC calendar day of a range, which the platform bills a plan by and reports to the
+    /// customer. The ledger keeps the usage of deleted tenants and teams, so it can still be read.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="teamId">The identifier of the team.</param>
@@ -954,7 +954,9 @@ internal class TeamApiEndpointHandler(
     /// <response code="200">The team's usage on the range.</response>
     /// <response code="400">The range is reversed, longer than <see cref="MaxUsageDays"/> days, or would start before the
     /// first representable day.</response>
-    // See ADR-1199.
+    /// <response code="403">The caller lacks <c>Read</c> at the team, for any team identifier.</response>
+    /// <response code="404">The team does not exist.</response>
+    // See ADR-1424 and ADR-1426.
     [EndpointName("api/teams/usage/get")]
     internal virtual async ValueTask<IResult> GetUsageAsync(
         HttpContext httpContext,
@@ -964,14 +966,15 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
             GetTeamNode(httpContext, teamId),
-            Operations.Read
+            Operations.Read,
+            cancellationToken
         );
-        if (!authorizationResult.Succeeded)
+        if (authorizationFailure is not null)
         {
-            return AuthorizationFailed(httpContext);
+            return authorizationFailure;
         }
 
         var lastDay = to ?? DateOnly.FromDateTime(TimeProvider.GetUtcNow().UtcDateTime);
@@ -1004,8 +1007,17 @@ internal class TeamApiEndpointHandler(
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var team = await storeManager
+            .GetStore<ITeamStore>()
+            .GetOrDefaultAsync(teamId, cancellationToken);
+        if (team is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var teamPath = TeamPaths.Format([.. team.AncestorTeamIds, team.TeamId]);
         var store = storeManager.GetStore<ITenantUsageStore>();
-        var usage = await store.ListByTeamAsync(teamId, firstDay, lastDay, cancellationToken);
+        var usage = await store.ListByTeamAsync(teamPath, firstDay, lastDay, cancellationToken);
 
         return TypedResults.Ok(
             new TeamUsageResource
@@ -1016,6 +1028,7 @@ internal class TeamApiEndpointHandler(
                 Entries = usage
                     .Select(entry => new TeamUsageEntry
                     {
+                        TeamId = TeamPaths.Parse(entry.TeamPath)[^1],
                         TenantId = entry.TenantId,
                         Day = entry.Day,
                         Meter = entry.Meter,

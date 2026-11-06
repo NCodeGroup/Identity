@@ -808,6 +808,8 @@ NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.S
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.Settings.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamEffectiveSettingsResource.TeamEffectiveSettingsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TeamId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TeamId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.TenantId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamUsageEntry.Day.get -> System.DateOnly

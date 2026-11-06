@@ -2041,23 +2041,20 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     #region GetUsageAsync Tests
 
     [Fact]
-    public async Task GetUsageAsync_WhenAuthorized_ReturnsTheTeamsLedgerWithEachTenantId()
+    public async Task GetUsageAsync_WhenAuthorized_ReturnsTheTeamsLedgerWithEachTeamAndTenantId()
     {
         var from = new DateOnly(2026, 10, 1);
         var to = new DateOnly(2026, 10, 2);
         SetupAuthorization(AuthorizationResult.Success());
-        MockStoreManagerFactory
-            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(MockStoreManager.Object)
-            .Verifiable();
+        SetupStore();
+        SetupTeam(CreateTeam());
         var mockUsageStore = MockRepository.Create<ITenantUsageStore>();
         MockStoreManager
             .Setup(x => x.GetStore<ITenantUsageStore>())
             .Returns(mockUsageStore.Object)
             .Verifiable();
-        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
         mockUsageStore
-            .Setup(x => x.ListByTeamAsync(TeamId, from, to, It.IsAny<CancellationToken>()))
+            .Setup(x => x.ListByTeamAsync($"/{TeamId}/", from, to, It.IsAny<CancellationToken>()))
             .ReturnsAsync([
                 new PersistedTenantUsage
                 {
@@ -2091,9 +2088,87 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         Assert.Equal(from, ok.Value?.From);
         Assert.Equal(to, ok.Value?.To);
         Assert.Equal(
-            [("tenant-a", from, "requests", 42L), ("tenant-b", to, "tokens", 7L)],
-            ok.Value!.Entries.Select(entry => (entry.TenantId, entry.Day, entry.Meter, entry.Count))
+            [(TeamId, "tenant-a", from, "requests", 42L), (TeamId, "tenant-b", to, "tokens", 7L)],
+            ok.Value!.Entries.Select(entry =>
+                (entry.TeamId, entry.TenantId, entry.Day, entry.Meter, entry.Count)
+            )
         );
+    }
+
+    [Fact]
+    public async Task GetUsageAsync_WithAChildTeam_ListsItsTenantsWithTheirTeam()
+    {
+        var day = new DateOnly(2026, 10, 1);
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTeam(CreateTeam());
+        var mockUsageStore = MockRepository.Create<ITenantUsageStore>();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantUsageStore>())
+            .Returns(mockUsageStore.Object)
+            .Verifiable();
+        mockUsageStore
+            .Setup(x => x.ListByTeamAsync($"/{TeamId}/", day, day, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                new PersistedTenantUsage
+                {
+                    TenantId = "tenant-a",
+                    TeamPath = $"/{TeamId}/{ChildTeamId}/",
+                    Day = day,
+                    Meter = "requests",
+                    Count = 5,
+                },
+            ])
+            .Verifiable();
+
+        var result = await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            day,
+            day,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<TeamUsageResource>>(result);
+        var entry = Assert.Single(ok.Value!.Entries);
+        Assert.Equal(ChildTeamId, entry.TeamId);
+        Assert.Equal("tenant-a", entry.TenantId);
+    }
+
+    [Fact]
+    public async Task GetUsageAsync_WhenTheTeamDoesNotExist_ReturnsNotFound()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTeam(null);
+
+        var result = await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetUsageAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTeam()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]

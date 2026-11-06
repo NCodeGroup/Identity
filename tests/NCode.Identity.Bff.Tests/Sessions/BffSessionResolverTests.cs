@@ -88,7 +88,9 @@ public class BffSessionResolverTests : BaseTests
         DateTimeOffset absoluteExpiresAt,
         DateTimeOffset idleExpiresAt,
         DateTimeOffset? lastAccessedAt = null,
-        string frontend = BffTestFrontends.Name
+        string frontend = BffTestFrontends.Name,
+        string authority = BffTestFrontends.Authority,
+        string clientId = BffTestFrontends.ClientId
     ) =>
         new(
             Handle,
@@ -97,6 +99,8 @@ public class BffSessionResolverTests : BaseTests
             new BffSessionMetadata
             {
                 Frontend = frontend,
+                Authority = authority,
+                ClientId = clientId,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),
@@ -209,6 +213,36 @@ public class BffSessionResolverTests : BaseTests
         MockManager
             .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
             .ReturnsAsync(state)
+            .Verifiable();
+
+        var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
+
+        Assert.Null(result);
+        Assert.Null(httpContext.Features.Get<BffRequestFeature>()?.Session);
+        var setCookie = Assert.Single(httpContext.Response.Headers.SetCookie.ToArray());
+        Assert.StartsWith($"{BffTestFrontends.SessionCookieName}=;", setCookie);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_SessionOfAnotherClient_DeletesTheCookie()
+    {
+        var httpContext = CreateHttpContext();
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1), clientId: "other-client");
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.EndAsync(
+                    httpContext,
+                    state.StoreKey,
+                    state.Metadata,
+                    BffSessionEndReasons.ClientChanged,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
         var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
@@ -567,6 +601,116 @@ public class BffSessionResolverTests : BaseTests
         );
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_SessionOfAnotherClientId_EndsIt()
+    {
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1), clientId: "other-client");
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.EndAsync(
+                    null,
+                    state.StoreKey,
+                    state.Metadata,
+                    BffSessionEndReasons.ClientChanged,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Resolver.ValidateAsync(
+            frontend,
+            Handle,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_SessionOfAnotherAuthority_EndsIt()
+    {
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+        var state = CreateState(
+            Now.AddHours(5),
+            Now.AddHours(1),
+            authority: "https://other-op.example.com"
+        );
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.EndAsync(
+                    null,
+                    state.StoreKey,
+                    state.Metadata,
+                    BffSessionEndReasons.ClientChanged,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Resolver.ValidateAsync(
+            frontend,
+            Handle,
+            null,
+            null,
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_Slides_KeepsTheClient()
+    {
+        var frontend = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+        var state = CreateState(Now.AddHours(5), Now.AddHours(1));
+        MockManager
+            .Setup(x => x.LoadAsync(Handle, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(state)
+            .Verifiable();
+        MockManager
+            .Setup(x =>
+                x.UpdateAsync(
+                    state,
+                    It.IsAny<Func<BffSessionState, BffSessionState?>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (
+                    BffSessionState current,
+                    Func<BffSessionState, BffSessionState?> update,
+                    CancellationToken _
+                ) => update(current)
+            )
+            .Verifiable();
+
+        var result = await Resolver.ValidateAsync(
+            frontend,
+            Handle,
+            null,
+            Now,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(result);
+        Assert.Equal(Now, result.Metadata.LastAccessedAt);
+        Assert.Equal(BffTestFrontends.Authority, result.Metadata.Authority);
+        Assert.Equal(BffTestFrontends.ClientId, result.Metadata.ClientId);
     }
 
     [Fact]

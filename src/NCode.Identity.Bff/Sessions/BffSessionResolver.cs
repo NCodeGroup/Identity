@@ -83,7 +83,7 @@ internal class BffSessionResolver(
     }
 
     /// <summary>
-    /// Loads and validates the session of a handle, ends it when it has expired or a validator refuses it, and slides
+    /// Loads and validates the session of a handle, ends it when it belongs to another client, has expired or a validator refuses it, and slides
     /// it from <paramref name="activityAt"/>. It never touches cookies or request features.
     /// </summary>
     /// <param name="frontend">The frontend that the session must belong to.</param>
@@ -109,6 +109,30 @@ internal class BffSessionResolver(
 
         if (!string.Equals(state.Metadata.Frontend, frontend.Name, StringComparison.Ordinal))
             return null;
+
+        // See ADR-1443: a session belongs to the client its frontend was configured with.
+        if (
+            !string.Equals(
+                state.Metadata.Authority,
+                frontend.Options.Authority,
+                StringComparison.Ordinal
+            )
+            || !string.Equals(
+                state.Metadata.ClientId,
+                frontend.Options.ClientId,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            await _sessionManager.EndAsync(
+                httpContext,
+                state.StoreKey,
+                state.Metadata,
+                BffSessionEndReasons.ClientChanged,
+                cancellationToken
+            );
+            return null;
+        }
 
         var now = _timeProvider.GetUtcNow();
         string? endReason = null;
@@ -178,6 +202,8 @@ internal class BffSessionResolver(
         var slid = new BffSessionMetadata
         {
             Frontend = metadata.Frontend,
+            Authority = metadata.Authority,
+            ClientId = metadata.ClientId,
             Issuer = metadata.Issuer,
             Subject = metadata.Subject,
             SessionId = metadata.SessionId,

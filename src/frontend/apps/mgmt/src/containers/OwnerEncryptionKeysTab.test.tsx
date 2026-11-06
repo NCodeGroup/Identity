@@ -72,6 +72,7 @@ const activeKey: EncryptionKeyResource = {
   rootKeyId: 'arn:aws:kms:key',
   recoveryKeyId: 'recovery-1',
   rootKeyReference: null,
+  rootKeyAccessIdentity: null,
 };
 
 const retiredKey: EncryptionKeyResource = {
@@ -88,6 +89,7 @@ const keys: EncryptionKeysResource = {
   recoveryConfigured: true,
   rootKey: null,
   rootKeyProviders: [],
+  rootKeyAccessBinding: null,
 };
 
 describe('OwnerEncryptionKeysTab', () => {
@@ -249,6 +251,31 @@ describe('OwnerEncryptionKeysTab', () => {
       'changed by another request',
     );
   });
+
+  it('shows how long to wait when a rekey comes too soon', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/encryption-keys/rekey') && method === 'POST') {
+        return jsonResponse(
+          {
+            title: 'Conflict',
+            status: 409,
+            detail: 'The last rotation of this master key has not reached every replica yet.',
+            retryAfterSeconds: 240,
+          },
+          409,
+        );
+      }
+      return jsonResponse(keys);
+    });
+
+    renderTab({ kind: 'platform' }, 'platform');
+    await screen.findByTestId('encryption-key-row-k-2');
+
+    fireEvent.click(screen.getByTestId('encryption-keys-rekey'));
+    fireEvent.click(await screen.findByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('confirm-error')).toHaveTextContent('Try again in 4 minutes.');
+  });
 });
 
 describe('OwnerEncryptionKeysTab root key', () => {
@@ -259,6 +286,7 @@ describe('OwnerEncryptionKeysTab root key', () => {
   const rootKey: EncryptionRootKeyResource = {
     provider: 'aws-kms',
     keyReference: 'arn:aws:kms:key/abc',
+    accessIdentity: null,
     state: 'active',
     createdWhen: '2026-10-01T09:00:00Z',
     stateChangedWhen: '2026-10-01T09:00:00Z',
@@ -305,6 +333,7 @@ describe('OwnerEncryptionKeysTab root key', () => {
         recoveryConfigured: false,
         rootKey,
         rootKeyProviders: providers,
+        rootKeyAccessBinding: null,
       }),
     );
 
@@ -370,8 +399,79 @@ describe('OwnerEncryptionKeysTab root key', () => {
     expect(JSON.parse(put?.body ?? '{}')).toEqual({
       provider: 'aws-kms',
       keyReference: 'arn:aws:kms:key/abc',
+      accessIdentity: null,
     });
     expect(screen.getByTestId('encryption-keys-root-key-only')).toBeInTheDocument();
+  });
+
+  it('names the access binding in the dialog and sets the trimmed access identity', async () => {
+    const calls = installFetch((url, method) =>
+      url === rootKeyUrl && method === 'PUT'
+        ? jsonResponse({
+            rootKey,
+            activeKey: null,
+            retiredKey: null,
+            rewrappedKeys: 0,
+            failedKeys: 0,
+          })
+        : jsonResponse({ ...withoutRootKey, rootKeyAccessBinding: 'tenant:acme' }),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+    expect(
+      screen.getByText(
+        "Leave blank to reach the key with the deployment's identity. An AWS role's trust policy requires the external ID tenant:acme.",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByTestId('root-key-form-reference'), {
+      target: { value: 'arn:aws:kms:key/abc' },
+    });
+    fireEvent.change(screen.getByTestId('root-key-form-access-identity'), {
+      target: { value: ' arn:aws:iam::111122223333:role/tenant ' },
+    });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
+    expect(JSON.parse(calls.find((c) => c.method === 'PUT')?.body ?? '{}')).toEqual({
+      provider: 'aws-kms',
+      keyReference: 'arn:aws:kms:key/abc',
+      accessIdentity: 'arn:aws:iam::111122223333:role/tenant',
+    });
+  });
+
+  it('opens the dialog with the stored key reference and access identity and submits them unchanged', async () => {
+    const stored: EncryptionRootKeyResource = {
+      ...rootKey,
+      accessIdentity: 'arn:aws:iam::111122223333:role/tenant',
+    };
+    const calls = installFetch((url, method) =>
+      url === rootKeyUrl && method === 'PUT'
+        ? jsonResponse({
+            rootKey: stored,
+            activeKey: null,
+            retiredKey: null,
+            rewrappedKeys: 0,
+            failedKeys: 0,
+          })
+        : jsonResponse({ ...withRootKey, rootKey: stored }),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+
+    expect(screen.getByTestId('root-key-form-reference')).toHaveValue('arn:aws:kms:key/abc');
+    expect(screen.getByTestId('root-key-form-access-identity')).toHaveValue(
+      'arn:aws:iam::111122223333:role/tenant',
+    );
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    await waitFor(() => expect(calls.some((c) => c.method === 'PUT')).toBe(true));
+    expect(JSON.parse(calls.find((c) => c.method === 'PUT')?.body ?? '{}')).toEqual({
+      provider: 'aws-kms',
+      keyReference: 'arn:aws:kms:key/abc',
+      accessIdentity: 'arn:aws:iam::111122223333:role/tenant',
+    });
   });
 
   it('shows the server explanation of a root key that fails its probe and keeps the dialog open', async () => {
@@ -395,6 +495,31 @@ describe('OwnerEncryptionKeysTab root key', () => {
 
     expect(await screen.findByTestId('root-key-form-error')).toHaveTextContent('access denied');
     expect(screen.getByTestId('root-key-form-submit')).toBeInTheDocument();
+  });
+
+  it('shows how long to wait when a root key change comes too soon', async () => {
+    installFetch((url, method) =>
+      url === rootKeyUrl && method === 'PUT'
+        ? jsonResponse(
+            {
+              title: 'Conflict',
+              status: 409,
+              detail: 'The last rotation of this master key has not reached every replica yet.',
+              retryAfterSeconds: 45,
+            },
+            409,
+          )
+        : jsonResponse(withoutRootKey),
+    );
+
+    renderTab(tenant, 'tenant');
+    fireEvent.click(await screen.findByTestId('root-key-set'));
+    fireEvent.change(screen.getByTestId('root-key-form-reference'), { target: { value: 'arn' } });
+    fireEvent.click(screen.getByTestId('root-key-form-submit'));
+
+    expect(await screen.findByTestId('root-key-form-error')).toHaveTextContent(
+      'Try again in 45 seconds.',
+    );
   });
 
   it('shows the validation messages of a rejected field in the dialog', async () => {

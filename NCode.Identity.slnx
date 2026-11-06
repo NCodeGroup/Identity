@@ -84,6 +84,7 @@
     <Folder Name="/tests/">
         <Project Path="tests/NCode.AspNetCore.Tests/NCode.AspNetCore.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Abstractions.Tests/NCode.Identity.Abstractions.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.Bff.EndToEnd.Tests/NCode.Identity.Bff.EndToEnd.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Server.Tests/NCode.Identity.Bff.Server.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Bff.Tests/NCode.Identity.Bff.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Cose.Tests/NCode.Identity.Cose.Tests.csproj" />

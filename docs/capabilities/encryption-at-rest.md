@@ -367,7 +367,8 @@ replica through the tenant-change broadcast. A replica also unwraps a tenant-key
 when no probe runs. A replica whose unwrap through the key fails logs the failure and refuses the tenant for
 `RetryInterval`; only a failed probe sets the stored state to `unavailable`. While a tenant's key is `unavailable`, the
 host reads and writes none of the tenant's secrets: the
-management API answers `503 Service Unavailable` with a `Retry-After` for that tenant, a protocol request answers as for
+management API answers `503 Service Unavailable` with a `Retry-After`, and the same wait in the problem's
+`retryAfterSeconds`, for that tenant, a protocol request answers as for
 any unhandled failure, the host logs the failure, and the audit trail records `root_key.unavailable` (see
 [Audit records](../audit-records.md#root-keys)). The next successful probe restores the key
 (`root_key.restored`), and the tenant is readable again. Development pruning never deletes a tenant-keyed owner's master
@@ -384,13 +385,44 @@ loses every such value for good, and no operator can recover it.
 | Route                                                                   | Does                                                                                                                                                                                 |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `GET /api/tenants/{tenantId}/encryption-keys`                           | Reports the keys, the tenant's root key and the providers a tenant may choose.                                                                                                       |
-| `PUT /api/tenants/{tenantId}/encryption-keys/root-key`                  | Sets or changes the key from `provider` and `keyReference`. `200`; `400` for a field that is blank, not allowed, not registered or malformed, or for the control-plane tenant; `409` with `Retry-After` for a change too soon after a rotation; `412` when it loses a race; `422` when the probe fails. |
+| `PUT /api/tenants/{tenantId}/encryption-keys/root-key`                  | Sets or changes the key from `provider`, `keyReference` and an optional `accessIdentity`. `200`; `400` for a field that is blank, not allowed, not registered or malformed, or for the control-plane tenant; `409` with `Retry-After` and `retryAfterSeconds` for a change too soon after a rotation; `412` when it loses a race; `422` when the probe fails. |
 | `DELETE /api/tenants/{tenantId}/encryption-keys/root-key`               | Removes the key. `204` once every master key is under the deployment's root key, also when no key was set; `202` with the key in `removing` while master keys remain under it.      |
 | `POST /api/tenants/{tenantId}/encryption-keys/root-key/validate`        | Probes the key on demand. `200` with the key; `404` when the tenant has no key.                                                                                                            |
 
 The console's encryption keys tab for a tenant shows the root key with its state and last failure, and offers "Set root
 key", "Validate" and a confirmed "Remove". An `unavailable` key shows an error alert, and a tenant with no provider to
 choose shows no set action. The key table names each master key's root key, or "Deployment".
+
+### Reaching the key through an identity the tenant grants
+
+By default the server reaches the tenant's key with the deployment's own workload identity. A tenant that would rather
+grant access through an identity it owns can name that **access identity** as it sets the key (`accessIdentity` on
+`PUT /api/tenants/{tenantId}/encryption-keys/root-key`, and the optional "Access identity" field of the console's set
+dialog). The server then reaches the key through that identity, and what the tenant names depends on the provider:
+
+- **AWS (`aws-kms`).** The tenant creates an IAM role and names its ARN, such as
+  `arn:aws:iam::123456789012:role/ncode-identity`. The role's trust policy allows the deployment's principal to call
+  `sts:AssumeRole` with an `sts:ExternalId` condition equal to the **access binding**, the tenant's owner as
+  `type:id`, such as `tenant:acme`. The role is granted `kms:Encrypt` and `kms:Decrypt` on the key, and the
+  deployment's identity needs `sts:AssumeRole` on the role. The binding is reported as `rootKeyAccessBinding` by
+  `GET /api/tenants/{tenantId}/encryption-keys` before the key is set, so the tenant can write the trust policy first,
+  and the console's helper text shows it. The external ID stops one tenant from making the server assume another
+  tenant's role.
+- **Google Cloud (`google-cloud-kms`).** The tenant creates a service account of its own that holds
+  `roles/cloudkms.cryptoKeyEncrypterDecrypter` on the key, grants the deployment's identity
+  `roles/iam.serviceAccountTokenCreator` on that service account, and names its email, which ends with
+  `.iam.gserviceaccount.com`. The server impersonates the service account.
+- **Azure (`azure-key-vault`).** The deployment's application is multi-tenant. The tenant consents to it in its
+  Microsoft Entra directory, grants its service principal the "Key Vault Crypto Service Encryption User" role on the
+  key, and names the directory (tenant) ID, a GUID. The server requests its tokens for that directory.
+
+No secret is stored, because every identity is a delegation the tenant can revoke: an access key, a client secret or a
+service account key file is never asked for. The field is optional, and the server checks its format for the provider
+as the key is set, then probes the key through the identity like any other. Changing only the access identity, with the
+same provider and key reference, rewraps the master keys under the key through the new identity without rotating them,
+because the key is the same; changing the key still rotates. Every master key records the identity it is reached
+through, so a master key stays readable through its earlier identity until the rewrap moves it. The management API
+reports each master key's `rootKeyAccessIdentity` and the key's `accessIdentity`.
 
 ## Rotation, rekey and destroy
 
@@ -424,9 +456,9 @@ sequenceDiagram
 - **Rekey through the API.** `GET` and `POST /api/tenants/{tenantId}/encryption-keys[/rekey]` and
   `/api/platform/encryption-keys[/rekey]` report the keys and rotate them (Auth0's rekey shape). The response
   names keys by id, version, state, instants, root key provider, root key reference and recovery key id and carries no key material. A rekey
-  within twice `RefreshInterval` of the owner's last rotation answers `409` with `Retry-After`, and one that loses a
-  race to another rekey answers `412`, as every management write that loses a race does. The management console shows
-  both.
+  within twice `RefreshInterval` of the owner's last rotation answers `409` with `Retry-After` and the same wait in the
+  problem's `retryAfterSeconds`, and one that loses a race to another rekey answers `412`, as every management write
+  that loses a race does. The management console shows both, and how long to wait.
 - **Every replica follows.** A replica keeps an owner's unwrapped keys for at most
   `SecretProtection:MasterKeys:RefreshInterval` (five minutes). A refresh reuses the keys it holds, so it makes no KMS
   call, and drops destroyed keys. A broadcast makes the others reload at once; a lost one costs at most
@@ -482,7 +514,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Production**  | Refuses to start with the `ephemeral` provider, with a root key written inline in configuration (even if unused), or with no recovery decision. It reports every finding together.              |
 | **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id, and mounts cloud credentials only for the selected provider ([ADR-1179](../decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). |
-| **Development** | No root key or development credential is ever committed, and `ephemeral` is selected only by the host's Development and Conformance overlays. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development pruning heals affected tenants automatically.       |
+| **Development** | No root key or development credential is ever committed, and `ephemeral` is selected only by the host's Development and Conformance overlays. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development key pruning (`DeveloperKeys:PruneUnreadableKeys`) heals the platform and the affected tenants: the platform starts over with a new master key, and its Data Protection keys are revoked.       |
 
 ## Protect your own data with it
 

@@ -19,9 +19,8 @@ public interface IResourceOwnershipService
 {
     /// <summary>
     /// Assigns the calling principal the <see cref="BuiltInRoles.Owner"/> role at the newly-created resource node,
-    /// enlisted in the supplied unit of work so it commits atomically with the resource. When the caller has no
-    /// subject principal (for example a service token), the resource starts with no owner and the tenant and global
-    /// realms continue to manage it.
+    /// enlisted in the supplied unit of work so it commits atomically with the resource. When the caller
+    /// resolves to no principal, the resource starts with no owner and the administrators above it manage it.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request, whose tenant settings
     /// configure how the creating principal is resolved.</param>

@@ -5,14 +5,14 @@ import Stack from '@mui/material/Stack';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
-import type { SecretOwner, ManagementScope, ResourceServerResource } from '@ncode/api';
+import type { SecretOwner, ResourceServerResource } from '@ncode/api';
 import { ClientsPage } from './ClientsPage.js';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 import { ResourceServerScopesPage } from './ResourceServerScopesPage.js';
 
 export type ResourceServerDetailPageProps = {
-  readonly scope: ManagementScope;
+  readonly tenantId: string;
   readonly resourceServer: ResourceServerResource;
   readonly onBack: () => void;
 };
@@ -30,7 +30,7 @@ type ResourceServerSurface = 'scopes' | 'clients' | 'secrets' | 'settings';
  * tabs are not offered. Owns only tab state.
  */
 export function ResourceServerDetailPage({
-  scope,
+  tenantId,
   resourceServer,
   onBack,
 }: ResourceServerDetailPageProps) {
@@ -38,7 +38,7 @@ export function ResourceServerDetailPage({
   const isSystem = resourceServer.isSystem;
   const owner: SecretOwner = {
     kind: 'resource-server',
-    scope,
+    tenantId,
     resourceServerId: resourceServer.resourceServerId,
   };
 
@@ -76,9 +76,13 @@ export function ResourceServerDetailPage({
         <Tab value="settings" label="Settings" data-testid="resource-server-tab-settings" />
       </Tabs>
       {surface === 'scopes' ? (
-        <ResourceServerScopesPage scope={scope} resourceServer={resourceServer} embedded />
+        <ResourceServerScopesPage tenantId={tenantId} resourceServer={resourceServer} embedded />
       ) : surface === 'clients' ? (
-        <ClientsPage scope={scope} resourceServerId={resourceServer.resourceServerId} embedded />
+        <ClientsPage
+          tenantId={tenantId}
+          resourceServerId={resourceServer.resourceServerId}
+          embedded
+        />
       ) : surface === 'secrets' ? (
         <OwnerSecretsTab owner={owner} ownerLabel="resource server" />
       ) : (

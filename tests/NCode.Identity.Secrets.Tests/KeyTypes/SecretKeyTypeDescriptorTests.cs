@@ -21,6 +21,7 @@ public class SecretKeyTypeDescriptorTests : BaseTests
             CurveName = "brainpoolP256r1",
             CurveSizeBits = 256,
             Curve = ECCurve.NamedCurves.brainpoolP256r1,
+            Domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.brainpoolP256r1),
         };
 
     // The descriptors under test generate and validate keys without their factories, which a strict mock proves.

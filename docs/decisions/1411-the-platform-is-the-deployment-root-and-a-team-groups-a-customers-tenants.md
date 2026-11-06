@@ -45,7 +45,9 @@
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): a tenant administrator is a
   `TenantAdmin` assignment at the tenant's node; amended by
   [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md): a limit is set by the
-  authority above the scope whose document carries it)
+  authority above the scope whose document carries it; amended by
+  [ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md): the console opens on the
+  caller's home)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)

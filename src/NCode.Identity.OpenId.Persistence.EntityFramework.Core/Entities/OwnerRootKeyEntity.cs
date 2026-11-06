@@ -80,6 +80,14 @@ public sealed class OwnerRootKeyEntity : ISupportConcurrencyToken
     public required string KeyReference { get; set; }
 
     /// <summary>
+    /// Gets or sets the identity that the server assumes to reach the root key, or <c>null</c> when the deployment's
+    /// own identity reaches it.
+    /// </summary>
+    [Unicode(false)]
+    [MaxLength(PersistedOwnerRootKey.MaxAccessIdentityLength)]
+    public required string? AccessIdentity { get; set; }
+
+    /// <summary>
     /// Gets or sets the state of the root key.
     /// </summary>
     [Unicode(false)]

@@ -66,6 +66,7 @@ public sealed class MasterKeyStoreTests : IDisposable
             RootKeyProvider = KeyWrapperNames.Local,
             RootKeyId = $"root-key-{version}",
             RootKeyReference = version % 2 == 0 ? $"kms://root-{version}" : null,
+            RootKeyAccessIdentity = version % 2 == 0 ? $"role://root-{version}" : null,
             RootWrappedKey = $"root-wrapped-key-{version}",
             RecoveryKeyId = $"recovery-key-{version}",
             RecoveryWrappedKey = $"recovery-wrapped-key-{version}",
@@ -138,10 +139,12 @@ public sealed class MasterKeyStoreTests : IDisposable
     [Fact]
     public async Task AddThenList_RoundTripsEveryMember()
     {
-        var expected = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 1);
+        var expected = CreateMasterKey(SecretOwnerTypes.Tenant, TenantOneId, 2);
         await AddAsync(expected);
 
         var actual = Assert.Single(await ListAsync(SecretOwner.ForTenant(TenantOneId)));
+        Assert.NotNull(actual.RootKeyReference);
+        Assert.NotNull(actual.RootKeyAccessIdentity);
 
         Assert.Equal(expected.KeyId, actual.KeyId);
         Assert.Equal(SecretOwnerTypes.Tenant, actual.OwnerType);
@@ -152,6 +155,7 @@ public sealed class MasterKeyStoreTests : IDisposable
         Assert.Equal(expected.RootKeyProvider, actual.RootKeyProvider);
         Assert.Equal(expected.RootKeyId, actual.RootKeyId);
         Assert.Equal(expected.RootKeyReference, actual.RootKeyReference);
+        Assert.Equal(expected.RootKeyAccessIdentity, actual.RootKeyAccessIdentity);
         Assert.Equal(expected.RootWrappedKey, actual.RootWrappedKey);
         Assert.Equal(expected.RecoveryKeyId, actual.RecoveryKeyId);
         Assert.Equal(expected.RecoveryWrappedKey, actual.RecoveryWrappedKey);

@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amended 2026-10-07; amended by
   [ADR-1226](1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md): an
-  administrator can block a principal)
+  administrator can block a principal; amended by
+  [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md): a client acting for itself
+  is a principal)
 - **Date:** 2026-10-02
 - **Deciders:** NCode Group
 

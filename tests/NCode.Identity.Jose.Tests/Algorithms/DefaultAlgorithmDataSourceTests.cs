@@ -23,6 +23,7 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
             CurveName = "brainpoolP256r1",
             CurveSizeBits = 256,
             Curve = ECCurve.NamedCurves.brainpoolP256r1,
+            Domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.brainpoolP256r1),
         };
 
     private static EccSignatureAlgorithmSpecification CreateSpecification(string code) =>
@@ -151,6 +152,7 @@ public class DefaultAlgorithmDataSourceTests : BaseTests
                     CurveName = "P-256",
                     CurveSizeBits = 256,
                     Curve = ECCurve.NamedCurves.brainpoolP256r1,
+                    Domain = EccCurveDomain.FromCurve(ECCurve.NamedCurves.brainpoolP256r1),
                 },
                 HashAlgorithmName = HashAlgorithmName.SHA256,
             }

@@ -2,7 +2,6 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore } from '@ncode/store';
-import { PLATFORM_SCOPE, tenantScope, type ManagementScope } from '@ncode/api';
 import type { RuntimeConfig } from '@ncode/config';
 import { ClientsPage } from './ClientsPage.js';
 
@@ -15,7 +14,7 @@ const runtime: RuntimeConfig = {
   features: {},
 };
 
-function renderPage(scope: ManagementScope = tenantScope('acme')) {
+function renderPage(tenantId = 'acme') {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -28,7 +27,7 @@ function renderPage(scope: ManagementScope = tenantScope('acme')) {
   });
   return render(
     <Provider store={store}>
-      <ClientsPage scope={scope} />
+      <ClientsPage tenantId={tenantId} />
     </Provider>,
   );
 }
@@ -88,7 +87,7 @@ describe('ClientsPage (list states and scope)', () => {
 
     expect(screen.getByTestId('data-loading')).toBeInTheDocument();
     expect(await screen.findByTestId('data-empty')).toHaveTextContent(
-      'No clients in this scope yet.',
+      'No clients in this tenant yet.',
     );
   });
 
@@ -98,20 +97,6 @@ describe('ClientsPage (list states and scope)', () => {
     renderPage();
 
     expect(await screen.findByTestId('data-error')).toHaveTextContent('Failed to load clients.');
-  });
-
-  it('lists platform-scope clients from the platform path, never a tenant path', async () => {
-    const calls = installFetch((url, method) => {
-      if (url.endsWith('/api/clients') && method === 'GET') {
-        return jsonResponse({ items: [{ ...web, clientId: 'system-cli' }] });
-      }
-      throw new Error(`Unexpected ${method} ${url}`);
-    });
-
-    renderPage(PLATFORM_SCOPE);
-
-    expect(await screen.findByText('system-cli')).toBeInTheDocument();
-    expect(calls.map((c) => c.url)).toEqual(['https://api.test/api/clients']);
   });
 
   it('drills into a client and returns to the list', async () => {

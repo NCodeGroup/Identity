@@ -8,16 +8,10 @@ const acme = tenantScope('acme');
 const platform: ManagementOwner = { kind: 'platform' };
 const team: ManagementOwner = { kind: 'team', teamId: 'acme' };
 const tenant: ManagementOwner = { kind: 'tenant', tenantId: 'acme' };
-const tenantClient: ManagementOwner = { kind: 'client', scope: acme, clientId: 'web' };
-const platformClient: ManagementOwner = { kind: 'client', scope: PLATFORM_SCOPE, clientId: 'web' };
+const tenantClient: ManagementOwner = { kind: 'client', tenantId: 'acme', clientId: 'web' };
 const tenantResourceServer: ManagementOwner = {
   kind: 'resource-server',
-  scope: acme,
-  resourceServerId: 'rs-1',
-};
-const platformResourceServer: ManagementOwner = {
-  kind: 'resource-server',
-  scope: PLATFORM_SCOPE,
+  tenantId: 'acme',
   resourceServerId: 'rs-1',
 };
 
@@ -34,14 +28,12 @@ describe('ownerScope', () => {
     expect(ownerScope(tenant)).toEqual({ kind: 'tenant', tenantId: 'acme' });
   });
 
-  it('uses the scope of a client', () => {
+  it('places a client in its tenant', () => {
     expect(ownerScope(tenantClient)).toEqual(acme);
-    expect(ownerScope(platformClient)).toEqual(PLATFORM_SCOPE);
   });
 
-  it('uses the scope of a resource server', () => {
+  it('places a resource server in its tenant', () => {
     expect(ownerScope(tenantResourceServer)).toEqual(acme);
-    expect(ownerScope(platformResourceServer)).toEqual(PLATFORM_SCOPE);
   });
 });
 
@@ -58,14 +50,15 @@ describe('ownerApiPath', () => {
     expect(ownerApiPath(tenant)).toBe('api/tenants/acme');
   });
 
-  it('nests a client under its scope', () => {
+  it('nests a client under its tenant', () => {
     expect(ownerApiPath(tenantClient)).toBe('api/tenants/acme/clients/web');
-    expect(ownerApiPath(platformClient)).toBe('api/clients/web');
+    expect(ownerApiPath({ kind: 'client', tenantId: 'a/b', clientId: 'c/d' })).toBe(
+      'api/tenants/a%2Fb/clients/c%2Fd',
+    );
   });
 
-  it('nests a resource server under its scope', () => {
+  it('nests a resource server under its tenant', () => {
     expect(ownerApiPath(tenantResourceServer)).toBe('api/tenants/acme/resource-servers/rs-1');
-    expect(ownerApiPath(platformResourceServer)).toBe('api/resource-servers/rs-1');
   });
 
   it('url-encodes the owner id to prevent path escape', () => {
@@ -95,12 +88,12 @@ describe('ownerTagId', () => {
   });
 
   it('tags a resource server in its scope', () => {
-    expect(ownerTagId(platformResourceServer)).toBe('platform:resource-server:rs-1');
+    expect(ownerTagId(tenantResourceServer)).toBe('tenant:acme:resource-server:rs-1');
   });
 
   it('url-encodes the owner id so it cannot run into the key', () => {
-    expect(ownerTagId({ kind: 'client', scope: PLATFORM_SCOPE, clientId: 'a:b' })).toBe(
-      'platform:client:a%3Ab',
+    expect(ownerTagId({ kind: 'client', tenantId: 'acme', clientId: 'a:b' })).toBe(
+      'tenant:acme:client:a%3Ab',
     );
   });
 });
@@ -112,7 +105,7 @@ describe('ownerEffectiveTagId', () => {
   });
 
   it('never equals the tag of another owner of the same kind', () => {
-    const other: ManagementOwner = { kind: 'client', scope: acme, clientId: 'web:effective' };
+    const other: ManagementOwner = { kind: 'client', tenantId: 'acme', clientId: 'web:effective' };
 
     expect(ownerEffectiveTagId(tenantClient)).not.toBe(ownerTagId(other));
   });

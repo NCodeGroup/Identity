@@ -212,6 +212,43 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(7, captured.EventId.Version);
     }
 
+    [Fact]
+    public async Task RecordGrantRevokedAsync_WhenAClientActsForItself_RecordsTheClientActor()
+    {
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+
+        GrantRevokedAuditEvent? captured = null;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<GrantRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (GrantRevokedAuditEvent auditEvent, CancellationToken _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var recorder = CreateRecorder(mockPublisher.Object);
+
+        var httpContext = CreateHttpContext("admin-1");
+        httpContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim("client_id", "client-1")])
+        );
+
+        await recorder.RecordGrantRevokedAsync(
+            httpContext,
+            "tenant-1",
+            "subject-1",
+            "client-1",
+            "authorization_code",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal(AuditActorTypes.Client, captured.Actor.Type);
+        Assert.Equal("client-1", captured.Actor.Id);
+    }
+
     #endregion
 
     #region RecordMasterKeyRotatedAsync Tests
@@ -265,9 +302,9 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
         Assert.Equal(AuditActorTypes.Administrator, captured.Actor.Type);
         Assert.Equal("admin-1", captured.Actor.Id);
-        Assert.Equal(rotation.ActiveKey.KeyId, captured.KeyId);
-        Assert.Equal(rotation.RetiredKey?.KeyId, captured.RetiredKeyId);
-        Assert.Equal(1, captured.RetiredVersion);
+        Assert.Equal(rotation.ActiveKey, captured.Key);
+        Assert.Equal(rotation.RetiredKey, captured.RetiredKey);
+        Assert.Equal(1, captured.RetiredKey?.Version);
         Assert.Equal(7, captured.EventId.Version);
     }
 
@@ -305,7 +342,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
         Assert.NotNull(captured);
         Assert.Equal("root_key_changed", captured.Reason);
-        Assert.Equal("kms://tenant-1/root", captured.RootKeyReference);
+        Assert.Equal("kms://tenant-1/root", captured.Key.RootKeyReference);
     }
 
     [Theory]
@@ -412,8 +449,8 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.Equal("master_key.rotated", captured.EventName);
         Assert.Equal("tenant-1", captured.TenantId);
         Assert.Null(captured.TenantEnvironmentType);
-        Assert.Equal("platform", captured.OwnerType);
-        Assert.Equal("platform", captured.OwnerId);
+        Assert.Equal("platform", captured.Key.Owner.OwnerType);
+        Assert.Equal("platform", captured.Key.Owner.OwnerId);
         Assert.Equal("admin-1", captured.Actor.Id);
     }
 

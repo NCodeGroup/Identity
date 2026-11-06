@@ -53,13 +53,19 @@ type TenantRootKeySectionProps = {
   readonly tenantId: string;
   readonly rootKey: EncryptionRootKeyResource | null;
   readonly providers: readonly string[];
+  readonly accessBinding: string | null;
 };
 
 /**
  * The root key a tenant brings (ADR-1414): "Set root key" in a dialog that shows the server's error, "Validate" and a
  * confirmed "Remove". The API returns no key material, and neither does this view.
  */
-function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySectionProps) {
+function TenantRootKeySection({
+  tenantId,
+  rootKey,
+  providers,
+  accessBinding,
+}: TenantRootKeySectionProps) {
   const [setRootKey, { isLoading: isSetting }] = useSetTenantRootKeyMutation();
   const [removeRootKey, { isLoading: isRemoving }] = useRemoveTenantRootKeyMutation();
   const [validateRootKey, { isLoading: isValidating }] = useValidateTenantRootKeyMutation();
@@ -128,8 +134,12 @@ function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySec
         initialValues={{
           ...emptyEncryptionRootKeyFormValues,
           provider: rootKey?.provider ?? emptyEncryptionRootKeyFormValues.provider,
+          keyReference: rootKey?.keyReference ?? emptyEncryptionRootKeyFormValues.keyReference,
+          accessIdentity:
+            rootKey?.accessIdentity ?? emptyEncryptionRootKeyFormValues.accessIdentity,
         }}
         providers={providers}
+        accessBinding={accessBinding}
         isSubmitting={isSetting}
         error={setError}
         onSubmit={(values) => void handleSet(values)}
@@ -155,7 +165,8 @@ function TenantRootKeySection({ tenantId, rootKey, providers }: TenantRootKeySec
  * the background. The platform's next version protects the Data Protection keys and host data created afterwards,
  * existing Data Protection keys keep naming the old version until they expire, and the old key is destroyed once
  * nothing names it. The API returns no key material, and neither does this view. A rekey that loses a race to another
- * rekey shows the server's explanation in the dialog. A tenant also manages the root key it brings (ADR-1414);
+ * rekey shows the server's explanation in the dialog. A rekey too soon after the last rotation shows how long to wait.
+ * A tenant also manages the root key it brings (ADR-1414);
  * the platform never does.
  */
 export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKeysTabProps) {
@@ -218,6 +229,7 @@ export function OwnerEncryptionKeysTab({ owner, ownerLabel }: OwnerEncryptionKey
           tenantId={owner.tenantId}
           rootKey={data.rootKey}
           providers={data.rootKeyProviders}
+          accessBinding={data.rootKeyAccessBinding}
         />
       )}
       <DataStateBoundary

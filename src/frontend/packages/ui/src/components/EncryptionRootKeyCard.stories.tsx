@@ -27,6 +27,12 @@ export const Active: Story = {
   args: { rootKey: activeRootKey },
 };
 
+export const WithAccessIdentity: Story = {
+  args: {
+    rootKey: { ...activeRootKey, accessIdentity: 'arn:aws:iam::111122223333:role/tenant-kms' },
+  },
+};
+
 export const Unavailable: Story = {
   args: {
     rootKey: {

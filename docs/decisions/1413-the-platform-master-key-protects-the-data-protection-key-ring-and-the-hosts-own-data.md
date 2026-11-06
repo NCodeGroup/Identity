@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md) and
-  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md))
+  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md);
+  amended by
+  [ADR-1423](1423-developer-key-pruning-starts-the-platform-over-when-its-master-keys-cannot-be-unwrapped.md): with
+  developer key pruning a platform master key that cannot be unwrapped is replaced rather than stopping the host)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)

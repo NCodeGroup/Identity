@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Settings;
 
@@ -41,9 +42,9 @@ internal sealed class UnreadableSettingsEndpointFilter(
             var detail = $"{exception.Message} Replace the document with a settings write.";
             var extensions = new Dictionary<string, object?>
             {
-                ["settingsScope"] = exception.ScopeName,
-                ["ownerId"] = exception.OwnerId,
-                ["documentError"] = exception.DocumentError,
+                [ManagementProblemMembers.SettingsScope] = exception.ScopeName,
+                [ManagementProblemMembers.OwnerId] = exception.OwnerId,
+                [ManagementProblemMembers.DocumentError] = exception.DocumentError,
             };
 
             return TypedResults.Problem(

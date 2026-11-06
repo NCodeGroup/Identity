@@ -171,8 +171,8 @@ The recorder states the actor explicitly for each event, so the actor does not d
 | `actor.type`    | `actor.id`                                 | Used by                                                                                                                                                                                   |
 | --------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `end_user`      | The subject id                             | `authorization.granted`, `authorization.denied`, `session.created`, and `subject.authentication` on success. With no subject these events use `anonymous`.                                |
-| `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`.     |
-| `administrator` | The administrator's subject id, when known | Every management event, a rekey through the management API (`master_key.rotated`) and a tenant's root key set, removed or validated through it (`root_key.*`) included. The subject id is read with the server-default claim types, not the request tenant's setting. |
+| `client`        | The client id                              | `token.issued`, `token.revoked`, `token.refresh.replay`, `token.refresh.retry`, `client.authentication` and `userinfo.accessed`. `userinfo.accessed` with no client uses `anonymous`. Also every management event a client makes acting for itself (its token names no subject). |
+| `administrator` | The administrator's subject id, when known | Every management event an end user makes (a rekey through the management API (`master_key.rotated`) and a tenant's root key set, removed or validated through it (`root_key.*`) included). The subject id is read with the server-default claim types, not the request tenant's setting. |
 | `system`        | None                                       | `session.terminated`, whose `details.termination_reason` says why, and the `tenant.key.*`, background `master_key.*` and background `root_key.*` events, whose `details.reason` says why. No caller acted.         |
 | `anonymous`     | None                                       | `subject.authentication` on failure, `openid.error` and `userinfo.accessed` on `denied` with no client: the caller is not identified.                                                     |
 
@@ -293,7 +293,8 @@ A read of the encryption keys is not audited.
 | `master_key.destroyed` | `master_key`, `tenant`/`platform` | `unreferenced`: the retired key passed its grace and no stored value names it                                                          |
 
 Both events write `details.reason` (an open vocabulary, `MasterKeyChangeReasons`), `key_id`, `version` and
-`root_key_provider`, and `root_key_reference` when a root key a tenant brings wraps the master key. A rotation also
+`root_key_provider`, and `root_key_reference` when a root key a tenant brings wraps the master key, and
+`root_key_access_identity` when the tenant's key is reached through an identity it grants. A rotation also
 writes `retired_key_id` and `retired_version` when it retired a key.
 
 #### Root keys
@@ -314,7 +315,8 @@ validation makes has `event_source` `openid` and the `system` actor. A read of t
 | `root_key.restored`  | `root_key`, `tenant`   | `success` | `validation_succeeded`: a probe through an `unavailable` key succeeded; `requested`: an administrator set the same key again and it succeeded                         |
 
 Every root key event writes `details.reason` (an open vocabulary, `RootKeyChangeReasons`), `provider` (the key wrapper
-name, such as `aws-kms`), `key_reference`, `state` (`active`, `unavailable` or `removing`, after the change) and
+name, such as `aws-kms`), `key_reference`, `access_identity` (the role, service account or directory the key is
+reached through, when the tenant names one), `state` (`active`, `unavailable` or `removing`, after the change) and
 `failure` (the description of the failed probe, when there is one). A rotation onto the key is recorded separately as
 `master_key.rotated` with the reason `root_key_changed`.
 

@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 
@@ -45,8 +46,18 @@ public class OwnerRootKeyUnavailableEndpointFilterTests
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status503ServiceUnavailable, problem.StatusCode);
         Assert.Equal("91", httpContext.Response.Headers.RetryAfter.ToString());
-        Assert.Equal("tenant", problem.ProblemDetails.Extensions["ownerType"]);
-        Assert.Equal("tenant-1", problem.ProblemDetails.Extensions["ownerId"]);
+        Assert.Equal(
+            91L,
+            problem.ProblemDetails.Extensions[ManagementProblemMembers.RetryAfterSeconds]
+        );
+        Assert.Equal(
+            "tenant",
+            problem.ProblemDetails.Extensions[ManagementProblemMembers.OwnerType]
+        );
+        Assert.Equal(
+            "tenant-1",
+            problem.ProblemDetails.Extensions[ManagementProblemMembers.OwnerId]
+        );
         Assert.Contains("root key is unavailable", problem.ProblemDetails.Detail);
     }
 

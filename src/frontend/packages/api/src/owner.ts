@@ -1,26 +1,20 @@
 /**
  * The owner of a collection of secrets or of a settings document: the platform, a team, a tenant, or a client or
- * resource server inside a scope (see docs/decisions/1257). Secrets and settings are managed the same way for every owner,
+ * resource server inside a tenant (see docs/decisions/1257). Secrets and settings are managed the same way for every owner,
  * so the UI and the store address them through one owner value instead of one endpoint per owner. This module is
  * UI-free so the addressing and cache-tag rules are unit-tested.
  */
 
-import {
-  PLATFORM_SCOPE,
-  scopeApiPrefix,
-  scopeTagId,
-  teamScope,
-  type ManagementScope,
-} from './scope.js';
+import { PLATFORM_SCOPE, scopeTagId, teamScope, type ManagementScope } from './scope.js';
 
 export type ManagementOwner =
   | { readonly kind: 'platform' }
   | { readonly kind: 'team'; readonly teamId: string }
   | { readonly kind: 'tenant'; readonly tenantId: string }
-  | { readonly kind: 'client'; readonly scope: ManagementScope; readonly clientId: string }
+  | { readonly kind: 'client'; readonly tenantId: string; readonly clientId: string }
   | {
       readonly kind: 'resource-server';
-      readonly scope: ManagementScope;
+      readonly tenantId: string;
       readonly resourceServerId: string;
     };
 
@@ -44,10 +38,9 @@ export function ownerScope(owner: ManagementOwner): ManagementScope {
     case 'team':
       return teamScope(owner.teamId);
     case 'tenant':
-      return { kind: 'tenant', tenantId: owner.tenantId };
     case 'client':
     case 'resource-server':
-      return owner.scope;
+      return { kind: 'tenant', tenantId: owner.tenantId };
   }
 }
 
@@ -61,9 +54,9 @@ export function ownerApiPath(owner: ManagementOwner): string {
     case 'tenant':
       return `api/tenants/${encodeURIComponent(owner.tenantId)}`;
     case 'client':
-      return `${scopeApiPrefix(owner.scope)}/clients/${encodeURIComponent(owner.clientId)}`;
+      return `api/tenants/${encodeURIComponent(owner.tenantId)}/clients/${encodeURIComponent(owner.clientId)}`;
     case 'resource-server':
-      return `${scopeApiPrefix(owner.scope)}/resource-servers/${encodeURIComponent(owner.resourceServerId)}`;
+      return `api/tenants/${encodeURIComponent(owner.tenantId)}/resource-servers/${encodeURIComponent(owner.resourceServerId)}`;
   }
 }
 

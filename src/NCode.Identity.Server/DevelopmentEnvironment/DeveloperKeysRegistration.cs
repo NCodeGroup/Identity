@@ -4,6 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Mediator;
@@ -12,8 +13,8 @@ using NCode.Registration;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Provides the <strong>development-only</strong> signing-key convenience: persisted keys that heal themselves when their
-/// master key, or the root key that wraps it, is lost or changed.
+/// Provides the <strong>development-only</strong> signing-key convenience: persisted keys and the platform's master keys
+/// that heal themselves when the root key that wraps them is lost or changed.
 /// </summary>
 /// <remarks>
 /// It is not needed for a server to have keys: every tenant is provisioned with persisted keys. It changes
@@ -31,7 +32,8 @@ public static class DeveloperKeysRegistration
         /// runtime, the JWKS endpoint, and the management API on a single source of truth that survives restarts: a
         /// tenant secret that can no longer be opened, because its master key was purged or the root key that wrapped
         /// the master key changed, is removed when the tenant is seeded, and key provisioning generates a fresh key in
-        /// its place. The persisted keys are envelopes under the tenant's master key, so the host is responsible for
+        /// its place. When the host starts, a platform whose master keys cannot be unwrapped has them removed and every
+        /// Data Protection key revoked, and starts over with a new master key. The persisted keys are envelopes under the tenant's master key, so the host is responsible for
         /// supplying a root key that stays the same across restarts for as long as its database does. Intended for local
         /// development only; must not be used in production, where an undecryptable key fails the tenant instead of
         /// being discarded.
@@ -48,6 +50,14 @@ public static class DeveloperKeysRegistration
                     ICommandHandler<SeedTenantCommand>,
                     DeveloperSecretPruningSeedHandler
                 >()
+            );
+
+            serviceCollection.TryAddSingleton<DeveloperMasterKeyReset>();
+
+            // The platform heal runs through StartingAsync, so it starts before every hosted service's StartAsync,
+            // including the platform secret protector warmup, whatever the registration order.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IHostedService, DeveloperPlatformMasterKeyPruning>()
             );
 
             return builder;

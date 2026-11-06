@@ -45,8 +45,10 @@ public sealed class BffFrontendOptions
     public BffClientAuthenticationOptions ClientAuthentication { get; set; } = new();
 
     /// <summary>
-    /// Gets or sets the scopes that the BFF requests at login. The configuration key is
-    /// <c>Bff:Frontends:{name}:Scopes</c>.
+    /// Gets or sets the scopes that the BFF requests at login, after <c>openid</c>. The configuration key is
+    /// <c>Bff:Frontends:{name}:Scopes</c>. List <c>offline_access</c> only for an OpenID Provider that issues a
+    /// refresh token for that scope alone: an offline grant outlives the provider's login session, so such a provider
+    /// can end that session without sending the BFF a back-channel logout request.
     /// </summary>
     public List<string> Scopes { get; set; } = [];
 

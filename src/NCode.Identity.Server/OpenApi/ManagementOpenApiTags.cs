@@ -28,5 +28,6 @@ internal static class ManagementOpenApiTags
         OpenIdConstants.EndpointTags.LocalAccounts,
         OpenIdConstants.EndpointTags.Principals,
         OpenIdConstants.EndpointTags.Capabilities,
+        OpenIdConstants.EndpointTags.Caller,
     }.ToFrozenSet(StringComparer.Ordinal);
 }

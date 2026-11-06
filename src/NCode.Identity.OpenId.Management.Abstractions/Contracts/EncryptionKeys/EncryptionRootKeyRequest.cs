@@ -24,4 +24,10 @@ public sealed class EncryptionRootKeyRequest
     /// Gets the reference to the key, such as the ARN of a KMS key.
     /// </summary>
     public required string KeyReference { get; init; }
+
+    /// <summary>
+    /// Gets the identity that the server takes on to reach the key, such as an IAM role ARN, a service account email or
+    /// a Microsoft Entra tenant ID; when omitted, the deployment's own identity reaches the key.
+    /// </summary>
+    public string? AccessIdentity { get; init; }
 }

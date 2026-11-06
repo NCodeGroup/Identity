@@ -286,22 +286,12 @@ const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChanges.Rotated = "ro
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Change.get -> string!
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Change.init -> void
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.KeyId.get -> System.Guid
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.KeyId.init -> void
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.OwnerId.get -> string!
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.OwnerId.init -> void
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.OwnerType.get -> string!
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.OwnerType.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Key.get -> NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo!
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Key.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Reason.get -> string!
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Reason.init -> void
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredKeyId.get -> System.Guid?
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredKeyId.init -> void
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredVersion.get -> int?
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredVersion.init -> void
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyProvider.get -> string!
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyProvider.init -> void
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Version.get -> int
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.Version.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredKey.get -> NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo?
+NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RetiredKey.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.WriteAuditDetails(System.Text.Json.Utf8JsonWriter! writer) -> void
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEventNames
 NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChangeReasons
@@ -396,6 +386,13 @@ NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotationTooSoonException.
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey
 const NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxFailureLength = 1024 -> int
 const NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxKeyReferenceLength = 2048 -> int
+const NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.MaxAccessIdentityLength = 1024 -> int
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.AccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.AccessIdentity.set -> void
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootKeyAccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.DataContracts.PersistedMasterKey.RootKeyAccessIdentity.set -> void
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RootKeyAccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Protection.MasterKeyInfo.RootKeyAccessIdentity.init -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.ConcurrencyToken.get -> string!
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.ConcurrencyToken.set -> void
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedOwnerRootKey.CreatedWhen.get -> System.DateTimeOffset
@@ -436,6 +433,8 @@ NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.Failure.get -> st
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.Failure.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.KeyReference.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.KeyReference.init -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.AccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.AccessIdentity.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.KeyWrapperName.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.KeyWrapperName.init -> void
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo.Owner.get -> NCode.Identity.Secrets.Persistence.Protection.SecretOwner
@@ -467,7 +466,17 @@ NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.Ow
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyNotAllowedException.Reason.get -> string!
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.GetAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo?>
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.RemoveAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRemoval!>
-NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.SetAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, string! keyWrapperName, string! keyReference, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyChange!>
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.SetAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyChange!>
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.AccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.AccessIdentity.init -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyReference.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyReference.init -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyWrapperName.get -> string!
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.KeyWrapperName.init -> void
+NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyRequest.OwnerRootKeyRequest(string! KeyWrapperName, string! KeyReference) -> void
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.GetAccessBinding(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner) -> string!
+NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.TryValidateAccessIdentity(string! keyWrapperName, string! accessIdentity, out string? failure) -> bool
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.TryValidateKeyReference(string! keyWrapperName, string! keyReference, out string? failure) -> bool
 NCode.Identity.Secrets.Persistence.Protection.IOwnerRootKeyManager.ValidateAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyValidation!>
 NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyChange
@@ -546,8 +555,6 @@ const NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames.Set = "
 const NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames.Unavailable = "root_key.unavailable" -> string!
 static NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEventNames.For(string! change) -> string!
 const NCode.Identity.Secrets.Persistence.Auditing.MasterKeyChangeReasons.RootKeyChanged = "root_key_changed" -> string!
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyReference.get -> string?
-NCode.Identity.Secrets.Persistence.Auditing.MasterKeyAuditEvent.RootKeyReference.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.Change.get -> string!
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.Change.init -> void
@@ -555,6 +562,8 @@ NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.Failure.get -> str
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.Failure.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.KeyReference.get -> string!
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.KeyReference.init -> void
+NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.AccessIdentity.get -> string?
+NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.AccessIdentity.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.KeyWrapperName.get -> string!
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.KeyWrapperName.init -> void
 NCode.Identity.Secrets.Persistence.Auditing.RootKeyAuditEvent.OwnerId.get -> string!

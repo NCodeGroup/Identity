@@ -3,7 +3,6 @@ import {
   isPlatformScope,
   LIST_TAG,
   PLATFORM_SCOPE,
-  scopeApiPrefix,
   scopeKey,
   scopeTagId,
   teamScope,
@@ -55,28 +54,6 @@ describe('isPlatformScope', () => {
 
   it('is false for a tenant', () => {
     expect(isPlatformScope(tenantScope('acme'))).toBe(false);
-  });
-});
-
-describe('scopeApiPrefix', () => {
-  it('maps platform to api', () => {
-    expect(scopeApiPrefix(PLATFORM_SCOPE)).toBe('api');
-  });
-
-  it('nests team resources under their team', () => {
-    expect(scopeApiPrefix(teamScope('core'))).toBe('api/teams/core');
-  });
-
-  it('url-encodes the team id to prevent path escape', () => {
-    expect(scopeApiPrefix(teamScope('a/b'))).toBe('api/teams/a%2Fb');
-  });
-
-  it('nests tenant resources under their tenant', () => {
-    expect(scopeApiPrefix(tenantScope('acme'))).toBe('api/tenants/acme');
-  });
-
-  it('url-encodes the tenant id to prevent path escape', () => {
-    expect(scopeApiPrefix(tenantScope('a/b'))).toBe('api/tenants/a%2Fb');
   });
 });
 

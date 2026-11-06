@@ -154,4 +154,14 @@ internal static partial class Log
         string error,
         string usage
     );
+
+    [LoggerMessage(
+        EventId = EventIds.DeveloperPlatformMasterKeysReplaced,
+        Level = LogLevel.Warning,
+        Message = "The platform's master keys cannot be unwrapped, so developer key pruning removed them and revoked every Data Protection key they protected; the platform starts over with a new master key"
+    )]
+    internal static partial void DeveloperPlatformMasterKeysReplaced(
+        this ILogger logger,
+        Exception exception
+    );
 }

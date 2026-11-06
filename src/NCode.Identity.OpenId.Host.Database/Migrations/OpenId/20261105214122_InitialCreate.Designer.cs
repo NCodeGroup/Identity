@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     [DbContext(typeof(OpenIdDbContext))]
-    [Migration("20261105072104_InitialCreate")]
+    [Migration("20261105214122_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -296,7 +296,19 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("NormalizedPrincipalId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("NormalizedTenantId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("PrincipalId")
                         .IsRequired()
                         .HasMaxLength(300)
                         .IsUnicode(false)
@@ -329,6 +341,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.HasIndex("ResourceServerId");
 
                     b.HasIndex("TenantId", "NormalizedClientId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "NormalizedPrincipalId")
                         .IsUnique();
 
                     b.ToTable("Clients", (string)null);
@@ -775,6 +790,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.Property<DateTimeOffset?>("RetiredWhen")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("RootKeyAccessIdentity")
+                        .HasMaxLength(1024)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(1024)");
+
                     b.Property<string>("RootKeyId")
                         .IsRequired()
                         .HasMaxLength(2048)
@@ -821,6 +841,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 {
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("AccessIdentity")
+                        .HasMaxLength(1024)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(1024)");
 
                     b.Property<string>("ConcurrencyToken")
                         .IsConcurrencyToken()

@@ -1,6 +1,6 @@
 # 1263. Feature branches run a fast gate and the merge queue runs the full gate
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md): the End-to-end check is a sixth required check)
 - **Date:** 2026-10-25
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md); its merge method is [ADR-1304](1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md)

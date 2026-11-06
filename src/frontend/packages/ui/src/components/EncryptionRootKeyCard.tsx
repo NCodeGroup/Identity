@@ -11,6 +11,8 @@ export type EncryptionRootKeyRow = {
   readonly provider: string;
   /** The reference that names the key at its provider, such as a KMS key ARN. */
   readonly keyReference: string;
+  /** The identity the server assumes to reach the key, or absent when it reaches it with the deployment's identity. */
+  readonly accessIdentity?: string | null;
   /** `active` or `removing`; any other state reads as unavailable. */
   readonly state: string;
   readonly createdWhen: string;
@@ -104,6 +106,13 @@ export function EncryptionRootKeyCard({
                 value={rootKey.keyReference}
                 testId="root-key-reference"
               />
+              {rootKey.accessIdentity && (
+                <Field
+                  label="Access identity"
+                  value={rootKey.accessIdentity}
+                  testId="root-key-access-identity"
+                />
+              )}
               <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                 <Typography variant="body2" color="text.secondary" sx={{ minWidth: 120 }}>
                   State

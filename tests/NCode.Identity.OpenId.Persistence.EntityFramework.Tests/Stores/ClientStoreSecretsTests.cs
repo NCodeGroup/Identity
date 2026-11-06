@@ -33,7 +33,12 @@ public sealed class ClientStoreSecretsTests : IDisposable
         _dbContext = _provider.GetRequiredService<OpenIdDbContext>();
         var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
         _tenantStore = new TenantStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
-        _store = new ClientStore(Mock.Of<IStoreProvider>(), idGenerator, _dbContext);
+        _store = new ClientStore(
+            Mock.Of<IStoreProvider>(),
+            idGenerator,
+            _dbContext,
+            TestCryptoServices.CreateResourceIdGenerator()
+        );
     }
 
     public void Dispose()

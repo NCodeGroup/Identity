@@ -71,14 +71,26 @@ internal sealed class EccSecretKeyTypeDescriptor(
         )
             throw new ArgumentException($"The elliptic curve '{curveName}' is not supported.");
 
+        var x = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.X);
+        var y = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.Y);
+
+        // The point is checked against the curve's domain before the platform sees it, because platforms disagree on
+        // how they report an off-curve point; see ADR-1427.
+        var fieldSizeBytes = specification.Domain.FieldSizeBytes;
+        if (x.Length != fieldSizeBytes || y.Length != fieldSizeBytes)
+            throw new ArgumentException(
+                $"The supplied EC JWK's 'x' and 'y' members must each be {fieldSizeBytes} bytes for the curve '{curveName}'."
+            );
+
+        if (!specification.Domain.ContainsPoint(x, y))
+            throw new ArgumentException(
+                $"The supplied EC JWK's point is not on the curve '{curveName}'."
+            );
+
         var parameters = new ECParameters
         {
             Curve = specification.Curve,
-            Q = new ECPoint
-            {
-                X = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.X),
-                Y = GetRequiredBase64UrlMember(root, JsonWebKeyParameterNames.Y),
-            },
+            Q = new ECPoint { X = x, Y = y },
         };
 
         try

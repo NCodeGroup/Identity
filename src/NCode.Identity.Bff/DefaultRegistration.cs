@@ -4,6 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -14,6 +15,7 @@ using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
+using NCode.Identity.Bff.Hubs;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
@@ -90,6 +92,8 @@ public static class DefaultRegistration
                 IBffConnectionSessionAccessor,
                 DefaultBffConnectionSessionAccessor
             >();
+            serviceCollection.TryAddSingleton<BffHubFilter>();
+            serviceCollection.Configure<HubOptions>(options => options.AddFilter<BffHubFilter>());
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
             serviceCollection.TryAddSingleton<BffLoginHandler>();
             serviceCollection.TryAddSingleton<BffCallbackHandler>();

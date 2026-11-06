@@ -109,6 +109,55 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
             Scopes = ["read:messages"],
         };
 
+    private void SetupAuthorizeCreate(ManagementError? error)
+    {
+        MockValidator
+            .Setup(x =>
+                x.AuthorizeCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+    }
+
+    private void SetupAuthorizeUpdate(ManagementError? error)
+    {
+        MockValidator
+            .Setup(x =>
+                x.AuthorizeUpdateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+    }
+
+    private void SetupAuthorizeDelete(ManagementError? error)
+    {
+        MockValidator
+            .Setup(x =>
+                x.AuthorizeDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    TenantId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+    }
+
+    private static ManagementError CreateForbiddenError() =>
+        new()
+        {
+            StatusCode = StatusCodes.Status403Forbidden,
+            Detail = "The caller is not authorized.",
+        };
+
     #endregion
 
     [Fact]
@@ -224,11 +273,11 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateAsync_WhenValid_ReturnsCreated()
     {
+        SetupAuthorizeCreate(error: null);
         SetupStore();
         MockValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedClientGrant>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -266,11 +315,11 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task CreateAsync_WhenScopeUnknown_ReturnsUnprocessableEntity()
     {
+        SetupAuthorizeCreate(error: null);
         SetupStore();
         MockValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedClientGrant>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -306,6 +355,7 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task DeleteAsync_WhenValid_ReturnsNoContent()
     {
+        SetupAuthorizeDelete(error: null);
         SetupStore();
         MockStore
             .Setup(x =>
@@ -316,7 +366,6 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
         MockValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedClientGrant>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()
@@ -335,11 +384,72 @@ public sealed class ClientGrantApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.DeleteAsync(
             CreateHttpContext(),
+            TenantId,
             ClientId,
             ResourceServerId,
             CancellationToken.None
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenUnauthorized_ReturnsTheErrorWithoutOpeningTheStore()
+    {
+        SetupAuthorizeCreate(CreateForbiddenError());
+
+        var request = new CreateClientGrantRequest
+        {
+            ResourceServerId = ResourceServerId,
+            Scopes = ["read:messages"],
+        };
+
+        var result = await Handler.CreateAsync(
+            CreateHttpContext(),
+            TenantId,
+            ClientId,
+            request,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheGrant()
+    {
+        SetupAuthorizeUpdate(CreateForbiddenError());
+
+        var request = new UpdateClientGrantRequest { Scopes = ["read:messages"] };
+
+        var result = await Handler.UpdateAsync(
+            CreateHttpContext(),
+            TenantId,
+            ClientId,
+            ResourceServerId,
+            request,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenUnauthorized_ReturnsTheErrorWithoutReadingTheGrant()
+    {
+        SetupAuthorizeDelete(CreateForbiddenError());
+
+        var result = await Handler.DeleteAsync(
+            CreateHttpContext(),
+            TenantId,
+            ClientId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 }

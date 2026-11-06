@@ -2818,14 +2818,16 @@ describes the family as it is rather than its changes
 - **A replica that may have missed a broadcast drops what the message would have invalidated.** The Valkey subscriber
   calls `IReplicaBroadcastHandler.HandleMissedMessagesAsync` once it subscribes a channel and whenever its connection is
   restored. The tenant handler evicts every cached tenant through `IOpenIdTenantCache.ClearAsync`, the team handler
-  evicts only the cached teams whose stored row changed or is gone, with their tenants, comparing each served team's
-  concurrency token (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
+  evicts only the cached teams whose stored row, or the row of a team above them, changed or is gone, with every team
+  and tenant beneath them, comparing the concurrency token of each served team and of every team it was materialized
+  over (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
   `IOpenIdTenantCache.GetTeamRevisionsAsync`) with the store's (`ITeamStore.GetConcurrencyTokensAsync`) and clearing
   both caches when it cannot read them, and the platform
   handler reads the platform's settings again
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   issue [#249](https://github.com/NCodeGroup/Identity/issues/249),
   [#564](https://github.com/NCodeGroup/Identity/issues/564)).
 
@@ -3598,12 +3600,14 @@ describes the family as it is rather than its changes
   tenant's settings, its resource servers and scopes, its clients (keeping their `client_id`) and client grants, never
   secrets, keys, grants, principals, role assignments, a client the host configures, or a setting whose value belongs
   to the environment (`SettingDescriptor.IsEnvironmentBound`, such as `redirect_uris`), whose target values the request
-  may supply. It needs read authority on the source and creation authority on the target, and a promoted limit needs
-  the authority that sets it (`403` naming the limit). A promotion that changes a client holding role assignments needs
+  may supply. Both tenants belong to the team the route names, not to a team beneath it, so a parent team's
+  administrators promote within a child team through that team's route; a promotion needs read authority on the source
+  and creation authority on the target, and a promoted limit needs the authority that sets it (`403` naming the limit). A promotion that changes a client holding role assignments needs
   creation authority at each node that holds them, as changing that client does
   ([ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)). It
   records each change and `tenant.promoted`, and the console offers it on a team's tenants page
-  ([ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
+  ([ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
   [#565](https://github.com/NCodeGroup/Identity/issues/565)).
 
 - **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
@@ -3623,24 +3627,32 @@ describes the family as it is rather than its changes
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
-  one team when its own change, under the lease `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
+  one team and every team beneath it when that team's settings change, each team once per pass and under its own lease
+  `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
   (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants.
   Requests that arrive during a pass coalesce, one per team, and a request for every team covers them all, so none is
   dropped however many arrive ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A
-  team change evicts the team and its tenants on every replica over the `team-changed` channel
-  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md)).
+  team change evicts the team, every team beneath it and their tenants on every replica over the `team-changed` channel
+  ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
-- **Disabling a team suspends its tenants, and a team with tenants cannot be deleted.** A tenant of a disabled team
-  answers `404` on the protocol surface and on the management routes that act through its OpenID runtime (sessions,
-  principals, local accounts), as a disabled tenant does, while its stored configuration stays manageable;
-  `DELETE /api/teams/{teamId}` answers `409` while the team has tenants, a deleted team's id is never reissued, and the
-  platform's own team can be neither disabled nor deleted. Creating, deleting, disabling and restoring a team, and
-  `GET /api/teams` and `GET /api/tenants`, need `GlobalAdmin` or an assignment at the platform node
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+- **Disabling a team suspends every team and tenant beneath it, and a team with tenants or teams cannot be deleted.** A
+  tenant of a disabled team, or of a team beneath one, answers `404` on the protocol surface and on the management
+  routes that act through its OpenID runtime (sessions, principals, local accounts), as a disabled tenant does, while
+  its stored configuration stays manageable; `DELETE /api/teams/{teamId}` answers `409` while the team has tenants or
+  child teams, a deleted team's id is never reissued, and the platform's own team can be neither disabled nor deleted.
+  Creating, deleting, disabling and restoring a top-level team, and `GET /api/teams` and `GET /api/tenants`, need
+  `GlobalAdmin` or an assignment at the platform node. Creating, deleting, disabling and restoring a child team need
+  that authority at its parent team
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
-- **Usage is queryable per team.** Every usage row carries the team the tenant belonged to, so a deleted tenant's final
-  days still bill to its team, and `GET /api/teams/{teamId}/usage?from=&to=` lists each tenant's counts per day and
-  meter ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+- **Usage is queryable per team, across every team beneath it.** Every usage row carries the path of the teams its
+  tenant belonged to, so a deleted tenant's or deleted team's final days still bill to every team above it, and
+  `GET /api/teams/{teamId}/usage?from=&to=` lists the counts of each tenant of the team and of every team beneath it per
+  day and meter, each entry naming its team and tenant
+  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
 
 - **Team and platform changes are audited in the control-plane tenant.** `TeamChangedAuditEvent` (`team`) and
@@ -3650,10 +3662,11 @@ describes the family as it is rather than its changes
 
 - **The management console manages teams and the platform's settings.** The platform scope has a Teams surface
   (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete), a Settings surface and an Encryption keys surface;
-  a team scope has its
-  tenants, settings and usage (`TeamUsageTable`); the console routes `/teams`, `/settings`, `/encryption-keys`,
-  `/teams/{teamId}/{tenants|settings|usage}` and `/tenants/{tenantId}/…`
+  the platform's team list names each team's parent; a team scope has its tenants, child teams, settings and usage
+  (`TeamUsageTable`, which names each entry's team), and its exit leads to its parent team; the console routes `/teams`,
+  `/settings`, `/encryption-keys`, `/teams/{teamId}/{tenants|teams|settings|usage}` and `/tenants/{tenantId}/…`
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
 
 - **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key

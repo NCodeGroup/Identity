@@ -161,6 +161,124 @@ internal class TeamStore(
     }
 
     /// <inheritdoc />
+    // See ADR-1426.
+    public async ValueTask<PagedResult<PersistedTeam>> GetChildPageAsync(
+        string teamId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var parent = await GetEntityOrDefaultAsync(teamId, cancellationToken);
+        if (parent is null)
+        {
+            return await BuildPageAsync([], page.Limit, cancellationToken);
+        }
+
+        var parentId = parent.Id;
+        var query = DbContext.Teams.Where(team => team.ParentTeamId == parentId);
+
+        if (DecodeCursor(page.Cursor) is { } afterId)
+        {
+            query = query.Where(team => team.Id > afterId);
+        }
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var entities = await query
+            .OrderBy(team => team.Id)
+            .Take(page.Limit + 1)
+            .ToListAsync(cancellationToken);
+
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    // See ADR-1426.
+    public async ValueTask<IReadOnlyList<PersistedTeam>> GetLineageAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await GetEntityOrDefaultAsync(teamId, cancellationToken);
+        if (entity is null)
+        {
+            return [];
+        }
+
+        var pathTeamIds = TeamPaths.Parse(entity.Path);
+        List<string?> normalizedIds = [.. pathTeamIds.Select(Normalize)];
+        var entities = await DbContext
+            .Teams.AsNoTracking()
+            .Where(team => normalizedIds.Contains(team.NormalizedTeamId))
+            .ToListAsync(cancellationToken);
+
+        var lineage = new List<PersistedTeam>(entities.Count);
+        foreach (var normalizedId in normalizedIds)
+        {
+            var ancestor = entities.SingleOrDefault(team =>
+                string.Equals(team.NormalizedTeamId, normalizedId, StringComparison.Ordinal)
+            );
+            if (ancestor is not null)
+            {
+                lineage.Add(await MapFromEntityAsync(ancestor, cancellationToken));
+            }
+        }
+
+        return lineage;
+    }
+
+    /// <inheritdoc />
+    // See ADR-1426.
+    public async ValueTask<IReadOnlyList<PersistedTeam>> GetDescendantsAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await GetEntityOrDefaultAsync(teamId, cancellationToken);
+        if (entity is null)
+        {
+            return [];
+        }
+
+        var prefix = entity.Path;
+        var entityId = entity.Id;
+        var entities = await DbContext
+            .Teams.AsNoTracking()
+            .Where(team => team.Path.StartsWith(prefix) && team.Id != entityId)
+            .OrderBy(team => team.Path.Length)
+            .ThenBy(team => team.Id)
+            .ToListAsync(cancellationToken);
+
+        var teams = new List<PersistedTeam>(entities.Count);
+        foreach (var descendant in entities)
+        {
+            teams.Add(await MapFromEntityAsync(descendant, cancellationToken));
+        }
+
+        return teams;
+    }
+
+    /// <inheritdoc />
+    // See ADR-1426.
+    public async ValueTask<long> CountDescendantsAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        var entity = await GetEntityOrDefaultAsync(teamId, cancellationToken);
+        if (entity is null)
+        {
+            return 0;
+        }
+
+        var prefix = entity.Path;
+        var entityId = entity.Id;
+        return await DbContext.Teams.LongCountAsync(
+            team => team.Path.StartsWith(prefix) && team.Id != entityId,
+            cancellationToken
+        );
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PersistedTeamSettings> GetSettingsAsync(
         string teamId,
         CancellationToken cancellationToken

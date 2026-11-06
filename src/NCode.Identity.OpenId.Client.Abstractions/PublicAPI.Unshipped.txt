@@ -302,3 +302,4 @@ NCode.Identity.OpenId.Client.UserInfoResult.IsSuccess.get -> bool
 NCode.Identity.OpenId.Client.UserInfoResult.UserInfoResult(NCode.Identity.OpenId.Client.ProtocolError! error) -> void
 NCode.Identity.OpenId.Client.UserInfoResult.UserInfoResult(string! failureCode, string! failureReason) -> void
 NCode.Identity.OpenId.Client.UserInfoResult.UserInfoResult(System.Text.Json.JsonElement claims, System.Security.Claims.ClaimsIdentity! identity) -> void
+NCode.Identity.OpenId.Client.IClientKeyRingProvider.HasKeyRing(string! keyRing) -> bool

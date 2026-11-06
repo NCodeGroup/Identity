@@ -103,5 +103,7 @@ internal sealed class DPoPTestContext : IAsyncDisposable
                 : throw new InvalidOperationException(
                     $"The key ring '{keyRing}' is not registered."
                 );
+
+        public bool HasKeyRing(string keyRing) => keyRing == KeyRingName;
     }
 }

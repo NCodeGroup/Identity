@@ -106,7 +106,7 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
         new(
             Provider.GetRequiredService<IHttpForwarder>(),
             MockTokens.Object,
-            Microsoft.Extensions.Options.Options.Create(new BffOptions()),
+            Frontends,
             NullLogger<BffRemoteApiHandler>.Instance
         );
 

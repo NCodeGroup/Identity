@@ -3,9 +3,8 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logging;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
 using Yarp.ReverseProxy.Forwarder;
 
@@ -18,7 +17,7 @@ namespace NCode.Identity.Bff.RemoteApis;
 internal sealed class BffRemoteApiHandler(
     IHttpForwarder forwarder,
     IBffTokenAccessor tokens,
-    IOptions<BffOptions> options,
+    BffFrontendCatalog frontends,
     ILogger<BffRemoteApiHandler> logger
 )
 {
@@ -67,7 +66,7 @@ internal sealed class BffRemoteApiHandler(
         var transformer = new BffRemoteApiTransformer(
             remainder,
             token,
-            options.Value.Antiforgery.HeaderName
+            frontends.Current.Options.Antiforgery.HeaderName
         );
 
         var error = await forwarder.SendAsync(

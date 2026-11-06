@@ -5,11 +5,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
 
@@ -20,7 +18,6 @@ namespace NCode.Identity.Bff.Antiforgery;
 /// </summary>
 internal class BffMiddleware(
     RequestDelegate next,
-    IOptions<BffOptions> options,
     BffFrontendCatalog frontends,
     BffSessionResolver resolver,
     IAntiforgery antiforgery,
@@ -28,7 +25,6 @@ internal class BffMiddleware(
 )
 {
     private RequestDelegate Next { get; } = next;
-    private IOptions<BffOptions> Options { get; } = options;
     private BffFrontendCatalog Frontends { get; } = frontends;
     private BffSessionResolver Resolver { get; } = resolver;
     private IAntiforgery Antiforgery { get; } = antiforgery;
@@ -108,7 +104,7 @@ internal class BffMiddleware(
             var trustedOrigins = Frontends.Resolve(context)?.Options.TrustedOrigins ?? [];
             var reason = BffRequestGuard.Check(
                 context.Request,
-                Options.Value.Antiforgery,
+                Frontends.Current.Options.Antiforgery,
                 trustedOrigins
             );
             if (reason is null)

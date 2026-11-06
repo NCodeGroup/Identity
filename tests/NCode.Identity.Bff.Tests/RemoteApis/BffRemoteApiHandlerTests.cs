@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Moq;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
 using Xunit;
 using Yarp.ReverseProxy.Forwarder;
@@ -41,12 +41,7 @@ public class BffRemoteApiHandlerTests : BaseTests
     }
 
     private BffRemoteApiHandler CreateHandler() =>
-        new(
-            MockForwarder.Object,
-            MockTokens.Object,
-            Microsoft.Extensions.Options.Options.Create(new BffOptions()),
-            Logger
-        );
+        new(MockForwarder.Object, MockTokens.Object, BffTestFrontends.CreateCatalog(), Logger);
 
     private static DefaultHttpContext CreateContext(string method, string path)
     {

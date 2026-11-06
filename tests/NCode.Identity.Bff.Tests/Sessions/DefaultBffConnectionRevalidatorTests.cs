@@ -20,29 +20,51 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
     private static TimeSpan Timeout { get; } = TimeSpan.FromSeconds(10);
 
     private Mock<IBffConnectionSession> MockSession { get; }
+    private Mock<TimeProvider> MockTimeProvider { get; }
     private FakeTimeProvider TimeProvider { get; }
     private FakeLogger<DefaultBffConnectionRevalidator> Logger { get; }
     private DefaultBffConnectionRevalidator Revalidator { get; }
+    private TaskCompletionSource Armed { get; set; }
 
     public DefaultBffConnectionRevalidatorTests()
     {
         MockSession = CreateStrictMock<IBffConnectionSession>();
+        MockTimeProvider = CreateStrictMock<TimeProvider>();
         TimeProvider = new FakeTimeProvider(Start);
         Logger = new FakeLogger<DefaultBffConnectionRevalidator>();
-        Revalidator = new DefaultBffConnectionRevalidator(TimeProvider, Logger);
+        Revalidator = new DefaultBffConnectionRevalidator(MockTimeProvider.Object, Logger);
+        Armed = CreateSignal();
     }
 
-    private async Task AdvanceUntilAsync(Task task)
-    {
-        using var cancellation = new CancellationTokenSource(Timeout);
-        while (!task.IsCompleted)
-        {
-            cancellation.Token.ThrowIfCancellationRequested();
-            TimeProvider.Advance(Interval);
-            await Task.WhenAny(task, Task.Delay(10, cancellation.Token));
-        }
+    /// <summary>
+    /// Forwards every delay the revalidator arms to the fake clock and signals <see cref="Armed"/> once the delay's
+    /// timer exists, so a test advances the clock only after the revalidator waits for it.
+    /// </summary>
+    private void SetupArmedDelays() =>
+        MockTimeProvider
+            .Setup(x =>
+                x.CreateTimer(
+                    It.IsAny<TimerCallback>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<TimeSpan>(),
+                    It.IsAny<TimeSpan>()
+                )
+            )
+            .Returns(
+                (TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) =>
+                {
+                    var timer = TimeProvider.CreateTimer(callback, state, dueTime, period);
+                    Armed.TrySetResult();
+                    return timer;
+                }
+            )
+            .Verifiable();
 
-        await task;
+    private async Task AdvanceOnceAsync()
+    {
+        await Armed.Task.WaitAsync(Timeout);
+        Armed = CreateSignal();
+        TimeProvider.Advance(Interval);
     }
 
     private static TaskCompletionSource CreateSignal() =>
@@ -61,11 +83,15 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
             .Setup(x => x.ValidateAsync(null, It.IsAny<CancellationToken>()))
             .ReturnsAsync((ClaimsPrincipal?)null)
             .Verifiable();
+        SetupArmedDelays();
 
-        var task = Revalidator.WaitUntilEndedAsync(MockSession.Object, CancellationToken.None);
+        var task = Revalidator
+            .WaitUntilEndedAsync(MockSession.Object, CancellationToken.None)
+            .AsTask();
 
-        await AdvanceUntilAsync(task.AsTask());
+        await AdvanceOnceAsync();
 
+        await task.WaitAsync(Timeout);
         Assert.Empty(Logger.Collector.GetSnapshot());
     }
 
@@ -85,10 +111,13 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
             })
             .ReturnsAsync(principal)
             .Verifiable();
+        SetupArmedDelays();
         using var cancellation = new CancellationTokenSource();
         var task = Revalidator.WaitUntilEndedAsync(MockSession.Object, cancellation.Token).AsTask();
 
-        await AdvanceUntilAsync(validated.Task);
+        await AdvanceOnceAsync();
+        await AdvanceOnceAsync();
+        await validated.Task.WaitAsync(Timeout);
 
         Assert.False(task.IsCompleted);
         Assert.Empty(Logger.Collector.GetSnapshot());
@@ -114,10 +143,13 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
                 return ValueTask.FromResult<ClaimsPrincipal?>(principal);
             })
             .Verifiable();
+        SetupArmedDelays();
         using var cancellation = new CancellationTokenSource();
         var task = Revalidator.WaitUntilEndedAsync(MockSession.Object, cancellation.Token).AsTask();
 
-        await AdvanceUntilAsync(validated.Task);
+        await AdvanceOnceAsync();
+        await AdvanceOnceAsync();
+        await validated.Task.WaitAsync(Timeout);
 
         Assert.False(task.IsCompleted);
         var record = Assert.Single(Logger.Collector.GetSnapshot());
@@ -135,11 +167,15 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
             .Setup(x => x.ValidateAsync(null, It.IsAny<CancellationToken>()))
             .Returns(() => throw new InvalidOperationException("validation failed"))
             .Verifiable();
+        SetupArmedDelays();
 
-        var task = Revalidator.WaitUntilEndedAsync(MockSession.Object, CancellationToken.None);
+        var task = Revalidator
+            .WaitUntilEndedAsync(MockSession.Object, CancellationToken.None)
+            .AsTask();
 
-        await AdvanceUntilAsync(task.AsTask());
+        await AdvanceOnceAsync();
 
+        await task.WaitAsync(Timeout);
         var record = Assert.Single(Logger.Collector.GetSnapshot());
         Assert.Equal(EventIds.ConnectionRevalidationFaulted, record.Id.Id);
         Assert.IsType<InvalidOperationException>(record.Exception);

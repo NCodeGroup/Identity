@@ -43,29 +43,26 @@ public class BffOptionsValidatorTests : BaseTests
     private static BffFrontendOptions Frontend(BffOptions options) =>
         options.Frontends[WebFrontend];
 
-    #region Constructor Tests
+    #region Validate Tests
 
     [Fact]
-    public void Constructor_RuleRegisteredTwice_Throws()
+    public void Validate_WhenARuleIsRegisteredTwice_Fails()
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            new BffOptionsValidator(
-                mockEnvironment.Object,
-                [new HostBffFrontendSelector(), new HostBffFrontendSelector()]
-            )
+        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Production").Verifiable();
+        var validator = new BffOptionsValidator(
+            mockEnvironment.Object,
+            [new HostBffFrontendSelector(), new HostBffFrontendSelector()]
         );
 
-        Assert.Equal(
+        var result = validator.Validate(null, CreateValidOptions());
+
+        Assert.True(result.Failed);
+        Assert.Contains(
             "The frontend selection rule 'host' is registered more than once.",
-            exception.Message
+            result.Failures ?? []
         );
     }
-
-    #endregion
-
-    #region Validate Tests
 
     [Fact]
     public void Validate_WhenValidBaseline_Succeeds()
@@ -999,7 +996,7 @@ public class BffOptionsValidatorTests : BaseTests
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "Bff:Frontends:shop:Selection: Values must name at least one host.",
+            "Bff:Frontends:shop:Selection:Values must name at least one host.",
             result.Failures ?? []
         );
     }

@@ -121,8 +121,8 @@ public class PathBffFrontendSelectorTests : BaseTests
 
         Assert.Equal(
             [
-                "'/administrator/api' must be under one of the Values, so its requests select the frontend.",
-                "'/other' must be under one of the Values, so its requests select the frontend.",
+                "Values must cover '/administrator/api', so its requests select the frontend.",
+                "Values must cover '/other', so its requests select the frontend.",
             ],
             failures
         );

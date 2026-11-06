@@ -42,9 +42,7 @@ internal sealed class PathBffFrontendSelector : IBffFrontendSelector
         {
             if (!prefixes.Exists(x => Covers(x, path)))
             {
-                failures.Add(
-                    $"'{path}' must be under one of the Values, so its requests select the frontend."
-                );
+                failures.Add($"Values must cover '{path}', so its requests select the frontend.");
             }
         }
 

@@ -10,6 +10,11 @@ namespace NCode.Identity.Bff;
 /// Provides one rule that decides whether a request belongs to a frontend. Rules form an open strategy collection that
 /// is selected by <see cref="Name"/>.
 /// </summary>
+/// <remarks>
+/// A rule is a pure function of a frontend's selection and the request, and takes no constructor dependencies: options
+/// validation reads every registered rule, so a rule that depended on a service which reads <c>BffOptions</c> would
+/// build that service inside validation.
+/// </remarks>
 [PublicAPI]
 public interface IBffFrontendSelector
 {
@@ -22,7 +27,11 @@ public interface IBffFrontendSelector
     /// Validates what a frontend configures for this rule.
     /// </summary>
     /// <param name="selection">The selection of the frontend.</param>
-    /// <returns>The failure messages, without a configuration key, or an empty list when the selection is valid.</returns>
+    /// <returns>
+    /// The failure messages, each starting with the name of the selection member it is about, such as
+    /// <c>Values must name at least one host.</c>, without the frontend's configuration key; or an empty list when the
+    /// selection is valid.
+    /// </returns>
     IReadOnlyList<string> Validate(BffFrontendSelection selection);
 
     /// <summary>

@@ -18,40 +18,17 @@ internal class BffOptionsValidator(
 {
     private const string Key = "Bff";
 
-    private Dictionary<string, IBffFrontendSelector> Selectors { get; } = IndexSelectors(selectors);
-
-    private static Dictionary<string, IBffFrontendSelector> IndexSelectors(
-        IEnumerable<IBffFrontendSelector> selectors
-    )
-    {
-        var selectorsByName = new Dictionary<string, IBffFrontendSelector>(StringComparer.Ordinal);
-        foreach (var selector in selectors)
-        {
-            if (!selectorsByName.TryAdd(selector.Name, selector))
-                throw new InvalidOperationException(
-                    $"The frontend selection rule '{selector.Name}' is registered more than once."
-                );
-        }
-
-        return selectorsByName;
-    }
-
-    /// <inheritdoc />
-    public ValidateOptionsResult Validate(string? name, BffOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        List<string> failures = [];
-        var isDevelopment = environment.IsDevelopment();
-
-        ValidateFrontends(options.Frontends, isDevelopment, failures);
-        ValidateAntiforgery(options.Antiforgery, failures);
-        ValidateTokens(options.Tokens, failures);
-
-        return failures.Count == 0
-            ? ValidateOptionsResult.Success
-            : ValidateOptionsResult.Fail(failures);
-    }
+    private static readonly string[] ForbiddenHeaderNames =
+    [
+        "Accept",
+        "Accept-Language",
+        "Content-Language",
+        "Content-Type",
+        "Range",
+        "Cookie",
+        "Authorization",
+        "DPoP",
+    ];
 
     private static bool IsValidFrontendName(string name)
     {
@@ -72,130 +49,6 @@ internal class BffOptionsValidator(
 
         return true;
     }
-
-    private void ValidateFrontends(
-        Dictionary<string, BffFrontendOptions>? frontends,
-        bool isDevelopment,
-        List<string> failures
-    )
-    {
-        if (frontends is null)
-        {
-            failures.Add($"{Key}:Frontends must be set.");
-            return;
-        }
-
-        if (frontends.Count == 0)
-        {
-            failures.Add($"{Key}:Frontends must configure at least one frontend.");
-        }
-
-        var ruled =
-            new List<(
-                string Name,
-                IBffFrontendSelector Selector,
-                BffFrontendSelection Selection
-            )>();
-        var fallbackCount = 0;
-        var origins = new List<(string Name, string Origin)>();
-
-        foreach (var (name, frontend) in frontends.OrderBy(x => x.Key, StringComparer.Ordinal))
-        {
-            if (!IsValidFrontendName(name))
-            {
-                failures.Add(
-                    $"{Key}:Frontends key '{name}' must be 1 to 63 lowercase letters, digits and hyphens that start and end with a letter or digit."
-                );
-            }
-
-            var frontendKey = $"{Key}:Frontends:{name}";
-            BffFrontendOptionsValidation.Validate(frontendKey, frontend, isDevelopment, failures);
-
-            if (frontend is null)
-                continue;
-
-            origins.Add((name, $"{frontend.PublicOrigin}{frontend.PathPrefix}"));
-
-            var rule = frontend.Selection?.Rule;
-            if (string.IsNullOrWhiteSpace(rule))
-            {
-                fallbackCount++;
-                continue;
-            }
-
-            if (!Selectors.TryGetValue(rule, out var selector))
-            {
-                failures.Add(
-                    $"{frontendKey}:Selection:Rule '{rule}' is not a registered frontend selection rule."
-                );
-                continue;
-            }
-
-            if (frontend.RemoteApis is null)
-                continue;
-
-            var selection = BffFrontend.CreateSelection(frontend);
-            if (selection is null)
-                continue;
-
-            foreach (var failure in selector.Validate(selection))
-            {
-                failures.Add($"{frontendKey}:Selection: {failure}");
-            }
-
-            ruled.Add((name, selector, selection));
-        }
-
-        if (fallbackCount > 1)
-        {
-            failures.Add(
-                $"At most one entry of {Key}:Frontends may have no Selection:Rule; it serves the requests no other frontend selects."
-            );
-        }
-
-        for (var i = 0; i < ruled.Count; i++)
-        {
-            for (var j = i + 1; j < ruled.Count; j++)
-            {
-                var first = ruled[i];
-                var second = ruled[j];
-                if (
-                    ReferenceEquals(first.Selector, second.Selector)
-                    && first.Selector.Overlaps(first.Selection, second.Selection)
-                )
-                {
-                    failures.Add(
-                        $"{Key}:Frontends:{first.Name}:Selection and {Key}:Frontends:{second.Name}:Selection select the same requests."
-                    );
-                }
-            }
-        }
-
-        for (var i = 0; i < origins.Count; i++)
-        {
-            for (var j = i + 1; j < origins.Count; j++)
-            {
-                if (!string.Equals(origins[i].Origin, origins[j].Origin, StringComparison.Ordinal))
-                    continue;
-
-                failures.Add(
-                    $"{Key}:Frontends:{origins[i].Name} and {Key}:Frontends:{origins[j].Name} have the same PublicOrigin and PathPrefix; each frontend needs its own callback URI."
-                );
-            }
-        }
-    }
-
-    private static readonly string[] ForbiddenHeaderNames =
-    [
-        "Accept",
-        "Accept-Language",
-        "Content-Language",
-        "Content-Type",
-        "Range",
-        "Cookie",
-        "Authorization",
-        "DPoP",
-    ];
 
     private static void ValidateTokens(BffTokenOptions? tokens, List<string> failures)
     {
@@ -253,6 +106,153 @@ internal class BffOptionsValidator(
         if (string.IsNullOrWhiteSpace(antiforgery.HeaderValue))
         {
             failures.Add("Bff:Antiforgery:HeaderValue must not be blank.");
+        }
+    }
+
+    private ILookup<string, IBffFrontendSelector> Selectors { get; } =
+        selectors.ToLookup(x => x.Name, StringComparer.Ordinal);
+
+    /// <inheritdoc />
+    public ValidateOptionsResult Validate(string? name, BffOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        List<string> failures = [];
+        var isDevelopment = environment.IsDevelopment();
+
+        ValidateSelectors(failures);
+        ValidateFrontends(options.Frontends, isDevelopment, failures);
+        ValidateAntiforgery(options.Antiforgery, failures);
+        ValidateTokens(options.Tokens, failures);
+
+        return failures.Count == 0
+            ? ValidateOptionsResult.Success
+            : ValidateOptionsResult.Fail(failures);
+    }
+
+    private void ValidateSelectors(List<string> failures)
+    {
+        foreach (var group in Selectors)
+        {
+            if (group.Count() > 1)
+            {
+                failures.Add(
+                    $"The frontend selection rule '{group.Key}' is registered more than once."
+                );
+            }
+        }
+    }
+
+    private void ValidateFrontends(
+        Dictionary<string, BffFrontendOptions>? frontends,
+        bool isDevelopment,
+        List<string> failures
+    )
+    {
+        if (frontends is null)
+        {
+            failures.Add($"{Key}:Frontends must be set.");
+            return;
+        }
+
+        if (frontends.Count == 0)
+        {
+            failures.Add($"{Key}:Frontends must configure at least one frontend.");
+        }
+
+        var ruled =
+            new List<(
+                string Name,
+                IBffFrontendSelector Selector,
+                BffFrontendSelection Selection
+            )>();
+        var fallbackCount = 0;
+        var origins = new List<(string Name, string Origin)>();
+
+        foreach (var (name, frontend) in frontends.OrderBy(x => x.Key, StringComparer.Ordinal))
+        {
+            if (!IsValidFrontendName(name))
+            {
+                failures.Add(
+                    $"{Key}:Frontends key '{name}' must be 1 to 63 lowercase letters, digits and hyphens that start and end with a letter or digit."
+                );
+            }
+
+            var frontendKey = $"{Key}:Frontends:{name}";
+            BffFrontendOptionsValidation.Validate(frontendKey, frontend, isDevelopment, failures);
+
+            if (frontend is null)
+                continue;
+
+            origins.Add((name, $"{frontend.PublicOrigin}{frontend.PathPrefix}"));
+
+            var rule = frontend.Selection?.Rule;
+            if (string.IsNullOrWhiteSpace(rule))
+            {
+                fallbackCount++;
+                continue;
+            }
+
+            var selector = Selectors[rule].FirstOrDefault();
+            if (selector is null)
+            {
+                failures.Add(
+                    $"{frontendKey}:Selection:Rule '{rule}' is not a registered frontend selection rule."
+                );
+                continue;
+            }
+
+            if (frontend.RemoteApis is null)
+                continue;
+
+            var selection = BffFrontend.CreateSelection(frontend);
+            if (selection is null)
+                continue;
+
+            foreach (var failure in selector.Validate(selection))
+            {
+                failures.Add($"{frontendKey}:Selection:{failure}");
+            }
+
+            ruled.Add((name, selector, selection));
+        }
+
+        if (fallbackCount > 1)
+        {
+            failures.Add(
+                $"At most one entry of {Key}:Frontends may have no Selection:Rule; it serves the requests no other frontend selects."
+            );
+        }
+
+        for (var i = 0; i < ruled.Count; i++)
+        {
+            for (var j = i + 1; j < ruled.Count; j++)
+            {
+                var first = ruled[i];
+                var second = ruled[j];
+                if (
+                    ReferenceEquals(first.Selector, second.Selector)
+                    && first.Selector.Overlaps(first.Selection, second.Selection)
+                )
+                {
+                    failures.Add(
+                        $"{Key}:Frontends:{first.Name}:Selection and {Key}:Frontends:{second.Name}:Selection select the same requests."
+                    );
+                }
+            }
+        }
+
+        for (var i = 0; i < origins.Count; i++)
+        {
+            for (var j = i + 1; j < origins.Count; j++)
+            {
+                if (!string.Equals(origins[i].Origin, origins[j].Origin, StringComparison.Ordinal))
+                    continue;
+
+                failures.Add(
+                    $"{Key}:Frontends:{origins[i].Name} and {Key}:Frontends:{origins[j].Name} have the same PublicOrigin and PathPrefix; each frontend needs its own callback URI."
+                );
+            }
         }
     }
 }

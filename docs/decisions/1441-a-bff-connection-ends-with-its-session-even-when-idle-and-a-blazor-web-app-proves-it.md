@@ -4,7 +4,10 @@
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
   decision 4 and
   [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)
-  decision 1)
+  decision 1; decisions 2 and 3 amended by
+  [ADR-1445](1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md):
+  an invocation of a self-revalidating hub that finds the session ended fails without closing the connection, and every
+  watcher of a connection learns the end at once)
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 

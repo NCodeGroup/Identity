@@ -155,11 +155,19 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await LocalAccountValidator.AuthorizeCreateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
         var error = await LocalAccountValidator.ValidateCreateAsync(
-            httpContext.User,
-            tenantId,
             request.UserName,
             storeManager,
             cancellationToken
@@ -281,17 +289,22 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ILocalAccountStore>();
+        var effectiveLimit = NormalizeLimit(limit);
 
         return await ProcessListAsync(
             httpContext,
             TenantScopeResource.For(tenantId),
-            () =>
-                store.GetPageAsync(
-                    new PageRequest { Cursor = cursor, Limit = NormalizeLimit(limit) },
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
                     cancellationToken
-                ),
+                );
+                var store = storeManager.GetStore<ILocalAccountStore>();
+                return await store.GetPageAsync(
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
+                    cancellationToken
+                );
+            },
             ToLocalAccountResource
         );
     }
@@ -327,6 +340,16 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await LocalAccountValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ILocalAccountStore>();
 
@@ -338,8 +361,6 @@ internal class LocalAccountApiEndpointHandler(
 
         var ifMatch = httpContext.Request.Headers.IfMatch.ToString();
         var error = await LocalAccountValidator.ValidateUpdateAsync(
-            httpContext.User,
-            tenantId,
             localAccountId,
             request.UserName,
             account.ConcurrencyToken,
@@ -378,6 +399,16 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await LocalAccountValidator.AuthorizeDeleteAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
         var accountStore = storeManager.GetStore<ILocalAccountStore>();
@@ -388,8 +419,6 @@ internal class LocalAccountApiEndpointHandler(
         }
 
         var error = await LocalAccountValidator.ValidateDeleteAsync(
-            httpContext.User,
-            tenantId,
             localAccountId,
             storeManager,
             cancellationToken
@@ -483,9 +512,14 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
+        var authorizationError = await LocalAccountValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(authorizationError);
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -542,9 +576,14 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
+        var authorizationError = await LocalAccountValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(authorizationError);
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -642,9 +681,14 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
+        var authorizationError = await LocalAccountValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(authorizationError);
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -707,9 +751,14 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await AuthorizeTenantAsync(httpContext, tenantId, Operations.Update))
+        var authorizationError = await LocalAccountValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
         {
-            return AuthorizationFailed(httpContext);
+            return ToErrorResult(authorizationError);
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
@@ -860,20 +909,6 @@ internal class LocalAccountApiEndpointHandler(
             reason,
             cancellationToken
         );
-    }
-
-    private async ValueTask<bool> AuthorizeTenantAsync(
-        HttpContext httpContext,
-        string tenantId,
-        IAuthorizationRequirement operation
-    )
-    {
-        var result = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantScopeResource.For(tenantId),
-            operation
-        );
-        return result.Succeeded;
     }
 
     // Judges a password an administrator sets by the addressed tenant's effective settings, resolved from its stored

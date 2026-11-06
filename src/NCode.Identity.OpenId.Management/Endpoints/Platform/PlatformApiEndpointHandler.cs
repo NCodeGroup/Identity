@@ -208,20 +208,21 @@ internal class PlatformApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetPlatformNode(httpContext),
+            Operations.Read,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         if (!await PlatformExistsAsync(cancellationToken))
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetPlatformNode(httpContext),
-            Operations.Read
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         // The platform's master keys are always wrapped by the deployment's root key, so it reports no root key and no
@@ -250,20 +251,21 @@ internal class PlatformApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetPlatformNode(httpContext),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         if (!await PlatformExistsAsync(cancellationToken))
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetPlatformNode(httpContext),
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         return await EncryptionKeyEndpoints.RekeyAsync(
@@ -351,6 +353,18 @@ internal class PlatformApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetPlatformNode(httpContext),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IPlatformStore>();
 
@@ -359,17 +373,6 @@ internal class PlatformApiEndpointHandler(
         if (platformSettings is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetPlatformNode(httpContext),
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         // Enforce the optimistic-concurrency precondition supplied by the caller. Without this check the

@@ -90,3 +90,11 @@ NCode.AspNetCore.Options.StrictTransportSecurityOptions.MaxAge.set -> void
 NCode.AspNetCore.Options.StrictTransportSecurityOptions.Preload.get -> bool
 NCode.AspNetCore.Options.StrictTransportSecurityOptions.Preload.set -> void
 NCode.AspNetCore.Options.StrictTransportSecurityOptions.StrictTransportSecurityOptions() -> void
+NCode.AspNetCore.HealthProbeEndpointRouteBuilderExtensions
+NCode.AspNetCore.HealthProbeEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
+NCode.AspNetCore.HealthProbeEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapHealthProbes() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
+NCode.AspNetCore.HealthProbeDefaults
+const NCode.AspNetCore.HealthProbeDefaults.LivenessEndpointName = "health_live_endpoint" -> string!
+const NCode.AspNetCore.HealthProbeDefaults.LivenessPath = "/health/live" -> string!
+const NCode.AspNetCore.HealthProbeDefaults.ReadinessEndpointName = "health_ready_endpoint" -> string!
+const NCode.AspNetCore.HealthProbeDefaults.ReadinessPath = "/health/ready" -> string!

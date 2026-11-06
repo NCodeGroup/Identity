@@ -57,7 +57,7 @@ public class BffClientAuthenticationStateProviderTests : BaseTests
         var store = new TestPersistentComponentStateStore(
             new Dictionary<string, byte[]>
             {
-                [BffBlazorClientDefaults.UserStateKey] = JsonSerializer.SerializeToUtf8Bytes(
+                [BffUserDocumentNames.PersistedStateKey] = JsonSerializer.SerializeToUtf8Bytes(
                     JsonElement.Parse(document)
                 ),
             }

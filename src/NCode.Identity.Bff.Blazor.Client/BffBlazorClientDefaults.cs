@@ -12,11 +12,6 @@ namespace NCode.Identity.Bff.Blazor.Client;
 public static class BffBlazorClientDefaults
 {
     /// <summary>
-    /// The key under which the server persists the <c>/bff/user</c> document for the WebAssembly client.
-    /// </summary>
-    public const string UserStateKey = "NCode.Identity.Bff.User";
-
-    /// <summary>
     /// The authentication type of the <see cref="System.Security.Claims.ClaimsIdentity"/> built from the user document.
     /// </summary>
     public const string AuthenticationType = "NCode.Identity.Bff";

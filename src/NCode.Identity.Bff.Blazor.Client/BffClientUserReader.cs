@@ -17,14 +17,6 @@ internal static class BffClientUserReader
     private const string NameClaimType = "name";
     private const string RoleClaimType = "role";
 
-    private const string SubjectPropertyName = "sub";
-    private const string NamePropertyName = "name";
-    private const string ClaimsPropertyName = "claims";
-    private const string LogoutUrlPropertyName = "logoutUrl";
-    private const string LogoutSidPropertyName = "logoutSid";
-    private const string SessionPropertyName = "session";
-    private const string IdleExpiresAtPropertyName = "idleExpiresAt";
-
     /// <summary>
     /// Reads <paramref name="userDocument"/> into a user.
     /// </summary>
@@ -43,16 +35,24 @@ internal static class BffClientUserReader
         if (userDocument.ValueKind != JsonValueKind.Object)
             return false;
 
-        if (!userDocument.TryGetPropertyValue<string>(SubjectPropertyName, out var subjectValue))
+        if (
+            !userDocument.TryGetPropertyValue<string>(
+                BffUserDocumentNames.Subject,
+                out var subjectValue
+            )
+        )
             return false;
 
         List<Claim> claims = [new Claim(SubjectClaimType, subjectValue)];
 
-        if (userDocument.TryGetPropertyValue<string>(NamePropertyName, out var nameValue))
+        if (userDocument.TryGetPropertyValue<string>(BffUserDocumentNames.Name, out var nameValue))
             claims.Add(new Claim(NameClaimType, nameValue));
 
         if (
-            userDocument.TryGetPropertyValue<JsonElement>(ClaimsPropertyName, out var claimsElement)
+            userDocument.TryGetPropertyValue<JsonElement>(
+                BffUserDocumentNames.Claims,
+                out var claimsElement
+            )
             && claimsElement.ValueKind == JsonValueKind.Object
         )
         {
@@ -72,8 +72,8 @@ internal static class BffClientUserReader
             }
         }
 
-        AddString(userDocument, LogoutUrlPropertyName, BffClaimTypes.LogoutUrl, claims);
-        AddString(userDocument, LogoutSidPropertyName, BffClaimTypes.LogoutSid, claims);
+        AddString(userDocument, BffUserDocumentNames.LogoutUrl, BffClaimTypes.LogoutUrl, claims);
+        AddString(userDocument, BffUserDocumentNames.LogoutSid, BffClaimTypes.LogoutSid, claims);
 
         var identity = new ClaimsIdentity(
             claims,
@@ -103,9 +103,15 @@ internal static class BffClientUserReader
     private static DateTimeOffset? ReadIdleExpiresAt(JsonElement userDocument)
     {
         if (
-            userDocument.TryGetPropertyValue<JsonElement>(SessionPropertyName, out var session)
+            userDocument.TryGetPropertyValue<JsonElement>(
+                BffUserDocumentNames.Session,
+                out var session
+            )
             && session.ValueKind == JsonValueKind.Object
-            && session.TryGetPropertyNumericDate(IdleExpiresAtPropertyName, out var instant)
+            && session.TryGetPropertyNumericDate(
+                BffUserDocumentNames.IdleExpiresAt,
+                out var instant
+            )
         )
         {
             return instant;

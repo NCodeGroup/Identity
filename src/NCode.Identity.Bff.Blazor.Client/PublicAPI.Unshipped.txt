@@ -6,7 +6,6 @@ NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary
 NCode.Identity.Bff.Blazor.Client.BffBlazorClientLibrary.BffBlazorClientLibrary() -> void
 const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.AuthenticationType = "NCode.Identity.Bff" -> string!
 const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.HttpClientName = "NCode.Identity.Bff.Blazor.Client" -> string!
-const NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults.UserStateKey = "NCode.Identity.Bff.User" -> string!
 NCode.Identity.Bff.Blazor.Client.BffBlazorClientDefaults
 NCode.Identity.Bff.Blazor.Client.DefaultRegistration
 NCode.Identity.Bff.Blazor.Client.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)

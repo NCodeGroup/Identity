@@ -34,10 +34,21 @@ public class ManagementConsoleBundleReaderTests : BaseTests
 
     #region Helpers
 
-    private ManagementConsoleBundleReader CreateReader(string? bundleRootPath = "dist")
+    private ManagementConsoleBundleReader CreateReader(string bundleRootPath = "dist")
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName);
+        mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName).Verifiable();
+
+        return new ManagementConsoleBundleReader(
+            Options.Create(new ManagementConsoleOptions { BundleRootPath = bundleRootPath }),
+            mockEnvironment.Object
+        );
+    }
+
+    // A reader without a configured bundle never reads the content root, so its environment has no setup.
+    private ManagementConsoleBundleReader CreateUnconfiguredReader(string? bundleRootPath)
+    {
+        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
 
         return new ManagementConsoleBundleReader(
             Options.Create(new ManagementConsoleOptions { BundleRootPath = bundleRootPath }),
@@ -115,7 +126,7 @@ public class ManagementConsoleBundleReaderTests : BaseTests
     [InlineData(" ")]
     public async Task TryReadIndexAsync_WhenNoBundleIsConfigured_ReturnsNull(string? bundleRootPath)
     {
-        using var reader = CreateReader(bundleRootPath);
+        using var reader = CreateUnconfiguredReader(bundleRootPath);
 
         var html = await reader.TryReadIndexAsync(CancellationToken.None);
 
@@ -228,7 +239,7 @@ public class ManagementConsoleBundleReaderTests : BaseTests
     [Fact]
     public void TryGetAsset_WhenNoBundleIsConfigured_ReturnsNull()
     {
-        using var reader = CreateReader(bundleRootPath: null);
+        using var reader = CreateUnconfiguredReader(bundleRootPath: null);
 
         var file = reader.TryGetAsset("index.js");
 

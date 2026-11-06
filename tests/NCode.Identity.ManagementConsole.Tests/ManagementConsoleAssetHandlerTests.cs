@@ -28,10 +28,18 @@ public class ManagementConsoleAssetHandlerTests : BaseTests
 
     #region Helpers
 
+    private static DefaultHttpContext CreateHttpContext(string asset)
+    {
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.RouteValues[ManagementConsoleAssetHandler.AssetRouteParameterName] =
+            asset;
+        return httpContext;
+    }
+
     private ManagementConsoleAssetHandler CreateHandler(out ManagementConsoleBundleReader reader)
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName);
+        mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName).Verifiable();
 
         reader = new ManagementConsoleBundleReader(
             Options.Create(new ManagementConsoleOptions { BundleRootPath = "dist" }),
@@ -44,14 +52,6 @@ public class ManagementConsoleAssetHandlerTests : BaseTests
     {
         Directory.CreateDirectory(AssetsPath);
         File.WriteAllText(Path.Combine(AssetsPath, name), contents, SecureEncoding.UTF8);
-    }
-
-    private static DefaultHttpContext CreateHttpContext(string asset)
-    {
-        var httpContext = new DefaultHttpContext();
-        httpContext.Request.RouteValues[ManagementConsoleAssetHandler.AssetRouteParameterName] =
-            asset;
-        return httpContext;
     }
 
     #endregion

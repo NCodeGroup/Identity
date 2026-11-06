@@ -20,6 +20,14 @@ public class ManagementConsoleDevelopmentOverlayTests(
     DeveloperSeedingHostApplicationFactory providerFactory
 ) : IClassFixture<DeveloperSeedingHostApplicationFactory>
 {
+    private static BffFrontendOptions GetConsoleFrontend()
+    {
+        using var consoleFactory = new ManagementConsoleApplicationFactory();
+        return consoleFactory.Services.GetRequiredService<IOptions<BffOptions>>().Value.Frontends[
+            ManagementConsoleDefaults.FrontendName
+        ];
+    }
+
     private DeveloperSeedingHostApplicationFactory ProviderFactory { get; } = providerFactory;
 
     private DeveloperBffClientSeed GetSeededConsoleClient() =>
@@ -28,14 +36,6 @@ public class ManagementConsoleDevelopmentOverlayTests(
                 .Services.GetRequiredService<DeveloperInteractiveSeedOptions>()
                 .BffClients
         );
-
-    private static BffFrontendOptions GetConsoleFrontend()
-    {
-        using var consoleFactory = new ManagementConsoleApplicationFactory();
-        return consoleFactory.Services.GetRequiredService<IOptions<BffOptions>>().Value.Frontends[
-            ManagementConsoleDefaults.FrontendName
-        ];
-    }
 
     #region BffClients Tests
 

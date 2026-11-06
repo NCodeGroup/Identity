@@ -128,23 +128,23 @@ public sealed class ManagementConsoleApplicationFactory
             )
         );
 
-        builder.ConfigureTestServices(services =>
+        builder.ConfigureTestServices(serviceCollection =>
         {
-            AddKeyRing(services, ClientKeyRing, _clientKey);
-            AddKeyRing(services, DPoPKeyRing, _dpopKey);
+            AddKeyRing(serviceCollection, ClientKeyRing, _clientKey);
+            AddKeyRing(serviceCollection, DPoPKeyRing, _dpopKey);
 
             if (_provider is not null)
             {
                 // Registered after the library, which configures its own primary handler for the named client.
-                services
+                serviceCollection
                     .AddHttpClient(OpenIdClientDefaults.HttpClientName)
                     .ConfigurePrimaryHttpMessageHandler(() => _provider.Server.CreateHandler());
             }
         });
     }
 
-    private static void AddKeyRing(IServiceCollection services, string name, ECDsa key) =>
-        services.AddKeyedSingleton<ISecretKeyCollectionProvider>(
+    private static void AddKeyRing(IServiceCollection serviceCollection, string name, ECDsa key) =>
+        serviceCollection.AddKeyedSingleton<ISecretKeyCollectionProvider>(
             name,
             (serviceProvider, _) =>
                 serviceProvider

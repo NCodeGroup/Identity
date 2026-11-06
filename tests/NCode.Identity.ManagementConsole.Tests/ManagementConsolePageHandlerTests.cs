@@ -17,6 +17,9 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
     private const string IndexHtml =
         "<!doctype html><html><head><meta property=\"csp-nonce\" content=\"__NCODE_CSP_NONCE__\"></head><body></body></html>";
 
+    [GeneratedRegex("'nonce-([^']+)'")]
+    private static partial Regex NonceRegex();
+
     private DirectoryInfo ContentRoot { get; } = Directory.CreateTempSubdirectory("console-");
 
     private string DistPath => Path.Combine(ContentRoot.FullName, "dist");
@@ -31,15 +34,28 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         base.Dispose(disposing);
     }
 
-    [GeneratedRegex("'nonce-([^']+)'")]
-    private static partial Regex NonceRegex();
-
     #region Helpers
+
+    private static async Task<(DefaultHttpContext HttpContext, string Body)> HandleAsync(
+        ManagementConsolePageHandler handler
+    )
+    {
+        var serviceProvider = new ServiceCollection().AddLogging().BuildServiceProvider();
+        var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
+        httpContext.Response.Body = new MemoryStream();
+
+        var result = await handler.HandleAsync(httpContext);
+        await result.ExecuteAsync(httpContext);
+
+        httpContext.Response.Body.Position = 0;
+        using var streamReader = new StreamReader(httpContext.Response.Body, SecureEncoding.UTF8);
+        return (httpContext, await streamReader.ReadToEndAsync());
+    }
 
     private ManagementConsolePageHandler CreateHandler(out ManagementConsoleBundleReader reader)
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName);
+        mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName).Verifiable();
 
         var options = Options.Create(new ManagementConsoleOptions { BundleRootPath = "dist" });
         reader = new ManagementConsoleBundleReader(options, mockEnvironment.Object);
@@ -58,22 +74,6 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         );
 
         return new ManagementConsolePageHandler(reader, bffOptions, options);
-    }
-
-    private static async Task<(DefaultHttpContext HttpContext, string Body)> HandleAsync(
-        ManagementConsolePageHandler handler
-    )
-    {
-        var services = new ServiceCollection().AddLogging().BuildServiceProvider();
-        var httpContext = new DefaultHttpContext { RequestServices = services };
-        httpContext.Response.Body = new MemoryStream();
-
-        var result = await handler.HandleAsync(httpContext);
-        await result.ExecuteAsync(httpContext);
-
-        httpContext.Response.Body.Position = 0;
-        using var streamReader = new StreamReader(httpContext.Response.Body, SecureEncoding.UTF8);
-        return (httpContext, await streamReader.ReadToEndAsync());
     }
 
     #endregion

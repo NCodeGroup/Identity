@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff;
@@ -36,14 +37,10 @@ public class DefaultRegistrationTests : BaseTests
     // The BFF reads the host environment, which a host's builder registers.
     private static ServiceCollection CreateServices()
     {
-        var mockEnvironment = CreateLooseMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.ContentRootPath).Returns(AppContext.BaseDirectory);
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Production");
-
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton(mockEnvironment.Object);
-        return services;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton<IHostEnvironment>(new ProductionHostEnvironment());
+        return serviceCollection;
     }
 
     #region AddManagementConsole Tests
@@ -51,23 +48,23 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddManagementConsole_WithConfiguration_ExposesTheBffBuilder()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
-        var builder = services.AddManagementConsole(CreateConfiguration());
+        var builder = serviceCollection.AddManagementConsole(CreateConfiguration());
 
-        Assert.Same(services, builder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.ServiceCollection);
         Assert.NotNull(builder.IdentityBffBuilder);
-        Assert.Same(services, builder.IdentityBffBuilder.ServiceCollection);
+        Assert.Same(serviceCollection, builder.IdentityBffBuilder.ServiceCollection);
     }
 
     [Fact]
     public async Task AddManagementConsole_WithConfiguration_BindsTheConsoleAndBffOptions()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
-        services.AddManagementConsole(CreateConfiguration());
+        serviceCollection.AddManagementConsole(CreateConfiguration());
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
         var console = provider.GetRequiredService<IOptions<ManagementConsoleOptions>>().Value;
         var bff = provider.GetRequiredService<IOptions<BffOptions>>().Value;
         Assert.Equal("https://id.example.com/api", console.ManagementApiUrl);
@@ -79,11 +76,11 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public async Task AddManagementConsole_Always_RegistersTheHandlersAndTheReader()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
-        services.AddManagementConsole(CreateConfiguration());
+        serviceCollection.AddManagementConsole(CreateConfiguration());
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
         Assert.NotNull(provider.GetRequiredService<ManagementConsoleBundleReader>());
         Assert.NotNull(provider.GetRequiredService<ManagementConsoleBootstrapHandler>());
         Assert.NotNull(provider.GetRequiredService<ManagementConsolePageHandler>());
@@ -93,26 +90,26 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddManagementConsole_Always_RegistersTheValidators()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
-        services.AddManagementConsole(CreateConfiguration());
+        serviceCollection.AddManagementConsole(CreateConfiguration());
 
         Assert.Contains(
-            services,
+            serviceCollection,
             x =>
                 x.ServiceType == typeof(IValidateOptions<ManagementConsoleOptions>)
                 && x.ImplementationType == typeof(ManagementConsoleOptionsValidator)
                 && x.Lifetime == ServiceLifetime.Singleton
         );
         Assert.Contains(
-            services,
+            serviceCollection,
             x =>
                 x.ServiceType == typeof(IValidateOptions<BffOptions>)
                 && x.ImplementationType == typeof(ManagementConsoleFrontendValidator)
                 && x.Lifetime == ServiceLifetime.Singleton
         );
         Assert.Contains(
-            services,
+            serviceCollection,
             x =>
                 x.ServiceType == typeof(IValidateOptions<HostFilteringOptions>)
                 && x.ImplementationType == typeof(ManagementConsoleHostFilteringValidator)
@@ -123,10 +120,10 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public async Task AddManagementConsole_WhenTheFrontendIsMissing_FailsWhenTheBffOptionsAreRead()
     {
-        var services = CreateServices();
-        services.AddManagementConsole(CreateConfiguration(withFrontend: false));
+        var serviceCollection = CreateServices();
+        serviceCollection.AddManagementConsole(CreateConfiguration(withFrontend: false));
 
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = serviceCollection.BuildServiceProvider();
         var accessor = provider.GetRequiredService<IOptions<BffOptions>>();
 
         var exception = Assert.Throws<OptionsValidationException>(() => accessor.Value);
@@ -139,10 +136,10 @@ public class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddManagementConsole_WithNullConfiguration_Throws()
     {
-        var services = CreateServices();
+        var serviceCollection = CreateServices();
 
         var exception = Assert.Throws<ArgumentNullException>(() =>
-            services.AddManagementConsole(null!)
+            serviceCollection.AddManagementConsole(null!)
         );
 
         Assert.Equal("configuration", exception.ParamName);
@@ -150,43 +147,14 @@ public class DefaultRegistrationTests : BaseTests
 
     #endregion
 
-    #region ManagementConsoleFrontendValidator Tests
-
-    [Fact]
-    public void Validate_WhenTheMgmtFrontendIsConfigured_Succeeds()
+    private sealed class ProductionHostEnvironment : IHostEnvironment
     {
-        var options = new BffOptions
-        {
-            Frontends = new Dictionary<string, BffFrontendOptions>
-            {
-                ["mgmt"] = new BffFrontendOptions(),
-            },
-        };
+        public string EnvironmentName { get; set; } = Environments.Production;
 
-        var result = new ManagementConsoleFrontendValidator().Validate(null, options);
+        public string ApplicationName { get; set; } = string.Empty;
 
-        Assert.True(result.Succeeded);
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
-
-    [Fact]
-    public void Validate_WhenTheMgmtFrontendIsMissing_Fails()
-    {
-        var options = new BffOptions
-        {
-            Frontends = new Dictionary<string, BffFrontendOptions>
-            {
-                ["web"] = new BffFrontendOptions(),
-            },
-        };
-
-        var result = new ManagementConsoleFrontendValidator().Validate(null, options);
-
-        Assert.True(result.Failed);
-        Assert.Equal(
-            "Bff:Frontends must configure the 'mgmt' frontend that serves the management console.",
-            Assert.Single(result.Failures)
-        );
-    }
-
-    #endregion
 }

@@ -30,6 +30,13 @@ public sealed class BffSessionMetadata
     public string ClientId { get; init; } = string.Empty;
 
     /// <summary>
+    /// Gets the client that the session was issued to: its frontend, and the authority and client id the frontend was
+    /// configured with.
+    /// </summary>
+    [JsonIgnore]
+    public BffSessionClient Client => new(Frontend, Authority, ClientId);
+
+    /// <summary>
     /// Gets the issuer of the OpenID provider that authenticated the user.
     /// </summary>
     public string Issuer { get; init; } = string.Empty;

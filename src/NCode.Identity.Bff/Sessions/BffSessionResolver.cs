@@ -111,18 +111,7 @@ internal class BffSessionResolver(
             return null;
 
         // See ADR-1443: a session belongs to the client its frontend was configured with.
-        if (
-            !string.Equals(
-                state.Metadata.Authority,
-                frontend.Options.Authority,
-                StringComparison.Ordinal
-            )
-            || !string.Equals(
-                state.Metadata.ClientId,
-                frontend.Options.ClientId,
-                StringComparison.Ordinal
-            )
-        )
+        if (!frontend.IsConfiguredAs(state.Metadata.Client))
         {
             await _sessionManager.EndAsync(
                 httpContext,

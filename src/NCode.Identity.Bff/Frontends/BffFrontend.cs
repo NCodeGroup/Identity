@@ -147,4 +147,18 @@ internal sealed class BffFrontend
     /// </returns>
     public bool IsMatch(HttpRequest request) =>
         Selector is not null && Selection is not null && Selector.IsMatch(request, Selection);
+
+    /// <summary>
+    /// Determines whether a session's client is this frontend as it is configured: the same name, authority and
+    /// client id.
+    /// </summary>
+    /// <param name="client">The client that the session was issued to.</param>
+    /// <returns>
+    /// <see langword="true"/> when the client is this frontend as it is configured; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
+    public bool IsConfiguredAs(BffSessionClient client) =>
+        string.Equals(client.Frontend, Name, StringComparison.Ordinal)
+        && string.Equals(client.Authority, Options.Authority, StringComparison.Ordinal)
+        && string.Equals(client.ClientId, Options.ClientId, StringComparison.Ordinal);
 }

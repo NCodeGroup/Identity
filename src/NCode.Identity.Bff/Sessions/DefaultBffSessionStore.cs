@@ -53,11 +53,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
                 cancellationToken
             );
 
-            var client = new BffSessionClient(
-                metadata.Frontend,
-                metadata.Authority,
-                metadata.ClientId
-            );
+            var client = metadata.Client;
             await indexes.AddMemberAsync(
                 BffStoreKeys.ClientIndex(client),
                 record.StoreKey,
@@ -162,11 +158,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
             var subjectIndex = BffStoreKeys.SubjectIndex(metadata.Issuer, metadata.Subject);
             await indexes.RemoveMemberAsync(subjectIndex, storeKey, cancellationToken);
 
-            var client = new BffSessionClient(
-                metadata.Frontend,
-                metadata.Authority,
-                metadata.ClientId
-            );
+            var client = metadata.Client;
             await indexes.RemoveMemberAsync(
                 BffStoreKeys.ClientIndex(client),
                 storeKey,
@@ -227,7 +219,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
                 cancellationToken
             );
 
-            var clients = new List<BffSessionClient>();
+            var clients = new List<BffSessionClient>(members.Count);
             foreach (var member in members)
             {
                 if (BffStoreKeys.TryParseClientMember(member, out var client))

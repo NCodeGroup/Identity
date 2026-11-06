@@ -827,6 +827,103 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         Assert.Equal(ResourceServerId, json.Value?.ResourceServerId);
     }
 
+    #region GetSettingLimitsAsync Tests
+
+    private void SetupResourceServerLimits(params string[] limits) =>
+        MockSettingSerializer
+            .Setup(x => x.GetLimits(OpenIdSettingScopes.ResourceServer))
+            .Returns(limits)
+            .Verifiable();
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayUpdateTheTenant_ReportsCanChange()
+    {
+        SetupResourceServerLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+
+        var httpContext = CreateHttpContext();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            httpContext,
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.RateLimitClientPerMinute], json.Value?.Names);
+        Assert.True(json.Value?.CanChange);
+        Assert.False(httpContext.Response.Headers.ContainsKey("ETag"));
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayNotUpdateTheTenant_ReportsCannotChange()
+    {
+        SetupResourceServerLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Tenant
+                        && ((ResourceNode)resource).ResourceId == TenantId
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Single() == Operations.Update
+                    )
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.RateLimitClientPerMinute], json.Value?.Names);
+        Assert.False(json.Value?.CanChange);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheResourceServerIsMissing_ReturnsNotFound()
+    {
+        SetupResourceServerLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedResourceServer?)null)
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {

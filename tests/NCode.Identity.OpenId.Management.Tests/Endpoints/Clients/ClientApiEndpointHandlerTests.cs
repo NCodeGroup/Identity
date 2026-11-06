@@ -1279,6 +1279,114 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
+    #region GetSettingLimitsAsync Tests
+
+    private void SetupClientLimits(params string[] limits) =>
+        MockSettingSerializer
+            .Setup(x => x.GetLimits(OpenIdSettingScopes.Client))
+            .Returns(limits)
+            .Verifiable();
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayUpdateTheTenant_ReportsCanChange()
+    {
+        SetupClientLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupStore();
+        SetupClientLookup();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSettingLimitsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.RateLimitClientPerMinute], json.Value?.Names);
+        Assert.True(json.Value?.CanChange);
+        Assert.False(httpContext.Response.Headers.ContainsKey("ETag"));
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayNotUpdateTheTenant_ReportsCannotChange()
+    {
+        SetupClientLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupStore();
+        SetupClientLookup();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Tenant
+                        && ((ResourceNode)resource).ResourceId == TenantId
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Single() == Operations.Update
+                    )
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.RateLimitClientPerMinute], json.Value?.Names);
+        Assert.False(json.Value?.CanChange);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheClientIsMissing_ReturnsNotFound()
+    {
+        SetupClientLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedClient?)null)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheClient()
+    {
+        SetupClientLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
     #region GetEffectiveSettingsAsync Tests
 
     [Fact]

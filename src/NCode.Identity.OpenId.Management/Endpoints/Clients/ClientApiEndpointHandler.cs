@@ -41,6 +41,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 GET   api/tenants/{tenantId}/clients/{clientId}
 
 GET   api/tenants/{tenantId}/clients/{clientId}/settings
+GET   api/tenants/{tenantId}/clients/{clientId}/settings/limits
 PATCH api/tenants/{tenantId}/clients/{clientId}/settings
 GET   api/tenants/{tenantId}/clients/{clientId}/effective-settings
 
@@ -172,6 +173,9 @@ internal class ClientApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent);
 
         clients.MapGet("/{clientId}/settings", GetSettingsAsync).Produces<ClientSettingsResource>();
+        clients
+            .MapGet("/{clientId}/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
         // The response may reveal a secret the change issues, so no cache may keep it (ADR-1345).
         clients
             .MapPatch("/{clientId}/settings", UpdateSettingsAsync)
@@ -962,6 +966,43 @@ internal class ClientApiEndpointHandler(
                 return client?.Settings;
             },
             ToClientSettingsResource,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Gets the limits a client's settings carry and whether the caller may set them: whether it holds update authority
+    /// over the client's tenant.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The client's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/clients/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        async ValueTask<ResourceNode?> ReadNodeAboveAsync(CancellationToken token)
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+            var store = storeManager.GetStore<IClientStore>();
+            var client = await store.GetOrDefaultAsync(clientId, token);
+            return client is null
+                ? null
+                : ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId);
+        }
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            SettingSerializer.GetLimits(OpenIdSettingScopes.Client),
+            ReadNodeAboveAsync,
             cancellationToken
         );
     }

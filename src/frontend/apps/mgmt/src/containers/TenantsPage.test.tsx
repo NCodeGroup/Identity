@@ -530,3 +530,149 @@ describe('TenantsPage (CRUD wiring)', () => {
     expect(screen.getByTestId('tenant-form-submit')).toBeInTheDocument();
   });
 });
+
+describe('TenantsPage (promotion)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const report = {
+    teamId: 'acme',
+    sourceTenantId: 'acme-dev',
+    targetTenantId: 'globex-dev',
+    isApplied: false,
+    changes: [{ resourceType: 'client', resourceId: 'web', action: 'created' }],
+    notes: [],
+    errors: [],
+  };
+
+  function chooseTenants() {
+    fireEvent.change(screen.getByTestId('promotion-source'), { target: { value: 'acme-dev' } });
+    fireEvent.change(screen.getByTestId('promotion-target'), { target: { value: 'globex-dev' } });
+  }
+
+  it('enables Promote only when the team has two tenants', async () => {
+    installFetch(() => jsonResponse({ items: [acme] }));
+
+    renderPage();
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    expect(screen.getByTestId('promote-tenant')).toBeDisabled();
+  });
+
+  it('previews a promotion between two tenants of the team', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/promotions/preview') && method === 'POST') {
+        return jsonResponse(report);
+      }
+      if (url.endsWith('/api/teams/acme/tenants')) {
+        return jsonResponse({ items: [acme, globex] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Globex')).toBeInTheDocument();
+    expect(screen.getByTestId('promote-tenant')).toBeEnabled();
+
+    fireEvent.click(screen.getByTestId('promote-tenant'));
+    chooseTenants();
+    fireEvent.click(screen.getByTestId('promotion-preview'));
+
+    expect(await screen.findByTestId('promotion-changes')).toHaveTextContent('web');
+    const post = calls.find((c) => c.method === 'POST');
+    expect(post?.url).toBe('https://api.test/api/teams/acme/promotions/preview');
+    expect(JSON.parse(post?.body ?? '{}')).toEqual({
+      sourceTenantId: 'acme-dev',
+      targetTenantId: 'globex-dev',
+      environmentSettings: [],
+    });
+  });
+
+  it('promotes after a preview and reports the promotion as applied', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/promotions/preview') && method === 'POST') {
+        return jsonResponse(report);
+      }
+      if (url.endsWith('/api/teams/acme/promotions') && method === 'POST') {
+        return jsonResponse({ ...report, isApplied: true });
+      }
+      if (url.endsWith('/api/teams/acme/tenants')) {
+        return jsonResponse({ items: [acme, globex] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Globex')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('promote-tenant'));
+    chooseTenants();
+    fireEvent.click(screen.getByTestId('promotion-preview'));
+    await waitFor(() => expect(screen.getByTestId('promotion-promote')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('promotion-promote'));
+
+    expect(await screen.findByTestId('promotion-applied')).toHaveTextContent('Promoted.');
+    expect(
+      calls.some(
+        (c) => c.method === 'POST' && c.url === 'https://api.test/api/teams/acme/promotions',
+      ),
+    ).toBe(true);
+  });
+
+  it('shows the detail of a refusal naming a limit', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/promotions/preview') && method === 'POST') {
+        return jsonResponse({ detail: 'Changing the limit max_clients needs authority.' }, 403);
+      }
+      if (url.endsWith('/api/teams/acme/tenants')) {
+        return jsonResponse({ items: [acme, globex] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Globex')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('promote-tenant'));
+    chooseTenants();
+    fireEvent.click(screen.getByTestId('promotion-preview'));
+
+    expect(await screen.findByTestId('promotion-error')).toHaveTextContent(
+      'Changing the limit max_clients needs authority.',
+    );
+  });
+
+  it('lists the errors of a promotion that cannot be applied', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/promotions/preview') && method === 'POST') {
+        return jsonResponse(report);
+      }
+      if (url.endsWith('/api/teams/acme/promotions') && method === 'POST') {
+        return jsonResponse(
+          {
+            detail: 'The promotion cannot be applied; preview it to see why.',
+            errors: [{ resourceType: 'client', resourceId: 'web', detail: 'It is host managed.' }],
+          },
+          409,
+        );
+      }
+      if (url.endsWith('/api/teams/acme/tenants')) {
+        return jsonResponse({ items: [acme, globex] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Globex')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('promote-tenant'));
+    chooseTenants();
+    fireEvent.click(screen.getByTestId('promotion-preview'));
+    await waitFor(() => expect(screen.getByTestId('promotion-promote')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('promotion-promote'));
+
+    expect(await screen.findByTestId('promotion-error')).toHaveTextContent(
+      'The promotion cannot be applied; preview it to see why. client web: It is host managed.',
+    );
+  });
+});

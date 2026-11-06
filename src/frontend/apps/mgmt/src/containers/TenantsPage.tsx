@@ -8,6 +8,7 @@ import {
   DataStateBoundary,
   TenantEnvironmentFilter,
   TenantFormDialog,
+  TenantPromotionDialog,
   TenantTable,
   allTenantEnvironments,
   emptyTenantFormValues,
@@ -17,7 +18,7 @@ import {
   type TenantAddressInput,
   type TenantFormValues,
 } from '@ncode/ui';
-import type { TenantResource } from '@ncode/api';
+import type { PromoteTenantRequest, TenantPromotionResource, TenantResource } from '@ncode/api';
 import {
   apiErrorMessage,
   useCreateTenantMutation,
@@ -25,6 +26,8 @@ import {
   useGetNewTenantAddressQuery,
   useGetTenantAddressQuery,
   useListTenantsQuery,
+  usePreviewTenantPromotionMutation,
+  usePromoteTenantMutation,
   useUpdateTenantMutation,
   type ApiError,
 } from '@ncode/store';
@@ -43,6 +46,7 @@ export type TenantsPageProps = {
 type DialogState =
   | { readonly kind: 'none' }
   | { readonly kind: 'create' }
+  | { readonly kind: 'promote' }
   | { readonly kind: 'edit'; readonly tenant: TenantResource }
   | { readonly kind: 'delete'; readonly tenant: TenantResource };
 
@@ -50,6 +54,38 @@ const closed: DialogState = { kind: 'none' };
 
 /** How long the address must stay unchanged before it is previewed, so typing sends no burst of requests. */
 const defaultAddressPreviewDelayMs = 300;
+
+/**
+ * The message of a failed promotion request: the problem's detail, followed by each error a `409` problem lists in
+ * its `errors` extension.
+ */
+function promotionErrorMessage(error: ApiError): string {
+  const message = apiErrorMessage(error);
+  const data = 'status' in error && error.status === 409 ? error.data : undefined;
+  const errors =
+    data && typeof data === 'object' ? (data as { errors?: unknown }).errors : undefined;
+  if (!Array.isArray(errors)) {
+    return message;
+  }
+  const lines = errors.flatMap((item: unknown) => {
+    if (!item || typeof item !== 'object') {
+      return [];
+    }
+    const { resourceType, resourceId, detail } = item as {
+      resourceType?: unknown;
+      resourceId?: unknown;
+      detail?: unknown;
+    };
+    if (typeof detail !== 'string') {
+      return [];
+    }
+    const resource = [resourceType, resourceId]
+      .filter((part): part is string => typeof part === 'string' && part.length > 0)
+      .join(' ');
+    return [resource.length > 0 ? `${resource}: ${detail}` : detail];
+  });
+  return lines.length > 0 ? `${message} ${lines.join(' ')}` : message;
+}
 
 function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -87,10 +123,15 @@ export function TenantsPage({
   const [createTenant, { isLoading: isCreating }] = useCreateTenantMutation();
   const [updateTenant, { isLoading: isUpdating }] = useUpdateTenantMutation();
   const [deleteTenant, { isLoading: isDeleting }] = useDeleteTenantMutation();
+  const [previewPromotion, { isLoading: isPreviewingPromotion }] =
+    usePreviewTenantPromotionMutation();
+  const [promoteTenant, { isLoading: isPromoting }] = usePromoteTenantMutation();
 
   const [dialog, setDialog] = useState<DialogState>(closed);
   const [formError, setFormError] = useState<string>();
   const [deleteError, setDeleteError] = useState<string>();
+  const [promotionReport, setPromotionReport] = useState<TenantPromotionResource>();
+  const [promotionError, setPromotionError] = useState<string>();
   const [addressInput, setAddressInput] = useState<TenantAddressInput>();
   const handleAddressChange = useCallback((address: TenantAddressInput) => {
     setAddressInput(address);
@@ -99,6 +140,11 @@ export function TenantsPage({
   const openCreate = () => {
     setFormError(undefined);
     setDialog({ kind: 'create' });
+  };
+  const openPromote = () => {
+    setPromotionReport(undefined);
+    setPromotionError(undefined);
+    setDialog({ kind: 'promote' });
   };
   const openEdit = (tenantId: string) => {
     const tenant = tenants.find((t) => t.tenantId === tenantId);
@@ -223,6 +269,24 @@ export function TenantsPage({
     }
   };
 
+  const handlePreviewPromotion = async (body: PromoteTenantRequest) => {
+    setPromotionError(undefined);
+    try {
+      setPromotionReport(await previewPromotion({ teamId, body }).unwrap());
+    } catch (previewError) {
+      setPromotionError(promotionErrorMessage(previewError as ApiError));
+    }
+  };
+
+  const handlePromote = async (body: PromoteTenantRequest) => {
+    setPromotionError(undefined);
+    try {
+      setPromotionReport(await promoteTenant({ teamId, body }).unwrap());
+    } catch (promoteError) {
+      setPromotionError(promotionErrorMessage(promoteError as ApiError));
+    }
+  };
+
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
@@ -235,6 +299,14 @@ export function TenantsPage({
             value={activeEnvironment}
             onChange={setEnvironmentFilter}
           />
+          <Button
+            variant="outlined"
+            onClick={openPromote}
+            disabled={tenants.length < 2}
+            data-testid="promote-tenant"
+          >
+            Promote
+          </Button>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -270,6 +342,17 @@ export function TenantsPage({
         addressPreview={addressPreview}
         onAddressChange={handleAddressChange}
         onSubmit={handleSubmit}
+        onCancel={() => setDialog(closed)}
+      />
+
+      <TenantPromotionDialog
+        open={dialog.kind === 'promote'}
+        tenantIds={tenants.map((tenant) => tenant.tenantId)}
+        report={promotionReport}
+        isBusy={isPreviewingPromotion || isPromoting}
+        error={promotionError}
+        onPreview={handlePreviewPromotion}
+        onPromote={handlePromote}
         onCancel={() => setDialog(closed)}
       />
 

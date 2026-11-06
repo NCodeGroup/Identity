@@ -26,13 +26,15 @@ function New-Fixture([string]$Name) {
     Write-Project $root 'src/B/B.csproj' @('..\A\A.csproj')
     Write-Project $root 'tests/A.Tests/A.Tests.csproj' @('..\..\src\A\A.csproj')
     Write-Project $root 'tests/B.Tests/B.Tests.csproj' @('..\..\src\B\B.csproj')
+    Write-Project $root 'tests/B.EndToEnd.Tests/B.EndToEnd.Tests.csproj' @('..\..\src\B\B.csproj')
     return $root
 }
 
-function Assert-Selection([string]$Name, [object]$Result, [bool]$All, [string]$Projects) {
+function Assert-Selection([string]$Name, [object]$Result, [bool]$All, [string]$Projects, [string]$EndToEnd) {
     $actual = $Result.Projects -join ','
-    if ($Result.All -ne $All -or $actual -ne $Projects) {
-        throw "Test '$Name' expected All=$All Projects='$Projects', got All=$($Result.All) Projects='$actual'."
+    $actualEndToEnd = $Result.EndToEndProjects -join ','
+    if ($Result.All -ne $All -or $actual -ne $Projects -or $actualEndToEnd -ne $EndToEnd) {
+        throw "Test '$Name' expected All=$All Projects='$Projects' EndToEnd='$EndToEnd', got All=$($Result.All) Projects='$actual' EndToEnd='$actualEndToEnd'."
     }
     $script:testCount++
     Write-Host "PASS: $Name"
@@ -48,21 +50,24 @@ function Invoke-Git([string]$Root, [string[]]$Arguments) {
 try {
     $fixture = New-Fixture 'paths'
     $bothTests = 'tests/A.Tests/A.Tests.csproj,tests/B.Tests/B.Tests.csproj'
+    $endToEnd = 'tests/B.EndToEnd.Tests/B.EndToEnd.Tests.csproj'
 
     $result = & $selector -Root $fixture -ChangedPath 'src/A/X.cs'
-    Assert-Selection 'referenced project selects every dependent test' $result $false $bothTests
+    Assert-Selection 'referenced project selects every dependent test' $result $false $bothTests $endToEnd
     $result = & $selector -Root $fixture -ChangedPath 'src/B/X.cs'
-    Assert-Selection 'leaf project selects its own test' $result $false 'tests/B.Tests/B.Tests.csproj'
+    Assert-Selection 'leaf project selects its own test' $result $false 'tests/B.Tests/B.Tests.csproj' $endToEnd
     $result = & $selector -Root $fixture -ChangedPath 'tests/A.Tests/T.cs'
-    Assert-Selection 'test project selects itself' $result $false 'tests/A.Tests/A.Tests.csproj'
+    Assert-Selection 'test project selects itself' $result $false 'tests/A.Tests/A.Tests.csproj' ''
+    $result = & $selector -Root $fixture -ChangedPath 'tests/B.EndToEnd.Tests/T.cs'
+    Assert-Selection 'end-to-end project selects itself in its own tier' $result $false '' $endToEnd
     $result = & $selector -Root $fixture -ChangedPath 'docs/x.md'
-    Assert-Selection 'path under no project selects nothing' $result $false ''
+    Assert-Selection 'path under no project selects nothing' $result $false '' ''
     $result = & $selector -Root $fixture -ChangedPath 'src/Directory.Build.props'
-    Assert-Selection 'nested Directory file selects all' $result $true ''
+    Assert-Selection 'nested Directory file selects all' $result $true '' ''
     $result = & $selector -Root $fixture -ChangedPath 'build/x.ps1'
-    Assert-Selection 'build script selects all' $result $true ''
+    Assert-Selection 'build script selects all' $result $true '' ''
     $result = & $selector -Root $fixture -ChangedPath 'BannedSymbols.Encoding.txt'
-    Assert-Selection 'banned-symbols file selects all' $result $true ''
+    Assert-Selection 'banned-symbols file selects all' $result $true '' ''
 
     $gitFixture = New-Fixture 'git'
     Invoke-Git $gitFixture @('init', '-q')
@@ -74,7 +79,7 @@ try {
     Invoke-Git $gitFixture @('commit', '-q', '-m', 'fixture')
     Write-FixtureFile (Join-Path $gitFixture 'src/B/New.cs') "class New { }`n"
     $result = & $selector -Root $gitFixture -Base HEAD
-    Assert-Selection 'untracked file in git selects its tests' $result $false 'tests/B.Tests/B.Tests.csproj'
+    Assert-Selection 'untracked file in git selects its tests' $result $false 'tests/B.Tests/B.Tests.csproj' $endToEnd
 
     Write-Host "$testCount affected-tests checks passed."
 }

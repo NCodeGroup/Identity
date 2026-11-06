@@ -280,8 +280,10 @@ packages, so a BFF in front of a non-NCode OP pulls in no server code: the clien
 **Authorization request.**
 
 - `response_type=code`, PKCE `S256` on every request, a fresh `state` and `nonce`, and `response_mode=query`.
-- `scope` is `openid` plus the configured scopes. It includes `offline_access` whenever any token requirement needs a
-  user token beyond the first access token.
+- `scope` is `openid` plus the configured `Bff:Scopes`, each once. It includes `offline_access` only when `Bff:Scopes`
+  lists it, for an OP that issues a refresh token for that scope alone: an offline grant outlives the OP's login
+  session, so an OP such as Keycloak ends that session without a back-channel logout to the BFF
+  ([ADR-1431](decisions/1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
 - `resource` lists the RFC 8707 resource indicators for the frontend's APIs.
 - `dpop_jkt` is sent when DPoP is in use.
 - The request goes through **PAR** whenever the OP advertises `pushed_authorization_request_endpoint`. PAR is mandatory
@@ -855,7 +857,7 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
     "PublicOrigin": "https://orders.example.com",                 // the BFF's own URL; redirect_uri is built from it
     "ClientId": "orders-web",
     "ClientAuthentication": { "Method": "private_key_jwt", "KeyRing": "orders-web-client-key" }, // key from Secrets
-    "Scopes": ["openid", "profile", "email", "offline_access"],
+    "Scopes": ["openid", "profile", "email", "offline_access"],   // offline_access: this OP issues refresh tokens only for it
     "ReturnUrls": ["/"],
     "UserClaims": ["email", "role"],
     "TrustedOrigins": ["https://admin.example.com"],              // same-site origins allowed to call the APIs
@@ -1117,11 +1119,16 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
   - Back-channel logout ends a session on every replica.
   - DPoP nonce challenges are answered.
   - Rotating the BFF's keys keeps live sessions working.
-- **Interop.** One other OP runs in a container, so the library is proven not to depend on NCode behavior.
+- **Interop.** `tests/NCode.Identity.Bff.EndToEnd.Tests` runs the BFF against Keycloak in a container, which requires
+  PAR, PKCE `S256`, DPoP and PS256 ID tokens of the client. Login, `private_key_jwt` through `/bff/jwks`, RFC 9207,
+  refresh-token rotation, RP-initiated logout and back-channel logout work from discovery metadata alone, so the
+  library is proven not to depend on NCode behavior.
 - **OpenID Foundation conformance.** The relying-party test plans (OIDC Basic RP, and FAPI 2.0 client where it
   applies) certify the protocol client from the other side of the suite the OP already targets (issue [#124](https://github.com/NCodeGroup/Identity/issues/124)).
-- **Browser end-to-end.** A Playwright suite checks the cookie attributes, `SameSite` behavior on cross-site
-  navigation, CORS and preflight denial, and Fetch Metadata rejection in real browsers.
+- **Browser end-to-end.** Playwright for .NET in Chromium, Firefox and WebKit checks the cookie attributes, `SameSite`
+  on cross-site navigation and form posts, CORS preflight denial, and Fetch Metadata rejection of what CORS admits.
+  Both end-to-end suites run in the `End-to-end` CI check through `./build/e2e.ps1`, never in the Definition of Done
+  ([ADR-1430](decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 ---
 

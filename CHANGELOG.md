@@ -2462,8 +2462,10 @@ describes the family as it is rather than its changes
   `IBffSessionStore`. `IBffTokenAccessor` and `AddBffAccessTokenHandler` attach the user's access token, refreshed
   single-flight across replicas under a lease on the refresh token, and DPoP-bound when the provider supports it;
   `BffAccessToken.TokenType` is `Bearer` when the provider's token response omits the `token_type` that RFC 6749 §5.1
-  requires. `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and back-channel
-  logout ends sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD only.
+  requires. The login requests `openid` and the scopes `Bff:Scopes` lists, never `offline_access` on its own, so by
+  default the grant stays inside the provider's login session and the provider's logout reaches the BFF.
+  `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and back-channel logout ends
+  sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD only.
   A won refresh and a logout are never cancelled by the browser, so a rotated refresh token is kept and a session always
   ends. `AddIdentityBff` validates the refresh lease against the client's request timeout, and the protocol client's
   `IdTokenValidationResult` exposes the validated `Identity` ([#394](https://github.com/NCodeGroup/Identity/issues/394),
@@ -2471,7 +2473,8 @@ describes the family as it is rather than its changes
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
-  [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)).
+  [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
+  [ADR-1431](docs/decisions/1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
 
 - **A BFF is composed in one call.** The `NCode.Identity.Bff.Server` package is the BFF's composition root:
   `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,
@@ -2538,6 +2541,17 @@ describes the family as it is rather than its changes
   keys from its `jwks_uri`; it is off by default and validated when the host starts
   ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)).
+
+- **The BFF is proven in real browsers and against a second OpenID Provider.** The `End-to-end` check runs
+  `./build/e2e.ps1`, which drives the BFF with Playwright in Chromium, Firefox and WebKit against Keycloak in a
+  container. The session cookie is host-only, `HttpOnly`, `Secure` and `SameSite=Strict` (or `Lax` when chosen). A
+  cross-site navigation carries it only under `Lax`, a cross-origin `fetch` stops at its CORS preflight, and Fetch
+  Metadata refuses a cross-site or untrusted same-site request even when CORS admits it. Login with PAR, PKCE,
+  `private_key_jwt` through `/bff/jwks`, DPoP, RFC 9207 and PS256 ID tokens works, and so do refresh-token
+  rotation, RP-initiated logout and back-channel logout, all from Keycloak's discovery metadata alone.
+  `./build/dod.ps1` never runs these `*.EndToEnd.Tests` suites
+  ([#418](https://github.com/NCodeGroup/Identity/issues/418), [#419](https://github.com/NCodeGroup/Identity/issues/419),
+  [ADR-1430](docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 
 - **Entity Framework persistence is a reusable framework plus domain slices.** The framework package
   `NCode.Identity.OpenId.Persistence.EntityFramework` provides a `DbSet`-less `OpenIdDbContext` that slices plug into

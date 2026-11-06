@@ -233,6 +233,7 @@ internal class TeamApiEndpointHandler(
         var authorizationError = await TeamValidator.AuthorizeCreateAsync(
             httpContext.User,
             controlPlaneTenantId,
+            parentTeamId: null,
             cancellationToken
         );
         if (authorizationError is not null)
@@ -405,6 +406,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team was updated.</response>
+    /// <response code="403">The caller lacks authority at the team, or at the node above it.</response>
     [EndpointName("api/teams/update")]
     internal virtual async ValueTask<IResult> UpdateTeamAsync(
         HttpContext httpContext,
@@ -498,7 +500,8 @@ internal class TeamApiEndpointHandler(
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team was deleted.</response>
-    /// <response code="409">The team is the platform's own team or still has tenants, and cannot be deleted.</response>
+    /// <response code="403">The caller lacks authority at the team, or at the node above it.</response>
+    /// <response code="409">The team is the platform's own team or still has tenants or teams, and cannot be deleted.</response>
     [EndpointName("api/teams/delete")]
     internal virtual async ValueTask<IResult> DeleteTeamAsync(
         HttpContext httpContext,
@@ -526,7 +529,13 @@ internal class TeamApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var error = await TeamValidator.ValidateDeleteAsync(team, storeManager, cancellationToken);
+        var error = await TeamValidator.ValidateDeleteAsync(
+            httpContext.User,
+            GetControlPlaneTenantId(httpContext),
+            team,
+            storeManager,
+            cancellationToken
+        );
         if (error is not null)
         {
             return ToErrorResult(error);

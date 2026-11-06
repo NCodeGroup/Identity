@@ -15,14 +15,14 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 
 /// <summary>
-/// Provides the default implementation of <see cref="ITeamValidator"/>. A team is created and deleted under the
-/// platform node and updated under its own node, authorized in the control-plane tenant that serves the request from
-/// route values alone, before the team is read. A team's identifier follows the form of a tenant identifier, is never
-/// reused after the team is deleted, and the platform's own team can be neither disabled nor deleted. Disabling or
-/// restoring a team is also authorized at the platform node, judged against the stored team, so only the platform
-/// suspends and restores a team.
+/// Provides the default implementation of <see cref="ITeamValidator"/>. Creating a team is authorized at the platform,
+/// or at the parent team the child-team route names, before any read; updating and deleting are authorized at the
+/// team's own node before the team is read, and disabling, restoring or deleting it is then judged against the stored
+/// row at the node above it, the parent team for a child team and the platform for a top-level team. A team's
+/// identifier follows the form of a tenant identifier, is never reused after the team is deleted, and the platform's
+/// own team can be neither disabled, deleted nor hold teams.
 /// </summary>
-// See ADR-1411
+// See ADR-1411, ADR-1424 and ADR-1426.
 internal class DefaultTeamValidator(
     IAuthorizationService authorizationService,
     IOptions<TenantResolutionOptions> tenantResolutionOptions
@@ -33,19 +33,34 @@ internal class DefaultTeamValidator(
 
     private TenantResolutionOptions Options => TenantResolutionOptions.Value;
 
+    /// <summary>
+    /// Gets the node above the specified team: its parent team, or the platform for a top-level team.
+    /// </summary>
+    private static ResourceNode GetLifecycleNode(string controlPlaneTenantId, PersistedTeam team) =>
+        team.ParentTeamId is { } parentTeamId
+            ? ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, parentTeamId)
+            : ResourceNode.For(
+                controlPlaneTenantId,
+                ResourceNodeTypes.Platform,
+                OpenIdConstants.PlatformResourceId
+            );
+
     /// <inheritdoc />
     public ValueTask<ManagementError?> AuthorizeCreateAsync(
         ClaimsPrincipal user,
         string controlPlaneTenantId,
+        string? parentTeamId,
         CancellationToken cancellationToken
     ) =>
         AuthorizeAsync(
             user,
-            ResourceNode.For(
-                controlPlaneTenantId,
-                ResourceNodeTypes.Platform,
-                OpenIdConstants.PlatformResourceId
-            ),
+            parentTeamId is null
+                ? ResourceNode.For(
+                    controlPlaneTenantId,
+                    ResourceNodeTypes.Platform,
+                    OpenIdConstants.PlatformResourceId
+                )
+                : ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, parentTeamId),
             Operations.Create,
             "The caller is not authorized to create this team.",
             "Authentication is required to create this team."
@@ -75,11 +90,7 @@ internal class DefaultTeamValidator(
     ) =>
         AuthorizeAsync(
             user,
-            ResourceNode.For(
-                controlPlaneTenantId,
-                ResourceNodeTypes.Platform,
-                OpenIdConstants.PlatformResourceId
-            ),
+            ResourceNode.For(controlPlaneTenantId, ResourceNodeTypes.Team, teamId),
             Operations.Delete,
             "The caller is not authorized to delete this team.",
             "Authentication is required to delete this team."
@@ -112,6 +123,28 @@ internal class DefaultTeamValidator(
         }
 
         var store = storeManager.GetStore<ITeamStore>();
+
+        if (team.ParentTeamId is { } parentTeamId)
+        {
+            if (string.Equals(parentTeamId, Options.Root.TeamId, StringComparison.Ordinal))
+            {
+                return new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = "The platform's own team cannot hold teams.",
+                };
+            }
+
+            var parent = await store.GetOrDefaultAsync(parentTeamId, cancellationToken);
+            if (parent is null)
+            {
+                return new ManagementError
+                {
+                    StatusCode = StatusCodes.Status404NotFound,
+                    Detail = "The parent team does not exist.",
+                };
+            }
+        }
 
         var existing = await store.GetOrDefaultAsync(team.TeamId, cancellationToken);
         if (existing is not null)
@@ -150,11 +183,7 @@ internal class DefaultTeamValidator(
         {
             var error = await AuthorizeAsync(
                 user,
-                ResourceNode.For(
-                    controlPlaneTenantId,
-                    ResourceNodeTypes.Platform,
-                    OpenIdConstants.PlatformResourceId
-                ),
+                GetLifecycleNode(controlPlaneTenantId, team),
                 Operations.Update,
                 "The caller is not authorized to disable or enable this team.",
                 "Authentication is required to disable or enable this team."
@@ -203,11 +232,25 @@ internal class DefaultTeamValidator(
 
     /// <inheritdoc />
     public async ValueTask<ManagementError?> ValidateDeleteAsync(
+        ClaimsPrincipal user,
+        string controlPlaneTenantId,
         PersistedTeam team,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await AuthorizeAsync(
+            user,
+            GetLifecycleNode(controlPlaneTenantId, team),
+            Operations.Delete,
+            "The caller is not authorized to delete this team.",
+            "Authentication is required to delete this team."
+        );
+        if (authorizationError is not null)
+        {
+            return authorizationError;
+        }
+
         if (string.Equals(team.TeamId, Options.Root.TeamId, StringComparison.Ordinal))
         {
             return new ManagementError
@@ -223,7 +266,7 @@ internal class DefaultTeamValidator(
             return new ManagementError
             {
                 StatusCode = StatusCodes.Status409Conflict,
-                Detail = "The team cannot be deleted while it still has tenants.",
+                Detail = "The team cannot be deleted while it still has tenants or teams.",
             };
         }
 

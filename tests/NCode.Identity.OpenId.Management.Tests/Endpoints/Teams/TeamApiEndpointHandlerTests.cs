@@ -543,6 +543,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                 x.AuthorizeCreateAsync(
                     It.IsAny<ClaimsPrincipal>(),
                     ControlPlaneTenantId,
+                    null,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -920,6 +921,8 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         MockTeamValidator
             .Setup(x =>
                 x.ValidateDeleteAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    ControlPlaneTenantId,
                     It.IsAny<PersistedTeam>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()

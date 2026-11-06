@@ -66,7 +66,11 @@ End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./buil
   ([ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)),
   and on opt-in sends browser security headers (`UseBffSecurityHeaders()`) and publishes its client keys at `/bff/jwks`
   ([ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md));
-  `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`)
+  `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`); the opt-in
+  `NCode.Identity.Bff.Blazor` (`AddBffBlazorLibrary()`, `AsBffComponents()`) and `NCode.Identity.Bff.Blazor.Client`
+  (`AddBffBlazorClient()`) serve Blazor's interactive server and WebAssembly render modes over the same session, and
+  server-rendered pages and SignalR hubs use the core
+  ([ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md))
 - **Persistence** — `NCode.Persistence.Abstractions`, `NCode.Identity.Persistence.Abstractions`
 - **Infrastructure ports** — `NCode.Identity.Dispatch(.Abstractions)` (background jobs),
   `NCode.Identity.Events(.Abstractions)`, `NCode.Identity.SharedState(.Abstractions)` (state every replica sees) and its

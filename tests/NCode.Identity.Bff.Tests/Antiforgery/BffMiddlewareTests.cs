@@ -434,7 +434,15 @@ public class BffMiddlewareTests : BaseTests
                     var feature = context.Features.Get<BffRequestFeature>();
                     Assert.NotNull(feature);
                     feature.Principal = principal;
-                    return ValueTask.FromResult<BffSessionState?>(null);
+                    return ValueTask.FromResult<BffSessionState?>(
+                        new BffSessionState(
+                            new string('h', 43),
+                            "key",
+                            1,
+                            new BffSessionMetadata(),
+                            new BffSessionPayload()
+                        )
+                    );
                 }
             )
             .Verifiable();

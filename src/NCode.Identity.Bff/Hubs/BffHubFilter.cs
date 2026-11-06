@@ -55,7 +55,7 @@ internal sealed class BffHubFilter(
             || now - validatedAt >= connection.RevalidationInterval
         )
         {
-            await RevalidateAsync(context, connection, now);
+            await RevalidateAsync(context, connection, now, context.ConnectionAborted);
         }
 
         using (connections.Use(connection))
@@ -67,13 +67,14 @@ internal sealed class BffHubFilter(
     private static async ValueTask RevalidateAsync(
         HubCallerContext context,
         IBffConnectionSession connection,
-        DateTimeOffset now
+        DateTimeOffset now,
+        CancellationToken cancellationToken
     )
     {
         ClaimsPrincipal? principal;
         try
         {
-            principal = await connection.ValidateAsync(now, context.ConnectionAborted);
+            principal = await connection.ValidateAsync(now, cancellationToken);
         }
         catch (BffStoreUnavailableException exception)
         {

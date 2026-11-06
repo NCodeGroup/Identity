@@ -56,7 +56,7 @@ internal class BffMiddleware(
 
         try
         {
-            var refusal = await GetRefusalAsync(context, endpoint, feature);
+            var refusal = await GetRefusalAsync(context, endpoint, feature, context.RequestAborted);
             if (refusal is { } refused)
             {
                 await _recorder.AntiforgeryRejectedAsync(
@@ -96,7 +96,12 @@ internal class BffMiddleware(
         int StatusCode,
         string Type,
         string Title
-    )?> GetRefusalAsync(HttpContext context, Endpoint? endpoint, BffRequestFeature feature)
+    )?> GetRefusalAsync(
+        HttpContext context,
+        Endpoint? endpoint,
+        BffRequestFeature feature,
+        CancellationToken cancellationToken
+    )
     {
         if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
         {
@@ -160,9 +165,11 @@ internal class BffMiddleware(
                 );
             }
 
-            await _resolver.ResolveAsync(context, context.RequestAborted);
+            // Resolving the session sets the request feature's principal, which the antiforgery token is bound to.
+            var session = await _resolver.ResolveAsync(context, cancellationToken);
+            var principal = session is null ? null : feature.Principal;
 
-            if (await IsAntiforgeryTokenValidAsync(context, feature.Principal))
+            if (await IsAntiforgeryTokenValidAsync(context, principal, cancellationToken))
                 return null;
 
             return (
@@ -178,13 +185,15 @@ internal class BffMiddleware(
 
     private async ValueTask<bool> IsAntiforgeryTokenValidAsync(
         HttpContext context,
-        ClaimsPrincipal? principal
+        ClaimsPrincipal? principal,
+        CancellationToken cancellationToken
     )
     {
         var original = context.User;
         context.User = principal ?? new ClaimsPrincipal();
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             return await _antiforgery.IsRequestValidAsync(context);
         }
         catch (AntiforgeryValidationException)

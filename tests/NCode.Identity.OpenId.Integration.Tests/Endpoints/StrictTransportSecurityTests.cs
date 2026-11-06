@@ -70,7 +70,7 @@ public sealed class StrictTransportSecurityTests
     public async Task GetHealth_ForwardedAsHttpsByATrustedProxy_SendsStrictTransportSecurity()
     {
         using var factory = new ConfiguredHostApplicationFactory(
-            new Dictionary<string, string?> { ["ReverseProxy:KnownProxies:0"] = "127.0.0.1" }
+            new Dictionary<string, string?> { ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1" }
         );
         using var staging = factory.WithWebHostBuilder(builder =>
             builder.UseEnvironment(StagingEnvironment)

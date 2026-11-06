@@ -24,6 +24,8 @@ NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microso
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffEndpoints() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffRemoteApi(string! path, string! destination, System.Action<NCode.Identity.Bff.Options.BffRemoteApiOptions!>? configure = null) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapBffRemoteApis() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
+NCode.Identity.Bff.IBffOptionsAccessor
+NCode.Identity.Bff.IBffOptionsAccessor.Current.get -> NCode.Identity.Bff.Options.BffOptions!
 NCode.Identity.Bff.Options.BffAntiforgeryOptions
 NCode.Identity.Bff.Options.BffAntiforgeryOptions.BffAntiforgeryOptions() -> void
 NCode.Identity.Bff.Options.BffAntiforgeryOptions.HeaderName.get -> string!
@@ -67,6 +69,14 @@ NCode.Identity.Bff.Options.BffOptions.Antiforgery.set -> void
 NCode.Identity.Bff.Options.BffOptions.BffOptions() -> void
 NCode.Identity.Bff.Options.BffOptions.Tokens.get -> NCode.Identity.Bff.Options.BffTokenOptions!
 NCode.Identity.Bff.Options.BffOptions.Tokens.set -> void
+NCode.Identity.Bff.Options.BffOptions.SessionRetirement.get -> NCode.Identity.Bff.Options.BffSessionRetirementOptions!
+NCode.Identity.Bff.Options.BffOptions.SessionRetirement.set -> void
+NCode.Identity.Bff.Options.BffSessionRetirementOptions
+NCode.Identity.Bff.Options.BffSessionRetirementOptions.BffSessionRetirementOptions() -> void
+NCode.Identity.Bff.Options.BffSessionRetirementOptions.LeaseDuration.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffSessionRetirementOptions.LeaseDuration.set -> void
+NCode.Identity.Bff.Options.BffSessionRetirementOptions.RetryDelay.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffSessionRetirementOptions.RetryDelay.set -> void
 NCode.Identity.Bff.Options.BffRemoteApiOptions
 NCode.Identity.Bff.Options.BffRemoteApiOptions.BffRemoteApiOptions() -> void
 NCode.Identity.Bff.Options.BffRemoteApiOptions.Path.get -> string!

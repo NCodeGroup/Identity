@@ -45,11 +45,15 @@ public interface IBffSessionStore
     /// <summary>
     /// Removes the record and its index members.
     /// </summary>
+    /// <remarks>
+    /// The removal is an atomic take, so of two callers that remove one session at once exactly one gets
+    /// <see langword="true"/>. The index members are removed either way.
+    /// </remarks>
     /// <param name="storeKey">The key of the record.</param>
     /// <param name="metadata">The metadata of the record, which names its index members.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that completes when the record is removed.</returns>
-    ValueTask RemoveAsync(
+    /// <returns><see langword="true"/> when this call removed the session; <see langword="false"/> when it was already gone.</returns>
+    ValueTask<bool> RemoveAsync(
         string storeKey,
         BffSessionMetadata metadata,
         CancellationToken cancellationToken
@@ -78,6 +82,27 @@ public interface IBffSessionStore
     ValueTask<IReadOnlyList<string>> FindBySubjectAsync(
         string issuer,
         string subject,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Finds the distinct clients that stored sessions were issued to; a client whose sessions all ended may still be
+    /// listed.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The distinct clients.</returns>
+    ValueTask<IReadOnlyList<BffSessionClient>> FindClientsAsync(
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Finds the store keys of the sessions of a client.
+    /// </summary>
+    /// <param name="client">The client that the sessions were issued to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The store keys of the matching sessions.</returns>
+    ValueTask<IReadOnlyList<string>> FindByClientAsync(
+        BffSessionClient client,
         CancellationToken cancellationToken
     );
 

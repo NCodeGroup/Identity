@@ -5,6 +5,7 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Frontends;
+using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
@@ -15,6 +16,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
 {
     private const string Handle = "handle-1";
     private const string LogoutUrl = "/bff/logout";
+    private const string AdminName = "admin";
 
     private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
@@ -29,6 +31,29 @@ public class DefaultBffConnectionSessionTests : BaseTests
             _timeProvider
         );
 
+    private static DefaultBffConnectionSession CreateSession(
+        BffFrontendCatalog catalog,
+        BffFrontend frontend,
+        Mock<BffSessionResolver> resolver
+    ) => CreateSession(catalog, frontend.Name, resolver);
+
+    private static DefaultBffConnectionSession CreateSession(
+        BffFrontendCatalog catalog,
+        string frontend,
+        Mock<BffSessionResolver> resolver
+    ) => new(frontend, Handle, LogoutUrl, resolver.Object, catalog);
+
+    private static BffOptions CreateTwoFrontends() =>
+        BffTestFrontends.CreateBffOptions(x =>
+            x.Frontends[AdminName] = BffTestFrontends.CreateOptions(y =>
+                y.Selection = new BffFrontendSelectionOptions
+                {
+                    Rule = BffFrontendSelectorNames.Host,
+                    Values = ["admin.example.com"],
+                }
+            )
+        );
+
     private static BffSessionState CreateState() =>
         new(
             Handle,
@@ -37,6 +62,8 @@ public class DefaultBffConnectionSessionTests : BaseTests
             new BffSessionMetadata
             {
                 Frontend = BffTestFrontends.Name,
+                Authority = BffTestFrontends.Authority,
+                ClientId = BffTestFrontends.ClientId,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),
@@ -66,7 +93,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
             )
             .Returns(new ValueTask<BffSessionState?>(CreateState()))
             .Verifiable();
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         var principal = await session.ValidateAsync(null, CancellationToken.None);
 
@@ -88,7 +115,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
             )
             .Returns(new ValueTask<BffSessionState?>((BffSessionState?)null))
             .Verifiable();
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         var principal = await session.ValidateAsync(null, CancellationToken.None);
 
@@ -108,11 +135,26 @@ public class DefaultBffConnectionSessionTests : BaseTests
             )
             .Returns(new ValueTask<BffSessionState?>(CreateState()))
             .Verifiable();
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         var principal = await session.ValidateAsync(activityAt, CancellationToken.None);
 
         Assert.NotNull(principal);
+    }
+
+    [Fact]
+    public async Task ValidateAsync_FrontendRemovedByAChange_ReturnsNull()
+    {
+        var source = new BffTestOptionsSource(CreateTwoFrontends());
+        using var catalog = BffTestFrontends.CreateCatalog(source);
+        var resolver = CreateResolver(catalog);
+        var session = CreateSession(catalog, AdminName, resolver);
+
+        source.Change(BffTestFrontends.CreateBffOptions());
+
+        var principal = await session.ValidateAsync(null, CancellationToken.None);
+
+        Assert.Null(principal);
     }
 
     #endregion
@@ -132,7 +174,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
             )
             .Returns(new ValueTask<BffSessionState?>(state))
             .Verifiable();
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         var result = await session.ResolveAsync(CancellationToken.None);
 
@@ -151,9 +193,22 @@ public class DefaultBffConnectionSessionTests : BaseTests
         );
         var frontend = BffTestFrontends.Get(catalog);
         var resolver = CreateResolver(catalog);
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         Assert.Equal(TimeSpan.FromSeconds(20), session.RevalidationInterval);
+    }
+
+    [Fact]
+    public void RevalidationInterval_FrontendRemovedByAChange_IsZero()
+    {
+        var source = new BffTestOptionsSource(CreateTwoFrontends());
+        using var catalog = BffTestFrontends.CreateCatalog(source);
+        var resolver = CreateResolver(catalog);
+        var session = CreateSession(catalog, AdminName, resolver);
+
+        source.Change(BffTestFrontends.CreateBffOptions());
+
+        Assert.Equal(TimeSpan.Zero, session.RevalidationInterval);
     }
 
     #endregion
@@ -166,7 +221,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
         var catalog = BffTestFrontends.CreateCatalog();
         var frontend = BffTestFrontends.Get(catalog);
         var resolver = CreateResolver(catalog);
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         Assert.Equal(BffTestFrontends.Name, session.Frontend);
     }
@@ -181,9 +236,38 @@ public class DefaultBffConnectionSessionTests : BaseTests
         var catalog = BffTestFrontends.CreateCatalog();
         var frontend = BffTestFrontends.Get(catalog);
         var resolver = CreateResolver(catalog);
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         Assert.Same(frontend, session.SelectedFrontend);
+    }
+
+    [Fact]
+    public void SelectedFrontend_AfterAChange_IsTheCurrentInstance()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        using var catalog = BffTestFrontends.CreateCatalog(source);
+        var original = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        var session = CreateSession(catalog, original, resolver);
+
+        source.Change(BffTestFrontends.CreateBffOptions());
+
+        var current = BffTestFrontends.Get(catalog);
+        Assert.NotSame(original, current);
+        Assert.Same(current, session.SelectedFrontend);
+    }
+
+    [Fact]
+    public void SelectedFrontend_FrontendRemovedByAChange_IsNull()
+    {
+        var source = new BffTestOptionsSource(CreateTwoFrontends());
+        using var catalog = BffTestFrontends.CreateCatalog(source);
+        var resolver = CreateResolver(catalog);
+        var session = CreateSession(catalog, AdminName, resolver);
+
+        source.Change(BffTestFrontends.CreateBffOptions());
+
+        Assert.Null(session.SelectedFrontend);
     }
 
     #endregion
@@ -196,7 +280,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
         var catalog = BffTestFrontends.CreateCatalog();
         var frontend = BffTestFrontends.Get(catalog);
         var resolver = CreateResolver(catalog);
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         Assert.Null(session.HttpContext);
     }
@@ -211,7 +295,7 @@ public class DefaultBffConnectionSessionTests : BaseTests
         var catalog = BffTestFrontends.CreateCatalog();
         var frontend = BffTestFrontends.Get(catalog);
         var resolver = CreateResolver(catalog);
-        var session = new DefaultBffConnectionSession(frontend, Handle, LogoutUrl, resolver.Object);
+        var session = CreateSession(catalog, frontend, resolver);
 
         session.OnSessionEnded();
     }

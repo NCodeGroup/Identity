@@ -107,6 +107,82 @@ public sealed class BffInstrumentedSessionStoreTests : BaseTests
     }
 
     [Fact]
+    public async Task FindBySubjectAsync_WhenTheStoreAnswers_ReturnsItsAnswerAndRecordsTheOperation()
+    {
+        IReadOnlyList<string> keys = ["store-key"];
+        MockStore
+            .Setup(x =>
+                x.FindBySubjectAsync("https://op.example", "subject", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(keys)
+            .Verifiable();
+
+        var result = await Store.FindBySubjectAsync(
+            "https://op.example",
+            "subject",
+            CancellationToken.None
+        );
+
+        Assert.Same(keys, result);
+        AssertOperationRecorded(BffMetrics.FindBySubjectOperation, errorType: null);
+    }
+
+    [Fact]
+    public async Task FindClientsAsync_WhenTheStoreAnswers_ReturnsItsAnswerAndRecordsTheOperation()
+    {
+        IReadOnlyList<BffSessionClient> clients =
+        [
+            new BffSessionClient(BffTestFrontends.Name, "https://op.example", "client-1"),
+        ];
+        MockStore
+            .Setup(x => x.FindClientsAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(clients)
+            .Verifiable();
+
+        var result = await Store.FindClientsAsync(CancellationToken.None);
+
+        Assert.Same(clients, result);
+        AssertOperationRecorded(BffMetrics.FindClientsOperation, errorType: null);
+    }
+
+    [Fact]
+    public async Task FindByClientAsync_WhenTheStoreAnswers_ReturnsItsAnswerAndRecordsTheOperation()
+    {
+        var client = new BffSessionClient(BffTestFrontends.Name, "https://op.example", "client-1");
+        IReadOnlyList<string> keys = ["store-key"];
+        MockStore
+            .Setup(x => x.FindByClientAsync(client, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(keys)
+            .Verifiable();
+
+        var result = await Store.FindByClientAsync(client, CancellationToken.None);
+
+        Assert.Same(keys, result);
+        AssertOperationRecorded(BffMetrics.FindByClientOperation, errorType: null);
+    }
+
+    [Fact]
+    public async Task FindByClientAsync_WhenTheStoreThrows_RecordsTheErrorAndRethrows()
+    {
+        var client = new BffSessionClient(BffTestFrontends.Name, "https://op.example", "client-1");
+        var failure = new InvalidOperationException("The store is down.");
+        MockStore
+            .Setup(x => x.FindByClientAsync(client, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(failure)
+            .Verifiable();
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Store.FindByClientAsync(client, CancellationToken.None)
+        );
+
+        Assert.Same(failure, exception);
+        AssertOperationRecorded(
+            BffMetrics.FindByClientOperation,
+            typeof(InvalidOperationException).FullName
+        );
+    }
+
+    [Fact]
     public async Task ReleaseRefreshLeaseAsync_WhenTheStoreCompletes_RecordsTheOperation()
     {
         var lease = new BffRefreshLease("lease-key", "owner-1");

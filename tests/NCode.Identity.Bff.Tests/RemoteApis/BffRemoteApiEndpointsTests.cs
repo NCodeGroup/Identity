@@ -299,17 +299,96 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
                 Destination = Destination,
             }
         );
-        endpoints.MapBffRemoteApi("/api", Destination);
+        endpoints.MapBffRemoteApis();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            endpoints.MapBffRemoteApi("/api", Destination)
+        );
+
+        Assert.Contains("Bff:Frontends:", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MapBffRemoteApis_UnregisteredRequirement_Throws()
+    {
+        var endpoints = CreateEndpoints(x =>
+            x.RemoteApis["orders"] = new BffRemoteApiOptions
+            {
+                Path = "/api/orders",
+                Destination = Destination,
+                TokenRequirement = "missing",
+            }
+        );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
             endpoints.MapBffRemoteApis()
         );
 
         Assert.StartsWith(
-            "Bff:Frontends:default:RemoteApis:orders:Path",
+            "Bff:Frontends:default:RemoteApis:orders:TokenRequirement 'missing'",
             exception.Message,
             StringComparison.Ordinal
         );
+    }
+
+    [Fact]
+    public void MapBffRemoteApis_FrontendAddedByAChange_MapsItsApis()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var endpoints = CreateEndpoints(BffTestFrontends.CreateCatalog(source));
+        endpoints.MapBffRemoteApis();
+        Assert.Empty(GetEndpoints(endpoints));
+
+        source.Change(
+            BffTestFrontends.CreateBffOptions(x =>
+                x.Frontends["shop"] = BffTestFrontends.CreateOptions(y =>
+                {
+                    y.PathPrefix = "/shop/bff";
+                    y.Selection = new BffFrontendSelectionOptions
+                    {
+                        Rule = BffFrontendSelectorNames.Host,
+                        Values = ["shop.example.com"],
+                    };
+                    y.RemoteApis["orders"] = new BffRemoteApiOptions
+                    {
+                        Path = "/api/orders",
+                        Destination = Destination,
+                    };
+                })
+            )
+        );
+
+        var endpoint = Assert.Single(GetEndpoints(endpoints));
+        Assert.Equal("BFF remote API /api/orders (shop)", endpoint.DisplayName);
+        Assert.Equal(
+            "shop",
+            Assert.Single(endpoint.Metadata.GetOrderedMetadata<BffFrontendAttribute>()).Name
+        );
+    }
+
+    [Fact]
+    public void MapBffRemoteApi_ChangeAddsAnOverlappingPathPrefix_KeepsTheLastSet()
+    {
+        var source = new BffTestOptionsSource(BffTestFrontends.CreateBffOptions());
+        var catalog = BffTestFrontends.CreateCatalog(source);
+        var endpoints = CreateEndpoints(catalog);
+        endpoints.MapBffRemoteApi("/api/orders", Destination);
+
+        source.Change(
+            BffTestFrontends.CreateBffOptions(x =>
+                x.Frontends["shop"] = BffTestFrontends.CreateOptions(y =>
+                {
+                    y.PathPrefix = "/api";
+                    y.Selection = new BffFrontendSelectionOptions
+                    {
+                        Rule = BffFrontendSelectorNames.Host,
+                        Values = ["shop.example.com"],
+                    };
+                })
+            )
+        );
+
+        Assert.Equal([BffTestFrontends.Name], catalog.Frontends.Select(x => x.Name));
     }
 
     [Fact]

@@ -53,6 +53,20 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
                 cancellationToken
             );
 
+            var client = metadata.Client;
+            await indexes.AddMemberAsync(
+                BffStoreKeys.ClientIndex(client),
+                record.StoreKey,
+                metadata.AbsoluteExpiresAt,
+                cancellationToken
+            );
+            await indexes.AddMemberAsync(
+                BffStoreKeys.ClientsIndex,
+                BffStoreKeys.ClientMember(client, metadata.AbsoluteExpiresAt),
+                BffStoreKeys.ClientMemberExpiresAt(metadata.AbsoluteExpiresAt),
+                cancellationToken
+            );
+
             return true;
         }
         catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
@@ -124,7 +138,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
     }
 
     /// <inheritdoc />
-    public async ValueTask RemoveAsync(
+    public async ValueTask<bool> RemoveAsync(
         string storeKey,
         BffSessionMetadata metadata,
         CancellationToken cancellationToken
@@ -133,7 +147,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         try
         {
             var key = BffStoreKeys.Session(storeKey);
-            await values.RemoveAsync(key, cancellationToken);
+            var removed = await values.TryTakeAsync(key, cancellationToken) is not null;
 
             if (metadata.SessionId is { Length: > 0 } sessionId)
             {
@@ -143,6 +157,15 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
 
             var subjectIndex = BffStoreKeys.SubjectIndex(metadata.Issuer, metadata.Subject);
             await indexes.RemoveMemberAsync(subjectIndex, storeKey, cancellationToken);
+
+            var client = metadata.Client;
+            await indexes.RemoveMemberAsync(
+                BffStoreKeys.ClientIndex(client),
+                storeKey,
+                cancellationToken
+            );
+
+            return removed;
         }
         catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {
@@ -178,6 +201,50 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         try
         {
             var indexKey = BffStoreKeys.SubjectIndex(issuer, subject);
+            return await indexes.GetMembersAsync(indexKey, cancellationToken);
+        }
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
+        {
+            throw Unavailable(exception);
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<BffSessionClient>> FindClientsAsync(
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var members = await indexes.GetMembersAsync(
+                BffStoreKeys.ClientsIndex,
+                cancellationToken
+            );
+
+            var clients = new List<BffSessionClient>(members.Count);
+            foreach (var member in members)
+            {
+                if (BffStoreKeys.TryParseClientMember(member, out var client))
+                    clients.Add(client);
+            }
+
+            return clients.Distinct().ToList();
+        }
+        catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
+        {
+            throw Unavailable(exception);
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<string>> FindByClientAsync(
+        BffSessionClient client,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            var indexKey = BffStoreKeys.ClientIndex(client);
             return await indexes.GetMembersAsync(indexKey, cancellationToken);
         }
         catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))

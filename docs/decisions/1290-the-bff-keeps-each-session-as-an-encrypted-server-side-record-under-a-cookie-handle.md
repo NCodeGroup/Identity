@@ -5,7 +5,9 @@
   cookies are named for their frontend, the login transaction records its frontend, a deployment serves several
   frontends, and a session records the one it belongs to; amended by
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md):
-  a connection holds the handle in process memory for its life; decision 8 amended by
+  a connection holds the handle in process memory for its life; decisions 5 and 6 amended by
+  [ADR-1443](1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md): the metadata
+  records the session's authority and client id, and the store indexes sessions by client; decision 8 amended by
   [ADR-1444](1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md): a page reached
   without its Strict session cookie reloads itself once)
 - **Date:** 2026-10-29

@@ -28,6 +28,8 @@ public class DefaultBffUserDocumentFactoryTests : BaseTests
             new BffSessionMetadata
             {
                 Frontend = BffTestFrontends.Name,
+                Authority = BffTestFrontends.Authority,
+                ClientId = BffTestFrontends.ClientId,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 SessionId = "sid-1",

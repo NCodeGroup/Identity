@@ -14,7 +14,11 @@
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
   [ADR-1299](1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) and
   [ADR-1301](1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)
-  name)
+  name; decisions 7, 8 and 11 amended by
+  [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md):
+  the frontends follow their configuration and a change takes effect only when the whole set is valid; amended by
+  [ADR-1443](1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md): a session ends
+  when its frontend is removed or registered as another client)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 

@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -21,7 +20,7 @@ internal class DefaultBffExchangeTokenService(
     IBffUserTokenService userTokenService,
     BffGrantClient grantClient,
     BffRefreshLocks locks,
-    IOptions<BffOptions> options,
+    BffFrontendCatalog frontends,
     TimeProvider timeProvider
 ) : IBffExchangeTokenService
 {
@@ -29,7 +28,7 @@ internal class DefaultBffExchangeTokenService(
     private readonly IBffUserTokenService _userTokenService = userTokenService;
     private readonly BffGrantClient _grantClient = grantClient;
     private readonly BffRefreshLocks _locks = locks;
-    private readonly IOptions<BffOptions> _options = options;
+    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly TimeProvider _timeProvider = timeProvider;
 
     // the subject token is the user's token for the provider's default resource and scope
@@ -61,7 +60,7 @@ internal class DefaultBffExchangeTokenService(
         using var held = await _locks.TryEnterAsync(
             BffRefreshLocks.ExchangePurpose,
             state.StoreKey,
-            _options.Value.Tokens.RefreshLeaseDuration,
+            _frontends.Current.Options.Tokens.RefreshLeaseDuration,
             cancellationToken
         );
         if (held is null)
@@ -153,7 +152,7 @@ internal class DefaultBffExchangeTokenService(
                 request.Resource,
                 request.Scope,
                 _timeProvider.GetUtcNow(),
-                _options.Value.Tokens.RefreshBeforeExpiry,
+                _frontends.Current.Options.Tokens.RefreshBeforeExpiry,
                 out var cached
             )
         )

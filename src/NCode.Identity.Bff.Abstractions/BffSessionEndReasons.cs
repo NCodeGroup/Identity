@@ -49,4 +49,14 @@ public static class BffSessionEndReasons
     /// A session validator ended the session.
     /// </summary>
     public const string EndedByValidator = "ended_by_validator";
+
+    /// <summary>
+    /// The deployment does not configure the session's frontend.
+    /// </summary>
+    public const string FrontendRemoved = "frontend_removed";
+
+    /// <summary>
+    /// The session's frontend is configured with another authority or client id than the session was issued to.
+    /// </summary>
+    public const string ClientChanged = "client_changed";
 }

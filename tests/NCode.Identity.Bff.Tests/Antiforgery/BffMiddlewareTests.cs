@@ -24,7 +24,6 @@ public class BffMiddlewareTests : BaseTests
     private Mock<IBffAuditRecorder> MockRecorder { get; }
     private Mock<BffSessionResolver> MockResolver { get; }
     private Mock<IAntiforgery> MockAntiforgery { get; }
-    private BffOptions Options { get; } = new();
 
     public BffMiddlewareTests()
     {
@@ -49,7 +48,6 @@ public class BffMiddlewareTests : BaseTests
     ) =>
         new(
             next,
-            Microsoft.Extensions.Options.Options.Create(Options),
             catalog ?? BffTestFrontends.CreateCatalog(),
             MockResolver.Object,
             MockAntiforgery.Object,
@@ -140,9 +138,8 @@ public class BffMiddlewareTests : BaseTests
     public async Task InvokeAsync_GuardedCrossSite_Returns403CrossSite()
     {
         var httpContext = CreateContext(guarded: true);
-        httpContext.Request.Headers[Options.Antiforgery.HeaderName] = Options
-            .Antiforgery
-            .HeaderValue;
+        httpContext.Request.Headers[BffDefaults.AntiforgeryHeaderName] =
+            BffDefaults.AntiforgeryHeaderValue;
         httpContext.Request.Headers["Sec-Fetch-Site"] = "cross-site";
         var middleware = CreateMiddleware(_ => Task.CompletedTask);
         MockRecorder
@@ -170,9 +167,8 @@ public class BffMiddlewareTests : BaseTests
     {
         const string origin = "https://admin.example.com";
         var httpContext = CreateContext(guarded: true);
-        httpContext.Request.Headers[Options.Antiforgery.HeaderName] = Options
-            .Antiforgery
-            .HeaderValue;
+        httpContext.Request.Headers[BffDefaults.AntiforgeryHeaderName] =
+            BffDefaults.AntiforgeryHeaderValue;
         httpContext.Request.Headers["Sec-Fetch-Site"] = "same-site";
         httpContext.Request.Headers.Origin = origin;
         var nextCalled = false;
@@ -196,9 +192,8 @@ public class BffMiddlewareTests : BaseTests
         const string origin = "https://admin.example.com";
         var httpContext = CreateContext(guarded: true);
         httpContext.Request.Path = "/api";
-        httpContext.Request.Headers[Options.Antiforgery.HeaderName] = Options
-            .Antiforgery
-            .HeaderValue;
+        httpContext.Request.Headers[BffDefaults.AntiforgeryHeaderName] =
+            BffDefaults.AntiforgeryHeaderValue;
         httpContext.Request.Headers["Sec-Fetch-Site"] = "same-site";
         httpContext.Request.Headers.Origin = origin;
         var catalog = BffTestFrontends.CreateCatalog(x =>
@@ -240,9 +235,8 @@ public class BffMiddlewareTests : BaseTests
     public async Task InvokeAsync_GuardedWithHeader_CallsNextAndSetsFeature()
     {
         var httpContext = CreateContext(guarded: true);
-        httpContext.Request.Headers[Options.Antiforgery.HeaderName] = Options
-            .Antiforgery
-            .HeaderValue;
+        httpContext.Request.Headers[BffDefaults.AntiforgeryHeaderName] =
+            BffDefaults.AntiforgeryHeaderValue;
         var nextCalled = false;
         var middleware = CreateMiddleware(_ =>
         {
@@ -439,7 +433,11 @@ public class BffMiddlewareTests : BaseTests
                             new string('h', 43),
                             "key",
                             1,
-                            new BffSessionMetadata(),
+                            new BffSessionMetadata
+                            {
+                                Authority = BffTestFrontends.Authority,
+                                ClientId = BffTestFrontends.ClientId,
+                            },
                             new BffSessionPayload()
                         )
                     );

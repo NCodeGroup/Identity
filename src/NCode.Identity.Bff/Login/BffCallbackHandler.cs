@@ -307,6 +307,8 @@ internal class BffCallbackHandler
         var sessionMetadata = new BffSessionMetadata
         {
             Frontend = frontend.Name,
+            Authority = frontend.Options.Authority,
+            ClientId = frontend.Options.ClientId,
             Issuer = transaction.Issuer,
             Subject = subject,
             SessionId = identity.FindFirst(JoseClaimNames.Payload.Sid)?.Value,

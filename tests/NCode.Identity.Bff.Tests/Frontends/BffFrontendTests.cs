@@ -155,6 +155,26 @@ public class BffFrontendTests : BaseTests
     #region Constructor Tests
 
     [Fact]
+    public void Constructor_Always_ComputesTheSecurityHeadersFromItsOptions()
+    {
+        var options = CreateOptions();
+        options.SecurityHeaders = new BffSecurityHeadersOptions
+        {
+            ContentSecurityPolicy = "default-src 'self'; img-src https://img.example.com",
+        };
+
+        var frontend = new BffFrontend("web", options, null);
+
+        Assert.Contains(
+            frontend.SecurityHeaders,
+            x =>
+                x.Key == "Content-Security-Policy"
+                && x.Value == "default-src 'self'; img-src https://img.example.com"
+        );
+        Assert.Contains(frontend.SecurityHeaders, x => x.Key == "X-Content-Type-Options");
+    }
+
+    [Fact]
     public void Constructor_RuleWithoutSelector_Throws()
     {
         var options = new BffFrontendOptions
@@ -234,6 +254,58 @@ public class BffFrontendTests : BaseTests
 
         Assert.False(result);
         Assert.True(frontend.IsFallback);
+    }
+
+    #endregion
+
+    #region IsConfiguredAs Tests
+
+    [Fact]
+    public void IsConfiguredAs_SameClient_ReturnsTrue()
+    {
+        var frontend = new BffFrontend("web", CreateOptions(), null);
+
+        var result = frontend.IsConfiguredAs(
+            new BffSessionClient("web", "https://op.example.com", "bff")
+        );
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsConfiguredAs_OtherFrontend_ReturnsFalse()
+    {
+        var frontend = new BffFrontend("web", CreateOptions(), null);
+
+        var result = frontend.IsConfiguredAs(
+            new BffSessionClient("other", "https://op.example.com", "bff")
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsConfiguredAs_OtherAuthority_ReturnsFalse()
+    {
+        var frontend = new BffFrontend("web", CreateOptions(), null);
+
+        var result = frontend.IsConfiguredAs(
+            new BffSessionClient("web", "https://other-op.example.com", "bff")
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsConfiguredAs_OtherClientId_ReturnsFalse()
+    {
+        var frontend = new BffFrontend("web", CreateOptions(), null);
+
+        var result = frontend.IsConfiguredAs(
+            new BffSessionClient("web", "https://op.example.com", "other-client")
+        );
+
+        Assert.False(result);
     }
 
     #endregion

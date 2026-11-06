@@ -165,18 +165,18 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
             clientFactory,
             [],
             CreateStrictMock<IBffTokenAccessor>().Object,
-            Microsoft.Extensions.Options.Options.Create(new BffOptions()),
             Frontends
         );
     }
 
     private BffEndpointStartupCheck CreateCheck(
         EndpointDataSource endpoints,
-        bool hasBffTransforms = true
+        bool hasBffTransforms = true,
+        BffFrontendCatalog? frontends = null
     ) =>
         new(
             endpoints,
-            Frontends,
+            frontends ?? Frontends,
             Services,
             hasBffTransforms ? [CreateTransformProvider()] : [],
             Logger
@@ -426,6 +426,35 @@ public sealed class BffEndpointStartupCheckTests : BaseTests
         source.Change(CreateFrontendEndpoint(BffTestFrontends.Name));
 
         Assert.Equal(0, Logger.Collector.Count);
+    }
+
+    [Fact]
+    public async Task StartedAsync_FrontendRemovedByAChange_LogsTheEndpointThatNamesIt()
+    {
+        const string admin = "admin";
+        var optionsSource = new BffTestOptionsSource(
+            BffTestFrontends.CreateBffOptions(x =>
+                x.Frontends[admin] = BffTestFrontends.CreateOptions(y =>
+                    y.Selection = new BffFrontendSelectionOptions
+                    {
+                        Rule = BffFrontendSelectorNames.Host,
+                        Values = ["admin.example.com"],
+                    }
+                )
+            )
+        );
+        using var catalog = BffTestFrontends.CreateCatalog(optionsSource);
+        using var check = CreateCheck(
+            new DefaultEndpointDataSource(CreateFrontendEndpoint(admin)),
+            frontends: catalog
+        );
+        await check.StartedAsync(CancellationToken.None);
+
+        optionsSource.Change(BffTestFrontends.CreateBffOptions());
+
+        var record = Assert.Single(Logger.Collector.GetSnapshot());
+        Assert.Equal(LogLevel.Error, record.Level);
+        Assert.Contains("'admin'", record.Message);
     }
 
     #endregion

@@ -345,7 +345,7 @@ public class DefaultBffSessionManagerTests : BaseTests
         MockStore
             .Setup(x => x.RemoveAsync("key", metadata, It.IsAny<CancellationToken>()))
             .Callback(() => order.Add("remove"))
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
         MockRecorder
             .Setup(x => x.SessionEndedAsync(null, "sub-1", "logout", It.IsAny<CancellationToken>()))
@@ -353,9 +353,24 @@ public class DefaultBffSessionManagerTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Manager.EndAsync(null, "key", metadata, "logout", CancellationToken.None);
+        var ended = await Manager.EndAsync(null, "key", metadata, "logout", CancellationToken.None);
 
+        Assert.True(ended);
         Assert.Equal(["remove", "record"], order);
+    }
+
+    [Fact]
+    public async Task EndAsync_AlreadyRemoved_RecordsNoAuditAndReturnsFalse()
+    {
+        var metadata = CreateMetadata();
+        MockStore
+            .Setup(x => x.RemoveAsync("key", metadata, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .Verifiable();
+
+        var ended = await Manager.EndAsync(null, "key", metadata, "logout", CancellationToken.None);
+
+        Assert.False(ended);
     }
 
     #endregion

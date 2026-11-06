@@ -131,7 +131,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
     private void SetupHandled(LogoutTokenValidationResult result) =>

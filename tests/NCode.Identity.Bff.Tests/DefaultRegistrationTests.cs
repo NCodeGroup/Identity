@@ -111,6 +111,18 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public void AddBffLibrary_RegistersTheClientAuthenticationCheck()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        Assert.Single(
+            provider.GetServices<IBffFrontendSetCheck>().OfType<BffClientAuthenticationCheck>()
+        );
+    }
+
+    [Fact]
     public void AddBffLibrary_RegistersTheRemoteApiServices()
     {
         ClientBuilder.AddBffLibrary(EventsBuilder);
@@ -139,6 +151,19 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         Assert.Contains(
             provider.GetServices<MatcherPolicy>(),
             policy => policy is BffFrontendMatcherPolicy
+        );
+    }
+
+    [Fact]
+    public void AddBffLibrary_RegistersTheOptionsAccessorAsTheCatalog()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        Assert.Same(
+            provider.GetRequiredService<BffFrontendCatalog>(),
+            provider.GetRequiredService<IBffOptionsAccessor>()
         );
     }
 
@@ -239,6 +264,37 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         var options = provider.GetRequiredService<IOptions<BffOptions>>();
         var exception = Assert.Throws<InvalidOperationException>(() => options.Value);
         Assert.Contains("NoSuchKey", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddBffConfiguration_SectionReloads_TheCatalogFollows()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["Bff:Frontends:web:Authority"] = "https://op.example",
+                    ["Bff:Frontends:web:PublicOrigin"] = "https://orders.example",
+                    ["Bff:Frontends:web:ClientId"] = "orders-web",
+                    ["Bff:Frontends:web:ReturnUrls:0"] = "/",
+                }
+            )
+            .Build();
+        ClientBuilder.AddBffLibrary(EventsBuilder).AddBffConfiguration(configuration);
+        var provider = BuildProvider();
+        var catalog = provider.GetRequiredService<BffFrontendCatalog>();
+        Assert.Equal(["web"], catalog.Frontends.Select(frontend => frontend.Name));
+
+        configuration["Bff:Frontends:admin:Authority"] = "https://op.example";
+        configuration["Bff:Frontends:admin:PublicOrigin"] = "https://orders.example";
+        configuration["Bff:Frontends:admin:ClientId"] = "admin-web";
+        configuration["Bff:Frontends:admin:ReturnUrls:0"] = "/admin";
+        configuration["Bff:Frontends:admin:PathPrefix"] = "/admin/bff";
+        configuration["Bff:Frontends:admin:Selection:Rule"] = "path";
+        configuration["Bff:Frontends:admin:Selection:Values:0"] = "/admin";
+        configuration.Reload();
+
+        Assert.Equal(["admin", "web"], catalog.Frontends.Select(frontend => frontend.Name));
     }
 
     #endregion

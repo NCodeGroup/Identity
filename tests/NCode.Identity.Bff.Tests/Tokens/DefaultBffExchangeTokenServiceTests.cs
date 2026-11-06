@@ -7,7 +7,6 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Frontends;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
@@ -53,8 +52,10 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
 
     private DefaultBffExchangeTokenService CreateService(TimeSpan refreshLeaseDuration)
     {
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Tokens = { RefreshLeaseDuration = refreshLeaseDuration } }
+        var frontends = BffTestFrontends.CreateCatalog(
+            BffTestFrontends.CreateBffOptions(x =>
+                x.Tokens.RefreshLeaseDuration = refreshLeaseDuration
+            )
         );
         var grantClient = new BffGrantClient(
             MockTokenClient.Object,
@@ -66,7 +67,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             MockUserTokens.Object,
             grantClient,
             Locks,
-            options,
+            frontends,
             TimeProvider
         );
     }
@@ -89,6 +90,8 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             new BffSessionMetadata
             {
                 Frontend = BffTestFrontends.Name,
+                Authority = BffTestFrontends.Authority,
+                ClientId = BffTestFrontends.ClientId,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),

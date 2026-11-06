@@ -83,7 +83,8 @@ internal sealed class BffTestHost : IAsyncDisposable
         IExpiringIndexSet indexSet,
         IReadOnlyDictionary<string, string?>? extraConfiguration = null,
         ConcurrentQueue<RecordedHttpExchange>? exchanges = null,
-        bool authenticateBeforeBff = false
+        bool authenticateBeforeBff = false,
+        IConfigurationSource? reloadableConfiguration = null
     )
     {
         var builder = WebApplication.CreateBuilder(
@@ -115,6 +116,9 @@ internal sealed class BffTestHost : IAsyncDisposable
 
         if (extraConfiguration is not null)
             builder.Configuration.AddInMemoryCollection(extraConfiguration);
+
+        if (reloadableConfiguration is not null)
+            ((IConfigurationBuilder)builder.Configuration).Add(reloadableConfiguration);
 
         var services = builder.Services;
         services.AddSingleton(keySet);

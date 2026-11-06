@@ -4,7 +4,9 @@
   [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
   decision 8; amended by
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md):
-  the check also evaluates each endpoint's IBffEndpointStartupRequirement metadata)
+  the check also evaluates each endpoint's IBffEndpointStartupRequirement metadata; decision 4 amended by
+  [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md):
+  the check also runs when the frontends change)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 

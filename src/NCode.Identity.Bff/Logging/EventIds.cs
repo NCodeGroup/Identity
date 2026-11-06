@@ -24,4 +24,9 @@ internal static class EventIds
     public const int ConnectionRevalidationFailed = Base + 8;
     public const int ConnectionRevalidationFaulted = Base + 9;
     public const int HubRevalidationFaulted = Base + 10;
+    public const int FrontendsChanged = Base + 11;
+    public const int FrontendsChangeRejected = Base + 12;
+    public const int FrontendSessionsEnded = Base + 13;
+    public const int FrontendRetirementFailed = Base + 14;
+    public const int FrontendSessionRetirementFailed = Base + 15;
 }

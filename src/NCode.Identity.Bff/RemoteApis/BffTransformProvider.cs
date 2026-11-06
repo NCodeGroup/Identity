@@ -2,9 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Collections.Frozen;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Frontends;
-using NCode.Identity.Bff.Options;
 using Yarp.ReverseProxy.Forwarder;
 using Yarp.ReverseProxy.Transforms.Builder;
 
@@ -22,21 +20,18 @@ internal sealed class BffTransformProvider : ITransformProvider
     /// <param name="clientFactory">The effective forwarder client factory, which must be the BFF's decorator.</param>
     /// <param name="requirements">The registered token requirements.</param>
     /// <param name="tokens">The accessor of the BFF's tokens.</param>
-    /// <param name="options">The BFF options.</param>
     /// <param name="frontends">The frontends that the BFF serves.</param>
     /// <exception cref="InvalidOperationException">The BFF's decorator is not the effective client factory.</exception>
     public BffTransformProvider(
         IForwarderHttpClientFactory clientFactory,
         IEnumerable<IBffTokenRequirement> requirements,
         IBffTokenAccessor tokens,
-        IOptions<BffOptions> options,
         BffFrontendCatalog frontends
     )
     {
         ArgumentNullException.ThrowIfNull(clientFactory);
         ArgumentNullException.ThrowIfNull(requirements);
         ArgumentNullException.ThrowIfNull(tokens);
-        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(frontends);
 
         // Without the decorator a route's token is never attached and the BFF's cookies cross the proxy.
@@ -47,34 +42,25 @@ internal sealed class BffTransformProvider : ITransformProvider
             );
         }
 
-        var requirementNames = requirements
+        RequirementNames = requirements
             .Select(requirement => requirement.Name)
             .ToFrozenSet(StringComparer.Ordinal);
         Tokens = tokens;
-        Options = options;
-        RouteNames = new Lazy<BffReverseProxyRouteNames>(() =>
-            new BffReverseProxyRouteNames(
-                requirementNames,
-                frontends
-                    .Frontends.Select(frontend => frontend.Name)
-                    .ToFrozenSet(StringComparer.Ordinal)
-            )
-        );
+        Frontends = frontends;
     }
 
-    // The frontends are read on first use, so constructing the provider never reads the BFF options.
-    private Lazy<BffReverseProxyRouteNames> RouteNames { get; }
+    private FrozenSet<string> RequirementNames { get; }
 
     private IBffTokenAccessor Tokens { get; }
 
-    private IOptions<BffOptions> Options { get; }
+    private BffFrontendCatalog Frontends { get; }
 
     /// <inheritdoc />
     public void ValidateRoute(TransformRouteValidationContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        BffReverseProxyRoutes.Validate(context.Route, RouteNames.Value, context.Errors);
+        BffReverseProxyRoutes.Validate(context.Route, RequirementNames, context.Errors);
     }
 
     /// <inheritdoc />
@@ -90,11 +76,7 @@ internal sealed class BffTransformProvider : ITransformProvider
         if (tokenRequest is null)
             return;
 
-        var transform = new BffTokenRequestTransform(
-            tokenRequest,
-            Tokens,
-            Options.Value.Antiforgery.HeaderName
-        );
+        var transform = new BffTokenRequestTransform(tokenRequest, Tokens, Frontends);
         context.RequestTransforms.Add(transform);
     }
 }

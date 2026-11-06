@@ -78,7 +78,7 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.EndpointCheckFailed,
         Level = LogLevel.Error,
-        Message = "The BFF endpoint check failed after the endpoints changed: {Failure}"
+        Message = "The BFF endpoint check failed after the endpoints or the frontends changed: {Failure}"
     )]
     internal static partial void EndpointCheckFailed(this ILogger logger, string failure);
 
@@ -108,4 +108,49 @@ internal static partial class Log
         Message = "Waiting for the BFF session of a hub connection to end failed; the connection is aborted"
     )]
     internal static partial void HubRevalidationFaulted(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendsChanged,
+        Level = LogLevel.Information,
+        Message = "The BFF frontends changed: {Frontends}"
+    )]
+    internal static partial void FrontendsChanged(this ILogger logger, string frontends);
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendsChangeRejected,
+        Level = LogLevel.Error,
+        Message = "The BFF kept its frontends because the changed configuration is invalid: {Failures}"
+    )]
+    internal static partial void FrontendsChangeRejected(this ILogger logger, string failures);
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendSessionsEnded,
+        Level = LogLevel.Information,
+        Message = "The BFF ended {Count} sessions of the frontend {Frontend}: {Reason}"
+    )]
+    internal static partial void FrontendSessionsEnded(
+        this ILogger logger,
+        int count,
+        string frontend,
+        string reason
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendRetirementFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF could not end the sessions of a removed or changed frontend and tries again"
+    )]
+    internal static partial void FrontendRetirementFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendSessionRetirementFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF could not end a session of the frontend {Frontend} ({Reason}) and tries again"
+    )]
+    internal static partial void FrontendSessionRetirementFailed(
+        this ILogger logger,
+        Exception exception,
+        string frontend,
+        string reason
+    );
 }

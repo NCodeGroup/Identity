@@ -43,6 +43,8 @@ public class BffRequestTokenContextTests : BaseTests
             new BffSessionMetadata
             {
                 Frontend = BffTestFrontends.Name,
+                Authority = BffTestFrontends.Authority,
+                ClientId = BffTestFrontends.ClientId,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),

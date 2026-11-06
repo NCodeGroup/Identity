@@ -30,26 +30,6 @@ internal class BffOptionsValidator(
         "DPoP",
     ];
 
-    private static bool IsValidFrontendName(string name)
-    {
-        if (name.Length is < 1 or > 63)
-            return false;
-
-        for (var i = 0; i < name.Length; i++)
-        {
-            var c = name[i];
-            var isAlphanumeric = c is (>= 'a' and <= 'z') or (>= '0' and <= '9');
-            if (isAlphanumeric)
-                continue;
-
-            var isInterior = c == '-' && i != 0 && i != name.Length - 1;
-            if (!isInterior)
-                return false;
-        }
-
-        return true;
-    }
-
     private static void ValidateTokens(BffTokenOptions? tokens, List<string> failures)
     {
         if (tokens is null)
@@ -74,6 +54,36 @@ internal class BffOptionsValidator(
             failures.Add(
                 "Bff:Tokens:RefreshLeaseDuration must be between 10 seconds and 5 minutes."
             );
+        }
+    }
+
+    private static void ValidateSessionRetirement(
+        BffSessionRetirementOptions? sessionRetirement,
+        List<string> failures
+    )
+    {
+        if (sessionRetirement is null)
+        {
+            failures.Add("Bff:SessionRetirement must be set.");
+            return;
+        }
+
+        if (
+            sessionRetirement.LeaseDuration < TimeSpan.FromMinutes(1)
+            || sessionRetirement.LeaseDuration > TimeSpan.FromHours(1)
+        )
+        {
+            failures.Add(
+                "Bff:SessionRetirement:LeaseDuration must be between 1 minute and 1 hour."
+            );
+        }
+
+        if (
+            sessionRetirement.RetryDelay < TimeSpan.FromSeconds(1)
+            || sessionRetirement.RetryDelay > TimeSpan.FromHours(1)
+        )
+        {
+            failures.Add("Bff:SessionRetirement:RetryDelay must be between 1 second and 1 hour.");
         }
     }
 
@@ -124,6 +134,7 @@ internal class BffOptionsValidator(
         ValidateFrontends(options.Frontends, isDevelopment, failures);
         ValidateAntiforgery(options.Antiforgery, failures);
         ValidateTokens(options.Tokens, failures);
+        ValidateSessionRetirement(options.SessionRetirement, failures);
         ValidateKeyRings(options.KeyRings, failures);
 
         return failures.Count == 0
@@ -217,7 +228,7 @@ internal class BffOptionsValidator(
 
         foreach (var (name, frontend) in frontends.OrderBy(x => x.Key, StringComparer.Ordinal))
         {
-            if (!IsValidFrontendName(name))
+            if (!BffFrontendNames.IsValid(name))
             {
                 failures.Add(
                     $"{Key}:Frontends key '{name}' must be 1 to 63 lowercase letters, digits and hyphens that start and end with a letter or digit."

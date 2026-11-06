@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -21,8 +20,6 @@ namespace NCode.Identity.Bff.Tests.RemoteApis;
 
 public sealed class BffTransformProviderTests : BaseTests
 {
-    private const string AntiforgeryHeaderName = "X-Custom-CSRF";
-
     private ServiceProvider Services { get; } = new ServiceCollection().BuildServiceProvider();
 
     private Mock<IBffTokenAccessor> MockTokens { get; }
@@ -68,12 +65,6 @@ public sealed class BffTransformProviderTests : BaseTests
             ClientFactory,
             [requirement.Object],
             MockTokens.Object,
-            Microsoft.Extensions.Options.Options.Create(
-                new BffOptions
-                {
-                    Antiforgery = new BffAntiforgeryOptions { HeaderName = AntiforgeryHeaderName },
-                }
-            ),
             BffTestFrontends.CreateCatalog()
         );
     }
@@ -97,7 +88,6 @@ public sealed class BffTransformProviderTests : BaseTests
                 CreateStrictMock<IForwarderHttpClientFactory>().Object,
                 [],
                 MockTokens.Object,
-                Microsoft.Extensions.Options.Options.Create(new BffOptions()),
                 BffTestFrontends.CreateCatalog()
             )
         );
@@ -153,7 +143,7 @@ public sealed class BffTransformProviderTests : BaseTests
     }
 
     [Fact]
-    public void ValidateRoute_ConfiguredFrontend_AddsNoError()
+    public void ValidateRoute_ValidFrontendName_AddsNoError()
     {
         var context = new TransformRouteValidationContext
         {
@@ -172,7 +162,29 @@ public sealed class BffTransformProviderTests : BaseTests
     }
 
     [Fact]
-    public void ValidateRoute_UnknownFrontend_AddsAnError()
+    public void ValidateRoute_InvalidFrontendName_AddsAnError()
+    {
+        var context = new TransformRouteValidationContext
+        {
+            Services = Services,
+            Route = CreateRoute(
+                new Dictionary<string, string> { [BffReverseProxyMetadataKeys.Frontend] = "Shop" }
+            ),
+        };
+
+        CreateProvider().ValidateRoute(context);
+
+        var error = Assert.Single(context.Errors);
+        Assert.IsType<ArgumentException>(error);
+        Assert.Contains(
+            "'Shop' is not a valid BFF frontend name",
+            error.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void ValidateRoute_FrontendTheSetLacks_AddsNoError()
     {
         var context = new TransformRouteValidationContext
         {
@@ -184,13 +196,7 @@ public sealed class BffTransformProviderTests : BaseTests
 
         CreateProvider().ValidateRoute(context);
 
-        var error = Assert.Single(context.Errors);
-        Assert.IsType<ArgumentException>(error);
-        Assert.Contains(
-            "'other' is not a configured BFF frontend",
-            error.Message,
-            StringComparison.Ordinal
-        );
+        Assert.Empty(context.Errors);
     }
 
     #endregion
@@ -237,7 +243,6 @@ public sealed class BffTransformProviderTests : BaseTests
         );
         Assert.Equal(BffTokenRequirementNames.User, transform.TokenRequest.Requirement);
         Assert.Equal("orders.read", transform.TokenRequest.Scope);
-        Assert.Equal(AntiforgeryHeaderName, transform.AntiforgeryHeaderName);
     }
 
     [Fact]

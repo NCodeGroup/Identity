@@ -9,9 +9,11 @@ namespace NCode.Identity.Bff.Sessions;
 /// Creates the <see cref="IBffConnectionSession"/> that a long-lived connection holds.
 /// </summary>
 /// <param name="resolver">Loads and validates the session.</param>
-internal class BffConnectionSessions(BffSessionResolver resolver)
+/// <param name="frontends">The frontends that a connection looks its frontend up in on every use.</param>
+internal class BffConnectionSessions(BffSessionResolver resolver, BffFrontendCatalog frontends)
 {
     private BffSessionResolver Resolver { get; } = resolver;
+    private BffFrontendCatalog Frontends { get; } = frontends;
 
     /// <summary>
     /// Creates the connection session of a session handle.
@@ -29,6 +31,12 @@ internal class BffConnectionSessions(BffSessionResolver resolver)
         ArgumentException.ThrowIfNullOrEmpty(handle);
         ArgumentNullException.ThrowIfNull(logoutUrl);
 
-        return new DefaultBffConnectionSession(frontend, handle, logoutUrl, Resolver);
+        return new DefaultBffConnectionSession(
+            frontend.Name,
+            handle,
+            logoutUrl,
+            Resolver,
+            Frontends
+        );
     }
 }

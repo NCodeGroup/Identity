@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.Bff.Hardening;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.OpenId.Client;
 
@@ -88,6 +89,7 @@ internal sealed class BffFrontend
         SessionCookieName = $"{BffDefaults.SessionCookieName}.{name}";
         LoginCookieName = $"{BffDefaults.LoginCookieName}.{name}";
         PageReloadCookieName = $"{BffDefaults.PageReloadCookieName}.{name}";
+        SecurityHeaders = BffSecurityHeaders.Create(options.SecurityHeaders);
     }
 
     /// <summary>
@@ -122,6 +124,11 @@ internal sealed class BffFrontend
     public string PageReloadCookieName { get; }
 
     /// <summary>
+    /// Gets the security headers of the frontend, computed once from its options.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, string>> SecurityHeaders { get; }
+
+    /// <summary>
     /// Gets what the selection rule is given, or <see langword="null"/> when the frontend names no rule.
     /// </summary>
     public BffFrontendSelection? Selection { get; }
@@ -146,4 +153,18 @@ internal sealed class BffFrontend
     /// </returns>
     public bool IsMatch(HttpRequest request) =>
         Selector is not null && Selection is not null && Selector.IsMatch(request, Selection);
+
+    /// <summary>
+    /// Determines whether a session's client is this frontend as it is configured: the same name, authority and
+    /// client id.
+    /// </summary>
+    /// <param name="client">The client that the session was issued to.</param>
+    /// <returns>
+    /// <see langword="true"/> when the client is this frontend as it is configured; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
+    public bool IsConfiguredAs(BffSessionClient client) =>
+        string.Equals(client.Frontend, Name, StringComparison.Ordinal)
+        && string.Equals(client.Authority, Options.Authority, StringComparison.Ordinal)
+        && string.Equals(client.ClientId, Options.ClientId, StringComparison.Ordinal);
 }

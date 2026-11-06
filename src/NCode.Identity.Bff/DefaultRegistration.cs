@@ -40,9 +40,9 @@ public static class DefaultRegistration
     extension(IServiceBuilder<OpenIdClientLibrary> builder)
     {
         /// <summary>
-        /// Registers the BFF library: its options, the frontends (the selection rules, the catalog and the routing
-        /// policy that keeps a request's endpoints to its frontend), the session store and manager, the audit
-        /// recorder and the cookie writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root
+        /// Registers the BFF library: its options, the frontends (the selection rules, the frontend-set checks, the
+        /// catalog and the routing policy that keeps a request's endpoints to its frontend), the session store and manager,
+        /// the retirement of the sessions of removed frontends, the audit recorder and the cookie writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root
         /// registers the shared-state adapters
         /// (<c>AddSharedStateServices().AddInProcessExpiringKeySet().AddInProcessExpiringValueSet().AddInProcessExpiringIndexSet()</c>
         /// for one replica, Valkey for several).
@@ -95,12 +95,19 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IBffFrontendSelector, PathBffFrontendSelector>()
             );
             serviceCollection.TryAddSingleton<BffFrontendCatalog>();
+            serviceCollection.TryAddSingleton<IBffOptionsAccessor>(serviceProvider =>
+                serviceProvider.GetRequiredService<BffFrontendCatalog>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffFrontendSetCheck, BffClientAuthenticationCheck>()
+            );
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<MatcherPolicy, BffFrontendMatcherPolicy>()
             );
 
             serviceCollection.TryAddSingleton<IBffSessionStore, DefaultBffSessionStore>();
             serviceCollection.TryAddSingleton<BffInstrumentedSessionStore>();
+            serviceCollection.TryAddSingleton<BffSessionRetirement>();
             serviceCollection.TryAddSingleton<IBffSessionManager, DefaultBffSessionManager>();
             serviceCollection.TryAddSingleton<IBffAuditRecorder, DefaultBffAuditRecorder>();
             serviceCollection.TryAddSingleton<BffCookies>();
@@ -177,6 +184,7 @@ public static class DefaultRegistration
             serviceCollection.AddAuthorization();
             serviceCollection.AddHostedService<BffStartupCheck>();
             serviceCollection.AddHostedService<BffEndpointStartupCheck>();
+            serviceCollection.AddHostedService<BffSessionRetirementService>();
 
             return newBuilder;
         }

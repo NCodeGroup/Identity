@@ -10,39 +10,48 @@ namespace NCode.Identity.Bff.Sessions;
 
 /// <summary>
 /// The BFF session that a long-lived connection holds. The session handle lives only in this object, in memory, for
-/// the connection's life.
+/// the connection's life. The connection looks its frontend up by name on every use, so a frontend that a
+/// configuration change removes ends the session at the next revalidation.
 /// </summary>
-/// <param name="frontend">The frontend that the session belongs to.</param>
+/// <param name="frontend">The name of the frontend that the session belongs to.</param>
 /// <param name="handle">The session handle.</param>
 /// <param name="logoutUrl">The local URL of the frontend's logout endpoint.</param>
 /// <param name="resolver">Loads and validates the session.</param>
+/// <param name="frontends">The frontends that the connection's frontend is looked up in.</param>
+// See ADR-1442.
 internal sealed class DefaultBffConnectionSession(
-    BffFrontend frontend,
+    string frontend,
     string handle,
     string logoutUrl,
-    BffSessionResolver resolver
+    BffSessionResolver resolver,
+    BffFrontendCatalog frontends
 ) : IBffConnectionSession, IBffSessionScope
 {
-    private BffFrontend SessionFrontend { get; } = frontend;
+    private string FrontendName { get; } = frontend;
     private string Handle { get; } = handle;
     private string LogoutUrl { get; } = logoutUrl;
     private BffSessionResolver Resolver { get; } = resolver;
+    private BffFrontendCatalog Frontends { get; } = frontends;
 
     /// <inheritdoc />
-    public string? Frontend => SessionFrontend.Name;
+    public string? Frontend => FrontendName;
 
     /// <inheritdoc />
     public HttpContext? HttpContext => null;
 
     /// <inheritdoc />
-    public BffFrontend? SelectedFrontend => SessionFrontend;
+    public BffFrontend? SelectedFrontend =>
+        Frontends.TryGet(FrontendName, out var found) ? found : null;
 
     /// <inheritdoc />
-    public TimeSpan RevalidationInterval => SessionFrontend.Options.Session.RevalidationInterval;
+    public TimeSpan RevalidationInterval =>
+        SelectedFrontend?.Options.Session.RevalidationInterval ?? TimeSpan.Zero;
 
     /// <inheritdoc />
     public ValueTask<BffSessionState?> ResolveAsync(CancellationToken cancellationToken) =>
-        Resolver.ValidateAsync(SessionFrontend, Handle, null, null, cancellationToken);
+        SelectedFrontend is { } selected
+            ? Resolver.ValidateAsync(selected, Handle, null, null, cancellationToken)
+            : new ValueTask<BffSessionState?>((BffSessionState?)null);
 
     /// <inheritdoc />
     public async ValueTask<ClaimsPrincipal?> ValidateAsync(
@@ -50,8 +59,11 @@ internal sealed class DefaultBffConnectionSession(
         CancellationToken cancellationToken
     )
     {
+        if (SelectedFrontend is not { } selected)
+            return null;
+
         var state = await Resolver.ValidateAsync(
-            SessionFrontend,
+            selected,
             Handle,
             null,
             lastActivityAt,

@@ -22,10 +22,10 @@ namespace NCode.Identity.Bff.Hosting;
 /// </summary>
 /// <remarks>
 /// Endpoints are complete only once the pipeline is built, so the check runs at <see cref="StartedAsync"/>. After
-/// startup a reload of the endpoints can only be logged; the request-time refusals (a <c>502</c> from the token
-/// accessor, a <c>404</c> from routing) stay the backstop.
+/// startup a change of the endpoints or of the frontends is checked again and only logged; the request-time refusals
+/// (a <c>502</c> from the token accessor, a <c>404</c> from routing) stay the backstop.
 /// </remarks>
-// See ADR-1433.
+// See ADR-1433 and ADR-1442.
 internal sealed class BffEndpointStartupCheck(
     EndpointDataSource endpoints,
     BffFrontendCatalog frontends,
@@ -135,7 +135,11 @@ internal sealed class BffEndpointStartupCheck(
         if (failures.Count > 0)
             throw new InvalidOperationException(string.Join(" ", failures));
 
-        Subscription = ChangeToken.OnChange(endpoints.GetChangeToken, Recheck);
+        Subscription = ChangeToken.OnChange(
+            () =>
+                new CompositeChangeToken([endpoints.GetChangeToken(), frontends.GetChangeToken()]),
+            Recheck
+        );
         return Task.CompletedTask;
     }
 

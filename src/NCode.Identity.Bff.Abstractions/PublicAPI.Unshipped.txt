@@ -120,12 +120,14 @@ NCode.Identity.Bff.BffSessionValidationContext.Principal.get -> System.Security.
 NCode.Identity.Bff.IBffSessionValidator
 NCode.Identity.Bff.IBffSessionValidator.ValidateAsync(NCode.Identity.Bff.BffSessionValidationContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore
+NCode.Identity.Bff.IBffSessionStore.FindByClientAsync(NCode.Identity.Bff.BffSessionClient client, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
+NCode.Identity.Bff.IBffSessionStore.FindClientsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.Bff.BffSessionClient>!>
 NCode.Identity.Bff.IBffSessionStore.FindBySessionIdAsync(string! issuer, string! sessionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 NCode.Identity.Bff.IBffSessionStore.FindBySubjectAsync(string! issuer, string! subject, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
 NCode.Identity.Bff.IBffSessionStore.GetAsync(string! storeKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffSessionRecord?>
 NCode.Identity.Bff.IBffSessionStore.IsRefreshLeaseHeldAsync(string! leaseKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore.ReleaseRefreshLeaseAsync(NCode.Identity.Bff.BffRefreshLease lease, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.Bff.IBffSessionStore.RemoveAsync(string! storeKey, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Bff.IBffSessionStore.RemoveAsync(string! storeKey, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore.TryAcquireRefreshLeaseAsync(string! leaseKey, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Bff.BffRefreshLease?>
 NCode.Identity.Bff.IBffSessionStore.TryAddTransactionAsync(string! transactionKey, System.ReadOnlyMemory<byte> protectedTransaction, System.DateTimeOffset expiresWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.Bff.IBffSessionStore.TryCreateAsync(NCode.Identity.Bff.BffSessionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
@@ -198,6 +200,21 @@ const NCode.Identity.Bff.BffTokenRequirementNames.Client = "client" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.Exchange = "exchange" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.None = "none" -> string!
 const NCode.Identity.Bff.BffTokenRequirementNames.UserOrClient = "user_or_client" -> string!
+NCode.Identity.Bff.BffSessionClient
+NCode.Identity.Bff.BffSessionClient.Authority.get -> string!
+NCode.Identity.Bff.BffSessionClient.Authority.init -> void
+NCode.Identity.Bff.BffSessionClient.BffSessionClient() -> void
+NCode.Identity.Bff.BffSessionClient.BffSessionClient(string! Frontend, string! Authority, string! ClientId) -> void
+NCode.Identity.Bff.BffSessionClient.ClientId.get -> string!
+NCode.Identity.Bff.BffSessionClient.ClientId.init -> void
+NCode.Identity.Bff.BffSessionClient.Frontend.get -> string!
+NCode.Identity.Bff.BffSessionClient.Frontend.init -> void
+NCode.Identity.Bff.BffSessionMetadata.Authority.get -> string!
+NCode.Identity.Bff.BffSessionMetadata.Authority.init -> void
+NCode.Identity.Bff.BffSessionMetadata.ClientId.get -> string!
+NCode.Identity.Bff.BffSessionMetadata.ClientId.init -> void
+const NCode.Identity.Bff.BffSessionEndReasons.ClientChanged = "client_changed" -> string!
+const NCode.Identity.Bff.BffSessionEndReasons.FrontendRemoved = "frontend_removed" -> string!
 NCode.Identity.Bff.BffFrontendSelection
 NCode.Identity.Bff.BffFrontendSelection.BffFrontendSelection(System.Collections.Generic.IReadOnlyList<string!>! values, string! publicOrigin, System.Collections.Generic.IReadOnlyList<string!>! paths) -> void
 NCode.Identity.Bff.BffFrontendSelection.Paths.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -230,3 +247,4 @@ NCode.Identity.Bff.IBffUserDocumentFactory
 NCode.Identity.Bff.IBffUserDocumentFactory.CreateAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Text.Json.JsonElement?>
 NCode.Identity.Bff.IBffEndpointStartupRequirement
 NCode.Identity.Bff.IBffEndpointStartupRequirement.Validate(System.IServiceProvider! services) -> string?
+NCode.Identity.Bff.BffSessionMetadata.Client.get -> NCode.Identity.Bff.BffSessionClient

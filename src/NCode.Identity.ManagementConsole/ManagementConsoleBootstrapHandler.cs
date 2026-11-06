@@ -5,7 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff;
 using NCode.Identity.ManagementConsole.Options;
 
 namespace NCode.Identity.ManagementConsole;
@@ -17,7 +17,7 @@ namespace NCode.Identity.ManagementConsole;
 /// </summary>
 internal sealed class ManagementConsoleBootstrapHandler(
     IOptions<ManagementConsoleOptions> optionsAccessor,
-    IOptions<BffOptions> bffOptionsAccessor
+    IBffOptionsAccessor bffOptionsAccessor
 )
 {
     /// <summary>
@@ -29,7 +29,7 @@ internal sealed class ManagementConsoleBootstrapHandler(
 
         var document = ManagementConsoleBootstrapDocument.Create(
             optionsAccessor.Value,
-            bffOptionsAccessor.Value,
+            bffOptionsAccessor.Current,
             httpContext.Request.PathBase
         );
 

@@ -13,7 +13,6 @@ using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Frontends;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
@@ -88,7 +87,6 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             },
         };
         ActivitySource.AddActivityListener(Listener);
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
         TimeProvider = timeProvider;
         Cookies = new BffCookies(timeProvider);
@@ -105,7 +103,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             new BffRefreshLocks(),
             Metrics,
             mockRecorder.Object,
-            options,
+            Frontends,
             timeProvider,
             CreateLooseMock<ILogger<DefaultBffUserTokenService>>().Object
         );
@@ -166,6 +164,8 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             new BffSessionMetadata
             {
                 Frontend = BffTestFrontends.Name,
+                Authority = BffTestFrontends.Authority,
+                ClientId = BffTestFrontends.ClientId,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),
@@ -250,7 +250,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
@@ -949,7 +949,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
@@ -1147,8 +1147,10 @@ public class DefaultBffUserTokenServiceTests : BaseTests
 
     private DefaultBffUserTokenService CreateWaitingService()
     {
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Tokens = { RefreshLeaseDuration = TimeSpan.FromMilliseconds(400) } }
+        var frontends = BffTestFrontends.CreateCatalog(
+            BffTestFrontends.CreateBffOptions(x =>
+                x.Tokens.RefreshLeaseDuration = TimeSpan.FromMilliseconds(400)
+            )
         );
         var timeProvider = TimeProvider;
         return new DefaultBffUserTokenService(
@@ -1158,7 +1160,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             new BffRefreshLocks(),
             Metrics,
             MockRecorder.Object,
-            options,
+            frontends,
             timeProvider,
             CreateLooseMock<ILogger<DefaultBffUserTokenService>>().Object
         );

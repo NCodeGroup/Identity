@@ -97,7 +97,7 @@ public class BffLogoutServiceTests : BaseTests
                 )
             )
             .Callback(() => order.Add("end"))
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);
@@ -139,7 +139,7 @@ public class BffLogoutServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);
@@ -172,7 +172,7 @@ public class BffLogoutServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);
@@ -200,7 +200,7 @@ public class BffLogoutServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         await service.EndSessionAsync(httpContext, state, BffSessionEndReasons.LoggedOut);

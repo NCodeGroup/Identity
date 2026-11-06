@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using NCode.Buffers;
 using NCode.Identity.Bff.Sessions;
 using Xunit;
 
@@ -22,6 +23,29 @@ public class BffSessionRecordSerializerTests : BaseTests
             AbsoluteExpiresAt = new DateTimeOffset(2026, 1, 2, 11, 4, 5, TimeSpan.Zero),
             IdleExpiresAt = new DateTimeOffset(2026, 1, 2, 4, 4, 6, TimeSpan.Zero),
         };
+
+    #region WriteMetadata Tests
+
+    [Fact]
+    public void WriteMetadata_Always_WritesNoClientMember()
+    {
+        var metadata = new BffSessionMetadata
+        {
+            Frontend = "default",
+            Authority = "https://op.example",
+            ClientId = "bff",
+            Issuer = "https://op.example",
+            Subject = "sub-1",
+        };
+        var destination = new ArrayBufferWriter<byte>();
+
+        BffSessionRecordSerializer.WriteMetadata(metadata, destination);
+
+        var json = SecureEncoding.UTF8.GetString(destination.WrittenSpan);
+        Assert.DoesNotContain("\"client\"", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
 
     #region Serialize Tests
 

@@ -60,10 +60,11 @@ public class BffTokenContextsTests : BaseTests
             new BffCookies(_timeProvider)
         );
         var connection = new DefaultBffConnectionSession(
-            BffTestFrontends.Get(catalog),
+            BffTestFrontends.Name,
             new string('a', 43),
             "/bff/logout",
-            resolver.Object
+            resolver.Object,
+            catalog
         );
         var httpContext = new DefaultHttpContext();
         httpContext.SetEndpoint(

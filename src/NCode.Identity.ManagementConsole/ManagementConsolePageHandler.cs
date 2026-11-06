@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff;
 using NCode.Identity.ManagementConsole.Options;
 
 namespace NCode.Identity.ManagementConsole;
@@ -16,7 +16,7 @@ namespace NCode.Identity.ManagementConsole;
 /// </summary>
 internal sealed class ManagementConsolePageHandler(
     ManagementConsoleBundleReader reader,
-    IOptions<BffOptions> bffOptionsAccessor,
+    IBffOptionsAccessor bffOptionsAccessor,
     IOptions<ManagementConsoleOptions> optionsAccessor
 )
 {
@@ -39,7 +39,7 @@ internal sealed class ManagementConsolePageHandler(
         }
 
         var authority = new Uri(
-            bffOptionsAccessor.Value.Frontends[ManagementConsoleDefaults.FrontendName].Authority
+            bffOptionsAccessor.Current.Frontends[ManagementConsoleDefaults.FrontendName].Authority
         );
         var security = ManagementConsolePageSecurity.Create(
             authority,

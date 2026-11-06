@@ -742,6 +742,64 @@ describe('managementApi team CRUD endpoints (platform scope)', () => {
     expect(captured[0]?.method).toBe('GET');
   });
 
+  it("listChildTeams GETs the team's child teams", async () => {
+    const captured = mockFetch(
+      jsonResponse({
+        items: [
+          {
+            teamId: 'acme-web',
+            concurrencyToken: 'c1',
+            displayName: 'Acme Web',
+            isDisabled: false,
+            parentTeamId: 'acme',
+          },
+        ],
+      }),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.listChildTeams.initiate({ teamId: 'acme' }),
+    );
+
+    expect('data' in result && result.data?.items[0]?.parentTeamId).toBe('acme');
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme/teams');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('createChildTeam POSTs the request body under the parent team', async () => {
+    const captured = mockFetch(
+      new Response(
+        JSON.stringify({
+          teamId: 'acme-web',
+          concurrencyToken: 'c1',
+          displayName: 'Acme Web',
+          isDisabled: false,
+          parentTeamId: 'acme',
+        }),
+        { status: 201, headers: { 'content-type': 'application/json' } },
+      ),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.createChildTeam.initiate({
+        teamId: 'acme',
+        body: { teamId: 'acme-web', displayName: 'Acme Web', isDisabled: false, settings: {} },
+      }),
+    );
+
+    expect('data' in result && result.data?.teamId).toBe('acme-web');
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme/teams');
+    expect(captured[0]?.method).toBe('POST');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({
+      teamId: 'acme-web',
+      displayName: 'Acme Web',
+      isDisabled: false,
+      settings: {},
+    });
+  });
+
   it('updateTeam PATCHes a replace patch with If-Match', async () => {
     const captured = mockFetch(new Response(null, { status: 204 }));
     const store = createStore();

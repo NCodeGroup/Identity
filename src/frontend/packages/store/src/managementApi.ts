@@ -59,7 +59,7 @@ import { dynamicBaseQuery } from './baseQuery.js';
 /** A cache-tag id in the platform scope, which owns the teams and identifies every tenant. */
 const platformTag = (id: string): string => scopeTagId(PLATFORM_SCOPE, id);
 
-/** A cache-tag id in a team's scope, which owns the list of its tenants. */
+/** A cache-tag id in a team's scope, which owns the lists of its tenants and of its child teams. */
 const teamTag = (teamId: string, id: string): string => scopeTagId(teamScope(teamId), id);
 
 /** A cache-tag id in a tenant's scope, which owns its grants, secrets, and settings. */
@@ -127,9 +127,37 @@ export const managementApi = createApi({
         { type: 'Caller', id: callerTag },
       ],
     }),
+    // The child teams of one team; each child's own tag lives in the platform scope, where its id is unique.
+    listChildTeams: build.query<CollectionResource<TeamResource>, { teamId: string }>({
+      query: ({ teamId }) => `api/teams/${encodeURIComponent(teamId)}/teams`,
+      providesTags: (result, _error, { teamId }) => [
+        { type: 'Team' as const, id: teamTag(teamId, LIST_TAG) },
+        ...(result?.items ?? []).map((t) => ({
+          type: 'Team' as const,
+          id: platformTag(t.teamId),
+        })),
+      ],
+    }),
+    createChildTeam: build.mutation<TeamResource, { teamId: string; body: CreateTeamRequest }>({
+      query: ({ teamId, body }) => ({
+        url: `api/teams/${encodeURIComponent(teamId)}/teams`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { teamId }) => [
+        { type: 'Team', id: teamTag(teamId, LIST_TAG) },
+        { type: 'Team', id: platformTag(LIST_TAG) },
+        { type: 'Caller', id: callerTag },
+      ],
+    }),
     updateTeam: build.mutation<
       void,
-      { teamId: string; concurrencyToken: string; fields: UpdateTeamFields }
+      {
+        teamId: string;
+        parentTeamId?: string | null | undefined;
+        concurrencyToken: string;
+        fields: UpdateTeamFields;
+      }
     >({
       query: ({ teamId, concurrencyToken, fields }) => ({
         url: `api/teams/${encodeURIComponent(teamId)}`,
@@ -137,20 +165,22 @@ export const managementApi = createApi({
         body: replacePatch({ ...fields }),
         headers: { 'If-Match': concurrencyToken },
       }),
-      invalidatesTags: (_result, _error, { teamId }) => [
+      invalidatesTags: (_result, _error, { teamId, parentTeamId }) => [
         { type: 'Team', id: platformTag(LIST_TAG) },
         { type: 'Team', id: platformTag(teamId) },
+        ...(parentTeamId ? [{ type: 'Team' as const, id: teamTag(parentTeamId, LIST_TAG) }] : []),
         { type: 'Caller', id: callerTag },
       ],
     }),
-    deleteTeam: build.mutation<void, { teamId: string }>({
+    deleteTeam: build.mutation<void, { teamId: string; parentTeamId?: string | null | undefined }>({
       query: ({ teamId }) => ({
         url: `api/teams/${encodeURIComponent(teamId)}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, { teamId }) => [
+      invalidatesTags: (_result, _error, { teamId, parentTeamId }) => [
         { type: 'Team', id: platformTag(LIST_TAG) },
         { type: 'Team', id: platformTag(teamId) },
+        ...(parentTeamId ? [{ type: 'Team' as const, id: teamTag(parentTeamId, LIST_TAG) }] : []),
         { type: 'Caller', id: callerTag },
       ],
     }),
@@ -746,4 +776,6 @@ export const {
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
   useUpdateSettingsMutation,
+  useListChildTeamsQuery,
+  useCreateChildTeamMutation,
 } = managementApi;

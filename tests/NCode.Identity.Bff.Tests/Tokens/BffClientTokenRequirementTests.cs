@@ -103,13 +103,14 @@ public class BffClientTokenRequirementTests : BaseTests
             Resource = "https://api.example",
             Scope = "read",
         };
+        var requirementContext = CreateHttpContext(true);
         MockService
-            .Setup(x => x.GetAccessTokenAsync(request, CancellationToken.None))
+            .Setup(x => x.GetAccessTokenAsync(requirementContext, request, CancellationToken.None))
             .ReturnsAsync(Token)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
-            CreateHttpContext(true),
+            requirementContext,
             request,
             CancellationToken.None
         );

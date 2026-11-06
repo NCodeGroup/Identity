@@ -40,6 +40,6 @@ internal class BffClientTokenRequirement(
                 BffTokenFailureReasons.SessionRequired
             );
 
-        return await _service.GetAccessTokenAsync(request, cancellationToken);
+        return await _service.GetAccessTokenAsync(httpContext, request, cancellationToken);
     }
 }

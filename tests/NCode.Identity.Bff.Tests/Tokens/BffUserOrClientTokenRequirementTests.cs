@@ -139,13 +139,14 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_NoSession_ReturnsClientToken()
     {
         var request = CreateRequest();
+        var httpContext = CreateHttpContext(false);
         MockClientService
-            .Setup(x => x.GetAccessTokenAsync(request, CancellationToken.None))
+            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
             .ReturnsAsync(Token)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
-            CreateHttpContext(false),
+            httpContext,
             request,
             CancellationToken.None
         );

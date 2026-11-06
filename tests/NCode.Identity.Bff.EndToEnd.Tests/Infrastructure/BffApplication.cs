@@ -31,6 +31,22 @@ namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 /// </summary>
 public sealed class BffApplication : IAsyncDisposable
 {
+    /// <summary>
+    /// The name of the one frontend that the BFF serves.
+    /// </summary>
+    public const string FrontendName = "web";
+
+    /// <summary>
+    /// The name of the session cookie of the frontend.
+    /// </summary>
+    public const string SessionCookieName = $"{BffDefaults.SessionCookieName}.{FrontendName}";
+
+    /// <summary>
+    /// The name of the login cookie of the frontend.
+    /// </summary>
+    public const string LoginCookieName = $"{BffDefaults.LoginCookieName}.{FrontendName}";
+
+    private const string ConfigurationPrefix = $"Bff:Frontends:{FrontendName}";
     private const string ClientKeyRing = "e2e-client";
     private const string DPoPKeyRing = "e2e-dpop";
 
@@ -59,23 +75,25 @@ public sealed class BffApplication : IAsyncDisposable
 
         var configuration = new Dictionary<string, string?>
         {
-            ["Bff:Authority"] = settings.Authority,
-            ["Bff:PublicOrigin"] = Origin,
-            ["Bff:ClientId"] = settings.ClientId,
-            ["Bff:ClientAuthentication:Method"] = OpenIdProtocol
+            [$"{ConfigurationPrefix}:Authority"] = settings.Authority,
+            [$"{ConfigurationPrefix}:PublicOrigin"] = Origin,
+            [$"{ConfigurationPrefix}:ClientId"] = settings.ClientId,
+            [$"{ConfigurationPrefix}:ClientAuthentication:Method"] = OpenIdProtocol
                 .ClientAuthenticationMethods
                 .PrivateKeyJwt,
-            ["Bff:ClientAuthentication:KeyRing"] = ClientKeyRing,
-            ["Bff:DPoP:KeyRing"] = DPoPKeyRing,
-            ["Bff:Jwks:Enabled"] = "true",
-            ["Bff:IdToken:SigningAlgorithms:0"] = AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,
-            ["Bff:ReturnUrls:0"] = "/",
-            ["Bff:UserClaims:0"] = "email",
-            ["Bff:Session:SameSite"] = settings.SameSite.ToString(),
+            [$"{ConfigurationPrefix}:ClientAuthentication:KeyRing"] = ClientKeyRing,
+            [$"{ConfigurationPrefix}:DPoP:KeyRing"] = DPoPKeyRing,
+            [$"{ConfigurationPrefix}:Jwks:Enabled"] = "true",
+            [$"{ConfigurationPrefix}:IdToken:SigningAlgorithms:0"] = AlgorithmCodes
+                .DigitalSignature
+                .RsaSsaPssSha256,
+            [$"{ConfigurationPrefix}:ReturnUrls:0"] = "/",
+            [$"{ConfigurationPrefix}:UserClaims:0"] = "email",
+            [$"{ConfigurationPrefix}:Session:SameSite"] = settings.SameSite.ToString(),
         };
         for (var i = 0; i < settings.TrustedOrigins.Count; i++)
         {
-            configuration[$"Bff:TrustedOrigins:{i}"] = settings.TrustedOrigins[i];
+            configuration[$"{ConfigurationPrefix}:TrustedOrigins:{i}"] = settings.TrustedOrigins[i];
         }
 
         builder.Configuration.AddInMemoryCollection(configuration);
@@ -141,9 +159,7 @@ public sealed class BffApplication : IAsyncDisposable
             "/probe/cookie",
             static (HttpContext context) =>
                 Results.Text(
-                    context.Request.Cookies.ContainsKey(BffDefaults.SessionCookieName)
-                        ? "present"
-                        : "absent",
+                    context.Request.Cookies.ContainsKey(SessionCookieName) ? "present" : "absent",
                     contentEncoding: SecureEncoding.UTF8
                 )
         );

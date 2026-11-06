@@ -25,17 +25,17 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
         await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
 
         var cookies = await context.CookiesAsync([bff.Origin]);
-        var cookie = Assert.Single(cookies, x => x.Name == BffDefaults.SessionCookieName);
+        var cookie = Assert.Single(cookies, x => x.Name == BffApplication.SessionCookieName);
         Assert.Equal("localhost", cookie.Domain);
         Assert.Equal("/", cookie.Path);
         Assert.True(cookie.HttpOnly);
         Assert.True(cookie.Secure);
         Assert.Equal(SameSiteAttribute.Strict, cookie.SameSite);
         Assert.True(cookie.Expires > TimeProvider.System.GetUtcNow().ToUnixTimeSeconds());
-        Assert.DoesNotContain(cookies, x => x.Name == BffDefaults.LoginCookieName);
+        Assert.DoesNotContain(cookies, x => x.Name == BffApplication.LoginCookieName);
 
         var visibleCookies = await page.EvaluateAsync<string>("() => document.cookie");
-        Assert.DoesNotContain(BffDefaults.SessionCookieName, visibleCookies);
+        Assert.DoesNotContain(BffApplication.SessionCookieName, visibleCookies);
     }
 
     [Theory, MemberData(nameof(BrowserNames.All), MemberType = typeof(BrowserNames))]
@@ -48,7 +48,7 @@ public sealed class SessionCookieTests(EndToEndEnvironment environment)
         await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
 
         var cookies = await context.CookiesAsync([bff.Origin]);
-        var cookie = Assert.Single(cookies, x => x.Name == BffDefaults.SessionCookieName);
+        var cookie = Assert.Single(cookies, x => x.Name == BffApplication.SessionCookieName);
         Assert.Equal(SameSiteAttribute.Lax, cookie.SameSite);
     }
 

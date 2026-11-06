@@ -10,7 +10,6 @@ using Moq;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Login;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Diagnostics;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -66,10 +65,7 @@ public class BffCallbackHandlerTests : BaseTests
         return new BffCallbackHandler(
             frontends,
             _transactionService.Object,
-            new BffCookies(
-                Microsoft.Extensions.Options.Options.Create(new BffOptions()),
-                timeProvider
-            ),
+            new BffCookies(timeProvider),
             _metadataResolver.Object,
             _tokenClient.Object,
             _idTokenValidator.Object,

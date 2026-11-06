@@ -12,7 +12,6 @@ const NCode.Identity.Bff.BffDefaults.SessionCookieName = "__Host-Http-bff" -> st
 const NCode.Identity.Bff.BffDefaults.LoginCookieName = "__Host-Http-bff-login" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderName = "X-CSRF" -> string!
 const NCode.Identity.Bff.BffDefaults.AntiforgeryHeaderValue = "1" -> string!
-const NCode.Identity.Bff.BffDefaults.FrontendName = "default" -> string!
 const NCode.Identity.Bff.BffDefaults.ConfigurationSectionName = "Bff" -> string!
 NCode.Identity.Bff.BffProblemTypes
 const NCode.Identity.Bff.BffProblemTypes.SessionRequired = "urn:ncode:identity:bff:session_required" -> string!

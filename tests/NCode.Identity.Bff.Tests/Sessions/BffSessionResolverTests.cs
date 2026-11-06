@@ -27,9 +27,8 @@ public class BffSessionResolverTests : BaseTests
     public BffSessionResolverTests()
     {
         MockManager = CreateStrictMock<IBffSessionManager>();
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         Resolver = new BffSessionResolver(
             MockManager.Object,
             cookies,
@@ -74,9 +73,8 @@ public class BffSessionResolverTests : BaseTests
         BffFrontendCatalog? catalog = null
     )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         return new BffSessionResolver(
             MockManager.Object,
             cookies,

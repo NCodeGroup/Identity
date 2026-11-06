@@ -4,8 +4,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
-using NCode.Identity.Bff.Client;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
@@ -21,15 +20,13 @@ public class BffGrantClientTests : BaseTests
     private Mock<ITokenClient> MockTokenClient { get; }
     private BffGrantClient Client { get; }
 
+    private BffFrontend Frontend { get; } = BffTestFrontends.Get(BffTestFrontends.CreateCatalog());
+
     public BffGrantClientTests()
     {
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Authority = "https://op.example", ClientId = "bff" }
-        );
         MockTokenClient = CreateStrictMock<ITokenClient>();
         Client = new BffGrantClient(
             MockTokenClient.Object,
-            new BffClientRegistrationProvider(options),
             new FakeTimeProvider(Now),
             CreateLooseMock<ILogger<BffGrantClient>>().Object
         );
@@ -72,7 +69,7 @@ public class BffGrantClientTests : BaseTests
             }
         );
 
-        var result = await Client.RequestAsync(request, CancellationToken.None);
+        var result = await Client.RequestAsync(Frontend, request, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         var token = Assert.IsType<BffAccessToken>(result.Token);
@@ -88,7 +85,7 @@ public class BffGrantClientTests : BaseTests
         var request = new ClientCredentialsTokenRequest();
         SetupResult(request, new TokenResult(new TokenResponse { AccessToken = "access" }));
 
-        var result = await Client.RequestAsync(request, CancellationToken.None);
+        var result = await Client.RequestAsync(Frontend, request, CancellationToken.None);
 
         var token = Assert.IsType<BffAccessToken>(result.Token);
         Assert.Equal(OpenIdProtocol.TokenTypes.Bearer, token.TokenType);
@@ -102,7 +99,7 @@ public class BffGrantClientTests : BaseTests
         var request = new ClientCredentialsTokenRequest();
         SetupResult(request, new TokenResult(new ProtocolError("invalid_client", 401)));
 
-        var result = await Client.RequestAsync(request, CancellationToken.None);
+        var result = await Client.RequestAsync(Frontend, request, CancellationToken.None);
 
         Assert.Equal(502, result.StatusCode);
         Assert.Equal(BffTokenFailureReasons.ProviderError, result.Reason);
@@ -114,7 +111,7 @@ public class BffGrantClientTests : BaseTests
         var request = new ClientCredentialsTokenRequest();
         SetupResult(request, new TokenResult(new TokenResponse { TokenType = "Bearer" }));
 
-        var result = await Client.RequestAsync(request, CancellationToken.None);
+        var result = await Client.RequestAsync(Frontend, request, CancellationToken.None);
 
         Assert.Equal(502, result.StatusCode);
         Assert.Equal(BffTokenFailureReasons.ProviderError, result.Reason);
@@ -126,7 +123,7 @@ public class BffGrantClientTests : BaseTests
         var request = new ClientCredentialsTokenRequest();
         SetupThrows(request, new HttpRequestException("down"));
 
-        var result = await Client.RequestAsync(request, CancellationToken.None);
+        var result = await Client.RequestAsync(Frontend, request, CancellationToken.None);
 
         Assert.Equal(503, result.StatusCode);
         Assert.Equal(BffTokenFailureReasons.ProviderUnavailable, result.Reason);
@@ -139,7 +136,7 @@ public class BffGrantClientTests : BaseTests
         SetupThrows(request, new InvalidOperationException("bug"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            Client.RequestAsync(request, CancellationToken.None).AsTask()
+            Client.RequestAsync(Frontend, request, CancellationToken.None).AsTask()
         );
     }
 
@@ -170,7 +167,7 @@ public class BffGrantClientTests : BaseTests
     public async Task RequestAsync_NullRequest_Throws()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
-            Client.RequestAsync(null!, CancellationToken.None).AsTask()
+            Client.RequestAsync(Frontend, null!, CancellationToken.None).AsTask()
         );
     }
 

@@ -89,7 +89,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         );
         var timeProvider = new FakeTimeProvider(Now);
         TimeProvider = timeProvider;
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         var resolver = new BffSessionResolver(
             MockManager.Object,
             cookies,
@@ -168,7 +168,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),
@@ -267,7 +267,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Assert.Equal(BffTokenFailureReasons.RefreshFailed, result.Reason);
         Assert.Contains(
             httpContext.Response.Headers.SetCookie,
-            x => x is not null && x.Contains(BffDefaults.SessionCookieName)
+            x => x is not null && x.Contains(BffTestFrontends.SessionCookieName)
         );
     }
 
@@ -950,7 +950,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
         Assert.Equal(BffTokenFailureReasons.RefreshFailed, result.Reason);
         Assert.Contains(
             httpContext.Response.Headers.SetCookie,
-            x => x is not null && x.Contains(BffDefaults.SessionCookieName)
+            x => x is not null && x.Contains(BffTestFrontends.SessionCookieName)
         );
         AssertRefreshRecorded(BffMetrics.FailedResult, BffTokenFailureReasons.RefreshFailed);
     }
@@ -1143,7 +1143,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             }
         );
         var timeProvider = TimeProvider;
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         var resolver = new BffSessionResolver(
             MockManager.Object,
             cookies,

@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.Navigation;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
@@ -23,13 +22,17 @@ public class BffNavigationTests : BaseTests
     #region CallbackUri Tests
 
     [Fact]
-    public void CallbackUri_WithAPathBase_AppendsThePrefixToThePublicOrigin()
+    public void CallbackUri_WithFrontendOptions_AppendsThePrefixToThePublicOrigin()
     {
-        var options = new BffOptions { PublicOrigin = "https://app.example.com/app" };
+        var options = BffTestFrontends.CreateOptions(x =>
+        {
+            x.PublicOrigin = "https://shop.example.com/app";
+            x.PathPrefix = "/shop/bff";
+        });
 
         var result = BffNavigation.CallbackUri(options);
 
-        Assert.Equal("https://app.example.com/app/bff/callback", result);
+        Assert.Equal("https://shop.example.com/app/shop/bff/callback", result);
     }
 
     #endregion
@@ -51,53 +54,6 @@ public class BffNavigationTests : BaseTests
     #region ErrorUrl Tests
 
     [Fact]
-    public void ErrorUrl_WithReason_EscapesReason()
-    {
-        var httpContext = CreateHttpContext();
-        var options = new BffOptions { ErrorPath = "/oops" };
-
-        var result = BffNavigation.ErrorUrl(httpContext.Request, options, "a b");
-
-        Assert.Equal("/app/oops?error=a%20b", result);
-    }
-
-    #endregion
-
-    #region AbsoluteUrl Tests
-
-    [Fact]
-    public void AbsoluteUrl_Always_AppendsThePathToThePublicOrigin()
-    {
-        var options = new BffOptions { PublicOrigin = "https://app.example.com/app" };
-
-        var result = BffNavigation.AbsoluteUrl(options, "/home");
-
-        Assert.Equal("https://app.example.com/app/home", result);
-    }
-
-    #endregion
-
-    #region CallbackUri With Frontend Tests
-
-    [Fact]
-    public void CallbackUri_WithFrontendOptions_AppendsThePrefixToThePublicOrigin()
-    {
-        var options = BffTestFrontends.CreateOptions(x =>
-        {
-            x.PublicOrigin = "https://shop.example.com/app";
-            x.PathPrefix = "/shop/bff";
-        });
-
-        var result = BffNavigation.CallbackUri(options);
-
-        Assert.Equal("https://shop.example.com/app/shop/bff/callback", result);
-    }
-
-    #endregion
-
-    #region ErrorUrl With Frontend Tests
-
-    [Fact]
     public void ErrorUrl_WithFrontendOptions_EscapesReason()
     {
         var httpContext = CreateHttpContext();
@@ -110,7 +66,7 @@ public class BffNavigationTests : BaseTests
 
     #endregion
 
-    #region AbsoluteUrl With Frontend Tests
+    #region AbsoluteUrl Tests
 
     [Fact]
     public void AbsoluteUrl_WithFrontendOptions_AppendsThePathToThePublicOrigin()

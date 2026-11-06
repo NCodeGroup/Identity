@@ -222,7 +222,7 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
                 "/api/orders/{**rest}",
                 new Dictionary<string, string>
                 {
-                    [BffReverseProxyMetadataKeys.Frontend] = BffDefaults.FrontendName,
+                    [BffReverseProxyMetadataKeys.Frontend] = BffTestFrontends.Name,
                 }
             ),
             OtherRoute
@@ -231,7 +231,7 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
         var attribute = Assert.Single(
             GetEndpoint(endpoints, TokenRouteId).Metadata.GetOrderedMetadata<BffFrontendAttribute>()
         );
-        Assert.Equal(BffDefaults.FrontendName, attribute.Name);
+        Assert.Equal(BffTestFrontends.Name, attribute.Name);
         Assert.Empty(
             GetEndpoint(endpoints, OtherRouteId).Metadata.GetOrderedMetadata<BffFrontendAttribute>()
         );

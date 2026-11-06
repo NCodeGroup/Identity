@@ -7,7 +7,6 @@ using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Logout;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
@@ -49,14 +48,13 @@ public class BffLogoutServiceTests : BaseTests
         Mock<ITokenRevocationClient> Revocation
     ) CreateService()
     {
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var manager = CreateStrictMock<IBffSessionManager>();
         var revocation = CreateStrictMock<ITokenRevocationClient>();
         var service = new BffLogoutService(
             manager.Object,
             revocation.Object,
             BffTestFrontends.CreateCatalog(),
-            new BffCookies(options, new FakeTimeProvider(Now)),
+            new BffCookies(new FakeTimeProvider(Now)),
             CreateLooseMock<ILogger<BffLogoutService>>().Object
         );
         return (service, manager, revocation);

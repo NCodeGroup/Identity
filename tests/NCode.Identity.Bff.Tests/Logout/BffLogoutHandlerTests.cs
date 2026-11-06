@@ -10,7 +10,6 @@ using NCode.Buffers;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logout;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
@@ -31,9 +30,8 @@ public class BffLogoutHandlerTests : BaseTests
 
     public BffLogoutHandlerTests()
     {
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         _resolver = CreateStrictMock<BffSessionResolver>(
             CreateStrictMock<IBffSessionManager>().Object,
             cookies,

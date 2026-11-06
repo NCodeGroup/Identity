@@ -39,7 +39,6 @@ public class BffLoginHandlerTests : BaseTests
         BffLoginTransactionService? transactionService = null
     )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
         return new BffLoginHandler(
             BffTestFrontends.CreateCatalog(x =>
@@ -50,7 +49,7 @@ public class BffLoginHandlerTests : BaseTests
             _client.Object,
             transactionService
                 ?? new BffLoginTransactionService(BffTestTelemetry.Instrument(_store.Object)),
-            new BffCookies(options, timeProvider),
+            new BffCookies(timeProvider),
             _auditRecorder.Object,
             timeProvider
         );

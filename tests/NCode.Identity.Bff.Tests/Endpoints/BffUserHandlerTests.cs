@@ -28,7 +28,7 @@ public class BffUserHandlerTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 SessionId = "sid-1",
@@ -66,14 +66,13 @@ public class BffUserHandlerTests : BaseTests
         params IBffUserContributor[] contributors
     )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var frontends = BffTestFrontends.CreateCatalog(frontend =>
         {
             frontend.UserClaims = ["email", "role", "phone_number"];
             configure?.Invoke(frontend);
         });
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         var manager = CreateStrictMock<IBffSessionManager>();
         var resolver = new BffSessionResolver(manager.Object, cookies, [], frontends, timeProvider);
 

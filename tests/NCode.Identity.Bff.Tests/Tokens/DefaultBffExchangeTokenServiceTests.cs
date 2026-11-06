@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
@@ -58,14 +57,13 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
         var frontends = BffTestFrontends.CreateCatalog();
         var resolver = new BffSessionResolver(
             MockManager.Object,
-            new BffCookies(options, timeProvider),
+            new BffCookies(timeProvider),
             [],
             frontends,
             timeProvider
         );
         var grantClient = new BffGrantClient(
             MockTokenClient.Object,
-            new BffClientRegistrationProvider(options),
             timeProvider,
             CreateLooseMock<ILogger<BffGrantClient>>().Object
         );
@@ -95,7 +93,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now.AddHours(-1),

@@ -32,7 +32,7 @@ public class BffAuthenticationHandlerTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 CreatedAt = Now,
@@ -61,9 +61,8 @@ public class BffAuthenticationHandlerTests : BaseTests
         BffFrontendCatalog? catalog = null
     )
     {
-        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
-        var cookies = new BffCookies(options, timeProvider);
+        var cookies = new BffCookies(timeProvider);
         var manager = CreateStrictMock<IBffSessionManager>();
         catalog ??= BffTestFrontends.CreateCatalog(configure);
         var resolver = new BffSessionResolver(manager.Object, cookies, [], catalog, timeProvider);

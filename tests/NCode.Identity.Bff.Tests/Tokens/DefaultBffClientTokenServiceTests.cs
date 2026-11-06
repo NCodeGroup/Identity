@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -50,7 +49,6 @@ public class DefaultBffClientTokenServiceTests : BaseTests
         );
         var grantClient = new BffGrantClient(
             MockTokenClient.Object,
-            new BffClientRegistrationProvider(options),
             TimeProvider,
             CreateLooseMock<ILogger<BffGrantClient>>().Object
         );

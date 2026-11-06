@@ -106,7 +106,7 @@ internal class DefaultBffUserTokenService(
             BffSessionEndReasons.RefreshFailed,
             CancellationToken.None
         );
-        _cookies.DeleteSession(httpContext.Response);
+        _cookies.DeleteSession(httpContext.Response, _frontends.GetRequired(httpContext));
         return BffTokenResult.Failure(
             StatusCodes.Status401Unauthorized,
             BffTokenFailureReasons.RefreshFailed
@@ -454,7 +454,7 @@ internal class DefaultBffUserTokenService(
                 BffSessionEndReasons.RefreshFailed,
                 CancellationToken.None
             );
-            _cookies.DeleteSession(httpContext.Response);
+            _cookies.DeleteSession(httpContext.Response, _frontends.GetRequired(httpContext));
             return BffTokenResult.Failure(
                 StatusCodes.Status401Unauthorized,
                 BffTokenFailureReasons.RefreshFailed

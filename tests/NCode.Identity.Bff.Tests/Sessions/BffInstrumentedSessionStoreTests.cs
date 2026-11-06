@@ -8,6 +8,7 @@ using Microsoft.Extensions.Diagnostics.Metrics.Testing;
 using Moq;
 using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using Xunit;
 
 namespace NCode.Identity.Bff.Tests.Sessions;
@@ -155,7 +156,7 @@ public sealed class BffInstrumentedSessionStoreTests : BaseTests
     {
         var metadata = new BffSessionMetadata
         {
-            Frontend = BffDefaults.FrontendName,
+            Frontend = BffTestFrontends.Name,
             Issuer = "https://op.example",
             Subject = "subject",
             CreatedAt = DateTimeOffset.UnixEpoch,

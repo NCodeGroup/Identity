@@ -18,36 +18,13 @@ namespace NCode.Identity.Bff.Tokens;
 /// </summary>
 internal class BffGrantClient(
     ITokenClient tokenClient,
-    BffClientRegistrationProvider registrationProvider,
     TimeProvider timeProvider,
     ILogger<BffGrantClient> logger
 )
 {
     private readonly ITokenClient _tokenClient = tokenClient;
-    private readonly BffClientRegistrationProvider _registrationProvider = registrationProvider;
     private readonly TimeProvider _timeProvider = timeProvider;
     private readonly ILogger<BffGrantClient> _logger = logger;
-
-    /// <summary>
-    /// Requests an access token, answering <c>503</c> when the provider cannot be reached and <c>502</c> when it
-    /// refuses the request or answers without an access token.
-    /// </summary>
-    /// <param name="request">The token request.</param>
-    /// <param name="cancellationToken">The token to cancel the operation.</param>
-    /// <returns>The issued access token, or the failure.</returns>
-    public virtual ValueTask<BffTokenResult> RequestAsync(
-        TokenRequest request,
-        CancellationToken cancellationToken
-    )
-    {
-        ArgumentNullException.ThrowIfNull(request);
-
-        return RequestWithRegistrationAsync(
-            _registrationProvider.Registration,
-            request,
-            cancellationToken
-        );
-    }
 
     /// <summary>
     /// Requests an access token as the frontend's client registration, answering <c>503</c> when the provider cannot

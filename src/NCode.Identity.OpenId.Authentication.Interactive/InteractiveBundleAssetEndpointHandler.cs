@@ -1,12 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Globalization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.Net.Http.Headers;
 using NCode.AspNetCore;
 using NCode.Registration.AspNetCore;
 
@@ -19,17 +16,13 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// directory, including the bundle's <c>index.html</c>, is served.
 /// </summary>
 // See ADR-1254.
-internal sealed class InteractiveBundleAssetEndpointHandler(InteractiveBundleReader bundleReader)
-    : IEndpointProvider
+internal sealed class InteractiveBundleAssetEndpointHandler(
+    SinglePageBundle<InteractiveBundleShell> bundle
+) : IEndpointProvider
 {
     private const string AssetRouteParameterName = "asset";
 
-    // A file's name carries its content hash, so no copy of it can go stale: a browser keeps it for a year.
-    private const string ImmutableCacheControl = "public, max-age=31536000, immutable";
-
-    private static FileExtensionContentTypeProvider AssetContentTypes { get; } = new();
-
-    private InteractiveBundleReader BundleReader { get; } = bundleReader;
+    private SinglePageBundle<InteractiveBundleShell> Bundle { get; } = bundle;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -38,7 +31,7 @@ internal sealed class InteractiveBundleAssetEndpointHandler(InteractiveBundleRea
         var surface = endpoints.MapGroup(string.Empty).WithFrontChannel();
 
         surface.MapMethods(
-            $"{InteractiveAuthenticationDefaults.BasePath}/{InteractiveBundleReader.AssetsDirectory}/{{**{AssetRouteParameterName}}}",
+            $"{InteractiveAuthenticationDefaults.BasePath}/{SinglePageBundleDefaults.AssetsDirectory}/{{**{AssetRouteParameterName}}}",
             [HttpMethods.Get, HttpMethods.Head],
             GetAsset
         );
@@ -55,27 +48,6 @@ internal sealed class InteractiveBundleAssetEndpointHandler(InteractiveBundleRea
     {
         var assetPath =
             httpContext.GetRouteValue(AssetRouteParameterName) as string ?? string.Empty;
-        var file = BundleReader.TryGetAsset(assetPath);
-        if (
-            file is not { PhysicalPath: { } physicalPath }
-            || !AssetContentTypes.TryGetContentType(file.Name, out var contentType)
-        )
-        {
-            return TypedResults.NotFound();
-        }
-
-        httpContext.Response.Headers.CacheControl = ImmutableCacheControl;
-
-        var lastModified = file.LastModified;
-        var entityTag = new EntityTagHeaderValue(
-            $"\"{(lastModified.ToFileTime() ^ file.Length).ToString("x", CultureInfo.InvariantCulture)}\""
-        );
-        return TypedResults.PhysicalFile(
-            physicalPath,
-            contentType,
-            lastModified: lastModified,
-            entityTag: entityTag,
-            enableRangeProcessing: true
-        );
+        return Bundle.ServeAsset(httpContext.Response, assetPath);
     }
 }

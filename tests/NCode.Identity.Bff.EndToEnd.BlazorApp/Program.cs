@@ -40,6 +40,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapBffEndpoints();
+app.MapHub<NotificationsHub>("/hubs/notifications").AsBffHub();
 app.MapGet(
         "/api/me",
         (HttpContext context, HostCounters counters) =>

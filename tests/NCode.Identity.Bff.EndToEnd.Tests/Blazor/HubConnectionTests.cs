@@ -33,4 +33,31 @@ public sealed class HubConnectionTests(EndToEndEnvironment environment)
     }
 
     #endregion
+
+    #region IdleHub Tests
+
+    [Theory, MemberData(nameof(BrowserNames.All), MemberType = typeof(BrowserNames))]
+    public async Task IdleHub_AfterBackChannelLogout_ClosesTheConnection(string browserName)
+    {
+        var bff = environment.BlazorBff;
+        await using var context = await environment.NewContextAsync(browserName);
+        var page = await context.NewPageAsync();
+        await BrowserFlows.LoginAsync(page, bff.Origin, environment.Keycloak);
+
+        var opened = await HubFlows.OpenHubConnectionAsync(
+            page,
+            $"{bff.WebSocketOrigin}/hubs/notifications"
+        );
+        Assert.Equal("open", opened);
+
+        await Task.Delay(TimeSpan.FromSeconds(5));
+        Assert.False(await HubFlows.IsHubConnectionClosedAsync(page));
+
+        await environment.Keycloak.LogOutUserAsync();
+
+        await HubFlows.WaitForHubConnectionClosedAsync(page);
+        Assert.True(await HubFlows.IsHubConnectionClosedAsync(page));
+    }
+
+    #endregion
 }

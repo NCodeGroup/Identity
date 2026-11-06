@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using NCode.Identity.Settings;
+using NCode.Json;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
 
@@ -50,7 +51,7 @@ public sealed class DefaultPromotedSettingsComposerTests : IDisposable
 
     private void SetupUnknown(string name)
     {
-        SettingDescriptor? descriptor = null!;
+        SettingDescriptor? descriptor = null;
         MockDescriptors.Setup(x => x.TryGet(name, out descriptor)).Returns(false).Verifiable();
     }
 
@@ -161,7 +162,7 @@ public sealed class DefaultPromotedSettingsComposerTests : IDisposable
         SetupUnknown("unknown");
 
         var result = Composer.Compose(
-            Parse("{}"),
+            JsonElements.EmptyObject,
             targetSettings: null,
             Parse("""{"plain":"x","unknown":"y"}""")
         );

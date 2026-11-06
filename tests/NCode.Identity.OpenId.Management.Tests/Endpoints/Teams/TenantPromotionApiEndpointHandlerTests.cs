@@ -211,7 +211,12 @@ public sealed class TenantPromotionApiEndpointHandlerTests : IDisposable
                 ConcurrencyToken = "settings-token",
                 Value = JsonElement.Parse("""{"a":1}"""),
             },
-            Secrets = null!,
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "secrets-token",
+                Value = [],
+            },
         };
 
     private static PromoteTenantRequest CreateRequest(
@@ -410,7 +415,8 @@ public sealed class TenantPromotionApiEndpointHandlerTests : IDisposable
         );
 
         var ok = Assert.IsType<Ok<TenantPromotionResource>>(result);
-        var report = ok.Value!;
+        var report = ok.Value;
+        Assert.NotNull(report);
         Assert.Equal(TeamId, report.TeamId);
         Assert.Equal(SourceTenantId, report.SourceTenantId);
         Assert.Equal(TargetTenantId, report.TargetTenantId);
@@ -818,7 +824,8 @@ public sealed class TenantPromotionApiEndpointHandlerTests : IDisposable
         );
 
         var ok = Assert.IsType<Ok<TenantPromotionResource>>(result);
-        var report = ok.Value!;
+        var report = ok.Value;
+        Assert.NotNull(report);
         Assert.True(report.IsApplied);
         Assert.Equal(TargetTenantId, report.TargetTenantId);
         Assert.Single(report.Changes);

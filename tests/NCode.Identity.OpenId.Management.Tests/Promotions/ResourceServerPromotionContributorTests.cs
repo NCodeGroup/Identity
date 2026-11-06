@@ -12,6 +12,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Settings;
+using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
@@ -40,23 +41,30 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockTeamNode = MockRepository.Create<ISupportTenantId>();
         MockTargetTenantNode = MockRepository.Create<ISupportTenantId>();
-
-        MockStoreManager
-            .Setup(x => x.GetStore<IResourceServerStore>())
-            .Returns(MockResourceServerStore.Object);
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(SourceTenantId))
-            .Returns(new NoopDisposable());
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(TargetTenantId))
-            .Returns(new NoopDisposable());
     }
 
     public void Dispose() => MockRepository.Verify();
 
-    private sealed class NoopDisposable : IDisposable
+    private void SetupStores() =>
+        MockStoreManager
+            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Returns(MockResourceServerStore.Object)
+            .Verifiable();
+
+    private void SetupScopes()
     {
-        public void Dispose() { }
+        SetupScope(SourceTenantId);
+        SetupScope(TargetTenantId);
+    }
+
+    private void SetupScope(string tenantId)
+    {
+        var scope = MockRepository.Create<IDisposable>();
+        scope.Setup(x => x.Dispose()).Verifiable();
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(tenantId))
+            .Returns(scope.Object)
+            .Verifiable();
     }
 
     private ResourceServerPromotionContributor CreateContributor() =>
@@ -75,9 +83,14 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
             {
                 TenantId = tenantId,
                 ConcurrencyToken = "settings-token",
-                Value = JsonElement.Parse("{}"),
+                Value = JsonElements.EmptyObject,
             },
-            Secrets = null!,
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "secrets-token",
+                Value = [],
+            },
         };
 
     private TenantPromotionContext CreateContext(
@@ -93,7 +106,7 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
             AmbientTenantAccessor = MockAmbientTenantAccessor.Object,
             JsonSerializerOptions = new JsonSerializerOptions(),
             EnvironmentSettings = environmentSettings ?? [],
-            TargetTenantSettings = JsonElement.Parse("{}"),
+            TargetTenantSettings = JsonElements.EmptyObject,
         };
 
     private static PersistedScope CreateScope(
@@ -258,7 +271,7 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
             .Returns(changedLimits)
             .Verifiable();
 
-    #region Order Tests
+    #region Order Property Tests
 
     [Fact]
     public void Order_Always_IsTheResourceServersOrder()
@@ -273,6 +286,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTargetLacksTheIdentifier_RecordsACreatedChangeAndMapsTheSourceId()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api");
         var promoted = CreatePromotedSettings("{}");
@@ -303,6 +318,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTargetHasTheIdentifier_MapsTheSourceIdToTheTargetId()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api");
         var target = CreateServer(TargetTenantId, "rs-target", "https://api");
@@ -330,6 +347,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_MapsEachResourceServerIncludingSystemOnes()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var created = CreateServer(
             SourceTenantId,
@@ -406,6 +425,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenEverythingMatches_RecordsAnUnchangedChange()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(
             SourceTenantId,
@@ -434,6 +455,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheNameDiffers_RecordsAnUpdatedChange()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api", name: "New name");
         var target = CreateServer(TargetTenantId, "rs-target", "https://api", name: "Old name");
@@ -452,6 +475,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenAScopeIsMissing_RecordsAnUpdatedChange()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(
             SourceTenantId,
@@ -474,6 +499,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenAScopeDescriptionDiffers_RecordsAnUpdatedChange()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(
             SourceTenantId,
@@ -501,6 +528,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDocumentDiffers_RecordsTheChangedLimitAtTheTargetTenantNode()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(
             SourceTenantId,
@@ -532,6 +561,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDocumentDiffersWithoutALimit_RecordsNoChangedLimit()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(
             SourceTenantId,
@@ -560,6 +591,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheSourceIsSystemAndTheTargetHasIt_OnlyMapsTheId()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://system", isSystem: true);
         var target = CreateServer(TargetTenantId, "rs-target", "https://system", isSystem: true);
@@ -583,6 +616,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheSourceIsSystemAndTheTargetLacksIt_MapsNothing()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://system", isSystem: true);
         SetupSource(source);
@@ -604,6 +639,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTargetIsSystem_AddsAnError()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api");
         var target = CreateServer(TargetTenantId, "rs-target", "https://api", isSystem: true);
@@ -624,6 +661,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTargetHoldsTheSourceIdUnderAnotherIdentifier_AddsAnError()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api");
         var holder = CreateServer(TargetTenantId, "rs-source", "https://other");
@@ -645,6 +684,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenSettingsAreRefused_AddsAnErrorPerName()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api");
         var promoted = CreatePromotedSettings("{}", refusedSettingNames: ["a_name"]);
@@ -663,6 +704,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDocumentIsInvalid_AddsAnErrorPerSettingError()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api");
         var promoted = CreatePromotedSettings("{}");
@@ -681,6 +724,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenSettingsAreUnset_AddsANotePerName()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api");
         var promoted = CreatePromotedSettings("{}", unsetSettingNames: ["jwks_uri"]);
@@ -702,6 +747,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheRequestSuppliesSettings_ComposesWithThemByTheTargetId()
     {
+        SetupStores();
+        SetupScopes();
         var supplied = JsonElement.Parse("""{"env":"x"}""");
         var context = CreateContext(
             environmentSettings:
@@ -730,6 +777,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheSourceHasSeveralPages_ReadsEveryPage()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var first = CreateServer(
             SourceTenantId,
@@ -768,6 +817,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task ApplyAsync_WhenTheTargetLacksTheResourceServer_AddsItAndStagesACreatedEvent()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(
             SourceTenantId,
@@ -816,7 +867,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
         Assert.Equal("rs-source", auditEvent.ResourceId);
         Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
         Assert.Equal(AuditOutcome.Success, auditEvent.Outcome);
-        var resource = auditEvent.ResourceValues!.Value.Deserialize<ResourceServerResource>(
+        Assert.NotNull(auditEvent.ResourceValues);
+        var resource = auditEvent.ResourceValues.Value.Deserialize<ResourceServerResource>(
             JsonSerializerOptions.Web
         );
         Assert.NotNull(resource);
@@ -826,6 +878,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task ApplyAsync_WhenTheTargetDiffers_UpdatesItAndStagesAnUpdatedEvent()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(
             SourceTenantId,
@@ -910,6 +964,8 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
     [Fact]
     public async Task ApplyAsync_WhenTheTargetMatches_WritesNothing()
     {
+        SetupStores();
+        SetupScopes();
         var context = CreateContext();
         var source = CreateServer(SourceTenantId, "rs-source", "https://api");
         var target = CreateServer(TargetTenantId, "rs-target", "https://api");

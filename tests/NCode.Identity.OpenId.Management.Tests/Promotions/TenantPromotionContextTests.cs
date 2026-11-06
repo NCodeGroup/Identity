@@ -8,6 +8,7 @@ using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
@@ -43,9 +44,14 @@ public sealed class TenantPromotionContextTests : IDisposable
             Settings = new PersistedTenantSettings
             {
                 TenantId = tenantId,
-                Value = JsonElement.Parse("{}"),
+                Value = JsonElements.EmptyObject,
             },
-            Secrets = null!,
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "secrets-token",
+                Value = [],
+            },
         };
 
     private TenantPromotionContext CreateContext(
@@ -61,7 +67,7 @@ public sealed class TenantPromotionContextTests : IDisposable
             AmbientTenantAccessor = MockAmbientTenantAccessor.Object,
             JsonSerializerOptions = new JsonSerializerOptions(),
             EnvironmentSettings = environmentSettings ?? [],
-            TargetTenantSettings = JsonElement.Parse("{}"),
+            TargetTenantSettings = JsonElements.EmptyObject,
         };
 
     private static TenantPromotionEnvironmentSettings CreateEnvironmentSettings(
@@ -76,7 +82,7 @@ public sealed class TenantPromotionContextTests : IDisposable
             Settings = JsonElement.Parse(json),
         };
 
-    #region TargetTenantSettings Tests
+    #region TargetTenantSettings Property Tests
 
     [Fact]
     public void TargetTenantSettings_Set_ReplacesTheDocument()

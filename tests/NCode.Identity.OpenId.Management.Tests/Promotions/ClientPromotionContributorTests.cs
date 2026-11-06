@@ -16,6 +16,7 @@ using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
+using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
@@ -42,6 +43,7 @@ public sealed class ClientPromotionContributorTests : IDisposable
     private Mock<ISupportTenantId> MockTargetTenantNode { get; }
     private Mock<IReadOnlySettingCollection> MockTeamSettings { get; }
     private Mock<IReadOnlySettingCollection> MockTenantSettings { get; }
+    private HashSet<string> ScopedTenantIds { get; } = [];
 
     public ClientPromotionContributorTests()
     {
@@ -60,33 +62,66 @@ public sealed class ClientPromotionContributorTests : IDisposable
         MockTargetTenantNode = MockRepository.Create<ISupportTenantId>();
         MockTeamSettings = MockRepository.Create<IReadOnlySettingCollection>();
         MockTenantSettings = MockRepository.Create<IReadOnlySettingCollection>();
-
-        MockStoreManager.Setup(x => x.GetStore<IClientStore>()).Returns(MockClientStore.Object);
-        MockStoreManager
-            .Setup(x => x.GetStore<IRoleAssignmentStore>())
-            .Returns(MockRoleAssignmentStore.Object);
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(SourceTenantId))
-            .Returns(new NoopDisposable());
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(TargetTenantId))
-            .Returns(new NoopDisposable());
-        MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveTeamAsync(TeamId, CancellationToken.None))
-            .ReturnsAsync(MockTeamSettings.Object);
-        SetupResolveTenant("{}", MockTenantSettings);
-        MockHostManagedClientChecker
-            .Setup(x => x.IsHostManaged(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(false);
-        MockClientKeySourceChecker.Setup(x => x.HasJwksUri(It.IsAny<JsonElement>())).Returns(false);
     }
 
     public void Dispose() => MockRepository.Verify();
 
-    private sealed class NoopDisposable : IDisposable
+    private void SetupStores() =>
+        MockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(MockClientStore.Object)
+            .Verifiable();
+
+    private void SetupRoleAssignmentStore() =>
+        MockStoreManager
+            .Setup(x => x.GetStore<IRoleAssignmentStore>())
+            .Returns(MockRoleAssignmentStore.Object)
+            .Verifiable();
+
+    private void SetupSourceScope() => SetupScope(SourceTenantId);
+
+    private void SetupTargetScope() => SetupScope(TargetTenantId);
+
+    private void SetupScope(string tenantId)
     {
-        public void Dispose() { }
+        if (!ScopedTenantIds.Add(tenantId))
+        {
+            return;
+        }
+
+        var scope = MockRepository.Create<IDisposable>();
+        scope.Setup(x => x.Dispose()).Verifiable();
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(tenantId))
+            .Returns(scope.Object)
+            .Verifiable();
     }
+
+    private void SetupTeamSettings() =>
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveTeamAsync(TeamId, CancellationToken.None))
+            .ReturnsAsync(MockTeamSettings.Object)
+            .Verifiable();
+
+    private void SetupCompute()
+    {
+        SetupStores();
+        SetupTeamSettings();
+        SetupResolveTenant("{}", MockTenantSettings);
+        SetupSourceScope();
+    }
+
+    private void SetupNoClientHostManaged() =>
+        MockHostManagedClientChecker
+            .Setup(x => x.IsHostManaged(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(false)
+            .Verifiable();
+
+    private void SetupNoJwksUri() =>
+        MockClientKeySourceChecker
+            .Setup(x => x.HasJwksUri(It.IsAny<JsonElement>()))
+            .Returns(false)
+            .Verifiable();
 
     private ClientPromotionContributor CreateContributor() =>
         new(
@@ -110,7 +145,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
                     It.Is<JsonElement>(value => JsonElement.DeepEquals(value, document))
                 )
             )
-            .Returns(result.Object);
+            .Returns(result.Object)
+            .Verifiable();
     }
 
     private static PersistedTenant CreateTenant(string tenantId) =>
@@ -126,9 +162,14 @@ public sealed class ClientPromotionContributorTests : IDisposable
             {
                 TenantId = tenantId,
                 ConcurrencyToken = "settings-token",
-                Value = JsonElement.Parse("{}"),
+                Value = JsonElements.EmptyObject,
             },
-            Secrets = null!,
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "secrets-token",
+                Value = [],
+            },
         };
 
     private TenantPromotionContext CreateContext(
@@ -348,6 +389,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     )
     {
         var promoted = CreatePromotedSettings(promotedJson, unsetSettingNames);
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         SetupTarget(source.ClientId, target);
         SetupCompose(source, target, promoted, environmentSettings);
         SetupValidate(context, promoted);
@@ -355,7 +398,7 @@ public sealed class ClientPromotionContributorTests : IDisposable
         return promoted;
     }
 
-    #region Order Tests
+    #region Order Property Tests
 
     [Fact]
     public void Order_Always_IsTheClientsOrder()
@@ -370,6 +413,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTargetLacksTheClient_RecordsACreatedChangeAndNoAuthority()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -394,6 +439,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenEverythingMatches_RecordsAnUnchangedChange()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         var target = CreateClient(TargetTenantId, "client-1");
@@ -410,6 +458,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDisabledStateDiffers_RecordsAnUpdatedChange()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", isDisabled: true);
         var target = CreateClient(TargetTenantId, "client-1");
@@ -426,6 +477,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDocumentDiffers_RecordsTheChangedLimitAtTheTargetTenantNode()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", settingsJson: """{"a":1}""");
         var target = CreateClient(TargetTenantId, "client-1", settingsJson: """{"a":0}""");
@@ -445,6 +499,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDocumentDiffersWithoutALimit_RecordsNoChangedLimit()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", settingsJson: """{"a":1}""");
         var target = CreateClient(TargetTenantId, "client-1", settingsJson: """{"a":0}""");
@@ -461,6 +518,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenAnUpdatedTargetHoldsRoles_RecordsTheNodesAsRequiredCreateAuthorities()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", isDisabled: true);
         var target = CreateClient(TargetTenantId, "client-1", principalId: "principal-9");
@@ -504,6 +564,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenASourceClientIsHostManaged_NotesItAndReadsNoTarget()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         SetupSource(source);
@@ -521,6 +583,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTargetClientIsHostManaged_AddsAnError()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         var target = CreateClient(TargetTenantId, "client-1");
@@ -539,6 +604,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDocumentNamesAJwksUriAndTheTargetHoldsPublicKeys_AddsAnError()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -577,6 +644,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheSourceActsForAMappedResourceServer_ReadsTheTargetBoundToIt()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         var source = CreateClient(SourceTenantId, "client-1", resourceServerId: "rs-source");
@@ -593,6 +663,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheSourceResourceServerIsNotMapped_AddsAnError()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", resourceServerId: "rs-source");
         SetupSource(source);
@@ -607,6 +679,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTargetActsForAnotherResourceServer_AddsAnError()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         var source = CreateClient(SourceTenantId, "client-1", resourceServerId: "rs-source");
@@ -623,6 +698,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheSourceHasNoResourceServerAndTheTargetHasOne_AddsAnError()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         var target = CreateClient(TargetTenantId, "client-1", resourceServerId: "rs-other");
@@ -637,6 +715,10 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDocumentIsInvalid_AddsAnErrorPerSettingError()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         var promoted = CreatePromotedSettings("{}", refusedSettingNames: ["redirect"]);
@@ -656,6 +738,10 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheDocumentIsIncoherentUnderThePromotedTenant_AddsAnError()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         var promoted = CreatePromotedSettings("{}");
@@ -674,6 +760,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheSourceSetsAnEnvironmentBoundSetting_AddsANote()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         SetupSource(source);
@@ -689,6 +777,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheClientNeedsACredentialAndTheTargetHoldsNone_AddsACredentialNote()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -713,6 +803,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTargetHoldsASecret_AddsNoCredentialNote()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -741,6 +834,10 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheTenantSettingsChange_AddsAnErrorForAnIntroducedViolationOfAnUnpromotedClient()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         var context = CreateContext(targetTenantSettingsJson: """{"a":1}""");
         var newTenantSettings = MockRepository.Create<IReadOnlySettingCollection>();
         SetupResolveTenant("""{"a":1}""", newTenantSettings);
@@ -779,6 +876,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task PlanAsync_WhenTheSourceHasSeveralPages_ReadsEveryPage()
     {
+        SetupCompute();
+        SetupRoleAssignmentStore();
         var context = CreateContext();
         var first = CreateClient(SourceTenantId, "client-1", settingsJson: """{"a":1}""");
         var second = CreateClient(SourceTenantId, "client-2", settingsJson: """{"b":1}""");
@@ -801,6 +900,7 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task ApplyAsync_WhenTheTargetLacksTheClient_AddsItAndStagesACreatedEvent()
     {
+        SetupCompute();
         var context = CreateContext();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         var source = CreateClient(
@@ -836,7 +936,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
         Assert.Equal("client-1", auditEvent.ResourceId);
         Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
         Assert.Equal(AuditOutcome.Success, auditEvent.Outcome);
-        var resource = auditEvent.ResourceValues!.Value.Deserialize<ClientResource>(
+        Assert.NotNull(auditEvent.ResourceValues);
+        var resource = auditEvent.ResourceValues.Value.Deserialize<ClientResource>(
             JsonSerializerOptions.Web
         );
         Assert.NotNull(resource);
@@ -847,6 +948,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task ApplyAsync_WhenTheTargetDiffers_UpdatesItAndStagesAnUpdatedEvent()
     {
+        SetupCompute();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -892,6 +995,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
     [Fact]
     public async Task ApplyAsync_WhenTheTargetMatches_WritesNothing()
     {
+        SetupCompute();
+        SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         var target = CreateClient(TargetTenantId, "client-1");

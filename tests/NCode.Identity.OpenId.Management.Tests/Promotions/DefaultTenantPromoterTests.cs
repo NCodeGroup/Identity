@@ -9,6 +9,7 @@ using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
@@ -59,9 +60,14 @@ public sealed class DefaultTenantPromoterTests : IDisposable
             Settings = new PersistedTenantSettings
             {
                 TenantId = tenantId,
-                Value = JsonElement.Parse("{}"),
+                Value = JsonElements.EmptyObject,
             },
-            Secrets = null!,
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "secrets-token",
+                Value = [],
+            },
         };
 
     private TenantPromotionContext CreateContext(
@@ -77,7 +83,7 @@ public sealed class DefaultTenantPromoterTests : IDisposable
             AmbientTenantAccessor = MockAmbientTenantAccessor.Object,
             JsonSerializerOptions = new JsonSerializerOptions(),
             EnvironmentSettings = environmentSettings ?? [],
-            TargetTenantSettings = JsonElement.Parse("{}"),
+            TargetTenantSettings = JsonElements.EmptyObject,
         };
 
     private static TenantPromotionEnvironmentSettings CreateEnvironmentSettings(
@@ -88,13 +94,13 @@ public sealed class DefaultTenantPromoterTests : IDisposable
         {
             ResourceType = resourceType,
             ResourceId = resourceId,
-            Settings = JsonElement.Parse("{}"),
+            Settings = JsonElements.EmptyObject,
         };
 
     private static TenantChangedAuditEvent CreateAuditEvent(string resourceId) =>
         new()
         {
-            EventId = Guid.NewGuid(),
+            EventId = Guid.CreateVersion7(),
             EventTime = DateTimeOffset.UnixEpoch,
             EventSource = AuditEventSources.Management,
             Outcome = AuditOutcome.Success,

@@ -9,6 +9,7 @@ using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
@@ -39,31 +40,45 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockTeamNode = MockRepository.Create<ISupportTenantId>();
         MockTargetTenantNode = MockRepository.Create<ISupportTenantId>();
-
-        MockStoreManager.Setup(x => x.GetStore<IClientStore>()).Returns(MockClientStore.Object);
-        MockStoreManager
-            .Setup(x => x.GetStore<IClientGrantStore>())
-            .Returns(MockClientGrantStore.Object);
-        MockStoreManager
-            .Setup(x => x.GetStore<IResourceServerStore>())
-            .Returns(MockResourceServerStore.Object);
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(SourceTenantId))
-            .Returns(new NoopDisposable());
-        MockAmbientTenantAccessor
-            .Setup(x => x.BeginScope(TargetTenantId))
-            .Returns(new NoopDisposable());
-        MockHostManagedClientChecker
-            .Setup(x => x.IsHostManaged(It.IsAny<string>(), It.IsAny<string>()))
-            .Returns(false);
     }
 
     public void Dispose() => MockRepository.Verify();
 
-    private sealed class NoopDisposable : IDisposable
+    private void SetupStores()
     {
-        public void Dispose() { }
+        MockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(MockClientStore.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<IClientGrantStore>())
+            .Returns(MockClientGrantStore.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<IResourceServerStore>())
+            .Returns(MockResourceServerStore.Object)
+            .Verifiable();
     }
+
+    private void SetupSourceScope() => SetupScope(SourceTenantId);
+
+    private void SetupTargetScope() => SetupScope(TargetTenantId);
+
+    private void SetupScope(string tenantId)
+    {
+        var scope = MockRepository.Create<IDisposable>();
+        scope.Setup(x => x.Dispose()).Verifiable();
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(tenantId))
+            .Returns(scope.Object)
+            .Verifiable();
+    }
+
+    private void SetupNoClientHostManaged() =>
+        MockHostManagedClientChecker
+            .Setup(x => x.IsHostManaged(It.IsAny<string>(), It.IsAny<string>()))
+            .Returns(false)
+            .Verifiable();
 
     private ClientGrantPromotionContributor CreateContributor() =>
         new(MockHostManagedClientChecker.Object);
@@ -81,9 +96,14 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
             {
                 TenantId = tenantId,
                 ConcurrencyToken = "settings-token",
-                Value = JsonElement.Parse("{}"),
+                Value = JsonElements.EmptyObject,
             },
-            Secrets = null!,
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "secrets-token",
+                Value = [],
+            },
         };
 
     private TenantPromotionContext CreateContext() =>
@@ -97,7 +117,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
             AmbientTenantAccessor = MockAmbientTenantAccessor.Object,
             JsonSerializerOptions = new JsonSerializerOptions(),
             EnvironmentSettings = [],
-            TargetTenantSettings = JsonElement.Parse("{}"),
+            TargetTenantSettings = JsonElements.EmptyObject,
         };
 
     private static PersistedClient CreateClient(string tenantId, string clientId) =>
@@ -114,7 +134,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
                 TenantId = tenantId,
                 ClientId = clientId,
                 ConcurrencyToken = "settings-token",
-                Value = JsonElement.Parse("{}"),
+                Value = JsonElements.EmptyObject,
             },
             Secrets = new PersistedClientSecrets
             {
@@ -160,7 +180,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
             {
                 TenantId = tenantId,
                 ResourceServerId = resourceServerId,
-                Value = JsonElement.Parse("{}"),
+                Value = JsonElements.EmptyObject,
             },
             Scopes =
             [
@@ -223,7 +243,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
             .ReturnsAsync(resourceServer)
             .Verifiable();
 
-    #region Order Tests
+    #region Order Property Tests
 
     [Fact]
     public void Order_Always_IsTheClientGrantsOrder()
@@ -239,6 +259,10 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheTargetLacksTheGrant_RecordsACreatedChange()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
         SetupSourceGrants("client-1", CreateGrant(SourceTenantId, "client-1", "rs-source", "read"));
@@ -261,6 +285,10 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheScopeSetsDiffer_RecordsAnUpdatedChange()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
         SetupSourceGrants(
@@ -287,6 +315,10 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheScopeSetsMatchInAnyOrder_RecordsAnUnchangedChange()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
         SetupSourceGrants(
@@ -310,6 +342,9 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheResourceServerIsNotMapped_RecordsAnErrorAndNoChange()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupNoClientHostManaged();
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
         SetupSourceGrants("client-1", CreateGrant(SourceTenantId, "client-1", "rs-source", "read"));
 
@@ -325,6 +360,10 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheTargetSystemResourceServerLacksAScope_RecordsAnErrorPerScope()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
         SetupSourceGrants(
@@ -356,6 +395,8 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheClientIsHostManagedInTheSourceTenant_LeavesItsGrantsOut()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
         MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(SourceTenantId, "client-1"))
             .Returns(true)
@@ -372,6 +413,12 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheClientIsHostManagedInTheTargetTenant_LeavesItsGrantsOut()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        MockHostManagedClientChecker
+            .Setup(x => x.IsHostManaged(SourceTenantId, "client-1"))
+            .Returns(false)
+            .Verifiable();
         MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(TargetTenantId, "client-1"))
             .Returns(true)
@@ -392,6 +439,10 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task ApplyAsync_WhenTheTargetLacksTheGrant_AddsTheGrantWithTheMappedResourceServer()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
         SetupSourceGrants(
@@ -423,6 +474,10 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task ApplyAsync_WhenTheScopeSetsDiffer_ReplacesTheTargetScopes()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         var target = CreateGrant(TargetTenantId, "client-1", "rs-target", "read");
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
@@ -452,6 +507,10 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task ApplyAsync_WhenTheScopeSetsMatch_WritesNothing()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupTargetScope();
+        SetupNoClientHostManaged();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
         SetupSourceGrants("client-1", CreateGrant(SourceTenantId, "client-1", "rs-source", "read"));
@@ -469,6 +528,8 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
     public async Task ApplyAsync_WhenTheClientIsHostManaged_WritesNothing()
     {
         var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
         MockHostManagedClientChecker
             .Setup(x => x.IsHostManaged(SourceTenantId, "client-1"))
             .Returns(true)

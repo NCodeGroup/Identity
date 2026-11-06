@@ -62,7 +62,12 @@ public sealed class TenantSettingsPromotionContributorTests : IDisposable
                 ConcurrencyToken = "settings-token",
                 Value = JsonElement.Parse(settingsJson),
             },
-            Secrets = null!,
+            Secrets = new PersistedTenantSecrets
+            {
+                TenantId = tenantId,
+                ConcurrencyToken = "secrets-token",
+                Value = [],
+            },
         };
 
     private TenantPromotionContext CreateContext(
@@ -161,7 +166,7 @@ public sealed class TenantSettingsPromotionContributorTests : IDisposable
             .Returns(changedLimits)
             .Verifiable();
 
-    #region Order Tests
+    #region Order Property Tests
 
     [Fact]
     public void Order_Always_IsTheTenantSettingsOrder()
@@ -374,7 +379,8 @@ public sealed class TenantSettingsPromotionContributorTests : IDisposable
         Assert.Equal(ResourceChangeTypes.SettingsUpdated, auditEvent.ChangeType);
         Assert.Equal(AuditOutcome.Success, auditEvent.Outcome);
 
-        var resource = auditEvent.ResourceValues!.Value.Deserialize<TenantSettingsResource>(
+        Assert.NotNull(auditEvent.ResourceValues);
+        var resource = auditEvent.ResourceValues.Value.Deserialize<TenantSettingsResource>(
             JsonSerializerOptions.Web
         );
         Assert.NotNull(resource);

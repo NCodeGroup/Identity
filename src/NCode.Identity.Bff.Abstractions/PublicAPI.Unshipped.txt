@@ -109,6 +109,15 @@ NCode.Identity.Bff.BffStoreUnavailableException.BffStoreUnavailableException(str
 NCode.Identity.Bff.IBffSessionFeature
 NCode.Identity.Bff.IBffSessionFeature.Metadata.get -> NCode.Identity.Bff.BffSessionMetadata!
 NCode.Identity.Bff.IBffSessionFeature.Principal.get -> System.Security.Claims.ClaimsPrincipal!
+NCode.Identity.Bff.IBffTokenContext
+NCode.Identity.Bff.IBffTokenContext.Frontend.get -> string?
+NCode.Identity.Bff.IBffTokenContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext?
+NCode.Identity.Bff.IBffConnectionSession
+NCode.Identity.Bff.IBffConnectionSession.RevalidationInterval.get -> System.TimeSpan
+NCode.Identity.Bff.IBffConnectionSession.ValidateAsync(System.DateTimeOffset? lastActivityAt, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Security.Claims.ClaimsPrincipal?>
+NCode.Identity.Bff.IBffConnectionSessionAccessor
+NCode.Identity.Bff.IBffConnectionSessionAccessor.Current.get -> NCode.Identity.Bff.IBffConnectionSession?
+NCode.Identity.Bff.IBffConnectionSessionAccessor.Use(NCode.Identity.Bff.IBffConnectionSession! session) -> System.IDisposable!
 NCode.Identity.Bff.BffSessionValidationContext
 NCode.Identity.Bff.BffSessionValidationContext.BffSessionValidationContext(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Bff.BffSessionMetadata! metadata, System.Security.Claims.ClaimsPrincipal! principal) -> void
 NCode.Identity.Bff.BffSessionValidationContext.HttpContext.get -> Microsoft.AspNetCore.Http.HttpContext!

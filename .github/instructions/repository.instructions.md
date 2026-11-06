@@ -205,8 +205,8 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    reaches `main`
    ([ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)), so it
    does **not** run before a local push. Neither gate builds the host image: when a change adds a file that a root
-   build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` and `Console image` checks on the
-   pull request find it.
+   build file imports, re-admit it in [`.dockerignore`](../../.dockerignore) too, or only the `Host image` and
+   `Console image` checks on the pull request find it.
     - **The frontend has its own gate.** `./build/dod.ps1` never runs the frontend's checks. A change under
       `src/frontend` also runs CI's frontend job locally from `src/frontend`, with the pnpm version its `package.json`
       names: `pnpm install --frozen-lockfile`, then `pnpm run format:check`, `lint`, `typecheck`, `build` and

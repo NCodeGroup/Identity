@@ -26,8 +26,9 @@ host.**
 1. **The image mirrors the host image.** `src/NCode.Identity.ManagementConsole.Host/Dockerfile` uses the same pinned
    base images and digests. Its Node stage builds `@ncode/app-mgmt`, its final stage is chiseled-extra and runs as the
    non-root UID 1654 on port 8080, it writes one-line JSON logs, and it serves the bundle from `/app/mgmt`.
-2. **A `Console image` workflow builds it.** The workflow's job `Build console image` is triggered like `Host image`,
-   including `merge_group`, and keeps the `Host image` required check's name unchanged.
+2. **A `Console image` workflow builds it.** The `Host image` workflow's job is the required check `Host image`, and
+   the `Console image` workflow's job is `Build console image`. Both workflows are triggered alike, including
+   `merge_group`.
 3. **Dependabot's docker stream lists both Dockerfile directories.** One pull request moves the base-image digests of
    both images.
 4. **The chart carries the console as the `managementConsole` component.** It is off until `managementConsole.enabled`.

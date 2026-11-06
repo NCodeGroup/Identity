@@ -4368,10 +4368,10 @@ describes the family as it is rather than its changes
   [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
 
 - **No CORS on the front-channel endpoints.** The authorization, continue, and end-session endpoints and the interactive
-  login/consent surface carry `IOpenIdEndpointFrontChannelMetadata` (`WithOpenIdFrontChannel()`), and `UseDeveloperCors`
-  applies the developer policy only to endpoints without it, so even in Development they never answer a cross-origin
-  request with `Access-Control-Allow-Origin` (FAPI 2.0 Security Profile §5.3.2.1). The marker also makes routing send a
-  CORS preflight to the endpoint itself, which refuses it with `405` and no CORS headers; `UseDeveloperCors` answers no
+  login/consent surface carry `IFrontChannelEndpointMetadata` (`WithFrontChannel()`), and `UseDeveloperCors` applies the
+  developer policy only to endpoints without it, so even in Development they never answer a cross-origin request with
+  `Access-Control-Allow-Origin` (FAPI 2.0 Security Profile §5.3.2.1). The marker also makes routing send a CORS
+  preflight to the endpoint itself, which refuses it with `405` and no CORS headers; `UseDeveloperCors` answers no
   preflight that selects no endpoint, such as one for a method a front-channel path does not map. A host that adds its
   own CORS middleware skips both
   ([ADR-1109](docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md)).

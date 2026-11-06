@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
@@ -63,6 +65,22 @@ public static class DefaultRegistration
             serviceCollection.AddOptions<BffOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IValidateOptions<BffOptions>, BffOptionsValidator>()
+            );
+
+            serviceCollection.AddAntiforgery(options =>
+            {
+                options.Cookie.Name = BffDefaults.AntiforgeryCookieName;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.Path = "/";
+                options.Cookie.SameSite = SameSiteMode.Strict;
+                options.Cookie.HttpOnly = true;
+            });
+            serviceCollection.AddOptions<AntiforgeryOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<AntiforgeryOptions>,
+                    BffAntiforgeryCookieValidator
+                >()
             );
 
             // The BFF's instruments are created through the IMeterFactory (ADR-1197).

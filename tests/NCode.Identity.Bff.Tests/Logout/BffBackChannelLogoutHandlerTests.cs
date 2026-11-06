@@ -7,11 +7,11 @@ using Microsoft.Extensions.Primitives;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Bff.Auditing;
-using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logout;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Diagnostics;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -29,7 +29,8 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
     private readonly Mock<IBffSessionStore> _store;
     private readonly Mock<IBffSessionManager> _manager;
     private readonly Mock<IBffAuditRecorder> _audit;
-    private readonly BffClientRegistrationProvider _registrationProvider;
+    private readonly BffFrontendCatalog _frontends;
+    private readonly ClientRegistration _registration;
 
     public BffBackChannelLogoutHandlerTests()
     {
@@ -37,21 +38,13 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         _store = CreateStrictMock<IBffSessionStore>();
         _manager = CreateStrictMock<IBffSessionManager>();
         _audit = CreateStrictMock<IBffAuditRecorder>();
-        _registrationProvider = new BffClientRegistrationProvider(
-            Microsoft.Extensions.Options.Options.Create(
-                new BffOptions
-                {
-                    Authority = Issuer,
-                    ClientId = "bff",
-                    ReturnUrls = ["/"],
-                }
-            )
-        );
+        _frontends = BffTestFrontends.CreateCatalog(options => options.Authority = Issuer);
+        _registration = BffTestFrontends.Get(_frontends).Registration;
     }
 
     private BffBackChannelLogoutHandler CreateHandler() =>
         new(
-            _registrationProvider,
+            _frontends,
             _validator.Object,
             BffTestTelemetry.Instrument(_store.Object),
             _manager.Object,
@@ -74,10 +67,14 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         return httpContext;
     }
 
-    private static BffSessionMetadata CreateMetadata(string issuer, string? sessionId) =>
+    private static BffSessionMetadata CreateMetadata(
+        string issuer,
+        string? sessionId,
+        string frontend = BffTestFrontends.Name
+    ) =>
         new()
         {
-            Frontend = BffDefaults.FrontendName,
+            Frontend = frontend,
             Issuer = issuer,
             Subject = "sub-1",
             SessionId = sessionId,
@@ -97,7 +94,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         _validator
             .Setup(x =>
                 x.ValidateAsync(
-                    _registrationProvider.Registration,
+                    _registration,
                     It.Is<LogoutTokenValidationRequest>(r => r.LogoutToken == Token),
                     It.IsAny<CancellationToken>()
                 )
@@ -139,13 +136,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
 
     private void SetupHandled(LogoutTokenValidationResult result) =>
         _validator
-            .Setup(x =>
-                x.TryRecordHandledAsync(
-                    _registrationProvider.Registration,
-                    result,
-                    CancellationToken.None
-                )
-            )
+            .Setup(x => x.TryRecordHandledAsync(_registration, result, CancellationToken.None))
             .ReturnsAsync(true)
             .Verifiable();
 
@@ -224,7 +215,7 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         _validator
             .Setup(x =>
                 x.ValidateAsync(
-                    _registrationProvider.Registration,
+                    _registration,
                     It.Is<LogoutTokenValidationRequest>(r => r.LogoutToken == Token),
                     It.IsAny<CancellationToken>()
                 )
@@ -258,6 +249,27 @@ public class BffBackChannelLogoutHandlerTests : BaseTests
         SetupGet("key-4", null);
         SetupEnd("key-1", metadata1);
         SetupEnd("key-2", metadata2);
+        SetupHandled(result);
+        SetupReceived();
+        var httpContext = CreateHttpContext(form: true);
+        var handler = CreateHandler();
+
+        await handler.HandleAsync(httpContext);
+
+        Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task HandleAsync_SessionOfAnotherFrontend_IsNotEnded()
+    {
+        const string sid = "sid-1";
+        var result = CreateValid(sid, "sub-1");
+        SetupValidate(result);
+        _store
+            .Setup(x => x.FindBySessionIdAsync(Issuer, sid, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(["key-1"])
+            .Verifiable();
+        SetupGet("key-1", CreateRecord("key-1", CreateMetadata(Issuer, sid, "other")));
         SetupHandled(result);
         SetupReceived();
         var httpContext = CreateHttpContext(form: true);

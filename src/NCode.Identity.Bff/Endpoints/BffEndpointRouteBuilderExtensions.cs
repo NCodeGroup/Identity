@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Frozen;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -68,8 +69,8 @@ public static class BffEndpointRouteBuilderExtensions
         /// <param name="configure">Configures the remote API's token requirement, methods and timeout.</param>
         /// <returns>The convention builder of the mapped endpoint.</returns>
         /// <exception cref="InvalidOperationException">
-        /// The remote API is invalid, overlaps the endpoints of a frontend or another remote API, or names a token
-        /// requirement that is not registered.
+        /// The remote API is invalid, overlaps another remote API mapped in code or the endpoints or configured remote
+        /// APIs of a frontend, or names a token requirement that is not registered.
         /// </exception>
         public IEndpointConventionBuilder MapBffRemoteApi(
             string path,
@@ -84,40 +85,50 @@ public static class BffEndpointRouteBuilderExtensions
             var api = new BffRemoteApiOptions { Path = path, Destination = destination };
             configure?.Invoke(api);
 
-            return BffRemoteApiEndpoints.Map(endpoints, nameof(MapBffRemoteApi), api, null);
+            return BffRemoteApiEndpoints.MapInCode(endpoints, nameof(MapBffRemoteApi), api);
         }
 
         /// <summary>
         /// Forwards the remote APIs configured in <see cref="BffFrontendOptions.RemoteApis"/> of each frontend, each
-        /// limited to the frontend that configures it.
+        /// limited to the frontend that configures it. The configured remote APIs follow the frontends: a
+        /// configuration change that adds, changes or removes a frontend or a remote API maps them again, and
+        /// conventions added to the returned group apply to every remote API.
         /// </summary>
         /// <returns>The group that holds the remote API endpoints, which conventions can be added to.</returns>
         /// <exception cref="InvalidOperationException">
-        /// A configured remote API overlaps a remote API of the same frontend or one mapped in code, or names a token
-        /// requirement that is not registered.
+        /// A configured remote API overlaps a remote API mapped in code, or names a token requirement that is not
+        /// registered.
         /// </exception>
         public RouteGroupBuilder MapBffRemoteApis()
         {
             ArgumentNullException.ThrowIfNull(endpoints);
 
-            var catalog = endpoints.ServiceProvider.GetRequiredService<BffFrontendCatalog>();
+            var services = endpoints.ServiceProvider;
+            var catalog = services.GetRequiredService<BffFrontendCatalog>();
+
+            catalog.AddCheck(
+                new BffRemoteApiRequirementCheck(
+                    services
+                        .GetServices<IBffTokenRequirement>()
+                        .Select(x => x.Name)
+                        .ToFrozenSet(StringComparer.Ordinal)
+                )
+            );
+
             var group = endpoints.MapGroup(string.Empty);
 
-            foreach (var frontend in catalog.Frontends)
-            {
-                foreach (var (name, api) in frontend.Options.RemoteApis)
-                {
-                    BffRemoteApiEndpoints.Map(
-                        group,
-                        $"Bff:Frontends:{frontend.Name}:RemoteApis:{name}",
-                        api,
-                        frontend
-                    );
-                }
-            }
+            ((IEndpointRouteBuilder)group).DataSources.Add(
+                new BffFrontendEndpointDataSource(catalog, services, MapFrontendRemoteApis)
+            );
 
             return group;
         }
+    }
+
+    private static void MapFrontendRemoteApis(IEndpointRouteBuilder endpoints, BffFrontend frontend)
+    {
+        foreach (var api in frontend.Options.RemoteApis.Values)
+            BffRemoteApiEndpoints.MapEndpoint(endpoints, api, frontend);
     }
 
     private static void MapFrontendEndpoints(IEndpointRouteBuilder endpoints, BffFrontend frontend)

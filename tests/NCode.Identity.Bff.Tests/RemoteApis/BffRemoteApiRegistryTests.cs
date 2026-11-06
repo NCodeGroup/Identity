@@ -15,7 +15,7 @@ public class BffRemoteApiRegistryTests : BaseTests
     {
         var registry = new BffRemoteApiRegistry();
 
-        var result = registry.TryRegister("/api/orders", null, out var overlapping);
+        var result = registry.TryRegister("/api/orders", out var overlapping);
 
         Assert.True(result);
         Assert.Null(overlapping);
@@ -29,9 +29,9 @@ public class BffRemoteApiRegistryTests : BaseTests
     public void TryRegister_OverlappingPath_ReturnsTheOtherPath(string path)
     {
         var registry = new BffRemoteApiRegistry();
-        registry.TryRegister("/api/orders", null, out _);
+        registry.TryRegister("/api/orders", out _);
 
-        var result = registry.TryRegister(path, null, out var overlapping);
+        var result = registry.TryRegister(path, out var overlapping);
 
         Assert.False(result);
         Assert.Equal("/api/orders", overlapping);
@@ -44,60 +44,24 @@ public class BffRemoteApiRegistryTests : BaseTests
     public void TryRegister_SiblingPath_Succeeds(string path)
     {
         var registry = new BffRemoteApiRegistry();
-        registry.TryRegister("/api/orders", null, out _);
+        registry.TryRegister("/api/orders", out _);
 
-        var result = registry.TryRegister(path, null, out var overlapping);
-
-        Assert.True(result);
-        Assert.Null(overlapping);
-    }
-
-    [Fact]
-    public void TryRegister_SamePathForTwoFrontends_Succeeds()
-    {
-        var registry = new BffRemoteApiRegistry();
-        registry.TryRegister("/api/orders", "admin", out _);
-
-        var result = registry.TryRegister("/api/orders", "shop", out var overlapping);
+        var result = registry.TryRegister(path, out var overlapping);
 
         Assert.True(result);
         Assert.Null(overlapping);
     }
 
     [Fact]
-    public void TryRegister_SamePathForTheSameFrontend_ReturnsTheOtherPath()
+    public void TryRegister_PathOverlapsAShorterRecordedPath_ReturnsTheOtherPath()
     {
         var registry = new BffRemoteApiRegistry();
-        registry.TryRegister("/api/orders", "admin", out _);
+        registry.TryRegister("/api", out _);
 
-        var result = registry.TryRegister("/api/orders/items", "admin", out var overlapping);
-
-        Assert.False(result);
-        Assert.Equal("/api/orders", overlapping);
-    }
-
-    [Fact]
-    public void TryRegister_FrontendPathOverlapsAnUnlimitedPath_ReturnsTheOtherPath()
-    {
-        var registry = new BffRemoteApiRegistry();
-        registry.TryRegister("/api", null, out _);
-
-        var result = registry.TryRegister("/api/orders", "admin", out var overlapping);
+        var result = registry.TryRegister("/api/orders", out var overlapping);
 
         Assert.False(result);
         Assert.Equal("/api", overlapping);
-    }
-
-    [Fact]
-    public void TryRegister_UnlimitedPathOverlapsAFrontendPath_ReturnsTheOtherPath()
-    {
-        var registry = new BffRemoteApiRegistry();
-        registry.TryRegister("/api/orders", "admin", out _);
-
-        var result = registry.TryRegister("/api", null, out var overlapping);
-
-        Assert.False(result);
-        Assert.Equal("/api/orders", overlapping);
     }
 
     #endregion

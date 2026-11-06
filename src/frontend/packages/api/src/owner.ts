@@ -88,3 +88,11 @@ export function ownerTagId(owner: ManagementOwner): string {
 export function ownerEffectiveTagId(owner: ManagementOwner): string {
   return scopeTagId(ownerScope(owner), `${ownerKey(owner)}:effective`);
 }
+
+/**
+ * The cache-tag id of an owner's setting limits. The owner's id is encoded inside its key, so
+ * this never equals {@link ownerTagId} of another owner of the same kind.
+ */
+export function ownerLimitsTagId(owner: ManagementOwner): string {
+  return scopeTagId(ownerScope(owner), `${ownerKey(owner)}:limits`);
+}

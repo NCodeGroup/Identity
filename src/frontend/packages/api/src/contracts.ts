@@ -520,6 +520,12 @@ export type EffectiveSettingsResource = {
   readonly settings: Readonly<Record<string, unknown>>;
 };
 
+/** Mirror of `SettingLimitsResource`: the limits an owner's settings may carry and whether the caller may change them (ADR-1448). */
+export type SettingLimitsResource = {
+  readonly names: readonly string[];
+  readonly canChange: boolean;
+};
+
 /**
  * Mirror of `TenantUsageEntry` — one row of the durable usage ledger (ADR-1199): a tenant's `count` of a `meter` (an
  * open vocabulary, e.g. `requests` or `token_requests`) on a UTC calendar `day` (`YYYY-MM-DD` on the wire).

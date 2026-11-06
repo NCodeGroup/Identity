@@ -46,7 +46,7 @@ internal sealed class BffInstrumentedSessionStore(IBffSessionStore inner, BffMet
         );
 
     /// <inheritdoc />
-    public ValueTask RemoveAsync(
+    public ValueTask<bool> RemoveAsync(
         string storeKey,
         BffSessionMetadata metadata,
         CancellationToken cancellationToken

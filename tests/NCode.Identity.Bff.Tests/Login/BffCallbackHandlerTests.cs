@@ -564,7 +564,7 @@ public class BffCallbackHandlerTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         await CreateHandler().HandleAsync(CreateHttpContext($"?state={State}&code=abc", oldHandle));

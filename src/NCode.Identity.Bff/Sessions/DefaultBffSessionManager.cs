@@ -115,7 +115,7 @@ internal class DefaultBffSessionManager(
     }
 
     /// <inheritdoc />
-    public async ValueTask EndAsync(
+    public async ValueTask<bool> EndAsync(
         HttpContext? httpContext,
         string storeKey,
         BffSessionMetadata metadata,
@@ -123,8 +123,17 @@ internal class DefaultBffSessionManager(
         CancellationToken cancellationToken
     )
     {
-        await Store.RemoveAsync(storeKey, metadata, cancellationToken);
+        var removed = await Store.RemoveAsync(storeKey, metadata, cancellationToken);
+        if (removed)
+        {
+            await Recorder.SessionEndedAsync(
+                httpContext,
+                metadata.Subject,
+                reason,
+                cancellationToken
+            );
+        }
 
-        await Recorder.SessionEndedAsync(httpContext, metadata.Subject, reason, cancellationToken);
+        return removed;
     }
 }

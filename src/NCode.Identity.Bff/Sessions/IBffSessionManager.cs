@@ -36,7 +36,8 @@ internal interface IBffSessionManager
     /// <summary>
     /// Ends a session and records why.
     /// </summary>
-    ValueTask EndAsync(
+    /// <returns><see langword="true"/> when this call ended the session; <see langword="false"/> when another caller ended it first.</returns>
+    ValueTask<bool> EndAsync(
         HttpContext? httpContext,
         string storeKey,
         BffSessionMetadata metadata,

@@ -250,7 +250,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(
@@ -949,7 +949,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
                     CancellationToken.None
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Service.GetAccessTokenAsync(

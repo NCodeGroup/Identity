@@ -242,7 +242,7 @@ public class BffSessionResolverTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
@@ -272,7 +272,7 @@ public class BffSessionResolverTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
@@ -300,7 +300,7 @@ public class BffSessionResolverTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Resolver.ResolveAsync(httpContext, CancellationToken.None);
@@ -359,7 +359,7 @@ public class BffSessionResolverTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
         var resolver = CreateResolver([validator.Object]);
 
@@ -589,7 +589,7 @@ public class BffSessionResolverTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Resolver.ValidateAsync(
@@ -622,7 +622,7 @@ public class BffSessionResolverTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Resolver.ValidateAsync(
@@ -659,7 +659,7 @@ public class BffSessionResolverTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(true)
             .Verifiable();
 
         var result = await Resolver.ValidateAsync(

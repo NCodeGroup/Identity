@@ -346,8 +346,8 @@ public class DefaultBffSessionStoreTests : BaseTests
         var subIndex = BffStoreKeys.SubjectIndex(metadata.Issuer, metadata.Subject);
 
         MockValues
-            .Setup(x => x.RemoveAsync("bff:session:" + StoreKey, CancellationToken.None))
-            .Returns(ValueTask.CompletedTask)
+            .Setup(x => x.TryTakeAsync("bff:session:" + StoreKey, CancellationToken.None))
+            .ReturnsAsync(new ExpiringValue(new byte[] { 1 }, 1))
             .Verifiable();
         MockIndexes
             .Setup(x => x.RemoveMemberAsync(sidIndex, StoreKey, CancellationToken.None))
@@ -368,7 +368,34 @@ public class DefaultBffSessionStoreTests : BaseTests
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        await Store.RemoveAsync(StoreKey, metadata, CancellationToken.None);
+        var removed = await Store.RemoveAsync(StoreKey, metadata, CancellationToken.None);
+
+        Assert.True(removed);
+    }
+
+    [Fact]
+    public async Task RemoveAsync_AlreadyGone_RemovesTheMembersAndReturnsFalse()
+    {
+        var metadata = CreateMetadata(null);
+        var subIndex = BffStoreKeys.SubjectIndex(metadata.Issuer, metadata.Subject);
+        var clientIndex = BffStoreKeys.ClientIndex(CreateClient());
+
+        MockValues
+            .Setup(x => x.TryTakeAsync("bff:session:" + StoreKey, CancellationToken.None))
+            .ReturnsAsync((ExpiringValue?)null)
+            .Verifiable();
+        MockIndexes
+            .Setup(x => x.RemoveMemberAsync(subIndex, StoreKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockIndexes
+            .Setup(x => x.RemoveMemberAsync(clientIndex, StoreKey, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var removed = await Store.RemoveAsync(StoreKey, metadata, CancellationToken.None);
+
+        Assert.False(removed);
     }
 
     [Fact]
@@ -379,8 +406,8 @@ public class DefaultBffSessionStoreTests : BaseTests
         var clientIndex = BffStoreKeys.ClientIndex(CreateClient());
 
         MockValues
-            .Setup(x => x.RemoveAsync("bff:session:" + StoreKey, CancellationToken.None))
-            .Returns(ValueTask.CompletedTask)
+            .Setup(x => x.TryTakeAsync("bff:session:" + StoreKey, CancellationToken.None))
+            .ReturnsAsync(new ExpiringValue(new byte[] { 1 }, 1))
             .Verifiable();
         MockIndexes
             .Setup(x => x.RemoveMemberAsync(subIndex, StoreKey, CancellationToken.None))
@@ -398,7 +425,7 @@ public class DefaultBffSessionStoreTests : BaseTests
     public async Task RemoveAsync_AdapterThrows_ThrowsStoreUnavailable()
     {
         MockValues
-            .Setup(x => x.RemoveAsync("bff:session:" + StoreKey, CancellationToken.None))
+            .Setup(x => x.TryTakeAsync("bff:session:" + StoreKey, CancellationToken.None))
             .ThrowsAsync(new InvalidOperationException("boom"))
             .Verifiable();
 

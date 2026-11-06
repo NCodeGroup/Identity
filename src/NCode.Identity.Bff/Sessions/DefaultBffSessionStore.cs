@@ -138,7 +138,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
     }
 
     /// <inheritdoc />
-    public async ValueTask RemoveAsync(
+    public async ValueTask<bool> RemoveAsync(
         string storeKey,
         BffSessionMetadata metadata,
         CancellationToken cancellationToken
@@ -147,7 +147,7 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
         try
         {
             var key = BffStoreKeys.Session(storeKey);
-            await values.RemoveAsync(key, cancellationToken);
+            var removed = await values.TryTakeAsync(key, cancellationToken) is not null;
 
             if (metadata.SessionId is { Length: > 0 } sessionId)
             {
@@ -164,6 +164,8 @@ internal class DefaultBffSessionStore(IExpiringValueSet values, IExpiringIndexSe
                 storeKey,
                 cancellationToken
             );
+
+            return removed;
         }
         catch (Exception exception) when (IsStoreFailure(exception, cancellationToken))
         {

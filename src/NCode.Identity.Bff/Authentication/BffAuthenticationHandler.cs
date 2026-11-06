@@ -15,6 +15,7 @@ using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Responses;
 using NCode.Identity.Bff.Sessions;
+using NCode.Identity.OpenId;
 
 namespace NCode.Identity.Bff.Authentication;
 
@@ -161,7 +162,14 @@ internal class BffAuthenticationHandler(
 
         return frontend.Options.Session.SameSite == SameSiteMode.Strict
             && Cookies.ReadSessionHandle(request, frontend) is null
-            && !Cookies.HasPageReload(request, frontend);
+            && !Cookies.HasPageReload(request, frontend)
+            && LocalUrl.IsLocal(GetOwnUrl());
+    }
+
+    private string GetOwnUrl()
+    {
+        var request = Request;
+        return $"{request.PathBase.ToUriComponent()}{request.Path.ToUriComponent()}{request.QueryString.ToUriComponent()}";
     }
 
     /// <summary>
@@ -196,9 +204,7 @@ internal class BffAuthenticationHandler(
         if (HttpMethods.IsHead(request.Method))
             return;
 
-        var url =
-            $"{request.PathBase.ToUriComponent()}{request.Path.ToUriComponent()}{request.QueryString.ToUriComponent()}";
-        var encoded = HtmlEncoder.Default.Encode(url);
+        var encoded = HtmlEncoder.Default.Encode(GetOwnUrl());
         var body = ReloadPageTemplate.Replace(
             ReloadUrlPlaceholder,
             encoded,

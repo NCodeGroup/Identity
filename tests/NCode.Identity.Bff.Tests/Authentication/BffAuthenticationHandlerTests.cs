@@ -71,6 +71,7 @@ public class BffAuthenticationHandlerTests : BaseTests
 
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Method = HttpMethods.Get;
+        httpContext.Request.Path = "/";
         httpContext.Response.Body = new MemoryStream();
         var feature = new BffRequestFeature
         {
@@ -395,6 +396,21 @@ public class BffAuthenticationHandlerTests : BaseTests
         Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
         Assert.StartsWith(PageReloadCookie, httpContext.Response.Headers.SetCookie.ToString());
         Assert.Equal(string.Empty, await ReadBodyAsync(httpContext));
+    }
+
+    [Fact]
+    public async Task ChallengeAsync_PageNavigationWithProtocolRelativePath_RedirectsToLoginWithoutReload()
+    {
+        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
+        httpContext.Request.Path = "//evil.example/x";
+
+        await handler.ChallengeAsync(null);
+
+        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
+        Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
+        Assert.False(httpContext.Response.Headers.ContainsKey("Set-Cookie"));
+        var body = await ReadBodyAsync(httpContext);
+        Assert.DoesNotContain("evil.example", body);
     }
 
     [Fact]

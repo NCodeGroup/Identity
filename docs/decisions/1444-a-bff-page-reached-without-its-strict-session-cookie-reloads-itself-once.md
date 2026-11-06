@@ -37,7 +37,9 @@ reload from repeating.**
    - `Sec-Fetch-Mode` is absent or `navigate`;
    - the frontend's session cookie is `SameSite=Strict`;
    - the request carries no session cookie for the frontend;
-   - the request carries no reload marker.
+   - the request carries no reload marker;
+   - the request's own URL (path base, path and query string) is a local URL: it begins with exactly one `/` and holds
+     no backslash, whitespace or control character, so the reload page cannot be used to redirect to another origin.
 
    Every other page challenge keeps its behavior: a `302` to the login endpoint with the return URL.
 2. **The reload page.** The response is `200` with `Content-Type: text/html; charset=utf-8`, `Cache-Control: no-store`,

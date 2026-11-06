@@ -557,3 +557,8 @@ NCode.Identity.OpenId.Persistence.Stores.IGrantStore.UpdateProtectedPayloadAsync
 NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore
 NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore.GetPageAsync(NCode.Identity.Secrets.Persistence.Protection.SecretOwner owner, System.Collections.Generic.IReadOnlyCollection<string!>! valuePrefixes, NCode.Persistence.Stores.PageRequest page, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Persistence.Stores.PagedResult<NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue!>!>
 NCode.Identity.OpenId.Persistence.Stores.ISecretEnvelopeStore.UpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedProtectedValue! value, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+const NCode.Identity.OpenId.Persistence.OpenIdMaxLengths.TeamPath = 513 -> int
+const NCode.Identity.OpenId.Persistence.TeamPaths.MaxDepth = 8 -> int
+NCode.Identity.OpenId.Persistence.TeamPaths
+static NCode.Identity.OpenId.Persistence.TeamPaths.Format(System.Collections.Generic.IEnumerable<string!>! teamIds) -> string!
+static NCode.Identity.OpenId.Persistence.TeamPaths.Parse(string! teamPath) -> System.Collections.Generic.IReadOnlyList<string!>!

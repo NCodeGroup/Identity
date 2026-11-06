@@ -847,8 +847,9 @@ describes the family as it is rather than its changes
   management API is never retired, extended or removed. The seed applies the plan whenever the tenant is
   materialized, and `TenantKeyRolloverService` applies it in the background every
   `OpenId:Tenant:KeyRollover:Interval` (one hour), one replica per interval under a lease on the shared-state port
-  that lasts half the interval, walking each enabled team's tenants under that team's effective settings (a disabled
-  team is skipped, and a team that fails is logged before the next one runs), each tenant in its own unit of work
+  that lasts half the interval, walking each enabled team's tenants under that team's effective settings (a team that
+  is disabled, or beneath a disabled team, is skipped, and a team that fails is logged before the next one runs), each
+  tenant in its own unit of work
   under its optimistic concurrency, and announces every tenant it changed so every replica serves its keys as they
   are. A team's settings reconciliation seeds a
   tenant whose only key for an algorithm has retired like one that never held it. Every change is an audit event,
@@ -858,6 +859,7 @@ describes the family as it is rather than its changes
   provisioner runs once the seed has committed
   ([ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
   [#166](https://github.com/NCodeGroup/Identity/issues/166)).
 
@@ -2040,12 +2042,14 @@ describes the family as it is rather than its changes
   update merge the client's document onto its tenant's effective settings, as the runtime does, and answer `400` with a
   validation problem naming the setting when a registered ID token, UserInfo or introspection signing or encryption
   algorithm is outside its effective `*_values_supported` list; the default `A128CBC-HS256` of a registered encryption
-  without an `enc` is checked the same way. A tenant settings update checks every client of the tenant, a team settings update every client of its tenants, and a platform
+  without an `enc` is checked the same way. A tenant settings update checks every client of the tenant, a team settings
+  update every client of the tenants of the team and of every team beneath it, and a platform
   settings update every client of every tenant, each answering `400` naming the list and the client when the change
   excludes an algorithm a client registers; a mismatch the change does not introduce is not reported. A mismatch is
   reported when the settings are written rather than at issuance. `OpenIdPlatform.ConfiguredSettingsProvider` holds the
   settings the platform derives from its defaults and the host's configuration, onto which its persisted settings document
-  is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
   page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
@@ -3555,6 +3559,16 @@ describes the family as it is rather than its changes
   and `GET /api/teams/{teamId}/tenants` lists them, `TenantResource` carries `teamId`, and the platform's own team
   (`TenantResolution:Root:TeamId`, default `platform`) holds the root tenant and every tenant a strategy creates
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+
+- **A team can nest beneath a parent team.** `POST /api/teams/{teamId}/teams` creates a team beneath its parent and
+  `GET /api/teams/{teamId}/teams` lists a team's child teams; `TeamResource` carries `parentTeamId`, and `GET /api/teams`
+  lists every team at every level. A team's parent is fixed when it is created, so the tree has no cycles, and a team
+  holds tenants and child teams side by side, so a customer's team is the parent of a team per product, each with its
+  own sandbox, testing and production tenants. A top-level team is at depth 1, the platform setting `max_team_depth`
+  (1 to 8; unset means 8) bounds the depth a team is created at, each team row stores its path from its top-level team
+  (`TeamPaths`), a materialized team exposes its `Parent` and `Path`, and the platform's own team holds no teams
+  ([#567](https://github.com/NCodeGroup/Identity/issues/567),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
 
 - **A team's settings cascade into its tenants.** The settings scopes are `platform`, `team`, `tenant`, `client` and
   `resource_server`; a team document carries every setting that applies beneath it, so the security profiles, ceilings

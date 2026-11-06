@@ -1441,14 +1441,9 @@ internal class ResourceServerApiEndpointHandler(
                     secretId,
                     token
                 );
-                return resourceServerSecret is null
-                    ? null
-                    : TenantOwnedResource.For(
-                        resourceServerSecret.TenantId,
-                        resourceServerSecret.Value
-                    );
+                return resourceServerSecret?.Value;
             },
-            x => ToSecretResource(x.Value),
+            ToSecretResource,
             cancellationToken
         );
     }
@@ -1481,15 +1476,10 @@ internal class ResourceServerApiEndpointHandler(
                     secretId,
                     token
                 );
-                return resourceServerSecret is null
-                    ? null
-                    : TenantOwnedResource.For(
-                        resourceServerSecret.TenantId,
-                        resourceServerSecret.Value
-                    );
+                return resourceServerSecret?.Value;
             },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value),
+            SecretPublicKeyConverter.Convert,
             cancellationToken
         );
     }

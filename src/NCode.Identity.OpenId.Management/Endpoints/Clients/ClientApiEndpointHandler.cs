@@ -1674,11 +1674,9 @@ internal class ClientApiEndpointHandler(
 
                 // The discrete getter resolves the secret together with its owning TenantId.
                 var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
-                return clientSecret is null
-                    ? null
-                    : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+                return clientSecret?.Value;
             },
-            x => ToSecretResource(x.Value),
+            ToSecretResource,
             cancellationToken
         );
     }
@@ -1713,12 +1711,10 @@ internal class ClientApiEndpointHandler(
 
                 // The discrete getter resolves the secret together with its owning TenantId.
                 var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
-                return clientSecret is null
-                    ? null
-                    : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+                return clientSecret?.Value;
             },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value),
+            SecretPublicKeyConverter.Convert,
             cancellationToken
         );
     }

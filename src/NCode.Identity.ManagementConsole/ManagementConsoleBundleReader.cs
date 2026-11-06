@@ -25,9 +25,22 @@ internal sealed class ManagementConsoleBundleReader(
 
     /// <summary>
     /// The directory beneath the bundle's root that holds its content-hashed files, which are the only files the host
-    /// serves besides the index.
+    /// serves besides the index. It is <see cref="ManagementConsoleDefaults.AssetsPath"/> without its leading
+    /// <c>/</c>, so the directory and the path under which the console serves it cannot disagree. It is a static
+    /// property rather than a constant because a constant cannot be derived from another constant's value by a string
+    /// method.
     /// </summary>
-    public const string AssetsDirectory = "assets";
+    public static string AssetsDirectory { get; } =
+        ManagementConsoleDefaults.AssetsPath.TrimStart('/');
+
+    /// <summary>
+    /// Replaces every nonce placeholder of the bundle's <c>index.html</c> with a nonce.
+    /// </summary>
+    /// <param name="html">The text of the bundle's <c>index.html</c>.</param>
+    /// <param name="nonce">The nonce of the response's Content-Security-Policy.</param>
+    /// <returns>The page that the response writes.</returns>
+    public static string RenderIndex(string html, string nonce) =>
+        html.Replace(ManagementConsoleDefaults.NoncePlaceholder, nonce, StringComparison.Ordinal);
 
     private string? RootPath { get; } =
         string.IsNullOrWhiteSpace(optionsAccessor.Value.BundleRootPath)
@@ -47,15 +60,6 @@ internal sealed class ManagementConsoleBundleReader(
 
     /// <inheritdoc />
     public void Dispose() => _assetProvider?.Dispose();
-
-    /// <summary>
-    /// Replaces every nonce placeholder of the bundle's <c>index.html</c> with a nonce.
-    /// </summary>
-    /// <param name="html">The text of the bundle's <c>index.html</c>.</param>
-    /// <param name="nonce">The nonce of the response's Content-Security-Policy.</param>
-    /// <returns>The page that the response writes.</returns>
-    public static string RenderIndex(string html, string nonce) =>
-        html.Replace(ManagementConsoleDefaults.NoncePlaceholder, nonce, StringComparison.Ordinal);
 
     /// <summary>
     /// Gets a file of the bundle's assets directory by its path relative to that directory. A path that leaves the

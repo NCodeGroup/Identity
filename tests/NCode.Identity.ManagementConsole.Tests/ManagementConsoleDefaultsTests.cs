@@ -7,6 +7,16 @@ namespace NCode.Identity.ManagementConsole.Tests;
 
 public class ManagementConsoleDefaultsTests : BaseTests
 {
+    #region AssetsPath Tests
+
+    [Fact]
+    public void AssetsPath_Always_IsRootedAtTheOrigin()
+    {
+        Assert.Equal("/assets", ManagementConsoleDefaults.AssetsPath);
+    }
+
+    #endregion
+
     #region NoncePlaceholder Tests
 
     [Fact]

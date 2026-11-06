@@ -61,6 +61,20 @@ public class ManagementConsoleBundleReaderTests : BaseTests
 
     #endregion
 
+    #region AssetsDirectory Tests
+
+    [Fact]
+    public void AssetsDirectory_Always_IsTheAssetsPathWithoutItsLeadingSlash()
+    {
+        Assert.Equal("assets", ManagementConsoleBundleReader.AssetsDirectory);
+        Assert.Equal(
+            ManagementConsoleDefaults.AssetsPath,
+            $"/{ManagementConsoleBundleReader.AssetsDirectory}"
+        );
+    }
+
+    #endregion
+
     #region TryReadIndexAsync Tests
 
     [Fact]

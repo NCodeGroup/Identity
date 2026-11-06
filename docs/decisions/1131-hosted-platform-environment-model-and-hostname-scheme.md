@@ -1,6 +1,8 @@
 # 1131. The hosted platform's environment model and hostname scheme
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): `manage.<apex>`
+  serves the management console's BFF host, and routes `/api` to the management API)
 - **Date:** 2026-10-18
 - **Deciders:** NCode Group
 

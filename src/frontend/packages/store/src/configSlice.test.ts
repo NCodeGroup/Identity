@@ -3,6 +3,7 @@ import type { RuntimeConfig } from '@ncode/config';
 import { configSlice, runtimeConfigLoaded } from './configSlice.js';
 
 const runtime: RuntimeConfig = {
+  kind: 'openid',
   apiBaseUrl: 'https://api.test',
   issuer: 'https://op.test',
   authorizationEndpoint: 'https://op.test/authorize',
@@ -24,6 +25,7 @@ describe('configSlice', () => {
   it('replaces a previously loaded configuration wholesale', () => {
     const first = configSlice.reducer(undefined, runtimeConfigLoaded(runtime));
     const next: RuntimeConfig = {
+      kind: 'openid',
       apiBaseUrl: 'https://api2.test',
       issuer: 'https://op2.test',
       authorizationEndpoint: 'https://op2.test/authorize',

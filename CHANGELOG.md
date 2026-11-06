@@ -177,13 +177,19 @@ describes the family as it is rather than its changes
   [ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
 
 - **Development seeding signs in end to end (`AddDeveloperInteractiveSeed`).** A development-only, idempotent seeder
-  provisions public (PKCE-only) single-page-application clients and a deterministic administrator user into the tenant
+  provisions public (PKCE-only) single-page-application clients, confidential BFF clients and a deterministic
+  administrator user into the tenant
   `DeveloperInteractiveSeed:TenantId` names, so the authorization-code + PKCE flow and the management console sign in
   end to end. `DeveloperInteractiveSeedOptions.SpaClients` is empty by default and the seeder registers exactly the
   clients configured under `DeveloperInteractiveSeed:SpaClients` (`DeveloperSpaClientSeed`: `ClientId`, `RedirectUris`,
-  `RequireConsent`), or none; the administrator password has no default. The reference host declares `mgmt-spa` and
-  `playground-spa` (which requires consent) in `appsettings.Development.json`, beside the `Frontend` section that
-  publishes the same client ids, and an integration test fails if the bootstrap document publishes a client id the seed
+  `RequireConsent`) and exactly the BFF clients under `DeveloperInteractiveSeed:BffClients` (`DeveloperBffClientSeed`:
+  `ClientId`, `Jwks` registered by value, `RedirectUris`, `PostLogoutRedirectUris`, `BackchannelLogoutUri`;
+  private_key_jwt, PAR and DPoP-bound tokens), or none. An existing BFF client is reconciled with its configuration:
+  a client whose settings and keys differ is replaced, and an entry that sets `ClientId` without `Jwks` or
+  `RedirectUris` is skipped with a warning. The administrator password has no default. The reference host
+  declares `playground-spa` (which requires consent) and the management console's BFF client `mgmt-console`, whose key
+  set the AppHost supplies, in `appsettings.Development.json`, beside the `Frontend` section that
+  publishes `playground-spa`, and an integration test fails if the bootstrap document publishes a client id the seed
   does not register (issues [#139](https://github.com/NCodeGroup/Identity/issues/139),
   [#133](https://github.com/NCodeGroup/Identity/issues/133),
   [ADR-1146](docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)).
@@ -200,7 +206,7 @@ describes the family as it is rather than its changes
   override: client id and scopes override the default, so a read-only surface publishes none; feature flags merge;
   branding falls back. The bootstrap types (`FrontendBootstrapOptions`, `FrontendSurfaceOptions`,
   `FrontendBrandingOptions`) are in the `NCode.Identity.Server.Frontend` namespace. The reference host's Development
-  document publishes `mgmt-spa` with the `dcr` feature flag and developer branding, `playground-spa` for the playground
+  document publishes developer branding, `playground-spa` for the playground
   and no client for the conformance dashboard, and the Vite dev servers proxy `/config/bootstrap.json` to the host
   through Aspire service discovery (`WithReference(api)`), so local development consumes the runtime endpoint.
 
@@ -265,11 +271,13 @@ describes the family as it is rather than its changes
   ([ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md), issue
   [#143](https://github.com/NCodeGroup/Identity/issues/143)). The AppHost project `NCode.Identity.OpenId.LocalDev`
   orchestrates Postgres, Valkey, the migration worker, the OpenID host (`api`), the conformance OP (`conformanceapi`),
-  the interactive-login build-watcher (`auth`) and the `mgmt`, `playground` and `conformance` Vite dev servers as one
+  the interactive-login build-watcher (`auth`), the management console host (`console`) and its build-watcher (`mgmt`),
+  and the `playground` and `conformance` Vite dev servers as one
   Aspire resource graph behind the `Aspire: Full stack (F5)` launch. Aspire starts each UI resource only once its OP is
   ready (`WithHttpHealthCheck("/health/ready")` + `WaitFor`), and its dashboard shows ordered startup, logs and traces
   in one place. Ports are pinned (`api` on `https://localhost:5001`, `conformanceapi` on `https://localhost:5003`, and
-  `mgmt`, `playground` and `conformance` on `https://localhost:5173`, `5174` and `5175`, un-proxied) so the seeded
+  `console` on `https://localhost:5005`, and `playground` and `conformance` on `https://localhost:5174` and `5175`,
+  un-proxied) so the seeded
   redirect URIs, the developer CORS origins and the browser bootstrap document stay valid. Every browser surface serves
   HTTPS with the ASP.NET Core development certificate the OP hosts use (`WithHttpsDeveloperCertificate`), so the browser
   trusts one certificate across the stack and signs in through the seeded `https://…/callback` redirect URIs; the
@@ -306,8 +314,8 @@ describes the family as it is rather than its changes
 
 - **The standalone Vite surfaces serve HTTPS outside Aspire too.** `./build/frontend-install.ps1` exports the ASP.NET
   Core development certificate as PEM, and the `ncode:serve-over-https` preset plugin serves it when `pnpm dev` runs
-  `mgmt`, `playground` or `conformance` directly, so the seeded redirect URIs and developer CORS origins for ports
-  5173–5175 are `https://` only (issue [#402](https://github.com/NCodeGroup/Identity/issues/402)).
+  `playground` or `conformance` directly, so the seeded redirect URIs and developer CORS origins for ports
+  5174–5175 are `https://` only (issue [#402](https://github.com/NCodeGroup/Identity/issues/402)).
 
 - **The host ships a production container image.** `src/NCode.Identity.OpenId.Host/Dockerfile` builds the host on the
   chiseled `aspnet:10.0-noble-chiseled-extra` runtime. The image has no shell, runs as the non-root `app` user (UID
@@ -2219,22 +2227,10 @@ describes the family as it is rather than its changes
   ([ADR-1303](docs/decisions/1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md)
   decision 6, issue [#384](https://github.com/NCodeGroup/Identity/issues/384)).
 
-- **The management console signs in with authorization code + PKCE.** The framework-free `@ncode/auth` package
+- **`@ncode/auth` holds the Playground's public-client protocol helpers.** The framework-free `@ncode/auth` package
   implements OAuth 2.0 authorization code with PKCE (`S256`): verifier and challenge generation, the authorize redirect,
   state/CSRF validation, code-for-token exchange, refresh and ID-token subject extraction, all injectable and
-  unit-tested (including the RFC 7636 test vector). The console (`@ncode/app-mgmt`) wires an `AuthGate` that completes
-  the redirect callback for a `urn:ncode:management`-audience token and populates the auth slice, or renders a sign-in
-  screen to start the flow; when no client id is discovered it runs open (local development). The SPA's public client id
-  and login scopes are discovered at runtime through the bootstrap document (issue
-  [#133](https://github.com/NCodeGroup/Identity/issues/133)).
-
-- **The management console renews its access token silently and signs out through RP-Initiated Logout.** `@ncode/auth`'s
-  framework-agnostic renewal loop (`createTokenRenewer`) refreshes the access token ahead of expiry, re-arms itself from
-  each token it receives, and falls back to interactive sign-in when renewal is not possible; the console's `AuthGate`
-  drives it while signed in (issue [#133](https://github.com/NCodeGroup/Identity/issues/133)). The header shows the
-  signed-in subject and a Sign out that clears local tokens and redirects to the OP's `end_session_endpoint` with the ID
-  token as `id_token_hint`; the auth store keeps the ID token across silent renewals for this, and `buildEndSessionUrl`
-  builds the logout URL.
+  unit-tested (including the RFC 7636 test vector).
 
 - **The management console's address bar is its navigation state.** The console routes to the caller's home,
   `/home`, and by scope and surface: `/teams`, `/settings` and `/encryption-keys` in the platform scope,
@@ -2575,6 +2571,27 @@ describes the family as it is rather than its changes
   [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
   [ADR-1440](docs/decisions/1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md),
   [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+
+- **The management console is served by a BFF host of its own.** `NCode.Identity.ManagementConsole`
+  (`AddManagementConsole(configuration)`, `MapManagementConsole()`) and `NCode.Identity.ManagementConsole.Host` serve
+  the built `apps/mgmt` bundle under a per-response CSP nonce, `/config/bootstrap.json`, the `mgmt` frontend's `/bff`
+  endpoints, and `/management/api/*` forwarded to `ManagementConsole:ManagementApiUrl` with the user's DPoP-bound
+  `urn:ncode:management` token. The console is the confidential client `mgmt-console` of the control-plane tenant
+  (`private_key_jwt`, PAR, DPoP, back-channel logout) and listens on `https://localhost:5005` under the AppHost, which
+  generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` in Production
+  ([#158](https://github.com/NCodeGroup/Identity/issues/158),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+
+- **A BFF loads its key rings from PEM files.** `Bff:KeyRings:{name}:PemFiles` registers a key ring from EC or RSA
+  private-key PEM files, each key's `kid` is its file name without the extension, and the host validates the files when
+  it starts
+  ([ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+
+- **The management console reads its session from its BFF.** The `RuntimeConfig` union and `loadBffRuntimeConfig`, the
+  `session` slice and `fetchBffUser`, `SessionGate` (poll, expiry and visibility probes, `BroadcastChannel`), sign-out
+  by the logout form, `defineBffServedSurfaceConfig` and `readCspNonce` in `@ncode/ui` give the console its session
+  from `/bff/user`
+  ([ADR-1438](docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 
 - **The BFF is proven in real browsers and against a second OpenID Provider.** The `End-to-end` check runs
   `./build/e2e.ps1`, which drives the BFF with Playwright in Chromium, Firefox and WebKit against Keycloak in a
@@ -3472,20 +3489,21 @@ describes the family as it is rather than its changes
 - **Dependabot waits three days before it offers a NuGet package, action or base image release**, and gives NCode
   Review's pin bump a group of its own.
 
-- **Every standalone frontend surface boots through one shared gate.** The Management console, the Playground and the
+- **Every frontend surface boots through one shared gate.** The Management console, the Playground and the
   conformance dashboard share `BootstrapGate` from the `@ncode/shell` workspace, the one package allowed to depend on
   both the store and the design system, which loads the runtime configuration before the app renders. Its loading and
   error views are a stateless `BootstrapScreen` in `@ncode/ui`. Each surface names itself once, in `main.tsx`, through
-  `createRuntimeConfigLoader({ surface })`, and `loadRuntimeConfig` defaults the serving origin to the page's own. One
+  `createRuntimeConfigLoader({ surface })`, or the console through `createBffRuntimeConfigLoader()`, and
+  `loadRuntimeConfig` defaults the serving origin to the page's own. One
   test suite covers the gate: a loader that ignores its abort signal and settles late never overwrites newer
   configuration, configuration that reaches the store another way clears an earlier error, and an error without a
   message shows the generic one. `SurfaceKind` is an open vocabulary, so a surface needs only its host override, not a
   change to `@ncode/config`. See [ADR-1156](docs/decisions/1156-shared-app-shell-containers-live-in-ncode-shell.md).
 
 - **Every frontend workspace builds and tests from one Vite preset.** The `@ncode/vite-config` workspace owns the test
-  gates and the two serving models, and each workspace's Vite or Vitest config is one call that states its coverage
-  floors. Every workspace collects `.test.tsx` files, including those on the `node` test environment, and the Management
-  console's dev server pins port 5173, which its redirect URI and CORS origin assume. Locally, Turborepo re-runs a
+  gates and the three serving models (standalone, backend-served and BFF-served), and each workspace's Vite or Vitest
+  config is one call that states its coverage floors. Every workspace collects `.test.tsx` files, including those on
+  the `node` test environment, and each standalone dev server pins the port its redirect URI and CORS origin assume. Locally, Turborepo re-runs a
   workspace's tests and type-check when an internal package it depends on, `tsconfig.base.json`, or `eslint.config.js`
   changes. See [ADR-1157](docs/decisions/1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md).
 
@@ -3800,6 +3818,13 @@ describes the family as it is rather than its changes
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
 
 ### Security
+
+- **The management console holds no token in the browser.** No access, refresh or ID token reaches the console's
+  script; its calls carry the `__Host-Http-bff.mgmt` cookie and the anti-forgery header, and the console's origin is
+  separate from the OP's login, consent and account pages
+  (RFC 10017,
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+  [ADR-1438](docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 
 - **Management authority comes from role assignments.** No role claim but the bootstrap administrator's `GlobalAdmin`
   confers authority; a tenant administrator reaches nothing above its tenant, so the control-plane tenant's
@@ -4949,8 +4974,7 @@ describes the family as it is rather than its changes
   or the root tenant under the dynamic strategies, so a forged or proxied `Host` cannot send the bundle to an authority
   the operator never configured. Until that tenant is provisioned, it publishes its strategy's default issuer, and when
   neither exists the endpoint answers `500` rather than guess. With `Frontend:ApiBaseUrl` unset, it publishes the host's
-  root-relative path base, never anything taken from the `Host` header, and the standalone Vite dev servers proxy
-  `/api/` to the OP host. The response is `Cache-Control: no-store`, and `Frontend:Issuer` and `Frontend:ApiBaseUrl` are
+  root-relative path base, never anything taken from the `Host` header. The response is `Cache-Control: no-store`, and `Frontend:Issuer` and `Frontend:ApiBaseUrl` are
   overrides (issues [#113](https://github.com/NCodeGroup/Identity/issues/113),
   [#442](https://github.com/NCodeGroup/Identity/issues/442),
   [ADR-1182](docs/decisions/1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md),

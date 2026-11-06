@@ -1,0 +1,42 @@
+#nullable enable
+const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.ApiBasePath = "/management" -> string!
+const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.ApiPath = "/management/api" -> string!
+const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.AssetsPath = "/assets" -> string!
+const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.BootstrapPath = "/config/bootstrap.json" -> string!
+const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.ConfigurationSectionName = "ManagementConsole" -> string!
+const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.FrontendName = "mgmt" -> string!
+const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.ManagementApiResource = "urn:ncode:management" -> string!
+const NCode.Identity.ManagementConsole.ManagementConsoleDefaults.NoncePlaceholder = "__NCODE_CSP_NONCE__" -> string!
+NCode.Identity.ManagementConsole.DefaultRegistration
+NCode.Identity.ManagementConsole.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.ManagementConsole.DefaultRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddManagementConsole(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Identity.ManagementConsole.IManagementConsoleBuilder!
+NCode.Identity.ManagementConsole.IManagementConsoleBuilder
+NCode.Identity.ManagementConsole.IManagementConsoleBuilder.IdentityBffBuilder.get -> NCode.Identity.Bff.Server.IIdentityBffBuilder!
+NCode.Identity.ManagementConsole.ManagementConsole
+NCode.Identity.ManagementConsole.ManagementConsole.ManagementConsole() -> void
+NCode.Identity.ManagementConsole.ManagementConsoleDefaults
+NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions
+NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
+NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapManagementConsole() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.DisplayName.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.DisplayName.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.LogoUrl.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.LogoUrl.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.ManagementConsoleBrandingOptions() -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.Mode.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.Mode.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.PrimaryColor.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.PrimaryColor.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.SecondaryColor.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.SecondaryColor.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.Branding.get -> NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions!
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.Branding.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.BundleRootPath.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.BundleRootPath.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.Features.get -> System.Collections.Generic.Dictionary<string!, bool>!
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.Features.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.ManagementApiUrl.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.ManagementApiUrl.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.ManagementConsoleOptions() -> void

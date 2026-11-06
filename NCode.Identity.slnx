@@ -37,6 +37,8 @@
         <Project Path="src/NCode.Identity.Jwk/NCode.Identity.Jwk.csproj" />
         <Project Path="src/NCode.Identity.Jwt.Abstractions/NCode.Identity.Jwt.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Jwt/NCode.Identity.Jwt.csproj" />
+        <Project Path="src/NCode.Identity.ManagementConsole.Host/NCode.Identity.ManagementConsole.Host.csproj" />
+        <Project Path="src/NCode.Identity.ManagementConsole/NCode.Identity.ManagementConsole.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Abstractions/NCode.Identity.OpenId.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Accounts.Abstractions/NCode.Identity.OpenId.Accounts.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Accounts.AspNetIdentity/NCode.Identity.OpenId.Accounts.AspNetIdentity.csproj" />
@@ -104,6 +106,7 @@
         <Project Path="tests/NCode.Identity.Jose.Tests/NCode.Identity.Jose.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Jwk.Tests/NCode.Identity.Jwk.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Jwt.Tests/NCode.Identity.Jwt.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.ManagementConsole.Tests/NCode.Identity.ManagementConsole.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Accounts.AspNetIdentity.Tests/NCode.Identity.OpenId.Accounts.AspNetIdentity.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Accounts.Tests/NCode.Identity.OpenId.Accounts.Tests.csproj" />
         <Project Path="tests/NCode.Identity.OpenId.Accounts.Management.Tests/NCode.Identity.OpenId.Accounts.Management.Tests.csproj" />

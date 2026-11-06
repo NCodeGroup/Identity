@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { act, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { Provider } from 'react-redux';
-import { createAppStore } from '@ncode/store';
-import type { RuntimeConfig } from '@ncode/config';
+import { createAppStore, type BffUser } from '@ncode/store';
+import type { BffRuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
 // Each surface is a lazily loaded chunk (ADR-1175). Loading the modules first lets each lazy surface resolve from the
 // module cache, so a test waits for the surface's data and render rather than a cold transform of its chunk.
@@ -15,25 +15,34 @@ import './containers/TeamDetailPage.js';
 import './containers/TeamsPage.js';
 import './containers/TenantDetailPage.js';
 
-const runtime: RuntimeConfig = {
+const runtime: BffRuntimeConfig = {
+  kind: 'bff',
   apiBaseUrl: 'https://api.test',
-  issuer: 'https://op.test',
-  authorizationEndpoint: 'https://op.test/authorize',
-  tokenEndpoint: 'https://op.test/token',
-  scopes: ['openid', 'read:clients'],
+  bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
   features: {},
+};
+
+const adminUser: BffUser = {
+  sub: 'admin-sub',
+  name: 'admin',
+  claims: {},
+  session: { expiresAt: 4_102_444_800, idleExpiresAt: 4_102_444_800 },
+  logoutUrl: '/bff/logout',
+  logoutSid: 'guard',
+};
+
+const namelessUser: BffUser = {
+  sub: adminUser.sub,
+  claims: {},
+  session: adminUser.session,
+  logoutUrl: adminUser.logoutUrl,
+  logoutSid: adminUser.logoutSid,
 };
 
 function renderApp() {
   const store = createAppStore({
     config: { runtime },
-    auth: {
-      accessToken: 'token',
-      subject: 'admin',
-      expiresAt: null,
-      refreshToken: null,
-      idToken: null,
-    },
+    session: { status: 'signed-in', user: adminUser },
   });
   return render(
     <Provider store={store}>
@@ -788,77 +797,16 @@ describe('App (caller access)', () => {
   });
 });
 
-describe('App (sign-out)', () => {
-  const originalLocation = window.location;
+describe('App (session)', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/');
+  });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    Object.defineProperty(window, 'location', { configurable: true, value: originalLocation });
   });
 
-  it('clears local tokens and redirects to the OP RP-Initiated Logout', async () => {
-    const fetchMock = vi.fn((input: RequestInfo | URL) => {
-      const url =
-        input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
-      const caller = callerResponse(url);
-      if (caller) {
-        return caller;
-      }
-      if (url.endsWith('/api/teams')) {
-        return jsonResponse({ items: [] });
-      }
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-    vi.stubGlobal('fetch', fetchMock);
-
-    const assignMock = vi.fn();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: {
-        origin: 'https://ui.test',
-        href: 'https://ui.test/teams',
-        pathname: '/teams',
-        assign: assignMock,
-      },
-    });
-
-    const store = createAppStore({
-      config: {
-        runtime: {
-          ...runtime,
-          clientId: 'mgmt-spa',
-          endSessionEndpoint: 'https://op.test/end-session',
-        },
-      },
-      auth: {
-        accessToken: 'token',
-        subject: 'admin',
-        expiresAt: null,
-        refreshToken: null,
-        idToken: 'id-token',
-      },
-    });
-    render(
-      <Provider store={store}>
-        <App />
-      </Provider>,
-    );
-
-    expect(await screen.findByTestId('session-subject')).toHaveTextContent('admin');
-    fireEvent.click(screen.getByTestId('sign-out'));
-
-    expect(store.getState().auth.accessToken).toBeNull();
-    const target = new URL(assignMock.mock.calls[0]![0] as string);
-    expect(target.origin + target.pathname).toBe('https://op.test/end-session');
-    expect(target.searchParams.get('id_token_hint')).toBe('id-token');
-    expect(target.searchParams.get('client_id')).toBe('mgmt-spa');
-    expect(target.searchParams.get('post_logout_redirect_uri')).toBe('https://ui.test/');
-  });
-
-  function renderSession(
-    preloadedRuntime: RuntimeConfig | null,
-    auth: { readonly accessToken: string | null; readonly subject: string | null },
-  ) {
+  function renderSession(session: { status: 'signed-in' | 'signed-out'; user: BffUser | null }) {
     vi.stubGlobal(
       'fetch',
       vi.fn((input: RequestInfo | URL) => {
@@ -873,64 +821,67 @@ describe('App (sign-out)', () => {
         throw new Error(`Unexpected fetch: ${url}`);
       }),
     );
-    const assign = vi.fn();
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: {
-        origin: 'https://ui.test',
-        href: 'https://ui.test/teams',
-        pathname: '/teams',
-        assign,
-      },
-    });
-    const store = createAppStore({
-      config: { runtime: preloadedRuntime },
-      auth: { ...auth, expiresAt: null, refreshToken: null, idToken: 'id-token' },
-    });
+    const store = createAppStore({ config: { runtime }, session });
     render(
       <Provider store={store}>
         <App />
       </Provider>,
     );
-    return { store, assign };
+    return store;
   }
 
-  it('clears local tokens without a redirect when the OP advertises no end_session_endpoint', async () => {
-    const { store, assign } = renderSession(
-      { ...runtime, clientId: 'mgmt-spa' },
-      { accessToken: 'token', subject: 'admin' },
-    );
+  it('labels the session with the name', async () => {
+    renderSession({
+      status: 'signed-in',
+      user: { ...adminUser, name: 'Ada Admin', claims: { preferred_username: 'ada' } },
+    });
+    expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
+
+    expect(screen.getByTestId('session-subject')).toHaveTextContent('Ada Admin');
+  });
+
+  it('labels the session with the preferred_username claim when the user has no name', async () => {
+    renderSession({
+      status: 'signed-in',
+      user: { ...namelessUser, claims: { preferred_username: 'ada' } },
+    });
+    expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
+
+    expect(screen.getByTestId('session-subject')).toHaveTextContent('ada');
+  });
+
+  it('labels the session with the subject when there is neither a name nor a username', async () => {
+    renderSession({
+      status: 'signed-in',
+      user: { ...namelessUser, claims: { preferred_username: 42 } },
+    });
+    expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
+
+    expect(screen.getByTestId('session-subject')).toHaveTextContent('admin-sub');
+  });
+
+  it('signs out by posting the BFF logout form', async () => {
+    const submitted: HTMLFormElement[] = [];
+    vi.spyOn(HTMLFormElement.prototype, 'submit').mockImplementation(function (
+      this: HTMLFormElement,
+    ) {
+      submitted.push(this);
+    });
+    renderSession({ status: 'signed-in', user: adminUser });
     expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('sign-out'));
 
-    expect(store.getState().auth.accessToken).toBeNull();
-    expect(assign).not.toHaveBeenCalled();
-    expect(screen.queryByTestId('sign-out')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('session-subject')).not.toBeInTheDocument();
-  });
-
-  it('clears local tokens without a redirect when no runtime config is loaded', async () => {
-    const { store, assign } = renderSession(null, { accessToken: 'token', subject: 'admin' });
-    // Without discovered config there is no API base URL, so the team list cannot load.
-    expect(await screen.findByTestId('data-error')).toHaveTextContent('Failed to load teams.');
-
-    fireEvent.click(screen.getByTestId('sign-out'));
-
-    expect(store.getState().auth.accessToken).toBeNull();
-    expect(assign).not.toHaveBeenCalled();
-  });
-
-  it('offers sign-out without a subject label when the session has no subject', async () => {
-    renderSession(runtime, { accessToken: 'token', subject: null });
-    expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
-
-    expect(screen.getByTestId('sign-out')).toBeInTheDocument();
-    expect(screen.queryByTestId('session-subject')).not.toBeInTheDocument();
+    expect(submitted).toHaveLength(1);
+    const form = submitted[0]!;
+    expect(form.method).toBe('post');
+    expect(form.getAttribute('action')).toBe('/bff/logout');
+    const fields = Object.fromEntries(new FormData(form).entries());
+    expect(fields).toEqual({ sid: 'guard', returnUrl: '/' });
   });
 
   it('hides the session controls when no one is signed in', async () => {
-    renderSession(runtime, { accessToken: null, subject: 'admin' });
+    renderSession({ status: 'signed-out', user: null });
     expect(await screen.findByText('No teams exist yet.')).toBeInTheDocument();
 
     expect(screen.queryByTestId('sign-out')).not.toBeInTheDocument();

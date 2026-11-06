@@ -8,15 +8,13 @@ import type {
   PublicKeyResource,
   SecretResource,
 } from '@ncode/api';
-import type { RuntimeConfig } from '@ncode/config';
+import type { BffRuntimeConfig } from '@ncode/config';
 import { SecretsManager, type SecretsManagerProps } from './SecretsManager.js';
 
-const runtime: RuntimeConfig = {
+const runtime: BffRuntimeConfig = {
+  kind: 'bff',
   apiBaseUrl: 'https://api.test',
-  issuer: 'https://op.test',
-  authorizationEndpoint: 'https://op.test/authorize',
-  tokenEndpoint: 'https://op.test/token',
-  scopes: ['openid'],
+  bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
   features: {},
 };
 

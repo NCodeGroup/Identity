@@ -5,7 +5,9 @@
   Podman) is required** — reversing this ADR's original "no container-runtime prerequisite" note; amended by
   [ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): the AppHost prepends the
   newest NVS install of the major pinned in `src/frontend/.node-version`, where `build/frontend-install.ps1` installs
-  the pinned pnpm, and Corepack is no longer involved)
+  the pinned pnpm, and Corepack is no longer involved; amended by
+  [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the AppHost runs
+  the management console's BFF host on `https://localhost:5005` and build-watches `apps/mgmt`)
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 

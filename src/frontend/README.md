@@ -76,7 +76,7 @@ src/frontend/
     test-support/ @ncode/test-support — test-only Vitest support shared by every workspace (the console guard and the Testing Library wait timeout)
     vite-config/  @ncode/vite-config — the Vite/Vitest preset every workspace builds and tests from
   apps/
-    mgmt/     @ncode/app-mgmt — Management console
+    mgmt/     @ncode/app-mgmt — Management console (served by its BFF host, `NCode.Identity.ManagementConsole.Host`)
     auth/     @ncode/app-auth — Interactive login/consent surface (OP-hosted under /account/*)
     playground/   @ncode/app-playground — OAuth 2.1 / OIDC authorization-code + PKCE flow explorer (dev server :5174)
     conformance/  @ncode/app-conformance — Security-posture & conformance-readiness dashboard (dev server :5175)
@@ -125,7 +125,7 @@ Run from `src/frontend/`:
 ```sh
 pnpm install              # install the workspace
 pnpm dev                  # run the WHOLE frontend stack (Turborepo): dev servers + build-watch
-pnpm --filter @ncode/app-mgmt dev    # run just the Management console
+pnpm --filter @ncode/app-mgmt dev    # build-watch the Management console's dist (its BFF host serves it)
 pnpm test                 # run all unit tests
 pnpm run test:report      # same, plus per-package JUnit (test-results/) and coverage (coverage/) — what CI runs;
                           # every package runs to completion even when one fails, so the report is never truncated;
@@ -179,14 +179,21 @@ served:
   builds with a relative base: the host serves the bundle beneath each tenant's route and sets the document's
   `<base href>` there. The host serves only the bundle's `assets` directory, its content-hashed files, and marks them
   immutable, so the preset pins `build.assetsDir` to `assets` (ADR-1254).
-- **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/mgmt`) — use **`vite`**,
+- **BFF-served SPAs** — served by their own BFF host from a static `dist` at the root of its origin (`apps/mgmt`,
+  which `NCode.Identity.ManagementConsole.Host` serves) — use **`vite build --watch`**, like the backend-served SPAs. Their
+  config is `defineBffServedSurfaceConfig({ coverage })`, which builds with the base `/` and writes the nonce placeholder
+  (`CSP_NONCE_PLACEHOLDER`) on every script and modulepreload link and on a `<meta property="csp-nonce">`; the console
+  host writes each response's nonce in its place (ADR-1256, [ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+- **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/playground`) — use **`vite`**,
   a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
   the bootstrap document to the OP host (see [Runtime configuration](#runtime-configuration)).
 
 ## Runtime configuration
 
-The serving host must publish `/config/bootstrap.json`:
+The serving host must publish `/config/bootstrap.json`. The OpenID Provider host publishes the document of a public-client
+surface; a BFF host publishes the document of its BFF-served surface, which names the BFF and carries no client id,
+issuer or scope:
 
 ```json
 {
@@ -197,8 +204,23 @@ The serving host must publish `/config/bootstrap.json`:
 }
 ```
 
-Unless `Frontend:ApiBaseUrl` is set, the host publishes its root-relative path base, and the standalone dev servers proxy
-`/api/` and `/config/bootstrap.json` to the OP host.
+```json
+{
+  "apiBaseUrl": "/management",
+  "bff": { "basePath": "/bff", "antiforgeryHeader": { "name": "X-CSRF", "value": "1" } },
+  "features": {},
+  "branding": { "displayName": "Acme", "primaryColor": "#6750A4", "mode": "light" }
+}
+```
+
+`@ncode/config` models the runtime configuration as a union discriminated by `kind`: `OpenIdRuntimeConfig`
+(`kind: 'openid'`, from `createRuntimeConfigLoader`, which also reads the issuer's OpenID discovery) and
+`BffRuntimeConfig` (`kind: 'bff'`, from `createBffRuntimeConfigLoader`, which fetches only the bootstrap document and no
+discovery).
+
+Unless `Frontend:ApiBaseUrl` is set, the OP host publishes its root-relative path base, and the standalone dev servers
+proxy only `/config/bootstrap.json` to the OP host. The console host publishes `/management` as its API base, the path
+it forwards to the management API.
 
 Every bundle gets this document from the host at runtime — there is no static dev copy to drift.
 
@@ -223,7 +245,8 @@ unfinished load and starts over.
 > (`FrontendBootstrapOptions.Surfaces`) so every surface gets its **own** public client id and scopes from the one
 > endpoint — the Playground discovers `playground-spa`, while the read-only conformance dashboard gets no client at all
 > ([ADR-1082](../../docs/decisions/1082-playground-and-conformance-surfaces.md)). A surface with no override, or no
-> `?surface=`, receives the host default (the Management console's). `SurfaceKind` is an open vocabulary: it lists the
+> `?surface=`, receives the host default, which is the OP's: it names no client and no feature flag, and serves the
+> public-client and read-only surfaces only. `SurfaceKind` is an open vocabulary: it lists the
 > shipped surfaces but accepts any name, so a new surface needs only its host override, not a change to
 > `@ncode/config`.
 
@@ -236,41 +259,61 @@ serving request's own origin, so a single-origin host needs no configuration
 
 - **Backend-served bundles** (e.g. `apps/auth`, served by the OpenID Provider host) fetch the document
   straight from their serving host.
-- **Standalone bundles** (e.g. `apps/mgmt`, served by its own Vite dev server) don't share the OP's origin, so the
+- **BFF-served bundles** (`apps/mgmt`, served by `NCode.Identity.ManagementConsole.Host`) fetch the BFF document from
+  the console host that serves them, at its own origin; they send no `?surface=`.
+- **Standalone bundles** (e.g. `apps/playground`, served by its own Vite dev server) don't share the OP's origin, so the
   Vite dev server **proxies** `/config/bootstrap.json` to the OP host instead of shipping a static copy (the
   `bootstrapHost` of `defineStandaloneSurfaceConfig` in [`@ncode/vite-config`](packages/vite-config/src/preset.ts)).
   The proxy target comes from the Aspire service-discovery variable the surface's resource receives via
   `WithReference(api)` ([ADR-1071](../../docs/decisions/1071-aspire-local-dev-orchestrator.md)), falling back to the pinned
   origin (`https://localhost:5001`) when run outside Aspire — so local dev exercises the real runtime endpoint.
 
-## Authentication (authorization-code + PKCE)
+## Sessions
 
-The Management console authenticates with OAuth 2.0 **authorization-code + PKCE** to obtain a
-`urn:ncode:management`-audience access token (authority is role-based `GlobalAdmin`; any management
-scope binds the audience — see [ADR-1044](../../docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md)).
+The Management console holds no token. Its BFF host (`NCode.Identity.ManagementConsole.Host`) is the confidential client
+`mgmt-console` of the control-plane tenant; the browser holds only the BFF's session cookie, and the BFF obtains the
+`urn:ncode:management`-audience access token it presents to the management API (authority is role-based `GlobalAdmin`;
+any management scope binds the audience — see [ADR-1044](../../docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md),
+[ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+[ADR-1438](../../docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 
-- `@ncode/auth` is a framework-free, fully unit-tested package: PKCE (`generateCodeVerifier`,
-  `deriveCodeChallenge`), the authorize redirect, `state` CSRF validation, `exchangeCodeForToken` /
-  `refreshAccessToken`, and `getSubject` (JWT claims). Randomness, SHA-256, `fetch`, and storage are
-  all injected.
-- The app's `AuthGate` completes the redirect callback into the `auth` slice, or shows the sign-in
-  screen to start the flow. **When no `clientId` is discovered it runs open** (local dev), so the
-  console renders without a login.
-- The SPA's public `clientId` and `scopes` come from the runtime bootstrap document — nothing is baked
-  in. End-to-end sign-in additionally needs a registered public SPA client and the OP-hosted interactive login
-  surface (`apps/auth`). In development the host declares each surface's client under
-  `DeveloperInteractiveSeed:SpaClients` (seeded by `AddDeveloperInteractiveSeed`), beside the `Frontend` section that
-  publishes the same client id; the reference host does both in its `appsettings.Development.json`, where
-  `playground-spa` requires consent so the flow explorer exercises the consent surface. The seed has no built-in
-  clients ([ADR-1146](../../docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)),
-  so a surface you add needs both entries.
+- The app's `SessionGate` probes the BFF's `/bff/user` and renders the console while a session exists and the sign-in
+  screen otherwise. The sign-in button navigates to `/bff/login?returnUrl=<path>`, and the BFF's `?error=` code shows on
+  the screen as "Sign-in failed (<code>)."
+- Every call to the BFF and to the forwarded management API (`/management/*`) is same-origin, carries the cookie and
+  the anti-forgery header the bootstrap document names (`X-CSRF`), and never an `Authorization` header. A `401` from the
+  management API dispatches `sessionEnded()`, which returns the console to its sign-in screen ("Your session ended. Sign
+  in to continue.").
+- Signing out posts the BFF's logout form (`sid`, `returnUrl=/`) to the `logoutUrl` that `/bff/user` reports; the BFF ends
+  its session and signs out at the OpenID Provider.
+- While signed in, the gate probes `/bff/user` every 60 seconds, one second after the earlier of the session's idle and
+  absolute expiry, and when a hidden tab becomes visible. A tab that learns its session ended tells the console's other
+  tabs through the `BroadcastChannel` `ncode.mgmt.session`, so they return to the sign-in screen without a request
+  ([ADR-1434](../../docs/decisions/1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md)).
+- On a developer machine the OP cannot deliver back-channel logout to the console (its outbound guard never reaches
+  loopback addresses), so a tab learns that a session ended from its next probe.
+
+The Playground stays a public client on purpose: it drives a live authorization-code + PKCE round trip against the OP
+from the browser, so it keeps `@ncode/auth`, the framework-free package of the protocol helpers: PKCE
+(`generateCodeVerifier`, `deriveCodeChallenge`), the authorize and end-session URLs, callback parsing and the token
+requests (`exchangeCodeForToken`, `refreshAccessToken`). Randomness, SHA-256 and `fetch` are all injected.
+
+- The Playground's public `clientId` and `scopes` come from the runtime bootstrap document — nothing is baked in.
+  End-to-end sign-in additionally needs a registered public SPA client and the OP-hosted interactive login surface
+  (`apps/auth`). In development the host declares each surface's client under `DeveloperInteractiveSeed:SpaClients`
+  (seeded by `AddDeveloperInteractiveSeed`), beside the `Frontend` section that publishes the same client id; the
+  reference host does both in its `appsettings.Development.json`, where `playground-spa` requires consent so the flow
+  explorer exercises the consent surface. The seed has no built-in clients
+  ([ADR-1146](../../docs/decisions/1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md)),
+  so a surface you add needs both entries. The console's client is a `DeveloperInteractiveSeed:BffClients` entry.
 
 ## Running the full stack (VS Code F5)
 
 Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a **.NET Aspire** AppHost
 ([ADR-1071](../../docs/decisions/1071-aspire-local-dev-orchestrator.md)) that orchestrates the whole local stack
 as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), the
-Management console Vite dev server (`mgmt`), the flow-explorer Vite dev server (`playground`, :5174), and the
+Management console's build-watcher (`mgmt`) and its BFF host (`console`, `https://localhost:5005`), the flow-explorer Vite
+dev server (`playground`, :5174), and the
 conformance-dashboard Vite dev server (`conformance`, :5175). Aspire gates each UI resource on the API being
 **healthy** (`WaitFor` + `/health/ready`), so no browser UI races the API, and its **dashboard** is one place
 for ordered startup, logs, and traces.
@@ -296,17 +339,19 @@ last `pnpm-lock.yaml` change
 Each app keeps its own `dev` script per its serving model (see "The `dev` script encodes each app's serving
 model" above): the interactive login surface (`apps/auth`) build-watches into its `dist`, which the Playground
 serves under `/account/*` — on a cold start give its first build a moment, then refresh `/account/login` if you
-beat it there; `apps/mgmt` is a standalone HMR dev server pinned to `https://localhost:5173`, served with the ASP.NET
-Core development certificate (`dotnet dev-certs https --trust`). Run directly with `pnpm dev`, every standalone
-surface (`mgmt`, `playground`, `conformance`) serves HTTPS from the certificate `./build/frontend-install.ps1` exports
+beat it there; `apps/mgmt` build-watches into its `dist`, which the console host (`console`, `https://localhost:5005`)
+serves together with its `/bff/*` endpoints and the forwarded management API, so a browser refresh shows an edit once the
+rebuild finishes (on a cold start give its first build a moment, as for `auth`). Run directly with `pnpm dev`, every
+standalone surface (`playground`, `conformance`) serves HTTPS from the certificate `./build/frontend-install.ps1` exports
 as PEM to `~/.ncode/identity/dev-cert` (override the directory with `NCODE_DEV_CERT_DIR`), and the dev server stops
 with an error naming that script when the files are missing; under Aspire the AppHost's certificate
-(`TLS_CONFIG_PFX`) is used instead. Adding a surface is one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
+(`TLS_CONFIG_PFX`) is used instead. The ASP.NET Core development certificate (`dotnet dev-certs https --trust`) serves the
+.NET hosts. Adding a surface is one `AddViteApp`/`AddJavaScriptApp` line in the AppHost.
 
-> Dev connectivity: the Playground opts into `AddDeveloperCors` so the browser UI (`https://localhost:5173`) can read
-> discovery and call the management API cross-origin. Without a seeded public SPA client the UI renders in **open
-> mode** and management calls return `401`; the development seeder (`AddDeveloperInteractiveSeed`) and the interactive
-> login surface ([#125](https://github.com/NCodeGroup/Identity/issues/125)) provide local end-to-end sign-in (issues [#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139)).
+> Dev connectivity: the console signs in through the OP at `https://localhost:5001` as a confidential client the
+> development seeder (`AddDeveloperInteractiveSeed`) registers, and the interactive login surface
+> ([#125](https://github.com/NCodeGroup/Identity/issues/125)) provides local end-to-end sign-in (issues [#133](https://github.com/NCodeGroup/Identity/issues/133)/[#139](https://github.com/NCodeGroup/Identity/issues/139)).
+> The AppHost generates the console's private_key_jwt and DPoP keys, so no manual key setup is needed.
 
 ## Gotchas (hard-won)
 
@@ -381,16 +426,16 @@ with an error naming that script when the files are missing; under Aspire the Ap
   (the browser is a single consistent realm); any app whose tests exercise RTK Query needs the same
   setup shim.
 - **Single-use side effects must be guarded by a run-once ref, not an effect-cancellation flag.**
-  React StrictMode (on in dev via [`apps/mgmt/src/main.tsx`](apps/mgmt/src/main.tsx)) intentionally
+  React StrictMode (on in dev via [`apps/playground/src/main.tsx`](apps/playground/src/main.tsx)) intentionally
   double-invokes every effect (setup → cleanup → setup) on the same component instance. An effect that
-  consumes a **one-shot** resource — e.g. [`AuthGate`](apps/mgmt/src/AuthGate.tsx) completing the
-  authorization-code callback, which spends a single-use `code` and removes the one-shot PKCE
+  consumes a **one-shot** resource — e.g. the Playground's [`FlowExplorer`](apps/playground/src/containers/FlowExplorer.tsx)
+  completing the authorization-code callback, which spends a single-use `code` and removes the one-shot PKCE
   transaction from `sessionStorage` — must run **exactly once**. A `let cancelled = false` + cleanup
   flag does **not** achieve this: the second invocation re-enters the effect body and re-reads the
   already-consumed resource, dead-ending (here, on _"No in-flight authorization transaction was
   found."_). Guard with a `useRef(false)` set the moment the work starts; refs persist across the
   StrictMode remount, so the second invocation short-circuits. Set the ref only when the work actually
-  begins (not on an early bail-out such as pre-discovery `authConfig === null`) so the single attempt
+  begins (not on an early bail-out such as a page that is not a callback) so the single attempt
   is not wasted.
 - **A test that a superseded async result is dropped must settle it last.** When a container abandons one load for
   another, settle the current load first and the abandoned one afterwards (inside `act`), then assert the state still

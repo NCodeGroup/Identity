@@ -89,6 +89,102 @@ public class DeveloperInteractiveSeedOptionsTests
 
     #endregion
 
+    #region BffClients Tests
+
+    [Fact]
+    public void BffClients_ByDefault_IsEmpty()
+    {
+        var options = new DeveloperInteractiveSeedOptions();
+
+        Assert.Empty(options.BffClients);
+    }
+
+    [Fact]
+    public void BffClients_WhenBoundFromConfiguration_HoldsExactlyTheConfiguredClients()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["DeveloperInteractiveSeed:BffClients:0:ClientId"] = "custom-bff",
+                    ["DeveloperInteractiveSeed:BffClients:0:Jwks"] = "{\"keys\":[]}",
+                    ["DeveloperInteractiveSeed:BffClients:0:RedirectUris:0"] =
+                        "https://localhost:6000/bff/callback",
+                    ["DeveloperInteractiveSeed:BffClients:0:PostLogoutRedirectUris:0"] =
+                        "https://localhost:6000/",
+                    ["DeveloperInteractiveSeed:BffClients:0:BackchannelLogoutUri"] =
+                        "https://localhost:6000/bff/backchannel-logout",
+                }
+            )
+            .Build();
+        var options = new DeveloperInteractiveSeedOptions();
+
+        configuration
+            .GetSection(DeveloperInteractiveSeedOptions.DefaultSectionName)
+            .BindStrictly(options);
+
+        var client = Assert.Single(options.BffClients);
+        Assert.Equal("custom-bff", client.ClientId);
+        Assert.Equal("{\"keys\":[]}", client.Jwks);
+        Assert.Equal(["https://localhost:6000/bff/callback"], client.RedirectUris);
+        Assert.Equal(["https://localhost:6000/"], client.PostLogoutRedirectUris);
+        Assert.Equal("https://localhost:6000/bff/backchannel-logout", client.BackchannelLogoutUri);
+    }
+
+    [Fact]
+    public void ShouldSeed_WhenBffClientHasClientIdKeySetAndRedirectUri_IsTrue()
+    {
+        var client = new DeveloperBffClientSeed
+        {
+            ClientId = "mgmt-console",
+            Jwks = "{\"keys\":[]}",
+            RedirectUris = ["https://localhost:5005/bff/callback"],
+        };
+
+        Assert.True(client.ShouldSeed);
+    }
+
+    [Fact]
+    public void ShouldSeed_WhenBffClientIdEmpty_IsFalse()
+    {
+        var client = new DeveloperBffClientSeed
+        {
+            ClientId = null,
+            Jwks = "{\"keys\":[]}",
+            RedirectUris = ["https://localhost:5005/bff/callback"],
+        };
+
+        Assert.False(client.ShouldSeed);
+    }
+
+    [Fact]
+    public void ShouldSeed_WhenBffClientKeySetEmpty_IsFalse()
+    {
+        var client = new DeveloperBffClientSeed
+        {
+            ClientId = "mgmt-console",
+            Jwks = null,
+            RedirectUris = ["https://localhost:5005/bff/callback"],
+        };
+
+        Assert.False(client.ShouldSeed);
+    }
+
+    [Fact]
+    public void ShouldSeed_WhenBffClientHasNoRedirectUris_IsFalse()
+    {
+        var client = new DeveloperBffClientSeed
+        {
+            ClientId = "mgmt-console",
+            Jwks = "{\"keys\":[]}",
+            RedirectUris = [],
+        };
+
+        Assert.False(client.ShouldSeed);
+    }
+
+    #endregion
+
     #region SeedAdminUser Tests
 
     [Fact]

@@ -1,11 +1,12 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppThemeProvider } from '@ncode/ui';
-import type { RuntimeConfig } from '@ncode/config';
+import type { OpenIdRuntimeConfig } from '@ncode/config';
 import { ConformanceDashboard, type ConformanceDashboardProps } from './ConformanceDashboard.js';
 import type { RawDiscovery } from '@ncode/conformance-core';
 
-const runtime: RuntimeConfig = {
+const runtime: OpenIdRuntimeConfig = {
+  kind: 'openid',
   apiBaseUrl: 'https://op.test',
   issuer: 'https://op.test',
   authorizationEndpoint: 'https://op.test/authorize',

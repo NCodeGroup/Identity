@@ -3,15 +3,13 @@ import { render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore, managementApi } from '@ncode/store';
 import type { SecretOwner, SecretResource } from '@ncode/api';
-import type { RuntimeConfig } from '@ncode/config';
+import type { BffRuntimeConfig } from '@ncode/config';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 
-const runtime: RuntimeConfig = {
+const runtime: BffRuntimeConfig = {
+  kind: 'bff',
   apiBaseUrl: 'https://api.test',
-  issuer: 'https://op.test',
-  authorizationEndpoint: 'https://op.test/authorize',
-  tokenEndpoint: 'https://op.test/token',
-  scopes: ['openid'],
+  bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
   features: {},
 };
 

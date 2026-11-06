@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <RootNamespace>NCode.Identity.ManagementConsole</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\NCode.AspNetCore\NCode.AspNetCore.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Bff\NCode.Identity.Bff.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Bff.Server\NCode.Identity.Bff.Server.csproj" />
+        <ProjectReference Include="..\NCode.Registration\NCode.Registration.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" PrivateAssets="All" />
+    </ItemGroup>
+</Project>

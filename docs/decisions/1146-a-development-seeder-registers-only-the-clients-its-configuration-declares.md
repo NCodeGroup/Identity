@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amends [ADR-1082](1082-playground-and-conformance-surfaces.md); amended by
   [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md): the
-  developer CORS origins move to the host's overlay)
+  developer CORS origins move to the host's overlay; and by
+  [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the seeder also
+  registers the confidential BFF clients its configuration declares)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 
@@ -69,8 +71,9 @@ library has no default; the host's environment overlay declares the entries.
   integration tests behave as before.
 - The Conformance environment no longer receives the two loopback SPA clients. It holds only the conformance clients
   its own overlay declares.
-- The seeder is add-only and idempotent, so a development database keeps any client seeded earlier.
-  `build/dev-db-reset.ps1` purges it.
+- The seeder is idempotent. It never changes a stored SPA client, and it reconciles a stored BFF client with its
+  configuration, replacing one that differs together with its grants, codes and tokens. A development database keeps
+  every other client seeded earlier. `build/dev-db-reset.ps1` purges the rest.
 - The public API is unchanged. Only the initial value of `SpaClients` changed.
 
 ## References

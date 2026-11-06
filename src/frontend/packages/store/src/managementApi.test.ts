@@ -6,36 +6,25 @@ import type {
   ManagementOwner,
   SecretOwner,
 } from '@ncode/api';
-import type { RuntimeConfig } from '@ncode/config';
+import type { BffRuntimeConfig } from '@ncode/config';
 import { createAppStore, type AppStore } from './store.js';
 import { managementApi } from './managementApi.js';
 
-const runtime: RuntimeConfig = {
+const runtime: BffRuntimeConfig = {
+  kind: 'bff',
   apiBaseUrl: 'https://api.test',
-  issuer: 'https://op.test',
-  authorizationEndpoint: 'https://op.test/authorize',
-  tokenEndpoint: 'https://op.test/token',
-  scopes: ['openid'],
+  bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
   features: {},
 };
 
 function createStore() {
-  return createAppStore({
-    config: { runtime },
-    auth: {
-      accessToken: 'token-123',
-      subject: 'admin',
-      expiresAt: null,
-      refreshToken: null,
-      idToken: null,
-    },
-  });
+  return createAppStore({ config: { runtime } });
 }
 
 type CapturedRequest = {
   readonly url: string;
   readonly method: string;
-  readonly authorization: string | null;
+  readonly antiforgery: string | null;
   readonly ifMatch: string | null;
   readonly body: string;
 };
@@ -47,7 +36,7 @@ function mockFetch(response: Response) {
     captured.push({
       url: request.url,
       method: request.method,
-      authorization: request.headers.get('authorization'),
+      antiforgery: request.headers.get('x-csrf'),
       ifMatch: request.headers.get('if-match'),
       body: await request.clone().text(),
     });
@@ -113,7 +102,7 @@ describe('managementApi tenant mutations', () => {
     vi.unstubAllGlobals();
   });
 
-  it('createTenant POSTs the request body with the bearer token', async () => {
+  it('createTenant POSTs the request body with the anti-forgery header', async () => {
     const captured = mockFetch(
       new Response(
         JSON.stringify({
@@ -147,7 +136,7 @@ describe('managementApi tenant mutations', () => {
     expect(captured).toHaveLength(1);
     expect(captured[0]?.url).toBe('https://api.test/api/teams/acme/tenants');
     expect(captured[0]?.method).toBe('POST');
-    expect(captured[0]?.authorization).toBe('Bearer token-123');
+    expect(captured[0]?.antiforgery).toBe('1');
     expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({
       tenantId: 'new',
       issuer: 'https://new.auth.test',
@@ -199,7 +188,7 @@ describe('managementApi tenant mutations', () => {
     expect(captured).toHaveLength(1);
     expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme');
     expect(captured[0]?.method).toBe('DELETE');
-    expect(captured[0]?.authorization).toBe('Bearer token-123');
+    expect(captured[0]?.antiforgery).toBe('1');
   });
 });
 
@@ -1169,15 +1158,16 @@ describe('managementApi query request shapes', () => {
     vi.unstubAllGlobals();
   });
 
-  it.each(queryRequestCases)('$name GETs $url with the bearer token', async ({ url, run }) => {
-    const captured = mockFetch(jsonResponse({}));
+  it.each(queryRequestCases)(
+    '$name GETs $url with the anti-forgery header',
+    async ({ url, run }) => {
+      const captured = mockFetch(jsonResponse({}));
 
-    await run(createStore());
+      await run(createStore());
 
-    expect(captured).toEqual([
-      { url, method: 'GET', authorization: 'Bearer token-123', ifMatch: null, body: '' },
-    ]);
-  });
+      expect(captured).toEqual([{ url, method: 'GET', antiforgery: '1', ifMatch: null, body: '' }]);
+    },
+  );
 });
 
 type MutationRequestCase = {
@@ -1319,7 +1309,7 @@ describe('managementApi tenant resource mutations', () => {
       expect(captured).toHaveLength(1);
       expect(captured[0]?.method).toBe(method);
       expect(captured[0]?.url).toBe(url);
-      expect(captured[0]?.authorization).toBe('Bearer token-123');
+      expect(captured[0]?.antiforgery).toBe('1');
     },
   );
 });

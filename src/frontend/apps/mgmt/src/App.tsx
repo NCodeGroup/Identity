@@ -2,17 +2,11 @@ import { Fragment, lazy, Suspense, useEffect } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import {
-  signedOut,
-  useAppDispatch,
-  useAppSelector,
-  useGetTeamQuery,
-  useGetTenantQuery,
-} from '@ncode/store';
+import { useAppSelector, useGetTeamQuery, useGetTenantQuery } from '@ncode/store';
 import { AppLayout } from './components/AppLayout.js';
 import { permittedRoute, teamExit, tenantExit } from './access.js';
 import { useCallerAccess } from './useCallerAccess.js';
-import { endSessionUrlFromRuntime } from './auth.js';
+import { announceSessionEnded, submitLogout } from './session.js';
 import { useConsoleRoute, navigateTo } from './navigation.js';
 import {
   HOME_ROUTE,
@@ -73,11 +67,13 @@ const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surf
  * surface and tab changes to navigation.
  */
 export function App() {
-  const dispatch = useAppDispatch();
-  const runtime = useAppSelector((state) => state.config.runtime);
-  const subject = useAppSelector((state) => state.auth.subject);
-  const idToken = useAppSelector((state) => state.auth.idToken);
-  const isSignedIn = useAppSelector((state) => state.auth.accessToken !== null);
+  const user = useAppSelector((state) => state.session.user);
+  const isSignedIn = useAppSelector((state) => state.session.status === 'signed-in');
+
+  // The signed-in user's label: the display name, else the preferred username, else the subject.
+  const preferredUsername = user?.claims['preferred_username'];
+  const subject =
+    user?.name ?? (typeof preferredUsername === 'string' ? preferredUsername : user?.sub);
 
   const route = useConsoleRoute();
   const scope = route.kind === 'home' ? undefined : routeScope(route);
@@ -103,14 +99,12 @@ export function App() {
     skip: tenantId === undefined,
   });
 
-  // Clear local tokens, then hand off to the OP's RP-Initiated Logout so the server session and its
-  // participating relying parties are also ended; when no end_session_endpoint is advertised, clearing
-  // local state alone returns the app to the sign-in screen.
+  // Tell the other tabs the session ended, then post the BFF's logout form: the BFF ends its session, revokes its
+  // refresh token and runs RP-Initiated Logout at the OP, which returns the browser to the console's sign-in screen.
   const handleSignOut = () => {
-    const endSessionUrl = runtime ? endSessionUrlFromRuntime(runtime, idToken) : null;
-    dispatch(signedOut());
-    if (endSessionUrl) {
-      window.location.assign(endSessionUrl);
+    if (user) {
+      announceSessionEnded();
+      submitLogout(user);
     }
   };
 

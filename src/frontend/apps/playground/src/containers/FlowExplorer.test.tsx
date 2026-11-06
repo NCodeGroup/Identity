@@ -4,12 +4,13 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi, type Mock } from 'vitest';
 import { AppThemeProvider } from '@ncode/ui';
 import type { FetchLike } from '@ncode/auth';
-import type { RuntimeConfig } from '@ncode/config';
+import type { OpenIdRuntimeConfig } from '@ncode/config';
 import { FlowExplorer, type FlowExplorerProps } from './FlowExplorer.js';
 import { AuthError, TRANSACTION_KEY, type FlowDeps, type FlowTransaction } from '../flow.js';
 
 /** The OP coordinates every runtime shares; the optional endpoints and client id are layered on per test. */
-const minimalRuntime: RuntimeConfig = {
+const minimalRuntime: OpenIdRuntimeConfig = {
+  kind: 'openid',
   apiBaseUrl: 'https://op.test',
   issuer: 'https://op.test',
   authorizationEndpoint: 'https://op.test/authorize',
@@ -18,7 +19,7 @@ const minimalRuntime: RuntimeConfig = {
   features: {},
 };
 
-const runtime: RuntimeConfig = {
+const runtime: OpenIdRuntimeConfig = {
   ...minimalRuntime,
   endSessionEndpoint: 'https://op.test/end-session',
   userInfoEndpoint: 'https://op.test/userinfo',

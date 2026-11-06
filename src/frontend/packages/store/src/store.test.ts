@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { RuntimeConfig } from '@ncode/config';
-import { signedIn } from './authSlice.js';
 import { runtimeConfigLoaded } from './configSlice.js';
 import { managementApi } from './managementApi.js';
+import { sessionEnded, sessionStarted, type BffUser } from './sessionSlice.js';
 import { createAppStore } from './store.js';
 
 const runtime: RuntimeConfig = {
+  kind: 'openid',
   apiBaseUrl: 'https://api.test',
   issuer: 'https://op.test',
   authorizationEndpoint: 'https://op.test/authorize',
@@ -14,49 +15,49 @@ const runtime: RuntimeConfig = {
   features: {},
 };
 
+const user: BffUser = {
+  sub: 'admin',
+  claims: {},
+  session: { expiresAt: 2_000_000_000, idleExpiresAt: 1_900_000_000 },
+  logoutUrl: '/bff/logout',
+  logoutSid: 'sid-1',
+};
+
 type ApiState = ReturnType<typeof managementApi.reducer>;
 
 describe('createAppStore', () => {
-  it('starts with empty config and anonymous auth when nothing is preloaded', () => {
+  it('starts with empty config and an unknown session when nothing is preloaded', () => {
     const store = createAppStore();
     const state = store.getState();
 
     expect(state.config).toEqual({ runtime: null });
-    expect(state.auth).toEqual({
-      accessToken: null,
-      subject: null,
-      expiresAt: null,
-      refreshToken: null,
-      idToken: null,
-    });
+    expect(state.session).toEqual({ status: 'unknown', user: null });
     expect(state).toHaveProperty(managementApi.reducerPath);
   });
 
   it('hydrates the slices from preloaded state', () => {
     const store = createAppStore({
       config: { runtime },
-      auth: {
-        accessToken: 'token-123',
-        subject: 'admin',
-        expiresAt: 42,
-        refreshToken: null,
-        idToken: null,
-      },
+      session: { status: 'signed-in', user },
     });
 
     expect(store.getState().config.runtime).toBe(runtime);
-    expect(store.getState().auth.subject).toBe('admin');
-    expect(store.getState().auth.expiresAt).toBe(42);
+    expect(store.getState().session.status).toBe('signed-in');
+    expect(store.getState().session.user).toBe(user);
   });
 
-  it('routes slice actions to the config and auth reducers', () => {
+  it('routes slice actions to the config and session reducers', () => {
     const store = createAppStore();
 
     store.dispatch(runtimeConfigLoaded(runtime));
-    store.dispatch(signedIn({ accessToken: 'abc', subject: 'user-1' }));
+    store.dispatch(sessionStarted(user));
 
     expect(store.getState().config.runtime).toBe(runtime);
-    expect(store.getState().auth.accessToken).toBe('abc');
+    expect(store.getState().session).toEqual({ status: 'signed-in', user });
+
+    store.dispatch(sessionEnded());
+
+    expect(store.getState().session).toEqual({ status: 'signed-out', user: null });
   });
 
   it('registers the Management API middleware against its reducer', () => {

@@ -9,6 +9,7 @@ import {
   CHUNK_SIZE_LIMIT_KB,
   CSP_NONCE_PLACEHOLDER,
   defineBackendServedSurfaceConfig,
+  defineBffServedSurfaceConfig,
   defineStandaloneSurfaceConfig,
   defineTestConfig,
   devCertificateDirectory,
@@ -355,11 +356,6 @@ describe('defineStandaloneSurfaceConfig', () => {
           changeOrigin: true,
           secure: false,
         },
-        '/api/': {
-          target: 'https://localhost:7001',
-          changeOrigin: true,
-          secure: false,
-        },
       },
     });
     expect(config.build).toStrictEqual(expectedBuild);
@@ -405,5 +401,19 @@ describe('defineBackendServedSurfaceConfig', () => {
 
   it("names the placeholder the host replaces with each response's nonce", () => {
     expect(CSP_NONCE_PLACEHOLDER).toBe('__NCODE_CSP_NONCE__');
+  });
+});
+
+describe('defineBffServedSurfaceConfig', () => {
+  it("builds a bundle served at the root of its BFF host's origin, with no dev server", () => {
+    const config = defineBffServedSurfaceConfig({ coverage: floors });
+
+    expect(config.base).toBe('/');
+    expect(config.html).toStrictEqual({ cspNonce: '__NCODE_CSP_NONCE__' });
+    expect(config).not.toHaveProperty('server');
+    expect(config.build).toStrictEqual(expectedBuild);
+    expect(config.test).toStrictEqual(testGates({ environment: 'jsdom', coverage: floors }));
+    expect(pluginNames(config.plugins ?? [])).toContain('vite:react-babel');
+    expect(pluginNames(config.plugins ?? [])).toContain('ncode:fail-on-oversized-chunks');
   });
 });

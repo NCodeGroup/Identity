@@ -1,0 +1,161 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using Microsoft.AspNetCore.HostFiltering;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using NCode.Identity.Bff;
+using NCode.Identity.Bff.Options;
+using NCode.Identity.ManagementConsole.Options;
+using Xunit;
+
+namespace NCode.Identity.ManagementConsole.Tests;
+
+public class DefaultRegistrationTests : BaseTests
+{
+    private static IConfiguration CreateConfiguration(bool withFrontend = true)
+    {
+        var values = new Dictionary<string, string?>
+        {
+            ["ManagementConsole:ManagementApiUrl"] = "https://id.example.com/api",
+            ["ManagementConsole:BundleRootPath"] = "bundle",
+        };
+
+        if (withFrontend)
+        {
+            values["Bff:Frontends:mgmt:Authority"] = "https://id.example.com";
+            values["Bff:Frontends:mgmt:PublicOrigin"] = "https://console.example.com";
+            values["Bff:Frontends:mgmt:ClientId"] = "mgmt-console";
+            values["Bff:Frontends:mgmt:ReturnUrls:0"] = "/";
+        }
+
+        return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+    }
+
+    // The BFF reads the host environment, which a host's builder registers.
+    private static ServiceCollection CreateServices()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSingleton<IHostEnvironment>(new ProductionHostEnvironment());
+        return serviceCollection;
+    }
+
+    #region AddManagementConsole Tests
+
+    [Fact]
+    public void AddManagementConsole_WithConfiguration_ExposesTheBffBuilder()
+    {
+        var serviceCollection = CreateServices();
+
+        var builder = serviceCollection.AddManagementConsole(CreateConfiguration());
+
+        Assert.Same(serviceCollection, builder.ServiceCollection);
+        Assert.NotNull(builder.IdentityBffBuilder);
+        Assert.Same(serviceCollection, builder.IdentityBffBuilder.ServiceCollection);
+    }
+
+    [Fact]
+    public async Task AddManagementConsole_WithConfiguration_BindsTheConsoleAndBffOptions()
+    {
+        var serviceCollection = CreateServices();
+
+        serviceCollection.AddManagementConsole(CreateConfiguration());
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var console = provider.GetRequiredService<IOptions<ManagementConsoleOptions>>().Value;
+        var bff = provider.GetRequiredService<IOptions<BffOptions>>().Value;
+        Assert.Equal("https://id.example.com/api", console.ManagementApiUrl);
+        Assert.Equal("bundle", console.BundleRootPath);
+        Assert.Equal(["mgmt"], bff.Frontends.Keys);
+        Assert.NotNull(provider.GetRequiredService<IBffTokenAccessor>());
+    }
+
+    [Fact]
+    public async Task AddManagementConsole_Always_RegistersTheHandlersAndTheReader()
+    {
+        var serviceCollection = CreateServices();
+
+        serviceCollection.AddManagementConsole(CreateConfiguration());
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        Assert.NotNull(provider.GetRequiredService<ManagementConsoleBundleReader>());
+        Assert.NotNull(provider.GetRequiredService<ManagementConsoleBootstrapHandler>());
+        Assert.NotNull(provider.GetRequiredService<ManagementConsolePageHandler>());
+        Assert.NotNull(provider.GetRequiredService<ManagementConsoleAssetHandler>());
+    }
+
+    [Fact]
+    public void AddManagementConsole_Always_RegistersTheValidators()
+    {
+        var serviceCollection = CreateServices();
+
+        serviceCollection.AddManagementConsole(CreateConfiguration());
+
+        Assert.Contains(
+            serviceCollection,
+            x =>
+                x.ServiceType == typeof(IValidateOptions<ManagementConsoleOptions>)
+                && x.ImplementationType == typeof(ManagementConsoleOptionsValidator)
+                && x.Lifetime == ServiceLifetime.Singleton
+        );
+        Assert.Contains(
+            serviceCollection,
+            x =>
+                x.ServiceType == typeof(IValidateOptions<BffOptions>)
+                && x.ImplementationType == typeof(ManagementConsoleFrontendValidator)
+                && x.Lifetime == ServiceLifetime.Singleton
+        );
+        Assert.Contains(
+            serviceCollection,
+            x =>
+                x.ServiceType == typeof(IValidateOptions<HostFilteringOptions>)
+                && x.ImplementationType == typeof(ManagementConsoleHostFilteringValidator)
+                && x.Lifetime == ServiceLifetime.Singleton
+        );
+    }
+
+    [Fact]
+    public async Task AddManagementConsole_WhenTheFrontendIsMissing_FailsWhenTheBffOptionsAreRead()
+    {
+        var serviceCollection = CreateServices();
+        serviceCollection.AddManagementConsole(CreateConfiguration(withFrontend: false));
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var accessor = provider.GetRequiredService<IOptions<BffOptions>>();
+
+        var exception = Assert.Throws<OptionsValidationException>(() => accessor.Value);
+        Assert.Contains(
+            "Bff:Frontends must configure the 'mgmt' frontend that serves the management console.",
+            exception.Failures
+        );
+    }
+
+    [Fact]
+    public void AddManagementConsole_WithNullConfiguration_Throws()
+    {
+        var serviceCollection = CreateServices();
+
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            serviceCollection.AddManagementConsole(null!)
+        );
+
+        Assert.Equal("configuration", exception.ParamName);
+    }
+
+    #endregion
+
+    private sealed class ProductionHostEnvironment : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = Environments.Production;
+
+        public string ApplicationName { get; set; } = string.Empty;
+
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    }
+}

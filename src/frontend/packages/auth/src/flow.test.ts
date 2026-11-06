@@ -13,7 +13,7 @@ describe('buildAuthorizeUrl', () => {
   it('builds an authorization-code + PKCE (S256) request', () => {
     const url = new URL(
       buildAuthorizeUrl('https://op.test/authorize', {
-        clientId: 'mgmt-spa',
+        clientId: 'playground-spa',
         redirectUri: 'https://ui.test/callback',
         scopes: ['openid', 'read:clients'],
         state: 'xyz',
@@ -22,7 +22,7 @@ describe('buildAuthorizeUrl', () => {
     );
     expect(url.origin + url.pathname).toBe('https://op.test/authorize');
     expect(url.searchParams.get('response_type')).toBe('code');
-    expect(url.searchParams.get('client_id')).toBe('mgmt-spa');
+    expect(url.searchParams.get('client_id')).toBe('playground-spa');
     expect(url.searchParams.get('redirect_uri')).toBe('https://ui.test/callback');
     expect(url.searchParams.get('scope')).toBe('openid read:clients');
     expect(url.searchParams.get('state')).toBe('xyz');
@@ -86,14 +86,14 @@ describe('buildEndSessionUrl', () => {
     const url = new URL(
       buildEndSessionUrl('https://op.test/end-session', {
         idTokenHint: 'id-token',
-        clientId: 'mgmt-spa',
+        clientId: 'playground-spa',
         postLogoutRedirectUri: 'https://ui.test/',
         state: 'xyz',
       }),
     );
     expect(url.origin + url.pathname).toBe('https://op.test/end-session');
     expect(url.searchParams.get('id_token_hint')).toBe('id-token');
-    expect(url.searchParams.get('client_id')).toBe('mgmt-spa');
+    expect(url.searchParams.get('client_id')).toBe('playground-spa');
     expect(url.searchParams.get('post_logout_redirect_uri')).toBe('https://ui.test/');
     expect(url.searchParams.get('state')).toBe('xyz');
   });
@@ -155,7 +155,7 @@ describe('exchangeCodeForToken', () => {
     const tokens = await exchangeCodeForToken(
       'https://op.test/token',
       {
-        clientId: 'mgmt-spa',
+        clientId: 'playground-spa',
         code: 'abc',
         redirectUri: 'https://ui.test/callback',
         codeVerifier: 'verifier',
@@ -182,7 +182,7 @@ describe('exchangeCodeForToken', () => {
     const body = new URLSearchParams(init.body);
     expect(body.get('grant_type')).toBe('authorization_code');
     expect(body.get('code_verifier')).toBe('verifier');
-    expect(body.get('client_id')).toBe('mgmt-spa');
+    expect(body.get('client_id')).toBe('playground-spa');
   });
 
   it('defaults the token type to Bearer and omits absent optional fields', async () => {
@@ -272,7 +272,7 @@ describe('refreshAccessToken', () => {
     const fetchFn = vi.fn<FetchLike>(() => okJson({ access_token: 'at2', token_type: 'Bearer' }));
     const tokens = await refreshAccessToken(
       'https://op.test/token',
-      { clientId: 'mgmt-spa', refreshToken: 'rt' },
+      { clientId: 'playground-spa', refreshToken: 'rt' },
       fetchFn,
     );
     expect(tokens.accessToken).toBe('at2');

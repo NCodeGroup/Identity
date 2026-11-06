@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeJwtClaims, getSubject } from './jwt.js';
+import { decodeJwtClaims } from './jwt.js';
 import { base64UrlEncode } from './pkce.js';
 import { AuthError } from './flow.js';
 
@@ -35,19 +35,5 @@ describe('decodeJwtClaims', () => {
     expect(() => decodeJwtClaims(`header.${payload}.sig`)).toThrow(
       /Malformed JWT: payload is not valid JSON/,
     );
-  });
-});
-
-describe('getSubject', () => {
-  it('returns the sub claim', () => {
-    expect(getSubject(fakeJwt({ sub: 'user-123' }))).toBe('user-123');
-  });
-
-  it('returns undefined when sub is absent', () => {
-    expect(getSubject(fakeJwt({ name: 'x' }))).toBeUndefined();
-  });
-
-  it('returns undefined when sub is not a string', () => {
-    expect(getSubject(fakeJwt({ sub: 42 }))).toBeUndefined();
   });
 });

@@ -1,11 +1,9 @@
 # Backend for Frontend (BFF) — cookie sessions with server-side token custody
 
 - **Status:** In progress. SharedState, the protocol client, the `NCode.Identity.Bff` core, remote APIs, browser
-  hardening, multiple frontends, and server-rendered and Blazor hosts are implemented; serving the management console
-  through the BFF is pending
+  hardening, multiple frontends, server-rendered and Blazor hosts, and the management console are implemented
   ([§9](#9-implementation-status)). The library is tracked as issue
-  [#123](https://github.com/NCodeGroup/Identity/issues/123), and the management console as
-  [#158](https://github.com/NCodeGroup/Identity/issues/158). Each implemented area's decisions
+  [#123](https://github.com/NCodeGroup/Identity/issues/123). Each implemented area's decisions
   ([§8](#8-decisions-and-options-considered)) are ADRs.
 - **Date:** 2026-10-20
 - **Scope:** a **server-side** library that turns an ASP.NET Core application into the Backend for Frontend (BFF)
@@ -105,11 +103,10 @@ The **OpenID Provider side** already provides everything a BFF needs:
 | Sessions the server can end                  | `sid`, RP-initiated logout, and back-channel logout ([ADR-1074](decisions/1074-session-management-and-logout.md), [ADR-1077](decisions/1077-session-scoped-grant-revocation-on-logout.md)) |
 | Revocation and exchange                      | Refresh-token revocation ([ADR-1028](decisions/1028-token-revocation-refresh-tokens-only.md)) and token exchange ([ADR-1101](decisions/1101-oauth-token-exchange-rfc8693.md))   |
 
-The family has **no relying-party library**, though: no package helps an application consume the OP. Its own
-management console (`src/frontend/apps/mgmt`) is a browser public client. `@ncode/auth` runs authorization code +
-PKCE in JavaScript, the access token and refresh token live in the Redux store, and `@ncode/store` attaches
-`Authorization: Bearer` to every management API call. That is the shape RFC 10017 discourages, and it guards the most
-privileged surface the family has.
+The family's relying-party library is `NCode.Identity.Bff`, which helps an application consume the OP. Its own
+management console (`src/frontend/apps/mgmt`) is a BFF frontend served by `NCode.Identity.ManagementConsole.Host`, so
+the most privileged surface the family has holds no token in the browser
+([§5.15](#515-the-management-console)).
 
 ---
 
@@ -255,6 +252,8 @@ The flow follows RFC 10017 Figure 1:
 | `NCode.Identity.Bff.Blazor`                     | `NCode.Identity.Bff.Abstractions`                               | The opt-in server half for Blazor: `AddBffBlazorLibrary`, `AsBffComponents`, the revalidating server `AuthenticationStateProvider`, and the circuit handler ([§5.14](#514-server-rendered-and-blazor-hosts)). |
 | `NCode.Identity.Bff.Blazor.Client`              | `NCode.Identity.Bff.Protocol.Abstractions`, `Microsoft.AspNetCore.Components.Authorization`, `Microsoft.Extensions.Http` | The opt-in WebAssembly half, which runs in the browser and holds no token: `AddBffBlazorClient`, the WebAssembly `AuthenticationStateProvider`, and `AddBffAntiforgeryHeader` ([§5.14](#514-server-rendered-and-blazor-hosts)). |
 | `NCode.Identity.Bff.Server`                     | `NCode.Identity.Bff`, and the protocol client, events, secrets, JOSE, JWT and shared-state implementations | The turnkey composition root: `AddIdentityBff(configuration)` composes every library a BFF needs in one call, with in-process shared state by default, and exposes each library's builder (`IIdentityBffBuilder`), as `AddIdentityServer()` does for the OP. The host still registers the key rings its configuration names and, with several replicas, a shared-state adapter. |
+| `NCode.Identity.ManagementConsole`              | `NCode.Identity.Bff.Server`, `NCode.AspNetCore`                 | The management console's server: `AddManagementConsole` and `MapManagementConsole`, the console's bootstrap document, its page under a nonce CSP and its assets ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)). |
+| `NCode.Identity.ManagementConsole.Host`         | `NCode.Identity.ManagementConsole`                              | The console's reference host: a composition-only `Program.cs` that serves the console's bundle, its `/bff/*` endpoints and the forwarded management API on one origin.                                                                                                      |
 | `NCode.Identity.SharedState(.Abstractions/.Valkey)` | (existing)                                                   | **Extended** with a versioned, expiring value primitive and expiring membership indexes ([§5.4](#54-state-every-replica-sees)).                                                                                                                                             |
 
 Dependencies point one way: `Bff` → `OpenId.Client` → JOSE, Secrets, and SharedState. Nothing depends on the OP
@@ -984,7 +983,7 @@ The sketch below shows the composition. `AddIdentityBff` composes the shared-sta
 ```csharp
 var bff = builder.Services.AddIdentityBff(builder.Configuration); // NCode.Identity.Bff.Server; binds "Bff" strictly
 bff.SharedStateLibraryBuilder.AddValkey(builder.Configuration);    // only when running several replicas
-builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the key ring "ClientAuthentication:KeyRing" names
+builder.Services.AddKeyedSingleton<ISecretKeyCollectionProvider>( // the seam for a key ring held elsewhere, such as a KMS
     "orders-web-client-key", (serviceProvider, _) => LoadClientKeys(serviceProvider));
 
 var app = builder.Build();
@@ -1037,6 +1036,25 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 }
 ```
 
+A BFF reads the key rings its frontends name from PEM files. `Bff:KeyRings:{name}:PemFiles` lists the files of the key
+ring `{name}`, and `AddIdentityBff` registers a keyed `ISecretKeyCollectionProvider` under that name, which a frontend's
+`ClientAuthentication:KeyRing` or `DPoP:KeyRing` refers to. Each file holds one EC or RSA private key (PKCS#8, SEC1 or
+PKCS#1), read through sensitive buffers, and a key's `kid` is its file name without the extension. A relative path
+resolves against the content root. A host that holds a key ring elsewhere, in a KMS for example, registers the keyed
+provider in code and configures no entry for it
+([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+
+```jsonc
+{
+  "Bff": {
+    "KeyRings": {
+      "orders-web-client-key": { "PemFiles": ["/run/secrets/orders-web-client-key.pem"] }, // kid: orders-web-client-key
+      "orders-web-dpop": { "PemFiles": ["/run/secrets/orders-web-dpop.pem"] },
+    },
+  },
+}
+```
+
 **Startup validation** (`ValidateOnStart`) fails when:
 
 - `Bff:Frontends` has no entry, or a frontend's name is not 1 to 63 lowercase letters, digits and hyphens that start
@@ -1064,6 +1082,8 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
   `IdleTimeout`.
 - The antiforgery cookie's name does not start with `__Host-`, or the cookie is not `Secure`, has a `Path` other than
   `/`, or has a `Domain`.
+- `Bff:KeyRings` has a key ring without a name, or a key ring's `PemFiles` lists no file, has a blank entry or names a
+  file that does not exist.
 - `Bff:Antiforgery:HeaderName` or `HeaderValue` is blank, or the header name is one that skips a CORS preflight or
   carries credentials, or a `Bff:Tokens` duration is out of range.
 - `Bff:Frontends:{name}:DPoP:Mode` is `required` and the OP does not support DPoP. This check runs when discovery is
@@ -1181,6 +1201,77 @@ the server's `AddBffBlazorLibrary()` provider serves prerendering.
 same two claims from the document. A page renders the logout form from them in every render mode: a `POST` to
 `bff_logout_url` with a hidden `sid` input that holds `bff_logout_sid`
 ([§5.8](#58-logout-and-back-channel-logout)).
+
+### 5.15 The management console
+
+The management console (`src/frontend/apps/mgmt`) is a BFF frontend. `NCode.Identity.ManagementConsole.Host` serves its
+bundle, its `/bff/*` endpoints and the forwarded management API on one origin, and the console is the confidential
+client `mgmt-console` of the control-plane tenant
+([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+
+**Topology.**
+
+- The console's BFF runs in its own process and origin, never in the OP host. The most privileged UI shares no origin
+  with the OP's login, consent and account pages, the OP holds no console key, and the console holds no OP key,
+  database or signing credential. The console is a client of the OP exactly as a third party's BFF is.
+- The console is served at the root of its origin. Its BFF frontend `mgmt` is the fallback frontend, so it has no
+  selection rule, and its session cookie is `__Host-Http-bff.mgmt`.
+- The management API keeps one authentication model: sender-constrained bearer tokens of the control-plane tenant. The
+  console host forwards `/management/api/*` to the OP's management API with the user's token.
+- `/api` stays free on the console's origin, so the hosted platform's `manage.<apex>` routes `/api` to the OP for
+  machine callers and every other path to the console host.
+
+`AddManagementConsole(configuration)` composes `AddIdentityBff` and binds the `ManagementConsole` section strictly, and
+`MapManagementConsole()` maps the console's endpoints. The host's `Program.cs` holds nothing else. The console host
+answers these paths:
+
+| Path                      | Answer                                                                                                                                                                              |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/` and every non-file `GET` or `HEAD` path | The bundle's page, with a fresh nonce under a nonce-based Content-Security-Policy. It is never cached. A missing bundle answers `503` and never stops the host from starting. |
+| `/assets/*`               | The bundle's files, immutable.                                                                                                                                                      |
+| `/config/bootstrap.json`  | The console's bootstrap document: the API base `/management`, the BFF's base path and anti-forgery header, the feature flags and the branding.                                       |
+| `/bff/*`                  | The endpoints of the `mgmt` frontend ([§5.7](#57-bff-endpoints)).                                                                                                                   |
+| `/management/api/*`       | The OP's management API (`ManagementConsole:ManagementApiUrl`), with the user's DPoP-bound `urn:ncode:management` token ([§5.5](#55-token-management)).                              |
+
+The page's policy allows scripts only with the nonce and `'strict-dynamic'`, styles only with the nonce, images from the
+console's own origin and the origin of the branding's logo, `connect-src 'self'`, form submissions to the console and to
+the OP's authority, no base URI and no framing.
+
+**Client registration.** `mgmt-console` is registered with explicit metadata
+([ADR-1294](decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)):
+`private_key_jwt`, pushed authorization requests and DPoP-bound access tokens required, the `authorization_code` and
+`refresh_token` grant types, the redirect URI `<origin>/bff/callback`, the post-logout redirect URI `<origin>/`, and the
+back-channel logout URI `<origin>/bff/backchannel-logout` with `backchannel_logout_session_required`. It requests
+`profile email offline_access read:clients` (the BFF adds `openid`) and no `resource`, so its login access token carries
+the OpenID audience that UserInfo requires. The console loads UserInfo and allow-lists `preferred_username` and `email`
+for `/bff/user`. The `/management/api` remote API declares the resource `urn:ncode:management`, so the BFF obtains a
+separate, audience-restricted, DPoP-bound management token through the refresh-token grant. No token is usable at both
+UserInfo and the management API. A deployment registers `jwks_uri` = `<origin>/bff/jwks`, and the developer seed
+registers the public key by value. The console's `mgmt-client` and `mgmt-dpop` key rings are PEM files
+([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
+
+**Local development.** The AppHost generates per-machine P-256 keys `mgmt-client.pem` and `mgmt-dpop.pem` beside the
+other development secrets, hands their paths to the console host (`Bff__KeyRings__…`) and the client key's public JWKS
+to the OP (`DeveloperInteractiveSeed__BffClients__0__Jwks`). `apps/mgmt` is a build-watched bundle (`vite build
+--watch`) that the console host serves on `https://localhost:5005`. The OP's outbound guard never reaches loopback, so
+on a developer machine the OP cannot fetch a `jwks_uri` or deliver a back-channel logout to the console.
+
+**The browser side.** The bundle holds no token
+([ADR-1438](decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
+
+- The bundle reads `/config/bootstrap.json` at boot. `@ncode/config` models the runtime configuration as either an
+  OpenID document (`kind: 'openid'`) or a BFF document (`kind: 'bff'`), and a BFF document needs no discovery.
+- `@ncode/store` keeps a `session` slice (`unknown`, `signed-in` or `signed-out`, with the `BffUser`) fed by
+  `GET /bff/user`. The management API client sends the anti-forgery header with same-origin credentials, never an
+  `Authorization` header, and a `401` ends the session.
+- `SessionGate` probes `/bff/user`, polls every 60 seconds, probes again one second after the session's idle or absolute
+  expiry, probes again when a hidden tab becomes visible, and tells the other tabs through the `BroadcastChannel`
+  `ncode.mgmt.session` ([ADR-1434](decisions/1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md)).
+  Any end of the session returns the console to its sign-in screen, whose button navigates to
+  `/bff/login?returnUrl=<path>`, so a logout in one tab never races a login in another. Sign-out posts the logout form.
+- Emotion takes the page's nonce from `<meta property="csp-nonce">`.
+
+The Playground stays a public client on purpose: it keeps the `@ncode/auth` protocol helpers.
 
 ---
 
@@ -1377,7 +1468,8 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 | Multiple frontends             | One `Bff:Frontends:{name}` entry per frontend, selected per request by the open `IBffFrontendSelector` rules `host` and `path`, with its own cookies, client registration, endpoints, tokens and security headers, validated as a whole at startup ([§5.10](#510-frontends), [ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). |
 | Endpoint startup check         | The host refuses to start when an endpoint's BFF metadata is incomplete, such as a YARP route that names a token requirement without `AsBffRemoteApis()`; the per-request `502` stays the backstop ([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)). |
 | Server-rendered and Blazor hosts | Pages that accept a form post with the antiforgery token, hubs as a guarded endpoint kind with connection sessions, and the opt-in `NCode.Identity.Bff.Blazor` and `NCode.Identity.Bff.Blazor.Client` packages ([§5.14](#514-server-rendered-and-blazor-hosts), [ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md), [ADR-1436](decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)). |
-| Pending                        | Serving the management console through the BFF as a confidential client of the reference host's root tenant, which takes token custody out of the console's `@ncode/auth` ([#158](https://github.com/NCodeGroup/Identity/issues/158)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Key rings                      | `Bff:KeyRings:{name}:PemFiles` registers a keyed `ISecretKeyCollectionProvider` that holds the private keys of its PEM files ([§5.12](#512-composition-and-configuration), [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)). |
+| Management console            | `NCode.Identity.ManagementConsole.Host` serves `apps/mgmt` as the confidential client `mgmt-console` of the control-plane tenant ([§5.15](#515-the-management-console), [ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md), [ADR-1438](decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---
 
@@ -1440,8 +1532,10 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
    sits under `OpenId` because it is a protocol concern, and the BFF is an application pattern.
    Decided: `NCode.Identity.Bff` and `NCode.Identity.Bff.Abstractions`, because the BFF is an application pattern
    ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)).
-6. **The reference host as its own BFF.** For [#158](https://github.com/NCodeGroup/Identity/issues/158), should the console's BFF run in the OP host process (simplest),
-   or as a separate host (cleaner separation of the OP and its first-party client)?
+6. **The reference host as its own BFF.** For [#158](https://github.com/NCodeGroup/Identity/issues/158), should the console's BFF run in the OP host process,
+   or as a separate host?
+   Decided: a separate host, `NCode.Identity.ManagementConsole.Host`, on an origin of its own
+   ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
 
 ---
 

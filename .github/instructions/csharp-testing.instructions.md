@@ -406,3 +406,8 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   ([ADR-1430](../../docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 - 👁 **`localhost` and `127.0.0.1` are different sites;** a port never changes a site
   ([ADR-1430](../../docs/decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
+- 👁 **A test reads its files, such as an image's build context, from the output directory.** Copy them there with
+  `CopyToOutputDirectory` and resolve them from `AppContext.BaseDirectory`. A CI build (`CI=true`) is a
+  `ContinuousIntegrationBuild` that maps source paths to `/_/`, so a path found from the source, such as
+  `[CallerFilePath]` or Testcontainers' `CommonDirectoryPath.GetProjectDirectory()`, exists only on a developer's
+  machine.

@@ -84,8 +84,10 @@ public sealed class KeycloakProvider : IAsyncDisposable
         var userPassword = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(24));
         var adminSecret = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(24));
 
+        // The build context is copied to the output: a CI build maps source paths, so the project directory can't be
+        // found from them.
         var image = new ImageFromDockerfileBuilder()
-            .WithDockerfileDirectory(CommonDirectoryPath.GetProjectDirectory(), "Keycloak")
+            .WithDockerfileDirectory(Path.Combine(AppContext.BaseDirectory, "Keycloak"))
             .WithDockerfile("Dockerfile")
             .WithDeleteIfExists(true)
             .Build();

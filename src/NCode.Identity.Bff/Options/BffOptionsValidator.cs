@@ -30,26 +30,6 @@ internal class BffOptionsValidator(
         "DPoP",
     ];
 
-    private static bool IsValidFrontendName(string name)
-    {
-        if (name.Length is < 1 or > 63)
-            return false;
-
-        for (var i = 0; i < name.Length; i++)
-        {
-            var c = name[i];
-            var isAlphanumeric = c is (>= 'a' and <= 'z') or (>= '0' and <= '9');
-            if (isAlphanumeric)
-                continue;
-
-            var isInterior = c == '-' && i != 0 && i != name.Length - 1;
-            if (!isInterior)
-                return false;
-        }
-
-        return true;
-    }
-
     private static void ValidateTokens(BffTokenOptions? tokens, List<string> failures)
     {
         if (tokens is null)
@@ -171,7 +151,7 @@ internal class BffOptionsValidator(
 
         foreach (var (name, frontend) in frontends.OrderBy(x => x.Key, StringComparer.Ordinal))
         {
-            if (!IsValidFrontendName(name))
+            if (!BffFrontendNames.IsValid(name))
             {
                 failures.Add(
                     $"{Key}:Frontends key '{name}' must be 1 to 63 lowercase letters, digits and hyphens that start and end with a letter or digit."

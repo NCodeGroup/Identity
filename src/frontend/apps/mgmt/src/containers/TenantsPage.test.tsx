@@ -675,4 +675,55 @@ describe('TenantsPage (promotion)', () => {
       'The promotion cannot be applied; preview it to see why. client web: It is host managed.',
     );
   });
+
+  it('closes the promotion dialog on cancel', async () => {
+    installFetch(() => jsonResponse({ items: [acme, globex] }));
+
+    renderPage();
+    expect(await screen.findByText('Globex')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('promote-tenant'));
+    expect(screen.getByTestId('promotion-cancel')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('promotion-cancel'));
+
+    await waitFor(() => expect(screen.queryByTestId('promotion-cancel')).not.toBeInTheDocument());
+  });
+
+  it('lists only the promotion errors that carry a detail', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/promotions/preview') && method === 'POST') {
+        return jsonResponse(report);
+      }
+      if (url.endsWith('/api/teams/acme/promotions') && method === 'POST') {
+        return jsonResponse(
+          {
+            detail: 'The promotion cannot be applied; preview it to see why.',
+            errors: [
+              null,
+              { resourceType: 'client', resourceId: 'web' },
+              { resourceType: 'client', resourceId: 'api', detail: 'It is host managed.' },
+            ],
+          },
+          409,
+        );
+      }
+      if (url.endsWith('/api/teams/acme/tenants')) {
+        return jsonResponse({ items: [acme, globex] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    expect(await screen.findByText('Globex')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('promote-tenant'));
+    chooseTenants();
+    fireEvent.click(screen.getByTestId('promotion-preview'));
+    await waitFor(() => expect(screen.getByTestId('promotion-promote')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('promotion-promote'));
+
+    expect(await screen.findByTestId('promotion-error')).toHaveTextContent(
+      /^The promotion cannot be applied; preview it to see why\. client api: It is host managed\.$/,
+    );
+  });
 });

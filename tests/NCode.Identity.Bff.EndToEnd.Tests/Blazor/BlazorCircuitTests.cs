@@ -84,9 +84,7 @@ public sealed class BlazorCircuitTests(EndToEndEnvironment environment)
             new PageWaitForFunctionOptions { Timeout = WaitTimeoutMilliseconds }
         );
 
-        // Past Session:RevalidationInterval, so the next invocation is due to revalidate.
-        await page.WaitForTimeoutAsync(2_500);
-
+        // The circuit's sign-out ended the connection session, so this invocation runs without it.
         await page.ClickAsync("#circuit-ping");
         await page.WaitForFunctionAsync(
             PingsScript(2),

@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Net;
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
 using Yarp.ReverseProxy.Forwarder;
@@ -17,9 +16,10 @@ namespace NCode.Identity.Bff.RemoteApis;
 /// </summary>
 internal sealed class BffRemoteApiInvokerFactory(
     IHttpContextAccessor accessor,
+    IBffConnectionSessionAccessor connections,
+    BffTokenContexts contexts,
     IBffTokenAccessor tokens,
-    IDPoPProofFactory proofs,
-    BffFrontendCatalog frontends
+    IDPoPProofFactory proofs
 ) : IDisposable
 {
     private SocketsHttpHandler Handler { get; } =
@@ -46,7 +46,14 @@ internal sealed class BffRemoteApiInvokerFactory(
     {
         ArgumentNullException.ThrowIfNull(tokenRequest);
 
-        var handler = new BffAccessTokenHandler(accessor, tokens, proofs, frontends, tokenRequest)
+        var handler = new BffAccessTokenHandler(
+            accessor,
+            connections,
+            contexts,
+            tokens,
+            proofs,
+            tokenRequest
+        )
         {
             InnerHandler = Handler,
         };

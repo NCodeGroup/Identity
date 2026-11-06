@@ -2,8 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -14,6 +17,7 @@ using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
+using NCode.Identity.Bff.Hubs;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
@@ -63,6 +67,22 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IValidateOptions<BffOptions>, BffOptionsValidator>()
             );
 
+            serviceCollection.AddAntiforgery(options =>
+            {
+                options.Cookie.Name = BffDefaults.AntiforgeryCookieName;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.Path = "/";
+                options.Cookie.SameSite = SameSiteMode.Strict;
+                options.Cookie.HttpOnly = true;
+            });
+            serviceCollection.AddOptions<AntiforgeryOptions>().ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<AntiforgeryOptions>,
+                    BffAntiforgeryCookieValidator
+                >()
+            );
+
             // The BFF's instruments are created through the IMeterFactory (ADR-1197).
             serviceCollection.AddMetrics();
             serviceCollection.TryAddSingleton<BffMetrics>();
@@ -85,9 +105,20 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<IBffAuditRecorder, DefaultBffAuditRecorder>();
             serviceCollection.TryAddSingleton<BffCookies>();
             serviceCollection.TryAddSingleton<BffSessionResolver>();
+            serviceCollection.TryAddSingleton<BffConnectionSessions>();
+            serviceCollection.TryAddSingleton<
+                IBffConnectionSessionAccessor,
+                DefaultBffConnectionSessionAccessor
+            >();
+            serviceCollection.TryAddSingleton<BffHubFilter>();
+            serviceCollection.Configure<HubOptions>(options => options.AddFilter<BffHubFilter>());
             serviceCollection.TryAddSingleton<BffLoginTransactionService>();
             serviceCollection.TryAddSingleton<BffLoginHandler>();
             serviceCollection.TryAddSingleton<BffCallbackHandler>();
+            serviceCollection.TryAddSingleton<
+                IBffUserDocumentFactory,
+                DefaultBffUserDocumentFactory
+            >();
             serviceCollection.TryAddSingleton<BffUserHandler>();
             serviceCollection.TryAddSingleton<BffLogoutService>();
             serviceCollection.TryAddSingleton<BffLogoutHandler>();
@@ -95,6 +126,7 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<BffJwksHandler>();
 
             serviceCollection.TryAddSingleton<BffRefreshLocks>();
+            serviceCollection.TryAddSingleton<BffTokenContexts>();
             serviceCollection.TryAddSingleton<IBffUserTokenService, DefaultBffUserTokenService>();
             serviceCollection.TryAddSingleton<BffGrantClient>();
             serviceCollection.TryAddSingleton<

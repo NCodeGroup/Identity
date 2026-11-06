@@ -22,6 +22,8 @@ internal static class BffSessionPrincipal
         JoseClaimNames.Payload.Nbf,
         JoseClaimNames.Payload.Aud,
         JoseClaimNames.Payload.Azp,
+        BffClaimTypes.LogoutUrl,
+        BffClaimTypes.LogoutSid,
     };
 
     /// <summary>
@@ -104,5 +106,23 @@ internal static class BffSessionPrincipal
             JoseClaimNames.Payload.Role
         );
         return new ClaimsPrincipal(identity);
+    }
+
+    /// <summary>
+    /// Builds the principal of a session from its state, with the claims that carry the action and the guard of the
+    /// session's logout form.
+    /// </summary>
+    /// <param name="state">The state of the session.</param>
+    /// <param name="logoutUrl">The local URL of the frontend's logout endpoint.</param>
+    public static ClaimsPrincipal Create(BffSessionState state, string logoutUrl)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(logoutUrl);
+
+        var principal = Create(state.Payload.Claims, state.Metadata.Issuer);
+        var identity = principal.Identities.Single();
+        identity.AddClaim(new Claim(BffClaimTypes.LogoutUrl, logoutUrl));
+        identity.AddClaim(new Claim(BffClaimTypes.LogoutSid, state.Payload.LogoutGuard));
+        return principal;
     }
 }

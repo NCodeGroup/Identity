@@ -51,6 +51,21 @@ public class BffNavigationTests : BaseTests
 
     #endregion
 
+    #region LogoutUrl Tests
+
+    [Fact]
+    public void LogoutUrl_PathBaseAndPrefix_JoinsThem()
+    {
+        var httpContext = CreateHttpContext();
+        var options = BffTestFrontends.CreateOptions(x => x.PathPrefix = "/shop/bff");
+
+        var result = BffNavigation.LogoutUrl(httpContext.Request, options);
+
+        Assert.Equal("/app/shop/bff/logout", result);
+    }
+
+    #endregion
+
     #region ErrorUrl Tests
 
     [Fact]

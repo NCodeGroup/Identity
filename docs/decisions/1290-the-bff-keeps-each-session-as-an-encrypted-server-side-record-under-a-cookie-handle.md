@@ -3,7 +3,9 @@
 - **Status:** Accepted (decisions 7, 8 and 13 amended by
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): the session and login
   cookies are named for their frontend, the login transaction records its frontend, a deployment serves several
-  frontends, and a session records the one it belongs to)
+  frontends, and a session records the one it belongs to; amended by
+  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md):
+  a connection holds the handle in process memory for its life)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)

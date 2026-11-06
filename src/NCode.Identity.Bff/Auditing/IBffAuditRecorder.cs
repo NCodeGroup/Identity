@@ -42,7 +42,7 @@ internal interface IBffAuditRecorder
     /// Records that refreshing the tokens of a session failed.
     /// </summary>
     ValueTask TokenRefreshFailedAsync(
-        HttpContext httpContext,
+        HttpContext? httpContext,
         string subject,
         string reason,
         CancellationToken cancellationToken

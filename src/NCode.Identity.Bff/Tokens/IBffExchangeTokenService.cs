@@ -1,8 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Microsoft.AspNetCore.Http;
-
 namespace NCode.Identity.Bff.Tokens;
 
 /// <summary>
@@ -14,12 +12,12 @@ internal interface IBffExchangeTokenService
     /// Gets an access token that the provider issues for the user's access token through token exchange (RFC 8693),
     /// exchanging it again when the cached one is stale.
     /// </summary>
-    /// <param name="httpContext">The current request.</param>
+    /// <param name="scope">The session scope the token is for.</param>
     /// <param name="request">The request, whose resource and scope the token is for.</param>
     /// <param name="cancellationToken">The token to cancel the operation.</param>
     /// <returns>The access token, or the failure.</returns>
     ValueTask<BffTokenResult> GetAccessTokenAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffTokenRequest request,
         CancellationToken cancellationToken
     );

@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using Xunit;
 
@@ -10,6 +14,23 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 
 public class BffExchangeTokenRequirementTests : BaseTests
 {
+    private static BffTokenContexts CreateContexts(Mock<IBffSessionManager> manager)
+    {
+        var timeProvider = new FakeTimeProvider(
+            new DateTimeOffset(2026, 1, 2, 5, 0, 0, TimeSpan.Zero)
+        );
+        var cookies = new BffCookies(timeProvider);
+        var frontends = BffTestFrontends.CreateCatalog();
+        var resolver = new BffSessionResolver(manager.Object, cookies, [], frontends, timeProvider);
+        return new BffTokenContexts(frontends, resolver, cookies);
+    }
+
+    private IBffTokenContext CreateContext(HttpContext httpContext)
+    {
+        var sessionManager = CreateStrictMock<IBffSessionManager>();
+        return CreateContexts(sessionManager).ForRequest(httpContext);
+    }
+
     private Mock<IBffExchangeTokenService> MockService { get; }
     private BffExchangeTokenRequirement Requirement { get; }
 
@@ -42,12 +63,18 @@ public class BffExchangeTokenRequirementTests : BaseTests
             new BffAccessToken("exchanged", "Bearer", DateTimeOffset.UnixEpoch)
         );
         MockService
-            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
+            .Setup(x =>
+                x.GetAccessTokenAsync(
+                    It.Is<IBffSessionScope>(s => s.HttpContext == httpContext),
+                    request,
+                    CancellationToken.None
+                )
+            )
             .ReturnsAsync(expected)
             .Verifiable();
 
         var result = await Requirement.GetAccessTokenAsync(
-            httpContext,
+            CreateContext(httpContext),
             request,
             CancellationToken.None
         );
@@ -60,7 +87,11 @@ public class BffExchangeTokenRequirementTests : BaseTests
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Requirement
-                .GetAccessTokenAsync(new DefaultHttpContext(), null!, CancellationToken.None)
+                .GetAccessTokenAsync(
+                    CreateContext(new DefaultHttpContext()),
+                    null!,
+                    CancellationToken.None
+                )
                 .AsTask()
         );
     }

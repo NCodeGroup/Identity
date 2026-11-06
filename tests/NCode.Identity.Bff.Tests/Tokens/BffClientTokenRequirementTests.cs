@@ -16,16 +16,13 @@ public class BffClientTokenRequirementTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 1, 2, 5, 0, 0, TimeSpan.Zero);
 
-    private static BffSessionResolver CreateResolver(Mock<IBffSessionManager> manager)
+    private static BffTokenContexts CreateContexts(Mock<IBffSessionManager> manager)
     {
         var timeProvider = new FakeTimeProvider(Now);
-        return new BffSessionResolver(
-            manager.Object,
-            new BffCookies(timeProvider),
-            [],
-            BffTestFrontends.CreateCatalog(),
-            timeProvider
-        );
+        var cookies = new BffCookies(timeProvider);
+        var frontends = BffTestFrontends.CreateCatalog();
+        var resolver = new BffSessionResolver(manager.Object, cookies, [], frontends, timeProvider);
+        return new BffTokenContexts(frontends, resolver, cookies);
     }
 
     private static DefaultHttpContext CreateHttpContext(bool hasSession)
@@ -53,6 +50,12 @@ public class BffClientTokenRequirementTests : BaseTests
         return httpContext;
     }
 
+    private IBffTokenContext CreateContext(HttpContext httpContext)
+    {
+        var sessionManager = CreateStrictMock<IBffSessionManager>();
+        return CreateContexts(sessionManager).ForRequest(httpContext);
+    }
+
     private static readonly BffTokenResult Token = BffTokenResult.Success(
         new BffAccessToken("access", "Bearer", Now.AddMinutes(5))
     );
@@ -63,10 +66,7 @@ public class BffClientTokenRequirementTests : BaseTests
     public BffClientTokenRequirementTests()
     {
         MockService = CreateStrictMock<IBffClientTokenService>();
-        Requirement = new BffClientTokenRequirement(
-            CreateResolver(CreateStrictMock<IBffSessionManager>()),
-            MockService.Object
-        );
+        Requirement = new BffClientTokenRequirement(MockService.Object);
     }
 
     #region Name Tests
@@ -82,7 +82,7 @@ public class BffClientTokenRequirementTests : BaseTests
     public async Task GetAccessTokenAsync_NoSession_ReturnsSessionRequired()
     {
         var result = await Requirement.GetAccessTokenAsync(
-            CreateHttpContext(false),
+            CreateContext(CreateHttpContext(false)),
             new BffTokenRequest(BffTokenRequirementNames.Client),
             CancellationToken.None
         );
@@ -99,9 +99,11 @@ public class BffClientTokenRequirementTests : BaseTests
             Resource = "https://api.example",
             Scope = "read",
         };
-        var requirementContext = CreateHttpContext(true);
+        var requirementContext = CreateContext(CreateHttpContext(true));
         MockService
-            .Setup(x => x.GetAccessTokenAsync(requirementContext, request, CancellationToken.None))
+            .Setup(x =>
+                x.GetAccessTokenAsync(It.IsAny<IBffSessionScope>(), request, CancellationToken.None)
+            )
             .ReturnsAsync(Token)
             .Verifiable();
 
@@ -119,7 +121,11 @@ public class BffClientTokenRequirementTests : BaseTests
     {
         await Assert.ThrowsAsync<ArgumentNullException>(() =>
             Requirement
-                .GetAccessTokenAsync(CreateHttpContext(true), null!, CancellationToken.None)
+                .GetAccessTokenAsync(
+                    CreateContext(CreateHttpContext(true)),
+                    null!,
+                    CancellationToken.None
+                )
                 .AsTask()
         );
     }

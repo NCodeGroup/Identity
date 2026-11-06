@@ -2,7 +2,11 @@
 
 - **Status:** Accepted (decision 3 amended by
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): trusted origins are
-  per frontend)
+  per frontend; decision 1 amended by
+  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md):
+  hubs are guarded endpoints; decision 4 amended by
+  [ADR-1436](1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md): a page
+  accepts a form post with Fetch Metadata and a valid antiforgery token)
 - **Date:** 2026-10-29
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)

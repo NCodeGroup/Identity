@@ -38,6 +38,11 @@ public static class BffDefaults
     public const string LoginCookieName = "__Host-Http-bff-login";
 
     /// <summary>
+    /// The name of the cookie that holds the antiforgery token of the forms a page renders.
+    /// </summary>
+    public const string AntiforgeryCookieName = "__Host-Http-bff-antiforgery";
+
+    /// <summary>
     /// The default name of the static anti-forgery request header.
     /// </summary>
     public const string AntiforgeryHeaderName = "X-CSRF";

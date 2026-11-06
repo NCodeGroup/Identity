@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -25,23 +26,26 @@ internal class BffAuthenticationHandler(
     ILoggerFactory loggerFactory,
     UrlEncoder encoder,
     BffSessionResolver resolver,
-    BffFrontendCatalog frontends
+    BffFrontendCatalog frontends,
+    BffConnectionSessions connections
 )
     : AuthenticationHandler<AuthenticationSchemeOptions>(schemeOptions, loggerFactory, encoder),
         IAuthenticationSignOutHandler
 {
     private const string LoginPath = "/login";
 
-    private readonly BffSessionResolver _resolver = resolver;
-    private readonly BffFrontendCatalog _frontends = frontends;
+    private BffSessionResolver Resolver { get; } = resolver;
+    private BffFrontendCatalog Frontends { get; } = frontends;
+    private BffConnectionSessions Connections { get; } = connections;
 
     /// <inheritdoc />
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        if (!BffGuardedEndpoints.IsGuarded(Context.GetEndpoint()))
+        var endpoint = Context.GetEndpoint();
+        if (!BffGuardedEndpoints.IsGuarded(endpoint))
             return AuthenticateResult.NoResult();
 
-        var session = await _resolver.ResolveAsync(Context, Context.RequestAborted);
+        var session = await Resolver.ResolveAsync(Context, Context.RequestAborted);
         if (session is null)
             return AuthenticateResult.NoResult();
 
@@ -49,15 +53,37 @@ internal class BffAuthenticationHandler(
         if (feature?.Principal is not { } principal)
             return AuthenticateResult.NoResult();
 
+        if (BffGuardedEndpoints.IsHub(endpoint))
+            principal = CreateConnectionPrincipal(principal, session);
+
         var ticket = new AuthenticationTicket(principal, Scheme.Name);
         return AuthenticateResult.Success(ticket);
+    }
+
+    private ClaimsPrincipal CreateConnectionPrincipal(
+        ClaimsPrincipal principal,
+        BffSessionState session
+    )
+    {
+        var logoutUrl =
+            principal.FindFirst(BffClaimTypes.LogoutUrl)?.Value
+            ?? throw new InvalidOperationException(
+                "The BFF session principal has no logout URL claim."
+            );
+        var frontend = Frontends.GetRequired(Context);
+        var connection = Connections.Create(frontend, session.Handle, logoutUrl);
+        return new ClaimsPrincipal(
+            new BffConnectionIdentity(principal.Identities.Single(), connection)
+        );
     }
 
     /// <inheritdoc />
     protected override Task HandleChallengeAsync(AuthenticationProperties properties)
     {
         var endpoint = Context.GetEndpoint();
-        if (BffGuardedEndpoints.RequiresAntiforgery(endpoint))
+        if (
+            BffGuardedEndpoints.RequiresAntiforgery(endpoint) || BffGuardedEndpoints.IsHub(endpoint)
+        )
         {
             return BffResponses.WriteProblemAsync(
                 Context,
@@ -70,11 +96,11 @@ internal class BffAuthenticationHandler(
         if (!BffGuardedEndpoints.IsPage(endpoint))
         {
             throw new InvalidOperationException(
-                "The BFF scheme challenged an endpoint it does not guard. Mark an API AsBffApi() or [BffApi], or a page AsBffPage() or [BffPage]."
+                "The BFF scheme challenged an endpoint it does not guard. Mark an API AsBffApi() or [BffApi], a hub AsBffHub() or [BffHub], or a page AsBffPage() or [BffPage]."
             );
         }
 
-        var frontend = _frontends.Resolve(Context);
+        var frontend = Frontends.Resolve(Context);
         if (frontend is null)
         {
             return BffResponses.WriteProblemAsync(
@@ -106,7 +132,7 @@ internal class BffAuthenticationHandler(
             );
         }
 
-        var session = await _resolver.ResolveAsync(Context, Context.RequestAborted);
+        var session = await Resolver.ResolveAsync(Context, Context.RequestAborted);
         if (session is null)
             return;
 
@@ -117,7 +143,11 @@ internal class BffAuthenticationHandler(
     /// <inheritdoc />
     protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
     {
-        if (!BffGuardedEndpoints.RequiresAntiforgery(Context.GetEndpoint()))
+        var endpoint = Context.GetEndpoint();
+        if (
+            !BffGuardedEndpoints.RequiresAntiforgery(endpoint)
+            && !BffGuardedEndpoints.IsHub(endpoint)
+        )
             return base.HandleForbiddenAsync(properties);
 
         return BffResponses.WriteProblemAsync(

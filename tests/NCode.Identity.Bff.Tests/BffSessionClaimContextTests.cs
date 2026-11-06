@@ -53,6 +53,21 @@ public class BffSessionClaimContextTests : BaseTests
         Assert.DoesNotContain(context.Claims, claim => claim.Value == "forged");
     }
 
+    [Theory]
+    [InlineData(BffClaimTypes.LogoutUrl)]
+    [InlineData(BffClaimTypes.LogoutSid)]
+    public void AddClaim_BffClaimType_Throws(string claimType)
+    {
+        var context = CreateContext();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            context.AddClaim(new Claim(claimType, "forged"))
+        );
+
+        Assert.Equal("claim", exception.ParamName);
+        Assert.DoesNotContain(context.Claims, claim => claim.Value == "forged");
+    }
+
     #endregion
 
     #region RemoveClaims Tests

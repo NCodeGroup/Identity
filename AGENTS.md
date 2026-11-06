@@ -68,7 +68,11 @@ End-to-end suites (the `*.EndToEnd.Tests` projects) live under `tests/`; `./buil
   ([ADR-1382](docs/decisions/1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md));
   `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`), which also loads the
   key rings that `Bff:KeyRings` names from PEM files
-  ([ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md));
+  ([ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)); the opt-in
+  `NCode.Identity.Bff.Blazor` (`AddBffBlazorLibrary()`, `AsBffComponents()`) and `NCode.Identity.Bff.Blazor.Client`
+  (`AddBffBlazorClient()`) serve Blazor's interactive server and WebAssembly render modes over the same session, and
+  server-rendered pages and SignalR hubs use the core
+  ([ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md));
   `NCode.Identity.ManagementConsole` composes the management console's BFF host, and
   `NCode.Identity.ManagementConsole.Host` is its reference host
   ([ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md))

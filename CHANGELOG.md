@@ -2462,8 +2462,11 @@ describes the family as it is rather than its changes
   `BffAccessToken.TokenType` is `Bearer` when the provider's token response omits the `token_type` that RFC 6749 §5.1
   requires. The login requests `openid` and the scopes `Bff:Frontends:{name}:Scopes` lists, never `offline_access` on its own, so by
   default the grant stays inside the provider's login session and the provider's logout reaches the BFF.
-  `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, and back-channel logout ends
-  sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET and HEAD only.
+  `IBffLoginGate` and `IBffSessionValidator` let an app refuse a login or end a session, including when a hub or Blazor circuit
+  connection revalidates the session without an `HttpContext`, and back-channel logout ends
+  sessions through `sid`/`sub` indexes. `AsBffPage`/`[BffPage]` mark a page that accepts GET, HEAD,
+  OPTIONS and TRACE, and a form post with a valid antiforgery token, and `AsBffHub`/`[BffHub]` a SignalR hub whose connection holds the session
+  (`IBffConnectionSession`) and obtains tokens through `IBffTokenContext`.
   A won refresh and a logout are never cancelled by the browser, so a rotated refresh token is kept and a session always
   ends. `AddIdentityBff` validates the refresh lease against the client's request timeout, and the protocol client's
   `IdTokenValidationResult` exposes the validated `Identity` ([#394](https://github.com/NCodeGroup/Identity/issues/394),
@@ -2548,6 +2551,16 @@ describes the family as it is rather than its changes
   `PathPrefix`, and `RequireBffFrontend()`/`[BffFrontend]` and the YARP `BffFrontend` metadata limit an endpoint to
   frontends ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+
+- **Blazor hosts use the BFF session.** The opt-in `NCode.Identity.Bff.Blazor` package (`AddBffBlazorLibrary`,
+  `AsBffComponents`, a revalidating `AuthenticationStateProvider`, circuit token access, the user document persisted
+  for WebAssembly) serves Blazor's interactive server render mode, and the `NCode.Identity.Bff.Blazor.Client` package
+  (`AddBffBlazorClient`, `AddBffAntiforgeryHeader`) serves WebAssembly through `/bff/user` and the anti-forgery
+  header. `BffClaimTypes` names the session principal's `bff_logout_url` and `bff_logout_sid` claims, which render the
+  logout form in every render mode, `IBffUserDocumentFactory` builds the `/bff/user` document, and a frontend's
+  `Session:RevalidationInterval` sets how often a connection revalidates its session
+  ([#524](https://github.com/NCodeGroup/Identity/issues/524),
+  [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)).
 
 - **The management console is served by a BFF host of its own.** `NCode.Identity.ManagementConsole`
   (`AddManagementConsole(configuration)`, `MapManagementConsole()`) and `NCode.Identity.ManagementConsole.Host` serve
@@ -5137,9 +5150,15 @@ describes the family as it is rather than its changes
   `__Host-Http-bff.<frontend>` handle: the session is an AES-256-GCM record in the shared store, keyed and encrypted under keys
   derived from the handle. `UseBff` runs the anti-forgery header and Fetch Metadata checks before authentication and
   fails closed when misordered, and the session cookie authenticates, and the token accessor serves, only
-  `AsBffApi`/`AsBffPage` endpoints and `/bff/user` ([#394](https://github.com/NCodeGroup/Identity/issues/394),
+  `AsBffApi`/`AsBffPage` endpoints and `/bff/user`. A page form post needs Fetch Metadata that shows no cross-site
+  request and a valid antiforgery token in the `__Host-Http-bff-antiforgery` cookie, a hub refuses a cross-site request
+  or a foreign `Origin`, and a WebAssembly client never receives a token
+  ([#394](https://github.com/NCodeGroup/Identity/issues/394),
+  [#524](https://github.com/NCodeGroup/Identity/issues/524),
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-  [ADR-1292](docs/decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)).
+  [ADR-1292](docs/decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
+  [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
+  [ADR-1436](docs/decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)).
 
 - **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body and is the only logout
   method; `/bff/user` returns `logoutUrl` as the path alone and the logout guard as `logoutSid`, a reserved field

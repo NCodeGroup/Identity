@@ -8,7 +8,8 @@ namespace NCode.Identity.Bff;
 
 /// <summary>
 /// Marks a page of the BFF host that a browser reaches by top-level navigation, so a BFF session authenticates it on
-/// <c>GET</c> and <c>HEAD</c> only, any other method answers <c>405</c>, and a challenge redirects to the BFF login.
+/// <c>GET</c>, <c>HEAD</c>, <c>OPTIONS</c> and <c>TRACE</c> without a token and on a form post that passes Fetch
+/// Metadata and carries a valid antiforgery token, and a challenge redirects to the BFF login.
 /// </summary>
 [PublicAPI]
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId.Client;
 using Yarp.ReverseProxy.Forwarder;
@@ -15,15 +14,17 @@ namespace NCode.Identity.Bff.RemoteApis;
 /// </summary>
 /// <param name="inner">The factory that creates the invokers to wrap.</param>
 /// <param name="accessor">The accessor of the current request.</param>
+/// <param name="connections">The accessor of the current connection.</param>
+/// <param name="contexts">Creates the token context of the current request.</param>
 /// <param name="tokens">The accessor of the BFF's tokens.</param>
 /// <param name="proofs">The factory of DPoP proofs.</param>
-/// <param name="frontends">The catalog of the frontends, whose registration signs the DPoP proofs of the request's frontend.</param>
 internal sealed class BffForwarderHttpClientFactory(
     IForwarderHttpClientFactory inner,
     IHttpContextAccessor accessor,
+    IBffConnectionSessionAccessor connections,
+    BffTokenContexts contexts,
     IBffTokenAccessor tokens,
-    IDPoPProofFactory proofs,
-    BffFrontendCatalog frontends
+    IDPoPProofFactory proofs
 ) : IForwarderHttpClientFactory
 {
     /// <inheritdoc />
@@ -52,9 +53,10 @@ internal sealed class BffForwarderHttpClientFactory(
             // With no token request of its own, the token handler attaches only a token that the route resolved.
             InnerHandler = new BffAccessTokenHandler(
                 accessor,
+                connections,
+                contexts,
                 tokens,
                 proofs,
-                frontends,
                 tokenRequest: null
             )
             {

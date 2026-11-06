@@ -38,8 +38,9 @@ public static class BffEndpointConventionBuilderExtensions
         /// Marks the endpoint as a BFF page by adding a <see cref="BffPageAttribute"/> to its metadata.
         /// </summary>
         /// <remarks>
-        /// The marking lets a BFF session authenticate the request on <c>GET</c> and <c>HEAD</c> only, requires no
-        /// anti-forgery header, and answers a challenge with a redirect to the BFF login.
+        /// The marking lets a BFF session authenticate the request on <c>GET</c>, <c>HEAD</c>, <c>OPTIONS</c> and
+        /// <c>TRACE</c> without a token and on a form post that passes Fetch Metadata and carries a valid antiforgery
+        /// token, requires no anti-forgery header, and answers a challenge with a redirect to the BFF login.
         /// Controllers use the <see cref="BffPageAttribute"/> attribute instead.
         /// </remarks>
         /// <returns>The same builder, so that calls can be chained.</returns>
@@ -48,6 +49,24 @@ public static class BffEndpointConventionBuilderExtensions
             ArgumentNullException.ThrowIfNull(builder);
 
             var attribute = new BffPageAttribute();
+            return builder.WithMetadata(attribute);
+        }
+
+        /// <summary>
+        /// Marks the endpoint as a BFF hub by adding a <see cref="BffHubAttribute"/> to its metadata.
+        /// </summary>
+        /// <remarks>
+        /// The marking lets a BFF session authenticate the request on any method when Fetch Metadata shows no
+        /// cross-site request and the <c>Origin</c>, when sent, is the frontend's public origin or a trusted origin,
+        /// requires no anti-forgery header, and answers a challenge with a <c>401</c> problem and a forbid with a
+        /// <c>403</c> problem. Hub classes use the <see cref="BffHubAttribute"/> attribute instead.
+        /// </remarks>
+        /// <returns>The same builder, so that calls can be chained.</returns>
+        public TBuilder AsBffHub()
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+
+            var attribute = new BffHubAttribute();
             return builder.WithMetadata(attribute);
         }
 

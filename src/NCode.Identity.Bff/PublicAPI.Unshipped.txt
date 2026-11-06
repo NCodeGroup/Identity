@@ -16,6 +16,7 @@ NCode.Identity.Bff.DefaultRegistration.extension(NCode.Registration.IServiceBuil
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffApi() -> TBuilder
+NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffHub() -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).AsBffPage() -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).RequireBffFrontend(params System.Collections.Generic.IEnumerable<string!>! names) -> TBuilder
 NCode.Identity.Bff.Endpoints.BffEndpointRouteBuilderExtensions
@@ -102,6 +103,8 @@ NCode.Identity.Bff.Options.BffSessionOptions.IdleTimeout.get -> System.TimeSpan
 NCode.Identity.Bff.Options.BffSessionOptions.IdleTimeout.set -> void
 NCode.Identity.Bff.Options.BffSessionOptions.LoginLifetime.get -> System.TimeSpan
 NCode.Identity.Bff.Options.BffSessionOptions.LoginLifetime.set -> void
+NCode.Identity.Bff.Options.BffSessionOptions.RevalidationInterval.get -> System.TimeSpan
+NCode.Identity.Bff.Options.BffSessionOptions.RevalidationInterval.set -> void
 NCode.Identity.Bff.Options.BffSessionOptions.SameSite.get -> Microsoft.AspNetCore.Http.SameSiteMode
 NCode.Identity.Bff.Options.BffSessionOptions.SameSite.set -> void
 NCode.Identity.Bff.Options.BffTokenOptions

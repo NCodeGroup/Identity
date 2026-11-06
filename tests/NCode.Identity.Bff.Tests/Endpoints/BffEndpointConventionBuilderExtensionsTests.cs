@@ -71,6 +71,36 @@ public class BffEndpointConventionBuilderExtensionsTests : BaseTests
 
     #endregion
 
+    #region AsBffHub Tests
+
+    [Fact]
+    public void AsBffHub_OnMinimalApi_AddsTheAttribute()
+    {
+        var builder = WebApplication.CreateSlimBuilder();
+        var app = builder.Build();
+
+        app.MapGet("/hub/x", () => "x").AsBffHub();
+        app.MapGet("/hub/y", () => "y");
+
+        IEndpointRouteBuilder endpoints = app;
+        var routes = endpoints
+            .DataSources.SelectMany(x => x.Endpoints)
+            .OfType<RouteEndpoint>()
+            .ToList();
+
+        var marked = Assert.Single(routes, x => x.RoutePattern.RawText == "/hub/x");
+        var unmarked = Assert.Single(routes, x => x.RoutePattern.RawText == "/hub/y");
+
+        var attribute = Assert.IsType<BffHubAttribute>(
+            marked.Metadata.GetMetadata<BffHubAttribute>()
+        );
+        var authorizeData = Assert.IsAssignableFrom<IAuthorizeData>(attribute);
+        Assert.Equal(BffDefaults.AuthenticationScheme, authorizeData.AuthenticationSchemes);
+        Assert.Null(unmarked.Metadata.GetMetadata<BffHubAttribute>());
+    }
+
+    #endregion
+
     #region RequireBffFrontend Tests
 
     [Fact]

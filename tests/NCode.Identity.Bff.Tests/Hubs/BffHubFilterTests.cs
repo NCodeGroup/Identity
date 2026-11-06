@@ -179,6 +179,24 @@ public class BffHubFilterTests : BaseTests
     }
 
     [Fact]
+    public async Task OnConnectedAsync_NextThrows_StartsNoWatchAndRethrows()
+    {
+        var session = CreateSession();
+        var context = CreateConnectionContext(session, validate: false);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateFilter()
+                .OnConnectedAsync(
+                    new HubLifetimeContext(context.Object, _serviceProvider, _hub),
+                    _ => throw new InvalidOperationException("connect")
+                )
+        );
+
+        Assert.Empty(_revalidator.Invocations);
+        Assert.DoesNotContain(_items.Values, v => v is CancellationTokenSource);
+    }
+
+    [Fact]
     public async Task OnConnectedAsync_WatchFaults_LogsAndAborts()
     {
         var session = CreateSession();

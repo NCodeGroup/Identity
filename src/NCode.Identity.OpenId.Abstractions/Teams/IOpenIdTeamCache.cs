@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// <summary>
 /// Provides an abstraction for caching <see cref="OpenIdTeam"/> instances.
 /// </summary>
-// See ADR-1411
+// See ADR-1411, ADR-1416 and ADR-1426.
 [PublicAPI]
 public interface IOpenIdTeamCache
 {
@@ -43,9 +43,9 @@ public interface IOpenIdTeamCache
     );
 
     /// <summary>
-    /// Removes the <see cref="OpenIdTeam"/> instance cached for the specified <paramref name="teamId"/>, if any, so the
-    /// next request for the team materializes it again from the store. A lease already handed out stays usable until
-    /// its holder releases it.
+    /// Removes the <see cref="OpenIdTeam"/> instance cached for the specified <paramref name="teamId"/>, if any, and
+    /// every cached team beneath it, because a team is materialized over its parent, so the next request for any of
+    /// them materializes it again from the store. A lease already handed out stays usable until its holder releases it.
     /// </summary>
     /// <param name="teamId">The identifier of the team to remove from the cache.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
@@ -67,7 +67,7 @@ public interface IOpenIdTeamCache
     ValueTask ClearAsync(IPropertyBag propertyBag, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets the revision of every cached team.
+    /// Gets the revision of every cached team and the revision of every team above it that it was materialized over.
     /// </summary>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

@@ -578,7 +578,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created tenant.</response>
     /// <response code="404">The team does not exist.</response>
-    /// <response code="409">The team holds its maximum number of tenants.</response>
+    /// <response code="409">The team or a team above it holds its maximum number of tenants.</response>
     [EndpointName("api/teams/tenants/create")]
     internal virtual async ValueTask<IResult> CreateTenantAsync(
         HttpContext httpContext,
@@ -662,23 +662,41 @@ internal class TenantApiEndpointHandler(
             return ToErrorResult(error);
         }
 
-        // A team holds at most its 'max_tenants' tenants; unset means unlimited (ADR-1411).
-        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
-            teamId,
-            cancellationToken
+        // A team's 'max_tenants' bounds the tenants of the team and of every team beneath it; unset means unlimited
+        // (ADR-1411, ADR-1426).
+        var lineage = await teamStore.GetLineageAsync(teamId, cancellationToken);
+        var settings = await EffectiveSettingsResolver.ResolvePlatformAsync(cancellationToken);
+        var lineageSettings = new List<(string TeamId, IReadOnlySettingCollection Settings)>(
+            lineage.Count
         );
-        if (
-            teamSettings.TryGetValue(OpenIdSettingKeys.MaxTenants, out var maxTenants)
-            && await store.CountAsync(teamId, cancellationToken) >= maxTenants
-        )
+        foreach (var lineageTeam in lineage)
         {
-            return ToErrorResult(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status409Conflict,
-                    Detail = $"The team holds its maximum of {maxTenants} tenants.",
-                }
+            settings = EffectiveSettingsResolver.ResolveStored(
+                settings,
+                OpenIdSettingScopes.Team,
+                lineageTeam.TeamId,
+                lineageTeam.Settings.Value
             );
+            lineageSettings.Add((lineageTeam.TeamId, settings));
+        }
+
+        for (var index = lineageSettings.Count - 1; index >= 0; index--)
+        {
+            var (lineageTeamId, teamSettings) = lineageSettings[index];
+            if (
+                teamSettings.TryGetValue(OpenIdSettingKeys.MaxTenants, out var maxTenants)
+                && await store.CountAsync(lineageTeamId, cancellationToken) >= maxTenants
+            )
+            {
+                return ToErrorResult(
+                    new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status409Conflict,
+                        Detail =
+                            $"The team '{lineageTeamId}' holds its maximum of {maxTenants} tenants.",
+                    }
+                );
+            }
         }
 
         // Setting names are a closed vocabulary (ADR-1139), and a tenant carries only the settings that apply within it

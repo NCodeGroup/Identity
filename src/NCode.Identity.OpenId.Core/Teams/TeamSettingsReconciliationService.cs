@@ -19,13 +19,14 @@ namespace NCode.Identity.OpenId.Teams;
 /// from the ones they were last reconciled against. The service materializes the platform when the replica starts, and
 /// when that fails it waits until a request materializes it. It reconciles every team once, again whenever the
 /// platform's settings provider signals a change (a configuration reload, a read of the committed settings document,
-/// or a poll that saw a change), and one team whenever an <see cref="ITeamSettingsReconciliationTrigger"/> names it.
+/// or a poll that saw a change), and one team and every team beneath it whenever an
+/// <see cref="ITeamSettingsReconciliationTrigger"/> names it, each team once per pass.
 /// The recorded fingerprint makes a team that changed nothing cost one read. A reconciliation that is unsettled,
 /// because another replica holds its lease or the pass failed, is attempted again when the
 /// <see cref="OpenIdTeamOptions.ReconciliationLeaseDuration"/> has passed. Requests that arrive during a pass coalesce
 /// and none is lost. The service never throws on stop.
 /// </summary>
-// See ADR-1219 and ADR-1411.
+// See ADR-1219, ADR-1411 and ADR-1426.
 internal sealed class TeamSettingsReconciliationService(
     IMaterializedPlatformRegistry materializedPlatformRegistry,
     IOpenIdPlatformProvider platformProvider,
@@ -156,8 +157,9 @@ internal sealed class TeamSettingsReconciliationService(
             await ReconcileEveryTeamAsync(stoppingToken);
         else
         {
+            var reconciled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var teamId in request.TeamIds)
-                await ReconcileTeamAsync(teamId, stoppingToken);
+                await ReconcileSubtreeAsync(teamId, reconciled, stoppingToken);
         }
     }
 
@@ -169,8 +171,9 @@ internal sealed class TeamSettingsReconciliationService(
             await ReconcileEveryTeamAsync(stoppingToken);
         else
         {
+            var reconciled = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var teamId in Unsettled.ToList())
-                await ReconcileTeamAsync(teamId, stoppingToken);
+                await ReconcileSubtreeAsync(teamId, reconciled, stoppingToken);
         }
 
         UpdateRetryDeadline();
@@ -220,6 +223,45 @@ internal sealed class TeamSettingsReconciliationService(
         await using var storeManager = await StoreManagerFactory.CreateAsync(stoppingToken);
         var store = storeManager.GetStore<ITeamStore>();
         return await store.GetPageAsync(page, stoppingToken);
+    }
+
+    private async ValueTask<IReadOnlyList<PersistedTeam>> GetDescendantsAsync(
+        string teamId,
+        CancellationToken stoppingToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(stoppingToken);
+        var store = storeManager.GetStore<ITeamStore>();
+        return await store.GetDescendantsAsync(teamId, stoppingToken);
+    }
+
+    // Reconciles the team and every team beneath it, each team once for the set of teams already reconciled.
+    private async Task ReconcileSubtreeAsync(
+        string teamId,
+        HashSet<string> reconciled,
+        CancellationToken stoppingToken
+    )
+    {
+        // The team's subtree was reached through an ancestor in this pass.
+        if (!reconciled.Add(teamId))
+            return;
+
+        await ReconcileTeamAsync(teamId, stoppingToken);
+
+        try
+        {
+            var descendants = await GetDescendantsAsync(teamId, stoppingToken);
+            foreach (var descendant in descendants)
+            {
+                if (reconciled.Add(descendant.TeamId))
+                    await ReconcileTeamAsync(descendant.TeamId, stoppingToken);
+            }
+        }
+        catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
+        {
+            Logger.TeamSettingsReconciliationFailed(teamId, exception);
+            Unsettled.Add(teamId);
+        }
     }
 
     private async Task ReconcileTeamAsync(string teamId, CancellationToken stoppingToken)

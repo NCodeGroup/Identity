@@ -16,8 +16,8 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// An <see cref="AuthorizationHandler{TRequirement,TResource}"/> that grants a principal authority over a tenant-plane
 /// resource. Any <see cref="ISupportTenantId"/> resource is judged at its <see cref="IResourceNode"/>; a persisted
 /// entity or a <see cref="TenantScopeResource"/> is judged at its tenant's node, and any other node type inherits the
-/// tenant's and the team's assignments. A principal holds authority when it has a role assignment at that node or an ancestor (its tenant, its
-/// team, or the platform root). The platform, team and tenant nodes have globally unique identifiers and match on
+/// tenant's and the team's assignments. A principal holds authority when it has a role assignment at that node or an
+/// ancestor: the chain is the node, its tenant, its team, every team above that team, then the platform root. The platform, team and tenant nodes have globally unique identifiers and match on
 /// type and identifier; any other node's identifier is unique only within its tenant, so an assignment at it counts
 /// only when it belongs to the node's tenant. This realizes ownership: an <c>Owner</c> assignment at an instance lets the principal
 /// manage that instance (and everything beneath it) without any tenant-wide role. Ownership grants every operation
@@ -128,9 +128,11 @@ internal class OwnershipHandler(
         CancellationToken cancellationToken
     )
     {
-        // A resource's authority chain is fixed: the node itself, its tenant, its team, then the platform root. The
-        // platform, team and tenant nodes have globally unique identifiers, so the node itself joins this set only
-        // when it is one of them; any other node is matched within its tenant by the caller.
+        // A resource's authority chain is fixed: the node itself, its tenant, its team, every team above that team,
+        // then the platform root. The platform, team and tenant nodes have globally unique identifiers, so the node
+        // itself joins this set only when it is one of them; any other node is matched within its tenant by the
+        // caller. A team node adds no tenant node, so a tenant administrator never reaches a team.
+        // See ADR-1426.
         HashSet<(string ResourceType, string NormalizedResourceId)> nodes =
         [
             (ResourceNodeTypes.Platform, Normalize(OpenIdConstants.PlatformResourceId)),
@@ -141,9 +143,10 @@ internal class OwnershipHandler(
             nodes.Add((resource.ResourceType, Normalize(resource.ResourceId)));
         }
 
+        string? teamId = null;
         if (string.Equals(resource.ResourceType, ResourceNodeTypes.Team, StringComparison.Ordinal))
         {
-            nodes.Add((ResourceNodeTypes.Team, Normalize(resource.ResourceId)));
+            teamId = resource.ResourceId;
         }
         else if (
             !string.Equals(
@@ -158,9 +161,22 @@ internal class OwnershipHandler(
             // An unknown tenant adds no team node.
             var tenantStore = storeManager.GetStore<ITenantStore>();
             var tenant = await tenantStore.GetOrDefaultAsync(resource.TenantId, cancellationToken);
-            if (tenant is not null)
+            teamId = tenant?.TeamId;
+        }
+
+        if (teamId is not null)
+        {
+            nodes.Add((ResourceNodeTypes.Team, Normalize(teamId)));
+
+            // Authority at a team reaches every team beneath it, so each team above this one joins the chain.
+            var teamStore = storeManager.GetStore<ITeamStore>();
+            var team = await teamStore.GetOrDefaultAsync(teamId, cancellationToken);
+            if (team is not null)
             {
-                nodes.Add((ResourceNodeTypes.Team, Normalize(tenant.TeamId)));
+                foreach (var ancestorTeamId in team.AncestorTeamIds)
+                {
+                    nodes.Add((ResourceNodeTypes.Team, Normalize(ancestorTeamId)));
+                }
             }
         }
 

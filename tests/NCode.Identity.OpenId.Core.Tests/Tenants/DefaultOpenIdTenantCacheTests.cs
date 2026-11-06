@@ -34,11 +34,14 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
     private static Mock<OpenIdTenant> CreateMockTenant(
         TaskCompletionSource? disposed = null,
         string teamId = "platform",
-        string teamConcurrencyToken = "team-ct"
+        string teamConcurrencyToken = "team-ct",
+        Mock<OpenIdTeam>? parentTeam = null
     )
     {
         var mockTeam = new Mock<OpenIdTeam>(MockBehavior.Strict);
+        mockTeam.SetupGet(x => x.TeamId).Returns(teamId).Verifiable();
         mockTeam.SetupGet(x => x.ConcurrencyToken).Returns(teamConcurrencyToken).Verifiable();
+        mockTeam.SetupGet(x => x.Parent).Returns(parentTeam?.Object).Verifiable();
 
         var mockTenant = new Mock<OpenIdTenant>(MockBehavior.Strict);
         mockTenant.SetupGet(x => x.TeamId).Returns(teamId).Verifiable();
@@ -53,6 +56,15 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
 
     private static TaskCompletionSource CreateCompletionSource() =>
         new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private static Mock<OpenIdTeam> CreateMockParentTeam(string teamId, string concurrencyToken)
+    {
+        var mockParent = new Mock<OpenIdTeam>(MockBehavior.Strict);
+        mockParent.SetupGet(x => x.TeamId).Returns(teamId).Verifiable();
+        mockParent.SetupGet(x => x.ConcurrencyToken).Returns(concurrencyToken).Verifiable();
+        mockParent.SetupGet(x => x.Parent).Returns((OpenIdTeam?)null).Verifiable();
+        return mockParent;
+    }
 
     #region RemoveAsync Tests
 
@@ -166,6 +178,31 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
         var propertyBag = PropertyBagFactory.Create();
 
         await using (var owner = AsyncSharedReference.Create(mockTenant.Object))
+        {
+            await Cache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
+        }
+
+        await Cache.RemoveTeamAsync("team-a", propertyBag, CancellationToken.None);
+
+        await using (
+            var evicted = await Cache.TryGetAsync(TenantId, propertyBag, CancellationToken.None)
+        )
+        {
+            Assert.False(evicted.IsActive);
+        }
+
+        await disposed.Task.WaitAsync(TimeSpan.FromSeconds(5), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task RemoveTeamAsync_WithATenantOfAChildTeam_RemovesIt()
+    {
+        var disposed = CreateCompletionSource();
+        var parentTeam = CreateMockParentTeam("team-a", "a1");
+        var childTenant = CreateMockTenant(disposed, "team-a-web", parentTeam: parentTeam);
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var owner = AsyncSharedReference.Create(childTenant.Object))
         {
             await Cache.SetAsync(TenantId, owner, propertyBag, CancellationToken.None);
         }
@@ -353,6 +390,29 @@ public sealed class DefaultOpenIdTenantCacheTests : IDisposable
 
             await Task.Delay(TimeSpan.FromMilliseconds(20), CancellationToken.None);
         }
+    }
+
+    [Fact]
+    public async Task GetTeamRevisionsAsync_WithATenantOfAChildTeam_ReportsTheParentsRevision()
+    {
+        var parentTeam = CreateMockParentTeam("team-a", "a1");
+        var childTenant = CreateMockTenant(
+            teamId: "team-a-web",
+            teamConcurrencyToken: "w1",
+            parentTeam: parentTeam
+        );
+        var propertyBag = PropertyBagFactory.Create();
+
+        await using (var child = AsyncSharedReference.Create(childTenant.Object))
+        {
+            await Cache.SetAsync("acme", child, propertyBag, CancellationToken.None);
+        }
+
+        var revisions = await Cache.GetTeamRevisionsAsync(propertyBag, CancellationToken.None);
+
+        Assert.Equal(2, revisions.Count);
+        Assert.Contains(new TeamRevision("team-a-web", "w1"), revisions);
+        Assert.Contains(new TeamRevision("team-a", "a1"), revisions);
     }
 
     #endregion

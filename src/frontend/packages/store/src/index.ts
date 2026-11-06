@@ -60,4 +60,6 @@ export {
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
   useUpdateSettingsMutation,
+  useListChildTeamsQuery,
+  useCreateChildTeamMutation,
 } from './managementApi.js';

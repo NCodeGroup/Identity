@@ -15,7 +15,7 @@ const runtime: RuntimeConfig = {
   features: {},
 };
 
-function renderPage(surface: TeamSurface = 'tenants') {
+function renderPage(surface: TeamSurface = 'tenants', onOpenTeam = vi.fn()) {
   const store = createAppStore({
     config: { runtime },
     auth: {
@@ -28,7 +28,12 @@ function renderPage(surface: TeamSurface = 'tenants') {
   });
   return render(
     <Provider store={store}>
-      <TeamDetailPage teamId="acme" surface={surface} onOpenTenant={vi.fn()} />
+      <TeamDetailPage
+        teamId="acme"
+        surface={surface}
+        onOpenTenant={vi.fn()}
+        onOpenTeam={onOpenTeam}
+      />
     </Provider>,
   );
 }
@@ -86,6 +91,33 @@ describe('TeamDetailPage', () => {
     expect(screen.getByRole('heading', { name: 'Team' })).toBeInTheDocument();
     expect(screen.getByText('acme')).toBeInTheDocument();
     expect(await screen.findByText('Globex')).toBeInTheDocument();
+  });
+
+  it("lists the team's child teams on the teams surface and opens one", async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/teams')) {
+        return jsonResponse({
+          items: [
+            {
+              teamId: 'acme-web',
+              parentTeamId: 'acme',
+              displayName: 'Acme Web',
+              isDisabled: false,
+              concurrencyToken: 'c1',
+            },
+          ],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    const onOpenTeam = vi.fn();
+    renderPage('teams', onOpenTeam);
+
+    expect(await screen.findByText('Acme Web')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('team-row-acme-web'));
+
+    expect(onOpenTeam).toHaveBeenCalledWith('acme-web');
   });
 
   it('saves edited team settings as a JSON Patch diff on the settings tab', async () => {

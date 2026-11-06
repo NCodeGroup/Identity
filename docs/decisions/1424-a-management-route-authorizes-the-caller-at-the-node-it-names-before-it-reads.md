@@ -1,6 +1,9 @@
 # 1424. A management route authorizes the caller at the node it names before it reads
 
-- **Status:** Accepted (amends [ADR-1015](1015-management-core-validation-via-validators.md))
+- **Status:** Accepted (amends [ADR-1015](1015-management-core-validation-via-validators.md); amended by
+  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): the node above a child team is its parent, so a team's
+  deletion, like its disable, is authorized at the team's node before the read and at the node above it against the
+  stored row)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Supersedes:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md),

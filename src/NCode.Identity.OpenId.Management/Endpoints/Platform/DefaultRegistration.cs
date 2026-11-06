@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
+using NCode.Identity.OpenId.Management.Endpoints.Teams;
 using NCode.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
@@ -23,6 +24,10 @@ internal static class DefaultRegistration
             builder.ServiceCollection.TryAddSingleton<
                 ITenantClientCoherenceChecker,
                 DefaultTenantClientCoherenceChecker
+            >();
+            builder.ServiceCollection.TryAddSingleton<
+                ITeamClientCoherenceChecker,
+                DefaultTeamClientCoherenceChecker
             >();
         }
     }

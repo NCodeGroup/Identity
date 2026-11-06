@@ -175,6 +175,27 @@ public sealed class TenantStorePagingTests : IDisposable
     }
 
     [Fact]
+    public async Task CountAsync_CountsTheTenantsOfEveryTeamBeneath()
+    {
+        var idGenerator = _provider.GetRequiredService<IIdGenerator<long>>();
+        var parent = _dbContext.SeedTeam(idGenerator, "team-a");
+        _dbContext.SeedChildTeam(idGenerator, parent, "team-a-web");
+        await _store.AddAsync(CreateTenant("a-tenant-1", 1, "team-a"), CancellationToken.None);
+        for (var index = 1; index <= 2; index++)
+        {
+            await _store.AddAsync(
+                CreateTenant($"web-tenant-{index}", index, "team-a-web"),
+                CancellationToken.None
+            );
+        }
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        Assert.Equal(3, await _store.CountAsync("team-a", CancellationToken.None));
+        Assert.Equal(2, await _store.CountAsync("team-a-web", CancellationToken.None));
+    }
+
+    [Fact]
     public async Task AddAsync_WhenTheTeamIsMissing_Throws()
     {
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>

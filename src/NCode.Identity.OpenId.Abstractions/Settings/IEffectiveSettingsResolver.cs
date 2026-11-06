@@ -9,7 +9,8 @@ namespace NCode.Identity.OpenId.Settings;
 
 /// <summary>
 /// The one place that resolves a scope's effective settings outside a materialized tenant or client: the platform's
-/// settings, then the tenant's, then the client's or resource server's, each merged onto the one before it with every
+/// settings, then each team's from the top-level team down, then the tenant's, then the client's or resource
+/// server's, each merged onto the one before it with every
 /// selected security profile's ceilings and defaults applied.
 /// </summary>
 /// <remarks>
@@ -104,8 +105,9 @@ public interface IEffectiveSettingsResolver
     ValueTask<IReadOnlySettingCollection> ResolvePlatformAsync(CancellationToken cancellationToken);
 
     /// <summary>
-    /// Resolves a team's committed settings: the platform's committed effective settings merged with the team's settings
-    /// document that the store holds now. A tenant's parent is its team's effective settings.
+    /// Resolves a team's committed settings: the platform's committed effective settings with the settings document of
+    /// each team above it merged on from the top-level team down, then the team's own settings document, each as the
+    /// store holds it now. A tenant's parent is its team's effective settings.
     /// </summary>
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
@@ -114,22 +116,42 @@ public interface IEffectiveSettingsResolver
     /// <exception cref="UnreadableSettingsException">A committed document cannot be honored; the exception names the
     /// scope and the owner.</exception>
     // See ADR-1411.
+    // See ADR-1426.
     ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
         string teamId,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Resolves a proposed team settings document: the platform's committed effective settings merged with the supplied
-    /// document. A tenant's parent is its team's effective settings.
+    /// Resolves the committed effective settings that a team's settings document merges onto: its parent team's
+    /// effective settings, or the platform's committed effective settings for a top-level team.
+    /// </summary>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
+    /// <returns>The effective settings of the team's parent as committed.</returns>
+    /// <exception cref="KeyNotFoundException">The team does not exist.</exception>
+    /// <exception cref="UnreadableSettingsException">A committed document above the team cannot be honored; the
+    /// exception names the scope and the owner.</exception>
+    // See ADR-1426.
+    ValueTask<IReadOnlySettingCollection> ResolveTeamParentAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Resolves a proposed team settings document: the supplied document merged onto the team's parent's committed
+    /// effective settings (see <see cref="ResolveTeamParentAsync"/>). A tenant's parent is its team's effective
+    /// settings.
     /// </summary>
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="settings">The proposed team settings as a JSON document.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> for the operation.</param>
     /// <returns>The effective settings of the team if <paramref name="settings"/> were committed.</returns>
+    /// <exception cref="KeyNotFoundException">The team does not exist.</exception>
     /// <exception cref="JsonException">The document cannot be honored, including a <c>security_profiles</c> value that
     /// names no registered profile.</exception>
     // See ADR-1411.
+    // See ADR-1426.
     ValueTask<IReadOnlySettingCollection> ResolveTeamAsync(
         string teamId,
         JsonElement settings,

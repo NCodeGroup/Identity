@@ -26,15 +26,15 @@ public sealed class DefaultOpenIdTeamProviderTests
         return team;
     }
 
-    private static PersistedTeam CreatePersistedTeam() =>
+    private static PersistedTeam CreatePersistedTeam(string teamId = "platform") =>
         new()
         {
-            TeamId = "platform",
+            TeamId = teamId,
             IsDisabled = false,
             DisplayName = "Platform",
             Settings = new PersistedTeamSettings
             {
-                TeamId = "platform",
+                TeamId = teamId,
                 ConcurrencyToken = "token",
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
@@ -50,6 +50,32 @@ public sealed class DefaultOpenIdTeamProviderTests
             .Setup(x => x.GetOrDefaultAsync("platform", It.IsAny<CancellationToken>()))
             .ReturnsAsync(persistedTeam)
             .Verifiable();
+        var storeManager = mocks.Create<IStoreManager>();
+        storeManager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object).Verifiable();
+        storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        var factory = mocks.Create<IStoreManagerFactory>();
+        factory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(storeManager.Object)
+            .Verifiable();
+        return factory.Object;
+    }
+
+    private static IStoreManagerFactory CreateStoreManagerFactoryForTeams(
+        MockRepository mocks,
+        params PersistedTeam[] persistedTeams
+    )
+    {
+        var teamStore = mocks.Create<ITeamStore>();
+        foreach (var persistedTeam in persistedTeams)
+        {
+            teamStore
+                .Setup(x =>
+                    x.GetOrDefaultAsync(persistedTeam.TeamId, It.IsAny<CancellationToken>())
+                )
+                .ReturnsAsync(persistedTeam)
+                .Verifiable();
+        }
         var storeManager = mocks.Create<IStoreManager>();
         storeManager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object).Verifiable();
         storeManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
@@ -126,6 +152,7 @@ public sealed class DefaultOpenIdTeamProviderTests
                 x.CreateTeamAsync(
                     It.IsAny<OpenIdEnvironment>(),
                     It.IsAny<OpenIdPlatform>(),
+                    It.IsAny<AsyncSharedReferenceLease<OpenIdTeam>>(),
                     persistedTeam,
                     It.IsAny<IPropertyBag>(),
                     It.IsAny<CancellationToken>()
@@ -179,6 +206,106 @@ public sealed class DefaultOpenIdTeamProviderTests
             )
         );
 
+        mocks.Verify();
+    }
+
+    [Fact]
+    public async Task GetTeamAsync_WithAParentTeam_MaterializesTheParentFirst()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+        var parentPersisted = CreatePersistedTeam("acme");
+        var childPersisted = CreatePersistedTeam("acme-web");
+        childPersisted.ParentTeamId = "acme";
+        childPersisted.AncestorTeamIds = ["acme"];
+
+        var parentTeam = mocks.Create<OpenIdTeam>();
+        parentTeam
+            .Protected()
+            .Setup<ValueTask>("DisposeAsyncCore")
+            .Returns(ValueTask.CompletedTask);
+        parentTeam.Setup(x => x.TeamId).Returns("acme").Verifiable();
+        var childTeam = CreateMockTeam();
+        await using var parentOwner = AsyncSharedReference.Create(parentTeam.Object);
+        await using var childOwner = AsyncSharedReference.Create(childTeam.Object);
+
+        var cache = mocks.Create<IOpenIdTeamCache>();
+        AsyncSharedReferenceLease<OpenIdTeam> empty = default;
+        cache
+            .Setup(x =>
+                x.TryGetAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(empty)
+            .Verifiable();
+        cache
+            .Setup(x =>
+                x.SetAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<AsyncSharedReferenceLease<OpenIdTeam>>(),
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        string? parentTeamIdSeenByTheFactory = null;
+        var factory = mocks.Create<IOpenIdTeamFactory>();
+        factory
+            .Setup(x =>
+                x.CreateTeamAsync(
+                    It.IsAny<OpenIdEnvironment>(),
+                    It.IsAny<OpenIdPlatform>(),
+                    It.IsAny<AsyncSharedReferenceLease<OpenIdTeam>>(),
+                    parentPersisted,
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(parentOwner.AddReference())
+            .Verifiable();
+        factory
+            .Setup(x =>
+                x.CreateTeamAsync(
+                    It.IsAny<OpenIdEnvironment>(),
+                    It.IsAny<OpenIdPlatform>(),
+                    It.IsAny<AsyncSharedReferenceLease<OpenIdTeam>>(),
+                    childPersisted,
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (
+                    OpenIdEnvironment _,
+                    OpenIdPlatform _,
+                    AsyncSharedReferenceLease<OpenIdTeam> parent,
+                    PersistedTeam _,
+                    IPropertyBag _,
+                    CancellationToken _
+                ) => parentTeamIdSeenByTheFactory = parent.IsActive ? parent.Value.TeamId : null
+            )
+            .ReturnsAsync(childOwner.AddReference())
+            .Verifiable();
+        var provider = new DefaultOpenIdTeamProvider(
+            CreateStoreManagerFactoryForTeams(mocks, parentPersisted, childPersisted),
+            cache.Object,
+            factory.Object
+        );
+
+        await using var lease = await provider.GetTeamAsync(
+            Mock.Of<OpenIdEnvironment>(),
+            Mock.Of<OpenIdPlatform>(),
+            "acme-web",
+            Mock.Of<IPropertyBag>(),
+            CancellationToken.None
+        );
+
+        Assert.Same(childTeam.Object, lease.Value);
+        Assert.Equal("acme", parentTeamIdSeenByTheFactory);
         mocks.Verify();
     }
 

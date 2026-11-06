@@ -58,11 +58,11 @@ public interface IOpenIdTenantCache
     );
 
     /// <summary>
-    /// Removes every cached <see cref="OpenIdTenant"/> instance of the team with the specified <paramref name="teamId"/>,
-    /// so the next request for any of its tenants materializes it again from the store. A lease already handed out
-    /// stays usable until its holder releases it.
+    /// Removes every cached <see cref="OpenIdTenant"/> instance of the team with the specified <paramref name="teamId"/>
+    /// and of every team beneath it, so the next request for any of those tenants materializes it again from the store.
+    /// A lease already handed out stays usable until its holder releases it.
     /// </summary>
-    /// <param name="teamId">The identifier of the team whose tenants to remove from the cache.</param>
+    /// <param name="teamId">The identifier of the team whose tenants, and the tenants of every team beneath it, to remove from the cache.</param>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
@@ -82,7 +82,8 @@ public interface IOpenIdTenantCache
     ValueTask ClearAsync(IPropertyBag propertyBag, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Gets the distinct revisions of the teams that the cached <see cref="OpenIdTenant"/> instances were materialized under.
+    /// Gets the distinct revisions of the teams that the cached <see cref="OpenIdTenant"/> instances were materialized
+    /// under: each tenant's own team and every team above it.
     /// </summary>
     /// <param name="propertyBag">The <see cref="IPropertyBag"/> instance that can provide additional user-defined information about the current instance or operation.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

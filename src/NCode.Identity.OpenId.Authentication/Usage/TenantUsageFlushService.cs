@@ -175,7 +175,7 @@ internal sealed class TenantUsageFlushService(
                     .. chunk.Select(pair => new PersistedTenantUsage
                     {
                         TenantId = pair.Key.TenantId,
-                        TeamId = pair.Key.TeamId,
+                        TeamPath = pair.Key.TeamPath,
                         Day = pair.Key.Day,
                         Meter = pair.Key.Meter,
                         Count = pair.Value,

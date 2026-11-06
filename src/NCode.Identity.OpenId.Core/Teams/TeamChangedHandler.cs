@@ -12,15 +12,15 @@ using NCode.PropertyBag;
 namespace NCode.Identity.OpenId.Teams;
 
 /// <summary>
-/// Handles <see cref="TeamChangedCommand"/> by evicting the team and its tenants from this replica's
-/// <see cref="IOpenIdTeamCache"/> and <see cref="IOpenIdTenantCache"/>, then announcing the change on the
+/// Handles <see cref="TeamChangedCommand"/> by evicting the team, every team beneath it and their tenants from this
+/// replica's <see cref="IOpenIdTeamCache"/> and <see cref="IOpenIdTenantCache"/>, then announcing the change on the
 /// <see cref="TeamChangeBroadcastHandler.ChannelName"/> channel of the <see cref="IReplicaBroadcaster"/> so every other
 /// replica evicts them too. When the team's settings changed it then asks the <see cref="ITeamSettingsReconciliationTrigger"/>
 /// to reconcile the team. The eviction and the announcement run on their own bounded token, not the request's, and a
 /// failed or timed-out announcement is logged and never fails the committed change: a replica that missed it picks the
 /// change up through its polls.
 /// </summary>
-// See ADR-1411
+// See ADR-1411 and ADR-1426.
 internal sealed class TeamChangedHandler(
     IOpenIdTeamCache teamCache,
     IOpenIdTenantCache tenantCache,

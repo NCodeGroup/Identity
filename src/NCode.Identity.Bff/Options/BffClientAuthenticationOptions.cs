@@ -14,13 +14,13 @@ public sealed class BffClientAuthenticationOptions
 {
     /// <summary>
     /// Gets or sets the client authentication method, as registered by an <c>IClientAuthenticator</c>. The default is
-    /// <c>private_key_jwt</c>. The configuration key is <c>Bff:ClientAuthentication:Method</c>.
+    /// <c>private_key_jwt</c>. The configuration key is <c>Bff:Frontends:{name}:ClientAuthentication:Method</c>.
     /// </summary>
     public string Method { get; set; } = OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt;
 
     /// <summary>
     /// Gets or sets the name of the key ring that holds the client's authentication keys. The configuration key is
-    /// <c>Bff:ClientAuthentication:KeyRing</c>.
+    /// <c>Bff:Frontends:{name}:ClientAuthentication:KeyRing</c>.
     /// </summary>
     public string? KeyRing { get; set; }
 }

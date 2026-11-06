@@ -16,7 +16,7 @@ internal static class BffRemoteApiValidation
     /// <summary>
     /// Validates one remote API's options.
     /// </summary>
-    /// <param name="key">The configuration key that failure messages name, such as <c>Bff:RemoteApis:orders</c>.</param>
+    /// <param name="key">The configuration key that failure messages name, such as <c>Bff:Frontends:web:RemoteApis:orders</c>.</param>
     /// <param name="api">The options to validate.</param>
     /// <param name="isDevelopment">Whether the host runs in Development, which allows an <c>http</c> destination.</param>
     /// <param name="failures">The list that each failure is added to.</param>

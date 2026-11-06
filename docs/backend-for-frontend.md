@@ -399,7 +399,7 @@ sequenceDiagram
     O-->>F: id_token, DPoP-bound access_token, refresh_token
     F->>F: validate the ID token and nonce, run login gates
     F->>S: create the session at H(handle), payload encrypted with a handle-derived key
-    F-->>B: 302 to /orders, Set-Cookie __Host-Http-bff (Strict, HttpOnly, Secure)
+    F-->>B: 302 to /orders, Set-Cookie __Host-Http-bff.<frontend> (Strict, HttpOnly, Secure)
 ```
 
 ### 5.3 The session cookie and the server-side record

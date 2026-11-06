@@ -232,7 +232,7 @@ public class BffEndToEndTests
         );
         var providerSession = await InteractiveLogin.SignInAsync(browser, UserName, Password);
 
-        // The request names another host; the redirect_uri still comes from Bff:PublicOrigin, so the provider accepts it
+        // The request names another host; the redirect_uri still comes from the frontend's PublicOrigin, so the provider accepts it
         // and sends the browser back to the registered callback.
         var loginUri =
             $"https://attacker.example{BffDefaults.EndpointPrefix}/login?returnUrl=%2F&{OpenIdProtocol.Parameters.Prompt}={OpenIdProtocol.PromptTypes.None}";

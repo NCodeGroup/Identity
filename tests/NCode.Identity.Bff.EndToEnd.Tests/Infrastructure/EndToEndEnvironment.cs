@@ -167,7 +167,8 @@ public sealed class EndToEndEnvironment : IAsyncLifetime
             Keycloak.Issuer,
             _certificate ?? throw NotInitialized(),
             [SameSiteUntrusted, SameSiteTrusted, CrossSiteAdmitted],
-            [SameSiteTrusted]
+            [SameSiteTrusted],
+            TimeSpan.FromMinutes(1)
         );
 
     private Task<IBrowser> LaunchBrowserAsync(string browserName)

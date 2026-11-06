@@ -15,6 +15,7 @@ namespace NCode.Identity.Bff.EndToEnd.Tests.Infrastructure;
 /// <param name="Certificate">The certificate that the BFF serves and that it trusts from the OpenID Provider.</param>
 /// <param name="CorsOrigins">The origins that the CORS policy admits.</param>
 /// <param name="TrustedOrigins">The origins that Fetch Metadata treats as same-site, as <c>Bff:Frontends:web:TrustedOrigins</c>.</param>
+/// <param name="RevalidationInterval">How often a connection revalidates its session, as <c>Bff:Frontends:web:Session:RevalidationInterval</c>.</param>
 public sealed record BffApplicationSettings(
     string ClientId,
     int Port,
@@ -22,5 +23,6 @@ public sealed record BffApplicationSettings(
     string Authority,
     TestCertificate Certificate,
     IReadOnlyList<string> CorsOrigins,
-    IReadOnlyList<string> TrustedOrigins
+    IReadOnlyList<string> TrustedOrigins,
+    TimeSpan RevalidationInterval
 );

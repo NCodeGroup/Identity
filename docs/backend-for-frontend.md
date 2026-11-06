@@ -1290,6 +1290,11 @@ UserInfo and the management API. A deployment registers `jwks_uri` = `<origin>/b
 registers the public key by value. The console's `mgmt-client` and `mgmt-dpop` key rings are PEM files
 ([ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)).
 
+**Deployment.** The console host ships as its own image (`src/NCode.Identity.ManagementConsole.Host/Dockerfile`) and as
+the `managementConsole` component of `charts/ncode-identity-host`, which mounts the two key rings from Secrets and
+routes `manage.<apex>`'s `/api` to the OP and every other path to the console host
+([ADR-1458](decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
+
 **Local development.** The AppHost generates per-machine P-256 keys `mgmt-client.pem` and `mgmt-dpop.pem` beside the
 other development secrets, hands their paths to the console host (`Bff__KeyRings__…`) and the client key's public JWKS
 to the OP (`DeveloperInteractiveSeed__BffClients__0__Jwks`). `apps/mgmt` is a build-watched bundle (`vite build

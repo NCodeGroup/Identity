@@ -32,7 +32,7 @@ internal sealed class BffTestOptionsSource(BffOptions initial)
     /// <summary>
     /// Replaces the options and signals the change.
     /// </summary>
-    /// <param name="next">The options that <see cref="Create"/> returns from now on.</param>
+    /// <param name="next">The options that <see cref="Create"/> returns after the change.</param>
     public void Change(BffOptions next)
     {
         Failure = null;

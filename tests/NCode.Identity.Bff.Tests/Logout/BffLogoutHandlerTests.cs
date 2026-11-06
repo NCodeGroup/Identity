@@ -7,8 +7,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Buffers;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logout;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
@@ -31,48 +31,37 @@ public class BffLogoutHandlerTests : BaseTests
 
     public BffLogoutHandlerTests()
     {
-        var options = CreateOptions();
+        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
         var cookies = new BffCookies(options, timeProvider);
         _resolver = CreateStrictMock<BffSessionResolver>(
             CreateStrictMock<IBffSessionManager>().Object,
             cookies,
             Array.Empty<IBffSessionValidator>(),
-            BffTestFrontends.CreateCatalog(),
+            CreateFrontends(),
             timeProvider
         );
         _logoutService = CreateStrictMock<BffLogoutService>(
             CreateStrictMock<IBffSessionManager>().Object,
             CreateStrictMock<ITokenRevocationClient>().Object,
-            new BffClientRegistrationProvider(options),
+            CreateFrontends(),
             cookies,
             CreateLooseMock<ILogger<BffLogoutService>>().Object
         );
         _metadataResolver = CreateStrictMock<IProviderMetadataResolver>();
     }
 
-    private static Microsoft.Extensions.Options.IOptions<BffOptions> CreateOptions() =>
-        Microsoft.Extensions.Options.Options.Create(
-            new BffOptions
-            {
-                Authority = "https://op.example",
-                PublicOrigin = "https://app.example",
-                ClientId = "bff",
-                ReturnUrls = ["/"],
-            }
-        );
+    private static BffFrontendCatalog CreateFrontends() =>
+        BffTestFrontends.CreateCatalog(options =>
+        {
+            options.Authority = "https://op.example";
+            options.PublicOrigin = "https://app.example";
+            options.ClientId = "bff";
+            options.ReturnUrls = ["/"];
+        });
 
-    private BffLogoutHandler CreateHandler()
-    {
-        var options = CreateOptions();
-        return new BffLogoutHandler(
-            options,
-            _resolver.Object,
-            _logoutService.Object,
-            _metadataResolver.Object,
-            new BffClientRegistrationProvider(options)
-        );
-    }
+    private BffLogoutHandler CreateHandler() =>
+        new(CreateFrontends(), _resolver.Object, _logoutService.Object, _metadataResolver.Object);
 
     private static BffSessionState CreateState() =>
         new(
@@ -81,7 +70,7 @@ public class BffLogoutHandlerTests : BaseTests
             1,
             new BffSessionMetadata
             {
-                Frontend = BffDefaults.FrontendName,
+                Frontend = BffTestFrontends.Name,
                 Issuer = "https://op.example",
                 Subject = "sub-1",
                 SessionId = "sid-1",

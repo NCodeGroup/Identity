@@ -3,8 +3,8 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.OpenId;
@@ -18,7 +18,7 @@ namespace NCode.Identity.Bff.Logout;
 internal class BffLogoutService(
     IBffSessionManager manager,
     ITokenRevocationClient revocation,
-    BffClientRegistrationProvider registrations,
+    BffFrontendCatalog frontends,
     BffCookies cookies,
     ILogger<BffLogoutService> logger
 )
@@ -38,6 +38,8 @@ internal class BffLogoutService(
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(state);
 
+        var frontend = frontends.GetRequired(httpContext);
+
         await manager.EndAsync(
             httpContext,
             state.StoreKey,
@@ -45,7 +47,7 @@ internal class BffLogoutService(
             reason,
             CancellationToken.None
         );
-        cookies.DeleteSession(httpContext.Response);
+        cookies.DeleteSession(httpContext.Response, frontend);
 
         if (httpContext.Features.Get<BffRequestFeature>() is { } feature)
         {
@@ -57,10 +59,10 @@ internal class BffLogoutService(
         // Revocation follows the removal and nothing cancels it, so a disconnect cannot leave the session behind.
         // See ADR-1293.
         if (state.Payload.RefreshToken is { Length: > 0 } refreshToken)
-            await RevokeAsync(refreshToken);
+            await RevokeAsync(frontend.Registration, refreshToken);
     }
 
-    private async ValueTask RevokeAsync(string refreshToken)
+    private async ValueTask RevokeAsync(ClientRegistration registration, string refreshToken)
     {
         var request = new TokenRevocationRequest(refreshToken)
         {
@@ -70,7 +72,7 @@ internal class BffLogoutService(
         try
         {
             var error = await revocation.RevokeTokenAsync(
-                registrations.Registration,
+                registration,
                 request,
                 CancellationToken.None
             );

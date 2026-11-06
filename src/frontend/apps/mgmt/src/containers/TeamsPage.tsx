@@ -14,8 +14,10 @@ import {
 import type { TeamResource } from '@ncode/api';
 import {
   apiErrorMessage,
+  useCreateChildTeamMutation,
   useCreateTeamMutation,
   useDeleteTeamMutation,
+  useListChildTeamsQuery,
   useListTeamsQuery,
   useUpdateTeamMutation,
   type ApiError,
@@ -32,20 +34,28 @@ const closed: DialogState = { kind: 'none' };
 export type TeamsPageProps = {
   /** Opens a team's own page. */
   readonly onOpenTeam: (teamId: string) => void;
+  /** The team whose child teams this lists and creates; unset lists every team the caller can see. */
+  readonly parentTeamId?: string;
 };
 
 /**
- * Container: the platform-scope team browser and CRUD surface. Teams group tenants under one
- * administrative boundary; this lists them, wires the create/edit/delete mutations to the stateless
+ * Container: the team browser and CRUD surface. Teams group tenants and child teams under one
+ * administrative boundary. Without `parentTeamId` this is the platform scope's list of every team;
+ * with it, the child teams of that team. It wires the create/edit/delete mutations to the stateless
  * {@link TeamTable}, {@link TeamFormDialog}, and {@link ConfirmDialog}, and hands a selected team to
  * the caller. Owns only dialog/error state; all persistence, cache invalidation, and error shaping
  * come from the store layer.
  */
-export function TeamsPage({ onOpenTeam }: TeamsPageProps) {
-  const { data, isLoading, error } = useListTeamsQuery();
+export function TeamsPage({ onOpenTeam, parentTeamId }: TeamsPageProps) {
+  const isChildList = parentTeamId !== undefined;
+  const allTeams = useListTeamsQuery(undefined, { skip: isChildList });
+  const childTeams = useListChildTeamsQuery({ teamId: parentTeamId ?? '' }, { skip: !isChildList });
+  const { data, isLoading, error } = isChildList ? childTeams : allTeams;
   const teams = data?.items ?? [];
 
-  const [createTeam, { isLoading: isCreating }] = useCreateTeamMutation();
+  const [createRootTeam, { isLoading: isCreatingRoot }] = useCreateTeamMutation();
+  const [createChildTeam, { isLoading: isCreatingChild }] = useCreateChildTeamMutation();
+  const isCreating = isCreatingRoot || isCreatingChild;
   const [updateTeam, { isLoading: isUpdating }] = useUpdateTeamMutation();
   const [deleteTeam, { isLoading: isDeleting }] = useDeleteTeamMutation();
 
@@ -88,15 +98,21 @@ export function TeamsPage({ onOpenTeam }: TeamsPageProps) {
     setFormError(undefined);
     try {
       if (dialog.kind === 'create') {
-        await createTeam({
+        const body = {
           teamId: values.teamId,
           displayName: values.displayName,
           isDisabled: values.isDisabled,
           settings: {},
-        }).unwrap();
+        };
+        if (parentTeamId === undefined) {
+          await createRootTeam(body).unwrap();
+        } else {
+          await createChildTeam({ teamId: parentTeamId, body }).unwrap();
+        }
       } else if (dialog.kind === 'edit') {
         await updateTeam({
           teamId: dialog.team.teamId,
+          parentTeamId: dialog.team.parentTeamId,
           concurrencyToken: dialog.team.concurrencyToken,
           fields: { displayName: values.displayName, isDisabled: values.isDisabled },
         }).unwrap();
@@ -113,7 +129,10 @@ export function TeamsPage({ onOpenTeam }: TeamsPageProps) {
     }
     setDeleteError(undefined);
     try {
-      await deleteTeam({ teamId: dialog.team.teamId }).unwrap();
+      await deleteTeam({
+        teamId: dialog.team.teamId,
+        parentTeamId: dialog.team.parentTeamId,
+      }).unwrap();
       setDialog(closed);
     } catch (removeError) {
       setDeleteError(apiErrorMessage(removeError as ApiError));
@@ -139,13 +158,15 @@ export function TeamsPage({ onOpenTeam }: TeamsPageProps) {
         isLoading={isLoading}
         error={error ? 'Failed to load teams.' : undefined}
         isEmpty={teams.length === 0}
-        emptyMessage="No teams exist yet."
+        emptyMessage={isChildList ? 'No teams beneath this team yet.' : 'No teams exist yet.'}
       >
         <TeamTable
+          showParent={!isChildList}
           teams={teams.map((t) => ({
             teamId: t.teamId,
             displayName: t.displayName,
             isDisabled: t.isDisabled,
+            parentTeamId: t.parentTeamId,
           }))}
           onSelect={onOpenTeam}
           onEdit={openEdit}
@@ -170,7 +191,7 @@ export function TeamsPage({ onOpenTeam }: TeamsPageProps) {
         title="Delete team"
         message={
           dialog.kind === 'delete'
-            ? `Delete “${dialog.team.displayName}”? Its tenants must be deleted first.`
+            ? `Delete “${dialog.team.displayName}”? Its tenants and teams must be deleted first.`
             : ''
         }
         isBusy={isDeleting}

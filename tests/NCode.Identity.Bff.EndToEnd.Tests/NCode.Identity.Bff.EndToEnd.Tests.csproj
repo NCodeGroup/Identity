@@ -22,4 +22,9 @@
         <ProjectReference Include="..\..\src\NCode.Identity.Bff.Server\NCode.Identity.Bff.Server.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.Bff\NCode.Identity.Bff.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+        <!-- The Keycloak image's build context, which KeycloakProvider reads from the output directory. -->
+        <None Update="Keycloak\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
 </Project>

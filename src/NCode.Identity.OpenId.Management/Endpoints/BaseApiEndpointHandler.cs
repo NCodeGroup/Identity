@@ -5,12 +5,17 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Persistence;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
+using NCode.Mediator;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
@@ -328,6 +333,64 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
         return TypedResults.Problem(
             detail: $"A key with the 'kid' value '{keyId}' is already registered for the {owner}.",
             statusCode: StatusCodes.Status409Conflict
+        );
+    }
+
+    /// <summary>
+    /// Gets the platform's authority node: the one deployment root, addressed from the control-plane tenant the request
+    /// runs under.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <returns>The platform's <see cref="ResourceNode"/>.</returns>
+    internal static ResourceNode GetPlatformNode(HttpContext httpContext) =>
+        ResourceNode.For(
+            httpContext.GetOpenIdContext().Tenant.TenantId,
+            ResourceNodeTypes.Platform,
+            OpenIdConstants.PlatformResourceId
+        );
+
+    /// <summary>
+    /// Gets a team's authority node, addressed from the control-plane tenant the request runs under.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <returns>The team's <see cref="ResourceNode"/>.</returns>
+    internal static ResourceNode GetTeamNode(HttpContext httpContext, string teamId) =>
+        ResourceNode.For(
+            httpContext.GetOpenIdContext().Tenant.TenantId,
+            ResourceNodeTypes.Team,
+            teamId
+        );
+
+    /// <summary>
+    /// Gets a tenant's authority node: its own id addresses the tenant node.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the tenant.</param>
+    /// <returns>The tenant's <see cref="ResourceNode"/>.</returns>
+    internal static ResourceNode GetTenantNode(string tenantId) =>
+        ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId);
+
+    /// <summary>
+    /// Announces a committed change to a tenant: this replica evicts it from the tenant cache, so the change takes
+    /// effect at once, and seeds it after a settings change, so a key its new settings require is provisioned. The
+    /// mediator is request-scoped, so it is resolved from the request's services.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the tenant that changed.</param>
+    /// <param name="settingsChanged">Whether the tenant's settings changed.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    // See ADR-1169.
+    internal static ValueTask NotifyTenantChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        bool settingsChanged,
+        CancellationToken cancellationToken
+    )
+    {
+        var mediator = httpContext.RequestServices.GetRequiredService<IMediator>();
+        return mediator.SendAsync(
+            new TenantChangedCommand(tenantId, settingsChanged),
+            cancellationToken
         );
     }
 }

@@ -500,6 +500,143 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         Assert.Equal("read:x", created.Value?.Value);
     }
 
+    private void SetupResourceServerNodeAuthorization(AuthorizationResult result) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.ResourceServer
+                        && ((ResourceNode)resource).ResourceId == ResourceServerId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    [Fact]
+    public async Task ListScopesAsync_WhenForbidden_ReturnsForbiddenWithoutReading()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Failed());
+
+        // No store factory is set up, so a strict-mock failure would mean the resource server was read first.
+        var result = await Handler.ListScopesAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ListScopesAsync_WhenAuthorized_ReturnsTheScopes()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateResourceServer(
+                    false,
+                    new PersistedScope
+                    {
+                        Value = "read:x",
+                        Description = "Read.",
+                        IsSystem = false,
+                    }
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.ListScopesAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<IReadOnlyList<ScopeResource>>>(result);
+        var scope = Assert.Single(json.Value!);
+        Assert.Equal("read:x", scope.Value);
+    }
+
+    [Fact]
+    public async Task GetScopeAsync_WhenForbidden_ReturnsForbiddenWithoutReading()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Failed());
+
+        // No store factory is set up, so a strict-mock failure would mean the resource server was read first.
+        var result = await Handler.GetScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "read:x",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetScopeAsync_WhenAuthorizedAndTheScopeIsMissing_ReturnsNotFound()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+
+        var result = await Handler.GetScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "read:x",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetScopeAsync_WhenAuthorized_ReturnsTheScope()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateResourceServer(
+                    false,
+                    new PersistedScope
+                    {
+                        Value = "read:x",
+                        Description = "Read.",
+                        IsSystem = false,
+                    }
+                )
+            )
+            .Verifiable();
+
+        var result = await Handler.GetScopeAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "READ:X",
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<ScopeResource>>(result);
+        Assert.Equal("read:x", json.Value?.Value);
+    }
+
     [Fact]
     public async Task GetEffectiveSettingsAsync_ExpandsTheTenantProfilesOntoTheServerBaseline()
     {
@@ -576,13 +713,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutResolvingTheSettings()
+    public async Task GetEffectiveSettingsAsync_WhenForbidden_ReturnsForbidWithoutReadingTheResourceServer()
     {
-        SetupStore();
-        MockStore
-            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateResourceServer())
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.GetEffectiveSettingsAsync(
@@ -592,8 +724,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        // No tenant store or resolver is set up, so a strict-mock failure would mean the settings were resolved before
-        // authorization.
+        // No store factory, tenant store or resolver is set up, so a strict-mock failure would mean the resource server
+        // was read before authorization.
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
@@ -1335,6 +1467,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             )
             .ReturnsAsync((PersistedResourceServerSecret?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         // Strict mocks: no GetProtectorAsync setup, so asking for a protector would fail the test.
         var result = await Handler.GetPublicKeyAsync(
@@ -1349,19 +1482,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbidWithoutProtector()
+    public async Task GetPublicKeyAsync_WhenForbidden_ReturnsForbidWithoutReadingTheSecret()
     {
-        SetupStore();
-        MockStore
-            .Setup(x =>
-                x.GetSecretOrDefaultAsync(
-                    ResourceServerId,
-                    "secret-1",
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync(CreateResourceServerSecret())
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.GetPublicKeyAsync(

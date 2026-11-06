@@ -249,10 +249,11 @@ The flow follows RFC 10017 Figure 1:
 | `NCode.Identity.OpenId.Protocol.Abstractions`   | nothing                                                         | The OAuth 2.0 / OpenID Connect **wire vocabulary** (`OpenIdProtocol`): parameter, error, grant type, media type and metadata names, shared by the OP and the protocol client ([ADR-1276](decisions/1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md)). |
 | `NCode.Identity.OpenId.Client.Abstractions`     | `NCode.Identity.Jose.Abstractions`, `NCode.Identity.Jwt.Abstractions`, `NCode.Identity.OpenId.Protocol.Abstractions`, `NCode.Json` | Contracts for an OAuth/OIDC **protocol client**: discovery document, token-endpoint requests and responses, client-authentication strategies, DPoP proof creation, ID-token and logout-token validation results.                                                            |
 | `NCode.Identity.OpenId.Client`                  | the above, `.SharedState.Abstractions` (abstractions only, ADR-1016)    | Default implementations: cached discovery and JWKS, PAR, code / refresh / client-credentials / token-exchange requests, revocation, `private_key_jwt` and mTLS client authentication, DPoP with nonce handling, and ID-token and logout-token validation under the family's JWT policy ([ADR-1154](decisions/1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). It is useful on its own to any server-side client. It needs no ASP.NET Core runtime ([ADR-1285](decisions/1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md)). |
-| `NCode.Identity.Bff.Abstractions`               | the ASP.NET Core shared framework, `NCode.Identity.OpenId.Client.Abstractions`, `NCode.Identity.Events.Abstractions`, `NCode.Registration` | BFF contracts: the session record and `IBffSessionStore`, token requirements and `IBffTokenAccessor`, login gates and session validators, `[BffApi]`, the audit event, problem types and name constants ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)). |
+| `NCode.Identity.Bff.Protocol.Abstractions`      | nothing                                                         | The names a BFF and its browser clients share, which carry no server code: `BffDefaults`, `BffClaimTypes`, `BffEndpointPaths` and `BffUserDocumentNames` ([ADR-1440](decisions/1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md)). |
+| `NCode.Identity.Bff.Abstractions`               | the ASP.NET Core shared framework, `NCode.Identity.Bff.Protocol.Abstractions`, `NCode.Identity.OpenId.Client.Abstractions`, `NCode.Identity.Events.Abstractions`, `NCode.Registration` | BFF contracts: the session record and `IBffSessionStore`, token requirements and `IBffTokenAccessor`, login gates and session validators, `[BffApi]`, the audit event, problem types and name constants ([ADR-1290](decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)). |
 | `NCode.Identity.Bff`                            | the above, `NCode.Identity.SharedState.Abstractions` (abstractions only, ADR-1016), the `NCode.Identity.Jwk` model ([ADR-1119](decisions/1119-first-class-jwk-jwks-and-thumbprint.md)), YARP | The ASP.NET Core authentication scheme, the `/bff` endpoints (with the optional `/bff/jwks`), `UseBff()` with the cookie-acceptance checks, the token manager and `AddBffAccessTokenHandler`, local-API endpoint metadata (`AsBffApi`), the back-channel logout receiver, the remote-API forwarder on YARP's `IHttpForwarder` (`MapBffRemoteApi`), token attachment for routes in YARP configuration (`AddBffTransforms()`, `AsBffRemoteApis()`), and the opt-in `UseBffSecurityHeaders()`. Composed with `AddBffLibrary(events)` on the protocol client's builder and `AddBffConfiguration(configuration)`; the host registers the protocol client, events and shared-state implementations. |
-| `NCode.Identity.Bff.Blazor`                     | `NCode.Identity.Bff.Abstractions`, `NCode.Identity.Bff.Blazor.Client` | The opt-in server half for Blazor: `AddBffBlazorLibrary`, `AsBffComponents`, the revalidating server `AuthenticationStateProvider`, and the circuit handler ([§5.14](#514-server-rendered-and-blazor-hosts)). |
-| `NCode.Identity.Bff.Blazor.Client`              | `Microsoft.AspNetCore.Components.Authorization`, `Microsoft.Extensions.Http` | The opt-in WebAssembly half, which runs in the browser and holds no token: `AddBffBlazorClient`, the WebAssembly `AuthenticationStateProvider`, and `AddBffAntiforgeryHeader` ([§5.14](#514-server-rendered-and-blazor-hosts)). |
+| `NCode.Identity.Bff.Blazor`                     | `NCode.Identity.Bff.Abstractions`                               | The opt-in server half for Blazor: `AddBffBlazorLibrary`, `AsBffComponents`, the revalidating server `AuthenticationStateProvider`, and the circuit handler ([§5.14](#514-server-rendered-and-blazor-hosts)). |
+| `NCode.Identity.Bff.Blazor.Client`              | `NCode.Identity.Bff.Protocol.Abstractions`, `Microsoft.AspNetCore.Components.Authorization`, `Microsoft.Extensions.Http` | The opt-in WebAssembly half, which runs in the browser and holds no token: `AddBffBlazorClient`, the WebAssembly `AuthenticationStateProvider`, and `AddBffAntiforgeryHeader` ([§5.14](#514-server-rendered-and-blazor-hosts)). |
 | `NCode.Identity.Bff.Server`                     | `NCode.Identity.Bff`, and the protocol client, events, secrets, JOSE, JWT and shared-state implementations | The turnkey composition root: `AddIdentityBff(configuration)` composes every library a BFF needs in one call, with in-process shared state by default, and exposes each library's builder (`IIdentityBffBuilder`), as `AddIdentityServer()` does for the OP. The host still registers the key rings its configuration names and, with several replicas, a shared-state adapter. |
 | `NCode.Identity.SharedState(.Abstractions/.Valkey)` | (existing)                                                   | **Extended** with a versioned, expiring value primitive and expiring membership indexes ([§5.4](#54-state-every-replica-sees)).                                                                                                                                             |
 
@@ -630,12 +631,18 @@ session, slides it from the connection's activity, and obtains tokens without an
 - A token requirement receives an `IBffTokenContext`, which is a guarded request or a connection. The token accessor's
   rule holds: only a guarded endpoint's request, or a connection that a guarded hub request opened, gets a token. A
   hub request obtains tokens through its connection and never writes cookies to an upgraded response.
-- `BffHubFilter`, registered for every hub, revalidates a connection on an invocation once its frontend's
-  `Session:RevalidationInterval` has passed (1 minute by default, at most half the idle timeout), slides the
-  session from the invocation, aborts the connection when the session has ended, and makes the connection current for
-  `AddBffAccessTokenHandler`.
-- A non-Blazor hub revalidates only on invocations, so a connection that never invokes keeps its last answer until it
-  closes.
+- `IBffConnectionRevalidator` is the one loop that keeps a connection's session current. It waits
+  `Session:RevalidationInterval` (1 minute by default, at most half the idle timeout), revalidates the session without
+  sliding it, so the idle timeout still ends the session of an idle connection, and returns once the session has
+  ended. It retries when the store is unavailable and fails closed on any other failure
+  ([ADR-1441](decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md)).
+- `BffHubFilter`, registered for every hub, watches each connection from connect to disconnect through the revalidator
+  and aborts the connection once the session has ended, idle or not. An invocation revalidates the connection once the
+  interval has passed, slides the session from the invocation, aborts the connection when the session has ended, and
+  makes the connection current for `AddBffAccessTokenHandler`.
+- `[BffSelfRevalidatingHub]` marks a hub whose application revalidates its own connections; the filter starts no
+  watch for it. `AsBffComponents()` puts it on the Blazor hub, whose circuit waits on the same revalidator and signs
+  out instead of closing.
 
 **Remote APIs** are forwarded to an allow-listed destination. `MapBffRemoteApi("/api/orders", destination, options)`
 binds a local path prefix to **one** destination base URL. The forwarder:
@@ -1103,7 +1110,7 @@ opt-in packages serve Blazor's interactive render modes over hubs and connection
 | Render mode                                   | How it uses the session                                                                                                                                                                                                                                                                      |
 | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Razor Pages, MVC and static Blazor rendering  | The core alone. The page is an ordinary request: `HttpContext.User` is the session principal, and a form post carries the antiforgery token ([§5.6](#56-accepting-the-bff-cookie-on-apis)).                                                                                                  |
-| Interactive server                            | A circuit over a BFF hub. The server `AuthenticationStateProvider` revalidates the circuit's connection every `RevalidationInterval` and signs the circuit out when the session ended or its revalidation fails for any reason but an unavailable store. Tokens come through the connection. |
+| Interactive server                            | A circuit over a BFF hub. The server `AuthenticationStateProvider` revalidates the circuit's connection every `RevalidationInterval` through `IBffConnectionRevalidator` and signs the circuit out when the session ended or its revalidation fails for any reason but an unavailable store. Tokens come through the connection. |
 | WebAssembly and Auto                          | The persisted `/bff/user` document or a `GET /bff/user` probe seeds the client's `AuthenticationStateProvider`. The component calls BFF APIs with the anti-forgery header and never holds a token.                                                                                           |
 
 `AddBffBlazorLibrary()` registers the server half: the revalidating `AuthenticationStateProvider`, which persists the
@@ -1147,7 +1154,10 @@ builder.Services.AddHttpClient("api", client => client.BaseAddress = new Uri(bui
 The client's provider reads the persisted document or probes `GET /bff/user`, and probes again every `ProbeInterval`,
 at the idle expiry and after a `401`
 ([ADR-1434](decisions/1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md)). The
-document carries only the frontend's allow-listed claims, the logout URL and the guard.
+document carries only the frontend's allow-listed claims, the logout URL and the guard. Its shared names, the
+endpoint paths, the user document's property names and the claim types, come from
+`NCode.Identity.Bff.Protocol.Abstractions`
+([ADR-1440](decisions/1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md)).
 `AddBffBlazorClient()` belongs to the `.Client` project alone, because it keeps the browser's one user in a singleton;
 the server's `AddBffBlazorLibrary()` provider serves prerendering.
 
@@ -1374,6 +1384,9 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
   applies) certify the protocol client from the other side of the suite the OP already targets (issue [#124](https://github.com/NCodeGroup/Identity/issues/124)).
 - **Browser end-to-end.** Playwright for .NET in Chromium, Firefox and WebKit checks the cookie attributes, `SameSite`
   on cross-site navigation and form posts, CORS preflight denial, and Fetch Metadata rejection of what CORS admits.
+  A Blazor Web App host (interactive server and WebAssembly) shows that a circuit signs out after back-channel logout,
+  an idle hub connection closes once its session ends, a `WebSocket` from another origin is refused and a WebAssembly
+  component's traffic carries no token.
   Both end-to-end suites run in the `End-to-end` CI check through `./build/e2e.ps1`, never in the Definition of Done
   ([ADR-1430](decisions/1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md)).
 

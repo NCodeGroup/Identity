@@ -5,6 +5,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
+using NCode.Identity.ManagementConsole.Options;
 
 namespace NCode.Identity.ManagementConsole;
 

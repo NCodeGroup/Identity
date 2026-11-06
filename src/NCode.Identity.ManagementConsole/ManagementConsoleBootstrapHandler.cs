@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.ManagementConsole.Options;
 
 namespace NCode.Identity.ManagementConsole;
 

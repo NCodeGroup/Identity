@@ -3,8 +3,8 @@
 
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using NCode.Buffers;
+using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
 namespace NCode.Identity.ManagementConsole.Tests;
@@ -40,7 +40,9 @@ public class ManagementConsoleBundleReaderTests : BaseTests
         mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName).Verifiable();
 
         return new ManagementConsoleBundleReader(
-            Options.Create(new ManagementConsoleOptions { BundleRootPath = bundleRootPath }),
+            Microsoft.Extensions.Options.Options.Create(
+                new ManagementConsoleOptions { BundleRootPath = bundleRootPath }
+            ),
             mockEnvironment.Object
         );
     }
@@ -51,7 +53,9 @@ public class ManagementConsoleBundleReaderTests : BaseTests
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
 
         return new ManagementConsoleBundleReader(
-            Options.Create(new ManagementConsoleOptions { BundleRootPath = bundleRootPath }),
+            Microsoft.Extensions.Options.Options.Create(
+                new ManagementConsoleOptions { BundleRootPath = bundleRootPath }
+            ),
             mockEnvironment.Object
         );
     }

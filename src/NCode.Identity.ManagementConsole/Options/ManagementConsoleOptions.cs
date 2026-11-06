@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.ManagementConsole;
+namespace NCode.Identity.ManagementConsole.Options;
 
 /// <summary>
 /// Configures the management console host. The configuration section is <c>ManagementConsole</c>.

@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
 namespace NCode.Identity.ManagementConsole.Tests;

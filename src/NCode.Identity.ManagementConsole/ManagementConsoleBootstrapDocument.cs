@@ -4,6 +4,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.ManagementConsole.Options;
 
 namespace NCode.Identity.ManagementConsole;
 

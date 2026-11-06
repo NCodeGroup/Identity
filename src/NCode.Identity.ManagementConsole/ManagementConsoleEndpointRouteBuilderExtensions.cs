@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff;
 using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.ManagementConsole.Options;
 
 namespace NCode.Identity.ManagementConsole;
 

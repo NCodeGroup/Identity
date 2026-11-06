@@ -14,29 +14,29 @@ NCode.Identity.ManagementConsole.IManagementConsoleBuilder
 NCode.Identity.ManagementConsole.IManagementConsoleBuilder.IdentityBffBuilder.get -> NCode.Identity.Bff.Server.IIdentityBffBuilder!
 NCode.Identity.ManagementConsole.ManagementConsole
 NCode.Identity.ManagementConsole.ManagementConsole.ManagementConsole() -> void
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.DisplayName.get -> string?
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.DisplayName.set -> void
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.LogoUrl.get -> string?
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.LogoUrl.set -> void
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.ManagementConsoleBrandingOptions() -> void
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.Mode.get -> string?
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.Mode.set -> void
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.PrimaryColor.get -> string?
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.PrimaryColor.set -> void
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.SecondaryColor.get -> string?
-NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions.SecondaryColor.set -> void
 NCode.Identity.ManagementConsole.ManagementConsoleDefaults
 NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions
 NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!)
 NCode.Identity.ManagementConsole.ManagementConsoleEndpointRouteBuilderExtensions.extension(Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!).MapManagementConsole() -> Microsoft.AspNetCore.Routing.RouteGroupBuilder!
-NCode.Identity.ManagementConsole.ManagementConsoleOptions
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.Branding.get -> NCode.Identity.ManagementConsole.ManagementConsoleBrandingOptions!
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.Branding.set -> void
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.BundleRootPath.get -> string?
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.BundleRootPath.set -> void
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.Features.get -> System.Collections.Generic.Dictionary<string!, bool>!
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.Features.set -> void
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.ManagementApiUrl.get -> string?
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.ManagementApiUrl.set -> void
-NCode.Identity.ManagementConsole.ManagementConsoleOptions.ManagementConsoleOptions() -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.DisplayName.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.DisplayName.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.LogoUrl.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.LogoUrl.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.ManagementConsoleBrandingOptions() -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.Mode.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.Mode.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.PrimaryColor.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.PrimaryColor.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.SecondaryColor.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions.SecondaryColor.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.Branding.get -> NCode.Identity.ManagementConsole.Options.ManagementConsoleBrandingOptions!
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.Branding.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.BundleRootPath.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.BundleRootPath.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.Features.get -> System.Collections.Generic.Dictionary<string!, bool>!
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.Features.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.ManagementApiUrl.get -> string?
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.ManagementApiUrl.set -> void
+NCode.Identity.ManagementConsole.Options.ManagementConsoleOptions.ManagementConsoleOptions() -> void

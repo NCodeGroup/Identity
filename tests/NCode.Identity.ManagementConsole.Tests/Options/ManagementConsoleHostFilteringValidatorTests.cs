@@ -3,9 +3,10 @@
 
 using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.Extensions.Hosting;
+using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
-namespace NCode.Identity.ManagementConsole.Tests;
+namespace NCode.Identity.ManagementConsole.Tests.Options;
 
 public class ManagementConsoleHostFilteringValidatorTests : BaseTests
 {

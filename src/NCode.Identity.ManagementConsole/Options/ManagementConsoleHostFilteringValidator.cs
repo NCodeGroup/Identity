@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
-namespace NCode.Identity.ManagementConsole;
+namespace NCode.Identity.ManagementConsole.Options;
 
 /// <summary>
 /// Validates <see cref="HostFilteringOptions"/> when the host starts, so a Production deployment that accepts any

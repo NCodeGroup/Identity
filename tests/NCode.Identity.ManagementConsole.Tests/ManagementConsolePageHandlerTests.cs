@@ -5,9 +5,9 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
 namespace NCode.Identity.ManagementConsole.Tests;
@@ -57,10 +57,12 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
         mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName).Verifiable();
 
-        var options = Options.Create(new ManagementConsoleOptions { BundleRootPath = "dist" });
+        var options = Microsoft.Extensions.Options.Options.Create(
+            new ManagementConsoleOptions { BundleRootPath = "dist" }
+        );
         reader = new ManagementConsoleBundleReader(options, mockEnvironment.Object);
 
-        var bffOptions = Options.Create(
+        var bffOptions = Microsoft.Extensions.Options.Options.Create(
             new BffOptions
             {
                 Frontends =

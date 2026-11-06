@@ -4,8 +4,8 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
 namespace NCode.Identity.ManagementConsole.Tests;
@@ -27,7 +27,11 @@ public class ManagementConsoleBootstrapHandlerTests : BaseTests
     private static ManagementConsoleBootstrapHandler CreateHandler(
         ManagementConsoleOptions options,
         BffOptions bffOptions
-    ) => new(Options.Create(options), Options.Create(bffOptions));
+    ) =>
+        new(
+            Microsoft.Extensions.Options.Options.Create(options),
+            Microsoft.Extensions.Options.Options.Create(bffOptions)
+        );
 
     private static async Task<(DefaultHttpContext HttpContext, JsonElement Document)> HandleAsync(
         ManagementConsoleBootstrapHandler handler,

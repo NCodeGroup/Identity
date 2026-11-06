@@ -4,8 +4,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using NCode.Buffers;
+using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
 namespace NCode.Identity.ManagementConsole.Tests;
@@ -42,7 +42,9 @@ public class ManagementConsoleAssetHandlerTests : BaseTests
         mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName).Verifiable();
 
         reader = new ManagementConsoleBundleReader(
-            Options.Create(new ManagementConsoleOptions { BundleRootPath = "dist" }),
+            Microsoft.Extensions.Options.Options.Create(
+                new ManagementConsoleOptions { BundleRootPath = "dist" }
+            ),
             mockEnvironment.Object
         );
         return new ManagementConsoleAssetHandler(reader);

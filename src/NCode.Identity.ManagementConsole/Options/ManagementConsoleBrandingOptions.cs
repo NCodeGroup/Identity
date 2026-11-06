@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.ManagementConsole;
+namespace NCode.Identity.ManagementConsole.Options;
 
 /// <summary>
 /// Configures how the management console presents itself. Every setting is optional, and the bundle supplies its own

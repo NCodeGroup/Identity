@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId;
 
-namespace NCode.Identity.ManagementConsole;
+namespace NCode.Identity.ManagementConsole.Options;
 
 /// <summary>
 /// Validates <see cref="ManagementConsoleOptions"/> when the host starts, so a setting that cannot work stops the host

@@ -24,7 +24,8 @@
 
 .PARAMETER Affected
     Runs only the end-to-end suites that build/affected-tests.ps1 selects for the changes since the merge base of HEAD
-    and -Base: every suite when a global build input changed, and none when no suite is affected.
+    and -Base: every suite when a global build input changed, and none when no suite is affected. With none selected,
+    it prints 'End-to-end: PASSED' without building or checking for Docker.
 
 .PARAMETER Base
     The commit-ish whose merge base with HEAD -Affected measures the changes from. Defaults to origin/main.
@@ -54,20 +55,7 @@ $results = Join-Path $root 'artifacts/e2e-results'
 
 Push-Location $root
 try {
-    # 1. The suites start containers.
-    $dockerAvailable = $false
-    try {
-        docker info --format '{{.ServerVersion}}' *> $null
-        $dockerAvailable = $LASTEXITCODE -eq 0
-    }
-    catch {
-        $dockerAvailable = $false
-    }
-    if (-not $dockerAvailable) {
-        throw 'The end-to-end suites need a running Docker engine (Docker Desktop on Windows and macOS).'
-    }
-
-    # 2. Select the projects.
+    # 1. Select the projects.
     $tiers = & (Join-Path $PSScriptRoot 'test-projects.ps1') -Root $root
     if (-not $Affected) {
         $projects = @($tiers.EndToEnd)
@@ -87,6 +75,19 @@ try {
             Write-Host "`nEnd-to-end: PASSED" -ForegroundColor Green
             return
         }
+    }
+
+    # 2. The suites start containers.
+    $dockerAvailable = $false
+    try {
+        docker info --format '{{.ServerVersion}}' *> $null
+        $dockerAvailable = $LASTEXITCODE -eq 0
+    }
+    catch {
+        $dockerAvailable = $false
+    }
+    if (-not $dockerAvailable) {
+        throw 'The end-to-end suites need a running Docker engine (Docker Desktop on Windows and macOS).'
     }
 
     # 3. Clear the earlier reports.

@@ -65,8 +65,9 @@ endpoint or a token takes it from that frontend.**
      start. A request that two ruled frontends match anyway fails closed with `InvalidOperationException`, which is a
      `500`.
 4. **The host rule.** A value is a DNS name or an IPv4 address with an optional port; without a port it matches any
-   port. The host of the frontend's `PublicOrigin` has to be one of its values, so the callback and back-channel URIs
-   that the OP is told select the frontend.
+   port. A value that names the default port of the `PublicOrigin`'s scheme is refused, because a browser's Host
+   header never carries it. The host of the frontend's `PublicOrigin` has to be one of its values, so the callback and
+   back-channel URIs that the OP is told select the frontend.
 5. **The path rule.** The values are local path prefixes, compared at segment boundaries and ignoring case as routing
    does. The frontend's `PathPrefix` and every one of its remote-API paths lie under one of the values, so its
    endpoints select it.

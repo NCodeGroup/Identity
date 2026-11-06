@@ -7,7 +7,8 @@ namespace NCode.Identity.Bff.Frontends;
 
 /// <summary>
 /// The <see cref="IBffFrontendSelector"/> named <c>host</c>, which selects a frontend by the host, and optionally the
-/// port, of the request. A value without a port matches any port.
+/// port, of the request. A value without a port matches any port. A value that names the default port of the
+/// <c>PublicOrigin</c>'s scheme is refused, because a browser's Host header never carries it.
 /// </summary>
 internal sealed class HostBffFrontendSelector : IBffFrontendSelector
 {

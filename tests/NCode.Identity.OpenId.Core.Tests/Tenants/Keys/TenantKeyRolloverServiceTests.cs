@@ -33,6 +33,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     private const string TeamId = "team-a";
     private const string OtherTeamId = "team-b";
     private const string DisabledTeamId = "team-off";
+    private const string ChildTeamId = "acme-web";
     private static readonly DateTimeOffset Now = new(2026, 11, 4, 12, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
     private static readonly TimeSpan Lease = Interval / 2;
@@ -433,6 +434,48 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task RollOverAsync_WhenAnAncestorTeamIsDisabled_SkipsTheTeam()
+    {
+        // The child team has no settings, tenant page or secrets setup on the strict mocks: touching it fails the
+        // test.
+        SetupSpecifications();
+        SetupLease(acquired: true);
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(MockTeamStore.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockTeamStore
+            .Setup(x =>
+                x.GetPageAsync(
+                    It.Is<PageRequest>(page => page.Cursor == null && page.Limit == 100),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new PagedResult<PersistedTeam>
+                {
+                    Items = [CreateTeam(ChildTeamId, isDisabled: false, ["acme"])],
+                    NextCursor = null,
+                }
+            )
+            .Verifiable();
+        MockTeamStore
+            .Setup(x => x.GetLineageAsync(ChildTeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                CreateTeam("acme", isDisabled: true, []),
+                CreateTeam(ChildTeamId, isDisabled: false, ["acme"]),
+            ])
+            .Verifiable();
+
+        await Service.RollOverAsync(CancellationToken.None);
+    }
+
+    [Fact]
     public async Task RollOverAsync_WhenATeamFails_ContinuesWithTheNextTeam()
     {
         var otherTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
@@ -551,6 +594,26 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             Now.AddDays(60),
             Now.AddDays(67)
         );
+
+    private static PersistedTeam CreateTeam(
+        string teamId,
+        bool isDisabled,
+        IReadOnlyList<string> ancestorTeamIds
+    ) =>
+        new()
+        {
+            TeamId = teamId,
+            DisplayName = teamId,
+            IsDisabled = isDisabled,
+            AncestorTeamIds = ancestorTeamIds,
+            Settings = new PersistedTeamSettings
+            {
+                TeamId = teamId,
+                ConcurrencyToken = "token",
+                Value = JsonElement.Parse("{}"),
+            },
+            ConcurrencyToken = "token",
+        };
 
     private void SetupSpecifications() =>
         MockPolicy

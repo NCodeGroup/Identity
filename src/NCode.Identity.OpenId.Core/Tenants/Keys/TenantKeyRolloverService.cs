@@ -143,8 +143,9 @@ internal sealed class TenantKeyRolloverService(
         await using var scope = ServiceScopeFactory.CreateAsyncScope();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-        // Each team's tenants are judged against that team's effective settings, and a disabled team's tenants are
-        // left as they are, because a tenant of a disabled team is not served. See ADR-1412.
+        // Each team's tenants are judged against that team's effective settings, and the tenants of a team that is
+        // disabled, or beneath a disabled team, are left as they are, because such a tenant is not served. See
+        // ADR-1412, ADR-1426.
         var teamPage = new PageRequest { Limit = TeamPageSize };
         do
         {
@@ -152,6 +153,12 @@ internal sealed class TenantKeyRolloverService(
             foreach (var team in teams.Items)
             {
                 if (team.IsDisabled)
+                    continue;
+
+                if (
+                    team.AncestorTeamIds.Count > 0
+                    && await IsBeneathADisabledTeamAsync(team.TeamId, cancellationToken)
+                )
                     continue;
 
                 try
@@ -183,6 +190,17 @@ internal sealed class TenantKeyRolloverService(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var teamStore = storeManager.GetStore<ITeamStore>();
         return await teamStore.GetPageAsync(page, cancellationToken);
+    }
+
+    private async ValueTask<bool> IsBeneathADisabledTeamAsync(
+        string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var teamStore = storeManager.GetStore<ITeamStore>();
+        var lineage = await teamStore.GetLineageAsync(teamId, cancellationToken);
+        return lineage.Any(team => team.IsDisabled);
     }
 
     private async ValueTask RollOverTeamAsync(

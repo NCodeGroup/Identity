@@ -1,6 +1,8 @@
 # 1312. The frontend bootstrap API base is root-relative unless configured
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1438](1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md): the standalone dev
+  servers proxy only the bootstrap document)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md)

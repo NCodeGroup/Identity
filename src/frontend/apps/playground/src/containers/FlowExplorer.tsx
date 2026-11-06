@@ -8,7 +8,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import type { RuntimeConfig } from '@ncode/config';
+import type { OpenIdRuntimeConfig } from '@ncode/config';
 import { CodeBlock } from '../components/CodeBlock.js';
 import { StepCard, type StepStatus } from '../components/StepCard.js';
 import {
@@ -26,7 +26,7 @@ import {
 } from '../flow.js';
 
 export type FlowExplorerProps = {
-  readonly runtime: RuntimeConfig;
+  readonly runtime: OpenIdRuntimeConfig;
   readonly deps: FlowDeps;
   /** The app origin (defaults to the live location); the registered redirect URI derives from it. */
   readonly origin?: string;

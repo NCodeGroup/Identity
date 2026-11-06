@@ -164,4 +164,22 @@ internal static partial class Log
         this ILogger logger,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.DeveloperBffClientReplaced,
+        Level = LogLevel.Information,
+        Message = "Replaced the stored developer BFF client '{ClientId}' with its configuration, because the stored client differs from it"
+    )]
+    internal static partial void DeveloperBffClientReplaced(this ILogger logger, string clientId);
+
+    [LoggerMessage(
+        EventId = EventIds.DeveloperBffClientSkipped,
+        Level = LogLevel.Warning,
+        Message = "The developer BFF client '{ClientId}' is not seeded because its configuration is incomplete; set {MissingKeys}"
+    )]
+    internal static partial void DeveloperBffClientSkipped(
+        this ILogger logger,
+        string clientId,
+        string missingKeys
+    );
 }

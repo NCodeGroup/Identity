@@ -3,7 +3,7 @@ import { Provider } from 'react-redux';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppThemeProvider } from '@ncode/ui';
 import { createAppStore, runtimeConfigLoaded, type AppStore } from '@ncode/store';
-import type { RuntimeConfig } from '@ncode/config';
+import type { BffRuntimeConfig, OpenIdRuntimeConfig } from '@ncode/config';
 import { App } from './App.js';
 // The dashboard is a lazily loaded chunk. Loading its module first lets the lazy component resolve from the module
 // cache, so the test waits for the dashboard's render rather than a cold transform of its chunk.
@@ -16,12 +16,20 @@ vi.mock(import('./discovery.js'), async (importOriginal) => ({
   loadDiscovery: vi.fn(() => new Promise<never>(() => {})),
 }));
 
-const runtime: RuntimeConfig = {
+const runtime: OpenIdRuntimeConfig = {
+  kind: 'openid',
   apiBaseUrl: 'https://op.test',
   issuer: 'https://op.test',
   authorizationEndpoint: 'https://op.test/authorize',
   tokenEndpoint: 'https://op.test/token',
   scopes: ['openid'],
+  features: {},
+};
+
+const bffRuntime: BffRuntimeConfig = {
+  kind: 'bff',
+  apiBaseUrl: '/management',
+  bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
   features: {},
 };
 
@@ -66,6 +74,17 @@ describe('Conformance App', () => {
     const { getByRole } = renderApp(store);
 
     expect(getByRole('heading', { name: 'Acme ID · Conformance' })).toBeInTheDocument();
+  });
+
+  it('renders nothing for a BFF runtime config', () => {
+    const store = createAppStore();
+    store.dispatch(runtimeConfigLoaded(bffRuntime));
+
+    const { queryByRole, queryByTestId } = renderApp(store);
+
+    expect(queryByRole('heading')).not.toBeInTheDocument();
+    expect(queryByTestId('data-loading')).not.toBeInTheDocument();
+    expect(vi.mocked(loadDiscovery)).not.toHaveBeenCalled();
   });
 
   it('renders nothing until runtime config is loaded', () => {

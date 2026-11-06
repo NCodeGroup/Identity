@@ -3,7 +3,9 @@ import { defineStandaloneSurfaceConfig } from '@ncode/vite-config';
 import {
   BOOTSTRAP_PATH,
   DISCOVERY_PATH,
+  createBffRuntimeConfigLoader,
   createRuntimeConfigLoader,
+  loadBffRuntimeConfig,
   loadRuntimeConfig,
   type FetchLike,
 } from './loader.js';
@@ -183,7 +185,85 @@ describe('loadRuntimeConfig', () => {
       env: {},
     });
 
-    expect(Object.keys(config.server?.proxy ?? {})).toStrictEqual([BOOTSTRAP_PATH, '/api/']);
+    expect(Object.keys(config.server?.proxy ?? {})).toStrictEqual([BOOTSTRAP_PATH]);
+  });
+});
+
+const bffBootstrapBody = {
+  apiBaseUrl: 'https://ui.example/management',
+  bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
+};
+
+describe('loadBffRuntimeConfig', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('fetches only the bootstrap document, without a surface or discovery', async () => {
+    const fetchFn = vi.fn<FetchLike>(() => okJson(bffBootstrapBody));
+
+    const result = await loadBffRuntimeConfig({ origin: 'https://ui.example/', fetchFn });
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn).toHaveBeenCalledWith('https://ui.example/config/bootstrap.json', undefined);
+    expect(result).toStrictEqual({
+      kind: 'bff',
+      apiBaseUrl: 'https://ui.example/management',
+      bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
+      features: {},
+    });
+  });
+
+  it('defaults to the origin of the page that serves the bundle', async () => {
+    vi.stubGlobal('location', { origin: 'https://ui.example' });
+    const fetchFn = vi.fn<FetchLike>(() => okJson(bffBootstrapBody));
+
+    await loadBffRuntimeConfig({ fetchFn });
+
+    expect(fetchFn).toHaveBeenCalledWith('https://ui.example/config/bootstrap.json', undefined);
+  });
+
+  it('forwards the abort signal', async () => {
+    const fetchFn = vi.fn<FetchLike>(() => okJson(bffBootstrapBody));
+    const { signal } = new AbortController();
+
+    await loadBffRuntimeConfig({ origin: 'https://ui.example', fetchFn, signal });
+
+    expect(fetchFn).toHaveBeenCalledWith('https://ui.example/config/bootstrap.json', { signal });
+  });
+
+  it('throws when the fetch fails', async () => {
+    const fetchFn = vi.fn<FetchLike>(() =>
+      Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) }),
+    );
+
+    await expect(loadBffRuntimeConfig({ origin: 'https://ui.example', fetchFn })).rejects.toThrow(
+      /HTTP 500/,
+    );
+  });
+
+  it('throws when no serving origin is available', async () => {
+    vi.stubGlobal('location', undefined);
+    const fetchFn = vi.fn<FetchLike>(() => okJson(bffBootstrapBody));
+
+    await expect(loadBffRuntimeConfig({ fetchFn })).rejects.toThrow(
+      new RuntimeConfigError('No serving origin available to load runtime config.'),
+    );
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+});
+
+describe('createBffRuntimeConfigLoader', () => {
+  it('binds the options and forwards the signal of each load', async () => {
+    const fetchFn = vi.fn<FetchLike>(() => okJson(bffBootstrapBody));
+    const { signal } = new AbortController();
+    const load = createBffRuntimeConfigLoader({ origin: 'https://ui.example', fetchFn });
+
+    const result = await load(signal);
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(fetchFn).toHaveBeenCalledWith('https://ui.example/config/bootstrap.json', { signal });
+    expect(result.kind).toBe('bff');
   });
 });
 
@@ -213,7 +293,7 @@ describe('createRuntimeConfigLoader', () => {
       'https://op.example/.well-known/openid-configuration',
       { signal },
     );
-    expect(result.tokenEndpoint).toBe('https://op.example/token');
+    expect(result).toMatchObject({ kind: 'openid', tokenEndpoint: 'https://op.example/token' });
   });
 
   it('loads the host default document from the serving origin when given no options', async () => {

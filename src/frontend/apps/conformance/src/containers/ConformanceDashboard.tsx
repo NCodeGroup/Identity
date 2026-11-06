@@ -11,7 +11,7 @@ import Tabs from '@mui/material/Tabs';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import { DataStateBoundary } from '@ncode/ui';
-import type { RuntimeConfig } from '@ncode/config';
+import type { OpenIdRuntimeConfig } from '@ncode/config';
 import {
   auditDiscovery,
   buildCoverageReport,
@@ -29,7 +29,7 @@ import { ProfileCard } from '../components/ProfileCard.js';
 import { SeverityChip } from '../components/SeverityChip.js';
 
 export type ConformanceDashboardProps = {
-  readonly runtime: RuntimeConfig;
+  readonly runtime: OpenIdRuntimeConfig;
   /** Injectable discovery loader so the dashboard is testable without a network. */
   readonly loadDiscovery?: (issuer: string, signal?: AbortSignal) => Promise<RawDiscovery>;
   /** The external conformance suite base URL whose RP callback the OP must accept. */

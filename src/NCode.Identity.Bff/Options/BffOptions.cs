@@ -33,4 +33,11 @@ public sealed class BffOptions
     /// configuration section is <c>Bff:SessionRetirement</c>.
     /// </summary>
     public BffSessionRetirementOptions SessionRetirement { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the key rings that the BFF reads from PEM files, by name. The configuration section is
+    /// <c>Bff:KeyRings</c>.
+    /// </summary>
+    public Dictionary<string, BffKeyRingOptions> KeyRings { get; set; } =
+        new(StringComparer.Ordinal);
 }

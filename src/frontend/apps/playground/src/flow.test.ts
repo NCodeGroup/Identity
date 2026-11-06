@@ -1,7 +1,7 @@
 import { webcrypto } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FetchLike } from '@ncode/auth';
-import type { RuntimeConfig } from '@ncode/config';
+import type { OpenIdRuntimeConfig } from '@ncode/config';
 import {
   AuthError,
   beginFlow,
@@ -21,7 +21,8 @@ import {
   type FlowTransaction,
 } from './flow.js';
 
-const runtime: RuntimeConfig = {
+const runtime: OpenIdRuntimeConfig = {
+  kind: 'openid',
   apiBaseUrl: 'https://op.test',
   issuer: 'https://op.test',
   authorizationEndpoint: 'https://op.test/authorize',
@@ -239,7 +240,8 @@ describe('fetchUserInfo', () => {
   });
 
   it('throws when the provider advertises no userinfo endpoint', async () => {
-    const withoutUserInfo: RuntimeConfig = {
+    const withoutUserInfo: OpenIdRuntimeConfig = {
+      kind: 'openid',
       apiBaseUrl: 'https://op.test',
       issuer: 'https://op.test',
       authorizationEndpoint: 'https://op.test/authorize',
@@ -303,7 +305,8 @@ describe('endSessionUrl', () => {
   });
 
   it('returns null when no end_session_endpoint is advertised', () => {
-    const withoutLogout: RuntimeConfig = {
+    const withoutLogout: OpenIdRuntimeConfig = {
+      kind: 'openid',
       apiBaseUrl: 'https://op.test',
       issuer: 'https://op.test',
       authorizationEndpoint: 'https://op.test/authorize',

@@ -2,7 +2,7 @@
   "name": "@ncode/vite-config",
   "version": "0.0.0",
   "private": true,
-  "description": "The one Vite and Vitest configuration every NCode.Identity frontend workspace builds and tests from: the test gates and the standalone and backend-served surface presets.",
+  "description": "The one Vite and Vitest configuration every NCode.Identity frontend workspace builds and tests from: the test gates and the standalone, backend-served and BFF-served surface presets.",
   "type": "module",
   "exports": {
     ".": {

@@ -8,28 +8,19 @@ import type {
   EncryptionKeysResource,
   EncryptionRootKeyResource,
 } from '@ncode/api';
-import type { RuntimeConfig } from '@ncode/config';
+import type { BffRuntimeConfig } from '@ncode/config';
 import { OwnerEncryptionKeysTab } from './OwnerEncryptionKeysTab.js';
 
-const runtime: RuntimeConfig = {
+const runtime: BffRuntimeConfig = {
+  kind: 'bff',
   apiBaseUrl: 'https://api.test',
-  issuer: 'https://op.test',
-  authorizationEndpoint: 'https://op.test/authorize',
-  tokenEndpoint: 'https://op.test/token',
-  scopes: ['openid'],
+  bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
   features: {},
 };
 
 function renderTab(owner: EncryptionKeyOwner, ownerLabel: string) {
   const store = createAppStore({
     config: { runtime },
-    auth: {
-      accessToken: 'token',
-      subject: 'admin',
-      expiresAt: null,
-      refreshToken: null,
-      idToken: null,
-    },
   });
   return render(
     <Provider store={store}>

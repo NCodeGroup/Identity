@@ -143,6 +143,8 @@ public class BffFrontendSelectionEndToEndTests
                 EnvironmentName = Microsoft.Extensions.Hosting.Environments.Development,
             }
         );
+        // The host reads only the in-memory settings the test gives it, never the copied host settings files.
+        builder.Configuration.Sources.Clear();
         builder.WebHost.UseTestServer();
 
         const string shop = "Bff:Frontends:shop";

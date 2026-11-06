@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   mergeRuntimeConfig,
   normalizeBaseUrl,
+  parseBffBootstrapDocument,
   parseBootstrapDocument,
   parseBrandingConfig,
   parseOpenIdDiscovery,
   RuntimeConfigError,
+  toBffRuntimeConfig,
 } from './parse.js';
 import type { BootstrapDocument, OpenIdDiscovery } from './types.js';
 
@@ -184,6 +186,7 @@ describe('mergeRuntimeConfig', () => {
   it('merges matching documents', () => {
     const result = mergeRuntimeConfig(bootstrap, discovery);
     expect(result).toEqual({
+      kind: 'openid',
       apiBaseUrl: 'https://api.example',
       issuer: 'https://op.example',
       authorizationEndpoint: 'https://op.example/authorize',
@@ -238,6 +241,120 @@ describe('mergeRuntimeConfig', () => {
     expect(result.endSessionEndpoint).toBe('https://op.example/end-session');
     expect(result.userInfoEndpoint).toBe('https://op.example/userinfo');
     expect(result.branding).toEqual({ displayName: 'Acme', mode: 'dark' });
+  });
+});
+
+describe('parseBffBootstrapDocument', () => {
+  const document = {
+    apiBaseUrl: '/management/',
+    bff: { basePath: '/bff/', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
+    features: { dcr: true },
+    branding: { displayName: 'Acme' },
+  };
+
+  it('parses and normalizes a full document', () => {
+    expect(parseBffBootstrapDocument(document)).toEqual({
+      apiBaseUrl: '/management',
+      bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } },
+      features: { dcr: true },
+      branding: { displayName: 'Acme' },
+    });
+  });
+
+  it('defaults features to an empty set and omits absent branding', () => {
+    const result = parseBffBootstrapDocument({ apiBaseUrl: '/management', bff: document.bff });
+    expect(result.features).toEqual({});
+    expect(result).not.toHaveProperty('branding');
+  });
+
+  it.each([null, 'nope', 42])('rejects a non-object document (%s)', (raw) => {
+    expect(() => parseBffBootstrapDocument(raw)).toThrow(
+      'Bootstrap document must be a JSON object.',
+    );
+  });
+
+  it('rejects a missing api base url', () => {
+    expect(() => parseBffBootstrapDocument({ bff: document.bff })).toThrow(
+      "Bootstrap document is missing required field 'apiBaseUrl'.",
+    );
+  });
+
+  it.each([undefined, null, 'bff', ['/bff']])('rejects a missing bff (%s)', (bff) => {
+    expect(() => parseBffBootstrapDocument({ apiBaseUrl: '/management', bff })).toThrow(
+      "Bootstrap document is missing required field 'bff'.",
+    );
+  });
+
+  it('rejects a missing base path', () => {
+    expect(() =>
+      parseBffBootstrapDocument({
+        ...document,
+        bff: { antiforgeryHeader: document.bff.antiforgeryHeader },
+      }),
+    ).toThrow("Bootstrap document is missing required field 'bff.basePath'.");
+  });
+
+  it('rejects a base path without a leading slash', () => {
+    expect(() =>
+      parseBffBootstrapDocument({ ...document, bff: { ...document.bff, basePath: 'bff' } }),
+    ).toThrow(RuntimeConfigError);
+  });
+
+  it.each([undefined, null, 'X-CSRF'])('rejects a missing anti-forgery header (%s)', (header) => {
+    expect(() =>
+      parseBffBootstrapDocument({
+        ...document,
+        bff: { basePath: '/bff', antiforgeryHeader: header },
+      }),
+    ).toThrow("Bootstrap document is missing required field 'bff.antiforgeryHeader.name'.");
+  });
+
+  it('rejects a missing anti-forgery header name', () => {
+    expect(() =>
+      parseBffBootstrapDocument({
+        ...document,
+        bff: { basePath: '/bff', antiforgeryHeader: { value: '1' } },
+      }),
+    ).toThrow("Bootstrap document is missing required field 'bff.antiforgeryHeader.name'.");
+  });
+
+  it('rejects a missing anti-forgery header value', () => {
+    expect(() =>
+      parseBffBootstrapDocument({
+        ...document,
+        bff: { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF' } },
+      }),
+    ).toThrow("Bootstrap document is missing required field 'bff.antiforgeryHeader.value'.");
+  });
+});
+
+describe('toBffRuntimeConfig', () => {
+  const bff = { basePath: '/bff', antiforgeryHeader: { name: 'X-CSRF', value: '1' } };
+
+  it('defaults features to an empty set and omits absent branding', () => {
+    expect(toBffRuntimeConfig({ apiBaseUrl: '/management', bff })).toEqual({
+      kind: 'bff',
+      apiBaseUrl: '/management',
+      bff,
+      features: {},
+    });
+  });
+
+  it('passes features and branding through', () => {
+    expect(
+      toBffRuntimeConfig({
+        apiBaseUrl: '/management',
+        bff,
+        features: { dcr: true },
+        branding: { displayName: 'Acme' },
+      }),
+    ).toEqual({
+      kind: 'bff',
+      apiBaseUrl: '/management',
+      bff,
+      features: { dcr: true },
+      branding: { displayName: 'Acme' },
+    });
   });
 });
 

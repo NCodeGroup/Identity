@@ -32,7 +32,8 @@ public sealed class FrontendBootstrapOptions
     /// Gets or sets the OpenID issuer whose <c>/.well-known/openid-configuration</c> describes the auth endpoints.
     /// It must byte-match the discovery <c>issuer</c> the bundle reads. When unset, the issuer of the tenant that serves
     /// the surface is used: the tenant the request identifies (the only tenant under the static single-tenant strategy),
-    /// and otherwise the root tenant, which serves the Management console. It is never derived from the request.
+    /// and otherwise the root tenant, which serves the surfaces under the dynamic strategies. It is never derived from
+    /// the request.
     /// </summary>
     public string? Issuer { get; set; }
 
@@ -62,10 +63,10 @@ public sealed class FrontendBootstrapOptions
     /// Gets or sets the per-surface coordinate overrides, keyed by surface name (for example, <c>playground</c> or
     /// <c>conformance</c>). Every surface shares one bootstrap endpoint; when a bundle requests its coordinates it
     /// passes its surface name, and the matching override here supplies that surface's own public client id, scopes,
-    /// feature flags, and branding. The top-level members above are the default (served to the Management console and
-    /// to any request that names no surface); each override replaces — it does not merge into — the default client id
-    /// and scopes, so a read-only surface can publish <em>no</em> client by omitting one. A requested surface that has
-    /// no entry here falls back to the default.
+    /// feature flags, and branding. The top-level members above are the default (served to every surface that has no
+    /// entry here and to any request that names no surface); each override replaces — it does not merge into — the
+    /// default client id and scopes, so a read-only surface can publish <em>no</em> client by omitting one. A requested
+    /// surface that has no entry here falls back to the default.
     /// </summary>
     public IDictionary<string, FrontendSurfaceOptions> Surfaces { get; set; } =
         new Dictionary<string, FrontendSurfaceOptions>(StringComparer.Ordinal);

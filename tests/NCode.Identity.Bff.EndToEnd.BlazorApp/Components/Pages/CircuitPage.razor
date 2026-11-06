@@ -11,3 +11,11 @@
 </AuthorizeView>
 
 <span id="circuit-state">@(RendererInfo.IsInteractive ? "interactive" : "static")</span>
+<button id="circuit-ping" @onclick="Ping">ping</button>
+<span id="circuit-pings">@_pings</span>
+
+@code {
+    private int _pings;
+
+    private void Ping() => _pings++;
+}

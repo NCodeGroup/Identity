@@ -18,6 +18,9 @@ public sealed class BlazorCircuitTests(EndToEndEnvironment environment)
     private const string CircuitSignedOutScript =
         "() => document.getElementById('circuit-user')?.textContent === 'signed out'";
 
+    private static string PingsScript(int count) =>
+        $"() => document.getElementById('circuit-pings')?.textContent === '{count}'";
+
     #region Circuit Tests
 
     [Theory, MemberData(nameof(BrowserNames.All), MemberType = typeof(BrowserNames))]
@@ -47,6 +50,52 @@ public sealed class BlazorCircuitTests(EndToEndEnvironment environment)
             new PageWaitForFunctionOptions { Timeout = WaitTimeoutMilliseconds }
         );
         Assert.Equal("signed out", await page.InnerTextAsync("#circuit-user"));
+    }
+
+    [Theory, MemberData(nameof(BrowserNames.All), MemberType = typeof(BrowserNames))]
+    public async Task Circuit_InvocationAfterSessionEnded_StaysConnectedAndSignedOut(
+        string browserName
+    )
+    {
+        var bff = environment.BlazorBff;
+        await using var context = await environment.NewContextAsync(browserName);
+        var page = await context.NewPageAsync();
+        await BrowserFlows.LoginAsync(page, bff, environment.Keycloak);
+
+        await page.GotoAsync($"{bff.Origin}/circuit");
+        await page.WaitForFunctionAsync(
+            CircuitInteractiveScript,
+            null,
+            new PageWaitForFunctionOptions { Timeout = WaitTimeoutMilliseconds }
+        );
+
+        await page.ClickAsync("#circuit-ping");
+        await page.WaitForFunctionAsync(
+            PingsScript(1),
+            null,
+            new PageWaitForFunctionOptions { Timeout = WaitTimeoutMilliseconds }
+        );
+
+        await environment.Keycloak.LogOutUserAsync();
+
+        await page.WaitForFunctionAsync(
+            CircuitSignedOutScript,
+            null,
+            new PageWaitForFunctionOptions { Timeout = WaitTimeoutMilliseconds }
+        );
+
+        // Past Session:RevalidationInterval, so the next invocation is due to revalidate.
+        await page.WaitForTimeoutAsync(2_500);
+
+        await page.ClickAsync("#circuit-ping");
+        await page.WaitForFunctionAsync(
+            PingsScript(2),
+            null,
+            new PageWaitForFunctionOptions { Timeout = WaitTimeoutMilliseconds }
+        );
+
+        Assert.Equal("signed out", await page.InnerTextAsync("#circuit-user"));
+        Assert.Equal("interactive", await page.InnerTextAsync("#circuit-state"));
     }
 
     #endregion

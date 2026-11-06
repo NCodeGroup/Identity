@@ -329,6 +329,29 @@ describe('ClientDetailPage', () => {
     expect(screen.queryByTestId('reveal-secret-material')).not.toBeInTheDocument();
   });
 
+  it('lists the owners of the client on the access tab', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/clients/web/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      if (url.endsWith('/clients/web/owners') && method === 'GET') {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-alice', principalId: 'alice', roleName: 'Owner' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('client-tab-access'));
+
+    expect(await screen.findByTestId('owners-row-alice')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
+  });
+
   it('reveals once the secret a settings change issues for the client', async () => {
     installFetch((url, method) => {
       if (url.endsWith('/api/capabilities')) {

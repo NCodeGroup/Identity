@@ -190,6 +190,7 @@ describe('ResourceServerDetailPage', () => {
 
     expect(screen.getByTestId('resource-server-tab-scopes')).toBeInTheDocument();
     expect(screen.getByTestId('resource-server-tab-settings')).toBeInTheDocument();
+    expect(screen.getByTestId('resource-server-tab-access')).toBeInTheDocument();
     expect(screen.queryByTestId('resource-server-tab-secrets')).not.toBeInTheDocument();
     expect(screen.queryByTestId('resource-server-tab-clients')).not.toBeInTheDocument();
   });
@@ -284,6 +285,23 @@ describe('ResourceServerDetailPage', () => {
     expect(await screen.findByTestId('reveal-secret-material')).toHaveTextContent(
       'one-time-material',
     );
+  });
+
+  it('lists the owners of the resource server on the access tab', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/resource-servers/rs-orders/owners') && method === 'GET') {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-alice', principalId: 'alice', roleName: 'Owner' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('resource-server-tab-access'));
+
+    expect(await screen.findByTestId('owners-row-alice')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
   });
 
   it('saves edited resource-server settings as a JSON Patch diff', async () => {

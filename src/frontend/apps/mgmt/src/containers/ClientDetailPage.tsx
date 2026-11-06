@@ -6,6 +6,7 @@ import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import type { ClientResource, SecretOwner } from '@ncode/api';
+import { OwnerAccessTab } from './OwnerAccessTab.js';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 
@@ -15,13 +16,14 @@ export type ClientDetailPageProps = {
   readonly onBack: () => void;
 };
 
-type ClientSurface = 'secrets' | 'settings';
+type ClientSurface = 'secrets' | 'settings' | 'access';
 
 /**
- * Container: drills into a single client to manage its secrets and settings. The parent
+ * Container: drills into a single client to manage its secrets, settings and owners. The parent
  * {@link import('./ClientsPage.js').ClientsPage} supplies the client and owns the drill-in selection.
  * Secrets honor the one-time reveal (ADR-1050) and settings are a top-level JSON Patch diff; the owner-generic
- * {@link OwnerSecretsTab}/{@link OwnerSettingsTab} render both for the client. Owns only tab state.
+ * {@link OwnerSecretsTab}/{@link OwnerSettingsTab} render both for the client, and {@link OwnerAccessTab} lists
+ * and edits the client's owners. Owns only tab state.
  */
 export function ClientDetailPage({ tenantId, client, onBack }: ClientDetailPageProps) {
   const [surface, setSurface] = useState<ClientSurface>('secrets');
@@ -54,9 +56,12 @@ export function ClientDetailPage({ tenantId, client, onBack }: ClientDetailPageP
       >
         <Tab value="secrets" label="Secrets" data-testid="client-tab-secrets" />
         <Tab value="settings" label="Settings" data-testid="client-tab-settings" />
+        <Tab value="access" label="Access" data-testid="client-tab-access" />
       </Tabs>
       {surface === 'secrets' ? (
         <OwnerSecretsTab owner={owner} ownerLabel="client" />
+      ) : surface === 'access' ? (
+        <OwnerAccessTab owner={owner} />
       ) : (
         <OwnerSettingsTab owner={owner} />
       )}

@@ -30,10 +30,12 @@ internal class DefaultOpenIdTenantCache(
     // Cancelled by ClearAsync, so every entry cached before the call expires.
     private CancellationTokenSource Generation { get; set; } = new();
 
-    // The cached tenant identifiers of each team (compared without regard to case, as the team cache keys them), so
-    // RemoveTeamAsync finds a team's tenants without scanning the cache. Each value holds the token of the cache entry
-    // that registered the identifier, so an eviction callback removes only its own entry, and the concurrency token of
-    // the team the tenant was materialized under, which GetTeamRevisionsAsync reports.
+    // The cached tenant identifiers beneath each team at every level (compared without regard to case, as the team
+    // cache keys them): a tenant is listed under its own team and under every team above it, so RemoveTeamAsync finds
+    // the tenants of a team and of every team beneath it without scanning the cache. Each value holds the token of the
+    // cache entry that registered the identifier, so an eviction callback removes only its own entry, and the
+    // concurrency token of the team the tenant was materialized under, which GetTeamRevisionsAsync reports.
+    // See ADR-1426.
     private ConcurrentDictionary<
         string,
         ConcurrentDictionary<string, (object Entry, string TeamConcurrencyToken)>
@@ -47,21 +49,25 @@ internal class DefaultOpenIdTenantCache(
         // The index entry is removed only while it still holds this cache entry's value, so a late callback of a
         // removed or expired entry never deletes its live replacement.
         if (
-            state
-                is ValueTuple<string, string, (object Entry, string TeamConcurrencyToken)>(
-                    var teamId,
-                    var tenantId,
-                    var indexValue
-                )
-            && TenantIdsByTeam.TryGetValue(teamId, out var tenantIds)
+            state is ValueTuple<string, object, IReadOnlyList<TeamRevision>>(
+                var tenantId,
+                var entry,
+                var lineage
+            )
         )
         {
-            tenantIds.TryRemove(
-                new KeyValuePair<string, (object Entry, string TeamConcurrencyToken)>(
-                    tenantId,
-                    indexValue
-                )
-            );
+            foreach (var revision in lineage)
+            {
+                if (TenantIdsByTeam.TryGetValue(revision.TeamId, out var tenantIds))
+                {
+                    tenantIds.TryRemove(
+                        new KeyValuePair<string, (object Entry, string TeamConcurrencyToken)>(
+                            tenantId,
+                            (entry, revision.ConcurrencyToken)
+                        )
+                    );
+                }
+            }
         }
 
         if (value is not IAsyncDisposable asyncDisposable)
@@ -104,11 +110,19 @@ internal class DefaultOpenIdTenantCache(
     {
         var key = GetCacheKey(tenantId);
         var newLease = tenant.AddReference();
-        var teamId = tenant.Value.TeamId;
-        var indexValue = (
-            Entry: new object(),
-            TeamConcurrencyToken: tenant.Value.Team.ConcurrencyToken
-        );
+        var entry = new object();
+
+        // The tenant's own team, then each team above it, because the tenant is materialized under all of them.
+        var lineageBuilder = new List<TeamRevision>
+        {
+            new(tenant.Value.TeamId, tenant.Value.Team.ConcurrencyToken),
+        };
+        for (var parent = tenant.Value.Team.Parent; parent is not null; parent = parent.Parent)
+        {
+            lineageBuilder.Add(new TeamRevision(parent.TeamId, parent.ConcurrencyToken));
+        }
+
+        IReadOnlyList<TeamRevision> lineage = lineageBuilder;
 
         // The generation token, the index write and the cache write share one lock, so two concurrent calls for the
         // same tenant leave the index holding the value of the entry the cache holds, and a replaced entry's callback
@@ -124,15 +138,22 @@ internal class DefaultOpenIdTenantCache(
                     new PostEvictionCallbackRegistration
                     {
                         EvictionCallback = EvictionCallback,
-                        State = (teamId, tenantId, indexValue),
+                        State = (tenantId, entry, lineage),
                     },
                 },
             };
 
-            TenantIdsByTeam.GetOrAdd(
-                teamId,
-                _ => new ConcurrentDictionary<string, (object Entry, string TeamConcurrencyToken)>()
-            )[tenantId] = indexValue;
+            foreach (var revision in lineage)
+            {
+                TenantIdsByTeam.GetOrAdd(
+                    revision.TeamId,
+                    _ => new ConcurrentDictionary<
+                        string,
+                        (object Entry, string TeamConcurrencyToken)
+                    >()
+                )[tenantId] = (entry, revision.ConcurrencyToken);
+            }
+
             MemoryCache.Set(key, newLease, entryOptions);
         }
 

@@ -128,13 +128,23 @@ internal class TeamApiEndpointHandler(
             .ProducesValidationProblem();
         teams.MapGet("", ListTeamsAsync).Produces<CollectionResource<TeamResource>>();
         teams.MapGet("/{teamId}", GetTeamAsync).Produces<TeamResource>();
-        teams.MapPatch("/{teamId}", UpdateTeamAsync).Produces(StatusCodes.Status204NoContent);
-        teams.MapDelete("/{teamId}", DeleteTeamAsync).Produces(StatusCodes.Status204NoContent);
+        teams
+            .MapPatch("/{teamId}", UpdateTeamAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden);
+        teams
+            .MapDelete("/{teamId}", DeleteTeamAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status409Conflict);
 
         teams
             .MapPost("/{teamId}/teams", CreateChildTeamAsync)
             .Produces<TeamResource>(StatusCodes.Status201Created)
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status409Conflict);
         teams
             .MapGet("/{teamId}/teams", ListChildTeamsAsync)
             .Produces<CollectionResource<TeamResource>>();
@@ -150,7 +160,9 @@ internal class TeamApiEndpointHandler(
         teams
             .MapGet("/{teamId}/usage", GetUsageAsync)
             .Produces<TeamUsageResource>()
-            .ProducesValidationProblem();
+            .ProducesValidationProblem()
+            .Produces(StatusCodes.Status403Forbidden)
+            .Produces(StatusCodes.Status404NotFound);
 
         teams
             .MapGet("/{teamId}/owners", ListOwnersAsync)
@@ -160,7 +172,8 @@ internal class TeamApiEndpointHandler(
             .Produces<OwnerResource>(StatusCodes.Status201Created);
         teams
             .MapDelete("/{teamId}/owners/{principalId}", RemoveOwnerAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .Produces(StatusCodes.Status409Conflict);
 
         teams
             .MapGet("/{teamId}/admins", ListAdminsAsync)
@@ -958,7 +971,7 @@ internal class TeamApiEndpointHandler(
     /// first representable day.</response>
     /// <response code="403">The caller lacks <c>Read</c> at the team, for any team identifier.</response>
     /// <response code="404">The team does not exist.</response>
-    // See ADR-1424 and ADR-1426.
+    // See ADR-1199, ADR-1424 and ADR-1426.
     [EndpointName("api/teams/usage/get")]
     internal virtual async ValueTask<IResult> GetUsageAsync(
         HttpContext httpContext,

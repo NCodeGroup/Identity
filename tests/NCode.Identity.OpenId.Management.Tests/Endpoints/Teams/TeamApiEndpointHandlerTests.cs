@@ -494,9 +494,11 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         var json = Assert.IsType<JsonHttpResult<CollectionResource<TeamResource>>>(result);
-        var team = Assert.Single(json.Value!.Items);
+        var value = json.Value;
+        Assert.NotNull(value);
+        var team = Assert.Single(value.Items);
         Assert.Equal(TeamId, team.TeamId);
-        Assert.Equal("next", json.Value.ContinuationToken);
+        Assert.Equal("next", value.ContinuationToken);
     }
 
     [Fact]
@@ -572,10 +574,12 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         var json = Assert.IsType<JsonHttpResult<CollectionResource<TeamResource>>>(result);
-        var team = Assert.Single(json.Value!.Items);
+        var value = json.Value;
+        Assert.NotNull(value);
+        var team = Assert.Single(value.Items);
         Assert.Equal(ChildTeamId, team.TeamId);
         Assert.Equal(TeamId, team.ParentTeamId);
-        Assert.Equal("next", json.Value.ContinuationToken);
+        Assert.Equal("next", value.ContinuationToken);
     }
 
     [Fact]
@@ -1463,8 +1467,10 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         var json = Assert.IsType<JsonHttpResult<TeamEffectiveSettingsResource>>(result);
-        Assert.Equal(TeamId, json.Value?.TeamId);
-        Assert.True(json.Value!.Settings.GetProperty("claims_parameter_supported").GetBoolean());
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal(TeamId, value.TeamId);
+        Assert.True(value.Settings.GetProperty("claims_parameter_supported").GetBoolean());
         Assert.False(httpContext.Response.Headers.ContainsKey("ETag"));
     }
 
@@ -2084,12 +2090,14 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         var ok = Assert.IsType<Ok<TeamUsageResource>>(result);
-        Assert.Equal(TeamId, ok.Value?.TeamId);
-        Assert.Equal(from, ok.Value?.From);
-        Assert.Equal(to, ok.Value?.To);
+        var value = ok.Value;
+        Assert.NotNull(value);
+        Assert.Equal(TeamId, value.TeamId);
+        Assert.Equal(from, value.From);
+        Assert.Equal(to, value.To);
         Assert.Equal(
             [(TeamId, "tenant-a", from, "requests", 42L), (TeamId, "tenant-b", to, "tokens", 7L)],
-            ok.Value!.Entries.Select(entry =>
+            value.Entries.Select(entry =>
                 (entry.TeamId, entry.TenantId, entry.Day, entry.Meter, entry.Count)
             )
         );
@@ -2130,9 +2138,75 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         var ok = Assert.IsType<Ok<TeamUsageResource>>(result);
-        var entry = Assert.Single(ok.Value!.Entries);
+        var value = ok.Value;
+        Assert.NotNull(value);
+        var entry = Assert.Single(value.Entries);
         Assert.Equal(ChildTeamId, entry.TeamId);
         Assert.Equal("tenant-a", entry.TenantId);
+    }
+
+    [Fact]
+    public async Task GetUsageAsync_ForAChildTeam_ReadsTheLedgerUnderItsPathFromItsTopLevelTeam()
+    {
+        var day = new DateOnly(2026, 10, 1);
+        var childTeam = CreateChildTeam(ChildTeamId);
+        childTeam.AncestorTeamIds = [TeamId];
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockTeamStore
+            .Setup(x => x.GetOrDefaultAsync(ChildTeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(childTeam)
+            .Verifiable();
+        var mockUsageStore = MockRepository.Create<ITenantUsageStore>();
+        MockStoreManager
+            .Setup(x => x.GetStore<ITenantUsageStore>())
+            .Returns(mockUsageStore.Object)
+            .Verifiable();
+        mockUsageStore
+            .Setup(x =>
+                x.ListByTeamAsync(
+                    $"/{TeamId}/{ChildTeamId}/",
+                    day,
+                    day,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([
+                new PersistedTenantUsage
+                {
+                    TenantId = "tenant-a",
+                    TeamPath = $"/{TeamId}/{ChildTeamId}/",
+                    Day = day,
+                    Meter = "requests",
+                    Count = 5,
+                },
+                new PersistedTenantUsage
+                {
+                    TenantId = "tenant-b",
+                    TeamPath = $"/{TeamId}/{ChildTeamId}/{ChildTeamId}-eu/",
+                    Day = day,
+                    Meter = "requests",
+                    Count = 3,
+                },
+            ])
+            .Verifiable();
+
+        var result = await Handler.GetUsageAsync(
+            CreateHttpContext(authenticated: true),
+            ChildTeamId,
+            day,
+            day,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<TeamUsageResource>>(result);
+        var value = ok.Value;
+        Assert.NotNull(value);
+        Assert.Equal(ChildTeamId, value.TeamId);
+        Assert.Equal(
+            [ChildTeamId, $"{ChildTeamId}-eu"],
+            value.Entries.Select(entry => entry.TeamId)
+        );
     }
 
     [Fact]
@@ -2275,7 +2349,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
-        Assert.Equal("principal-1", Assert.Single(json.Value!.Items).PrincipalId);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
     }
 
     [Fact]
@@ -2485,7 +2561,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
-        var admin = Assert.Single(json.Value!.Items);
+        var value = json.Value;
+        Assert.NotNull(value);
+        var admin = Assert.Single(value.Items);
         Assert.Equal(("principal-1", BuiltInRoles.TeamAdmin), (admin.PrincipalId, admin.RoleName));
     }
 

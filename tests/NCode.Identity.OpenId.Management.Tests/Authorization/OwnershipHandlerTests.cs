@@ -215,7 +215,7 @@ public class OwnershipHandlerTests : IDisposable
 
             var isTeamNode = resource is IResourceNode { ResourceType: ResourceNodeTypes.Team };
             var teamId = isTeamNode ? ((IResourceNode)resource).ResourceId : tenantTeamId;
-            if (isTeamNode || (readsTenant && tenantTeamId is not null))
+            if (teamId is { } storedTeamId && (isTeamNode || readsTenant))
             {
                 var teamStore = MockRepository.Create<ITeamStore>();
                 manager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object).Verifiable();
@@ -223,7 +223,7 @@ public class OwnershipHandlerTests : IDisposable
                     .Setup(x =>
                         x.GetOrDefaultAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())
                     )
-                    .ReturnsAsync(CreateTeam(teamId!, teamAncestors ?? []))
+                    .ReturnsAsync(CreateTeam(storedTeamId, teamAncestors ?? []))
                     .Verifiable();
             }
 

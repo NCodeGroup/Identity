@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using NCode.AspNetCore;
+using NCode.Identity.OpenId;
 
 namespace NCode.Identity.ManagementConsole;
 
@@ -29,7 +30,7 @@ internal readonly record struct ManagementConsolePageSecurity(
         var nonce = ContentSecurityPolicySources.CreateNonce();
 
         List<string> imageSources = [ContentSecurityPolicySources.Self];
-        if (Uri.TryCreate(logoUrl, UriKind.Absolute, out var logoUri))
+        if (AbsoluteUri.TryParse(logoUrl, out var logoUri))
         {
             imageSources.Add(ContentSecurityPolicySources.Origin(logoUri));
         }

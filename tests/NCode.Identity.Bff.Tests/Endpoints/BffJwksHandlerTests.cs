@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.Bff.Endpoints;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId.Client;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
@@ -84,13 +84,11 @@ public sealed class BffJwksHandlerTests : BaseTests
         new(
             keyRingProvider,
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
-            Microsoft.Extensions.Options.Options.Create(
-                new BffOptions
-                {
-                    Jwks = { Enabled = true },
-                    ClientAuthentication = { KeyRing = keyRing },
-                }
-            )
+            BffTestFrontends.CreateCatalog(x =>
+            {
+                x.Jwks.Enabled = true;
+                x.ClientAuthentication.KeyRing = keyRing;
+            })
         );
 
     private static DefaultHttpContext CreateHttpContext() =>
@@ -182,7 +180,7 @@ public sealed class BffJwksHandlerTests : BaseTests
             handler.HandleAsync(CreateHttpContext())
         );
 
-        Assert.Contains("Bff:ClientAuthentication:KeyRing", exception.Message);
+        Assert.Contains("Bff:Frontends:default:ClientAuthentication:KeyRing", exception.Message);
     }
 
     [Fact]

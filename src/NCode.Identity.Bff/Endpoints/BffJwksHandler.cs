@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
 using NCode.AspNetCore;
 using NCode.Buffers;
-using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Jwk;
 using NCode.Identity.OpenId.Client;
 using NCode.Identity.Secrets.KeyTypes;
@@ -13,20 +12,21 @@ using NCode.Identity.Secrets.KeyTypes;
 namespace NCode.Identity.Bff.Endpoints;
 
 /// <summary>
-/// Handles <c>GET /bff/jwks</c>, which publishes the public keys of the client-authentication key ring as a JSON Web
-/// Key Set (RFC 7517 §5), so the OpenID Provider reads them from the client's registered <c>jwks_uri</c>.
+/// Handles <c>GET /bff/jwks</c>, which publishes the public keys of the request's frontend's client-authentication key
+/// ring as a JSON Web Key Set (RFC 7517 §5), so the OpenID Provider reads them from the client's registered
+/// <c>jwks_uri</c>.
 /// </summary>
 internal class BffJwksHandler(
     IClientKeyRingProvider keyRingProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
-    IOptions<BffOptions> options
+    BffFrontendCatalog frontends
 )
 {
     private const string JsonContentType = "application/json; charset=utf-8";
 
     private readonly IClientKeyRingProvider _keyRingProvider = keyRingProvider;
     private readonly ISecretKeyTypeCatalog _secretKeyTypeCatalog = secretKeyTypeCatalog;
-    private readonly IOptions<BffOptions> _options = options;
+    private readonly BffFrontendCatalog _frontends = frontends;
 
     /// <summary>
     /// Writes the public keys of the client-authentication key ring.
@@ -37,10 +37,11 @@ internal class BffJwksHandler(
     {
         ArgumentNullException.ThrowIfNull(httpContext);
 
-        var keyRing = _options.Value.ClientAuthentication.KeyRing;
+        var frontend = _frontends.GetRequired(httpContext);
+        var keyRing = frontend.Options.ClientAuthentication.KeyRing;
         if (string.IsNullOrWhiteSpace(keyRing))
             throw new InvalidOperationException(
-                "Bff:ClientAuthentication:KeyRing must be set to publish the BFF's keys."
+                $"Bff:Frontends:{frontend.Name}:ClientAuthentication:KeyRing must be set to publish the BFF's keys."
             );
 
         // Each key's descriptor exports its public JWK; a key with no public part, such as a shared secret, is omitted.

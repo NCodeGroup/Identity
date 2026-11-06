@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
-using NCode.Identity.Bff.Sessions;
 
 namespace NCode.Identity.Bff.Tokens;
 
@@ -12,12 +11,10 @@ namespace NCode.Identity.Bff.Tokens;
 /// </summary>
 // The BFF's own token is never served to an anonymous caller: the session is what proves the caller is the BFF's
 // frontend. See ADR-1381.
-internal class BffClientTokenRequirement(
-    BffSessionResolver sessionResolver,
-    IBffClientTokenService service
-) : IBffTokenRequirement
+internal class BffClientTokenRequirement(BffTokenContexts contexts, IBffClientTokenService service)
+    : IBffTokenRequirement
 {
-    private readonly BffSessionResolver _sessionResolver = sessionResolver;
+    private readonly BffTokenContexts _contexts = contexts;
     private readonly IBffClientTokenService _service = service;
 
     /// <inheritdoc />
@@ -33,13 +30,14 @@ internal class BffClientTokenRequirement(
         ArgumentNullException.ThrowIfNull(httpContext);
         ArgumentNullException.ThrowIfNull(request);
 
-        var state = await _sessionResolver.ResolveAsync(httpContext, cancellationToken);
+        var scope = _contexts.ForRequest(httpContext);
+        var state = await scope.ResolveAsync(cancellationToken);
         if (state is null)
             return BffTokenResult.Failure(
                 StatusCodes.Status401Unauthorized,
                 BffTokenFailureReasons.SessionRequired
             );
 
-        return await _service.GetAccessTokenAsync(httpContext, request, cancellationToken);
+        return await _service.GetAccessTokenAsync(scope, request, cancellationToken);
     }
 }

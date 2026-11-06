@@ -138,7 +138,9 @@ public class BffUserOrClientTokenRequirementTests : BaseTests
         var request = CreateRequest();
         var httpContext = CreateHttpContext(false);
         MockClientService
-            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
+            .Setup(x =>
+                x.GetAccessTokenAsync(It.IsAny<IBffSessionScope>(), request, CancellationToken.None)
+            )
             .ReturnsAsync(Token)
             .Verifiable();
 

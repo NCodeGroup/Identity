@@ -4,7 +4,6 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.OpenId.Client;
 
@@ -21,14 +20,12 @@ namespace NCode.Identity.Bff.Tokens;
 internal class DefaultBffClientTokenService(
     BffGrantClient grantClient,
     BffRefreshLocks locks,
-    BffFrontendCatalog frontends,
     IOptions<BffOptions> options,
     TimeProvider timeProvider
 ) : IBffClientTokenService
 {
     private readonly BffGrantClient _grantClient = grantClient;
     private readonly BffRefreshLocks _locks = locks;
-    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly IOptions<BffOptions> _options = options;
     private readonly TimeProvider _timeProvider = timeProvider;
 
@@ -39,15 +36,15 @@ internal class DefaultBffClientTokenService(
 
     /// <inheritdoc />
     public async ValueTask<BffTokenResult> GetAccessTokenAsync(
-        HttpContext httpContext,
+        IBffSessionScope scope,
         BffTokenRequest request,
         CancellationToken cancellationToken
     )
     {
-        ArgumentNullException.ThrowIfNull(httpContext);
+        ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(request);
 
-        var frontend = _frontends.Resolve(httpContext);
+        var frontend = scope.SelectedFrontend;
         if (frontend is null)
             return BffTokenResult.Failure(
                 StatusCodes.Status401Unauthorized,

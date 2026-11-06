@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Sessions;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using Xunit;
 
@@ -10,13 +14,27 @@ namespace NCode.Identity.Bff.Tests.Tokens;
 
 public class BffExchangeTokenRequirementTests : BaseTests
 {
+    private static BffTokenContexts CreateContexts(Mock<IBffSessionManager> manager)
+    {
+        var timeProvider = new FakeTimeProvider(
+            new DateTimeOffset(2026, 1, 2, 5, 0, 0, TimeSpan.Zero)
+        );
+        var cookies = new BffCookies(timeProvider);
+        var frontends = BffTestFrontends.CreateCatalog();
+        var resolver = new BffSessionResolver(manager.Object, cookies, [], frontends, timeProvider);
+        return new BffTokenContexts(frontends, resolver, cookies);
+    }
+
     private Mock<IBffExchangeTokenService> MockService { get; }
     private BffExchangeTokenRequirement Requirement { get; }
 
     public BffExchangeTokenRequirementTests()
     {
         MockService = CreateStrictMock<IBffExchangeTokenService>();
-        Requirement = new BffExchangeTokenRequirement(MockService.Object);
+        Requirement = new BffExchangeTokenRequirement(
+            MockService.Object,
+            CreateContexts(CreateStrictMock<IBffSessionManager>())
+        );
     }
 
     #region Name Tests
@@ -42,7 +60,13 @@ public class BffExchangeTokenRequirementTests : BaseTests
             new BffAccessToken("exchanged", "Bearer", DateTimeOffset.UnixEpoch)
         );
         MockService
-            .Setup(x => x.GetAccessTokenAsync(httpContext, request, CancellationToken.None))
+            .Setup(x =>
+                x.GetAccessTokenAsync(
+                    It.Is<IBffSessionScope>(s => s.HttpContext == httpContext),
+                    request,
+                    CancellationToken.None
+                )
+            )
             .ReturnsAsync(expected)
             .Verifiable();
 

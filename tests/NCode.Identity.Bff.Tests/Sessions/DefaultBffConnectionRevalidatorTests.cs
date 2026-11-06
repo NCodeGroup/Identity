@@ -25,15 +25,25 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
     private FakeLogger<DefaultBffConnectionRevalidator> Logger { get; }
     private DefaultBffConnectionRevalidator Revalidator { get; }
     private TaskCompletionSource Armed { get; set; }
+    private CancellationTokenSource EndedSource { get; } = new();
 
     public DefaultBffConnectionRevalidatorTests()
     {
         MockSession = CreateStrictMock<IBffConnectionSession>();
+        MockSession.SetupGet(x => x.SessionEnded).Returns(EndedSource.Token);
         MockTimeProvider = CreateStrictMock<TimeProvider>();
         TimeProvider = new FakeTimeProvider(Start);
         Logger = new FakeLogger<DefaultBffConnectionRevalidator>();
         Revalidator = new DefaultBffConnectionRevalidator(MockTimeProvider.Object, Logger);
         Armed = CreateSignal();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+            EndedSource.Dispose();
+
+        base.Dispose(disposing);
     }
 
     /// <summary>
@@ -192,6 +202,34 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => task);
         Assert.Empty(Logger.Collector.GetSnapshot());
+    }
+
+    [Fact]
+    public async Task WaitUntilEndedAsync_SessionEndedSignaled_CompletesWithoutValidating()
+    {
+        MockSession.Setup(x => x.RevalidationInterval).Returns(Interval).Verifiable();
+        SetupArmedDelays();
+        var task = Revalidator
+            .WaitUntilEndedAsync(MockSession.Object, CancellationToken.None)
+            .AsTask();
+
+        await Armed.Task.WaitAsync(Timeout);
+        await EndedSource.CancelAsync();
+
+        await task.WaitAsync(Timeout);
+        Assert.Empty(Logger.Collector.GetSnapshot());
+    }
+
+    [Fact]
+    public async Task WaitUntilEndedAsync_SessionAlreadyEnded_CompletesAtOnce()
+    {
+        await EndedSource.CancelAsync();
+
+        var task = Revalidator
+            .WaitUntilEndedAsync(MockSession.Object, CancellationToken.None)
+            .AsTask();
+
+        Assert.True(task.IsCompletedSuccessfully);
     }
 
     #endregion

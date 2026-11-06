@@ -35,6 +35,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
 {
     private const string TeamId = "team-1";
     private const string ParentTeamId = "acme";
+    private const string ChildTeamId = "team-1-web";
     private const string ControlPlaneTenantId = "platform-root";
     private const string TenantId = "tenant-1";
 
@@ -356,6 +357,22 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             Value = EmptyObject(),
         };
 
+    private static PersistedTeam CreateChildTeam(string childTeamId) =>
+        new()
+        {
+            TeamId = childTeamId,
+            ConcurrencyToken = "child-ct",
+            IsDisabled = false,
+            ParentTeamId = TeamId,
+            DisplayName = "Team One Web",
+            Settings = new PersistedTeamSettings
+            {
+                TeamId = childTeamId,
+                ConcurrencyToken = "child-settings-ct",
+                Value = EmptyObject(),
+            },
+        };
+
     private static PersistedRoleAssignment CreateAssignment(string principalId, string roleName) =>
         new()
         {
@@ -522,6 +539,103 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
 
         Assert.Equal(StatusCodes.Status401Unauthorized, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region ListChildTeamsAsync Tests
+
+    [Fact]
+    public async Task ListChildTeamsAsync_WhenAuthorized_ReturnsEachChildTeam()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockTeamStore
+            .Setup(x =>
+                x.GetChildPageAsync(TeamId, It.IsAny<PageRequest>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(
+                new PagedResult<PersistedTeam>
+                {
+                    Items = [CreateChildTeam(ChildTeamId)],
+                    NextCursor = "next",
+                }
+            )
+            .Verifiable();
+
+        var result = await Handler.ListChildTeamsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<TeamResource>>>(result);
+        var team = Assert.Single(json.Value!.Items);
+        Assert.Equal(ChildTeamId, team.TeamId);
+        Assert.Equal(TeamId, team.ParentTeamId);
+        Assert.Equal("next", json.Value.ContinuationToken);
+    }
+
+    [Fact]
+    public async Task ListChildTeamsAsync_RequestsListOnTheParentTeamNode()
+    {
+        SetupStore();
+        MockTeamStore
+            .Setup(x =>
+                x.GetChildPageAsync(TeamId, It.IsAny<PageRequest>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(new PagedResult<PersistedTeam> { Items = [], NextCursor = null })
+            .Verifiable();
+        var captured = CaptureAuthorization();
+
+        await Handler.ListChildTeamsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        AssertTeamNodeRequest(captured, Operations.List);
+    }
+
+    [Fact]
+    public async Task ListChildTeamsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheStore()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.ListChildTeamsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region ToTeamResource Tests
+
+    [Fact]
+    public void ToTeamResource_WithAParent_CarriesParentTeamId()
+    {
+        var resource = TeamApiEndpointHandler.ToTeamResource(CreateChildTeam(ChildTeamId));
+
+        Assert.Equal(TeamId, resource.ParentTeamId);
+    }
+
+    [Fact]
+    public void ToTeamResource_WithoutAParent_CarriesNoParentTeamId()
+    {
+        var resource = TeamApiEndpointHandler.ToTeamResource(CreateTeam());
+
+        Assert.Null(resource.ParentTeamId);
     }
 
     #endregion
@@ -745,6 +859,233 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         AssertSettingsValidationProblem(result);
+    }
+
+    #endregion
+
+    #region CreateChildTeamAsync Tests
+
+    private static CreateTeamRequest CreateChildRequest() =>
+        new()
+        {
+            TeamId = ChildTeamId,
+            DisplayName = "Team One Web",
+            IsDisabled = false,
+            Settings = EmptyObject(),
+        };
+
+    private void SetupChildCreateAuthorization(ManagementError? error) =>
+        MockTeamValidator
+            .Setup(x =>
+                x.AuthorizeCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    ControlPlaneTenantId,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(error)
+            .Verifiable();
+
+    private void SetupLineageAndMaxDepth(IReadOnlyList<PersistedTeam> lineage, int? maxDepth)
+    {
+        MockTeamStore
+            .Setup(x => x.GetLineageAsync(TeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(lineage)
+            .Verifiable();
+
+        var platformSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        var configuredDepth = maxDepth ?? 0;
+        platformSettings
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.MaxTeamDepth, out configuredDepth))
+            .Returns(maxDepth is not null)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(platformSettings.Object)
+            .Verifiable();
+    }
+
+    private void SetupAncestorMaxTeams(string ancestorId, int? maxTeams, long? descendants)
+    {
+        var ancestorSettings = MockRepository.Create<IReadOnlySettingCollection>();
+        var configuredMaxTeams = maxTeams ?? 0;
+        ancestorSettings
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.MaxTeams, out configuredMaxTeams))
+            .Returns(maxTeams is not null)
+            .Verifiable();
+        MockEffectiveSettingsResolver
+            .Setup(x => x.ResolveTeamAsync(ancestorId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ancestorSettings.Object)
+            .Verifiable();
+
+        if (descendants is not null)
+        {
+            MockTeamStore
+                .Setup(x => x.CountDescendantsAsync(ancestorId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(descendants.Value)
+                .Verifiable();
+        }
+    }
+
+    [Fact]
+    public async Task CreateChildTeamAsync_WhenValid_AddsTheTeamBeneathItsParent()
+    {
+        SetupChildCreateAuthorization(null);
+        SetupStore();
+        SetupCreateValidation(null);
+        SetupValidSettings();
+        SetupLineageAndMaxDepth([CreateTeam()], maxDepth: null);
+        SetupAncestorMaxTeams(TeamId, maxTeams: null, descendants: null);
+        SetupSave();
+        PersistedTeam? added = null;
+        MockTeamStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedTeam>(), It.IsAny<CancellationToken>()))
+            .Callback((PersistedTeam team, CancellationToken _) => added = team)
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    ChildTeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetOwnersAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    ChildTeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+        MockTeamStore
+            .Setup(x => x.GetOrDefaultAsync(ChildTeamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateChildTeam(ChildTeamId))
+            .Verifiable();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTeamChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    ChildTeamId,
+                    ResourceChangeTypes.Created,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var result = await Handler.CreateChildTeamAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateChildRequest(),
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<TeamResource>>(result);
+        Assert.Equal($"/teams/{ChildTeamId}", created.Location);
+        Assert.Equal(ChildTeamId, created.Value?.TeamId);
+        Assert.Equal(TeamId, created.Value?.ParentTeamId);
+        Assert.Equal(ChildTeamId, added?.TeamId);
+        Assert.Equal(TeamId, added?.ParentTeamId);
+    }
+
+    [Fact]
+    public async Task CreateChildTeamAsync_WhenUnauthorized_ReturnsTheErrorWithoutOpeningTheStore()
+    {
+        SetupChildCreateAuthorization(
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status403Forbidden,
+                Detail = "The caller is not authorized to create this team.",
+            }
+        );
+
+        var result = await Handler.CreateChildTeamAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateChildRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateChildTeamAsync_WhenTheValidatorRefuses_ReturnsItsError()
+    {
+        SetupChildCreateAuthorization(null);
+        SetupStore();
+        SetupCreateValidation(
+            new ManagementError
+            {
+                StatusCode = StatusCodes.Status404NotFound,
+                Detail = "The parent team does not exist.",
+            }
+        );
+
+        var result = await Handler.CreateChildTeamAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateChildRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status404NotFound, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateChildTeamAsync_WhenNestedPastTheMaximumDepth_ReturnsConflict()
+    {
+        SetupChildCreateAuthorization(null);
+        SetupStore();
+        SetupCreateValidation(null);
+        SetupValidSettings();
+        SetupLineageAndMaxDepth([CreateTeam()], maxDepth: 1);
+
+        var result = await Handler.CreateChildTeamAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateChildRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateChildTeamAsync_WhenAnAncestorHoldsItsMaximumTeams_ReturnsConflict()
+    {
+        SetupChildCreateAuthorization(null);
+        SetupStore();
+        SetupCreateValidation(null);
+        SetupValidSettings();
+        SetupLineageAndMaxDepth([CreateTeam()], maxDepth: null);
+        SetupAncestorMaxTeams(TeamId, maxTeams: 2, descendants: 2);
+
+        var result = await Handler.CreateChildTeamAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateChildRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
     #endregion

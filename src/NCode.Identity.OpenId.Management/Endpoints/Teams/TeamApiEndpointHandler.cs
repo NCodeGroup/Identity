@@ -19,6 +19,7 @@ using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Management.Logging;
+using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -39,6 +40,9 @@ GET    api/teams
 GET    api/teams/{teamId}
 PATCH  api/teams/{teamId}
 DELETE api/teams/{teamId}
+
+POST api/teams/{teamId}/teams
+GET  api/teams/{teamId}/teams
 
 GET   api/teams/{teamId}/settings
 PATCH api/teams/{teamId}/settings
@@ -127,6 +131,14 @@ internal class TeamApiEndpointHandler(
         teams.MapPatch("/{teamId}", UpdateTeamAsync).Produces(StatusCodes.Status204NoContent);
         teams.MapDelete("/{teamId}", DeleteTeamAsync).Produces(StatusCodes.Status204NoContent);
 
+        teams
+            .MapPost("/{teamId}/teams", CreateChildTeamAsync)
+            .Produces<TeamResource>(StatusCodes.Status201Created)
+            .ProducesValidationProblem();
+        teams
+            .MapGet("/{teamId}/teams", ListChildTeamsAsync)
+            .Produces<CollectionResource<TeamResource>>();
+
         teams.MapGet("/{teamId}/settings", GetSettingsAsync).Produces<TeamSettingsResource>();
         teams
             .MapPatch("/{teamId}/settings", UpdateSettingsAsync)
@@ -176,6 +188,7 @@ internal class TeamApiEndpointHandler(
             ConcurrencyToken = team.ConcurrencyToken,
             DisplayName = team.DisplayName,
             IsDisabled = team.IsDisabled,
+            ParentTeamId = team.ParentTeamId,
         };
 
     /// <summary>
@@ -225,6 +238,33 @@ internal class TeamApiEndpointHandler(
         HttpContext httpContext,
         [FromBody] CreateTeamRequest request,
         CancellationToken cancellationToken
+    ) => await CreateTeamCoreAsync(httpContext, parentTeamId: null, request, cancellationToken);
+
+    /// <summary>
+    /// Creates a team directly beneath a parent team. The caller becomes its owner and administrator.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the parent team.</param>
+    /// <param name="request">The <see cref="CreateTeamRequest"/> describing the team to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The created team.</response>
+    /// <response code="403">The caller lacks <c>Create</c> at the parent team.</response>
+    /// <response code="404">The parent team does not exist.</response>
+    /// <response code="409">The parent is the platform's own team, the team would be nested too deep, or a team above it holds its maximum number of teams.</response>
+    // See ADR-1424 and ADR-1426.
+    [EndpointName("api/teams/teams/create")]
+    internal virtual async ValueTask<IResult> CreateChildTeamAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromBody] CreateTeamRequest request,
+        CancellationToken cancellationToken
+    ) => await CreateTeamCoreAsync(httpContext, teamId, request, cancellationToken);
+
+    private async ValueTask<IResult> CreateTeamCoreAsync(
+        HttpContext httpContext,
+        string? parentTeamId,
+        CreateTeamRequest request,
+        CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
@@ -233,7 +273,7 @@ internal class TeamApiEndpointHandler(
         var authorizationError = await TeamValidator.AuthorizeCreateAsync(
             httpContext.User,
             controlPlaneTenantId,
-            parentTeamId: null,
+            parentTeamId,
             cancellationToken
         );
         if (authorizationError is not null)
@@ -250,6 +290,7 @@ internal class TeamApiEndpointHandler(
             TeamId = teamId,
             ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
+            ParentTeamId = parentTeamId,
             DisplayName = request.DisplayName,
             Settings = new PersistedTeamSettings
             {
@@ -275,6 +316,15 @@ internal class TeamApiEndpointHandler(
         if (settingErrors.Count > 0)
         {
             return SettingsValidationProblem(settingErrors);
+        }
+
+        if (parentTeamId is not null)
+        {
+            var limitError = await CheckTeamLimitsAsync(store, parentTeamId, cancellationToken);
+            if (limitError is not null)
+            {
+                return ToErrorResult(limitError);
+            }
         }
 
         await store.AddAsync(team, cancellationToken);
@@ -360,6 +410,48 @@ internal class TeamApiEndpointHandler(
                 );
                 var store = storeManager.GetStore<ITeamStore>();
                 return await store.GetPageAsync(
+                    new PageRequest { Cursor = cursor, Limit = effectiveLimit },
+                    cancellationToken
+                );
+            },
+            ToTeamResource
+        );
+    }
+
+    /// <summary>
+    /// Lists the teams directly beneath a team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the parent team.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of teams to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">A page of the teams directly beneath the team; an empty page for a team that has none.</response>
+    // See ADR-1424 and ADR-1426.
+    [EndpointName("api/teams/teams/list")]
+    internal virtual async ValueTask<IResult> ListChildTeamsAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var effectiveLimit = NormalizeLimit(limit);
+
+        // Listing a team's child teams is authority at the team: the caller is authorized at the team node before the
+        // store is read.
+        return await ProcessListAsync(
+            httpContext,
+            GetTeamNode(httpContext, teamId),
+            async () =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<ITeamStore>();
+                return await store.GetChildPageAsync(
+                    teamId,
                     new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
                 );
@@ -1149,6 +1241,57 @@ internal class TeamApiEndpointHandler(
             new TeamChangedCommand(teamId, settingsChanged),
             cancellationToken
         );
+    }
+
+    // Checks the limits a child team's creation is held to: the platform's 'max_team_depth' bounds how deep the child
+    // sits, and every team above it holds at most its 'max_teams' teams beneath it (ADR-1426). Unset 'max_teams'
+    // means unlimited, and an unset depth falls back to the hard bound.
+    private async ValueTask<ManagementError?> CheckTeamLimitsAsync(
+        ITeamStore store,
+        string parentTeamId,
+        CancellationToken cancellationToken
+    )
+    {
+        var lineage = await store.GetLineageAsync(parentTeamId, cancellationToken);
+
+        var platformSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+            cancellationToken
+        );
+        var maxDepth = platformSettings.TryGetValue(
+            OpenIdSettingKeys.MaxTeamDepth,
+            out var configuredDepth
+        )
+            ? configuredDepth
+            : TeamPaths.MaxDepth;
+        if (lineage.Count + 1 > maxDepth)
+        {
+            return new ManagementError
+            {
+                StatusCode = StatusCodes.Status409Conflict,
+                Detail = $"A team can be nested at most {maxDepth} levels deep.",
+            };
+        }
+
+        foreach (var ancestor in lineage)
+        {
+            var ancestorSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+                ancestor.TeamId,
+                cancellationToken
+            );
+            if (
+                ancestorSettings.TryGetValue(OpenIdSettingKeys.MaxTeams, out var maxTeams)
+                && await store.CountDescendantsAsync(ancestor.TeamId, cancellationToken) >= maxTeams
+            )
+            {
+                return new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = $"The team '{ancestor.TeamId}' holds its maximum of {maxTeams} teams.",
+                };
+            }
+        }
+
+        return null;
     }
 
     private async ValueTask<PersistedTeam> ReloadTeamAsync(

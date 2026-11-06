@@ -774,6 +774,8 @@ NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.DisplayName.get ->
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.DisplayName.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.IsDisabled.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.IsDisabled.init -> void
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.ParentTeamId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.ParentTeamId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.TeamResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest
 NCode.Identity.OpenId.Management.Contracts.Teams.CreateTeamRequest.TeamId.get -> string!

@@ -4,6 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 
 namespace NCode.Identity.Bff.Cookies;
@@ -91,6 +92,104 @@ internal class BffCookies(IOptions<BffOptions> options, TimeProvider timeProvide
     {
         var cookieOptions = CreateOptions(SameSiteMode.Lax);
         response.Cookies.Delete(BffDefaults.LoginCookieName, cookieOptions);
+    }
+
+    /// <summary>
+    /// Reads the session handle of a frontend from the request, or returns <see langword="null"/> when the cookie is
+    /// missing or malformed.
+    /// </summary>
+    /// <param name="request">The current request.</param>
+    /// <param name="frontend">The frontend that the request belongs to.</param>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the writers."
+    )]
+    public string? ReadSessionHandle(HttpRequest request, BffFrontend frontend) =>
+        Read(request, frontend.SessionCookieName);
+
+    /// <summary>
+    /// Reads the login secret of a frontend from the request, or returns <see langword="null"/> when the cookie is
+    /// missing or malformed.
+    /// </summary>
+    /// <param name="request">The current request.</param>
+    /// <param name="frontend">The frontend that the request belongs to.</param>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the writers."
+    )]
+    public string? ReadLoginSecret(HttpRequest request, BffFrontend frontend) =>
+        Read(request, frontend.LoginCookieName);
+
+    /// <summary>
+    /// Sets the session cookie of a frontend so that it expires with the session.
+    /// </summary>
+    /// <param name="response">The current response.</param>
+    /// <param name="frontend">The frontend that the session belongs to.</param>
+    /// <param name="handle">The session handle.</param>
+    /// <param name="absoluteExpiresAt">The instant the session expires.</param>
+    public void SetSession(
+        HttpResponse response,
+        BffFrontend frontend,
+        string handle,
+        DateTimeOffset absoluteExpiresAt
+    )
+    {
+        var now = timeProvider.GetUtcNow();
+        var cookieOptions = CreateOptions(frontend.Options.Session.SameSite);
+        cookieOptions.MaxAge = absoluteExpiresAt - now;
+        response.Cookies.Append(frontend.SessionCookieName, handle, cookieOptions);
+    }
+
+    /// <summary>
+    /// Deletes the session cookie of a frontend.
+    /// </summary>
+    /// <param name="response">The current response.</param>
+    /// <param name="frontend">The frontend that the session belongs to.</param>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the writers."
+    )]
+    public void DeleteSession(HttpResponse response, BffFrontend frontend)
+    {
+        var cookieOptions = CreateOptions(frontend.Options.Session.SameSite);
+        response.Cookies.Delete(frontend.SessionCookieName, cookieOptions);
+    }
+
+    /// <summary>
+    /// Sets the login cookie of a frontend, which lives as long as a login attempt.
+    /// </summary>
+    /// <param name="response">The current response.</param>
+    /// <param name="frontend">The frontend that the login belongs to.</param>
+    /// <param name="secret">The login secret.</param>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the writers."
+    )]
+    public void SetLogin(HttpResponse response, BffFrontend frontend, string secret)
+    {
+        var cookieOptions = CreateOptions(SameSiteMode.Lax);
+        cookieOptions.MaxAge = frontend.Options.Session.LoginLifetime;
+        response.Cookies.Append(frontend.LoginCookieName, secret, cookieOptions);
+    }
+
+    /// <summary>
+    /// Deletes the login cookie of a frontend.
+    /// </summary>
+    /// <param name="response">The current response.</param>
+    /// <param name="frontend">The frontend that the login belongs to.</param>
+    [SuppressMessage(
+        "Performance",
+        "CA1822:Mark members as static",
+        Justification = "Part of the instance API alongside the writers."
+    )]
+    public void DeleteLogin(HttpResponse response, BffFrontend frontend)
+    {
+        var cookieOptions = CreateOptions(SameSiteMode.Lax);
+        response.Cookies.Delete(frontend.LoginCookieName, cookieOptions);
     }
 
     private static string? Read(HttpRequest request, string name)

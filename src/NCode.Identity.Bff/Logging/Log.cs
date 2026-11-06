@@ -74,4 +74,11 @@ internal static partial class Log
         string error,
         Exception? exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.EndpointCheckFailed,
+        Level = LogLevel.Error,
+        Message = "The BFF endpoint check failed after the endpoints changed: {Failure}"
+    )]
+    internal static partial void EndpointCheckFailed(this ILogger logger, string failure);
 }

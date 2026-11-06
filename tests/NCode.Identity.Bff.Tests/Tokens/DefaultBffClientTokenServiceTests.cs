@@ -40,12 +40,7 @@ public class DefaultBffClientTokenServiceTests : BaseTests
     )
     {
         var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions
-            {
-                Authority = "https://op.example",
-                ClientId = "bff",
-                Tokens = { RefreshLeaseDuration = refreshLeaseDuration },
-            }
+            new BffOptions { Tokens = { RefreshLeaseDuration = refreshLeaseDuration } }
         );
         var grantClient = new BffGrantClient(
             MockTokenClient.Object,

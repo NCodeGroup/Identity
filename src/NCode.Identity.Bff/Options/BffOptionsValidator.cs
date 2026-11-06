@@ -4,7 +4,6 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Frontends;
-using NCode.Identity.Bff.Navigation;
 
 namespace NCode.Identity.Bff.Options;
 
@@ -30,84 +29,9 @@ internal class BffOptionsValidator(
         List<string> failures = [];
         var isDevelopment = environment.IsDevelopment();
 
-        BffFrontendOptionsValidation.ValidateAuthority(
-            Key,
-            options.Authority,
-            isDevelopment,
-            failures
-        );
-        BffFrontendOptionsValidation.ValidatePublicOrigin(
-            Key,
-            options.PublicOrigin,
-            isDevelopment,
-            failures
-        );
-
-        if (string.IsNullOrWhiteSpace(options.ClientId))
-        {
-            failures.Add($"{Key}:ClientId must not be blank.");
-        }
-
-        if (string.IsNullOrWhiteSpace(options.ClientAuthentication?.Method))
-        {
-            failures.Add($"{Key}:ClientAuthentication:Method must not be blank.");
-        }
-
-        BffFrontendOptionsValidation.ValidateReturnUrls(Key, options.ReturnUrls, failures);
-
-        if (!BffReturnUrls.IsWellFormedPath(options.ErrorPath ?? string.Empty))
-        {
-            failures.Add($"{Key}:ErrorPath must be a well-formed local path that starts with '/'.");
-        }
-
-        BffFrontendOptionsValidation.ValidatePathPrefix(Key, options.PathPrefix, failures);
-        BffFrontendOptionsValidation.ValidateTrustedOrigins(
-            Key,
-            options.TrustedOrigins,
-            isDevelopment,
-            failures
-        );
-        BffFrontendOptionsValidation.ValidateSession(Key, options.Session, failures);
-        BffFrontendOptionsValidation.ValidateDPoP(Key, options.DPoP, failures);
-        BffFrontendOptionsValidation.ValidateIdToken(
-            Key,
-            options.IdToken,
-            options.ClientAuthentication,
-            failures
-        );
-        BffFrontendOptionsValidation.ValidateUserInfo(
-            Key,
-            options.UserInfo,
-            options.ClientAuthentication,
-            failures
-        );
-        ValidateTokens(options.Tokens, failures);
-        ValidateAntiforgery(options.Antiforgery, failures);
-        BffFrontendOptionsValidation.ValidateSecurityHeaders(
-            Key,
-            options.SecurityHeaders,
-            failures
-        );
-        BffFrontendOptionsValidation.ValidateJwks(
-            Key,
-            options.Jwks,
-            options.ClientAuthentication,
-            failures
-        );
-        BffFrontendOptionsValidation.ValidateUserClaims(Key, options.UserClaims, failures);
-        BffFrontendOptionsValidation.ValidateLoginParameters(
-            Key,
-            options.LoginParameters,
-            failures
-        );
-        BffFrontendOptionsValidation.ValidateRemoteApis(
-            Key,
-            options.RemoteApis,
-            options.PathPrefix,
-            isDevelopment,
-            failures
-        );
         ValidateFrontends(options.Frontends, isDevelopment, failures);
+        ValidateAntiforgery(options.Antiforgery, failures);
+        ValidateTokens(options.Tokens, failures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
@@ -144,6 +68,11 @@ internal class BffOptionsValidator(
         {
             failures.Add($"{Key}:Frontends must be set.");
             return;
+        }
+
+        if (frontends.Count == 0)
+        {
+            failures.Add($"{Key}:Frontends must configure at least one frontend.");
         }
 
         var ruled =

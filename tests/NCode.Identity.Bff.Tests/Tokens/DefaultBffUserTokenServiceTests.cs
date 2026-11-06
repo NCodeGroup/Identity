@@ -84,9 +84,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             },
         };
         ActivitySource.AddActivityListener(Listener);
-        var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions { Authority = "https://op.example", ClientId = "bff" }
-        );
+        var options = Microsoft.Extensions.Options.Options.Create(new BffOptions());
         var timeProvider = new FakeTimeProvider(Now);
         TimeProvider = timeProvider;
         var cookies = new BffCookies(timeProvider);
@@ -1135,12 +1133,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
     private DefaultBffUserTokenService CreateWaitingService()
     {
         var options = Microsoft.Extensions.Options.Options.Create(
-            new BffOptions
-            {
-                Authority = "https://op.example",
-                ClientId = "bff",
-                Tokens = { RefreshLeaseDuration = TimeSpan.FromMilliseconds(400) },
-            }
+            new BffOptions { Tokens = { RefreshLeaseDuration = TimeSpan.FromMilliseconds(400) } }
         );
         var timeProvider = TimeProvider;
         var cookies = new BffCookies(timeProvider);

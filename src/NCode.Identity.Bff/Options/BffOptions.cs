@@ -6,7 +6,8 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Bff.Options;
 
 /// <summary>
-/// Configures the backend-for-frontend (BFF) of a single frontend. Bound from the <c>Bff</c> configuration section.
+/// Configures the backend-for-frontend (BFF): the browser frontends it serves and the settings they share. Bound from
+/// the <c>Bff</c> configuration section.
 /// </summary>
 [PublicAPI]
 public sealed class BffOptions
@@ -18,131 +19,12 @@ public sealed class BffOptions
         new(StringComparer.Ordinal);
 
     /// <summary>
-    /// Gets or sets the issuer URL of the OpenID Provider. The configuration key is <c>Bff:Authority</c>.
-    /// </summary>
-    public string Authority { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the absolute URL the BFF is published at — scheme, host, optional port and path base, such as
-    /// <c>https://app.example.com</c> or <c>https://example.com/app</c>. The BFF builds the <c>redirect_uri</c> and
-    /// the <c>post_logout_redirect_uri</c> from it, never from the request. The configuration key is
-    /// <c>Bff:PublicOrigin</c>.
-    /// </summary>
-    public string PublicOrigin { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets the client identifier of the BFF at the OpenID Provider. The configuration key is
-    /// <c>Bff:ClientId</c>.
-    /// </summary>
-    public string ClientId { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Gets or sets how the BFF authenticates to the token endpoint. The configuration section is
-    /// <c>Bff:ClientAuthentication</c>.
-    /// </summary>
-    public BffClientAuthenticationOptions ClientAuthentication { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets the scopes that the BFF requests at login. The configuration key is <c>Bff:Scopes</c>.
-    /// </summary>
-    public List<string> Scopes { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the resource indicators that the BFF requests at login. The configuration key is
-    /// <c>Bff:Resources</c>.
-    /// </summary>
-    public List<string> Resources { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the allow-list of local paths that a login or logout may return to. The configuration key is
-    /// <c>Bff:ReturnUrls</c>.
-    /// </summary>
-    public List<string> ReturnUrls { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the ID token claim types that <c>/bff/user</c> exposes to the frontend. The configuration key is
-    /// <c>Bff:UserClaims</c>.
-    /// </summary>
-    public List<string> UserClaims { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the extra authorization request parameters that a frontend may pass to the login endpoint. The
-    /// configuration key is <c>Bff:LoginParameters</c>.
-    /// </summary>
-    public List<string> LoginParameters { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the origins that a same-site request may come from. The configuration key is
-    /// <c>Bff:TrustedOrigins</c>.
-    /// </summary>
-    public List<string> TrustedOrigins { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the local path that the browser is sent to when a login fails. The default is <c>/</c>. The
-    /// configuration key is <c>Bff:ErrorPath</c>.
-    /// </summary>
-    public string ErrorPath { get; set; } = "/";
-
-    /// <summary>
-    /// Gets or sets the path prefix of the BFF endpoints. The default is <c>/bff</c>. The configuration key is
-    /// <c>Bff:PathPrefix</c>.
-    /// </summary>
-    public string PathPrefix { get; set; } = BffDefaults.EndpointPrefix;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether a back-channel logout token must carry a <c>sid</c> claim. The default
-    /// is <c>true</c>. The configuration key is <c>Bff:BackchannelLogoutSessionRequired</c>.
-    /// </summary>
-    public bool BackchannelLogoutSessionRequired { get; set; } = true;
-
-    /// <summary>
-    /// Gets or sets the protection the BFF registered for its ID tokens and logout tokens. The configuration section is
-    /// <c>Bff:IdToken</c>.
-    /// </summary>
-    public BffIdTokenOptions IdToken { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets whether the BFF loads UserInfo at login and the protection it registered for the UserInfo
-    /// responses. The configuration section is <c>Bff:UserInfo</c>.
-    /// </summary>
-    public BffUserInfoOptions UserInfo { get; set; } = new();
-
-    /// <summary>
     /// Gets or sets the anti-forgery header options. The configuration section is <c>Bff:Antiforgery</c>.
     /// </summary>
     public BffAntiforgeryOptions Antiforgery { get; set; } = new();
 
     /// <summary>
-    /// Gets or sets the headers that <c>UseBffSecurityHeaders()</c> writes. The configuration section is
-    /// <c>Bff:SecurityHeaders</c>.
-    /// </summary>
-    public BffSecurityHeadersOptions SecurityHeaders { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets whether the BFF publishes its public client-authentication keys. The configuration section is
-    /// <c>Bff:Jwks</c>.
-    /// </summary>
-    public BffJwksOptions Jwks { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets the session lifetime and cookie options. The configuration section is <c>Bff:Session</c>.
-    /// </summary>
-    public BffSessionOptions Session { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets the DPoP options. The configuration section is <c>Bff:DPoP</c>.
-    /// </summary>
-    public BffDPoPOptions DPoP { get; set; } = new();
-
-    /// <summary>
     /// Gets or sets the token refresh options. The configuration section is <c>Bff:Tokens</c>.
     /// </summary>
     public BffTokenOptions Tokens { get; set; } = new();
-
-    /// <summary>
-    /// Gets or sets the remote APIs that <c>MapBffRemoteApis()</c> forwards, by name. The configuration section is
-    /// <c>Bff:RemoteApis</c>.
-    /// </summary>
-    public Dictionary<string, BffRemoteApiOptions> RemoteApis { get; set; } =
-        new(StringComparer.OrdinalIgnoreCase);
 }

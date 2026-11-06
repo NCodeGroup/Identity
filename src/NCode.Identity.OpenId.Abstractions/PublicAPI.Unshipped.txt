@@ -988,6 +988,8 @@ NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamDisplayName.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamDisplayName.set -> void
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.get -> string!
 NCode.Identity.OpenId.Tenants.RootTenantOptions.TeamId.set -> void
+NCode.Identity.OpenId.Teams.ITeamDescendantWalker
+NCode.Identity.OpenId.Teams.ITeamDescendantWalker.WalkDescendantsAsync(string! teamId, System.Func<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<bool>>! visitAsync, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Teams.ITeamProvisioner
 NCode.Identity.OpenId.Teams.ITeamProvisioner.EnsureCreatedAsync(string! teamId, string! displayName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedTeam!>
 const NCode.Identity.OpenId.Settings.OpenIdSettingNames.MaxTenants = "max_tenants" -> string!

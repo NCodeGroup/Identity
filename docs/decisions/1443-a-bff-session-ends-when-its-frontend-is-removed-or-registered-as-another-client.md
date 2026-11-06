@@ -48,7 +48,9 @@ client; and a background pass on one replica ends every stored session whose fro
    session-ended audit event and logging event 19010. A replica that cannot take the lease leaves the frontend to the
    one that holds it and runs the pass again a minute later, so a lease that its holder could not release delays the
    pass by at most its five minutes. A store failure is logged as event 19011, and the pass runs again a minute later
-   or at the next change.
+   or at the next change. Any other failure of a pass is logged the same way, so the service keeps running. A session
+   that cannot be ended is logged as event 19012, and the pass ends the client's other sessions and runs again a
+   minute later.
 5. **Restarts and interruptions converge.** The pass reads the store, not a remembered set, so a frontend removed by
    restarting the replicas is reconciled at their next start, and a pass that a crash interrupted runs again at the
    next start or change.

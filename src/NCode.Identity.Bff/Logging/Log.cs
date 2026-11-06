@@ -114,4 +114,16 @@ internal static partial class Log
         Message = "The BFF could not end the sessions of a removed or changed frontend and tries again"
     )]
     internal static partial void FrontendRetirementFailed(this ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventId = EventIds.FrontendSessionRetirementFailed,
+        Level = LogLevel.Warning,
+        Message = "The BFF could not end a session of the frontend {Frontend} ({Reason}) and tries again"
+    )]
+    internal static partial void FrontendSessionRetirementFailed(
+        this ILogger logger,
+        Exception exception,
+        string frontend,
+        string reason
+    );
 }

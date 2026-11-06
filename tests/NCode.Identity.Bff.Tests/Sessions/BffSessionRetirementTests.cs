@@ -1,10 +1,13 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Frontends;
+using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
 using NCode.Identity.Bff.Tests.Diagnostics;
@@ -35,12 +38,12 @@ public class BffSessionRetirementTests : BaseTests
         _manager = CreateStrictMock<IBffSessionManager>();
     }
 
-    private BffSessionRetirement CreateRetirement() =>
+    private BffSessionRetirement CreateRetirement(ILogger<BffSessionRetirement>? logger = null) =>
         new(
             BffTestTelemetry.Instrument(_store.Object),
             _manager.Object,
             _timeProvider,
-            NullLogger<BffSessionRetirement>.Instance
+            logger ?? NullLogger<BffSessionRetirement>.Instance
         );
 
     private static BffFrontendSet CreateSet(Action<BffFrontendOptions>? configure = null) =>
@@ -164,6 +167,27 @@ public class BffSessionRetirementTests : BaseTests
     }
 
     [Fact]
+    public async Task RetireAsync_ChangedAuthority_EndsItsSessionsAsClientChanged()
+    {
+        var metadata = CreateMetadata(CurrentClient);
+        var lease = new BffRefreshLease("retire:" + BffTestFrontends.Name, "owner");
+        SetupFindClients(CurrentClient);
+        SetupAcquire(BffTestFrontends.Name, lease);
+        SetupFindByClient(CurrentClient, "key-1");
+        SetupGet("key-1", CreateRecord("key-1", metadata));
+        SetupEnd("key-1", metadata, BffSessionEndReasons.ClientChanged);
+        SetupRelease(lease);
+        var retirement = CreateRetirement();
+
+        Assert.True(
+            await retirement.RetireAsync(
+                CreateSet(options => options.Authority = "https://other-op.example.com"),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
     public async Task RetireAsync_LeaseHeldElsewhere_EndsNothingAndReportsIncomplete()
     {
         var client = CurrentClient with { Frontend = RemovedFrontend };
@@ -190,6 +214,48 @@ public class BffSessionRetirementTests : BaseTests
         var retirement = CreateRetirement();
 
         Assert.True(await retirement.RetireAsync(CreateSet(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RetireAsync_EndingASessionFails_EndsTheOthersAndReportsIncomplete()
+    {
+        var client = CurrentClient with { Frontend = RemovedFrontend };
+        var first = CreateMetadata(client);
+        var second = CreateMetadata(client);
+        var lease = new BffRefreshLease("retire:" + RemovedFrontend, "owner");
+        var logger = new FakeLogger<BffSessionRetirement>();
+        SetupFindClients(client);
+        SetupAcquire(RemovedFrontend, lease);
+        SetupFindByClient(client, "key-1", "key-2");
+        SetupGet("key-1", CreateRecord("key-1", first));
+        SetupGet("key-2", CreateRecord("key-2", second));
+        _manager
+            .Setup(x =>
+                x.EndAsync(
+                    null,
+                    "key-1",
+                    first,
+                    BffSessionEndReasons.FrontendRemoved,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(() =>
+                ValueTask.FromException(new InvalidOperationException("The end failed."))
+            )
+            .Verifiable();
+        SetupEnd("key-2", second, BffSessionEndReasons.FrontendRemoved);
+        SetupRelease(lease);
+        var retirement = CreateRetirement(logger);
+
+        var complete = await retirement.RetireAsync(CreateSet(), CancellationToken.None);
+
+        Assert.False(complete);
+        Assert.Contains(
+            logger.Collector.GetSnapshot(),
+            record =>
+                record.Id.Id == EventIds.FrontendSessionRetirementFailed
+                && record.Exception is InvalidOperationException
+        );
     }
 
     [Fact]

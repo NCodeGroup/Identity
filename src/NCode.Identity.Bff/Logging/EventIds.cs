@@ -25,4 +25,5 @@ internal static class EventIds
     public const int FrontendsChangeRejected = Base + 9;
     public const int FrontendSessionsEnded = Base + 10;
     public const int FrontendRetirementFailed = Base + 11;
+    public const int FrontendSessionRetirementFailed = Base + 12;
 }

@@ -37,8 +37,8 @@ internal class BffSessionRetirement(
     /// <param name="frontends">The set of frontends that the BFF serves.</param>
     /// <param name="cancellationToken">The token to cancel the pass.</param>
     /// <returns>
-    /// <see langword="true"/> when no stale frontend was left to another holder of its lease; otherwise,
-    /// <see langword="false"/>.
+    /// <see langword="true"/> when every stale session was ended or already gone and no stale frontend was left to
+    /// another holder of its lease; otherwise, <see langword="false"/>.
     /// </returns>
     /// <exception cref="BffStoreUnavailableException">The session store could not be read or written.</exception>
     public virtual async ValueTask<bool> RetireAsync(
@@ -54,11 +54,14 @@ internal class BffSessionRetirement(
         foreach (var group in groups)
         {
             var frontend = group.Key;
-            var stale = group
-                .Where(x =>
-                    GetEndReason(x.Frontend, x.Authority, x.ClientId, frontends) is not null
-                )
-                .ToList();
+            var stale = new List<(BffSessionClient Client, string Reason)>();
+            foreach (var client in group)
+            {
+                var reason = GetEndReason(client, frontends);
+                if (reason is not null)
+                    stale.Add((client, reason));
+            }
+
             if (stale.Count == 0)
                 continue;
 
@@ -75,8 +78,11 @@ internal class BffSessionRetirement(
 
             try
             {
-                foreach (var client in stale)
-                    await RetireClientAsync(client, frontends, cancellationToken);
+                foreach (var (client, reason) in stale)
+                {
+                    if (!await RetireClientAsync(client, reason, frontends, cancellationToken))
+                        complete = false;
+                }
             }
             finally
             {
@@ -87,12 +93,14 @@ internal class BffSessionRetirement(
         return complete;
     }
 
-    private async ValueTask RetireClientAsync(
+    private async ValueTask<bool> RetireClientAsync(
         BffSessionClient client,
+        string reason,
         BffFrontendSet frontends,
         CancellationToken cancellationToken
     )
     {
+        var complete = true;
         var count = 0;
         var keys = await store.FindByClientAsync(client, cancellationToken);
         foreach (var key in keys)
@@ -102,42 +110,37 @@ internal class BffSessionRetirement(
                 continue;
 
             var metadata = record.Metadata;
-            var reason = GetEndReason(
-                metadata.Frontend,
-                metadata.Authority,
-                metadata.ClientId,
-                frontends
-            );
-            if (reason is null)
+            var recordReason = GetEndReason(metadata.Client, frontends);
+            if (recordReason is null)
                 continue;
 
-            await sessions.EndAsync(null, key, metadata, reason, cancellationToken);
-            ++count;
+            try
+            {
+                await sessions.EndAsync(null, key, metadata, recordReason, cancellationToken);
+                ++count;
+            }
+            catch (Exception exception)
+                when (exception is not BffStoreUnavailableException
+                    && !cancellationToken.IsCancellationRequested
+                )
+            {
+                logger.FrontendSessionRetirementFailed(exception, client.Frontend, recordReason);
+                complete = false;
+            }
         }
 
-        if (count == 0)
-            return;
+        if (count > 0)
+            logger.FrontendSessionsEnded(count, client.Frontend, reason);
 
-        var clientReason =
-            GetEndReason(client.Frontend, client.Authority, client.ClientId, frontends)
-            ?? BffSessionEndReasons.ClientChanged;
-        logger.FrontendSessionsEnded(count, client.Frontend, clientReason);
+        return complete;
     }
 
-    private static string? GetEndReason(
-        string frontend,
-        string authority,
-        string clientId,
-        BffFrontendSet frontends
-    )
+    private static string? GetEndReason(BffSessionClient client, BffFrontendSet frontends)
     {
-        if (!frontends.TryGet(frontend, out var found))
+        if (!frontends.TryGet(client.Frontend, out var found))
             return BffSessionEndReasons.FrontendRemoved;
 
-        if (
-            !string.Equals(found.Options.Authority, authority, StringComparison.Ordinal)
-            || !string.Equals(found.Options.ClientId, clientId, StringComparison.Ordinal)
-        )
+        if (!found.IsConfiguredAs(client))
             return BffSessionEndReasons.ClientChanged;
 
         return null;

@@ -42,7 +42,11 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     private BffSessionRetirementService CreateService(TimeProvider? timeProvider = null) =>
         new(_frontends, _retirement.Object, timeProvider ?? _timeProvider, _logger);
 
-    private void SetupRetire(int calls, Func<int, bool> fails, Func<int, bool>? complete = null)
+    private void SetupRetire(
+        int calls,
+        Func<int, Exception?> failure,
+        Func<int, bool>? complete = null
+    )
     {
         complete ??= _ => true;
         var made = 0;
@@ -53,13 +57,16 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
                 {
                     var call = Interlocked.Increment(ref made);
                     _passes.Writer.TryWrite(set);
-                    return fails(call)
-                        ? throw new BffStoreUnavailableException("The store is unavailable.")
+                    return failure(call) is { } exception
+                        ? throw exception
                         : ValueTask.FromResult(complete(call));
                 }
             )
             .Verifiable(Times.Exactly(calls));
     }
+
+    private static BffStoreUnavailableException CreateStoreFailure() =>
+        new("The store is unavailable.");
 
     private async Task<BffFrontendSet> ReadPassAsync() =>
         await _passes.Reader.ReadAsync().AsTask().WaitAsync(WaitLimit);
@@ -114,7 +121,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_Start_RetiresAgainstTheCurrentSet()
     {
-        SetupRetire(1, _ => false);
+        SetupRetire(1, _ => null);
         using var service = CreateService();
 
         await service.StartAsync(CancellationToken.None);
@@ -127,7 +134,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_AfterAChange_RetiresAgainstTheChangedSet()
     {
-        SetupRetire(2, _ => false);
+        SetupRetire(2, _ => null);
         using var service = CreateService();
 
         await service.StartAsync(CancellationToken.None);
@@ -152,7 +159,7 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     [Fact]
     public async Task ExecuteAsync_StoreFails_RetriesAfterTheDelay()
     {
-        SetupRetire(2, call => call == 1);
+        SetupRetire(2, call => call == 1 ? CreateStoreFailure() : null);
         var timers = Channel.CreateUnbounded<(
             TimerCallback Callback,
             object? State,
@@ -176,9 +183,38 @@ public sealed class BffSessionRetirementServiceTests : BaseTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_PassThrowsUnexpectedException_RetriesAfterTheDelay()
+    {
+        SetupRetire(
+            2,
+            call => call == 1 ? new InvalidOperationException("The pass failed.") : null
+        );
+        var timers = Channel.CreateUnbounded<(
+            TimerCallback Callback,
+            object? State,
+            TimeSpan DueTime
+        )>();
+        var timeProvider = CreateTimerProvider(timers);
+        using var service = CreateService(timeProvider.Object);
+
+        await service.StartAsync(CancellationToken.None);
+        await ReadPassAsync();
+        await FireRetryTimerAsync(timers);
+        await ReadPassAsync();
+        await service.StopAsync(CancellationToken.None);
+
+        Assert.Contains(
+            _logger.Collector.GetSnapshot(),
+            record =>
+                record.Id.Id == EventIds.FrontendRetirementFailed
+                && record.Exception is InvalidOperationException
+        );
+    }
+
+    [Fact]
     public async Task ExecuteAsync_LeaseLeftToAnotherHolder_RetriesAfterTheDelay()
     {
-        SetupRetire(2, _ => false, call => call != 1);
+        SetupRetire(2, _ => null, call => call != 1);
         var timers = Channel.CreateUnbounded<(
             TimerCallback Callback,
             object? State,

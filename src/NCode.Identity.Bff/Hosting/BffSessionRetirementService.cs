@@ -13,9 +13,8 @@ namespace NCode.Identity.Bff.Hosting;
 /// Reconciles the stored sessions with the frontends when the host starts and after every change.
 /// </summary>
 /// <remarks>
-/// A pass that fails because the session store is unavailable, or that leaves a frontend to another holder of its
-/// lease, is tried again after <see cref="RetryDelay"/>; every change of the frontends starts a pass for the changed
-/// set at once.
+/// A pass that fails, or that leaves a frontend to another holder of its lease, is tried again after
+/// <see cref="RetryDelay"/>; every change of the frontends starts a pass for the changed set at once.
 /// </remarks>
 // See ADR-1443.
 internal sealed class BffSessionRetirementService(
@@ -44,7 +43,7 @@ internal sealed class BffSessionRetirementService(
                 if (!complete)
                     delay = RetryDelay;
             }
-            catch (BffStoreUnavailableException exception)
+            catch (Exception exception) when (!stoppingToken.IsCancellationRequested)
             {
                 logger.FrontendRetirementFailed(exception);
                 delay = RetryDelay;

@@ -1199,6 +1199,17 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Create,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
 
@@ -1206,16 +1217,6 @@ internal class ResourceServerApiEndpointHandler(
         if (resourceServer is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            resourceServer,
-            Operations.Create
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         if (resourceServer.IsSystem)
@@ -1313,6 +1314,17 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Create,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
 
@@ -1320,16 +1332,6 @@ internal class ResourceServerApiEndpointHandler(
         if (resourceServer is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            resourceServer,
-            Operations.Create
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         if (resourceServer.IsSystem)
@@ -1500,6 +1502,7 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         [FromRoute] string secretId,
         [FromBody] UpdateSecretRequest request,
@@ -1507,6 +1510,17 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Update,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
 
@@ -1521,16 +1535,6 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         var secret = resourceServerSecret.Value;
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(resourceServerSecret.TenantId, secret),
-            Operations.Update
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
 
         if (
             !string.IsNullOrEmpty(ifMatch)
@@ -1571,11 +1575,23 @@ internal class ResourceServerApiEndpointHandler(
     [EndpointName("api/resource-servers/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
         [FromRoute] string secretId,
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Delete,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IResourceServerStore>();
 
@@ -1587,16 +1603,6 @@ internal class ResourceServerApiEndpointHandler(
         if (resourceServerSecret is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(resourceServerSecret.TenantId, resourceServerSecret.Value),
-            Operations.Delete
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         await store.RemoveSecretAsync(resourceServerId, secretId, cancellationToken);

@@ -1466,6 +1466,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.UpdateSecretAsync(
             CreateHttpContext(),
+            TenantId,
             ResourceServerId,
             "secret-1",
             new UpdateSecretRequest
@@ -1584,12 +1585,102 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var result = await Handler.DeleteSecretAsync(
             CreateHttpContext(),
+            TenantId,
             ResourceServerId,
             "secret-1",
             CancellationToken.None
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheResourceServer()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store setup, so opening the store or reading the resource server would fail the test.
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new CreateSecretRequest
+            {
+                SecretType = "rsa",
+                KeySizeBits = 2048,
+                ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheResourceServer()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store setup, so opening the store or reading the resource server would fail the test.
+        var result = await Handler.ImportSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new ImportSecretRequest
+            {
+                SecretType = "rsa",
+                Format = "jwk",
+                KeyMaterial = "{}",
+                ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheResourceServer()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store setup, so opening the store or reading the secret would fail the test.
+        var result = await Handler.UpdateSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "secret-1",
+            new UpdateSecretRequest
+            {
+                Use = "enc",
+                ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            },
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheResourceServer()
+    {
+        SetupResourceServerNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store setup, so opening the store or reading the secret would fail the test.
+        var result = await Handler.DeleteSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            "secret-1",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     private static PersistedResourceServerSecret CreateResourceServerSecret() =>

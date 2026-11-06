@@ -464,8 +464,9 @@ SharedState therefore gains a second primitive next to it:
   reads and removes in one atomic step. `TryRemoveAsync` removes a value only while it still holds the bytes the
   caller expects. `RemoveAsync` deletes. Each value carries an absolute expiry.
 - **Expiring membership indexes** (`IExpiringIndexSet`: `AddMemberAsync`, `GetMembersAsync`, `RemoveMemberAsync`,
-  `RemoveAsync`). These are sets of keys under an index key, so the BFF can find every session for an OP `sid` or a
-  `sub` without scanning.
+  `RemoveAsync`). These are sets of keys under an index key, so the BFF can find every session for an OP `sid`, a `sub`,
+  or one client of a frontend without scanning
+  ([ADR-1443](decisions/1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)).
 
 The in-process adapter implements both primitives and stays the default. As ADR-1164 decided for the OP, it is correct
 for a single replica, including a single-replica production deployment. Several replicas register the **Valkey**
@@ -678,16 +679,19 @@ to one frontend. The keys have no `:`, because YARP's configuration loader reads
 - The destination allow-list is YARP's cluster configuration, and the path and forwarding headers follow the route's
   own pattern and transforms.
 - Each route's metadata is validated when YARP loads it: the requirement must be registered, `BffResource` or
-  `BffScope` without `BffTokenRequirement` is refused, and `BffFrontend` must name a frontend of `Bff:Frontends`.
+  `BffScope` without `BffTokenRequirement` is refused, and `BffFrontend` must be a valid frontend name. Whether
+  `Bff:Frontends` configures it is the endpoint check's to say, because YARP and the BFF apply one configuration change
+  separately
+  ([ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
 - A remote API route strips the browser's `Cookie`, `Authorization`, `DPoP` and anti-forgery headers, resolves its
   token before anything is forwarded, attaches it as `MapBffRemoteApi` does, and drops every upstream `Set-Cookie`.
 - Every other route never forwards the BFF's session or login cookie, and an upstream cannot set either.
 - `AddBffTransforms()` wraps the last registered `IForwarderHttpClientFactory`, so it is called after
   `ConfigureHttpClient()`; the proxy refuses to start when a factory is registered after it.
 - The host refuses to start when such a route is not marked with `AsBffRemoteApis()`, when YARP routes are mapped
-  without `AddBffTransforms()`, or when an endpoint names an unconfigured frontend. After startup, a changed route that
-  fails the same checks is logged and answers `502`: the token accessor serves a token only to an endpoint the BFF
-  guards, so nothing is forwarded
+  without `AddBffTransforms()`, or when an endpoint names an unconfigured frontend. After startup, a change of the routes
+  or the frontends that fails the same checks is logged, and such a route answers `502`: the token accessor serves a
+  token only to an endpoint the BFF guards, so nothing is forwarded
   ([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
 
 **The SPA contract.** Every request to `/bff/user`, local APIs, and remote APIs carries the configured anti-forgery
@@ -910,7 +914,19 @@ every registered rule, and `IsMatch` reads only the request. Two rules are built
   same `PublicOrigin` and `PathPrefix`, because each frontend needs its own callback.
 - **Ambiguity.** Frontends of different rules can still select one request, such as a host-selected and a
   path-selected frontend. That request fails closed with `InvalidOperationException` (`500`) instead of picking one.
-- **Fixed until restart.** The frontends are read from `IOptions`, so adding or changing one needs a restart.
+- **Reload.** The frontends follow the `Bff` section. When its configuration source reloads, `BffFrontendCatalog` builds
+  the whole candidate set (the options validators, the selection rules, each frontend's client-authentication method,
+  and the checks that `MapBffRemoteApi()` and `MapBffRemoteApis()` add) and replaces the frontends, `Antiforgery` and
+  `Tokens` at once only when it passes. An invalid change keeps the last valid set and is logged at `Error` (event
+  19009). The endpoints of `MapBffEndpoints()` and `MapBffRemoteApis()` follow the set, with the conventions added to
+  their route group, and the endpoint check runs again. A source that never reloads, such as options configured in
+  code, fixes the frontends for the host's life
+  ([ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
+- **Removal.** A removed frontend serves no request, so its cookie is never read. A session records its frontend's
+  `Authority` and `ClientId`: a request or a connection ends a session whose frontend is configured with another
+  (`client_changed`), and a background pass on one replica, at start and after each change, ends every stored session
+  of a removed or re-registered frontend (`frontend_removed`, `client_changed`) through the store's client index
+  ([ADR-1443](decisions/1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)).
 
 **Isolation.** Each frontend has its own session cookie, `__Host-Http-bff.<name>`, and login cookie,
 `__Host-Http-bff-login.<name>`, so two surfaces on one origin never share a session cookie. Naming the cookie per frontend
@@ -929,12 +945,15 @@ A local API or page serves whichever frontend the request selects, unless it is 
 - The `BffFrontend` key in a YARP route's metadata limits the route to a frontend
   ([§5.6](#56-accepting-the-bff-cookie-on-apis)).
 
-Names from several of these add up. A name that is not configured stops the host from starting
-([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
+Names from several of these add up. A name that is not configured stops the host from starting, and after a change of
+the endpoints or the frontends it is logged and the endpoint serves no request
+([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md),
+[ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
 
 **Tokens.** A frontend uses its own client registration for every token request: the code exchange, refresh, token
 exchange and client credentials, with its own DPoP key ring and its own `/bff/jwks`. Client-credential tokens are cached
-per frontend, resource and scope. A back-channel logout token ends only the sessions of the frontend that received it
+per frontend as built for the current set, resource and scope, so a frontend registered as another client never reuses
+a token of the client before it. A back-channel logout token ends only the sessions of the frontend that received it
 ([§5.8](#58-logout-and-back-channel-logout)). Each frontend is registered at the OP as its own client, with its callback
 `PublicOrigin + PathPrefix + "/callback"`
 ([ADR-1294](decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)).
@@ -1058,7 +1077,9 @@ app.MapFallbackToFile("index.html");                    // the SPA itself, same 
 The endpoint check of [ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)
 runs once the host has started: it stops the host when a YARP route that names a token requirement lacks
 `AsBffRemoteApis()`, when YARP routes are mapped without `AddBffTransforms()`, or when an endpoint names a frontend
-that is not configured. Every failure is listed in one message ([§5.6](#56-accepting-the-bff-cookie-on-apis)).
+that is not configured. Every failure is listed in one message ([§5.6](#56-accepting-the-bff-cookie-on-apis)). After
+startup the check runs again whenever the endpoints or the frontends change, and logs each failure at `Error` (event
+19007).
 
 ### 5.13 Observability
 
@@ -1066,7 +1087,7 @@ that is not configured. Every failure is listed in one message ([§5.6](#56-acce
 
 - `bff.login.succeeded` and `bff.login.failed`, with a reason name.
 - `bff.session.ended`, with a reason: `logged_out`, `idle_timeout`, `absolute_expiry`, `refresh_failed`,
-  `backchannel_logout`, `replaced`, or `ended_by_validator`.
+  `backchannel_logout`, `replaced`, `ended_by_validator`, `frontend_removed`, or `client_changed`.
 - `bff.token.refresh_failed`, `bff.backchannel_logout.received` and `.rejected`, and `bff.antiforgery.rejected`. A
   remote API's destination is fixed at startup, so no destination is rejected at run time.
 

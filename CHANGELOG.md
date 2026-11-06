@@ -2553,10 +2553,20 @@ describes the family as it is rather than its changes
   with its own client registration, `PublicOrigin`, `PathPrefix`, return URLs, claims, session, DPoP, security headers,
   JWKS and remote APIs; `Bff:Antiforgery` and `Bff:Tokens` are shared. A registered `IBffFrontendSelector` rule (`host`,
   `path`, `BffFrontendSelectorNames`) selects a request's frontend, one frontend may serve every request no other
-  selects, and the set is validated at startup. `MapBffEndpoints()` maps each frontend's endpoints under its
-  `PathPrefix`, and `RequireBffFrontend()`/`[BffFrontend]` and the YARP `BffFrontend` metadata limit an endpoint to
-  frontends ([#396](https://github.com/NCodeGroup/Identity/issues/396),
+  selects, and the set is validated at startup and whenever its configuration changes. `MapBffEndpoints()` maps each
+  frontend's endpoints under its `PathPrefix`, and `RequireBffFrontend()`/`[BffFrontend]` and the YARP `BffFrontend`
+  metadata limit an endpoint to frontends ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
+
+- **BFF frontends follow their configuration without a restart.** When the `Bff` section reloads,
+  `BffFrontendCatalog` validates the whole candidate set (the options validators, the selection rules, each frontend's
+  client-authentication method, and the checks that `MapBffRemoteApi()` and `MapBffRemoteApis()` add) and only then
+  replaces the frontends, `Bff:Antiforgery` and `Bff:Tokens` at once; an invalid change keeps the last valid set and is
+  logged (events 19008 and 19009). The endpoints of `MapBffEndpoints()` and `MapBffRemoteApis()` follow the set with the
+  conventions added to their route group, the endpoint check runs again, and each frontend's security headers and
+  client-credential tokens belong to the frontend as built for the set
+  ([#602](https://github.com/NCodeGroup/Identity/issues/602),
+  [ADR-1442](docs/decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
 
 - **Blazor hosts use the BFF session.** The opt-in `NCode.Identity.Bff.Blazor` package (`AddBffBlazorLibrary`,
   `AsBffComponents`, a revalidating `AuthenticationStateProvider`, circuit token access, the user document persisted
@@ -5176,10 +5186,19 @@ describes the family as it is rather than its changes
   ([#396](https://github.com/NCodeGroup/Identity/issues/396),
   [ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
 
+- **A BFF session ends when its frontend is removed or registered as another client.** A session records its
+  frontend's `Authority` and `ClientId`; a request or connection ends one whose frontend is configured with another
+  (`client_changed`), a removed frontend's sessions answer no request, and a background pass on one replica, at start
+  and after every change, ends every stored session of a removed or re-registered frontend (`frontend_removed`,
+  `client_changed`) through the store's client index (`IBffSessionStore.FindClientsAsync`, `FindByClientAsync`)
+  ([#602](https://github.com/NCodeGroup/Identity/issues/602),
+  [ADR-1443](docs/decisions/1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)).
+
 - **A BFF host refuses to start when an endpoint's BFF metadata is incomplete.** A YARP route naming
   `BffTokenRequirement` or `BffFrontend` without `AsBffRemoteApis()`, YARP routes without `AddBffTransforms()`, or an
-  endpoint naming an unconfigured frontend stop the host with one message; a later dynamic route is logged and still
-  answers `502` ([#522](https://github.com/NCodeGroup/Identity/issues/522),
+  endpoint naming an unconfigured frontend stop the host with one message; a later change of the endpoints or the
+  frontends is checked again and logged, and such a route still answers `502`
+  ([#522](https://github.com/NCodeGroup/Identity/issues/522),
   [ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
 
 - **All persisted OpenID data is tenant-scoped except the platform and teams.** `FederatedPrincipal`, `FederatedIdentity` and

@@ -187,11 +187,11 @@ builder
     .WithExternalHttpEndpoints();
 
 // The conformance posture dashboard (apps/conformance) is a STANDALONE, read-only Vite dev server pinned to
-// https://localhost:5175, served with the same development certificate as the Playground. It only audits the OP's published
-// discovery metadata, so it needs no OAuth client; it proxies /config/bootstrap.json to the dedicated conformance OP
-// (`conformanceapi`, which advertises the opt-in capabilities) to learn its issuer, then reads that issuer's discovery
-// cross-origin (allowlisted by the Conformance overlay's Cors:AllowedOrigins). WaitFor holds startup until that OP is
-// healthy so the first discovery read cannot race it.
+// https://localhost:5175, served with the same development certificate as the Playground. It only audits the OP's
+// published discovery metadata, so it needs no OAuth client; it proxies /config/bootstrap.json to the dedicated
+// conformance OP (`conformanceapi`, which advertises the opt-in capabilities) to learn its issuer, then reads that
+// issuer's discovery cross-origin (allowlisted by the Conformance overlay's Cors:AllowedOrigins). WaitFor holds startup
+// until that OP is healthy so the first discovery read cannot race it.
 builder
     .AddViteApp("conformance", "../frontend/apps/conformance")
     .WithPnpm(install: false)

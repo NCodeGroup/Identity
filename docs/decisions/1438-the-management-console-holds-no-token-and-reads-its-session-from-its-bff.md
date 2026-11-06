@@ -36,8 +36,9 @@ console to its sign-in screen, and the user's click starts the login.**
    `signed-out`, and a signed-in session carries the `BffUser`. `fetchBffUser` reads `GET /bff/user` and feeds the slice.
 4. **The management calls.** The management base query sends the anti-forgery header with same-origin credentials and
    never an `Authorization` header. A `401` dispatches `sessionEnded()`.
-5. **`@ncode/auth`.** The package keeps the Playground's protocol helpers only. `client.ts`, `renew.ts` and `getSubject`
-   do not exist.
+5. **`@ncode/auth`.** The package holds the Playground's public-client protocol helpers: PKCE, the authorization and
+   end-session URLs, the authorization-code and refresh-token requests, callback parsing and JWT claim decoding. It
+   holds no custody of a token for the console.
 6. **`SessionGate`.** The gate probes `GET /bff/user`, polls it every 60 seconds, probes one second after
    `min(idleExpiresAt, expiresAt)`, probes again when a hidden tab becomes visible, and shares an end through the
    `BroadcastChannel` named `ncode.mgmt.session`.

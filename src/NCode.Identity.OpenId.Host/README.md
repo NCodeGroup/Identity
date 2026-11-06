@@ -124,7 +124,8 @@ On first run the AppHost writes `bootstrap-admin-secret` and `admin-password` be
 host's developer seed. Sign in to the management console at `https://localhost:5005` as `admin` with the text of
 `admin-password`. The `bootstrap-admin` client authenticates with `client_secret_basic` and the text of
 `bootstrap-admin-secret`, which the Development API reference prefills. Delete a file and restart the AppHost to get a
-new value.
+new value; the developer seed updates the console's registered key on that start when `mgmt-client.pem` is the file
+deleted.
 
 A host run without the AppHost has no credential in its launch profiles, so set them in its user secrets (loaded in
 Development only):

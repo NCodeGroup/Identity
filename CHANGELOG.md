@@ -184,7 +184,9 @@ describes the family as it is rather than its changes
   clients configured under `DeveloperInteractiveSeed:SpaClients` (`DeveloperSpaClientSeed`: `ClientId`, `RedirectUris`,
   `RequireConsent`) and exactly the BFF clients under `DeveloperInteractiveSeed:BffClients` (`DeveloperBffClientSeed`:
   `ClientId`, `Jwks` registered by value, `RedirectUris`, `PostLogoutRedirectUris`, `BackchannelLogoutUri`;
-  private_key_jwt, PAR and DPoP-bound tokens), or none; the administrator password has no default. The reference host
+  private_key_jwt, PAR and DPoP-bound tokens), or none. An existing BFF client is reconciled with its configuration:
+  a client whose settings and keys differ is replaced, and an entry that sets `ClientId` without `Jwks` or
+  `RedirectUris` is skipped with a warning. The administrator password has no default. The reference host
   declares `playground-spa` (which requires consent) and the management console's BFF client `mgmt-console`, whose key
   set the AppHost supplies, in `appsettings.Development.json`, beside the `Frontend` section that
   publishes `playground-spa`, and an integration test fails if the bootstrap document publishes a client id the seed
@@ -2568,7 +2570,7 @@ describes the family as it is rather than its changes
   endpoints, and `/management/api/*` forwarded to `ManagementConsole:ManagementApiUrl` with the user's DPoP-bound
   `urn:ncode:management` token. The console is the confidential client `mgmt-console` of the control-plane tenant
   (`private_key_jwt`, PAR, DPoP, back-channel logout) and listens on `https://localhost:5005` under the AppHost, which
-  generates the console's keys per machine
+  generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` in Production
   ([#158](https://github.com/NCodeGroup/Identity/issues/158),
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
 

@@ -42,7 +42,7 @@ internal static class DevelopmentKeyFile
         var path = Path.Combine(directory, fileName);
         if (File.Exists(path))
         {
-            // An empty file can only be left by an interrupted in-place write of an older run.
+            // An empty file is the remains of an interrupted write, so it is replaced.
             if (new FileInfo(path).Length == 0)
                 File.Delete(path);
             else

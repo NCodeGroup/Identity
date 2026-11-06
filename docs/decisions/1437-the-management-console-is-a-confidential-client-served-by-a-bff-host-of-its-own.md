@@ -49,7 +49,8 @@ forwarded management API share that host's origin.**
 2. **Composition.** The packable `NCode.Identity.ManagementConsole` holds the console's server:
    `AddManagementConsole(configuration)` composes `AddIdentityBff` and binds the `ManagementConsole` section strictly,
    and returns `IManagementConsoleBuilder`, which exposes the `IdentityBffBuilder`; `MapManagementConsole()` maps the
-   console's endpoints. The host's `Program.cs` holds composition only.
+   console's endpoints. The host's `Program.cs` holds composition only. `NCode.Identity.ManagementConsole` is a
+   composition root like `NCode.Identity.Bff.Server`, which is why it references the BFF implementation.
 3. **Topology.** The console is served at the root of its origin. Its BFF frontend `mgmt` is the fallback frontend, so no
    selection rule exists, and its cookie is `__Host-Http-bff.mgmt`. The management API is forwarded at
    `/management/api/*` to `ManagementConsole:ManagementApiUrl` (`https://localhost:5001/api` in Development) with the
@@ -70,6 +71,10 @@ forwarded management API share that host's origin.**
      seed registers the public key by value, because the OP's outbound guard never reaches a loopback address
      ([ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md) declares the clients
      the seeder registers).
+   - The developer seed owns the BFF clients its configuration declares: it reconciles an existing client's key set
+     and URIs with its configuration, replacing a client that differs (part of the amendment of ADR-1146).
+   - The console host refuses a missing or wildcard `AllowedHosts` in the Production environment, so a deployment lists
+     its own host names.
 5. **Local development.** The AppHost ([ADR-1071](1071-aspire-local-dev-orchestrator.md)) runs the console host on
    `https://localhost:5005` and `http://localhost:5004`. It generates per-machine P-256 keys `mgmt-client.pem` and
    `mgmt-dpop.pem` beside the other development secrets, hands their paths to the console as `Bff__KeyRings__…` and the
@@ -100,7 +105,7 @@ forwarded management API share that host's origin.**
 
 ## References
 
-- [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.14 and §11
+- [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.15 and §11
 - [RFC 10017](https://datatracker.ietf.org/doc/html/rfc10017)
 - [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)
 - `src/NCode.Identity.ManagementConsole/` and `src/NCode.Identity.ManagementConsole.Host/`

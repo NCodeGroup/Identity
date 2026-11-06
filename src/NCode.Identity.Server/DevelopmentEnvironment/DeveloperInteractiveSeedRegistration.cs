@@ -17,8 +17,8 @@ namespace NCode.Identity.Server;
 /// Provides an explicit, <strong>development-only</strong> opt-in that seeds the public (PKCE-only)
 /// single-page-application clients and the confidential BFF clients its configuration declares and a deterministic
 /// administrator user into the one tenant its configuration names, so a local host can exercise the interactive
-/// authorization-code flow and its frontend surfaces end to end. It is intentionally NOT part of the default registrations and must not be used in
-/// production.
+/// authorization-code flow and its frontend surfaces end to end. It is intentionally NOT part of the default
+/// registrations and must not be used in production.
 /// </summary>
 [PublicAPI]
 public static class DeveloperInteractiveSeedRegistration

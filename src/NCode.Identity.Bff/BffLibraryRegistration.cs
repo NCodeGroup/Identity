@@ -4,6 +4,8 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Options;
 using NCode.Registration;
 
@@ -20,7 +22,8 @@ public static class BffLibraryRegistration
     {
         /// <summary>
         /// Binds <see cref="BffOptions"/> strictly from the <c>Bff</c> section of <paramref name="configuration"/>, so a
-        /// key that maps to no option fails when the options are first read.
+        /// key that maps to no option fails when the options are first read, and follows the section's reloads, so
+        /// <c>BffFrontendCatalog</c> takes a valid change without a restart (ADR-1442).
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> read for the BFF settings.</param>
         /// <returns>The <see cref="IServiceBuilder{T}"/> so that additional calls can be chained.</returns>
@@ -34,6 +37,15 @@ public static class BffLibraryRegistration
             builder
                 .ServiceCollection.AddOptions<BffOptions>()
                 .Configure(options => section.BindStrictly(options));
+
+            builder.ServiceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IOptionsChangeTokenSource<BffOptions>>(
+                    new ConfigurationChangeTokenSource<BffOptions>(
+                        Microsoft.Extensions.Options.Options.DefaultName,
+                        section
+                    )
+                )
+            );
 
             return builder;
         }

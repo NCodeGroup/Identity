@@ -7,8 +7,10 @@ namespace NCode.Identity.Bff.Blazor.Client.Tests;
 
 public class BffBlazorClientPackageDependencyTests : BaseTests
 {
+    #region Assembly Tests
+
     [Fact]
-    public void ClientAssembly_ReferencesOnlyTheSharedBffPackage()
+    public void Assembly_Always_ReferencesOnlyTheSharedBffPackage()
     {
         foreach (var reference in typeof(BffBlazorClientLibrary).Assembly.GetReferencedAssemblies())
         {
@@ -21,7 +23,7 @@ public class BffBlazorClientPackageDependencyTests : BaseTests
     }
 
     [Fact]
-    public void ClientAssembly_ReferencesNoAspNetCoreServerAssembly()
+    public void Assembly_Always_ReferencesNoAspNetCoreServerAssembly()
     {
         foreach (var reference in typeof(BffBlazorClientLibrary).Assembly.GetReferencedAssemblies())
         {
@@ -38,4 +40,6 @@ public class BffBlazorClientPackageDependencyTests : BaseTests
             Assert.True(isAllowed, name);
         }
     }
+
+    #endregion
 }

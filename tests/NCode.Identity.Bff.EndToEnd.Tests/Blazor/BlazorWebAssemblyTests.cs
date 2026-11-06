@@ -68,7 +68,7 @@ public sealed partial class BlazorWebAssemblyTests(EndToEndEnvironment environme
             }
 
             var response = await request.ResponseAsync();
-            if (response is { Status: 200 })
+            if (response is { Status: < 300 or >= 400 })
             {
                 Assert.DoesNotMatch(Jwt(), await response.TextAsync());
             }

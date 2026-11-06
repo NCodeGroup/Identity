@@ -9,6 +9,11 @@ namespace NCode.Identity.Bff.EndToEnd.Tests.Blazor;
 [Collection(EndToEndCollection.Name)]
 public sealed class HubConnectionTests(EndToEndEnvironment environment)
 {
+    /// <summary>
+    /// The number of revalidation intervals an idle connection stays open while its session is alive.
+    /// </summary>
+    private const int RevalidationsBeforeLogout = 3;
+
     #region BlazorHub Tests
 
     [Theory, MemberData(nameof(BrowserNames.All), MemberType = typeof(BrowserNames))]
@@ -50,7 +55,7 @@ public sealed class HubConnectionTests(EndToEndEnvironment environment)
         );
         Assert.Equal("open", opened);
 
-        await Task.Delay(TimeSpan.FromSeconds(5));
+        await Task.Delay(bff.RevalidationInterval * RevalidationsBeforeLogout);
         Assert.False(await HubFlows.IsHubConnectionClosedAsync(page));
 
         await environment.Keycloak.LogOutUserAsync();

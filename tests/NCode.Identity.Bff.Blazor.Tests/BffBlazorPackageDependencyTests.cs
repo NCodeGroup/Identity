@@ -7,8 +7,10 @@ namespace NCode.Identity.Bff.Blazor.Tests;
 
 public class BffBlazorPackageDependencyTests : BaseTests
 {
+    #region Assembly Tests
+
     [Fact]
-    public void BlazorAssembly_ReferencesOnlyAbstractionPackages()
+    public void Assembly_Always_ReferencesOnlyAbstractions()
     {
         var assembly = typeof(BffBlazorLibrary).Assembly;
 
@@ -21,4 +23,6 @@ public class BffBlazorPackageDependencyTests : BaseTests
             Assert.True(name.EndsWith(".Abstractions", StringComparison.Ordinal), name);
         }
     }
+
+    #endregion
 }

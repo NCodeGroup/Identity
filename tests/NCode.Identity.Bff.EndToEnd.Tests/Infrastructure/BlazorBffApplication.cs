@@ -41,6 +41,11 @@ public sealed class BlazorBffApplication : WebApplicationFactory<App>
     public string WebSocketOrigin { get; }
 
     /// <summary>
+    /// Gets how often a connection of the BFF revalidates its session.
+    /// </summary>
+    public TimeSpan RevalidationInterval => _settings.RevalidationInterval;
+
+    /// <summary>
     /// Gets the counters of what the host saw.
     /// </summary>
     public HostCounters Counters => Services.GetRequiredService<HostCounters>();

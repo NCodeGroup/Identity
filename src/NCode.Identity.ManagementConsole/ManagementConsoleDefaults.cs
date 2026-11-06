@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
+using NCode.AspNetCore;
 
 namespace NCode.Identity.ManagementConsole;
 
@@ -44,7 +45,7 @@ public static class ManagementConsoleDefaults
     /// <summary>
     /// The path under which the console serves the bundle's static assets.
     /// </summary>
-    public const string AssetsPath = "/assets";
+    public const string AssetsPath = "/" + SinglePageBundleDefaults.AssetsDirectory;
 
     /// <summary>
     /// The placeholder in the bundle's page that the console replaces with a fresh content-security-policy nonce.

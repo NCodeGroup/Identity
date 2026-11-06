@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.AspNetCore;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Server;
 using NCode.Identity.ManagementConsole.Options;
@@ -70,9 +72,27 @@ internal sealed class ManagementConsoleBuilder
         );
         serviceCollection.AddOptions<HostFilteringOptions>().ValidateOnStart();
 
-        serviceCollection.TryAddSingleton<ManagementConsoleBundleReader>();
+        serviceCollection.TryAddSingleton<SinglePageBundle<ManagementConsolePage>>(CreateBundle);
         serviceCollection.TryAddSingleton<ManagementConsoleBootstrapHandler>();
         serviceCollection.TryAddSingleton<ManagementConsolePageHandler>();
-        serviceCollection.TryAddSingleton<ManagementConsoleAssetHandler>();
+    }
+
+    private static SinglePageBundle<ManagementConsolePage> CreateBundle(
+        IServiceProvider serviceProvider
+    )
+    {
+        var bundleRootPath = serviceProvider
+            .GetRequiredService<IOptions<ManagementConsoleOptions>>()
+            .Value.BundleRootPath;
+        var environment = serviceProvider.GetRequiredService<IHostEnvironment>();
+
+        var rootPath = string.IsNullOrWhiteSpace(bundleRootPath)
+            ? null
+            : Path.GetFullPath(bundleRootPath, environment.ContentRootPath);
+
+        return new SinglePageBundle<ManagementConsolePage>(
+            rootPath,
+            static html => new ManagementConsolePage(html)
+        );
     }
 }

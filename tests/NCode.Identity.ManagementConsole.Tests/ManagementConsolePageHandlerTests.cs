@@ -4,7 +4,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using NCode.AspNetCore;
 using NCode.Buffers;
 using NCode.Identity.Bff;
 using NCode.Identity.Bff.Options;
@@ -58,15 +58,17 @@ public partial class ManagementConsolePageHandlerTests : BaseTests
         return (httpContext, await streamReader.ReadToEndAsync());
     }
 
-    private ManagementConsolePageHandler CreateHandler(out ManagementConsoleBundleReader reader)
+    private ManagementConsolePageHandler CreateHandler(
+        out SinglePageBundle<ManagementConsolePage> reader
+    )
     {
-        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.ContentRootPath).Returns(ContentRoot.FullName).Verifiable();
-
         var options = Microsoft.Extensions.Options.Options.Create(
             new ManagementConsoleOptions { BundleRootPath = "dist" }
         );
-        reader = new ManagementConsoleBundleReader(options, mockEnvironment.Object);
+        reader = new SinglePageBundle<ManagementConsolePage>(
+            DistPath,
+            static html => new ManagementConsolePage(html)
+        );
 
         var bffOptions = new StubBffOptionsAccessor(
             new BffOptions

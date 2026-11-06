@@ -15,7 +15,7 @@ namespace NCode.Identity.ManagementConsole;
 /// never cached, because its nonce is unique to the response.
 /// </summary>
 internal sealed class ManagementConsolePageHandler(
-    ManagementConsoleBundleReader reader,
+    SinglePageBundle<ManagementConsolePage> bundle,
     IBffOptionsAccessor bffOptionsAccessor,
     IOptions<ManagementConsoleOptions> optionsAccessor
 )
@@ -27,8 +27,8 @@ internal sealed class ManagementConsolePageHandler(
     /// <returns>The console page, or the problem that reports a missing bundle.</returns>
     public async Task<IResult> HandleAsync(HttpContext httpContext)
     {
-        var html = await reader.TryReadIndexAsync(httpContext.RequestAborted);
-        if (html is null)
+        var page = await bundle.TryReadIndexAsync(httpContext.RequestAborted);
+        if (page is null)
         {
             httpContext.Response.SetNoStore();
             return TypedResults.Problem(
@@ -47,9 +47,6 @@ internal sealed class ManagementConsolePageHandler(
         );
 
         httpContext.Response.SetHtmlPageSecurity(security.Policy);
-        return TypedResults.Text(
-            ManagementConsoleBundleReader.RenderIndex(html, security.Nonce),
-            "text/html; charset=utf-8"
-        );
+        return TypedResults.Text(page.Render(security.Nonce), "text/html; charset=utf-8");
     }
 }

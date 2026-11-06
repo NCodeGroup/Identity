@@ -34,6 +34,8 @@ internal sealed class BffClientSession(
     private int _disposed;
     private CancellationTokenSource? _wake;
 
+    private BffBlazorClientOptions ClientOptions { get; } = options.Value;
+
     private Lock Gate { get; } = new();
 
     private CancellationTokenSource Disposal { get; } = new();
@@ -160,7 +162,7 @@ internal sealed class BffClientSession(
 
     private async ValueTask WaitAsync(CancellationToken cancellationToken)
     {
-        var delay = options.Value.ProbeInterval;
+        var delay = ClientOptions.ProbeInterval;
 
         if (CurrentUser?.IdleExpiresAt is { } idleExpiresAt)
         {
@@ -191,7 +193,7 @@ internal sealed class BffClientSession(
         CancellationToken cancellationToken
     )
     {
-        var current = options.Value;
+        var current = ClientOptions;
 
         try
         {
@@ -208,18 +210,30 @@ internal sealed class BffClientSession(
                 return (true, null);
 
             if (response.StatusCode == HttpStatusCode.OK)
-                return (true, await ReadUserAsync(response, cancellationToken));
+            {
+                var user = await ReadUserAsync(response, cancellationToken);
+                if (user is not null)
+                    return (true, user);
 
-            logger.ProbeFailed($"status {(int)response.StatusCode}", null);
+                logger.ProbeDocumentUnreadable(null);
+            }
+            else
+            {
+                logger.ProbeStatusUnexpected((int)response.StatusCode);
+            }
         }
         catch (HttpRequestException exception)
         {
-            logger.ProbeFailed(exception.Message, exception);
+            logger.ProbeFailed(exception);
+        }
+        catch (JsonException exception)
+        {
+            logger.ProbeDocumentUnreadable(exception);
         }
         catch (OperationCanceledException exception)
             when (!cancellationToken.IsCancellationRequested)
         {
-            logger.ProbeFailed(exception.Message, exception);
+            logger.ProbeFailed(exception);
         }
 
         return (false, null);
@@ -230,20 +244,13 @@ internal sealed class BffClientSession(
         CancellationToken cancellationToken
     )
     {
-        try
-        {
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            var document = await JsonSerializer.DeserializeAsync<JsonElement>(
-                stream,
-                cancellationToken: cancellationToken
-            );
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var userDocument = await JsonSerializer.DeserializeAsync<JsonElement>(
+            stream,
+            cancellationToken: cancellationToken
+        );
 
-            return BffClientUserReader.TryRead(document, out var user) ? user : null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
+        return BffClientUserReader.TryRead(userDocument, out var user) ? user : null;
     }
 
     private void Apply(

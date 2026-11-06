@@ -15,4 +15,8 @@ internal static class EventIds
     private const int Base = 24000;
 
     public const int ProbeFailed = Base + 1;
+
+    public const int ProbeStatusUnexpected = Base + 2;
+
+    public const int ProbeDocumentUnreadable = Base + 3;
 }

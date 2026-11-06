@@ -55,11 +55,12 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             }
         );
         var timeProvider = new FakeTimeProvider(Now);
+        var frontends = BffTestFrontends.CreateCatalog();
         var resolver = new BffSessionResolver(
             MockManager.Object,
             new BffCookies(options, timeProvider),
             [],
-            BffTestFrontends.CreateCatalog(),
+            frontends,
             timeProvider
         );
         var grantClient = new BffGrantClient(
@@ -73,6 +74,7 @@ public class DefaultBffExchangeTokenServiceTests : BaseTests
             MockManager.Object,
             MockUserTokens.Object,
             grantClient,
+            frontends,
             Locks,
             options,
             timeProvider

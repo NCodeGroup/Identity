@@ -9,6 +9,7 @@ using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Logging;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Sessions;
@@ -26,7 +27,7 @@ internal class DefaultBffUserTokenService(
     IBffSessionManager sessionManager,
     BffInstrumentedSessionStore sessionStore,
     ITokenClient tokenClient,
-    BffClientRegistrationProvider registrationProvider,
+    BffFrontendCatalog frontends,
     BffRefreshLocks refreshLocks,
     BffMetrics metrics,
     BffCookies cookies,
@@ -40,7 +41,7 @@ internal class DefaultBffUserTokenService(
     private readonly IBffSessionManager _sessionManager = sessionManager;
     private readonly BffInstrumentedSessionStore _sessionStore = sessionStore;
     private readonly ITokenClient _tokenClient = tokenClient;
-    private readonly BffClientRegistrationProvider _registrationProvider = registrationProvider;
+    private readonly BffFrontendCatalog _frontends = frontends;
     private readonly BffRefreshLocks _refreshLocks = refreshLocks;
     private readonly BffMetrics _metrics = metrics;
     private readonly BffCookies _cookies = cookies;
@@ -402,7 +403,7 @@ internal class DefaultBffUserTokenService(
             // The lease is won: a caller that aborts now must not lose the rotated refresh token, so nothing
             // but the client's request timeout ends the request or the write-back. See ADR-1291.
             result = await _tokenClient.RequestTokenAsync(
-                _registrationProvider.Registration,
+                _frontends.GetRequired(httpContext).Registration,
                 refreshRequest,
                 CancellationToken.None
             );

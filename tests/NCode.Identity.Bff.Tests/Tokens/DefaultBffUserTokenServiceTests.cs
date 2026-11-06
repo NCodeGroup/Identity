@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
 using NCode.Identity.Bff.Auditing;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Options;
@@ -107,7 +106,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             MockManager.Object,
             new BffInstrumentedSessionStore(MockStore.Object, Metrics),
             MockTokenClient.Object,
-            new BffClientRegistrationProvider(options),
+            BffTestFrontends.CreateCatalog(),
             new BffRefreshLocks(),
             Metrics,
             cookies,
@@ -1157,7 +1156,7 @@ public class DefaultBffUserTokenServiceTests : BaseTests
             MockManager.Object,
             new BffInstrumentedSessionStore(MockStore.Object, Metrics),
             MockTokenClient.Object,
-            new BffClientRegistrationProvider(options),
+            BffTestFrontends.CreateCatalog(),
             new BffRefreshLocks(),
             Metrics,
             cookies,

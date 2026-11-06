@@ -375,9 +375,7 @@ internal class DefaultBffUserTokenService(
         DateTimeOffset now
     )
     {
-        var frontend =
-            scope.SelectedFrontend
-            ?? throw new InvalidOperationException("The token context has no frontend.");
+        var frontend = scope.RequireFrontend();
         var refreshRequest = new RefreshTokenRequest(refreshToken)
         {
             Resources = request.Resource is null ? [] : [request.Resource],

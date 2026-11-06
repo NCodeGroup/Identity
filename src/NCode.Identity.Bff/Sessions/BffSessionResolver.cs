@@ -207,14 +207,11 @@ internal class BffSessionResolver(
         feature.IsResolved = true;
         feature.Session = state;
 
-        var principal = BffSessionPrincipal.Create(
-            state,
-            BffNavigation.LogoutUrl(httpContext.Request, frontend.Options)
-        );
+        var logoutUrl = BffNavigation.LogoutUrl(httpContext.Request, frontend.Options);
+        var principal = BffSessionPrincipal.Create(state, logoutUrl);
         feature.Principal = principal;
-        httpContext.Features.Set<IBffSessionFeature>(
-            new BffSessionFeature(state.Metadata, principal)
-        );
+        var sessionFeature = new BffSessionFeature(state.Metadata, principal);
+        httpContext.Features.Set<IBffSessionFeature>(sessionFeature);
         return state;
     }
 }

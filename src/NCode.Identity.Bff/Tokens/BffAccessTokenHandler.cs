@@ -82,8 +82,10 @@ internal class BffAccessTokenHandler(
             );
         var requestUri =
             request.RequestUri ?? throw new InvalidOperationException("The request has no URI.");
+        var tokenContext = GetTokenContext();
+        var scope = IBffSessionScope.From(tokenContext);
         var registration =
-            IBffSessionScope.From(GetTokenContext()).SelectedFrontend?.Registration
+            scope.SelectedFrontend?.Registration
             ?? throw new InvalidOperationException(
                 "No BFF frontend serves the session whose access token is DPoP-bound."
             );
@@ -132,7 +134,8 @@ internal class BffAccessTokenHandler(
         CancellationToken cancellationToken
     )
     {
-        return await tokens.GetAccessTokenAsync(GetTokenContext(), request, cancellationToken);
+        var tokenContext = GetTokenContext();
+        return await tokens.GetAccessTokenAsync(tokenContext, request, cancellationToken);
     }
 
     private IBffTokenContext GetTokenContext()

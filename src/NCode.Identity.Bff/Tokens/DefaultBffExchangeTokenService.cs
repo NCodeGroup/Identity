@@ -114,9 +114,7 @@ internal class DefaultBffExchangeTokenService(
             Scope = request.Scope,
             DPoPJwkThumbprint = current.Payload.DPoPJwkThumbprint,
         };
-        var frontend =
-            scope.SelectedFrontend
-            ?? throw new InvalidOperationException("The token context has no frontend.");
+        var frontend = scope.RequireFrontend();
         var result = await _grantClient.RequestAsync(frontend, grantRequest, cancellationToken);
         if (result.Token is not { } token)
             return result;

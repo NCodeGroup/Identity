@@ -55,7 +55,8 @@ internal class DefaultBffTokenAccessor : IBffTokenAccessor
 
         ThrowIfNotGuarded(httpContext);
 
-        return DispatchAsync(_contexts.ForRequest(httpContext), request, cancellationToken);
+        var context = _contexts.ForRequest(httpContext);
+        return DispatchAsync(context, request, cancellationToken);
     }
 
     /// <inheritdoc />

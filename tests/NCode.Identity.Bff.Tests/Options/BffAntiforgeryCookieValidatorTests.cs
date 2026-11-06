@@ -46,7 +46,7 @@ public class BffAntiforgeryCookieValidatorTests : BaseTests
 
         Assert.True(result.Failed);
         Assert.Contains(
-            "The antiforgery cookie's name must start with '__Host-'.",
+            $"AntiforgeryOptions.Cookie.Name '{name}' must start with '__Host-'.",
             result.Failures ?? []
         );
     }
@@ -62,7 +62,10 @@ public class BffAntiforgeryCookieValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("The antiforgery cookie must be Secure always.", result.Failures ?? []);
+        Assert.Contains(
+            $"AntiforgeryOptions.Cookie.SecurePolicy '{policy}' must be Always.",
+            result.Failures ?? []
+        );
     }
 
     [Theory]
@@ -76,7 +79,10 @@ public class BffAntiforgeryCookieValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("The antiforgery cookie's path must be '/'.", result.Failures ?? []);
+        Assert.Contains(
+            $"AntiforgeryOptions.Cookie.Path '{path}' must be '/'.",
+            result.Failures ?? []
+        );
     }
 
     [Fact]
@@ -88,7 +94,10 @@ public class BffAntiforgeryCookieValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains("The antiforgery cookie must not set a domain.", result.Failures ?? []);
+        Assert.Contains(
+            "AntiforgeryOptions.Cookie.Domain 'example.com' must not be set.",
+            result.Failures ?? []
+        );
     }
 
     #endregion

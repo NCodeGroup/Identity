@@ -15,22 +15,29 @@ internal sealed class BffAntiforgeryCookieValidator : IValidateOptions<Antiforge
 {
     private const string HostPrefix = "__Host-";
 
+    /// <inheritdoc />
     public ValidateOptionsResult Validate(string? name, AntiforgeryOptions options)
     {
-        var failures = new List<string>();
+        ArgumentNullException.ThrowIfNull(options);
+
+        List<string> failures = [];
         var cookie = options.Cookie;
 
         if (cookie.Name?.StartsWith(HostPrefix, StringComparison.Ordinal) != true)
-            failures.Add("The antiforgery cookie's name must start with '__Host-'.");
+            failures.Add(
+                $"AntiforgeryOptions.Cookie.Name '{cookie.Name}' must start with '__Host-'."
+            );
 
         if (cookie.SecurePolicy != CookieSecurePolicy.Always)
-            failures.Add("The antiforgery cookie must be Secure always.");
+            failures.Add(
+                $"AntiforgeryOptions.Cookie.SecurePolicy '{cookie.SecurePolicy}' must be Always."
+            );
 
         if (cookie.Path != "/")
-            failures.Add("The antiforgery cookie's path must be '/'.");
+            failures.Add($"AntiforgeryOptions.Cookie.Path '{cookie.Path}' must be '/'.");
 
         if (!string.IsNullOrEmpty(cookie.Domain))
-            failures.Add("The antiforgery cookie must not set a domain.");
+            failures.Add($"AntiforgeryOptions.Cookie.Domain '{cookie.Domain}' must not be set.");
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success

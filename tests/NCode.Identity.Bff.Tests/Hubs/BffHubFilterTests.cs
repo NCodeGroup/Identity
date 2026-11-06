@@ -104,11 +104,17 @@ public class BffHubFilterTests : BaseTests
 
     private Mock<IBffConnectionSession> CreateSession(
         bool readsInterval = false,
-        bool ended = false
+        bool? ended = null
     )
     {
         var session = CreateStrictMock<IBffConnectionSession>();
-        session.SetupGet(x => x.SessionEnded).Returns(new CancellationToken(ended));
+        if (ended is { } value)
+        {
+            session
+                .SetupGet(x => x.SessionEnded)
+                .Returns(new CancellationToken(value))
+                .Verifiable();
+        }
         if (readsInterval)
             session.SetupGet(x => x.RevalidationInterval).Returns(Interval).Verifiable();
         return session;
@@ -352,7 +358,7 @@ public class BffHubFilterTests : BaseTests
     [Fact]
     public async Task InvokeMethodAsync_WithinInterval_SkipsValidation()
     {
-        var session = CreateSession(readsInterval: true);
+        var session = CreateSession(readsInterval: true, ended: false);
         var context = CreateConnectionContext(session, validate: false);
         SetupIdleWatch(context, session);
         var filter = CreateFilter();
@@ -370,7 +376,7 @@ public class BffHubFilterTests : BaseTests
     [Fact]
     public async Task InvokeMethodAsync_IntervalElapsed_ValidatesWithInvocationTime()
     {
-        var session = CreateSession(readsInterval: true);
+        var session = CreateSession(readsInterval: true, ended: false);
         var context = CreateConnectionContext(session, validate: true);
         SetupIdleWatch(context, session);
         var filter = CreateFilter();
@@ -392,7 +398,7 @@ public class BffHubFilterTests : BaseTests
     [Fact]
     public async Task InvokeMethodAsync_SessionEnded_AbortsAndThrows()
     {
-        var session = CreateSession();
+        var session = CreateSession(ended: false);
         var context = CreateConnectionContext(session, validate: true);
         SetupFeatures(context, new FeatureCollection());
         context.Setup(x => x.Abort()).Verifiable();
@@ -420,7 +426,7 @@ public class BffHubFilterTests : BaseTests
     [Fact]
     public async Task InvokeMethodAsync_SelfRevalidatingHubSessionEnded_ThrowsWithoutAborting()
     {
-        var session = CreateSession();
+        var session = CreateSession(ended: false);
         var context = CreateConnectionContext(session, validate: true);
         SetupFeatures(context, CreateHubFeatures(selfRevalidating: true));
         session
@@ -493,7 +499,7 @@ public class BffHubFilterTests : BaseTests
     [Fact]
     public async Task InvokeMethodAsync_StoreUnavailable_Throws()
     {
-        var session = CreateSession();
+        var session = CreateSession(ended: false);
         var context = CreateConnectionContext(session, validate: true);
         session
             .Setup(x => x.ValidateAsync(Now, _connectionAborted))
@@ -508,7 +514,7 @@ public class BffHubFilterTests : BaseTests
     [Fact]
     public async Task InvokeMethodAsync_MakesConnectionCurrent()
     {
-        var session = CreateSession();
+        var session = CreateSession(ended: false);
         var context = CreateConnectionContext(session, validate: true);
         session
             .Setup(x => x.ValidateAsync(Now, _connectionAborted))

@@ -30,7 +30,7 @@ public sealed class DefaultBffConnectionRevalidatorTests : BaseTests
     public DefaultBffConnectionRevalidatorTests()
     {
         MockSession = CreateStrictMock<IBffConnectionSession>();
-        MockSession.SetupGet(x => x.SessionEnded).Returns(EndedSource.Token);
+        MockSession.SetupGet(x => x.SessionEnded).Returns(EndedSource.Token).Verifiable();
         MockTimeProvider = CreateStrictMock<TimeProvider>();
         TimeProvider = new FakeTimeProvider(Start);
         Logger = new FakeLogger<DefaultBffConnectionRevalidator>();

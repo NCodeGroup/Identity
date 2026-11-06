@@ -229,6 +229,47 @@ public class DefaultBffConnectionSessionTests : BaseTests
     }
 
     [Fact]
+    public async Task ResolveAsync_AfterSessionEnded_ReturnsNullWithoutResolving()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        var calls = 0;
+        resolver
+            .Setup(x =>
+                x.ValidateAsync(frontend, Handle, null, null, It.IsAny<CancellationToken>())
+            )
+            .Returns(() =>
+            {
+                calls++;
+                return new ValueTask<BffSessionState?>((BffSessionState?)null);
+            })
+            .Verifiable();
+        var session = CreateSession(catalog, frontend, resolver);
+
+        var first = await session.ResolveAsync(CancellationToken.None);
+        var second = await session.ResolveAsync(CancellationToken.None);
+
+        Assert.Null(first);
+        Assert.Null(second);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_AfterOnSessionEnded_ReturnsNullWithoutResolving()
+    {
+        var catalog = BffTestFrontends.CreateCatalog();
+        var frontend = BffTestFrontends.Get(catalog);
+        var resolver = CreateResolver(catalog);
+        var session = CreateSession(catalog, frontend, resolver);
+        session.OnSessionEnded();
+
+        var result = await session.ResolveAsync(CancellationToken.None);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
     public async Task ResolveAsync_ValidatesWithoutSliding()
     {
         var catalog = BffTestFrontends.CreateCatalog();

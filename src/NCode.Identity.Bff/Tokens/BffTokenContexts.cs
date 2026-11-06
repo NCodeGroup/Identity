@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.Bff.Cookies;
+using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Sessions;
 
@@ -25,12 +26,21 @@ internal class BffTokenContexts(
     private readonly BffCookies _cookies = cookies;
 
     /// <summary>
-    /// Creates the session scope of a request to an endpoint that the BFF guards.
+    /// Creates the session scope of a request to an endpoint that the BFF guards. A request to a hub whose principal
+    /// carries a connection session is served by that connection, so it never writes a cookie to an upgraded response.
     /// </summary>
     /// <param name="httpContext">The request.</param>
     public virtual IBffSessionScope ForRequest(HttpContext httpContext)
     {
         ArgumentNullException.ThrowIfNull(httpContext);
+
+        if (
+            BffGuardedEndpoints.IsHub(httpContext.GetEndpoint())
+            && httpContext.User.GetBffConnectionSession() is IBffSessionScope connection
+        )
+        {
+            return connection;
+        }
 
         return new BffRequestTokenContext(httpContext, _frontends, _resolver, _cookies);
     }

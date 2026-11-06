@@ -203,6 +203,122 @@ describe('managementApi tenant mutations', () => {
   });
 });
 
+describe('managementApi tenant promotion', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const promotionRequest = {
+    sourceTenantId: 'acme-dev',
+    targetTenantId: 'acme-prod',
+    environmentSettings: [
+      {
+        resourceType: 'client',
+        resourceId: 'web',
+        settings: { redirect_uris: ['https://a.test'] },
+      },
+    ],
+  };
+
+  it('previewTenantPromotion POSTs the request body to the team preview route', async () => {
+    const report = {
+      teamId: 'acme',
+      sourceTenantId: 'acme-dev',
+      targetTenantId: 'acme-prod',
+      isApplied: false,
+      changes: [{ resourceType: 'client', resourceId: 'web', action: 'created' }],
+      notes: [],
+      errors: [],
+    };
+    const captured = mockFetch(jsonResponse(report));
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.previewTenantPromotion.initiate({
+        teamId: 'acme',
+        body: promotionRequest,
+      }),
+    );
+
+    expect('data' in result && result.data).toEqual(report);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme/promotions/preview');
+    expect(captured[0]?.method).toBe('POST');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual(promotionRequest);
+  });
+
+  it('promoteTenant POSTs the request body to the team promotions route', async () => {
+    const captured = mockFetch(
+      jsonResponse({
+        teamId: 'acme',
+        sourceTenantId: 'acme-dev',
+        targetTenantId: 'acme-prod',
+        isApplied: true,
+        changes: [],
+        notes: [],
+        errors: [],
+      }),
+    );
+    const store = createStore();
+
+    const result = await store.dispatch(
+      managementApi.endpoints.promoteTenant.initiate({ teamId: 'acme', body: promotionRequest }),
+    );
+
+    expect('data' in result && result.data?.isApplied).toBe(true);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme/promotions');
+    expect(captured[0]?.method).toBe('POST');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual(promotionRequest);
+  });
+
+  it('promoteTenant refetches the target tenant and the settings of each reported resource', async () => {
+    const settingsPaths = [
+      '/api/tenants/acme-prod/settings',
+      '/api/tenants/acme-prod/clients/web/settings',
+      '/api/tenants/acme-prod/resource-servers/rs-1/settings',
+      '/api/tenants/acme-dev/settings',
+      '/api/tenants/acme-prod/clients/other/settings',
+    ];
+    const fetches = routeFetch((method) =>
+      method === 'GET'
+        ? jsonResponse({})
+        : jsonResponse({
+            teamId: 'acme',
+            sourceTenantId: 'acme-dev',
+            targetTenantId: 'acme-prod',
+            isApplied: true,
+            changes: [
+              { resourceType: 'client', resourceId: 'web', action: 'created' },
+              { resourceType: 'resource_server', resourceId: 'rs-1', action: 'updated' },
+              { resourceType: 'client_grant', resourceId: 'g-1', action: 'created' },
+            ],
+            notes: [],
+            errors: [],
+          }),
+    );
+    const store = createStore();
+    const owners: ManagementOwner[] = [
+      { kind: 'tenant', tenantId: 'acme-prod' },
+      { kind: 'client', tenantId: 'acme-prod', clientId: 'web' },
+      { kind: 'resource-server', tenantId: 'acme-prod', resourceServerId: 'rs-1' },
+      { kind: 'tenant', tenantId: 'acme-dev' },
+      { kind: 'client', tenantId: 'acme-prod', clientId: 'other' },
+    ];
+    await Promise.all(
+      owners.map((owner) => store.dispatch(managementApi.endpoints.getSettings.initiate(owner))),
+    );
+
+    await store.dispatch(
+      managementApi.endpoints.promoteTenant.initiate({ teamId: 'acme', body: promotionRequest }),
+    );
+    await settle(store);
+
+    expect(settingsPaths.map((path) => fetches.count('GET', path))).toEqual([2, 2, 2, 1, 1]);
+  });
+});
+
 describe('managementApi client mutations (tenant scope)', () => {
   const tenantId = 'acme';
 
@@ -1390,6 +1506,28 @@ const invalidationCases: readonly InvalidationCase[] = [
         managementApi.endpoints.deleteTenant.initiate({ teamId: 'acme', tenantId: 'acme-dev' }),
       ),
     refetches: ['tenants', 'tenant:acme-dev'],
+  },
+  {
+    name: 'previewTenantPromotion',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.previewTenantPromotion.initiate({
+          teamId: 'acme',
+          body: { sourceTenantId: 'acme-dev', targetTenantId: 'acme', environmentSettings: [] },
+        }),
+      ),
+    refetches: [],
+  },
+  {
+    name: 'promoteTenant',
+    mutate: (s) =>
+      s.dispatch(
+        managementApi.endpoints.promoteTenant.initiate({
+          teamId: 'acme',
+          body: { sourceTenantId: 'acme-dev', targetTenantId: 'acme', environmentSettings: [] },
+        }),
+      ),
+    refetches: ['tenants', 'tenant:acme', 'clients', 'resourceServers'],
   },
   {
     name: 'createTeam',

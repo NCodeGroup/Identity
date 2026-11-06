@@ -41,6 +41,16 @@ export {
   type TenantFormValues,
 } from './components/TenantFormDialog.js';
 export {
+  TenantPromotionDialog,
+  type TenantPromotionDialogChange,
+  type TenantPromotionDialogEnvironmentSettings,
+  type TenantPromotionDialogError,
+  type TenantPromotionDialogNote,
+  type TenantPromotionDialogProps,
+  type TenantPromotionDialogReport,
+  type TenantPromotionDialogRequest,
+} from './components/TenantPromotionDialog.js';
+export {
   TeamFormDialog,
   emptyTeamFormValues,
   type TeamFormDialogProps,

@@ -1300,14 +1300,17 @@ internal class TeamApiEndpointHandler(
             };
         }
 
+        var settings = platformSettings;
         foreach (var ancestor in lineage)
         {
-            var ancestorSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
+            settings = EffectiveSettingsResolver.ResolveStored(
+                settings,
+                OpenIdSettingScopes.Team,
                 ancestor.TeamId,
-                cancellationToken
+                ancestor.Settings.Value
             );
             if (
-                ancestorSettings.TryGetValue(OpenIdSettingKeys.MaxTeams, out var maxTeams)
+                settings.TryGetValue(OpenIdSettingKeys.MaxTeams, out var maxTeams)
                 && await store.CountDescendantsAsync(ancestor.TeamId, cancellationToken) >= maxTeams
             )
             {

@@ -664,19 +664,27 @@ internal class TenantApiEndpointHandler(
 
         // A team's 'max_tenants' bounds the tenants of the team and of every team beneath it; unset means unlimited
         // (ADR-1411, ADR-1426).
-        IReadOnlyList<string> lineageTeamIds =
-        [
-            teamId,
-            .. Enumerable.Reverse(team.AncestorTeamIds),
-        ];
-        foreach (var lineageTeamId in lineageTeamIds)
+        var lineage = await teamStore.GetLineageAsync(teamId, cancellationToken);
+        var settings = await EffectiveSettingsResolver.ResolvePlatformAsync(cancellationToken);
+        var lineageSettings = new List<(string TeamId, IReadOnlySettingCollection Settings)>(
+            lineage.Count
+        );
+        foreach (var lineageTeam in lineage)
         {
-            var lineageSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
-                lineageTeamId,
-                cancellationToken
+            settings = EffectiveSettingsResolver.ResolveStored(
+                settings,
+                OpenIdSettingScopes.Team,
+                lineageTeam.TeamId,
+                lineageTeam.Settings.Value
             );
+            lineageSettings.Add((lineageTeam.TeamId, settings));
+        }
+
+        for (var index = lineageSettings.Count - 1; index >= 0; index--)
+        {
+            var (lineageTeamId, teamSettings) = lineageSettings[index];
             if (
-                lineageSettings.TryGetValue(OpenIdSettingKeys.MaxTenants, out var maxTenants)
+                teamSettings.TryGetValue(OpenIdSettingKeys.MaxTenants, out var maxTenants)
                 && await store.CountAsync(lineageTeamId, cancellationToken) >= maxTenants
             )
             {

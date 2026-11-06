@@ -357,6 +357,21 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             Value = EmptyObject(),
         };
 
+    private static PersistedTeam CreateAncestorTeam(string ancestorId) =>
+        new()
+        {
+            TeamId = ancestorId,
+            ConcurrencyToken = "ancestor-ct",
+            IsDisabled = false,
+            DisplayName = "Customer",
+            Settings = new PersistedTeamSettings
+            {
+                TeamId = ancestorId,
+                ConcurrencyToken = "ancestor-settings-ct",
+                Value = EmptyObject(),
+            },
+        };
+
     private static PersistedTeam CreateChildTeam(string childTeamId) =>
         new()
         {
@@ -919,8 +934,15 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .Returns(maxTeams is not null)
             .Verifiable();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolveTeamAsync(ancestorId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(ancestorSettings.Object)
+            .Setup(x =>
+                x.ResolveStored(
+                    It.IsAny<IReadOnlySettingCollection>(),
+                    OpenIdSettingScopes.Team,
+                    ancestorId,
+                    It.IsAny<JsonElement>()
+                )
+            )
+            .Returns(ancestorSettings.Object)
             .Verifiable();
 
         if (descendants is not null)
@@ -1090,6 +1112,31 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateChildTeamAsync_WhenAnAncestorsMaxTeamsIsReached_Returns409NamingTheAncestor()
+    {
+        SetupChildCreateAuthorization(null);
+        SetupStore();
+        SetupCreateValidation(null);
+        SetupValidSettings();
+        SetupLineageAndMaxDepth([CreateAncestorTeam("acme"), CreateTeam()], maxDepth: null);
+        SetupAncestorMaxTeams("acme", maxTeams: 3, descendants: 3);
+
+        var result = await Handler.CreateChildTeamAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateChildRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "The team 'acme' holds its maximum of 3 teams.",
+            problem.ProblemDetails.Detail
+        );
     }
 
     #endregion

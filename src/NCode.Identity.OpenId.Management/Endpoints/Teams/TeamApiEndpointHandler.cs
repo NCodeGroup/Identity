@@ -585,7 +585,8 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
-    /// Gets a team's effective (resolved) settings: the platform's settings with the team's document merged onto them.
+    /// Gets a team's effective (resolved) settings: the platform's settings, then each team's above it, with the team's
+    /// document merged onto them.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="teamId">The identifier of the team.</param>
@@ -656,11 +657,13 @@ internal class TeamApiEndpointHandler(
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<ITeamStore>();
 
-        var teamSettings = await store.GetSettingsOrDefaultAsync(teamId, cancellationToken);
-        if (teamSettings is null)
+        var team = await store.GetOrDefaultAsync(teamId, cancellationToken);
+        if (team is null)
         {
             return TypedResults.NotFound();
         }
+
+        var teamSettings = team.Settings;
 
         if (
             !string.IsNullOrEmpty(ifMatch)
@@ -698,7 +701,11 @@ internal class TeamApiEndpointHandler(
         }
 
         var changedLimits = SettingSerializer.GetChangedLimits(teamSettings.Value, settingsValue);
-        var authorityAbove = GetPlatformNode(httpContext);
+        // A limit in a team's document is set by the authority over its parent team, or over the platform for a
+        // top-level team (ADR-1418, ADR-1426).
+        var authorityAbove = team.ParentTeamId is { } parentTeamId
+            ? GetTeamNode(httpContext, parentTeamId)
+            : GetPlatformNode(httpContext);
         var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
             httpContext,
             changedLimits,
@@ -710,19 +717,20 @@ internal class TeamApiEndpointHandler(
             return limitRefusal;
         }
 
-        // The platform is resolved outside the replaced document's catch, so a platform document that cannot be honored
-        // fails the write naming the platform (ADR-1245).
-        var platformSettings = await EffectiveSettingsResolver.ResolvePlatformAsync(
+        // The parent's settings are resolved outside the replaced document's catch, so a document above the team that
+        // cannot be honored fails the write naming its owner (ADR-1245).
+        var parentSettings = await EffectiveSettingsResolver.ResolveTeamParentAsync(
+            teamId,
             cancellationToken
         );
         var newTeamSettings = EffectiveSettingsResolver.Resolve(
-            platformSettings,
+            parentSettings,
             OpenIdSettingScopes.Team,
             settingsValue
         );
         var currentTeamSettings = ResolveReplacedTeamSettingsOrDefault(
             teamId,
-            platformSettings,
+            parentSettings,
             teamSettings.Value
         );
 
@@ -771,25 +779,25 @@ internal class TeamApiEndpointHandler(
 
     /// <summary>
     /// Resolves the effective settings of the team's committed settings document, which a settings write replaces, onto
-    /// the platform's effective settings that the caller resolved. When the document cannot be honored by the settings
-    /// vocabulary, nothing was coherent under it, so no client is checked and the write may replace it with a document
-    /// that can be honored.
+    /// the effective settings of the team's parent that the caller resolved. When the document cannot be honored by the
+    /// settings vocabulary, nothing was coherent under it, so no client is checked and the write may replace it with a
+    /// document that can be honored.
     /// </summary>
     /// <param name="teamId">The identifier of the team.</param>
-    /// <param name="platformSettings">The platform's effective settings, which are the team's parent settings.</param>
+    /// <param name="parentSettings">The effective settings of the team's parent team, or of the platform for a top-level team.</param>
     /// <param name="replacedSettings">The team's committed settings document.</param>
     /// <returns>The team's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
     // See ADR-1241.
     private IReadOnlySettingCollection? ResolveReplacedTeamSettingsOrDefault(
         string teamId,
-        IReadOnlySettingCollection platformSettings,
+        IReadOnlySettingCollection parentSettings,
         JsonElement replacedSettings
     )
     {
         try
         {
             return EffectiveSettingsResolver.Resolve(
-                platformSettings,
+                parentSettings,
                 OpenIdSettingScopes.Team,
                 replacedSettings
             );

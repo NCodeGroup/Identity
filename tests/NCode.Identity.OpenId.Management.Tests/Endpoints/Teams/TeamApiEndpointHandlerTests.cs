@@ -34,6 +34,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 public sealed class TeamApiEndpointHandlerTests : IDisposable
 {
     private const string TeamId = "team-1";
+    private const string ParentTeamId = "acme";
     private const string ControlPlaneTenantId = "platform-root";
     private const string TenantId = "tenant-1";
 
@@ -332,14 +333,19 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     private static bool HasProperty(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);
 
-    private static PersistedTeam CreateTeam(string concurrencyToken = "team-ct") =>
+    private static PersistedTeam CreateTeam(
+        string concurrencyToken = "team-ct",
+        string? parentTeamId = null,
+        PersistedTeamSettings? settings = null
+    ) =>
         new()
         {
             TeamId = TeamId,
             ConcurrencyToken = concurrencyToken,
             IsDisabled = false,
+            ParentTeamId = parentTeamId,
             DisplayName = "Team One",
-            Settings = CreateSettings("settings-ct"),
+            Settings = settings ?? CreateSettings("settings-ct"),
         };
 
     private static PersistedTeamSettings CreateSettings(string concurrencyToken) =>
@@ -1186,7 +1192,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     {
         var platform = CreateSettingCollection();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamParentAsync(TeamId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(platform)
             .Verifiable();
         MockEffectiveSettingsResolver
@@ -1229,7 +1235,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
-        SetupTeamSettings(settings);
+        SetupTeam(CreateTeam(settings: settings));
         SetupAuthorization(AuthorizationResult.Success());
         var current = CreateSettingCollection();
         var proposed = CreateSettingCollection();
@@ -1263,7 +1269,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
-        SetupTeamSettings(settings);
+        SetupTeam(CreateTeam(settings: settings));
         SetupAuthorization(AuthorizationResult.Success());
         var current = CreateSettingCollection();
         var proposed = CreateSettingCollection();
@@ -1304,11 +1310,11 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupNoChangedLimits();
         SetupStore();
         var settings = CreateSettings("settings-ct");
-        SetupTeamSettings(settings);
+        SetupTeam(CreateTeam(settings: settings));
         SetupAuthorization(AuthorizationResult.Success());
         var platform = CreateSettingCollection();
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamParentAsync(TeamId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(platform)
             .Verifiable();
         MockEffectiveSettingsResolver
@@ -1345,16 +1351,15 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateSettingsAsync_WhenThePlatformDocumentCannotBeHonored_ThrowsNamingThePlatform()
+    public async Task UpdateSettingsAsync_WhenADocumentAboveTheTeamCannotBeHonored_ThrowsNamingItsOwner()
     {
         SetupValidSettings();
         SetupNoChangedLimits();
         SetupStore();
-        var settings = CreateSettings("settings-ct");
-        SetupTeamSettings(settings);
+        SetupTeam(CreateTeam());
         SetupAuthorization(AuthorizationResult.Success());
         MockEffectiveSettingsResolver
-            .Setup(x => x.ResolvePlatformAsync(It.IsAny<CancellationToken>()))
+            .Setup(x => x.ResolveTeamParentAsync(TeamId, It.IsAny<CancellationToken>()))
             .ThrowsAsync(
                 new UnreadableSettingsException(
                     OpenIdSettingScopes.Platform,
@@ -1387,8 +1392,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupNoChangedLimits();
         SetupStore();
-        var settings = CreateSettings("settings-ct");
-        SetupTeamSettings(settings);
+        SetupTeam(CreateTeam());
         SetupAuthorization(AuthorizationResult.Success());
         var current = CreateSettingCollection();
         var proposed = CreateSettingCollection();
@@ -1444,7 +1448,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
         SetupStore();
-        SetupTeamSettings(CreateSettings("settings-ct"));
+        SetupTeam(CreateTeam());
         SetupAuthorization(AuthorizationResult.Success());
         MockAuthorizationService
             .Setup(x =>
@@ -1475,13 +1479,93 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenAChildTeamsLimitChangesAndItsParentRefuses_ReturnsForbiddenWithoutWriting()
+    {
+        SetupValidSettings();
+        SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
+        SetupStore();
+        SetupTeam(CreateTeam(parentTeamId: ParentTeamId));
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == ParentTeamId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        // Strict mocks: no resolver or store-write setup, so continuing past the refusal would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+        Assert.Contains("'max_tenants'", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenAChildTeamsLimitChangesAndItsParentAuthorizes_Writes()
+    {
+        SetupValidSettings();
+        SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        SetupTeam(CreateTeam(parentTeamId: ParentTeamId, settings: settings));
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == ParentTeamId
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+        var current = CreateSettingCollection();
+        var proposed = CreateSettingCollection();
+        SetupResolveTeam(current, proposed);
+        MockClientCoherenceValidator
+            .Setup(x => x.ReadsChangedSetting(current, proposed))
+            .Returns(false)
+            .Verifiable();
+        SetupSettingsWrite(settings);
+
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenALimitChangesAndThePlatformAuthorizes_Writes()
     {
         SetupValidSettings();
         SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
         SetupStore();
         var settings = CreateSettings("settings-ct");
-        SetupTeamSettings(settings);
+        SetupTeam(CreateTeam(settings: settings));
         SetupAuthorization(AuthorizationResult.Success());
         MockAuthorizationService
             .Setup(x =>
@@ -1521,7 +1605,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     {
         SetupInvalidSettings();
         SetupStore();
-        SetupTeamSettings(CreateSettings("settings-ct"));
+        SetupTeam(CreateTeam());
         SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.UpdateSettingsAsync(
@@ -1539,7 +1623,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenIfMatchMismatch_ReturnsPreconditionFailed()
     {
         SetupStore();
-        SetupTeamSettings(CreateSettings("settings-ct"));
+        SetupTeam(CreateTeam());
         SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.UpdateSettingsAsync(
@@ -1558,7 +1642,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_RequestsUpdateOnTheTeamNode()
     {
         SetupStore();
-        SetupTeamSettings(CreateSettings("settings-ct"));
+        SetupTeam(CreateTeam());
         var captured = CaptureAuthorization();
 
         await Handler.UpdateSettingsAsync(
@@ -1576,7 +1660,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task UpdateSettingsAsync_WhenNotFound_ReturnsNotFound()
     {
         SetupStore();
-        SetupTeamSettings(null);
+        SetupTeam(null);
         SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.UpdateSettingsAsync(

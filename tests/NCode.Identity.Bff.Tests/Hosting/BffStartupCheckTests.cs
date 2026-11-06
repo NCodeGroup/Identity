@@ -4,6 +4,7 @@
 using Moq;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Options;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -19,15 +20,14 @@ public class BffStartupCheckTests
             .SetupGet(x => x.MethodName)
             .Returns(OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt);
 
-        var options = new BffOptions
-        {
-            ClientAuthentication = new BffClientAuthenticationOptions { Method = configuredMethod },
-        };
-
-        return new BffStartupCheck(
-            new[] { authenticator.Object },
-            Microsoft.Extensions.Options.Options.Create(options)
+        var frontends = BffTestFrontends.CreateCatalog(f =>
+            f.ClientAuthentication = new BffClientAuthenticationOptions
+            {
+                Method = configuredMethod,
+            }
         );
+
+        return new BffStartupCheck(new[] { authenticator.Object }, frontends);
     }
 
     [Fact]
@@ -39,7 +39,10 @@ public class BffStartupCheckTests
             check.StartAsync(CancellationToken.None)
         );
 
-        Assert.Contains("Bff:ClientAuthentication:Method", exception.Message);
+        Assert.Contains(
+            $"Bff:Frontends:{BffTestFrontends.Name}:ClientAuthentication:Method",
+            exception.Message
+        );
     }
 
     [Fact]

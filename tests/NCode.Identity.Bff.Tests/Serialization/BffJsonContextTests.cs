@@ -100,5 +100,29 @@ public class BffJsonContextTests : BaseTests
         Assert.DoesNotContain("session_id", text);
     }
 
+    [Fact]
+    public void BffSessionMetadata_WithClient_RoundTripsTheAuthorityAndClientId()
+    {
+        var metadata = new BffSessionMetadata
+        {
+            Frontend = "default",
+            Authority = "https://op.example",
+            ClientId = "client-1",
+        };
+
+        var json = JsonSerializer.SerializeToUtf8Bytes(
+            metadata,
+            BffJsonContext.Default.BffSessionMetadata
+        );
+        var result = JsonSerializer.Deserialize(json, BffJsonContext.Default.BffSessionMetadata);
+
+        var text = SecureEncoding.UTF8.GetString(json);
+        Assert.Contains("\"authority\"", text);
+        Assert.Contains("\"client_id\"", text);
+        Assert.NotNull(result);
+        Assert.Equal("https://op.example", result.Authority);
+        Assert.Equal("client-1", result.ClientId);
+    }
+
     #endregion
 }

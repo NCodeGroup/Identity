@@ -20,6 +20,16 @@ public sealed class BffSessionMetadata
     public string Frontend { get; init; } = string.Empty;
 
     /// <summary>
+    /// Gets the authority that the frontend was configured with when the session was created.
+    /// </summary>
+    public string Authority { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Gets the client id that the frontend was configured with when the session was created.
+    /// </summary>
+    public string ClientId { get; init; } = string.Empty;
+
+    /// <summary>
     /// Gets the issuer of the OpenID provider that authenticated the user.
     /// </summary>
     public string Issuer { get; init; } = string.Empty;

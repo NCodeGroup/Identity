@@ -11,9 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using NCode.Buffers;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
 using Xunit;
@@ -110,7 +110,7 @@ public sealed class BffReverseProxyForwardingTests : BaseTests
         services.AddSingleton(MockTokens.Object);
         services.AddSingleton(CreateStrictMock<IDPoPProofFactory>().Object);
         services.AddHttpContextAccessor();
-        services.AddSingleton<BffClientRegistrationProvider>();
+        services.AddSingleton(BffTestFrontends.CreateCatalog());
 
         var upstreamFactory = CreateStrictMock<IForwarderHttpClientFactory>();
         upstreamFactory

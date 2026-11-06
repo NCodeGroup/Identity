@@ -4,9 +4,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.OpenId.Client;
 using Xunit;
 using Yarp.ReverseProxy.Configuration;
@@ -33,9 +33,7 @@ public sealed class BffTransformProviderTests : BaseTests
             CreateStrictMock<IHttpContextAccessor>().Object,
             MockTokens.Object,
             CreateStrictMock<IDPoPProofFactory>().Object,
-            new BffClientRegistrationProvider(
-                Microsoft.Extensions.Options.Options.Create(new BffOptions())
-            )
+            BffTestFrontends.CreateCatalog()
         );
     }
 

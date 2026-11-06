@@ -8,9 +8,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NCode.Buffers;
-using NCode.Identity.Bff.Client;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -35,7 +36,7 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
 
     private Mock<IDPoPProofFactory> MockProofs { get; }
 
-    private BffClientRegistrationProvider Registrations { get; }
+    private BffFrontendCatalog Frontends { get; }
 
     private BffTokenRequest TokenRequest { get; } = new(BffTokenRequirementNames.User);
 
@@ -43,19 +44,8 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
     {
         MockTokens = CreateStrictMock<IBffTokenAccessor>();
         MockProofs = CreateStrictMock<IDPoPProofFactory>();
-        Registrations = new BffClientRegistrationProvider(
-            Microsoft.Extensions.Options.Options.Create(
-                new BffOptions
-                {
-                    Authority = "https://op.example.com",
-                    ClientId = "bff",
-                    DPoP = new BffDPoPOptions
-                    {
-                        Mode = BffDPoPModes.Required,
-                        KeyRing = "dpop-keys",
-                    },
-                }
-            )
+        Frontends = BffTestFrontends.CreateCatalog(x =>
+            x.DPoP = new BffDPoPOptions { Mode = BffDPoPModes.Required, KeyRing = "dpop-keys" }
         );
     }
 
@@ -66,15 +56,18 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private BffRemoteApi CreateApi(StubHttpMessageHandler remote)
+    private BffRemoteApi CreateApi(StubHttpMessageHandler remote, HttpContext? context = null)
     {
-        // The token handler never reads the accessor here: the transformer hands it the resolved token.
+        // The token handler reads the accessor only to sign a DPoP proof: the transformer hands it the resolved token.
         var accessor = CreateStrictMock<IHttpContextAccessor>();
+        if (context is not null)
+            accessor.SetupGet(x => x.HttpContext).Returns(context).Verifiable();
+
         var handler = new BffAccessTokenHandler(
             accessor.Object,
             MockTokens.Object,
             MockProofs.Object,
-            Registrations,
+            Frontends,
             TokenRequest
         )
         {
@@ -197,7 +190,7 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
         MockProofs
             .Setup(x =>
                 x.CreateResourceProofAsync(
-                    Registrations.Registration,
+                    BffTestFrontends.Get(Frontends).Registration,
                     Jkt,
                     HttpMethod.Post,
                     RemoteUri,
@@ -220,7 +213,7 @@ public sealed class BffRemoteApiForwardingTests : BaseTests
             CreateRemoteResponse(HttpStatusCode.OK, """{"id":7}""")
         );
 
-        await CreateHandler().HandleAsync(context, CreateApi(remote));
+        await CreateHandler().HandleAsync(context, CreateApi(remote, context));
 
         Assert.Equal(2, remote.Requests.Count);
         Assert.Equal("proof-1", remote.Requests[0].DPoP);

@@ -5,9 +5,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Http;
 using Moq;
-using NCode.Identity.Bff.Client;
-using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.RemoteApis;
+using NCode.Identity.Bff.Tests.Frontends;
 using NCode.Identity.Bff.Tokens;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Client;
@@ -39,17 +38,12 @@ public sealed class BffForwarderHttpClientFactoryTests : BaseTests
                 return Task.FromResult(response);
             }
         );
-        var registrations = new BffClientRegistrationProvider(
-            Microsoft.Extensions.Options.Options.Create(
-                new BffOptions { Authority = "https://op.example.com", ClientId = "bff" }
-            )
-        );
         Factory = new BffForwarderHttpClientFactory(
             MockInner.Object,
             CreateStrictMock<IHttpContextAccessor>().Object,
             CreateStrictMock<IBffTokenAccessor>().Object,
             CreateStrictMock<IDPoPProofFactory>().Object,
-            registrations
+            BffTestFrontends.CreateCatalog()
         );
     }
 

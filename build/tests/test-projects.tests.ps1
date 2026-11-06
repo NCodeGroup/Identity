@@ -34,9 +34,10 @@ try {
     Write-Project $tiered 'src/A/A.csproj'
     Write-Project $tiered 'tests/A.Tests/A.Tests.csproj'
     Write-Project $tiered 'tests/A.EndToEnd.Tests/A.EndToEnd.Tests.csproj'
+    Write-Project $tiered 'tests/A.EndToEnd.App/A.EndToEnd.App.csproj'
     Write-Project $tiered 'tests/A.Tests/obj/X/X.csproj'
     $result = & $lister -Root $tiered
-    Assert-Tiers 'projects are split by tier and build output is skipped' $result `
+    Assert-Tiers 'projects are split by tier, and support projects and build output are skipped' $result `
         'tests/A.Tests/A.Tests.csproj' 'tests/A.EndToEnd.Tests/A.EndToEnd.Tests.csproj'
 
     $none = Join-Path $fixtureRoot 'none'

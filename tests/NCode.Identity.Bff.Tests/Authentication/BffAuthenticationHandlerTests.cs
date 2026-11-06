@@ -105,7 +105,8 @@ public class BffAuthenticationHandlerTests : BaseTests
             resolver,
             catalog,
             new BffConnectionSessions(resolver),
-            cookies
+            cookies,
+            new BffPageReload(cookies)
         );
         var scheme = new AuthenticationScheme(
             BffDefaults.AuthenticationScheme,
@@ -122,9 +123,6 @@ public class BffAuthenticationHandlerTests : BaseTests
         using var reader = new StreamReader(httpContext.Response.Body, SecureEncoding.UTF8);
         return await reader.ReadToEndAsync();
     }
-
-    private static void AssertNoSetCookie(HttpContext httpContext) =>
-        Assert.False(httpContext.Response.Headers.ContainsKey("Set-Cookie"));
 
     #region AuthenticateAsync Tests
 
@@ -315,116 +313,20 @@ public class BffAuthenticationHandlerTests : BaseTests
         Assert.Contains(BffProblemTypes.SessionRequired, body);
     }
 
-    [Theory]
-    [InlineData("cross-site")]
-    [InlineData("none")]
-    [InlineData(null)]
-    public async Task ChallengeAsync_PageNavigationWithoutSessionCookie_WritesReloadPage(
-        string? secFetchSite
-    )
+    [Fact]
+    public async Task ChallengeAsync_PageNavigationWhenPageReloadApplies_WritesReloadPageAndSetsTheMarker()
     {
         var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
         httpContext.Request.Path = "/app/page";
-        if (secFetchSite is not null)
-            httpContext.Request.Headers["Sec-Fetch-Site"] = secFetchSite;
-
-        await handler.ChallengeAsync(null);
-
-        var headers = httpContext.Response.Headers;
-        Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
-        Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
-        Assert.Equal("no-store", headers.CacheControl.ToString());
-        Assert.Equal("no-referrer", headers["Referrer-Policy"].ToString());
-        Assert.Equal("nosniff", headers.XContentTypeOptions.ToString());
-        Assert.Equal(
-            "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-            headers.ContentSecurityPolicy.ToString()
-        );
-        Assert.False(headers.ContainsKey("Location"));
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PageNavigationWithoutSessionCookie_SetsTheReloadMarker()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
-
-        await handler.ChallengeAsync(null);
-
-        var setCookie = httpContext.Response.Headers.SetCookie.ToString();
-        Assert.StartsWith($"{PageReloadCookie};", setCookie);
-        Assert.Contains("samesite=lax", setCookie.ToLowerInvariant());
-        Assert.Contains("max-age=60", setCookie.ToLowerInvariant());
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PageNavigationWithoutSessionCookie_ReloadsTheRequestsOwnUrl()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
-        httpContext.Request.PathBase = "/base";
-        httpContext.Request.Path = "/app/page";
-        httpContext.Request.QueryString = new QueryString("?a=1&b=2");
-
-        await handler.ChallengeAsync(null);
-
-        var body = await ReadBodyAsync(httpContext);
-        Assert.Equal(
-            "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=/base/app/page?a=1&amp;b=2\"><title>Continue</title></head><body><a href=\"/base/app/page?a=1&amp;b=2\">Continue</a></body></html>",
-            body
-        );
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PageNavigationWithNavigateFetchMode_WritesReloadPage()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
-        httpContext.Request.Headers["Sec-Fetch-Mode"] = "navigate";
-
-        await handler.ChallengeAsync(null);
-
-        Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PageHeadRequestWithoutSessionCookie_WritesReloadHeadersAndNoBody()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
-        httpContext.Request.Method = HttpMethods.Head;
 
         await handler.ChallengeAsync(null);
 
         Assert.Equal(StatusCodes.Status200OK, httpContext.Response.StatusCode);
         Assert.Equal("text/html; charset=utf-8", httpContext.Response.ContentType);
+        Assert.False(httpContext.Response.Headers.ContainsKey("Location"));
         Assert.StartsWith(PageReloadCookie, httpContext.Response.Headers.SetCookie.ToString());
-        Assert.Equal(string.Empty, await ReadBodyAsync(httpContext));
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PageNavigationWithProtocolRelativePath_RedirectsToLoginWithoutReload()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
-        httpContext.Request.Path = "//evil.example/x";
-
-        await handler.ChallengeAsync(null);
-
-        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
-        Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
-        Assert.False(httpContext.Response.Headers.ContainsKey("Set-Cookie"));
         var body = await ReadBodyAsync(httpContext);
-        Assert.DoesNotContain("evil.example", body);
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PageNavigationWithSessionCookie_RedirectsToLogin()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
-        httpContext.Request.Headers.Cookie =
-            $"{BffTestFrontends.SessionCookieName}={new string('a', 43)}";
-
-        await handler.ChallengeAsync(null);
-
-        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
-        Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
-        AssertNoSetCookie(httpContext);
+        Assert.Contains("url=/app/page\"", body);
     }
 
     [Fact]
@@ -441,48 +343,6 @@ public class BffAuthenticationHandlerTests : BaseTests
             "__Host-Http-bff-reload.default=;",
             httpContext.Response.Headers.SetCookie.ToString()
         );
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PageRequestWithCorsFetchMode_RedirectsToLogin()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
-        httpContext.Request.Headers["Sec-Fetch-Mode"] = "cors";
-
-        await handler.ChallengeAsync(null);
-
-        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
-        Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
-        AssertNoSetCookie(httpContext);
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PageNavigationToLaxFrontend_RedirectsToLogin()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(
-            null,
-            new BffPageAttribute(),
-            f => f.Session.SameSite = SameSiteMode.Lax
-        );
-
-        await handler.ChallengeAsync(null);
-
-        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
-        Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
-        AssertNoSetCookie(httpContext);
-    }
-
-    [Fact]
-    public async Task ChallengeAsync_PagePostRequest_RedirectsToLogin()
-    {
-        var (handler, httpContext) = await CreateHandlerAsync(null, new BffPageAttribute());
-        httpContext.Request.Method = HttpMethods.Post;
-
-        await handler.ChallengeAsync(null);
-
-        Assert.Equal(StatusCodes.Status302Found, httpContext.Response.StatusCode);
-        Assert.Equal("/bff/login?returnUrl=%2F", httpContext.Response.Headers.Location.ToString());
-        AssertNoSetCookie(httpContext);
     }
 
     [Fact]

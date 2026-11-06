@@ -42,9 +42,13 @@ reload from repeating.**
      no backslash, whitespace or control character, so the reload page cannot be used to redirect to another origin.
 
    Every other page challenge keeps its behavior: a `302` to the login endpoint with the return URL.
-2. **The reload page.** The response is `200` with `Content-Type: text/html; charset=utf-8`, `Cache-Control: no-store`,
-   `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff` and
-   `Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`. Its body
+2. **The reload page.** The response is `200` with `Content-Type: text/html; charset=utf-8` and the shared page-security
+   headers that every page the server writes carries
+   ([ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)),
+   under a policy that lists no directive:
+   `Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+   `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: same-origin`, and
+   `Cache-Control: no-store, no-cache, max-age=0` with `Pragma: no-cache`. Its body
    is a meta refresh and a link that both point at the request's own path base, path and query string, HTML-encoded. A
    `HEAD` request gets the headers and no body. The CSP forbids every resource and every script, so the page does
    nothing but navigate.
@@ -85,6 +89,7 @@ reload from repeating.**
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.3 and §5.14
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
-  [ADR-1436](1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)
+  [ADR-1436](1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md),
+  [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
 - [Project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md)
 - Issue [#603](https://github.com/NCodeGroup/Identity/issues/603)

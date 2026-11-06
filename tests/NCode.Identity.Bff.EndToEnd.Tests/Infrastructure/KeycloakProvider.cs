@@ -233,8 +233,8 @@ public sealed class KeycloakProvider : IAsyncDisposable
         await _image.DisposeAsync();
     }
 
-    // Keycloak's answer to a refused call names no reason, so the failure carries the token's timing claims and the
-    // end of Keycloak's log, which does.
+    // Keycloak's answer to a refused call names no reason, so the failure carries the token's claims and the end of
+    // Keycloak's log, which does.
     private async Task EnsureSuccessAsync(HttpResponseMessage response, string? accessToken)
     {
         if (response.IsSuccessStatusCode)
@@ -263,7 +263,19 @@ public sealed class KeycloakProvider : IAsyncDisposable
             Base64Url.DecodeFromChars(payload),
             JsonSerializerOptions.Web
         );
-        string[] names = ["iss", "azp", "typ", "iat", "exp", "sid"];
+        string[] names =
+        [
+            "iss",
+            "azp",
+            "sub",
+            "aud",
+            "scope",
+            "resource_access",
+            "typ",
+            "iat",
+            "exp",
+            "sid",
+        ];
         return string.Join(
             ", ",
             names.Select(name =>

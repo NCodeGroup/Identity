@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using NCode.AspNetCore;
-using NCode.Identity;
 using NCode.Identity.OpenId.Accounts.Authentication;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Authentication.Interactive;
@@ -20,6 +19,7 @@ using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 using NCode.Identity.Server;
 using NCode.Identity.Server.SecretProtection;
 using NCode.Identity.SharedState.Valkey;
+using NCode.Registration;
 using NCode.Registration.AspNetCore;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or

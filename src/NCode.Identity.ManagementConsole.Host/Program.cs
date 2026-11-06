@@ -3,11 +3,11 @@
 
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using NCode.AspNetCore;
-using NCode.Identity;
 using NCode.Identity.Bff.Antiforgery;
 using NCode.Identity.Bff.Hardening;
 using NCode.Identity.ManagementConsole;
 using NCode.Identity.SharedState.Valkey;
+using NCode.Registration;
 
 // COMPOSITION-ONLY HOST: this file is a flat list of turnkey Add*/Use*/Map* calls. Reusable or
 // developer-only startup logic does NOT belong here — put it in the owning package as an extension

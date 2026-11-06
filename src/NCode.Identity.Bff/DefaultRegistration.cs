@@ -3,6 +3,7 @@
 
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -12,6 +13,7 @@ using NCode.Identity.Bff.Client;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Diagnostics;
 using NCode.Identity.Bff.Endpoints;
+using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Login;
 using NCode.Identity.Bff.Logout;
@@ -35,8 +37,9 @@ public static class DefaultRegistration
     extension(IServiceBuilder<OpenIdClientLibrary> builder)
     {
         /// <summary>
-        /// Registers the BFF library: its options, the session store and manager, the audit recorder and the cookie
-        /// writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root registers the shared-state
+        /// Registers the BFF library: its options, the frontends (the selection rules, the catalog and the routing
+        /// policy that keeps a request's endpoints to its frontend), the session store and manager, the audit
+        /// recorder and the cookie writer, layered on the <see cref="OpenIdClientLibrary"/>. The composition root registers the shared-state
         /// adapters (<c>AddSharedStateServices().AddInProcessExpiringKeySet().AddInProcessExpiringValueSet().AddInProcessExpiringIndexSet()</c>
         /// for one replica, Valkey for several).
         /// </summary>
@@ -63,6 +66,18 @@ public static class DefaultRegistration
             // The BFF's instruments are created through the IMeterFactory (ADR-1197).
             serviceCollection.AddMetrics();
             serviceCollection.TryAddSingleton<BffMetrics>();
+
+            serviceCollection.AddRouting();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffFrontendSelector, HostBffFrontendSelector>()
+            );
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IBffFrontendSelector, PathBffFrontendSelector>()
+            );
+            serviceCollection.TryAddSingleton<BffFrontendCatalog>();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<MatcherPolicy, BffFrontendMatcherPolicy>()
+            );
 
             serviceCollection.TryAddSingleton<IBffSessionStore, DefaultBffSessionStore>();
             serviceCollection.TryAddSingleton<BffInstrumentedSessionStore>();

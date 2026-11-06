@@ -1566,7 +1566,9 @@ public class TeamManagementTests
         var patchClientBody = await patchClient.Content.ReadAsStringAsync();
         Assert.True(patchClient.StatusCode == HttpStatusCode.Forbidden, patchClientBody);
 
-        using var deleteClient = await teamAdmin.DeleteAsync("/api/tenants/globex-dev/clients/nope");
+        using var deleteClient = await teamAdmin.DeleteAsync(
+            "/api/tenants/globex-dev/clients/nope"
+        );
         var deleteClientBody = await deleteClient.Content.ReadAsStringAsync();
         Assert.True(deleteClient.StatusCode == HttpStatusCode.Forbidden, deleteClientBody);
 
@@ -1656,7 +1658,10 @@ public class TeamManagementTests
             $"/api/tenants/acme-dev/clients/{clientId}/owners"
         );
 
-        var secrets = await GetJsonAsync(owner, $"/api/tenants/acme-dev/clients/{clientId}/secrets");
+        var secrets = await GetJsonAsync(
+            owner,
+            $"/api/tenants/acme-dev/clients/{clientId}/secrets"
+        );
         var secretId = secrets.GetProperty("secrets")[0].GetProperty("secretId").GetString();
         Assert.NotNull(secretId);
 

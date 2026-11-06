@@ -101,6 +101,7 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
             .Verifiable();
         return () => authorizedResource;
     }
+
     private void SetupUserNameLookup(PersistedLocalAccount? existing)
     {
         MockStoreManager

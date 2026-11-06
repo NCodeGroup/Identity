@@ -1,4 +1,4 @@
-﻿// Copyright © NCode Group
+// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
@@ -67,7 +67,12 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
         IStoreManager storeManager,
         CancellationToken cancellationToken
     ) =>
-        CheckUserNameAvailableAsync(storeManager, userName, localAccountId: null, cancellationToken);
+        CheckUserNameAvailableAsync(
+            storeManager,
+            userName,
+            localAccountId: null,
+            cancellationToken
+        );
 
     /// <inheritdoc />
     public ValueTask<ManagementError?> ValidateUpdateAsync(
@@ -88,12 +93,18 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
                 new ManagementError
                 {
                     StatusCode = StatusCodes.Status412PreconditionFailed,
-                    Detail = "The supplied If-Match token does not match the current local account.",
+                    Detail =
+                        "The supplied If-Match token does not match the current local account.",
                 }
             );
         }
 
-        return CheckUserNameAvailableAsync(storeManager, userName, localAccountId, cancellationToken);
+        return CheckUserNameAvailableAsync(
+            storeManager,
+            userName,
+            localAccountId,
+            cancellationToken
+        );
     }
 
     /// <inheritdoc />
@@ -102,6 +113,7 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
         IStoreManager storeManager,
         CancellationToken cancellationToken
     ) => ValueTask.FromResult<ManagementError?>(null);
+
     // A username is unique within the tenant; a match against a different account (or any account, on create) conflicts.
     private static async ValueTask<ManagementError?> CheckUserNameAvailableAsync(
         IStoreManager storeManager,

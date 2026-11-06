@@ -927,7 +927,11 @@ internal class ClientApiEndpointHandler(
         }
 
         // The store removes everything that exists for the client (ADR-1212).
-        var error = await ClientValidator.ValidateDeleteAsync(client, storeManager, cancellationToken);
+        var error = await ClientValidator.ValidateDeleteAsync(
+            client,
+            storeManager,
+            cancellationToken
+        );
 
         if (error is not null)
         {
@@ -1672,7 +1676,6 @@ internal class ClientApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<IClientStore>();
 
-                // The discrete getter resolves the secret together with its owning TenantId.
                 var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
                 return clientSecret?.Value;
             },
@@ -1709,7 +1712,6 @@ internal class ClientApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<IClientStore>();
 
-                // The discrete getter resolves the secret together with its owning TenantId.
                 var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
                 return clientSecret?.Value;
             },

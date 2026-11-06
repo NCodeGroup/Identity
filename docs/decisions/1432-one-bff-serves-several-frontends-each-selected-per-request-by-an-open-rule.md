@@ -1,7 +1,8 @@
 # 1432. One BFF serves several frontends, each selected per request by an open rule
 
 - **Status:** Accepted (amends
-  [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) decision 13,
+  [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)
+  decisions 7, 8 and 13,
   [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) decision 3,
   [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) decision 7,
   [ADR-1365](1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md) decision 2,

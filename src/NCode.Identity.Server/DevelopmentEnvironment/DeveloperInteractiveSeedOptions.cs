@@ -6,10 +6,10 @@ using JetBrains.Annotations;
 namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
-/// Configures the <strong>development-only</strong> seeding of public single-page-application clients and a
-/// deterministic administrator user, so a local host can exercise the interactive authorization-code + PKCE flow and
-/// every frontend surface (the Management console, the Playground flow explorer, …) end to end. Each half is inert
-/// unless its inputs are configured.
+/// Configures the <strong>development-only</strong> seeding of public single-page-application clients, confidential
+/// BFF clients and a deterministic administrator user, so a local host can exercise the interactive authorization-code
+/// flow and every frontend surface (the Management console, the Playground flow explorer, …) end to end. Each part is
+/// inert unless its inputs are configured.
 /// </summary>
 [PublicAPI]
 public sealed class DeveloperInteractiveSeedOptions
@@ -39,6 +39,16 @@ public sealed class DeveloperInteractiveSeedOptions
     /// </remarks>
     // See ADR-1146.
     public IList<DeveloperSpaClientSeed> SpaClients { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the confidential BFF clients to seed, one per frontend surface served by a BFF host of its own.
+    /// Defaults to empty, so no client is seeded unless configuration declares one.
+    /// </summary>
+    /// <remarks>
+    /// There are no built-in clients. Starting empty also lets configuration replace the list, because the
+    /// configuration binder appends the configured entries to a list that already holds some.
+    /// </remarks>
+    public IList<DeveloperBffClientSeed> BffClients { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the administrator user name to seed. When empty, no user is seeded.

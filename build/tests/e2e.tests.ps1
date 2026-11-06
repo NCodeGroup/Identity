@@ -48,10 +48,33 @@ function New-Fixture([string]$Name, [bool]$WithEndToEnd) {
     return $root
 }
 
-# A child process, so the script's strict mode, return and throw stay in it.
-function Invoke-EndToEnd([string]$Root, [string[]]$Arguments) {
-    $output = & pwsh -NoProfile -File (Join-Path $Root 'build' 'e2e.ps1') @Arguments 2>&1 | Out-String
-    return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+# A child process, so the script's strict mode, return and throw stay in it. A -Docker folder goes first on its PATH.
+function Invoke-EndToEnd([string]$Root, [string[]]$Arguments, [string]$Docker) {
+    $path = $env:PATH
+    try {
+        if ($Docker) {
+            $env:PATH = "$Docker$([System.IO.Path]::PathSeparator)$path"
+        }
+        $output = & pwsh -NoProfile -File (Join-Path $Root 'build' 'e2e.ps1') @Arguments 2>&1 | Out-String
+        return [pscustomobject]@{ ExitCode = $LASTEXITCODE; Output = $output }
+    }
+    finally {
+        $env:PATH = $path
+    }
+}
+
+# A folder holding a docker command that always fails, as an engine that is not running does.
+function New-FailingDocker {
+    $folder = Join-Path $fixtureRoot 'docker'
+    if ($IsWindows) {
+        Write-FixtureFile (Join-Path $folder 'docker.cmd') "@exit /b 1`r`n"
+    }
+    else {
+        $stub = Join-Path $folder 'docker'
+        Write-FixtureFile $stub "#!/bin/sh`nexit 1`n"
+        & chmod +x $stub
+    }
+    return $folder
 }
 
 function Assert-Run([string]$Name, [object]$Run, [bool]$Succeeds, [string[]]$Expected) {
@@ -84,6 +107,25 @@ try {
     $run = Invoke-EndToEnd $fixture @()
     Assert-Run 'a repository without a suite fails before it needs Docker' $run $false @(
         'No end-to-end suite exists under tests/.'
+    )
+
+    $docker = New-FailingDocker
+    $dockerMissing = 'The end-to-end suites need a running Docker engine'
+
+    $fixture = New-Fixture 'selected' $true
+    Write-FixtureFile (Join-Path $fixture 'src/A/X.cs') "class X { }`n"
+    $run = Invoke-EndToEnd $fixture @('-Affected', '-Base', 'HEAD') $docker
+    Assert-Run 'a change that reaches a suite requires Docker' $run $false @(
+        'src/A/X.cs -> src/A/A.csproj',
+        $dockerMissing
+    )
+
+    $fixture = New-Fixture 'global' $true
+    Write-FixtureFile (Join-Path $fixture 'build/x.ps1') "exit 0`n"
+    $run = Invoke-EndToEnd $fixture @('-Affected', '-Base', 'HEAD') $docker
+    Assert-Run 'a global build input selects every suite and requires Docker' $run $false @(
+        'build/x.ps1 -> all tests (global trigger)',
+        $dockerMissing
     )
 
     Write-Host "$testCount e2e checks passed."

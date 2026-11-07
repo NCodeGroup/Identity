@@ -10,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -40,13 +41,14 @@ internal class PrincipalApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
     IAuthorizationService authorizationService,
     ICryptoService cryptoService,
-    ISessionService sessionService,
+    IPostCommitSecurityEffects postCommitSecurityEffects,
     IOpenIdContextFactory openIdContextFactory,
     IManagementAuditRecorder managementAuditRecorder
 ) : BaseApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private ISessionService SessionService { get; } = sessionService;
+    private IPostCommitSecurityEffects PostCommitSecurityEffects { get; } =
+        postCommitSecurityEffects;
     private IOpenIdContextFactory OpenIdContextFactory { get; } = openIdContextFactory;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
 
@@ -170,12 +172,12 @@ internal class PrincipalApiEndpointHandler(
         }
 
         // A blocked principal's sessions end, which revokes its grants and notifies its relying parties. The change is
-        // committed, so a client disconnect does not cancel the termination. See ADR-1226.
-        await TerminateSessionsAsync(
+        // committed, so the termination runs on its own bounded token and a failure is logged; the audit record
+        // follows. See ADR-1226 and ADR-1468.
+        await PostCommitSecurityEffects.TerminateSessionsAsync(
             tenantContext,
             principal.PrincipalId,
-            SessionTerminationReasons.UserBlocked,
-            CancellationToken.None
+            SessionTerminationReasons.UserBlocked
         );
 
         await RecordPrincipalChangedAsync(httpContext, tenantId, principal);
@@ -241,15 +243,6 @@ internal class PrincipalApiEndpointHandler(
 
         return principal;
     }
-
-    // Session termination runs the seam (grant revocation, back-channel logout, auditing) in the context of the
-    // addressed tenant's security domain rather than the request's resolved tenant.
-    private async ValueTask TerminateSessionsAsync(
-        OpenIdContext tenantContext,
-        string principalId,
-        string reason,
-        CancellationToken cancellationToken
-    ) => await SessionService.RevokeAllAsync(tenantContext, principalId, reason, cancellationToken);
 
     private ValueTask RecordPrincipalChangedAsync(
         HttpContext httpContext,

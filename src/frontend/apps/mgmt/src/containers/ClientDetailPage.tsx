@@ -11,23 +11,35 @@ import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 
 export type ClientDetailPageProps = {
-  readonly tenantId: string;
   readonly client: ClientResource;
   readonly onBack: () => void;
 };
 
 type ClientSurface = 'secrets' | 'settings' | 'access';
 
+/** Names the node that owns a machine client, such as `Machine client of team acme`. */
+function machineClientLabel(client: ClientResource): string {
+  return client.owningNodeType === 'platform'
+    ? 'Machine client of the platform'
+    : `Machine client of ${client.owningNodeType} ${client.owningNodeId}`;
+}
+
 /**
  * Container: drills into a single client to manage its secrets, settings and owners. The parent
  * {@link import('./ClientsPage.js').ClientsPage} supplies the client and owns the drill-in selection.
+ * The container addresses the client through the client's own tenant, so a machine client opened from the
+ * platform or a team reaches the control-plane tenant's routes (ADR-1421, ADR-1466).
  * Secrets honor the one-time reveal (ADR-1050) and settings are a top-level JSON Patch diff; the owner-generic
  * {@link OwnerSecretsTab}/{@link OwnerSettingsTab} render both for the client, and {@link OwnerAccessTab} lists
  * and edits the client's owners. Owns only tab state.
  */
-export function ClientDetailPage({ tenantId, client, onBack }: ClientDetailPageProps) {
+export function ClientDetailPage({ client, onBack }: ClientDetailPageProps) {
   const [surface, setSurface] = useState<ClientSurface>('secrets');
-  const owner: SecretOwner = { kind: 'client', tenantId, clientId: client.clientId };
+  const owner: SecretOwner = {
+    kind: 'client',
+    tenantId: client.tenantId,
+    clientId: client.clientId,
+  };
 
   return (
     <>
@@ -47,7 +59,17 @@ export function ClientDetailPage({ tenantId, client, onBack }: ClientDetailPageP
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Client · {client.isDisabled ? 'Disabled' : 'Active'}
           {client.resourceServerId ? ` · Acts for resource server ${client.resourceServerId}` : ''}
+          {client.owningNodeType !== null ? ` · ${machineClientLabel(client)}` : ''}
         </Typography>
+        {client.owningNodeType !== null ? (
+          <Typography
+            variant="body2"
+            sx={{ color: 'text.secondary' }}
+            data-testid="client-principal"
+          >
+            Principal {client.principalId}
+          </Typography>
+        ) : null}
       </Stack>
       <Tabs
         value={surface}

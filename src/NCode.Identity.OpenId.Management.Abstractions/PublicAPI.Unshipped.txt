@@ -162,10 +162,10 @@ NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantId.init
 NCode.Identity.OpenId.Management.Authorization.TenantScopeResource.TenantScopeResource() -> void
 NCode.Identity.OpenId.Management.Clients.IHostManagedClientPolicy
 NCode.Identity.OpenId.Management.Clients.IHostManagedClientPolicy.IsHostManaged(string! tenantId, string! clientId) -> bool
-NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest
-NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.AddOwnerRequest() -> void
-NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.PrincipalId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.AddOwnerRequest.PrincipalId.init -> void
+NCode.Identity.OpenId.Management.Contracts.AddRoleHolderRequest
+NCode.Identity.OpenId.Management.Contracts.AddRoleHolderRequest.AddRoleHolderRequest() -> void
+NCode.Identity.OpenId.Management.Contracts.AddRoleHolderRequest.PrincipalId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.AddRoleHolderRequest.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ClientId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.ClientId.init -> void
@@ -337,14 +337,6 @@ NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.IsPlatformAdmin
 NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.PrincipalId.get -> string?
 NCode.Identity.OpenId.Management.Contracts.Caller.CallerResource.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers
-NCode.Identity.OpenId.Management.Contracts.OwnerResource
-NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.OwnerResource.AssignmentId.init -> void
-NCode.Identity.OpenId.Management.Contracts.OwnerResource.OwnerResource() -> void
-NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.get -> string!
-NCode.Identity.OpenId.Management.Contracts.OwnerResource.PrincipalId.init -> void
-NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.get -> string!
-NCode.Identity.OpenId.Management.Contracts.OwnerResource.RoleName.init -> void
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.AssignmentId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.AssignmentId.init -> void
@@ -359,10 +351,18 @@ NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.get -
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.init -> void
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleHolderResource
+NCode.Identity.OpenId.Management.Contracts.RoleHolderResource.AssignmentId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleHolderResource.AssignmentId.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleHolderResource.PrincipalId.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleHolderResource.PrincipalId.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleHolderResource.RoleHolderResource() -> void
+NCode.Identity.OpenId.Management.Contracts.RoleHolderResource.RoleName.get -> string!
+NCode.Identity.OpenId.Management.Contracts.RoleHolderResource.RoleName.init -> void
 NCode.Identity.OpenId.Management.Contracts.RoleListResource
 NCode.Identity.OpenId.Management.Contracts.RoleListResource.CanChange.get -> bool
 NCode.Identity.OpenId.Management.Contracts.RoleListResource.CanChange.init -> void
-NCode.Identity.OpenId.Management.Contracts.RoleListResource.Items.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.OwnerResource!>!
+NCode.Identity.OpenId.Management.Contracts.RoleListResource.Items.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.RoleHolderResource!>!
 NCode.Identity.OpenId.Management.Contracts.RoleListResource.Items.init -> void
 NCode.Identity.OpenId.Management.Contracts.RoleListResource.RoleListResource() -> void
 NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource

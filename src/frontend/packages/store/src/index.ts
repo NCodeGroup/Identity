@@ -39,6 +39,8 @@ export {
   useCreateClientMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,
+  useListMachineClientsQuery,
+  useCreateMachineClientMutation,
   useCreateResourceServerMutation,
   useUpdateResourceServerMutation,
   useDeleteResourceServerMutation,

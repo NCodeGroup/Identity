@@ -5,9 +5,9 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
  * within it second, so the platform ↔ team ↔ tenant boundaries (ADR-1064) stay explicit in every address:
  *
  * - `/home` — the caller's home: the places it holds authority (ADR-1420);
- * - `/teams`, `/settings`, `/encryption-keys` — the platform scope's surfaces;
- * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `teams`, `settings`, `access` and `usage`), the
- *   team id percent-encoded as one segment;
+ * - `/teams`, `/clients`, `/settings`, `/encryption-keys` — the platform scope's surfaces;
+ * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `teams`, `clients`, `settings`, `access` and
+ *   `usage`), the team id percent-encoded as one segment;
  * - `/tenants/{tenantId}/{surface}` — a tenant scope's surfaces (`clients`, `resource-servers`, `grants`, `secrets`,
  *   `encryption-keys`, `settings`, `access` and `usage`), the tenant id percent-encoded as one segment (ADR-1255).
  *
@@ -15,10 +15,17 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
  */
 
 /** The surfaces of the platform scope, in tab order. */
-export const PLATFORM_SURFACES = ['teams', 'settings', 'encryption-keys'] as const;
+export const PLATFORM_SURFACES = ['teams', 'clients', 'settings', 'encryption-keys'] as const;
 
 /** The surfaces of a team scope, in tab order. */
-export const TEAM_SURFACES = ['tenants', 'teams', 'settings', 'access', 'usage'] as const;
+export const TEAM_SURFACES = [
+  'tenants',
+  'teams',
+  'clients',
+  'settings',
+  'access',
+  'usage',
+] as const;
 
 /** The surfaces of a tenant scope, in tab order. */
 export const TENANT_SURFACES = [

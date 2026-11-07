@@ -199,8 +199,8 @@ internal class ResourceServerApiEndpointHandler(
             .Produces<RoleListResource>();
         resourceServers
             .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         resourceServers
             .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -853,18 +853,11 @@ internal class ResourceServerApiEndpointHandler(
     )
     {
         // See ADR-1465.
-        var resourceServerNode = ResourceNode.For(
-            tenantId,
-            ResourceNodeTypes.ResourceServer,
-            resourceServerId
-        );
+        var roleList = GetOwnerList(tenantId, resourceServerId);
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            resourceServerNode,
-            BuiltInRoles.Owner,
-            (storeManager, token) =>
-                ResourceServerExistsAsync(storeManager, resourceServerId, token),
-            (_, _) => HoldsAuthorityAsync(httpContext, resourceServerNode, Operations.Update),
+            roleList,
+            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
             cancellationToken
         );
     }
@@ -879,19 +872,16 @@ internal class ResourceServerApiEndpointHandler(
         HttpContext httpContext,
         [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
     )
     {
-        return await ProcessAddOwnerAsync(
+        // See ADR-1469.
+        var roleList = GetOwnerList(tenantId, resourceServerId);
+        return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            tenantId,
-            ResourceNodeTypes.ResourceServer,
-            resourceServerId,
+            roleList,
             request,
-            $"/tenants/{tenantId}/resource-servers/{resourceServerId}/owners",
-            (storeManager, token) =>
-                ResourceServerExistsAsync(storeManager, resourceServerId, token),
             cancellationToken
         );
     }
@@ -909,15 +899,22 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        return await ProcessRemoveOwnerAsync(
-            httpContext,
-            tenantId,
-            ResourceNodeTypes.ResourceServer,
-            resourceServerId,
-            principalId,
-            cancellationToken
-        );
+        var roleList = GetOwnerList(tenantId, resourceServerId);
+        return await ProcessRemoveOwnerAsync(httpContext, roleList, principalId, cancellationToken);
     }
+
+    // Describes the owners of a resource server: the role is granted and revoked with 'Update' at the resource
+    // server's node.
+    private static RoleList GetOwnerList(string tenantId, string resourceServerId) =>
+        new()
+        {
+            Node = ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            RoleName = BuiltInRoles.Owner,
+            Operation = Operations.Update,
+            Path = $"/tenants/{tenantId}/resource-servers/{resourceServerId}/owners",
+            ResourceExistsAsync = (storeManager, token) =>
+                ResourceServerExistsAsync(storeManager, resourceServerId, token),
+        };
 
     private static async ValueTask<bool> ResourceServerExistsAsync(
         IStoreManager storeManager,

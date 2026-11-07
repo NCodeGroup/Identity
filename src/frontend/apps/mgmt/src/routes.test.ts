@@ -35,6 +35,16 @@ describe('routePath', () => {
     expect(parseRoute('/teams/acme/access')).toEqual(teamRoute('acme', 'access'));
   });
 
+  it('formats the platform clients surface as /clients', () => {
+    expect(routePath(platformRoute('clients'))).toBe('/clients');
+    expect(parseRoute('/clients')).toEqual(platformRoute('clients'));
+  });
+
+  it('nests the clients surface under its team', () => {
+    expect(routePath(teamRoute('acme', 'clients'))).toBe('/teams/acme/clients');
+    expect(parseRoute('/teams/acme/clients')).toEqual(teamRoute('acme', 'clients'));
+  });
+
   it('nests the child teams surface under its team', () => {
     expect(routePath(teamRoute('acme', 'teams'))).toBe('/teams/acme/teams');
     expect(parseRoute('/teams/acme/teams')).toEqual(teamRoute('acme', 'teams'));
@@ -138,7 +148,7 @@ describe('parseRoute', () => {
     ['a relative path', 'teams'],
     ['an unknown platform surface', '/servers'],
     ['an unknown platform root', '/platform/x'],
-    ['an unknown team surface', '/teams/acme/clients'],
+    ['an unknown team surface', '/teams/acme/servers'],
     ['an unknown tenant surface', '/tenants/acme/servers'],
     ['a surface outside the teams root', '/settings/acme/usage'],
     ['a blank team id', '/teams/%20/tenants'],

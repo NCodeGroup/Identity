@@ -17,7 +17,7 @@ public sealed class RoleListResource
     /// <summary>
     /// Gets the assignments of the role at the node.
     /// </summary>
-    public required IReadOnlyList<OwnerResource> Items { get; init; }
+    public required IReadOnlyList<RoleHolderResource> Items { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the caller may grant and revoke the role at the node: whether a grant or a

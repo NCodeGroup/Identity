@@ -5155,7 +5155,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CreateHttpContext(authenticated: true),
             TenantId,
             ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
+            new AddRoleHolderRequest { PrincipalId = "principal-1" },
             CancellationToken.None
         );
 
@@ -5174,7 +5174,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CreateHttpContext(authenticated: true),
             TenantId,
             ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
+            new AddRoleHolderRequest { PrincipalId = "principal-1" },
             CancellationToken.None
         );
 
@@ -5196,7 +5196,100 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CreateHttpContext(authenticated: true),
             TenantId,
             ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
+            new AddRoleHolderRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenTheCallerMayChangeTheClient_GrantsTheOwnerRoleAndReturnsCreated()
+    {
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupClientLookup();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Client,
+                    ClientId,
+                    "principal-2",
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = new PersistedRoleAssignment
+                    {
+                        TenantId = TenantId,
+                        AssignmentId = "assignment-2",
+                        PrincipalId = "principal-2",
+                        RoleName = BuiltInRoles.Owner,
+                        ResourceType = ResourceNodeTypes.Client,
+                        ResourceId = ClientId,
+                        ConcurrencyToken = "assignment-ct",
+                    },
+                    IsAdded = true,
+                }
+            )
+            .Verifiable();
+        var recorded = new List<RoleAssignmentChangedAuditEvent>();
+        SetupRoleAssignmentChangedAuditCapture(recorded.Add);
+
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<RoleHolderResource>>(result);
+        Assert.Equal(
+            $"/tenants/{TenantId}/clients/{ClientId}/owners/principal-2",
+            created.Location
+        );
+        var auditEvent = Assert.Single(recorded);
+        Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenThePrincipalCannotHoldTheRole_ReturnsConflictWithoutSavingOrRecording()
+    {
+        // Strict mocks: no SaveChangesAsync and no audit setup, so saving or recording would fail the test.
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupClientLookup();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Client,
+                    ClientId,
+                    "principal-2",
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new RoleAssignmentGrant { Assignment = null, IsAdded = false })
+            .Verifiable();
+
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 

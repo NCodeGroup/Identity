@@ -407,6 +407,132 @@ describe('managementApi client mutations (tenant scope)', () => {
   });
 });
 
+describe('managementApi machine clients (platform and team scope)', () => {
+  const botList = { items: [{ clientId: 'bot', tenantId: 'control' }] };
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('listMachineClients GETs the platform machine clients', async () => {
+    const captured = mockFetch(jsonResponse({ items: [] }));
+    const store = createStore();
+
+    await store.dispatch(managementApi.endpoints.listMachineClients.initiate({ kind: 'platform' }));
+
+    expect(captured[0]?.url).toBe('https://api.test/api/platform/clients');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it("listMachineClients GETs a team's machine clients by encoded id", async () => {
+    const captured = mockFetch(jsonResponse({ items: [] }));
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.listMachineClients.initiate({ kind: 'team', teamId: 'a/b' }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/a%2Fb/clients');
+    expect(captured[0]?.method).toBe('GET');
+  });
+
+  it('createMachineClient POSTs the request body under the team path', async () => {
+    const captured = mockFetch(
+      jsonResponse({ clientId: 'bot', tenantId: 'control', isDisabled: false }, 201),
+    );
+    const store = createStore();
+
+    await store.dispatch(
+      managementApi.endpoints.createMachineClient.initiate({
+        owner: { kind: 'team', teamId: 'acme' },
+        body: { isDisabled: false, settings: {} },
+      }),
+    );
+
+    expect(captured[0]?.method).toBe('POST');
+    expect(captured[0]?.url).toBe('https://api.test/api/teams/acme/clients');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual({ isDisabled: false, settings: {} });
+    expect(captured[0]?.antiforgery).toBe('1');
+  });
+
+  it("createMachineClient refetches the owner's list and the control-plane tenant's clients, not another team's", async () => {
+    const fetches = routeFetch((method) =>
+      method === 'GET'
+        ? jsonResponse({ items: [] })
+        : jsonResponse({ clientId: 'bot', tenantId: 'control', isDisabled: false }, 201),
+    );
+    const store = createStore();
+    await store.dispatch(
+      managementApi.endpoints.listMachineClients.initiate({ kind: 'team', teamId: 'acme' }),
+    );
+    await store.dispatch(
+      managementApi.endpoints.listMachineClients.initiate({ kind: 'team', teamId: 'globex' }),
+    );
+    await store.dispatch(managementApi.endpoints.listClients.initiate({ tenantId: 'control' }));
+
+    await store.dispatch(
+      managementApi.endpoints.createMachineClient.initiate({
+        owner: { kind: 'team', teamId: 'acme' },
+        body: { isDisabled: false, settings: {} },
+      }),
+    );
+    await settle(store);
+
+    expect(fetches.count('GET', '/api/teams/acme/clients')).toBe(2);
+    expect(fetches.count('GET', '/api/teams/globex/clients')).toBe(1);
+    expect(fetches.count('GET', '/api/tenants/control/clients')).toBe(2);
+  });
+
+  it("createMachineClient refetches only the owner's list when the create is refused", async () => {
+    const fetches = routeFetch((method) =>
+      method === 'GET' ? jsonResponse({ items: [] }) : jsonResponse({ title: 'Bad Request' }, 400),
+    );
+    const store = createStore();
+    await store.dispatch(
+      managementApi.endpoints.listMachineClients.initiate({ kind: 'team', teamId: 'acme' }),
+    );
+    await store.dispatch(
+      managementApi.endpoints.listMachineClients.initiate({ kind: 'team', teamId: 'globex' }),
+    );
+    await store.dispatch(managementApi.endpoints.listClients.initiate({ tenantId: 'control' }));
+
+    await store.dispatch(
+      managementApi.endpoints.createMachineClient.initiate({
+        owner: { kind: 'team', teamId: 'acme' },
+        body: { isDisabled: false, settings: {} },
+      }),
+    );
+    await settle(store);
+
+    expect(fetches.count('GET', '/api/teams/acme/clients')).toBe(2);
+    expect(fetches.count('GET', '/api/teams/globex/clients')).toBe(1);
+    expect(fetches.count('GET', '/api/tenants/control/clients')).toBe(1);
+  });
+
+  it('updateClient of a machine client refetches the list of the team that owns it', async () => {
+    const fetches = routeFetch((method) =>
+      method === 'GET' ? jsonResponse(botList) : new Response(null, { status: 204 }),
+    );
+    const store = createStore();
+    await store.dispatch(
+      managementApi.endpoints.listMachineClients.initiate({ kind: 'team', teamId: 'acme' }),
+    );
+
+    await store.dispatch(
+      managementApi.endpoints.updateClient.initiate({
+        tenantId: 'control',
+        clientId: 'bot',
+        concurrencyToken: 'c1',
+        fields: { isDisabled: true },
+      }),
+    );
+    await settle(store);
+
+    expect(fetches.count('GET', '/api/teams/acme/clients')).toBe(2);
+  });
+});
+
 describe('managementApi resource-server + scope mutations (tenant scope)', () => {
   const tenantId = 'acme';
 
@@ -1348,6 +1474,17 @@ const listTagCases: readonly ListTagCase[] = [
     run: (s) => s.dispatch(managementApi.endpoints.listClients.initiate({ tenantId: 'acme' })),
     collectionTag: { type: 'Client', id: 'tenant:acme:LIST' },
     itemTag: { type: 'Client', id: 'tenant:acme:web' },
+  },
+  {
+    name: 'listMachineClients',
+    path: '/api/teams/acme/clients',
+    body: { items: [{ clientId: 'bot', tenantId: 'control' }] },
+    run: (s) =>
+      s.dispatch(
+        managementApi.endpoints.listMachineClients.initiate({ kind: 'team', teamId: 'acme' }),
+      ),
+    collectionTag: { type: 'Client', id: 'team:acme:LIST' },
+    itemTag: { type: 'Client', id: 'tenant:control:bot' },
   },
   {
     name: 'listResourceServers',

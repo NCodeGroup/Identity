@@ -174,8 +174,8 @@ internal class TeamApiEndpointHandler(
         teams.MapGet("/{teamId}/owners", ListOwnersAsync).Produces<RoleListResource>();
         teams
             .MapPost("/{teamId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         teams
             .MapDelete("/{teamId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -184,8 +184,8 @@ internal class TeamApiEndpointHandler(
         teams.MapGet("/{teamId}/admins", ListAdminsAsync).Produces<RoleListResource>();
         teams
             .MapPost("/{teamId}/admins", AddAdminAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         teams
             .MapDelete("/{teamId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -1128,13 +1128,11 @@ internal class TeamApiEndpointHandler(
     )
     {
         // See ADR-1465.
-        var teamNode = GetTeamNode(httpContext, teamId);
+        var roleList = GetOwnerList(httpContext, teamId);
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            teamNode,
-            BuiltInRoles.Owner,
-            (storeManager, token) => TeamExistsAsync(storeManager, teamId, token),
-            (_, _) => HoldsAuthorityAsync(httpContext, teamNode, Operations.Update),
+            roleList,
+            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
             cancellationToken
         );
     }
@@ -1148,19 +1146,19 @@ internal class TeamApiEndpointHandler(
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
         [FromRoute] string teamId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
-    ) =>
-        await ProcessAddOwnerAsync(
+    )
+    {
+        // See ADR-1469.
+        var roleList = GetOwnerList(httpContext, teamId);
+        return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            GetControlPlaneTenantId(httpContext),
-            ResourceNodeTypes.Team,
-            teamId,
+            roleList,
             request,
-            $"/teams/{teamId}/owners",
-            (storeManager, token) => TeamExistsAsync(storeManager, teamId, token),
             cancellationToken
         );
+    }
 
     /// <summary>
     /// Removes an owner from a team.
@@ -1173,15 +1171,11 @@ internal class TeamApiEndpointHandler(
         [FromRoute] string teamId,
         [FromRoute] string principalId,
         CancellationToken cancellationToken
-    ) =>
-        await ProcessRemoveOwnerAsync(
-            httpContext,
-            GetControlPlaneTenantId(httpContext),
-            ResourceNodeTypes.Team,
-            teamId,
-            principalId,
-            cancellationToken
-        );
+    )
+    {
+        var roleList = GetOwnerList(httpContext, teamId);
+        return await ProcessRemoveOwnerAsync(httpContext, roleList, principalId, cancellationToken);
+    }
 
     /// <summary>
     /// Lists a team's administrators, the principals that manage the team and everything beneath it, and whether the
@@ -1196,13 +1190,11 @@ internal class TeamApiEndpointHandler(
     )
     {
         // See ADR-1465.
-        var teamNode = GetTeamNode(httpContext, teamId);
+        var roleList = GetAdminList(httpContext, teamId);
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            teamNode,
-            BuiltInRoles.TeamAdmin,
-            (storeManager, token) => TeamExistsAsync(storeManager, teamId, token),
-            (_, _) => HoldsAuthorityAsync(httpContext, teamNode, Operations.Create),
+            roleList,
+            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
             cancellationToken
         );
     }
@@ -1217,65 +1209,17 @@ internal class TeamApiEndpointHandler(
     internal virtual async ValueTask<IResult> AddAdminAsync(
         HttpContext httpContext,
         [FromRoute] string teamId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTeamNode(httpContext, teamId),
-            Operations.Create
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        if (string.IsNullOrEmpty(request.PrincipalId))
-        {
-            return TypedResults.Problem(
-                detail: "The 'principalId' is required.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await TeamExistsAsync(storeManager, teamId, cancellationToken))
-        {
-            return TypedResults.NotFound();
-        }
-
-        var grant = await ResourceOwnershipService.AddAssignmentAsync(
-            storeManager,
-            GetControlPlaneTenantId(httpContext),
-            ResourceNodeTypes.Team,
-            teamId,
-            request.PrincipalId,
-            BuiltInRoles.TeamAdmin,
-            cancellationToken
-        );
-        if (grant.IsRefused)
-        {
-            return RoleRefusedForPrincipal();
-        }
-
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        var ownerResource = ToOwnerResource(grant.Assignment);
-        if (!grant.IsAdded)
-        {
-            return TypedResults.Ok(ownerResource);
-        }
-
-        await RecordRoleAssignmentChangedAsync(
+        // See ADR-1469.
+        var roleList = GetAdminList(httpContext, teamId);
+        return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            grant.Assignment,
-            ResourceChangeTypes.Created
-        );
-
-        return TypedResults.Created(
-            $"/teams/{teamId}/admins/{grant.Assignment.PrincipalId}",
-            ownerResource
+            roleList,
+            request,
+            cancellationToken
         );
     }
 
@@ -1292,42 +1236,39 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTeamNode(httpContext, teamId),
-            Operations.Create
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var removed = await ResourceOwnershipService.RemoveAssignmentAsync(
-            storeManager,
-            ResourceNodeTypes.Team,
-            teamId,
+        // See ADR-1469.
+        var roleList = GetAdminList(httpContext, teamId);
+        return await ProcessRemoveRoleAssignmentAsync(
+            httpContext,
+            roleList,
             principalId,
-            BuiltInRoles.TeamAdmin,
             cancellationToken
         );
-        if (removed.Count == 0)
-        {
-            return TypedResults.NotFound();
-        }
-
-        await storeManager.SaveChangesAsync(cancellationToken);
-        foreach (var assignment in removed)
-        {
-            await RecordRoleAssignmentChangedAsync(
-                httpContext,
-                assignment,
-                ResourceChangeTypes.Deleted
-            );
-        }
-
-        return TypedResults.NoContent();
     }
+
+    // Describes the owners of a team: the role is granted and revoked with 'Update' at the team's node.
+    private static RoleList GetOwnerList(HttpContext httpContext, string teamId) =>
+        new()
+        {
+            Node = GetTeamNode(httpContext, teamId),
+            RoleName = BuiltInRoles.Owner,
+            Operation = Operations.Update,
+            Path = $"/teams/{teamId}/owners",
+            ResourceExistsAsync = (storeManager, token) =>
+                TeamExistsAsync(storeManager, teamId, token),
+        };
+
+    // Describes the administrators of a team: the role is granted and revoked with 'Create' at the team's node.
+    private static RoleList GetAdminList(HttpContext httpContext, string teamId) =>
+        new()
+        {
+            Node = GetTeamNode(httpContext, teamId),
+            RoleName = BuiltInRoles.TeamAdmin,
+            Operation = Operations.Create,
+            Path = $"/teams/{teamId}/admins",
+            ResourceExistsAsync = (storeManager, token) =>
+                TeamExistsAsync(storeManager, teamId, token),
+        };
 
     // Announces a committed change to the team: this replica evicts it and its tenants from the caches, so the change
     // takes effect at once, and after a settings change reconciles the team. The mediator is request-scoped, so it is

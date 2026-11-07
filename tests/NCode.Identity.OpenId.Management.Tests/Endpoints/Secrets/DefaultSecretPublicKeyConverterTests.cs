@@ -58,23 +58,17 @@ public sealed class DefaultSecretPublicKeyConverterTests : IAsyncLifetime
         int keySizeBits,
         string? publicKey = null
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
             KeyId = KeyId,
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = secretEncoding,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = "encoded",
             PublicKey = publicKey,
-        };
+        }.Build();
 
     private static KeyMetadata CreateMetadata() =>
         new()

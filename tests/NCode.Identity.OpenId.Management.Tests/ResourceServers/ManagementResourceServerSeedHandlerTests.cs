@@ -18,19 +18,22 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
     private const string TenantId = "tenant-1";
     private const string ManagementIdentifier = "urn:ncode:management";
 
-    private static SeedTenantCommand CreateCommand(IStoreManager storeManager, TenantPlane plane) =>
-        new(
+    private static SeedTenantCommand CreateCommand(IStoreManager storeManager, TenantPlane plane)
+    {
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            DisplayName = "Tenant One",
+        }.Build();
+        return new(
             new TenantSeedContext
             {
-                Tenant = new PersistedTenantBuilder
-                {
-                    TenantId = TenantId,
-                    DisplayName = "Tenant One",
-                }.Build(),
+                Tenant = tenant,
                 Plane = plane,
                 StoreManager = storeManager,
             }
         );
+    }
 
     private async Task<PersistedResourceServer?> SeedAsync(TenantPlane plane)
     {

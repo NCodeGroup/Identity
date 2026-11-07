@@ -17,19 +17,22 @@ public sealed class OpenIdIdentityResourceServerSeedHandlerTests
     private const string TenantId = "tenant-1";
     private const string OpenIdIdentifier = "urn:ncode:openid";
 
-    private static SeedTenantCommand CreateCommand(IStoreManager storeManager) =>
-        new(
+    private static SeedTenantCommand CreateCommand(IStoreManager storeManager)
+    {
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            DisplayName = "Tenant One",
+        }.Build();
+        return new(
             new TenantSeedContext
             {
-                Tenant = new PersistedTenantBuilder
-                {
-                    TenantId = TenantId,
-                    DisplayName = "Tenant One",
-                }.Build(),
+                Tenant = tenant,
                 Plane = TenantPlane.Workload,
                 StoreManager = storeManager,
             }
         );
+    }
 
     [Fact]
     public async Task HandleAsync_WhenAbsent_AddsResourceServer()

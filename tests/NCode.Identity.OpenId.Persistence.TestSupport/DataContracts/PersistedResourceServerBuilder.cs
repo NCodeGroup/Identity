@@ -10,8 +10,8 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
 /// Builds a <see cref="PersistedResourceServer"/> for tests. Each property holds a value a test may care about and
-/// defaults to the most common fixture value; <see cref="Build"/> copies the tenant and resource server identifiers into
-/// the nested settings and secrets documents, whose concurrency tokens come from
+/// defaults to the most common fixture value; <see cref="Build"/> copies the tenant and resource server identifiers
+/// into the nested settings and secrets documents, whose concurrency tokens come from
 /// <see cref="SettingsConcurrencyToken"/> and <see cref="SecretsConcurrencyToken"/>. <see cref="BuildSettings"/> and
 /// <see cref="BuildSecrets"/> build those documents alone.
 /// </summary>

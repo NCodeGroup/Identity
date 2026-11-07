@@ -77,8 +77,8 @@ public sealed record PersistedTenantBuilder
     /// Builds the tenant's <see cref="PersistedTenantSettings"/> alone.
     /// </summary>
     /// <returns>
-    /// A new <see cref="PersistedTenantSettings"/> that carries the tenant identifier, <see cref="SettingsConcurrencyToken"/>
-    /// and <see cref="Settings"/>.
+    /// A new <see cref="PersistedTenantSettings"/> that carries the tenant identifier,
+    /// <see cref="SettingsConcurrencyToken"/> and <see cref="Settings"/>.
     /// </returns>
     public PersistedTenantSettings BuildSettings() =>
         new()
@@ -92,8 +92,8 @@ public sealed record PersistedTenantBuilder
     /// Builds the tenant's <see cref="PersistedTenantSecrets"/> alone.
     /// </summary>
     /// <returns>
-    /// A new <see cref="PersistedTenantSecrets"/> that carries the tenant identifier, <see cref="SecretsConcurrencyToken"/>
-    /// and a copy of <see cref="Secrets"/>.
+    /// A new <see cref="PersistedTenantSecrets"/> that carries the tenant identifier,
+    /// <see cref="SecretsConcurrencyToken"/> and a copy of <see cref="Secrets"/>.
     /// </returns>
     public PersistedTenantSecrets BuildSecrets() =>
         new()

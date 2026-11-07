@@ -15,6 +15,8 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
@@ -37,6 +39,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
 /*
 
 GET   api/platform/settings
+GET   api/platform/settings/limits
 PATCH api/platform/settings
 GET   api/platform/effective-settings
 
@@ -95,6 +98,9 @@ internal class PlatformApiEndpointHandler(
             .WithTags(OpenIdConstants.EndpointTags.Platform);
 
         platform.MapGet("/settings", GetSettingsAsync).Produces<PlatformSettingsResource>();
+        platform
+            .MapGet("/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
         platform
             .MapPatch("/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -155,6 +161,31 @@ internal class PlatformApiEndpointHandler(
     }
 
     /// <summary>
+    /// Gets the limits the platform's settings carry and whether the caller may set them.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The platform's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/platform/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Platform);
+        var platformNode = GetPlatformNode(httpContext);
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            platformNode,
+            limitNames,
+            _ => ValueTask.FromResult<ResourceNode?>(platformNode),
+            cancellationToken
+        );
+    }
+
+    /// <summary>
     /// Gets the platform's effective (resolved) settings.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
@@ -208,20 +239,21 @@ internal class PlatformApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetPlatformNode(httpContext),
+            Operations.Read,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         if (!await PlatformExistsAsync(cancellationToken))
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetPlatformNode(httpContext),
-            Operations.Read
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         // The platform's master keys are always wrapped by the deployment's root key, so it reports no root key and no
@@ -250,20 +282,21 @@ internal class PlatformApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetPlatformNode(httpContext),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         if (!await PlatformExistsAsync(cancellationToken))
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetPlatformNode(httpContext),
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         return await EncryptionKeyEndpoints.RekeyAsync(
@@ -351,6 +384,18 @@ internal class PlatformApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetPlatformNode(httpContext),
+            Operations.Update,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IPlatformStore>();
 
@@ -359,17 +404,6 @@ internal class PlatformApiEndpointHandler(
         if (platformSettings is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetPlatformNode(httpContext),
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         // Enforce the optimistic-concurrency precondition supplied by the caller. Without this check the
@@ -576,8 +610,9 @@ internal class PlatformApiEndpointHandler(
     }
 
     // Announces a committed change to the platform's settings document, so every handler of the change (the default one
-    // reads the document again on every replica, whose reconciliation then seeds the tenants and checks the clients,
-    // ADR-1219) runs after the write. The mediator is request-scoped, so it is resolved from the request's services.
+    // reads the document again on every replica, ADR-1219, and each team's reconciliation then seeds the tenants and
+    // checks the clients, ADR-1412) runs after the write. The mediator is request-scoped, so it is resolved from the
+    // request's services.
     private static ValueTask NotifyPlatformSettingsChangedAsync(
         HttpContext httpContext,
         JsonElement previousSettings,

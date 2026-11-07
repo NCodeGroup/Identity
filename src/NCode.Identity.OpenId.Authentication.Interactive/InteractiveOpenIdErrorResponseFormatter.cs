@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.AspNetCore;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Results;
@@ -17,13 +18,13 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// unaffected.
 /// </summary>
 internal sealed class InteractiveOpenIdErrorResponseFormatter(
-    InteractiveBundleReader bundleReader,
+    SinglePageBundle<InteractiveBundleShell> bundle,
     InteractiveSurfacePaths surfacePaths,
     ITenantEnvironmentCatalog tenantEnvironmentCatalog,
     InteractiveLocaleSelector localeSelector
 ) : IOpenIdResponseFormatter
 {
-    private InteractiveBundleReader BundleReader { get; } = bundleReader;
+    private SinglePageBundle<InteractiveBundleShell> Bundle { get; } = bundle;
     private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
     private InteractiveLocaleSelector LocaleSelector { get; } = localeSelector;
@@ -56,7 +57,7 @@ internal sealed class InteractiveOpenIdErrorResponseFormatter(
         using var html = InteractiveHtmlResult.CreateBuffer();
         // The page is served at the protocol endpoint, so its base points the bundle's assets at the surface.
         var frame = new InteractivePageFrame(
-            await BundleReader.TryReadShellAsync(cancellationToken),
+            await Bundle.TryReadIndexAsync(cancellationToken),
             SurfacePaths.GetSurfaceBase(context.HttpContext),
             branding,
             security.Nonce,

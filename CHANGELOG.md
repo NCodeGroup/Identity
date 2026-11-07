@@ -132,11 +132,16 @@ describes the family as it is rather than its changes
   the 2.x line that stack targets, and the OpenID endpoint operation builders (`DefaultAuthorizationEndpointHandler`,
   `DefaultTokenEndpointProvider`) use the 2.x `OpenApiMediaType` model.
 
-- **The reference host separates liveness from readiness.** `/health/live` runs no checks and reports only that the
-  process answers, so a dependency outage never makes Kubernetes restart a replica. `/health/ready` runs every check
-  tagged `ready` and returns `503` while any of them fails, taking the replica out of rotation until its dependencies
-  return; those checks are the database (`AddDbContextCheck<OpenIdDbContext>`, registered with the `openiddb` connection
-  string) and Valkey when configured. The Aspire orchestrator gates dependents on `/health/ready`.
+- **The reference hosts separate liveness from readiness through one helper.** `MapHealthProbes()`
+  (`NCode.AspNetCore`) maps `/health/live`, which runs no checks and reports only that the process answers, so a
+  dependency outage never makes Kubernetes restart a replica, and `/health/ready`, which runs every check tagged
+  `HealthCheckTags.Readiness` and returns `503` while any of them fails, taking the replica out of rotation until its
+  dependencies return; it returns their route group, so a host adds a convention such as `RequireHost` to both.
+  `NCode.Identity.OpenId.Host` and `NCode.Identity.ManagementConsole.Host` call it. The server's readiness checks are the
+  database (`AddDbContextCheck<OpenIdDbContext>`, registered with the `openiddb` connection string) and Valkey when
+  configured. The Aspire orchestrator gates dependents on `/health/ready`
+  ([ADR-1456](docs/decisions/1456-the-hosts-map-their-health-probes-through-one-general-helper.md), issue
+  [#609](https://github.com/NCodeGroup/Identity/issues/609)).
 
 - **The reference hosts write logs to standard output only.** `NCode.Identity.OpenId.Host` and
   `NCode.Identity.OpenId.Host.MigrationService` register the console and EventSource logging providers on every
@@ -333,6 +338,13 @@ describes the family as it is rather than its changes
   ([ADR-1248](docs/decisions/1248-the-host-image-writes-one-line-json-logs.md), issue
   [#265](https://github.com/NCodeGroup/Identity/issues/265)).
 
+- **The management console host ships a production container image.**
+  `src/NCode.Identity.ManagementConsole.Host/Dockerfile` builds the console host on the host image's pinned chiseled
+  base images: no shell, the non-root `app` user, port 8080, the `apps/mgmt` bundle served from `/app/mgmt`, and
+  one-line JSON logs; the `Console image` CI workflow builds it for `linux/amd64` and `linux/arm64`
+  ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+  issue [#610](https://github.com/NCodeGroup/Identity/issues/610)).
+
 - **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` on Kubernetes 1.30 or
   later under the restricted Pod Security Standard: non-root, read-only root filesystem, no capabilities, and no default
   service-account token (a cloud root-key provider gets only the projected token its workload identity exchanges). The
@@ -348,6 +360,16 @@ describes the family as it is rather than its changes
   old pod to terminate before starting the next, so it never runs two replicas at once. The `Host chart` CI workflow
   lints the chart, renders each example release, and checks that each unsafe release is refused
   ([ADR-1179](docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)).
+
+- **The host chart deploys the management console on a host of its own.** With `managementConsole.enabled`,
+  `charts/ncode-identity-host` runs the console host under the restricted Pod Security Standard with its own
+  ServiceAccount without a token, mounts its `mgmt-client` and `mgmt-dpop` keys read-only from Secrets, probes
+  `/health/live` and `/health/ready`, and routes `managementConsole.host` through an Ingress that sends `/api` to the
+  server and every other path to the console. Rendering fails for a missing or wildcard console host, an `allowedHosts`
+  that does not list it, an authority that is not `https`, a missing key Secret, or more than one console replica
+  without the console's own Valkey
+  ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
+  issue [#610](https://github.com/NCodeGroup/Identity/issues/610)).
 
 - **The host's chart migrates the database before each rollout.** The chart runs the image's migration worker as a Helm
   `pre-install` and `pre-upgrade` Job, so a failed migration fails the release before any pod is replaced. The Job runs
@@ -1827,12 +1849,20 @@ describes the family as it is rather than its changes
 
 - **The server-rendered pages stream into the response from a cached, pre-split bundle index.** The login, consent and
   error pages and the `form_post` authorization response render into a pooled `Sequence<char>` transcoded straight into
-  `HttpResponse.BodyWriter`, without building a document string. `InteractiveBundleReader` reads the bundle's
-  `index.html` once per version and splits it at its `<div id="root"></div>` mount point into an
+  `HttpResponse.BodyWriter`, without building a document string. `SinglePageBundle<InteractiveBundleShell>` reads the
+  bundle's `index.html` once per version and splits it at its `<div id="root"></div>` mount point into an
   `InteractiveBundleShell`, so each page writes the cached head, its form and the cached tail; the renderer's page
   methods take an `IBufferWriter<char>` and the split shell. Each request compares the file's last-write time and length
   with the cached copy's, so a rebuilt bundle is picked up without a restart, including on bind-mounted and network file
   systems where change notifications are unreliable.
+
+- **`SinglePageBundle<TIndex>` reads and serves a built single-page bundle.** `NCode.AspNetCore` reads a bundle's
+  `index.html` once per version into the index type its surface parses, revalidated per request by the file's last-write
+  time and length, resolves only the files of its `assets` directory, and serves them with
+  `Cache-Control: public, max-age=31536000, immutable`, validators and range requests; the interactive surface and the
+  management console each register one
+  ([ADR-1457](docs/decisions/1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md), issue
+  [#612](https://github.com/NCodeGroup/Identity/issues/612)).
 
 - **The consent screen shows the real client and a per-scope choice with friendly names, every requested scope
   pre-selected** ([ADR-1076](docs/decisions/1076-consent-persistence-and-enforcement.md),
@@ -1966,9 +1996,11 @@ describes the family as it is rather than its changes
   (`PersistedRoleAssignment` / `IRoleAssignmentStore`) back an additive `OwnershipHandler` that grants a principal every
   operation except `Create` on a resource it owns, or on any resource under a node it owns, and the principal that
   creates a client, resource server or tenant becomes its owner. Each of those resources has owner-management endpoints
-  (`GET`/`POST`/`DELETE /{resource}/{id}/owners`) returning `OwnerResource`, and a one-owner invariant refuses to orphan
-  a resource with `409`. The ownership service and resource-node abstraction (`IResourceOwnershipService`,
-  `IResourceNode`, `ResourceNode`, `ResourceNodeTypes`) are public, so applications own and enforce their own resource
+  (`GET`/`POST`/`DELETE /{resource}/{id}/owners`) returning `OwnerResource`, a grant the principal already holds
+  answers `200` with its assignment, and a one-owner invariant refuses to orphan a resource with `409`. The ownership
+  service reports what it changed (`RoleAssignmentGrant`, `OwnerRemoval`). The ownership service and resource-node
+  abstraction (`IResourceOwnershipService`, `IResourceNode`, `ResourceNode`, `ResourceNodeTypes`) are public, so
+  applications own and enforce their own resource
   types; the built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
@@ -2050,13 +2082,15 @@ describes the family as it is rather than its changes
   validation problem naming the setting when a registered ID token, UserInfo or introspection signing or encryption
   algorithm is outside its effective `*_values_supported` list; the default `A128CBC-HS256` of a registered encryption
   without an `enc` is checked the same way. A tenant settings update checks every client of the tenant, a team settings
-  update every client of the tenants of the team and of every team beneath it, and a platform
-  settings update every client of every tenant, each answering `400` naming the list and the client when the change
-  excludes an algorithm a client registers; a mismatch the change does not introduce is not reported. A mismatch is
-  reported when the settings are written rather than at issuance. `OpenIdPlatform.ConfiguredSettingsProvider` holds the
-  settings the platform derives from its defaults and the host's configuration, onto which its persisted settings document
+  update every client of the tenants of the team and of every team beneath it, walked a page of child teams at a time,
+  and a platform settings update every client of every tenant, each answering `400` naming the list and the client when
+  the change excludes an algorithm a client registers; a mismatch the change does not introduce is not reported. A
+  mismatch is reported when the settings are written rather than at issuance.
+  `OpenIdPlatform.ConfiguredSettingsProvider` holds the settings the platform derives from its defaults and the host's
+  configuration, onto which its persisted settings document
   is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
   page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
@@ -2291,6 +2325,11 @@ describes the family as it is rather than its changes
   `OwnerSettingsTab` serve every detail page: clients, resource servers, the tenant's own surfaces, teams and the platform
   ([ADR-1257](docs/decisions/1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
   issue [#236](https://github.com/NCodeGroup/Identity/issues/236)).
+
+- **The management console manages owners and administrators.** A team's and a tenant's Access surface lists, grants
+  and revokes their administrators and owners, and a client's and a resource server's Access tab their owners, through
+  `useListRoleAssignmentsQuery`, `useAddRoleAssignmentMutation` and `useRemoveRoleAssignmentMutation`, each taking a
+  `RoleList` from `@ncode/api` ([#582](https://github.com/NCodeGroup/Identity/issues/582)).
 
 - **The management console manages secrets with a one-time reveal.** An owner's Secrets tab creates, lists and deletes
   secrets; generated key material is shown exactly once in a `RevealSecretDialog` with a copy affordance and is never
@@ -2873,9 +2912,9 @@ describes the family as it is rather than its changes
   ([ADR-1267](docs/decisions/1267-replicas-share-versioned-expiring-values-and-membership-indexes.md), issue
   [#123](https://github.com/NCodeGroup/Identity/issues/123)).
 
-- **`HealthCheckTags.Readiness` tags every readiness health check.** `NCode.Identity.Abstractions` publishes the tag
+- **`HealthCheckTags.Readiness` tags every readiness health check.** `NCode.Registration` publishes the tag
   (`"ready"`) of every health check that decides whether a replica can serve requests. The Valkey adapter tags its check
-  with it and the reference host's `/health/ready` endpoint runs the checks that carry it, so a package that adds a
+  with it and `MapHealthProbes()`'s `/health/ready` endpoint runs the checks that carry it, so a package that adds a
   readiness check uses the constant.
 
 - **`IReplicaBroadcaster` and `IReplicaBroadcastHandler` announce a change to every replica.** A replica publishes a
@@ -2890,19 +2929,24 @@ describes the family as it is rather than its changes
 
 - **A replica that may have missed a broadcast drops what the message would have invalidated.** The Valkey subscriber
   calls `IReplicaBroadcastHandler.HandleMissedMessagesAsync` once it subscribes a channel and whenever its connection is
-  restored. The tenant handler evicts every cached tenant through `IOpenIdTenantCache.ClearAsync`, the team handler
-  evicts only the cached teams whose stored row, or the row of a team above them, changed or is gone, with every team
-  and tenant beneath them, comparing the concurrency token of each served team and of every team it was materialized
-  over (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
+  restored. The tenant handler evicts only the cached tenants whose stored row changed or is gone, with their master
+  keys, comparing the concurrency token each served tenant was materialized from (`OpenIdTenant.ConcurrencyToken`,
+  `IOpenIdTenantCache.GetRevisionsAsync`) with the store's (`ITenantStore.GetConcurrencyTokensAsync`) and evicting
+  every cached tenant and master key when it cannot read them, because every change a `tenant-changed` announcement
+  carries commits to the tenant row, a tenant root key change through `ITenantStore.MarkSecretsChangedAsync`; the team
+  handler evicts only the cached teams whose stored row, or the row of a team above them, changed or is gone, with
+  every team and tenant beneath them, comparing the concurrency token of each served team and of every team it was
+  materialized over (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
   `IOpenIdTenantCache.GetTeamRevisionsAsync`) with the store's (`ITeamStore.GetConcurrencyTokensAsync`) and clearing
-  both caches when it cannot read them, and the platform
-  handler reads the platform's settings again
+  both caches when it cannot read them, and the platform handler reads the platform's settings again
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md),
   issue [#249](https://github.com/NCodeGroup/Identity/issues/249),
-  [#564](https://github.com/NCodeGroup/Identity/issues/564)).
+  [#564](https://github.com/NCodeGroup/Identity/issues/564),
+  [#579](https://github.com/NCodeGroup/Identity/issues/579)).
 
 - **A committed tenant, team or platform settings change is applied and announced on its own bounded token.**
   `TenantChangedHandler`, `TeamChangedHandler` and `PlatformSettingsChangedHandler` evict, read back and announce a committed change each on its
@@ -3699,16 +3743,29 @@ describes the family as it is rather than its changes
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
+- **A caller learns which limits a scope's settings carry and whether it may change them.** `GET …/settings/limits` on
+  the platform, a team, a tenant, a client and a resource server answers `SettingLimitsResource`: the limits the
+  settings may carry (`ISettingSerializer.GetLimits`) and `canChange`, whether the caller holds `Update` at the node
+  above. The management console shows a caller without that authority the limits read-only beside the settings it
+  edits, and its save never changes them
+  ([ADR-1448](docs/decisions/1448-a-settings-reader-learns-which-limits-it-may-change.md),
+  [#581](https://github.com/NCodeGroup/Identity/issues/581)).
+
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
   one team and every team beneath it when that team's settings change, each team once per pass and under its own lease
   `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
   (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants.
-  Requests that arrive during a pass coalesce, one per team, and a request for every team covers them all, so none is
-  dropped however many arrive ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A
-  team change evicts the team, every team beneath it and their tenants on every replica over the `team-changed` channel
+  The teams beneath a team are walked depth first through `ITeamDescendantWalker`, which reads each team's child teams
+  a page at a time (`ITeamStore.GetChildPageAsync`) in a unit of work of its own and holds at most one page per level,
+  so a subtree of any size is reconciled in bounded memory. Requests that arrive during a pass coalesce, one per team,
+  and a request for every team covers them all, so none is dropped however many arrive
+  ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A team change evicts the team, every team beneath it and
+  their tenants on every replica over the `team-changed` channel
   ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md),
+  [#601](https://github.com/NCodeGroup/Identity/issues/601)).
 
 - **Disabling a team suspends every team and tenant beneath it, and a team with tenants or teams cannot be deleted.** A
   tenant of a disabled team, or of a team beneath one, answers `404` on the protocol surface and on the management
@@ -3863,11 +3920,15 @@ describes the family as it is rather than its changes
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
 
-- **A team or tenant route answers a caller without authority the same for any identifier.** It authorizes at the team
-  or tenant its route names before it reads, so a `401` or `403` never depends on whether the team, tenant, setting,
-  secret, key, owner or administrator exists, and no row is read for the caller
+- **A management route answers a caller without authority the same for any identifier.** Every team, tenant, client,
+  resource-server, scope, client-grant, local-account and platform route authorizes at the node its route names, and
+  at a resource server its request names, before it reads, so a `401` or `403` never depends on whether the team,
+  tenant, client, resource server, scope, grant, account, setting, secret, key, owner or administrator exists, and no
+  row is read for the caller. A client's or resource server's settings, scopes and secrets are authorized at its own
+  node, so its owner edits them, and creating or rotating a secret takes the authority to create there
   ([ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
-  [#558](https://github.com/NCodeGroup/Identity/issues/558)).
+  [ADR-1451](docs/decisions/1451-every-management-route-authorizes-at-its-node-before-it-reads.md),
+  [#558](https://github.com/NCodeGroup/Identity/issues/558), [#596](https://github.com/NCodeGroup/Identity/issues/596)).
 
 - **A unit of work resolves a tracked row only in its ambient tenant.** A store's lookup that the change tracker answers
   applies the same tenant scope as the query filter, so a row tracked for one tenant is never returned in another
@@ -4022,9 +4083,10 @@ describes the family as it is rather than its changes
   stored secrets unreadable after the next restart, recoverable only with the recovery key
   ([ADR-1235](docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
-- **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the Dockerfile names
-  its tag and the digest of its multi-architecture index, and the Dockerfile takes its .NET and Node versions from those
-  lines alone, with no version build argument; a weekly `docker` Dependabot stream moves the digests, and the `Host
+- **The host image's base images are pinned by digest and tracked by Dependabot.** Every `FROM` of the host and console
+  Dockerfiles names its tag and the digest of its multi-architecture index, and each Dockerfile takes its .NET and Node
+  versions from those lines alone, with no version build argument; a weekly `docker` Dependabot stream moves the digests
+  of both images in one pull request, and the `Host
   image` workflow checks the Node major against `.node-version`
   ([ADR-1249](docs/decisions/1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md), issue
   [#226](https://github.com/NCodeGroup/Identity/issues/226)).
@@ -4333,10 +4395,10 @@ describes the family as it is rather than its changes
   [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
 
 - **No CORS on the front-channel endpoints.** The authorization, continue, and end-session endpoints and the interactive
-  login/consent surface carry `IOpenIdEndpointFrontChannelMetadata` (`WithOpenIdFrontChannel()`), and `UseDeveloperCors`
-  applies the developer policy only to endpoints without it, so even in Development they never answer a cross-origin
-  request with `Access-Control-Allow-Origin` (FAPI 2.0 Security Profile §5.3.2.1). The marker also makes routing send a
-  CORS preflight to the endpoint itself, which refuses it with `405` and no CORS headers; `UseDeveloperCors` answers no
+  login/consent surface carry `IFrontChannelEndpointMetadata` (`WithFrontChannel()`), and `UseDeveloperCors` applies the
+  developer policy only to endpoints without it, so even in Development they never answer a cross-origin request with
+  `Access-Control-Allow-Origin` (FAPI 2.0 Security Profile §5.3.2.1). The marker also makes routing send a CORS
+  preflight to the endpoint itself, which refuses it with `405` and no CORS headers; `UseDeveloperCors` answers no
   preflight that selects no endpoint, such as one for a method a front-channel path does not map. A host that adds its
   own CORS middleware skips both
   ([ADR-1109](docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md)).
@@ -5145,8 +5207,11 @@ describes the family as it is rather than its changes
   `ResourceServerChangedAuditEvent`, `ResourceServerScopeChangedAuditEvent` and `ResourceServerSecretChangedAuditEvent`
   for every resource-server operation (create, update and delete, scopes, settings and secrets, issue
   [#139](https://github.com/NCodeGroup/Identity/issues/139)), `PrincipalChangedAuditEvent` for a block or unblock
-  (resource type `principal`, `ManagementResourceTypes.Principal`) and `LocalAccountChangedAuditEvent` for a local
-  account.
+  (resource type `principal`, `ManagementResourceTypes.Principal`), `LocalAccountChangedAuditEvent` for a local
+  account and `RoleAssignmentChangedAuditEvent` (`role_assignment.created` / `role_assignment.deleted`) for every role
+  the management API grants or revokes, the creator's included, naming the acting administrator
+  ([ADR-1449](docs/decisions/1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
+  [#583](https://github.com/NCodeGroup/Identity/issues/583)).
 
 - **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
   account's principal is terminated with the `password_reset` reason (`SessionTerminationReasons.PasswordReset`): its
@@ -5523,12 +5588,16 @@ describes the family as it is rather than its changes
   management API answers `503` with `Retry-After` and `retryAfterSeconds`, a protocol endpoint answers
   `temporarily_unavailable` with `503`, `Retry-After` and `Cache-Control: no-store`, and the authorization endpoint
   returns it to the client's redirect URI, the host logs the failure, and `root_key.unavailable` is audited; development
-  pruning never deletes the master keys of such a tenant
+  pruning never deletes the master keys of such a tenant. A change to the key's state marks the tenant's secrets changed
+  before the change is announced, so a replica that missed the announcement evicts the tenant when its connection is
+  restored
   ([#174](https://github.com/NCodeGroup/Identity/issues/174),
   [#573](https://github.com/NCodeGroup/Identity/issues/573),
+  [#579](https://github.com/NCodeGroup/Identity/issues/579),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
-  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md),
+  [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md)).
 - **An imported elliptic-curve public key is checked against its curve.** A JWK's `x` and `y` must each be the curve's
   field length, below its prime and satisfy its curve equation before the platform imports the point, so an off-curve or
   invalid-curve point is rejected with the same error on every platform

@@ -47,7 +47,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     ISessionService sessionService,
     TimeProvider timeProvider,
     IAntiforgery antiforgery,
-    InteractiveBundleReader bundleReader,
+    SinglePageBundle<InteractiveBundleShell> bundle,
     InteractiveSurfacePaths surfacePaths,
     ITenantEnvironmentCatalog tenantEnvironmentCatalog,
     InteractiveLocaleSelector localeSelector
@@ -73,7 +73,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private ISessionService SessionService { get; } = sessionService;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAntiforgery Antiforgery { get; } = antiforgery;
-    private InteractiveBundleReader BundleReader { get; } = bundleReader;
+    private SinglePageBundle<InteractiveBundleShell> Bundle { get; } = bundle;
     private InteractiveSurfacePaths SurfacePaths { get; } = surfacePaths;
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
     private InteractiveLocaleSelector LocaleSelector { get; } = localeSelector;
@@ -1164,7 +1164,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     {
         IssueAntiforgeryTokens(httpContext);
 
-        var shell = await BundleReader.TryReadShellAsync(httpContext.RequestAborted);
+        var shell = await Bundle.TryReadIndexAsync(httpContext.RequestAborted);
         if (shell is null)
         {
             return BundleMissingResult();
@@ -1189,7 +1189,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     ) =>
         CreatePageFrame(
             httpContext,
-            await BundleReader.TryReadShellAsync(httpContext.RequestAborted),
+            await Bundle.TryReadIndexAsync(httpContext.RequestAborted),
             branding,
             security
         );

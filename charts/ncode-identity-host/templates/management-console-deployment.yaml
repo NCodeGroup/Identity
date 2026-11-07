@@ -1,0 +1,168 @@
+{{- if .Values.managementConsole.enabled }}
+{{- include "identity-host.managementConsole.validate" . }}
+{{- $console := .Values.managementConsole }}
+{{- $valkey := include "identity-host.managementConsole.valkeyEnabled" . }}
+{{- $keyRoot := "/etc/ncode-identity/management-console" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "identity-host.managementConsole.fullname" . }}
+  labels:
+    {{- include "identity-host.managementConsole.labels" . | nindent 4 }}
+spec:
+  replicas: {{ $console.replicaCount }}
+  revisionHistoryLimit: 5
+  strategy:
+    {{- if $valkey }}
+    # A new replica is ready before an old one stops, so the release never drops below its replica count.
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    {{- else }}
+    # Without Valkey each replica holds its sessions in process, so two replicas must never run at once, not even
+    # during an update. Recreate waits until the old pod has terminated; a rolling update with maxSurge 0 starts the new
+    # pod as soon as the old one begins terminating, while it may still be serving.
+    type: Recreate
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "identity-host.managementConsole.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "identity-host.managementConsole.labels" . | nindent 8 }}
+        {{- with $console.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $console.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "identity-host.managementConsole.serviceAccountName" . }}
+      # The console never calls the Kubernetes API.
+      automountServiceAccountToken: false
+      {{- with include "identity-host.imagePullSecrets" . }}
+      {{- . | trim | nindent 6 }}
+      {{- end }}
+      {{- with $console.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ $console.terminationGracePeriodSeconds }}
+      # The restricted Pod Security Standard: the image's non-root 'app' user, whose group can read the mounted keys.
+      securityContext:
+        {{- include "identity-host.podSecurityContext" . | nindent 8 }}
+      {{- if $console.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ $console.topologySpread.maxSkew }}
+          topologyKey: {{ $console.topologySpread.topologyKey }}
+          whenUnsatisfiable: {{ $console.topologySpread.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "identity-host.managementConsole.selectorLabels" . | nindent 14 }}
+      {{- end }}
+      containers:
+        - name: management-console
+          image: {{ include "identity-host.managementConsole.image" . | quote }}
+          imagePullPolicy: {{ $console.image.pullPolicy }}
+          securityContext:
+            {{- include "identity-host.containerSecurityContext" . | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            {{- include "identity-host.managementConsole.env" . | trim | nindent 12 }}
+          {{- with $console.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          # The kubelet sends the pod's IP as the Host header, which AllowedHosts rejects, so each probe names the
+          # console's host.
+          startupProbe:
+            httpGet:
+              path: /health/live
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: {{ $console.host | quote }}
+            periodSeconds: {{ $console.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ $console.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ $console.probes.startup.failureThreshold }}
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: {{ $console.host | quote }}
+            periodSeconds: {{ $console.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ $console.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ $console.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: {{ $console.host | quote }}
+            periodSeconds: {{ $console.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ $console.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ $console.probes.readiness.failureThreshold }}
+          lifecycle:
+            # The image has no shell, so the drain uses the kubelet's sleep action rather than 'sleep' in the container.
+            preStop:
+              sleep:
+                seconds: {{ $console.preStopSleepSeconds }}
+          {{- with $console.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            # The root filesystem is read-only; the runtime's diagnostics socket and temporary files go here.
+            - name: tmp
+              mountPath: /tmp
+            - name: client-key
+              mountPath: {{ printf "%s/client-key" $keyRoot }}
+              readOnly: true
+            - name: dpop-key
+              mountPath: {{ printf "%s/dpop-key" $keyRoot }}
+              readOnly: true
+            {{- with $console.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: client-key
+          secret:
+            secretName: {{ $console.keys.clientKeySecret }}
+            items:
+              - key: mgmt-client.pem
+                path: mgmt-client.pem
+            defaultMode: 0440
+        - name: dpop-key
+          secret:
+            secretName: {{ $console.keys.dpopKeySecret }}
+            items:
+              - key: mgmt-dpop.pem
+                path: mgmt-dpop.pem
+            defaultMode: 0440
+        {{- with $console.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $console.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $console.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $console.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

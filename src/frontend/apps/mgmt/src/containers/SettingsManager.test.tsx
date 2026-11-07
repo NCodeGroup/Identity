@@ -12,6 +12,7 @@ function renderManager(props: Partial<SettingsManagerProps> = {}) {
     <SettingsManager
       settings={settings}
       effective={effective}
+      limits={{ names: [], canChange: true }}
       isLoading={false}
       loadError={false}
       isSaving={false}
@@ -85,6 +86,53 @@ describe('SettingsManager', () => {
     expect(await screen.findByTestId('settings-error')).toHaveTextContent(
       'The settings changed since you loaded them.',
     );
+  });
+
+  it('moves the limits out of the editor and shows them read-only when the caller cannot change them', () => {
+    renderManager({
+      settings: { concurrencyToken: 'st1', settings: { a: 1, max_tenants: 5 } },
+      limits: { names: ['max_tenants'], canChange: false },
+    });
+
+    expect(screen.getByTestId('settings-json')).toHaveValue(pretty({ a: 1 }));
+    expect(screen.getByTestId('locked-settings-json')).toHaveValue(pretty({ max_tenants: 5 }));
+  });
+
+  it('keeps the locked entries in the desired settings when the caller cannot change the limits', () => {
+    const onSave = renderManager({
+      settings: { concurrencyToken: 'st1', settings: { a: 1, max_tenants: 5 } },
+      limits: { names: ['max_tenants'], canChange: false },
+    });
+
+    fireEvent.change(screen.getByTestId('settings-json'), { target: { value: '{"a": 2}' } });
+    fireEvent.click(screen.getByTestId('settings-save'));
+
+    expect(onSave).toHaveBeenCalledWith({
+      concurrencyToken: 'st1',
+      original: { a: 1, max_tenants: 5 },
+      desired: { a: 2, max_tenants: 5 },
+    });
+  });
+
+  it('edits the whole document when the caller can change the limits', () => {
+    const onSave = renderManager({
+      settings: { concurrencyToken: 'st1', settings: { a: 1, max_tenants: 5 } },
+      limits: { names: ['max_tenants'], canChange: true },
+    });
+
+    expect(screen.getByTestId('settings-json')).toHaveValue(pretty({ a: 1, max_tenants: 5 }));
+    expect(screen.queryByTestId('locked-settings-json')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByTestId('settings-json'), {
+      target: { value: '{"a": 1, "max_tenants": 9}' },
+    });
+    fireEvent.click(screen.getByTestId('settings-save'));
+
+    expect(onSave).toHaveBeenCalledWith({
+      concurrencyToken: 'st1',
+      original: { a: 1, max_tenants: 5 },
+      desired: { a: 1, max_tenants: 9 },
+    });
   });
 
   it('does not save when no persisted settings are loaded to diff against', () => {

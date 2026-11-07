@@ -68,19 +68,6 @@ public interface ITeamStore : IStore<PersistedTeam>
     );
 
     /// <summary>
-    /// Gets every team beneath a team at every level, with a parent before its children.
-    /// </summary>
-    /// <param name="teamId">The identifier of the team.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// <see cref="PersistedTeam"/> instances beneath the team; empty when the team has none or does not exist.</returns>
-    // See ADR-1426.
-    ValueTask<IReadOnlyList<PersistedTeam>> GetDescendantsAsync(
-        string teamId,
-        CancellationToken cancellationToken
-    );
-
-    /// <summary>
     /// Counts every team beneath a team at every level.
     /// </summary>
     /// <param name="teamId">The identifier of the team.</param>

@@ -1,0 +1,13 @@
+{{- if and .Values.managementConsole.enabled .Values.managementConsole.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "identity-host.managementConsole.fullname" . }}
+  labels:
+    {{- include "identity-host.managementConsole.labels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ .Values.managementConsole.podDisruptionBudget.maxUnavailable }}
+  selector:
+    matchLabels:
+      {{- include "identity-host.managementConsole.selectorLabels" . | nindent 6 }}
+{{- end }}

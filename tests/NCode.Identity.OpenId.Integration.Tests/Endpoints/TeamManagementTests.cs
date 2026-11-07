@@ -1536,6 +1536,161 @@ public class TeamManagementTests
     }
 
     [Fact]
+    public async Task TeamAdmin_GetsForbiddenForWritesInAnotherTeamsTenant()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        await CreateTenantAsync(administrator, "globex", "globex-dev");
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        using var patchClient = await SendPatchAsync(
+            teamAdmin,
+            "/api/tenants/globex-dev/clients/nope",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/isDisabled",
+                    value = true,
+                },
+            }
+        );
+        var patchClientBody = await patchClient.Content.ReadAsStringAsync();
+        Assert.True(patchClient.StatusCode == HttpStatusCode.Forbidden, patchClientBody);
+
+        using var deleteClient = await teamAdmin.DeleteAsync(
+            "/api/tenants/globex-dev/clients/nope"
+        );
+        var deleteClientBody = await deleteClient.Content.ReadAsStringAsync();
+        Assert.True(deleteClient.StatusCode == HttpStatusCode.Forbidden, deleteClientBody);
+
+        using var patchSettings = await SendPatchAsync(
+            teamAdmin,
+            "/api/tenants/globex-dev/clients/nope/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/client_name",
+                    value = "x",
+                },
+            }
+        );
+        var patchSettingsBody = await patchSettings.Content.ReadAsStringAsync();
+        Assert.True(patchSettings.StatusCode == HttpStatusCode.Forbidden, patchSettingsBody);
+
+        using var postSecret = await teamAdmin.PostAsJsonAsync(
+            "/api/tenants/globex-dev/clients/nope/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var postSecretBody = await postSecret.Content.ReadAsStringAsync();
+        Assert.True(postSecret.StatusCode == HttpStatusCode.Forbidden, postSecretBody);
+
+        using var deleteSecret = await teamAdmin.DeleteAsync(
+            "/api/tenants/globex-dev/clients/nope/secrets/nope"
+        );
+        var deleteSecretBody = await deleteSecret.Content.ReadAsStringAsync();
+        Assert.True(deleteSecret.StatusCode == HttpStatusCode.Forbidden, deleteSecretBody);
+
+        using var patchResourceServer = await SendPatchAsync(
+            teamAdmin,
+            "/api/tenants/globex-dev/resource-servers/nope",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/name",
+                    value = "x",
+                },
+            }
+        );
+        var patchResourceServerBody = await patchResourceServer.Content.ReadAsStringAsync();
+        Assert.True(
+            patchResourceServer.StatusCode == HttpStatusCode.Forbidden,
+            patchResourceServerBody
+        );
+
+        using var deleteScope = await teamAdmin.DeleteAsync(
+            "/api/tenants/globex-dev/resource-servers/nope/scopes/read"
+        );
+        var deleteScopeBody = await deleteScope.Content.ReadAsStringAsync();
+        Assert.True(deleteScope.StatusCode == HttpStatusCode.Forbidden, deleteScopeBody);
+
+        using var deleteGrant = await teamAdmin.DeleteAsync(
+            "/api/tenants/globex-dev/clients/nope/grants/nope"
+        );
+        var deleteGrantBody = await deleteGrant.Content.ReadAsStringAsync();
+        Assert.True(deleteGrant.StatusCode == HttpStatusCode.Forbidden, deleteGrantBody);
+
+        using var deleteAccount = await teamAdmin.DeleteAsync(
+            "/api/tenants/globex-dev/local-accounts/nope"
+        );
+        var deleteAccountBody = await deleteAccount.Content.ReadAsStringAsync();
+        Assert.True(deleteAccount.StatusCode == HttpStatusCode.Forbidden, deleteAccountBody);
+    }
+
+    [Fact]
+    public async Task ClientOwner_ManagesItsClientsSecretsButCreatesNone()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        var (clientId, _) = await CreateSecretClientAsync(administrator, "acme-dev");
+        using var owner = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            $"/api/tenants/acme-dev/clients/{clientId}/owners"
+        );
+
+        var secrets = await GetJsonAsync(
+            owner,
+            $"/api/tenants/acme-dev/clients/{clientId}/secrets"
+        );
+        var secretId = secrets.GetProperty("secrets")[0].GetProperty("secretId").GetString();
+        Assert.NotNull(secretId);
+
+        using var create = await owner.PostAsJsonAsync(
+            $"/api/tenants/acme-dev/clients/{clientId}/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Forbidden, createBody);
+
+        using var delete = await owner.DeleteAsync(
+            $"/api/tenants/acme-dev/clients/{clientId}/secrets/{secretId}"
+        );
+        var deleteBody = await delete.Content.ReadAsStringAsync();
+        Assert.True(delete.StatusCode == HttpStatusCode.NoContent, deleteBody);
+
+        using var otherClient = await owner.DeleteAsync(
+            $"/api/tenants/acme-dev/clients/nope/secrets/{secretId}"
+        );
+        var otherClientBody = await otherClient.Content.ReadAsStringAsync();
+        Assert.True(otherClient.StatusCode == HttpStatusCode.Forbidden, otherClientBody);
+    }
+
+    [Fact]
     public async Task TenantAdmin_GetsForbiddenForAnUnknownTenantAndASiblingTenant()
     {
         using var factory = CreateFactory();
@@ -1723,6 +1878,91 @@ public class TeamManagementTests
             StringComparison.Ordinal
         );
     }
+
+    #endregion
+
+    #region GetSettingLimits Tests
+
+    [Fact]
+    public async Task GetSettingLimits_AsATeamAdmin_ReportsItsTeamsLimitsItCannotChange()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        var limits = await GetJsonAsync(teamAdmin, "/api/teams/acme/settings/limits");
+
+        Assert.Contains(OpenIdSettingNames.MaxTenants, GetLimitNames(limits));
+        Assert.False(limits.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetSettingLimits_AsATeamAdmin_ReportsItsTenantsLimitsItCanChange()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+
+        var limits = await GetJsonAsync(teamAdmin, "/api/tenants/acme-dev/settings/limits");
+
+        Assert.Contains(OpenIdSettingNames.RateLimitTenantPerMinute, GetLimitNames(limits));
+        Assert.True(limits.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetSettingLimits_AsATenantOwner_ReportsItsTenantsLimitsItCannotChange()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var owner = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/owners"
+        );
+
+        var limits = await GetJsonAsync(owner, "/api/tenants/acme-dev/settings/limits");
+
+        Assert.Contains(OpenIdSettingNames.RateLimitTenantPerMinute, GetLimitNames(limits));
+        Assert.False(limits.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetSettingLimits_AsThePlatformAdministrator_ReportsATeamsLimitsItCanChange()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+
+        var limits = await GetJsonAsync(administrator, "/api/teams/acme/settings/limits");
+
+        Assert.Contains(OpenIdSettingNames.MaxTenants, GetLimitNames(limits));
+        Assert.True(limits.GetProperty("canChange").GetBoolean());
+    }
+
+    private static string[] GetLimitNames(JsonElement limits) =>
+        [
+            .. limits
+                .GetProperty("names")
+                .EnumerateArray()
+                .Select(name =>
+                    name.GetString() ?? throw new InvalidOperationException("A limit name is null.")
+                ),
+        ];
 
     #endregion
 

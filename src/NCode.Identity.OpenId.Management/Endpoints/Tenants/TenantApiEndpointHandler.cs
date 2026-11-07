@@ -49,6 +49,7 @@ GET   api/tenants/{tenantId}
 GET   api/tenants/{tenantId}/address
 
 GET   api/tenants/{tenantId}/settings
+GET   api/tenants/{tenantId}/settings/limits
 PATCH api/tenants/{tenantId}/settings
 GET   api/tenants/{tenantId}/effective-settings
 
@@ -123,7 +124,10 @@ internal class TenantApiEndpointHandler(
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
     private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
         tenantClientCoherenceChecker;
-    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+
+    /// <inheritdoc />
+    protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+        managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -178,6 +182,9 @@ internal class TenantApiEndpointHandler(
             .ProducesValidationProblem();
 
         tenants.MapGet("/{tenantId}/settings", GetSettingsAsync).Produces<TenantSettingsResource>();
+        tenants
+            .MapGet("/{tenantId}/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
         tenants
             .MapPatch("/{tenantId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -238,7 +245,8 @@ internal class TenantApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         tenants
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         tenants
             .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -248,7 +256,8 @@ internal class TenantApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         tenants
             .MapPost("/{tenantId}/admins", AddAdminAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         tenants
             .MapDelete("/{tenantId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -719,7 +728,7 @@ internal class TenantApiEndpointHandler(
         // tenant before seeding it.
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        await ResourceOwnershipService.AssignCreatorAsync(
+        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
             storeManager,
@@ -750,6 +759,16 @@ internal class TenantApiEndpointHandler(
             ToResourceValues(ToTenantResource(tenant)),
             cancellationToken
         );
+
+        if (creatorAssignment is not null)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                creatorAssignment,
+                ResourceChangeTypes.Created,
+                cancellationToken
+            );
+        }
 
         var toTenantResource = await CreateTenantResourceMapperAsync([tenant], cancellationToken);
         var resource = toTenantResource(tenant);
@@ -1245,6 +1264,42 @@ internal class TenantApiEndpointHandler(
                 return await store.GetSettingsOrDefaultAsync(tenantId, token);
             },
             ToTenantSettingsResource,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Gets the limits a tenant's settings carry and whether the caller may set them: whether it holds update authority
+    /// over the tenant's team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The tenant's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/tenants/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        async ValueTask<ResourceNode?> ReadNodeAboveAsync(CancellationToken token)
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+            var store = storeManager.GetStore<ITenantStore>();
+            var tenant = await store.GetOrDefaultAsync(tenantId, token);
+            return tenant is null ? null : GetTeamNode(httpContext, tenant.TeamId);
+        }
+
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Tenant);
+        var tenantNode = GetTenantNode(tenantId);
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            tenantNode,
+            limitNames,
+            ReadNodeAboveAsync,
             cancellationToken
         );
     }
@@ -1805,9 +1860,9 @@ internal class TenantApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<ITenantStore>();
                 var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, token);
-                return TenantOwnedResource.ForOrDefault(tenantId, secret);
+                return secret;
             },
-            x => ToSecretResource(x.Value),
+            ToSecretResource,
             cancellationToken
         );
     }
@@ -1837,10 +1892,10 @@ internal class TenantApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<ITenantStore>();
                 var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, token);
-                return TenantOwnedResource.ForOrDefault(tenantId, secret);
+                return secret;
             },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value),
+            SecretPublicKeyConverter.Convert,
             cancellationToken
         );
     }
@@ -2010,6 +2065,7 @@ internal class TenantApiEndpointHandler(
     /// Adds an owner to a tenant.
     /// </summary>
     /// <response code="201">The owner was added.</response>
+    /// <response code="200">The principal already owns the tenant.</response>
     [EndpointName("api/tenants/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -2102,6 +2158,7 @@ internal class TenantApiEndpointHandler(
     /// only a tenant, team or global administrator at the tenant or above can grant it.
     /// </summary>
     /// <response code="201">The administrator was added.</response>
+    /// <response code="200">The principal already administers the tenant.</response>
     // See ADR-1417
     [EndpointName("api/tenants/admins/add")]
     internal virtual async ValueTask<IResult> AddAdminAsync(
@@ -2135,7 +2192,7 @@ internal class TenantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var admin = await ResourceOwnershipService.AddAssignmentAsync(
+        var grant = await ResourceOwnershipService.AddAssignmentAsync(
             storeManager,
             tenantId,
             ResourceNodeTypes.Tenant,
@@ -2146,9 +2203,22 @@ internal class TenantApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var ownerResource = ToOwnerResource(grant.Assignment);
+        if (!grant.IsAdded)
+        {
+            return TypedResults.Ok(ownerResource);
+        }
+
+        await RecordRoleAssignmentChangedAsync(
+            httpContext,
+            grant.Assignment,
+            ResourceChangeTypes.Created,
+            cancellationToken
+        );
+
         return TypedResults.Created(
-            $"/tenants/{tenantId}/admins/{admin.PrincipalId}",
-            ToOwnerResource(admin)
+            $"/tenants/{tenantId}/admins/{grant.Assignment.PrincipalId}",
+            ownerResource
         );
     }
 
@@ -2185,12 +2255,22 @@ internal class TenantApiEndpointHandler(
             BuiltInRoles.TenantAdmin,
             cancellationToken
         );
-        if (!removed)
+        if (removed.Count == 0)
         {
             return TypedResults.NotFound();
         }
 
         await storeManager.SaveChangesAsync(cancellationToken);
+        foreach (var assignment in removed)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                assignment,
+                ResourceChangeTypes.Deleted,
+                cancellationToken
+            );
+        }
+
         return TypedResults.NoContent();
     }
 

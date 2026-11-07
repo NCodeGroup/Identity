@@ -3,6 +3,8 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -25,6 +27,50 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// Gets the service used to read and mutate resource ownership.
     /// </summary>
     protected abstract IResourceOwnershipService ResourceOwnershipService { get; }
+
+    /// <summary>
+    /// Gets the recorder used to write management audit events.
+    /// </summary>
+    protected abstract IManagementAuditRecorder ManagementAuditRecorder { get; }
+
+    /// <summary>
+    /// Records that a role assignment was granted or revoked at a resource node.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="assignment">The role assignment that was granted or revoked.</param>
+    /// <param name="changeType">One of the values in <see cref="ResourceChangeTypes"/>.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask"/> that represents the asynchronous operation.
+    /// </returns>
+    // See ADR-1449.
+    protected internal virtual ValueTask RecordRoleAssignmentChangedAsync(
+        HttpContext httpContext,
+        PersistedRoleAssignment assignment,
+        string changeType,
+        CancellationToken cancellationToken
+    )
+    {
+        var ownerResource = ToOwnerResource(assignment);
+        return ManagementAuditRecorder.RecordResourceChangeAsync(
+            httpContext,
+            new RoleAssignmentChangedAuditEvent
+            {
+                EventSource = AuditEventSources.Management,
+                TenantId = assignment.TenantId,
+                SubjectId = assignment.PrincipalId,
+                ResourceId = assignment.AssignmentId,
+                NodeType = assignment.ResourceType,
+                NodeId = assignment.ResourceId,
+                ChangeType = changeType,
+                ResourceValues = ToResourceValues(ownerResource),
+                Outcome = AuditOutcome.Success,
+            },
+            cancellationToken
+        );
+    }
 
     /// <summary>
     /// Maps an owner role assignment to its <see cref="OwnerResource"/> representation.
@@ -86,7 +132,8 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
     /// <summary>
     /// Processes an HTTP <c>POST</c> that grants a principal ownership of a resource: authorizes the caller against the
-    /// resource node, then adds the owner (idempotently). Responds <c>404</c> when the resource does not exist.
+    /// resource node, then adds the owner and records the grant. Responds <c>201</c> when the owner is added,
+    /// <c>200</c> when the principal already owns the resource, and <c>404</c> when the resource does not exist.
     /// </summary>
     protected internal virtual async ValueTask<IResult> ProcessAddOwnerAsync(
         HttpContext httpContext,
@@ -124,7 +171,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             return TypedResults.NotFound();
         }
 
-        var owner = await ResourceOwnershipService.AddOwnerAsync(
+        var grant = await ResourceOwnershipService.AddOwnerAsync(
             storeManager,
             tenantId,
             resourceType,
@@ -134,13 +181,26 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        return TypedResults.Created($"{ownersPath}/{owner.PrincipalId}", ToOwnerResource(owner));
+        var ownerResource = ToOwnerResource(grant.Assignment);
+        if (!grant.IsAdded)
+        {
+            return TypedResults.Ok(ownerResource);
+        }
+
+        await RecordRoleAssignmentChangedAsync(
+            httpContext,
+            grant.Assignment,
+            ResourceChangeTypes.Created,
+            cancellationToken
+        );
+
+        return TypedResults.Created($"{ownersPath}/{grant.Assignment.PrincipalId}", ownerResource);
     }
 
     /// <summary>
     /// Processes an HTTP <c>DELETE</c> that revokes a principal's ownership of a resource: authorizes the caller
-    /// against the resource node, then removes the owner. Responds <c>409</c> when the removal would orphan the
-    /// resource and <c>404</c> when the principal is not an owner.
+    /// against the resource node, then removes the owner and records each removed assignment. Responds <c>409</c> when
+    /// the removal would orphan the resource and <c>404</c> when the principal is not an owner.
     /// </summary>
     protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
         HttpContext httpContext,
@@ -163,7 +223,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var result = await ResourceOwnershipService.RemoveOwnerAsync(
+        var removal = await ResourceOwnershipService.RemoveOwnerAsync(
             storeManager,
             resourceType,
             resourceId,
@@ -171,7 +231,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             cancellationToken
         );
 
-        switch (result)
+        switch (removal.Result)
         {
             case OwnerRemovalResult.NotFound:
                 return TypedResults.NotFound();
@@ -184,6 +244,16 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
             default:
                 await storeManager.SaveChangesAsync(cancellationToken);
+                foreach (var removed in removal.RemovedAssignments)
+                {
+                    await RecordRoleAssignmentChangedAsync(
+                        httpContext,
+                        removed,
+                        ResourceChangeTypes.Deleted,
+                        cancellationToken
+                    );
+                }
+
                 return TypedResults.NoContent();
         }
     }

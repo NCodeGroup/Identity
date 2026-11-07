@@ -3,7 +3,8 @@
 - **Status:** Accepted (amends [ADR-1015](1015-management-core-validation-via-validators.md); amended by
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): the node above a child team is its parent, so a team's
   deletion, like its disable, is authorized at the team's node before the read and at the node above it against the
-  stored row)
+  stored row; amended by [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md): every
+  management route, and every entity validator, takes this shape)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Supersedes:** [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md),

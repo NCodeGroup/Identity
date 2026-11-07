@@ -27,6 +27,12 @@ public abstract class OpenIdTenant : IAsyncDisposable
     public abstract string TeamId { get; }
 
     /// <summary>
+    /// Gets the concurrency token of the persisted tenant this instance was materialized from. Every committed change
+    /// to the tenant's record, settings or secrets issues a new one.
+    /// </summary>
+    public abstract string ConcurrencyToken { get; }
+
+    /// <summary>
     /// Gets the team the tenant belongs to, as this replica materialized it; its settings are the parent of the
     /// tenant's settings.
     /// </summary>

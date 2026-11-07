@@ -30,6 +30,11 @@ describe('routePath', () => {
     expect(routePath(teamRoute('acme', 'settings'))).toBe('/teams/acme/settings');
   });
 
+  it('nests the access surface under its team', () => {
+    expect(routePath(teamRoute('acme', 'access'))).toBe('/teams/acme/access');
+    expect(parseRoute('/teams/acme/access')).toEqual(teamRoute('acme', 'access'));
+  });
+
   it('nests the child teams surface under its team', () => {
     expect(routePath(teamRoute('acme', 'teams'))).toBe('/teams/acme/teams');
     expect(parseRoute('/teams/acme/teams')).toEqual(teamRoute('acme', 'teams'));
@@ -53,6 +58,11 @@ describe('routePath', () => {
     expect(routePath(tenantRoute('acme', 'secrets'))).toBe('/tenants/acme/secrets');
     expect(routePath(tenantRoute('acme', 'encryption-keys'))).toBe('/tenants/acme/encryption-keys');
     expect(routePath(tenantRoute('acme', 'usage'))).toBe('/tenants/acme/usage');
+  });
+
+  it('nests the access surface under its tenant', () => {
+    expect(routePath(tenantRoute('acme', 'access'))).toBe('/tenants/acme/access');
+    expect(parseRoute('/tenants/acme/access')).toEqual(tenantRoute('acme', 'access'));
   });
 
   it('opens a tenant on its clients by default', () => {

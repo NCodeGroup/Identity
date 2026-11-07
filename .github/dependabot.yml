@@ -107,11 +107,14 @@ updates:
         applies-to: security-updates
         patterns: ['*']
 
-  # The host image's base images (ADR-1249). A digest pin receives operating-system and runtime fixes only through this
+  # The host and management console images' base images (ADR-1249). Both images share the same base images, so one pull
+  # request moves both. A digest pin receives operating-system and runtime fixes only through this
   # stream, so it runs while issue #36 pauses the other ecosystems. A runtime major moves deliberately, together with
   # src/frontend/.node-version or the target framework, so semver-major updates are ignored.
   - package-ecosystem: docker
-    directory: /src/NCode.Identity.OpenId.Host
+    directories:
+      - /src/NCode.Identity.OpenId.Host
+      - /src/NCode.Identity.ManagementConsole.Host
     schedule:
       interval: weekly
     open-pull-requests-limit: 5

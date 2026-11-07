@@ -16,6 +16,7 @@ namespace NCode.Identity.OpenId.Tenants;
 internal class DefaultOpenIdTenant(
     string tenantId,
     string teamId,
+    string concurrencyToken,
     string displayName,
     string issuer,
     string? mtlsEndpointAliasAuthority,
@@ -37,6 +38,9 @@ internal class DefaultOpenIdTenant(
 
     /// <inheritdoc />
     public override string TeamId { get; } = teamId;
+
+    /// <inheritdoc />
+    public override string ConcurrencyToken { get; } = concurrencyToken;
 
     /// <inheritdoc />
     public override OpenIdTeam Team => TeamReference.Value;

@@ -156,6 +156,16 @@ internal class ClientGrantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await ClientGrantValidator.AuthorizeCreateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var grantStore = storeManager.GetStore<IClientGrantStore>();
 
@@ -168,10 +178,9 @@ internal class ClientGrantApiEndpointHandler(
             Scopes = request.Scopes,
         };
 
-        // Core preconditions (authorization + resource-server existence + scope-subset + uniqueness) are asserted by
-        // the validator (ADR-1014).
+        // Core preconditions (resource-server existence + scope-subset + uniqueness) are asserted by the validator
+        // (ADR-1014).
         var error = await ClientGrantValidator.ValidateCreateAsync(
-            httpContext.User,
             grant,
             storeManager,
             cancellationToken
@@ -199,12 +208,23 @@ internal class ClientGrantApiEndpointHandler(
     [EndpointName("api/clients/grants/update")]
     internal virtual async ValueTask<IResult> UpdateAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string resourceServerId,
         [FromBody] UpdateClientGrantRequest request,
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await ClientGrantValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var grantStore = storeManager.GetStore<IClientGrantStore>();
 
@@ -218,10 +238,8 @@ internal class ClientGrantApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // Core preconditions (authorization + resource-server existence + scope-subset) are asserted by the
-        // validator (ADR-1014).
+        // Core preconditions (resource-server existence + scope-subset) are asserted by the validator (ADR-1014).
         var error = await ClientGrantValidator.ValidateUpdateAsync(
-            httpContext.User,
             grant,
             request.Scopes,
             storeManager,
@@ -247,11 +265,22 @@ internal class ClientGrantApiEndpointHandler(
     [EndpointName("api/clients/grants/delete")]
     internal virtual async ValueTask<IResult> DeleteAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string resourceServerId,
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await ClientGrantValidator.AuthorizeDeleteAsync(
+            httpContext.User,
+            tenantId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientGrantStore>();
 
@@ -262,7 +291,6 @@ internal class ClientGrantApiEndpointHandler(
         }
 
         var error = await ClientGrantValidator.ValidateDeleteAsync(
-            httpContext.User,
             grant,
             storeManager,
             cancellationToken

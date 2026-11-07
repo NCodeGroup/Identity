@@ -118,6 +118,19 @@ public interface ITenantStore : IStore<PersistedTenant>
     );
 
     /// <summary>
+    /// Gets the concurrency token of each listed tenant that exists, keyed by its identifier compared without regard
+    /// to case; a tenant that does not exist has no entry.
+    /// </summary>
+    /// <param name="tenantIds">The identifiers of the tenants whose concurrency tokens to read.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the concurrency
+    /// token of each listed tenant that exists.</returns>
+    ValueTask<IReadOnlyDictionary<string, string>> GetConcurrencyTokensAsync(
+        IReadOnlyCollection<string> tenantIds,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to get a <see cref="PersistedTenant"/> instance from the store with the specified issuer.
     /// </summary>
     /// <remarks>
@@ -282,6 +295,18 @@ public interface ITenantStore : IStore<PersistedTenant>
         string secretId,
         CancellationToken cancellationToken
     );
+
+    /// <summary>
+    /// Records that the protection of a tenant's secrets changed without a change to any secret, such as a change to
+    /// the root key that wraps the tenant's master keys: issues a new concurrency token for the tenant's secrets, and
+    /// with it for the tenant, so a reader that compares either token reads them again. The change is saved with the
+    /// store manager's unit of work.
+    /// </summary>
+    /// <param name="tenantId">The identifier of the OpenId Tenant.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
+    /// when the tenant exists; otherwise <c>false</c>.</returns>
+    ValueTask<bool> MarkSecretsChangedAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Removes an OpenId Tenant and everything it owns from the store. The removal is rejected while the tenant still

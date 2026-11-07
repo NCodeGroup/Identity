@@ -202,6 +202,20 @@ public sealed class TeamChangeBroadcastHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task HandleMissedMessagesAsync_WhenReadingTheTokensTimesOut_ClearsBothCaches()
+    {
+        SetupRevisions([new TeamRevision("acme", "a1")], []);
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TaskCanceledException())
+            .Verifiable();
+        SetupClear(MockTeamCache);
+        SetupClear(MockTenantCache);
+
+        await Handler.HandleMissedMessagesAsync(CancellationToken.None);
+    }
+
+    [Fact]
     public async Task HandleMissedMessagesAsync_WhenTheTokensCannotBeReadAndTheTeamCacheClearFails_StillClearsTheTenantCache()
     {
         MockTeamCache

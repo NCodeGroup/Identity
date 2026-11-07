@@ -61,8 +61,8 @@ const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surf
  * authority is sent home from a platform route, and the team and tenant back controls lead to a place the caller can
  * open. In the
  * platform scope that is the teams, the platform's settings or its encryption keys; within a team it is the
- * team's tenants, child teams, settings or usage; within a tenant it is clients, resource servers, grants, or one of the
- * tenant's own surfaces: secrets, encryption keys, settings, or usage (ADR-1255). All data fetching lives in the
+ * team's tenants, child teams, settings, access or usage; within a tenant it is clients, resource servers, grants, or one
+ * of the tenant's own surfaces: secrets, encryption keys, settings, access, or usage (ADR-1255). All data fetching lives in the
  * child containers; this component only maps the route to a
  * surface and tab changes to navigation.
  */
@@ -174,6 +174,7 @@ export function App() {
             <Tab value="tenants" label="Tenants" data-testid="team-tab-tenants" />
             <Tab value="teams" label="Teams" data-testid="team-tab-teams" />
             <Tab value="settings" label="Settings" data-testid="team-tab-settings" />
+            <Tab value="access" label="Access" data-testid="team-tab-access" />
             <Tab value="usage" label="Usage" data-testid="team-tab-usage" />
           </Tabs>
           <Suspense fallback={surfaceFallback}>
@@ -210,6 +211,7 @@ export function App() {
               data-testid="tenant-tab-encryption-keys"
             />
             <Tab value="settings" label="Settings" data-testid="tenant-tab-settings" />
+            <Tab value="access" label="Access" data-testid="tenant-tab-access" />
             <Tab value="usage" label="Usage" data-testid="tenant-tab-usage" />
           </Tabs>
           <Suspense fallback={surfaceFallback}>

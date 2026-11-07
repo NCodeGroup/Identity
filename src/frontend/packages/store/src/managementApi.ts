@@ -5,11 +5,15 @@ import {
   LIST_TAG,
   ownerApiPath,
   ownerEffectiveTagId,
+  ownerLimitsTagId,
   ownerScope,
   ownerTagId,
   replacePatch,
+  roleListApiPath,
+  roleListTagId,
   scopeTagId,
   teamScope,
+  type AddOwnerRequest,
   type CallerResource,
   type ClientOwner,
   type ClientResource,
@@ -35,12 +39,15 @@ import {
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
+  type OwnerResource,
   type PromoteTenantRequest,
   type PublicKeyResource,
   type ResourceServerResource,
+  type RoleList,
   type ScopeResource,
   type SecretsResource,
   type SecretOwner,
+  type SettingLimitsResource,
   type SettingsResource,
   type TeamResource,
   type TeamUsageResource,
@@ -87,6 +94,8 @@ export const managementApi = createApi({
     'Grant',
     'Secret',
     'Settings',
+    'SettingLimits',
+    'RoleAssignment',
     'EncryptionKey',
     'Caller',
   ],
@@ -693,6 +702,12 @@ export const managementApi = createApi({
         { type: 'Settings', id: ownerEffectiveTagId(owner) },
       ],
     }),
+    getSettingLimits: build.query<SettingLimitsResource, ManagementOwner>({
+      query: (owner) => `${ownerApiPath(owner)}/settings/limits`,
+      providesTags: (_result, _error, owner) => [
+        { type: 'SettingLimits', id: ownerLimitsTagId(owner) },
+      ],
+    }),
     // Settings are an opaque object, so updates are a top-level add/remove/replace diff (not replace-only). A client's
     // settings change can issue the secret its client-authentication method needs, which the response carries once
     // (docs/decisions/1391); every other change answers 204 with no body, which resolves to null.
@@ -715,6 +730,39 @@ export const managementApi = createApi({
         { type: 'Settings', id: ownerTagId(owner) },
         { type: 'Settings', id: ownerEffectiveTagId(owner) },
         { type: 'Secret', id: ownerTagId(owner) },
+      ],
+    }),
+    // The owners of a team, tenant, client or resource server and the administrators of a team or tenant, addressed by
+    // a role list (ADR-1257).
+    listRoleAssignments: build.query<CollectionResource<OwnerResource>, RoleList>({
+      query: (list) => roleListApiPath(list),
+      providesTags: (_result, _error, list) => [
+        { type: 'RoleAssignment', id: roleListTagId(list) },
+      ],
+    }),
+    addRoleAssignment: build.mutation<OwnerResource, { list: RoleList; principalId: string }>({
+      query: ({ list, principalId }) => ({
+        url: roleListApiPath(list),
+        method: 'POST',
+        body: { principalId } satisfies AddOwnerRequest,
+      }),
+      // A role change can change the caller's own access and its authority over any scope's limits.
+      invalidatesTags: (_result, _error, { list }) => [
+        { type: 'RoleAssignment', id: roleListTagId(list) },
+        { type: 'Caller', id: callerTag },
+        'SettingLimits',
+      ],
+    }),
+    removeRoleAssignment: build.mutation<void, { list: RoleList; principalId: string }>({
+      query: ({ list, principalId }) => ({
+        url: `${roleListApiPath(list)}/${encodeURIComponent(principalId)}`,
+        method: 'DELETE',
+      }),
+      // A role change can change the caller's own access and its authority over any scope's limits.
+      invalidatesTags: (_result, _error, { list }) => [
+        { type: 'RoleAssignment', id: roleListTagId(list) },
+        { type: 'Caller', id: callerTag },
+        'SettingLimits',
       ],
     }),
   }),
@@ -768,7 +816,11 @@ export const {
   useValidateTenantRootKeyMutation,
   useGetSettingsQuery,
   useGetEffectiveSettingsQuery,
+  useGetSettingLimitsQuery,
   useUpdateSettingsMutation,
+  useListRoleAssignmentsQuery,
+  useAddRoleAssignmentMutation,
+  useRemoveRoleAssignmentMutation,
   useListChildTeamsQuery,
   useCreateChildTeamMutation,
 } = managementApi;

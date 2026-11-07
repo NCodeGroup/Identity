@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ownerApiPath, ownerEffectiveTagId, ownerScope, ownerTagId } from './owner.js';
+import {
+  ownerApiPath,
+  ownerEffectiveTagId,
+  ownerLimitsTagId,
+  ownerScope,
+  ownerTagId,
+  roleListApiPath,
+  roleListTagId,
+} from './owner.js';
 import type { ManagementOwner } from './owner.js';
 import { PLATFORM_SCOPE, teamScope, tenantScope } from './scope.js';
 
@@ -108,5 +116,57 @@ describe('ownerEffectiveTagId', () => {
     const other: ManagementOwner = { kind: 'client', tenantId: 'acme', clientId: 'web:effective' };
 
     expect(ownerEffectiveTagId(tenantClient)).not.toBe(ownerTagId(other));
+  });
+});
+
+describe('ownerLimitsTagId', () => {
+  it('tags the limits of an owner apart from its own and its effective settings tags', () => {
+    expect(ownerLimitsTagId(tenantClient)).toBe('tenant:acme:client:web:limits');
+    expect(ownerLimitsTagId(tenantClient)).not.toBe(ownerTagId(tenantClient));
+    expect(ownerLimitsTagId(tenantClient)).not.toBe(ownerEffectiveTagId(tenantClient));
+  });
+
+  it("names the owner's scope", () => {
+    expect(ownerLimitsTagId(tenantClient).startsWith('tenant:acme:')).toBe(true);
+    expect(ownerLimitsTagId(team)).toBe('team:acme:team:acme:limits');
+  });
+});
+
+describe('roleListApiPath', () => {
+  it("addresses a team's administrators", () => {
+    expect(roleListApiPath({ role: 'admins', owner: team })).toBe('api/teams/acme/admins');
+  });
+
+  it("addresses a tenant's owners", () => {
+    expect(roleListApiPath({ role: 'owners', owner: { kind: 'tenant', tenantId: 'acme' } })).toBe(
+      'api/tenants/acme/owners',
+    );
+  });
+
+  it("addresses a client's owners and url-encodes its ids", () => {
+    expect(
+      roleListApiPath({
+        role: 'owners',
+        owner: { kind: 'client', tenantId: 'a/b', clientId: 'c/d' },
+      }),
+    ).toBe('api/tenants/a%2Fb/clients/c%2Fd/owners');
+  });
+});
+
+describe('roleListTagId', () => {
+  it("tags a node's owners apart from its administrators and its own tag", () => {
+    const owners = roleListTagId({ role: 'owners', owner: { kind: 'team', teamId: 'acme' } });
+    const admins = roleListTagId({ role: 'admins', owner: { kind: 'team', teamId: 'acme' } });
+
+    expect(owners).toBe('team:acme:team:acme:owners');
+    expect(admins).toBe('team:acme:team:acme:admins');
+    expect(owners).not.toBe(admins);
+    expect(owners).not.toBe(ownerTagId(team));
+  });
+
+  it("names the node's scope", () => {
+    expect(roleListTagId({ role: 'owners', owner: tenantClient })).toBe(
+      'tenant:acme:client:web:owners',
+    );
   });
 });

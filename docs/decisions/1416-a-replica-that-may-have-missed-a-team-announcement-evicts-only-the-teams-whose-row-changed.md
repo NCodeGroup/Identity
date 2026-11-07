@@ -3,7 +3,9 @@
 - **Status:** Accepted (amends [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1412](1412-settings-are-reconciled-per-team.md); amended by
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): a cached team or tenant reports the revision of every
-  team above it, and evicting a team evicts every team beneath it)
+  team above it, and evicting a team evicts every team beneath it; amended by
+  [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md):
+  the `tenant-changed` channel revalidates the cached tenants the same way)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)

@@ -1,6 +1,8 @@
 # 1249. The host image's base images are pinned by digest and tracked by Dependabot
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by
+  [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md): the
+  docker stream also tracks the management console image's Dockerfile)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)

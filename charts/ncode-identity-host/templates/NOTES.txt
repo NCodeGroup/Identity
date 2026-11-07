@@ -11,3 +11,13 @@ Apply the database migrations before a new version starts: the host does not mig
 Without Valkey the release runs one replica and replaces it with downtime on every update. Set valkey.existingSecret
 and raise replicaCount for a rolling, highly available release.
 {{- end }}
+{{- if .Values.managementConsole.enabled }}
+
+The management console answers to {{ .Values.managementConsole.host }} through the
+{{ include "identity-host.managementConsole.fullname" . }} Service. Register the confidential client mgmt-console with
+the server with the jwks_uri https://{{ .Values.managementConsole.host }}/bff/jwks.
+{{- if not (include "identity-host.managementConsole.valkeyEnabled" .) }}
+
+Without managementConsole.valkey.existingSecret the console runs one replica whose sessions end on every update.
+{{- end }}
+{{- end }}

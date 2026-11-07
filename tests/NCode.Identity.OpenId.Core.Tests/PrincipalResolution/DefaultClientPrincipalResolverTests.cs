@@ -3,6 +3,7 @@
 
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Core.Tests;
@@ -148,9 +149,109 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
         Assert.Same(client, result);
     }
 
+    [Fact]
+    public async Task GetActingClientOrDefaultAsync_WhenTheCallerWasResolvedInTheRequest_ReturnsTheSameClientWithoutReading()
+    {
+        var client = CreateClient();
+        SetupClientRead(client);
+        var user = CreateUser(PrincipalId, ClientId);
+        var first = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            user,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+        SetupNextClientRead(null, Times.Never());
+
+        var second = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            user,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Same(client, first);
+        Assert.Same(client, second);
+    }
+
+    [Fact]
+    public async Task GetActingClientOrDefaultAsync_WhenTheCallerWasResolvedAsNoClient_ReturnsNullWithoutReading()
+    {
+        SetupClientRead(null);
+        var user = CreateUser(PrincipalId, ClientId);
+        var first = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            user,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+        var client = CreateClient();
+        SetupNextClientRead(client, Times.Never());
+
+        var second = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            user,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Null(first);
+        Assert.Null(second);
+    }
+
+    [Fact]
+    public async Task GetActingClientOrDefaultAsync_WithoutAStoreManagerWhenTheCallerWasResolved_CreatesNoStoreManager()
+    {
+        var client = CreateClient();
+        SetupClientRead(client);
+        var user = CreateUser(PrincipalId, ClientId);
+        var first = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            user,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        var second = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            user,
+            CancellationToken.None
+        );
+
+        Assert.Same(client, first);
+        Assert.Same(client, second);
+    }
+
+    [Fact]
+    public async Task GetActingClientOrDefaultAsync_ForAnotherSubject_ReadsItsClient()
+    {
+        var client = CreateClient();
+        SetupClientRead(client);
+        var first = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            CreateUser(PrincipalId, ClientId),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+        var otherClient = CreateClient(principalId: OtherPrincipalId);
+        SetupNextClientRead(otherClient, Times.Once());
+
+        var second = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            CreateUser(OtherPrincipalId, ClientId),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Same(client, first);
+        Assert.Same(otherClient, second);
+    }
+
     #endregion
 
     #region Scaffolding
+
+    private DefaultHttpContext HttpContext { get; } = new();
 
     private static ClaimsPrincipal CreateUser(string subject, string? clientId)
     {
@@ -163,12 +264,15 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
     }
 
-    private static PersistedClient CreateClient(bool isDisabled = false) =>
+    private static PersistedClient CreateClient(
+        bool isDisabled = false,
+        string principalId = PrincipalId
+    ) =>
         new()
         {
             TenantId = TenantId,
             ClientId = ClientId,
-            PrincipalId = PrincipalId,
+            PrincipalId = principalId,
             ConcurrencyToken = "ct",
             IsDisabled = isDisabled,
             Settings = new PersistedClientSettings
@@ -191,6 +295,7 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
     private void SetupClientRead(PersistedClient? client)
     {
         MockContext.Setup(x => x.Tenant).Returns(MockTenant.Object).Verifiable();
+        MockContext.Setup(x => x.Http).Returns(HttpContext).Verifiable();
         MockTenant.Setup(x => x.TenantId).Returns(TenantId).Verifiable();
         MockStoreManager
             .Setup(x => x.GetStore<IClientStore>())
@@ -209,6 +314,13 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
             .ReturnsAsync(client)
             .Verifiable();
     }
+
+    // Replaces the client read of SetupClientRead, so the test states how many more reads it expects.
+    private void SetupNextClientRead(PersistedClient? client, Times times) =>
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(client)
+            .Verifiable(times);
 
     #endregion
 }

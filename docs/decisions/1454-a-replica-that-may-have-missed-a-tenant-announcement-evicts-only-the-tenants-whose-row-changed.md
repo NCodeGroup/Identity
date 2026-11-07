@@ -3,7 +3,9 @@
 - **Status:** Accepted (amends [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) decision 2,
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md))
+  [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md); amended by
+  [ADR-1463](1463-a-seeded-tenant-is-materialized-from-the-row-its-seed-committed.md): a seeded tenant carries the
+  row token its seed committed)
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md)

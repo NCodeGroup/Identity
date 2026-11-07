@@ -1205,6 +1205,89 @@ public class TeamManagementTests
     }
 
     [Fact]
+    public async Task GrantTeamAdmin_ToAnOrdinaryClient_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var created = await administrator.PostAsJsonAsync(
+            $"/api/tenants/{RootTenantId}/clients",
+            new { isDisabled = false, settings = new { } }
+        );
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+        var principalId = JsonElement.Parse(createdBody).GetProperty("principalId").GetString();
+        Assert.NotNull(principalId);
+
+        using var response = await administrator.PostAsJsonAsync(
+            "/api/teams/acme/admins",
+            new { principalId }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task GrantTeamAdmin_ToAnotherTeamsMachineClient_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        var (_, _, globexPrincipalId) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/globex/clients"
+        );
+
+        using var response = await administrator.PostAsJsonAsync(
+            "/api/teams/acme/admins",
+            new { principalId = globexPrincipalId }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
+    [Fact]
+    public async Task GrantTenantOwner_ToTheTeamsMachineClient_ReturnsCreated()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        var (_, _, acmePrincipalId) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/acme/clients"
+        );
+
+        using var response = await administrator.PostAsJsonAsync(
+            "/api/tenants/acme-dev/owners",
+            new { principalId = acmePrincipalId }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    [Fact]
+    public async Task GrantTeamAdmin_ToThePlatformsMachineClient_ReturnsCreated()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        var (_, _, platformPrincipalId) = await CreateMachineClientAsync(administrator);
+
+        using var response = await administrator.PostAsJsonAsync(
+            "/api/teams/acme/admins",
+            new { principalId = platformPrincipalId }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    [Fact]
     public async Task TeamAdmin_CreatesAMachineClientThatAdministersItsTeamOnly()
     {
         using var factory = CreateFactory();

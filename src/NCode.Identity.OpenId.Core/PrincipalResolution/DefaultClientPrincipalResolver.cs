@@ -46,11 +46,7 @@ internal class DefaultClientPrincipalResolver(
         using var scope = AmbientTenantAccessor.BeginScope(tenantId);
 
         var client = await clientStore.GetOrDefaultAsync(clientId, cancellationToken);
-        if (
-            client is null
-            || !string.Equals(client.TenantId, tenantId, StringComparison.Ordinal)
-            || !string.Equals(client.PrincipalId, subject, StringComparison.Ordinal)
-        )
+        if (client is null || !string.Equals(client.PrincipalId, subject, StringComparison.Ordinal))
         {
             return null;
         }

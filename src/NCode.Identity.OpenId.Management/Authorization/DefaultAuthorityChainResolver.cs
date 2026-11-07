@@ -76,12 +76,6 @@ internal class DefaultAuthorityChainResolver(IAmbientTenantAccessor ambientTenan
                 );
                 if (
                     client is not null
-                    // Tenant ids are matched without regard to case (ADR-1052).
-                    && string.Equals(
-                        client.TenantId,
-                        node.TenantId,
-                        StringComparison.OrdinalIgnoreCase
-                    )
                     && string.Equals(
                         client.OwningNodeType,
                         ResourceNodeTypes.Team,

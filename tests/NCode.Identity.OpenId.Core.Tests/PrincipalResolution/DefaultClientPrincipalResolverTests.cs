@@ -19,7 +19,6 @@ namespace NCode.Identity.OpenId.Core.PrincipalResolution;
 public sealed class DefaultClientPrincipalResolverTests : BaseTests
 {
     private const string TenantId = "tenant-1";
-    private const string OtherTenantId = "tenant-2";
     private const string ClientId = "client-1";
     private const string PrincipalId = "principal-1";
     private const string OtherPrincipalId = "principal-2";
@@ -99,21 +98,6 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
     }
 
     [Fact]
-    public async Task GetActingClientOrDefaultAsync_WhenTheClientBelongsToAnotherTenant_ReturnsNull()
-    {
-        SetupClientRead(CreateClient(tenantId: OtherTenantId));
-
-        var result = await Resolver.GetActingClientOrDefaultAsync(
-            MockContext.Object,
-            CreateUser(PrincipalId, ClientId),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.Null(result);
-    }
-
-    [Fact]
     public async Task GetActingClientOrDefaultAsync_WhenTheClientIsDisabled_ReturnsTheClient()
     {
         var client = CreateClient(isDisabled: true);
@@ -179,27 +163,24 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "test"));
     }
 
-    private static PersistedClient CreateClient(
-        string tenantId = TenantId,
-        bool isDisabled = false
-    ) =>
+    private static PersistedClient CreateClient(bool isDisabled = false) =>
         new()
         {
-            TenantId = tenantId,
+            TenantId = TenantId,
             ClientId = ClientId,
             PrincipalId = PrincipalId,
             ConcurrencyToken = "ct",
             IsDisabled = isDisabled,
             Settings = new PersistedClientSettings
             {
-                TenantId = tenantId,
+                TenantId = TenantId,
                 ClientId = ClientId,
                 ConcurrencyToken = "ct",
                 Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
             },
             Secrets = new PersistedClientSecrets
             {
-                TenantId = tenantId,
+                TenantId = TenantId,
                 ClientId = ClientId,
                 ConcurrencyToken = "ct",
                 Value = [],

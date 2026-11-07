@@ -129,6 +129,44 @@ describe('RoleAssignmentsManager', () => {
     expect(remove?.url).toMatch(/\/api\/teams\/acme\/admins\/alice$/);
   });
 
+  it('keeps the role when the revoke is cancelled', async () => {
+    const calls = installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
+        return jsonResponse({ items: [assignment('alice')] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderManager();
+    fireEvent.click(await screen.findByTestId('admins-revoke-alice'));
+    expect(screen.getByText('Revoke this role from alice?')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('confirm-cancel'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Revoke this role from alice?')).not.toBeInTheDocument();
+    });
+    expect(calls.some((call) => call.method === 'DELETE')).toBe(false);
+    expect(screen.getByTestId('admins-row-alice')).toBeInTheDocument();
+  });
+
+  it('shows the error when a revoke is refused', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/admins/alice') && method === 'DELETE') {
+        return jsonResponse({ title: 'Forbidden', status: 403 }, 403);
+      }
+      if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
+        return jsonResponse({ items: [assignment('alice')] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderManager();
+    fireEvent.click(await screen.findByTestId('admins-revoke-alice'));
+    fireEvent.click(screen.getByTestId('confirm-accept'));
+
+    expect(await screen.findByTestId('admins-error')).toHaveTextContent('Forbidden');
+  });
+
   it('shows the error when a grant is refused', async () => {
     installFetch((url, method) => {
       if (url.endsWith('/api/teams/acme/admins') && method === 'POST') {

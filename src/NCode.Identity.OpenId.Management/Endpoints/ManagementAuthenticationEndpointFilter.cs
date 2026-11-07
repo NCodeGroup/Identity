@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.PrincipalResolution;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
@@ -12,9 +13,15 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// materialized the OpenID request environment, validates a self-issued bearer access token for the management audience
 /// against the control-plane tenant, and publishes the authenticated principal on <see cref="HttpContext.User"/> for the
 /// endpoints' resource-based authorization to read. A missing or invalid token leaves the caller anonymous, and the
-/// imperative authorization returns <c>401</c>/<c>403</c>.
+/// imperative authorization returns <c>401</c>/<c>403</c>. Once the token authenticates, the filter resolves the
+/// client the caller acts as before the endpoint changes anything, and the resolver gives that answer for the rest of
+/// the request, so a change the request commits, such as a machine client deleting itself, does not alter the actor
+/// its audit records.
 /// </summary>
-internal sealed class ManagementAuthenticationEndpointFilter : IEndpointFilter
+// See ADR-1470.
+internal sealed class ManagementAuthenticationEndpointFilter(
+    IClientPrincipalResolver clientPrincipalResolver
+) : IEndpointFilter
 {
     private const string BearerPrefix = "Bearer ";
     private const string DPoPPrefix = "DPoP ";
@@ -23,6 +30,8 @@ internal sealed class ManagementAuthenticationEndpointFilter : IEndpointFilter
     [
         OpenIdConstants.SystemResourceServerIdentifiers.Management,
     ];
+
+    private IClientPrincipalResolver ClientPrincipalResolver { get; } = clientPrincipalResolver;
 
     /// <inheritdoc />
     public async ValueTask<object?> InvokeAsync(
@@ -46,6 +55,16 @@ internal sealed class ManagementAuthenticationEndpointFilter : IEndpointFilter
             if (disposition.IsAuthenticated)
             {
                 httpContext.User = disposition.Principal;
+
+                // The call is kept for the answer the request remembers, which the audit recorder reads after the
+                // commit, so a change the request commits, such as a machine client deleting itself, does not alter
+                // the actor its audit records.
+                // See ADR-1470.
+                _ = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
+                    openIdContext,
+                    disposition.Principal,
+                    httpContext.RequestAborted
+                );
             }
         }
 

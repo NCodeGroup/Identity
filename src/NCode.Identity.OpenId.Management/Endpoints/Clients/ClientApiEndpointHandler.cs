@@ -83,6 +83,10 @@ internal class ClientApiEndpointHandler(
     ILogger<ClientApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
+    // See ADR-1466.
+    private const string MachineClientGrantTypesDetail =
+        "A machine client obtains tokens only for itself: its 'grant_types_supported' is 'client_credentials' alone.";
+
     /// <summary>
     /// Gets the entropy, in bits, of the secret that replaces a rotated shared secret.
     /// </summary>
@@ -109,6 +113,36 @@ internal class ClientApiEndpointHandler(
         client.OwningNodeType is not null && client.OwningNodeId is not null
             ? ResourceNode.For(client.TenantId, client.OwningNodeType, client.OwningNodeId)
             : ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId);
+
+    /// <summary>
+    /// Determines whether a client settings document limits the client to the <c>client_credentials</c> grant alone.
+    /// </summary>
+    /// <param name="settings">The client's settings document.</param>
+    /// <returns>
+    /// <see langword="true"/> when <c>grant_types_supported</c> is an array holding exactly the one string
+    /// <c>client_credentials</c>; otherwise, <see langword="false"/>.
+    /// </returns>
+    // See ADR-1466.
+    internal static bool IsClientCredentialsOnly(JsonElement settings)
+    {
+        if (settings.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        if (
+            !settings.TryGetProperty(OpenIdSettingNames.GrantTypesSupported, out var grantTypes)
+            || grantTypes.ValueKind != JsonValueKind.Array
+            || grantTypes.GetArrayLength() != 1
+        )
+        {
+            return false;
+        }
+
+        var grantType = grantTypes[0];
+        return grantType.ValueKind == JsonValueKind.String
+            && grantType.GetString() == OpenIdProtocol.GrantTypes.ClientCredentials;
+    }
 
     /// <summary>
     /// Returns the earlier of two instants.
@@ -692,8 +726,6 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var openIdContext = httpContext.GetOpenIdContext();
-
         var resourceServerId = string.IsNullOrEmpty(request.ResourceServerId)
             ? null
             : request.ResourceServerId;
@@ -711,7 +743,6 @@ internal class ClientApiEndpointHandler(
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<IClientStore>();
 
         var clientId = CryptoService.GenerateResourceId();
 
@@ -738,6 +769,30 @@ internal class ClientApiEndpointHandler(
             },
         };
 
+        return await AddClientAsync(httpContext, storeManager, client, request, cancellationToken);
+    }
+
+    /// <summary>
+    /// Validates and stores a client, and answers the created client. A machine client, which names its owning node,
+    /// must be limited to the <c>client_credentials</c> grant and has no creator assignment.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="storeManager">The <see cref="IStoreManager"/> that stores the client.</param>
+    /// <param name="client">The client to store.</param>
+    /// <param name="request">The <see cref="CreateClientRequest"/> describing the client.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <c>201</c> result carrying the created client, or the error that refused it.</returns>
+    private async ValueTask<IResult> AddClientAsync(
+        HttpContext httpContext,
+        IStoreManager storeManager,
+        PersistedClient client,
+        CreateClientRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var openIdContext = httpContext.GetOpenIdContext();
+        var store = storeManager.GetStore<IClientStore>();
+
         // Core preconditions (uniqueness, the resource server) are asserted by the validator (ADR-1014).
         var error = await ClientValidator.ValidateCreateAsync(
             client,
@@ -748,6 +803,18 @@ internal class ClientApiEndpointHandler(
         if (error is not null)
         {
             return ToErrorResult(error);
+        }
+
+        var isMachineClient = client.OwningNodeType is not null;
+
+        // See ADR-1466.
+        if (isMachineClient && !IsClientCredentialsOnly(client.Settings.Value))
+        {
+            var grantTypesError = new SettingError(
+                OpenIdSettingNames.GrantTypesSupported,
+                MachineClientGrantTypesDetail
+            );
+            return SettingsValidationProblem([grantTypesError]);
         }
 
         // Setting names are a closed vocabulary (ADR-1139), and a client carries only the settings that apply within it
@@ -764,7 +831,7 @@ internal class ClientApiEndpointHandler(
         }
 
         var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
-            tenantId,
+            client.TenantId,
             client.Settings.Value,
             storeManager,
             cancellationToken
@@ -775,8 +842,8 @@ internal class ClientApiEndpointHandler(
         }
 
         var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
-            tenantId,
-            clientId,
+            client.TenantId,
+            client.ClientId,
             client.Settings.Value,
             storeManager,
             cancellationToken
@@ -787,15 +854,21 @@ internal class ClientApiEndpointHandler(
         );
 
         await store.AddAsync(client, cancellationToken);
-        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
-            openIdContext,
-            httpContext.User,
-            storeManager,
-            client.TenantId,
-            ResourceNodeTypes.Client,
-            client.ClientId,
-            cancellationToken
-        );
+
+        PersistedRoleAssignment? creatorAssignment = null;
+        if (!isMachineClient)
+        {
+            creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
+                openIdContext,
+                httpContext.User,
+                storeManager,
+                client.TenantId,
+                ResourceNodeTypes.Client,
+                client.ClientId,
+                cancellationToken
+            );
+        }
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var resource = ToClientResource(client);
@@ -819,7 +892,10 @@ internal class ClientApiEndpointHandler(
 
         // The store assigns the row token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = client.ConcurrencyToken;
-        return TypedResults.Created($"/tenants/{tenantId}/clients/{client.ClientId}", resource);
+        return TypedResults.Created(
+            $"/tenants/{client.TenantId}/clients/{client.ClientId}",
+            resource
+        );
     }
 
     /// <summary>

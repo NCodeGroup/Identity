@@ -825,6 +825,42 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
+    #region IsClientCredentialsOnly Tests
+
+    [Fact]
+    public void IsClientCredentialsOnly_WhenTheGrantTypesAreClientCredentialsAlone_ReturnsTrue()
+    {
+        var settings = JsonElement.Parse("""{"grant_types_supported":["client_credentials"]}""");
+
+        var result = ClientApiEndpointHandler.IsClientCredentialsOnly(settings);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsClientCredentialsOnly_WhenAnotherGrantTypeIsListed_ReturnsFalse()
+    {
+        var settings = JsonElement.Parse(
+            """{"grant_types_supported":["client_credentials","refresh_token"]}"""
+        );
+
+        var result = ClientApiEndpointHandler.IsClientCredentialsOnly(settings);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsClientCredentialsOnly_WhenTheSettingIsAbsent_ReturnsFalse()
+    {
+        var settings = JsonElement.Parse("{}");
+
+        var result = ClientApiEndpointHandler.IsClientCredentialsOnly(settings);
+
+        Assert.False(result);
+    }
+
+    #endregion
+
     #region CreateClientAsync Tests
 
     [Fact]

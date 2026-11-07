@@ -72,4 +72,9 @@ public static class ManagementResourceTypes
     /// An end user's federated principal.
     /// </summary>
     public const string Principal = "principal";
+
+    /// <summary>
+    /// A role a principal holds at a resource node.
+    /// </summary>
+    public const string RoleAssignment = "role_assignment";
 }

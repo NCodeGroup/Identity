@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
@@ -100,7 +101,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     // Only a request that creates the resource assigns its creator as its owner.
-    private void SetupCreatorAssignment() =>
+    private void SetupCreatorAssignment(PersistedRoleAssignment? assignment = null) =>
         MockResourceOwnershipService
             .Setup(x =>
                 x.AssignCreatorAsync(
@@ -113,8 +114,38 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
+            .ReturnsAsync(assignment)
+            .Verifiable();
+
+    // Only a request that grants or revokes a role records it.
+    private void SetupRoleAssignmentChangedAuditCapture(
+        Action<RoleAssignmentChangedAuditEvent> capture
+    ) =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
+                )
+            )
+            .Callback(
+                (HttpContext _, ResourceChangeAuditEvent auditEvent) =>
+                    capture((RoleAssignmentChangedAuditEvent)auditEvent)
+            )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
+
+    private static PersistedRoleAssignment CreateCreatorAssignment() =>
+        new()
+        {
+            TenantId = TenantId,
+            AssignmentId = "assignment-principal-1",
+            PrincipalId = "principal-1",
+            RoleName = BuiltInRoles.Owner,
+            ResourceType = ResourceNodeTypes.ResourceServer,
+            ResourceId = "generated-rs-id",
+            ConcurrencyToken = "assignment-ct",
+        };
 
     // Only a request that changes a secret records it.
     private void SetupResourceServerSecretChangedAudit() =>
@@ -423,6 +454,80 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<ResourceServerResource>>(result);
         Assert.Equal("generated-rs-id", created.Value?.ResourceServerId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheCreatorIsAssignedOwner_RecordsTheCreatorsAssignment()
+    {
+        SetupCreatorAssignment(CreateCreatorAssignment());
+        SetupResourceServerChangedAudit();
+        var recorded = new List<RoleAssignmentChangedAuditEvent>();
+        SetupRoleAssignmentChangedAuditCapture(recorded.Add);
+
+        await CreateResourceServerAsync();
+
+        var auditEvent = Assert.Single(recorded);
+        Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
+        Assert.Equal(ResourceNodeTypes.ResourceServer, auditEvent.NodeType);
+        Assert.Equal("generated-rs-id", auditEvent.NodeId);
+        Assert.Equal("principal-1", auditEvent.SubjectId);
+        Assert.Equal("assignment-principal-1", auditEvent.ResourceId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheCallerHasNoPrincipal_RecordsNoRoleAssignment()
+    {
+        // Strict mocks: no RoleAssignmentChangedAuditEvent setup, so recording one would fail the test.
+        SetupCreatorAssignment();
+        SetupResourceServerChangedAudit();
+
+        var result = await CreateResourceServerAsync();
+
+        Assert.IsType<Created<ResourceServerResource>>(result);
+    }
+
+    private async Task<IResult> CreateResourceServerAsync()
+    {
+        SetupValidSettings();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("generated-rs-id")
+            .Verifiable();
+        SetupStore();
+        SetupAuthorizeCreate(error: null);
+        MockValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<PersistedResourceServer>(),
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.AddAsync(It.IsAny<PersistedResourceServer>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        return await Handler.CreateAsync(
+            CreateHttpContext(),
+            TenantId,
+            new CreateResourceServerRequest
+            {
+                Identifier = "https://api.example.com",
+                Name = "Example API",
+                IsDisabled = false,
+                Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            CancellationToken.None
+        );
     }
 
     [Fact]
@@ -980,6 +1085,103 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         var json = Assert.IsType<JsonHttpResult<ResourceServerSettingsResource>>(result);
         Assert.Equal(ResourceServerId, json.Value?.ResourceServerId);
     }
+
+    #region GetSettingLimitsAsync Tests
+
+    private void SetupResourceServerLimits(params string[] limits) =>
+        MockSettingSerializer
+            .Setup(x => x.GetLimits(OpenIdSettingScopes.ResourceServer))
+            .Returns(limits)
+            .Verifiable();
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayUpdateTheTenant_ReportsCanChange()
+    {
+        SetupResourceServerLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+
+        var httpContext = CreateHttpContext();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            httpContext,
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.RateLimitClientPerMinute], json.Value?.Names);
+        Assert.True(json.Value?.CanChange);
+        Assert.False(httpContext.Response.Headers.ContainsKey("ETag"));
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayNotUpdateTheTenant_ReportsCannotChange()
+    {
+        SetupResourceServerLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Tenant
+                        && ((ResourceNode)resource).ResourceId == TenantId
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Single() == Operations.Update
+                    )
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.RateLimitClientPerMinute], json.Value?.Names);
+        Assert.False(json.Value?.CanChange);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheResourceServerIsMissing_ReturnsNotFound()
+    {
+        SetupResourceServerLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedResourceServer?)null)
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
 
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()

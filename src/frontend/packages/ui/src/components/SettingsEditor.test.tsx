@@ -120,4 +120,89 @@ describe('SettingsEditor', () => {
     expect(screen.getByTestId('settings-json')).toHaveValue(savedJson);
     expect(screen.getByTestId('settings-save')).toBeDisabled();
   });
+
+  describe('limits', () => {
+    const lockedJson = JSON.stringify({ maxAccessTokenLifetime: 7200 }, null, 2);
+
+    it('shows the locked limit entries read-only', () => {
+      render(
+        <SettingsEditor
+          initialJson={initialJson}
+          effectiveJson={effectiveJson}
+          limitNames={['maxAccessTokenLifetime', 'maxIdTokenLifetime']}
+          lockedJson={lockedJson}
+          onSave={vi.fn()}
+        />,
+      );
+      expect(screen.getByText('Limits (read-only)')).toBeInTheDocument();
+      expect(screen.getByTestId('settings-limits')).toHaveTextContent(
+        'Set by the administrators above: maxAccessTokenLifetime, maxIdTokenLifetime.',
+      );
+      expect(screen.getByTestId('locked-settings-json')).toHaveValue(lockedJson);
+      expect(screen.getByTestId('locked-settings-json')).toHaveAttribute('readonly');
+    });
+
+    it('refuses text that names a limit and disables save', () => {
+      const onSave = vi.fn();
+      render(
+        <SettingsEditor
+          initialJson={initialJson}
+          effectiveJson={effectiveJson}
+          limitNames={['maxAccessTokenLifetime']}
+          lockedJson={lockedJson}
+          onSave={onSave}
+        />,
+      );
+      fireEvent.change(screen.getByTestId('settings-json'), {
+        target: { value: '{"maxAccessTokenLifetime": 10}' },
+      });
+      expect(
+        screen.getByText("'maxAccessTokenLifetime' is a limit set by the administrators above."),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId('settings-save')).toBeDisabled();
+      fireEvent.click(screen.getByTestId('settings-save'));
+      expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it('shows only the caption when the limits are unlocked', () => {
+      render(
+        <SettingsEditor
+          initialJson={initialJson}
+          effectiveJson={effectiveJson}
+          limitNames={['maxAccessTokenLifetime', 'maxIdTokenLifetime']}
+          onSave={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId('settings-limits')).toHaveTextContent(
+        'Limits: maxAccessTokenLifetime, maxIdTokenLifetime. A limit set here bounds every scope beneath.',
+      );
+      expect(screen.queryByTestId('locked-settings-json')).not.toBeInTheDocument();
+      expect(screen.queryByText('Limits (read-only)')).not.toBeInTheDocument();
+    });
+
+    it('accepts text that names a limit when the limits are unlocked', () => {
+      const onSave = vi.fn();
+      render(
+        <SettingsEditor
+          initialJson={initialJson}
+          effectiveJson={effectiveJson}
+          limitNames={['maxAccessTokenLifetime']}
+          onSave={onSave}
+        />,
+      );
+      fireEvent.change(screen.getByTestId('settings-json'), {
+        target: { value: '{"maxAccessTokenLifetime": 10}' },
+      });
+      fireEvent.click(screen.getByTestId('settings-save'));
+      expect(onSave).toHaveBeenCalledWith({ maxAccessTokenLifetime: 10 });
+    });
+
+    it('renders no limits block when there are no limits', () => {
+      render(
+        <SettingsEditor initialJson={initialJson} effectiveJson={effectiveJson} onSave={vi.fn()} />,
+      );
+      expect(screen.queryByTestId('settings-limits')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('locked-settings-json')).not.toBeInTheDocument();
+    });
+  });
 });

@@ -30,8 +30,9 @@ public interface IResourceOwnershipService
     /// <param name="resourceType">The type of the resource node (a <see cref="ResourceNodeTypes"/> value).</param>
     /// <param name="resourceId">The identifier of the resource node.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
-    ValueTask AssignCreatorAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the assignment
+    /// that was added, or <see langword="null"/> when the caller resolves to no principal.</returns>
+    ValueTask<PersistedRoleAssignment?> AssignCreatorAsync(
         OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
@@ -69,8 +70,8 @@ public interface IResourceOwnershipService
     /// <param name="principalId">The identifier of the principal to grant ownership to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the owner
-    /// assignment.</returns>
-    ValueTask<PersistedRoleAssignment> AddOwnerAsync(
+    /// assignment and whether the grant added it.</returns>
+    ValueTask<RoleAssignmentGrant> AddOwnerAsync(
         IStoreManager storeManager,
         string tenantId,
         string resourceType,
@@ -89,8 +90,8 @@ public interface IResourceOwnershipService
     /// <param name="principalId">The identifier of the principal to remove ownership from.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the outcome of the
-    /// removal.</returns>
-    ValueTask<OwnerRemovalResult> RemoveOwnerAsync(
+    /// removal and the assignments it deleted.</returns>
+    ValueTask<OwnerRemoval> RemoveOwnerAsync(
         IStoreManager storeManager,
         string resourceType,
         string resourceId,
@@ -131,8 +132,8 @@ public interface IResourceOwnershipService
     /// <param name="roleName">The name of the role.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// assignment.</returns>
-    ValueTask<PersistedRoleAssignment> AddAssignmentAsync(
+    /// assignment and whether the grant added it.</returns>
+    ValueTask<RoleAssignmentGrant> AddAssignmentAsync(
         IStoreManager storeManager,
         string tenantId,
         string resourceType,
@@ -153,9 +154,9 @@ public interface IResourceOwnershipService
     /// <param name="principalId">The identifier of the principal to remove the role from.</param>
     /// <param name="roleName">The name of the role.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <see langword="true"/>
-    /// when an assignment was removed and <see langword="false"/> when the principal did not hold the role.</returns>
-    ValueTask<bool> RemoveAssignmentAsync(
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// assignments that were removed, which is empty when the principal did not hold the role.</returns>
+    ValueTask<IReadOnlyList<PersistedRoleAssignment>> RemoveAssignmentAsync(
         IStoreManager storeManager,
         string resourceType,
         string resourceId,

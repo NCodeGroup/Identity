@@ -7,6 +7,7 @@ import Tabs from '@mui/material/Tabs';
 import Typography from '@mui/material/Typography';
 import type { SecretOwner, ResourceServerResource } from '@ncode/api';
 import { ClientsPage } from './ClientsPage.js';
+import { OwnerAccessTab } from './OwnerAccessTab.js';
 import { OwnerSecretsTab } from './OwnerSecretsTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 import { ResourceServerScopesPage } from './ResourceServerScopesPage.js';
@@ -17,17 +18,18 @@ export type ResourceServerDetailPageProps = {
   readonly onBack: () => void;
 };
 
-type ResourceServerSurface = 'scopes' | 'clients' | 'secrets' | 'settings';
+type ResourceServerSurface = 'scopes' | 'clients' | 'secrets' | 'settings' | 'access';
 
 /**
  * Container: drills into a single resource server (API) to manage its scopes, the clients that act for
- * it, its secrets, and its settings. The parent
+ * it, its secrets, its settings, and its owners. The parent
  * {@link import('./ResourceServersPage.js').ResourceServersPage} supplies the resource server and owns
  * the drill-in selection. Scopes reuse the embedded {@link ResourceServerScopesPage} and clients the
  * embedded {@link ClientsPage}; secrets/settings reuse the owner-generic {@link OwnerSecretsTab}/
- * {@link OwnerSettingsTab} (one-time reveal per ADR-1050 and a top-level JSON Patch diff). A system
- * resource server is read by the server itself, so it holds no keys and no client acts for it: those
- * tabs are not offered. Owns only tab state.
+ * {@link OwnerSettingsTab} (one-time reveal per ADR-1050 and a top-level JSON Patch diff), and
+ * {@link OwnerAccessTab} lists and edits the owners. A system resource server is read by the server
+ * itself, so it holds no keys and no client acts for it: those tabs are not offered, while its settings
+ * and owners are. Owns only tab state.
  */
 export function ResourceServerDetailPage({
   tenantId,
@@ -74,6 +76,7 @@ export function ResourceServerDetailPage({
           <Tab value="secrets" label="Secrets" data-testid="resource-server-tab-secrets" />
         )}
         <Tab value="settings" label="Settings" data-testid="resource-server-tab-settings" />
+        <Tab value="access" label="Access" data-testid="resource-server-tab-access" />
       </Tabs>
       {surface === 'scopes' ? (
         <ResourceServerScopesPage tenantId={tenantId} resourceServer={resourceServer} embedded />
@@ -85,6 +88,8 @@ export function ResourceServerDetailPage({
         />
       ) : surface === 'secrets' ? (
         <OwnerSecretsTab owner={owner} ownerLabel="resource server" />
+      ) : surface === 'access' ? (
+        <OwnerAccessTab owner={owner} />
       ) : (
         <OwnerSettingsTab owner={owner} />
       )}

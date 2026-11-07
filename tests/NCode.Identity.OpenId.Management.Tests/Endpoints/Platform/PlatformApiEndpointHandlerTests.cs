@@ -332,6 +332,70 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
 
     #endregion
 
+    #region GetSettingLimitsAsync Tests
+
+    private void SetupPlatformLimits(params string[] limits) =>
+        MockSettingSerializer
+            .Setup(x => x.GetLimits(OpenIdSettingScopes.Platform))
+            .Returns(limits)
+            .Verifiable();
+
+    private void SetupPlatformAuthorization(
+        IAuthorizationRequirement operation,
+        AuthorizationResult result
+    ) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Platform
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        ReferenceEquals(requirements.Single(), operation)
+                    )
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayUpdateThePlatform_ReportsCanChange()
+    {
+        SetupPlatformLimits(OpenIdSettingNames.MaxTenants);
+        SetupPlatformAuthorization(Operations.Read, AuthorizationResult.Success());
+        SetupPlatformAuthorization(Operations.Update, AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSettingLimitsAsync(httpContext, CancellationToken.None);
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.MaxTenants], json.Value?.Names);
+        Assert.True(json.Value?.CanChange);
+        Assert.False(httpContext.Response.Headers.ContainsKey("ETag"));
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayNotUpdateThePlatform_ReportsCannotChange()
+    {
+        SetupPlatformLimits(OpenIdSettingNames.MaxTenants);
+        SetupPlatformAuthorization(Operations.Read, AuthorizationResult.Success());
+        SetupPlatformAuthorization(Operations.Update, AuthorizationResult.Failed());
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.MaxTenants], json.Value?.Names);
+        Assert.False(json.Value?.CanChange);
+    }
+
+    #endregion
+
     #region GetEffectiveSettingsAsync Tests
 
     [Fact]

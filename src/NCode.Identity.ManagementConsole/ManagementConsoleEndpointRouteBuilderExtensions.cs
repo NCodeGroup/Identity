@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using NCode.AspNetCore;
 using NCode.Identity.Bff;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.ManagementConsole.Options;
@@ -83,10 +84,12 @@ public static class ManagementConsoleEndpointRouteBuilderExtensions
                 .MapMethods(
                     $"{ManagementConsoleDefaults.AssetsPath}/{{**asset}}",
                     [HttpMethods.Get, HttpMethods.Head],
-                    static (HttpContext context) =>
+                    static (HttpContext context, string? asset) =>
                         context
-                            .RequestServices.GetRequiredService<ManagementConsoleAssetHandler>()
-                            .Handle(context)
+                            .RequestServices.GetRequiredService<
+                                SinglePageBundle<ManagementConsolePage>
+                            >()
+                            .ServeAsset(context.Response, asset ?? string.Empty)
                 )
                 .WithName("ManagementConsole.Asset");
 

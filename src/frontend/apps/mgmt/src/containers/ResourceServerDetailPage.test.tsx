@@ -190,6 +190,7 @@ describe('ResourceServerDetailPage', () => {
 
     expect(screen.getByTestId('resource-server-tab-scopes')).toBeInTheDocument();
     expect(screen.getByTestId('resource-server-tab-settings')).toBeInTheDocument();
+    expect(screen.getByTestId('resource-server-tab-access')).toBeInTheDocument();
     expect(screen.queryByTestId('resource-server-tab-secrets')).not.toBeInTheDocument();
     expect(screen.queryByTestId('resource-server-tab-clients')).not.toBeInTheDocument();
   });
@@ -286,6 +287,23 @@ describe('ResourceServerDetailPage', () => {
     );
   });
 
+  it('lists the owners of the resource server on the access tab', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/resource-servers/rs-orders/owners') && method === 'GET') {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-alice', principalId: 'alice', roleName: 'Owner' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByTestId('resource-server-tab-access'));
+
+    expect(await screen.findByTestId('owners-row-alice')).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
+  });
+
   it('saves edited resource-server settings as a JSON Patch diff', async () => {
     const calls = installFetch((url, method) => {
       if (url.endsWith('/resource-servers/rs-orders/settings') && method === 'PATCH') {
@@ -293,6 +311,9 @@ describe('ResourceServerDetailPage', () => {
       }
       if (url.endsWith('/resource-servers/rs-orders/settings')) {
         return jsonResponse({ concurrencyToken: 'sc9', settings: { a: 1 } });
+      }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: [], canChange: true });
       }
       if (url.endsWith('/resource-servers/rs-orders/effective-settings')) {
         return jsonResponse({ settings: { a: 1, issuer: 'https://op.test' } });

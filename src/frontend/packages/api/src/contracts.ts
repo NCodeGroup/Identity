@@ -189,6 +189,18 @@ export type RoleAssignmentResource = {
   readonly tenantId: string;
 };
 
+/** Mirror of `OwnerResource`: one role a principal holds at a node. */
+export type OwnerResource = {
+  readonly assignmentId: string;
+  readonly principalId: string;
+  readonly roleName: string;
+};
+
+/** The body that grants a principal a role at a node. */
+export type AddOwnerRequest = {
+  readonly principalId: string;
+};
+
 /**
  * Mirror of `CallerResource`: where the signed-in caller holds authority (ADR-1420). `principalId` is
  * `null` when the caller resolves to no principal.
@@ -518,6 +530,12 @@ export type SettingsResource = {
  */
 export type EffectiveSettingsResource = {
   readonly settings: Readonly<Record<string, unknown>>;
+};
+
+/** Mirror of `SettingLimitsResource`: the limits an owner's settings may carry and whether the caller may change them (ADR-1448). */
+export type SettingLimitsResource = {
+  readonly names: readonly string[];
+  readonly canChange: boolean;
 };
 
 /**

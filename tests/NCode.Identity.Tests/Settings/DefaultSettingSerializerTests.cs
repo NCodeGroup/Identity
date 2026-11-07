@@ -548,4 +548,94 @@ public class DefaultSettingSerializerTests : BaseTests
     }
 
     #endregion
+
+    #region GetLimits Tests
+
+    [Fact]
+    public void GetLimits_ReturnsTheLimitsThatApplyWithinTheScopeInOrdinalOrder()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<int>
+            {
+                Name = "z_limit",
+                AppliesTo = ["client"],
+                IsLimit = true,
+                OnMerge = SettingMerge.Min,
+            },
+            new SettingDescriptor<int>
+            {
+                Name = "a_limit",
+                AppliesTo = ["resource_server"],
+                IsLimit = true,
+                OnMerge = SettingMerge.Min,
+            },
+            new SettingDescriptor<int>
+            {
+                Name = "m_limit",
+                AppliesTo = ["client"],
+                IsLimit = true,
+                OnMerge = SettingMerge.Min,
+            }
+        );
+
+        var result = serializer.GetLimits("root");
+
+        Assert.Equal(["a_limit", "m_limit", "z_limit"], result);
+    }
+
+    [Fact]
+    public void GetLimits_OmitsASettingThatIsNoLimit()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<int>
+            {
+                Name = "l",
+                AppliesTo = ["client"],
+                IsLimit = true,
+                OnMerge = SettingMerge.Min,
+            },
+            new SettingDescriptor<string> { Name = "a", AppliesTo = ["client"] }
+        );
+
+        var result = serializer.GetLimits("client");
+
+        Assert.Equal(["l"], result);
+    }
+
+    [Fact]
+    public void GetLimits_OmitsALimitThatDoesNotApplyWithinTheScope()
+    {
+        var serializer = CreateSerializer(
+            new SettingDescriptor<int>
+            {
+                Name = "client_limit",
+                AppliesTo = ["client"],
+                IsLimit = true,
+                OnMerge = SettingMerge.Min,
+            },
+            new SettingDescriptor<int>
+            {
+                Name = "resource_server_limit",
+                AppliesTo = ["resource_server"],
+                IsLimit = true,
+                OnMerge = SettingMerge.Min,
+            }
+        );
+
+        var result = serializer.GetLimits("client");
+
+        Assert.Equal(["client_limit"], result);
+    }
+
+    [Fact]
+    public void GetLimits_WhenTheScopeIsNotRegistered_Throws()
+    {
+        var serializer = CreateSerializerWithoutDescriptors();
+
+        var exception = Assert.Throws<ArgumentException>(() => serializer.GetLimits("unknown"));
+
+        Assert.Equal("scopeName", exception.ParamName);
+    }
+
+    #endregion
 }

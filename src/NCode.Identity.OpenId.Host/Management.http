@@ -47,6 +47,10 @@ Accept: application/json
 GET {{host}}/api/platform/settings
 Accept: application/json
 
+### Get the limits a tenant's settings carry and whether the caller may change them
+GET {{host}}/api/tenants/{{tenantId}}/settings/limits
+Accept: application/json
+
 ### List teams (central-admin)
 GET {{host}}/api/teams?limit=50
 Accept: application/json

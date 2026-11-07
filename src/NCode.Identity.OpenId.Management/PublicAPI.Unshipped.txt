@@ -13,10 +13,16 @@ NCode.Identity.OpenId.Management.Authorization.IResourceNode
 NCode.Identity.OpenId.Management.Authorization.IResourceNode.ResourceId.get -> string!
 NCode.Identity.OpenId.Management.Authorization.IResourceNode.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService
-NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.AddOwnerAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, string! resourceType, string! resourceId, string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>
-NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.AssignCreatorAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, string! resourceType, string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.AddOwnerAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, string! resourceType, string! resourceId, string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant!>
+NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.AssignCreatorAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, string! resourceType, string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment?>
 NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.GetOwnersAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! resourceType, string! resourceId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>!>
-NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.RemoveOwnerAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! resourceType, string! resourceId, string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult>
+NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.RemoveOwnerAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! resourceType, string! resourceId, string! principalId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.Authorization.OwnerRemoval!>
+NCode.Identity.OpenId.Management.Authorization.OwnerRemoval
+NCode.Identity.OpenId.Management.Authorization.OwnerRemoval.OwnerRemoval() -> void
+NCode.Identity.OpenId.Management.Authorization.OwnerRemoval.RemovedAssignments.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>!
+NCode.Identity.OpenId.Management.Authorization.OwnerRemoval.RemovedAssignments.init -> void
+NCode.Identity.OpenId.Management.Authorization.OwnerRemoval.Result.get -> NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult
+NCode.Identity.OpenId.Management.Authorization.OwnerRemoval.Result.init -> void
 NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult
 NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult.LastOwnerForbidden = 2 -> NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult
 NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult.NotFound = 1 -> NCode.Identity.OpenId.Management.Authorization.OwnerRemovalResult
@@ -30,6 +36,12 @@ NCode.Identity.OpenId.Management.Authorization.ResourceNode.ResourceType.init ->
 NCode.Identity.OpenId.Management.Authorization.ResourceNode.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Authorization.ResourceNode.TenantId.init -> void
 NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes
+NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant
+NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.Assignment.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!
+NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.Assignment.init -> void
+NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsAdded.get -> bool
+NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsAdded.init -> void
+NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.RoleAssignmentGrant() -> void
 NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.IdentityLibrary>!)
@@ -45,6 +57,6 @@ NCode.Identity.OpenId.Management.ServiceCollectionExtensions
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddAuthorizationHandler<THandler>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static NCode.Identity.OpenId.Management.Authorization.ResourceNode.For(string! tenantId, string! resourceType, string! resourceId) -> NCode.Identity.OpenId.Management.Authorization.ResourceNode!
-NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.AddAssignmentAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, string! resourceType, string! resourceId, string! principalId, string! roleName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>
+NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.AddAssignmentAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! tenantId, string! resourceType, string! resourceId, string! principalId, string! roleName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant!>
 NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.GetAssignmentsAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! resourceType, string! resourceId, string! roleName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>!>
-NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.RemoveAssignmentAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! resourceType, string! resourceId, string! principalId, string! roleName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Management.Authorization.IResourceOwnershipService.RemoveAssignmentAsync(NCode.Persistence.Stores.IStoreManager! storeManager, string! resourceType, string! resourceId, string! principalId, string! roleName, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!>!>

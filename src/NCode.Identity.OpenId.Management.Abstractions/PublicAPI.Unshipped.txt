@@ -366,6 +366,12 @@ NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.get -
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.init -> void
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.CanChange.get -> bool
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.CanChange.init -> void
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.Names.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.Names.init -> void
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.SettingLimitsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.init -> void
@@ -1102,3 +1108,10 @@ NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddChangedLim
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddRequiredCreateAuthority(NCode.Identity.OpenId.Persistence.ISupportTenantId! node) -> void
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.MapIdentifier(string! resourceType, string! sourceId, string! targetId) -> void
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TryGetTargetIdentifier(string! resourceType, string! sourceId, out string? targetId) -> bool
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.RoleAssignment = "role_assignment" -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeId.get -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeId.init -> void
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeType.get -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeType.init -> void
+override NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.ResourceType.get -> string!

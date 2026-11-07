@@ -258,6 +258,7 @@ than inlining the rationale.
   `ConfigureKestrel(k => k.ConfigureHttpsDefaults(...))` call that holds every HTTPS default, such as the reference
   host's `AllowAnyClientCertificate()` for mutual TLS
   ([ADR-1202](../../docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
+- 👁 **A host maps its probes with `MapHealthProbes()`** (`NCode.AspNetCore`), and a package tags a check a replica cannot serve without with `HealthCheckTags.Readiness` (`NCode.Registration`) ([ADR-1456](../../docs/decisions/1456-the-hosts-map-their-health-probes-through-one-general-helper.md)).
 - ✅ **C# 14 `extension` member syntax** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods)
   (`extension(IServiceBuilder<IdentityLibrary> builder) { … }` in `DefaultRegistration.cs`).
@@ -660,9 +661,13 @@ than inlining the rationale.
   [ADR-1253](../../docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md).
 - 👁 **A content-hashed static file is served by a route group that resolves no tenant.**
   `InteractiveBundleAssetEndpointGroup` takes the tenant-route prefix and adds no `OpenIdEnvironmentEndpointFilter`. It
-  reads through the `assets`-rooted `InteractiveBundleReader`, so nothing outside `assets`, the bundle's `index.html`
-  included, is servable, and it sends a served file `Cache-Control: public, max-age=31536000, immutable`. See
-  [ADR-1254](../../docs/decisions/1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md).
+  reads through `NCode.AspNetCore`'s `SinglePageBundle<InteractiveBundleShell>`, whose file provider is rooted at
+  `assets`, so nothing outside `assets`, the bundle's `index.html` included, is servable, and `ServeAsset` sends a
+  served file `Cache-Control: public, max-age=31536000, immutable`. Every surface that serves a built bundle registers
+  its own `SinglePageBundle<TIndex>`. See
+  [ADR-1254](../../docs/decisions/1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
+  and
+  [ADR-1457](../../docs/decisions/1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md).
 - 👁 **Every HTML page the server writes sets its headers through `SetHtmlPageSecurity`.** Build the page's
   `HtmlPageSecurityPolicy` from the strict default (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`,
   `frame-ancestors 'none'` with `X-Frame-Options: DENY`) and list only the sources the page needs — an inline script by

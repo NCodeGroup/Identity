@@ -172,28 +172,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
             .Verifiable();
 
     private static PersistedClient CreatePersistedClient() =>
-        new()
-        {
-            TenantId = "tenant-1",
-            ClientId = ClientId,
-            PrincipalId = "principal-1",
-            ConcurrencyToken = "ct",
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = "tenant-1",
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = "tenant-1",
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = [],
-            },
-        };
+        new PersistedClientBuilder { ClientId = ClientId, PrincipalId = "principal-1" }.Build();
 
     // A client acting for itself is refused before its settings or id are read.
     private void SetupActingClient()

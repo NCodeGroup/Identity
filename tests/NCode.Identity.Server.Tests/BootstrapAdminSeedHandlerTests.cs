@@ -309,24 +309,12 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         );
 
         // The handler reads the client's settings; it works on the client's secrets through the store.
-        var existingClient = new PersistedClient
+        var existingClient = new PersistedClientBuilder
         {
             TenantId = WorkloadTenantId,
             ClientId = ClientId,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = WorkloadTenantId,
-                ClientId = ClientId,
-                Value = clientSettings,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = WorkloadTenantId,
-                ClientId = ClientId,
-                Value = [],
-            },
-        };
+            Settings = clientSettings,
+        }.Build();
         var staleSecret = new PersistedSecret
         {
             SecretId = StaleSecretId,

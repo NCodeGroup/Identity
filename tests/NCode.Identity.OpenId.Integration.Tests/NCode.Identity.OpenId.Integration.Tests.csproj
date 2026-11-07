@@ -28,5 +28,6 @@
         <ProjectReference Include="..\..\src\NCode.Identity.ManagementConsole.Host\NCode.Identity.ManagementConsole.Host.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Client\NCode.Identity.OpenId.Client.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Host\NCode.Identity.OpenId.Host.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.TestSupport\NCode.Identity.OpenId.Persistence.TestSupport.csproj" />
     </ItemGroup>
 </Project>

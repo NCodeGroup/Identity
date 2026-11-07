@@ -228,34 +228,23 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         string redirectUri,
         params PersistedSecret[] keys
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = WorkloadTenantId,
             ClientId = "console",
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = WorkloadTenantId,
-                ClientId = "console",
-                Value = JsonElement.Parse(
-                    $$"""
-                    {
-                      "require_dpop_bound_access_tokens": true,
-                      "require_pushed_authorization_requests": true,
-                      "grant_types_supported": ["authorization_code", "refresh_token"],
-                      "token_endpoint_auth_method": "private_key_jwt",
-                      "redirect_uris": ["{{redirectUri}}"]
-                    }
-                    """
-                ),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = WorkloadTenantId,
-                ClientId = "console",
-                Value = keys,
-            },
-        };
+            Settings = JsonElement.Parse(
+                $$"""
+                {
+                  "require_dpop_bound_access_tokens": true,
+                  "require_pushed_authorization_requests": true,
+                  "grant_types_supported": ["authorization_code", "refresh_token"],
+                  "token_endpoint_auth_method": "private_key_jwt",
+                  "redirect_uris": ["{{redirectUri}}"]
+                }
+                """
+            ),
+            Secrets = keys,
+        }.Build();
 
     private static IEnumerable<string?> GetStrings(JsonElement jsonElement, string propertyName) =>
         jsonElement

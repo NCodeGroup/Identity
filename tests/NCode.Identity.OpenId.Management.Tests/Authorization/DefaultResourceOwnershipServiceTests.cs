@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -30,29 +29,12 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         new(new ClaimsIdentity(claims, "test"));
 
     private static PersistedClient CreateClient(string? owningNodeType, string? owningNodeId) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = "control-plane",
-            ClientId = "client-1",
-            ConcurrencyToken = "client-ct",
-            IsDisabled = false,
             OwningNodeType = owningNodeType,
             OwningNodeId = owningNodeId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = "control-plane",
-                ClientId = "client-1",
-                ConcurrencyToken = "settings-ct",
-                Value = JsonElement.Parse("{}"),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = "control-plane",
-                ClientId = "client-1",
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
-        };
+        }.Build();
 
     private void SetupClientByPrincipal(
         Mock<IStoreManager> storeManager,

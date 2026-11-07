@@ -17,7 +17,6 @@ using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
-using NCode.Json;
 
 namespace NCode.Identity.OpenId.Management.Auditing;
 
@@ -30,27 +29,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     public void Dispose() => MockRepository.Verify();
 
     private static PersistedClient CreateClient(string clientId) =>
-        new()
-        {
-            TenantId = "control-plane",
-            ClientId = clientId,
-            ConcurrencyToken = "client-ct",
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = "control-plane",
-                ClientId = clientId,
-                ConcurrencyToken = "settings-ct",
-                Value = JsonElements.EmptyObject,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = "control-plane",
-                ClientId = clientId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
-        };
+        new PersistedClientBuilder { TenantId = "control-plane", ClientId = clientId }.Build();
 
     private IOpenIdContextFeature CreateOpenIdContextFeature(string? tenantId)
     {

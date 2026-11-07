@@ -123,27 +123,11 @@ public sealed class TenantStoreLifecycleTests : IDisposable
 
     private async Task SeedClientAsync()
     {
-        var client = new PersistedClient
+        var client = new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
         await _clientStore.AddAsync(client, CancellationToken.None);
         await _dbContext.SaveChangesAsync();

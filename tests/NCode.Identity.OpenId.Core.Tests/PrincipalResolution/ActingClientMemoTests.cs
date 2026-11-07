@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.PrincipalResolution;
@@ -102,26 +101,10 @@ public sealed class ActingClientMemoTests
     #endregion
 
     private static PersistedClient CreateClient() =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
             PrincipalId = PrincipalId,
-            ConcurrencyToken = "ct",
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = [],
-            },
-        };
+        }.Build();
 }

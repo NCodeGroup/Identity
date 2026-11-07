@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,66 +46,23 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         _provider.Dispose();
     }
 
-    private static JsonElement EmptyObject() =>
-        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
-
     private async Task SeedTenantAsync()
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        await _tenantStore.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = TenantId,
-                TeamId = "platform",
-                ConcurrencyToken = string.Empty,
-                Issuer = null,
-                IsDisabled = false,
-                DisplayName = "Tenant One",
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = TenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = TenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            DisplayName = "Tenant One",
+        }.Build();
+        await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }
 
     private async Task AddTenantAsync(string tenantId, string teamId)
     {
-        await _tenantStore.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = tenantId,
-                TeamId = teamId,
-                ConcurrencyToken = string.Empty,
-                Issuer = null,
-                IsDisabled = false,
-                DisplayName = tenantId,
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var tenant = new PersistedTenantBuilder { TenantId = tenantId, TeamId = teamId }.Build();
+        await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }
@@ -339,30 +295,13 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
     public async Task GetUnrevokedExpiredPageAsync_SkipsTheGrantsOfADisabledTenant()
     {
         const string disabledTenantId = "tenant-disabled";
-        await _tenantStore.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = disabledTenantId,
-                TeamId = "platform",
-                ConcurrencyToken = string.Empty,
-                Issuer = null,
-                IsDisabled = true,
-                DisplayName = "Tenant Disabled",
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = disabledTenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = disabledTenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var disabledTenant = new PersistedTenantBuilder
+        {
+            TenantId = disabledTenantId,
+            IsDisabled = true,
+            DisplayName = "Tenant Disabled",
+        }.Build();
+        await _tenantStore.AddAsync(disabledTenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
 
@@ -408,30 +347,13 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         team.IsDisabled = true;
         await _dbContext.SaveChangesAsync();
 
-        await _tenantStore.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = tenantId,
-                TeamId = disabledTeamId,
-                ConcurrencyToken = string.Empty,
-                Issuer = null,
-                IsDisabled = false,
-                DisplayName = "Tenant Of Disabled Team",
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = tenantId,
+            TeamId = disabledTeamId,
+            DisplayName = "Tenant Of Disabled Team",
+        }.Build();
+        await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
 
@@ -475,30 +397,13 @@ public sealed class GrantStoreTests : IAsyncLifetime, IDisposable
         await _dbContext.SaveChangesAsync();
         _dbContext.SeedChildTeam(idGenerator, parent, childTeamId);
 
-        await _tenantStore.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = tenantId,
-                TeamId = childTeamId,
-                ConcurrencyToken = string.Empty,
-                Issuer = null,
-                IsDisabled = false,
-                DisplayName = "Tenant Beneath Disabled Team",
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = tenantId,
+            TeamId = childTeamId,
+            DisplayName = "Tenant Beneath Disabled Team",
+        }.Build();
+        await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
 

@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,27 +63,7 @@ public sealed class ClientStorePagingTests : IDisposable
     private async Task SeedAsync(int count)
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        var tenant = new PersistedTenant
-        {
-            TenantId = TenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
-            Issuer = null,
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        var tenant = new PersistedTenantBuilder { TenantId = TenantId }.Build();
         await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
 

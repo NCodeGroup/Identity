@@ -243,6 +243,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
 
         var updated = new PersistedSecretBuilder
         {
+            SecretId = current.SecretId,
             ConcurrencyToken = current.ConcurrencyToken,
             Use = "enc",
             Algorithm = "RS512",

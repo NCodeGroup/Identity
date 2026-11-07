@@ -158,6 +158,7 @@ public sealed class TenantStoreSecretsTests : IDisposable
 
         var updated = new PersistedSecretBuilder
         {
+            SecretId = current.SecretId,
             ConcurrencyToken = current.ConcurrencyToken,
             Use = "enc",
             Algorithm = "RS512",

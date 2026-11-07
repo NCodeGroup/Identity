@@ -28,6 +28,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Persistence.EntityFramework.Core\NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.TestSupport\NCode.Identity.OpenId.Persistence.TestSupport.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.TestSupport\NCode.Identity.Secrets.Persistence.TestSupport.csproj" />
     </ItemGroup>
 
     <ItemGroup>

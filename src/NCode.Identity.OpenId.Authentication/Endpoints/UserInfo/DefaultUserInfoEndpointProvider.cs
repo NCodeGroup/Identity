@@ -14,6 +14,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.UserInfo.Results;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Results;
 using NCode.Identity.OpenId.Settings;
 using NCode.Registration.AspNetCore;
@@ -33,7 +34,8 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.UserInfo;
 /// (<see href="https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse">OpenID Connect Core 5.3.2</see>).
 /// When the <c>audit_userinfo_access</c> setting is on, each answer to a request whose access token authenticated is
 /// audited as a <c>userinfo.accessed</c> event that names the subject, the client and the claims disclosed, never their
-/// values or the token.
+/// values or the token. A token in which the client acts for itself, as <see cref="IClientPrincipalResolver"/>
+/// decides, names no end-user and is refused.
 /// </summary>
 // See ADR-1155 and ADR-1401.
 internal class DefaultUserInfoEndpointProvider(
@@ -41,7 +43,8 @@ internal class DefaultUserInfoEndpointProvider(
     IOpenIdClientResolver clientResolver,
     IClientJwtCredentialSelector clientJwtCredentialSelector,
     IJwtEncoder jwtEncoder,
-    IAuditEventRecorder auditEventRecorder
+    IAuditEventRecorder auditEventRecorder,
+    IClientPrincipalResolver clientPrincipalResolver
 ) : IEndpointProvider
 {
     private const string JwtContentType = "application/jwt";
@@ -62,6 +65,8 @@ internal class DefaultUserInfoEndpointProvider(
     private IJwtEncoder JwtEncoder { get; } = jwtEncoder;
 
     private IAuditEventRecorder AuditEventRecorder { get; } = auditEventRecorder;
+
+    private IClientPrincipalResolver ClientPrincipalResolver { get; } = clientPrincipalResolver;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints) =>
@@ -146,8 +151,13 @@ internal class DefaultUserInfoEndpointProvider(
         }
 
         // UserInfo answers for an end-user; a token in which the client acts for itself names none (OpenID Connect Core 1.0 §5.3).
-        // See ADR-1450.
-        if (string.Equals(ticket.PrincipalId, openIdClient.PrincipalId, StringComparison.Ordinal))
+        // See ADR-1450 and ADR-1470.
+        var actingClient = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
+            openIdContext,
+            ticket.Subject,
+            cancellationToken
+        );
+        if (actingClient is not null)
         {
             await AuditDeniedAsync(openIdContext, ticket.PrincipalId, clientId, cancellationToken);
             return InvalidToken(errorFactory);

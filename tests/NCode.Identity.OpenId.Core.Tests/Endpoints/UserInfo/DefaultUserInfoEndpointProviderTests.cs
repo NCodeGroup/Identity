@@ -21,6 +21,8 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Persistence.DataContracts;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Keys;
@@ -42,6 +44,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
         MockCredentialSelector = CreateStrictMock<IClientJwtCredentialSelector>();
         MockJwtEncoder = CreateStrictMock<IJwtEncoder>();
         MockAuditEventRecorder = CreateStrictMock<IAuditEventRecorder>();
+        MockClientPrincipalResolver = CreateStrictMock<IClientPrincipalResolver>();
 
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         mockErrorFactory
@@ -67,7 +70,8 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
             MockClientResolver.Object,
             MockCredentialSelector.Object,
             MockJwtEncoder.Object,
-            MockAuditEventRecorder.Object
+            MockAuditEventRecorder.Object,
+            MockClientPrincipalResolver.Object
         );
     }
 
@@ -76,6 +80,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     private Mock<IClientJwtCredentialSelector> MockCredentialSelector { get; }
     private Mock<IJwtEncoder> MockJwtEncoder { get; }
     private Mock<IAuditEventRecorder> MockAuditEventRecorder { get; }
+    private Mock<IClientPrincipalResolver> MockClientPrincipalResolver { get; }
     private Mock<OpenIdEnvironment> MockEnvironment { get; }
     private Mock<OpenIdContext> MockContext { get; }
     private OpenIdContext OpenIdContext { get; }
@@ -119,7 +124,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     private OpenIdClient SetupClient(bool signsResponse = false, bool auditsAccess = false)
     {
         var mockClient = CreateStrictMock<OpenIdClient>();
-        mockClient.SetupGet(x => x.PrincipalId).Returns("client-principal-1").Verifiable();
+        SetupClientPrincipalResolver(null);
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.AuditUserInfoAccess))
@@ -153,11 +158,48 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
         return mockClient.Object;
     }
 
+    // The resolver decides whether the authenticated subject is a client acting for itself.
+    private void SetupClientPrincipalResolver(PersistedClient? actingClient) =>
+        MockClientPrincipalResolver
+            .Setup(x =>
+                x.GetActingClientOrDefaultAsync(
+                    OpenIdContext,
+                    It.Is<ClaimsPrincipal>(user => user.FindFirstValue("sub") == "principal-1"),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(actingClient)
+            .Verifiable();
+
+    private static PersistedClient CreatePersistedClient() =>
+        new()
+        {
+            TenantId = "tenant-1",
+            ClientId = ClientId,
+            PrincipalId = "principal-1",
+            ConcurrencyToken = "ct",
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = "tenant-1",
+                ClientId = ClientId,
+                ConcurrencyToken = "ct",
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = "tenant-1",
+                ClientId = ClientId,
+                ConcurrencyToken = "ct",
+                Value = [],
+            },
+        };
+
     // A client acting for itself is refused before its settings or id are read.
     private void SetupActingClient()
     {
         var mockClient = CreateStrictMock<OpenIdClient>();
-        mockClient.SetupGet(x => x.PrincipalId).Returns("principal-1").Verifiable();
+        SetupClientPrincipalResolver(CreatePersistedClient());
 
         MockClientResolver
             .Setup(x =>
@@ -361,6 +403,30 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     {
         SetupAuthenticatedSubject(ClientId);
         SetupUnresolvedClient();
+        SetupTenantAudit(auditsAccess: true);
+        MockAuditEventRecorder
+            .Setup(x =>
+                x.RecordUserInfoAccessDeniedAsync(
+                    OpenIdContext,
+                    "principal-1",
+                    ClientId,
+                    OpenIdProtocol.ErrorCodes.InvalidToken,
+                    CancellationToken.None
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, CreatedErrorCode);
+    }
+
+    [Fact]
+    public async Task HandleRouteAsync_WhenTheTenantAuditsAccessAndTheClientActsForItself_AuditsTheRefusal()
+    {
+        SetupAuthenticatedSubject(ClientId);
+        SetupActingClient();
         SetupTenantAudit(auditsAccess: true);
         MockAuditEventRecorder
             .Setup(x =>

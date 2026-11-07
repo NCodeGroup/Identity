@@ -670,4 +670,27 @@ internal static partial class Log
         this ILogger logger,
         string tenantId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.PostCommitSessionTerminationFailed,
+        Level = LogLevel.Error,
+        Message = "The sessions of subject '{SubjectId}' in tenant '{TenantId}' could not be terminated after a committed change; repeat the change to terminate them."
+    )]
+    internal static partial void PostCommitSessionTerminationFailed(
+        this ILogger logger,
+        Exception exception,
+        string tenantId,
+        string subjectId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.PostCommitPasswordAttemptResetFailed,
+        Level = LogLevel.Warning,
+        Message = "The failed password attempts of an account of tenant '{TenantId}' could not be cleared after a committed change; the account stays refused until its window ends."
+    )]
+    internal static partial void PostCommitPasswordAttemptResetFailed(
+        this ILogger logger,
+        Exception exception,
+        string tenantId
+    );
 }

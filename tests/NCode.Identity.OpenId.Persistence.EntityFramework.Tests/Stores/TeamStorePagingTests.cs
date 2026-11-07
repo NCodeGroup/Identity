@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,19 +35,7 @@ public sealed class TeamStorePagingTests : IDisposable
     }
 
     private static PersistedTeam CreateTeam(string teamId) =>
-        new()
-        {
-            TeamId = teamId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            DisplayName = teamId,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-        };
+        new PersistedTeamBuilder { TeamId = teamId }.Build();
 
     private async Task SeedAsync(int count)
     {

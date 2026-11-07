@@ -1516,6 +1516,17 @@ internal class ClientApiEndpointHandler(
         }
 
         var settingsValue = SerializeToElement(jsonObject);
+
+        // See ADR-1466.
+        if (client.OwningNodeType is not null && !IsClientCredentialsOnly(settingsValue))
+        {
+            var grantTypesError = new SettingError(
+                OpenIdSettingNames.GrantTypesSupported,
+                MachineClientGrantTypesDetail
+            );
+            return SettingsValidationProblem([grantTypesError]);
+        }
+
         var jsonOptions = httpContext.GetOpenIdContext().Environment.JsonSerializerOptions;
         var settingErrors = SettingSerializer.ValidateSettings(
             settingsValue,

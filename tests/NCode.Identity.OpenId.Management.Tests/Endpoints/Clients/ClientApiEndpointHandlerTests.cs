@@ -659,6 +659,25 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             Secrets = CreateSecretsCollection("secrets-ct", secrets),
         };
 
+    private static PersistedClient CreateMachineClient() =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = "client-ct",
+            IsDisabled = false,
+            OwningNodeType = ResourceNodeTypes.Team,
+            OwningNodeId = "team-1",
+            Settings = new PersistedClientSettings
+            {
+                TenantId = TenantId,
+                ClientId = ClientId,
+                ConcurrencyToken = "settings-ct",
+                Value = JsonElement.Parse("""{"grant_types_supported":["client_credentials"]}"""),
+            },
+            Secrets = CreateSecretsCollection("secrets-ct"),
+        };
+
     private static JsonElement JwksUriSettings() =>
         JsonSerializer.SerializeToElement(
             new JsonObject { [OpenIdSettingNames.JwksUri] = "https://client.example/jwks" }
@@ -2873,6 +2892,77 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(ResourceNodeTypes.Client, node.ResourceType);
         Assert.Equal(ClientId, node.ResourceId);
         Assert.Equal(TenantId, node.TenantId);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenAPatchGivesAMachineClientAnotherGrantType_ReturnsValidationProblemWithoutWriting()
+    {
+        SetupClientRoleAssignments();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateMachineClient())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var patch = new JsonPatchDocument<JsonObject>();
+        patch.Operations.Add(
+            new Operation<JsonObject>(
+                "replace",
+                $"/{OpenIdSettingNames.GrantTypesSupported}",
+                from: null,
+                value: new[] { OpenIdProtocol.GrantTypes.AuthorizationCode }
+            )
+        );
+
+        // Strict mocks: no setting validation or store-write setup, so continuing past the refusal would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            patch,
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal([OpenIdSettingNames.GrantTypesSupported], problem.ProblemDetails.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenAPatchRemovesAMachineClientsGrantTypes_ReturnsValidationProblemWithoutWriting()
+    {
+        SetupClientRoleAssignments();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateMachineClient())
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var patch = new JsonPatchDocument<JsonObject>();
+        patch.Operations.Add(
+            new Operation<JsonObject>(
+                "remove",
+                $"/{OpenIdSettingNames.GrantTypesSupported}",
+                from: null
+            )
+        );
+
+        // Strict mocks: no setting validation or store-write setup, so continuing past the refusal would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            patch,
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal([OpenIdSettingNames.GrantTypesSupported], problem.ProblemDetails.Errors.Keys);
     }
 
     #endregion

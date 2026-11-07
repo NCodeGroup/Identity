@@ -1205,7 +1205,6 @@ internal class ClientApiEndpointHandler(
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
-            storeManager,
             client,
             cancellationToken
         );
@@ -1280,7 +1279,6 @@ internal class ClientApiEndpointHandler(
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
-            storeManager,
             client,
             cancellationToken
         );
@@ -1483,7 +1481,6 @@ internal class ClientApiEndpointHandler(
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
-            storeManager,
             client,
             cancellationToken
         );
@@ -1764,7 +1761,6 @@ internal class ClientApiEndpointHandler(
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
-            storeManager,
             client,
             cancellationToken
         );
@@ -1948,7 +1944,6 @@ internal class ClientApiEndpointHandler(
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
-            storeManager,
             client,
             cancellationToken
         );
@@ -2161,7 +2156,6 @@ internal class ClientApiEndpointHandler(
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
-            storeManager,
             client,
             cancellationToken
         );
@@ -2253,7 +2247,6 @@ internal class ClientApiEndpointHandler(
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
-            storeManager,
             client,
             cancellationToken
         );
@@ -2348,7 +2341,6 @@ internal class ClientApiEndpointHandler(
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
-            storeManager,
             client,
             cancellationToken
         );
@@ -2542,7 +2534,6 @@ internal class ClientApiEndpointHandler(
 
             var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
                 httpContext,
-                storeManager,
                 client,
                 token
             );
@@ -2589,7 +2580,6 @@ internal class ClientApiEndpointHandler(
         {
             var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
                 httpContext,
-                storeManager,
                 client,
                 cancellationToken
             );
@@ -2640,7 +2630,6 @@ internal class ClientApiEndpointHandler(
         {
             var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
                 httpContext,
-                storeManager,
                 client,
                 cancellationToken
             );
@@ -2662,18 +2651,16 @@ internal class ClientApiEndpointHandler(
 
     /// <summary>
     /// Gets the refusal of a change to a client: the <c>409 Conflict</c> for a client the host configures, else the
-    /// <c>403 Forbidden</c> when the caller lacks the authority to grant a role the client's principal holds, else
-    /// <c>null</c> when the change may proceed.
+    /// <c>403 Forbidden</c> when the client is a machine client and the caller lacks creation authority at the node
+    /// that owns it, else <c>null</c> when the change may proceed.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="storeManager">The <see cref="IStoreManager"/> that reads the client's role assignments.</param>
     /// <param name="client">The client the request changes.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The refusal result, or <c>null</c> when the change may proceed.</returns>
-    // See ADR-1417 and ADR-1419.
+    // See ADR-1417 and ADR-1467.
     private async ValueTask<IResult?> GetClientChangeRefusalOrDefaultAsync(
         HttpContext httpContext,
-        IStoreManager storeManager,
         PersistedClient client,
         CancellationToken cancellationToken
     )
@@ -2683,61 +2670,18 @@ internal class ClientApiEndpointHandler(
             return HostManagedClientRefused();
         }
 
-        if (
-            !await HoldsAuthorityOverClientRolesAsync(
-                httpContext,
-                storeManager,
-                client,
-                cancellationToken
-            )
-        )
+        if (client.OwningNodeType is null)
         {
-            return AuthorizationFailed(httpContext);
+            return null;
         }
 
-        return null;
-    }
-
-    /// <summary>
-    /// Determines whether the caller may grant every role the client's principal holds, which custody of the client's
-    /// credentials needs.
-    /// </summary>
-    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
-    /// <param name="storeManager">The <see cref="IStoreManager"/> that reads the client's role assignments.</param>
-    /// <param name="client">The client whose principal's role assignments are checked.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns><c>true</c> when the caller holds <see cref="Operations.Create"/> at every node where the client's principal holds an assignment; otherwise, <c>false</c>.</returns>
-    // Custody of a client's credentials needs the authority to grant what the client holds (ADR-1419).
-    private async ValueTask<bool> HoldsAuthorityOverClientRolesAsync(
-        HttpContext httpContext,
-        IStoreManager storeManager,
-        PersistedClient client,
-        CancellationToken cancellationToken
-    )
-    {
-        var assignments = await storeManager
-            .GetStore<IRoleAssignmentStore>()
-            .GetByPrincipalAsync(client.PrincipalId, cancellationToken);
-
-        foreach (var assignment in assignments)
-        {
-            var authorizationResult = await AuthorizationService.AuthorizeAsync(
-                httpContext.User,
-                ResourceNode.For(
-                    assignment.TenantId,
-                    assignment.ResourceType,
-                    assignment.ResourceId
-                ),
-                Operations.Create
-            );
-
-            if (!authorizationResult.Succeeded)
-            {
-                return false;
-            }
-        }
-
-        return true;
+        var owningNode = GetNodeAbove(client);
+        return await GetAuthorizationFailureAsync(
+            httpContext,
+            owningNode,
+            Operations.Create,
+            cancellationToken
+        );
     }
 
     /// <summary>

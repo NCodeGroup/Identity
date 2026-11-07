@@ -5,7 +5,6 @@ using System.Text.Json;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Management.Auditing;
-using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -147,7 +146,6 @@ internal class ClientPromotionContributor(
             }
         }
 
-        await AddRequiredCreateAuthoritiesAsync(context, computation.Promotions, cancellationToken);
         await AddIntroducedViolationsAsync(context, computation, cancellationToken);
     }
 
@@ -292,44 +290,6 @@ internal class ClientPromotionContributor(
                 OpenIdProtocol.ClientAuthenticationMethods.None,
                 StringComparison.Ordinal
             ) && (target is null || target.Secrets.Value.Count == 0);
-    }
-
-    private static async ValueTask AddRequiredCreateAuthoritiesAsync(
-        TenantPromotionContext context,
-        IReadOnlyList<ClientPromotion> promotions,
-        CancellationToken cancellationToken
-    )
-    {
-        var store = context.StoreManager.GetStore<IRoleAssignmentStore>();
-
-        foreach (var promotion in promotions)
-        {
-            if (
-                promotion.Action != TenantPromotionActions.Updated
-                || promotion.Target is not { } target
-            )
-            {
-                continue;
-            }
-
-            using var scope = context.BeginTargetScope();
-
-            var assignments = await store.GetByPrincipalAsync(
-                target.PrincipalId,
-                cancellationToken
-            );
-
-            foreach (var assignment in assignments)
-            {
-                context.AddRequiredCreateAuthority(
-                    ResourceNode.For(
-                        assignment.TenantId,
-                        assignment.ResourceType,
-                        assignment.ResourceId
-                    )
-                );
-            }
-        }
     }
 
     private async ValueTask AddIntroducedViolationsAsync(

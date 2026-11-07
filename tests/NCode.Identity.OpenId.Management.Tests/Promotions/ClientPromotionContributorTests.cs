@@ -37,7 +37,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     private Mock<IHostManagedClientChecker> MockHostManagedClientChecker { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
-    private Mock<IRoleAssignmentStore> MockRoleAssignmentStore { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<ISupportTenantId> MockTeamNode { get; }
     private Mock<ISupportTenantId> MockTargetTenantNode { get; }
@@ -56,7 +55,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
         MockHostManagedClientChecker = MockRepository.Create<IHostManagedClientChecker>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
-        MockRoleAssignmentStore = MockRepository.Create<IRoleAssignmentStore>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockTeamNode = MockRepository.Create<ISupportTenantId>();
         MockTargetTenantNode = MockRepository.Create<ISupportTenantId>();
@@ -70,12 +68,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
         MockStoreManager
             .Setup(x => x.GetStore<IClientStore>())
             .Returns(MockClientStore.Object)
-            .Verifiable();
-
-    private void SetupRoleAssignmentStore() =>
-        MockStoreManager
-            .Setup(x => x.GetStore<IRoleAssignmentStore>())
-            .Returns(MockRoleAssignmentStore.Object)
             .Verifiable();
 
     private void SetupSourceScope() => SetupScope(SourceTenantId);
@@ -373,15 +365,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
             .Returns(changedLimits)
             .Verifiable();
 
-    private void SetupRoleAssignments(
-        string principalId,
-        params PersistedRoleAssignment[] assignments
-    ) =>
-        MockRoleAssignmentStore
-            .Setup(x => x.GetByPrincipalAsync(principalId, CancellationToken.None))
-            .ReturnsAsync(assignments)
-            .Verifiable();
-
     private PromotedSettings SetupClient(
         TenantPromotionContext context,
         PersistedClient source,
@@ -417,7 +400,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheTargetLacksTheClient_RecordsACreatedChangeAndNoAuthority()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -443,7 +425,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenEverythingMatches_RecordsAnUnchangedChange()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
@@ -462,14 +443,12 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheDisabledStateDiffers_RecordsAnUpdatedChange()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", isDisabled: true);
         var target = CreateClient(TargetTenantId, "client-1");
         SetupSource(source);
         SetupClient(context, source, target);
-        SetupRoleAssignments(target.PrincipalId);
 
         await CreateContributor().PlanAsync(context, CancellationToken.None);
 
@@ -481,7 +460,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheDocumentDiffers_RecordsTheChangedLimitAtTheTargetTenantNode()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", settingsJson: """{"a":1}""");
@@ -489,7 +467,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
         SetupSource(source);
         var promoted = SetupClient(context, source, target, """{"a":1}""");
         SetupChangedLimits(target, promoted, "limit_a");
-        SetupRoleAssignments(target.PrincipalId);
 
         await CreateContributor().PlanAsync(context, CancellationToken.None);
 
@@ -503,7 +480,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheDocumentDiffersWithoutALimit_RecordsNoChangedLimit()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", settingsJson: """{"a":1}""");
@@ -511,7 +487,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
         SetupSource(source);
         var promoted = SetupClient(context, source, target, """{"a":1}""");
         SetupChangedLimits(target, promoted);
-        SetupRoleAssignments(target.PrincipalId);
 
         await CreateContributor().PlanAsync(context, CancellationToken.None);
 
@@ -519,56 +494,9 @@ public sealed class ClientPromotionContributorTests : IDisposable
     }
 
     [Fact]
-    public async Task PlanAsync_WhenAnUpdatedTargetHoldsRoles_RecordsTheNodesAsRequiredCreateAuthorities()
-    {
-        SetupCompute();
-        SetupRoleAssignmentStore();
-        SetupNoJwksUri();
-        var context = CreateContext();
-        var source = CreateClient(SourceTenantId, "client-1", isDisabled: true);
-        var target = CreateClient(TargetTenantId, "client-1", principalId: "principal-9");
-        SetupSource(source);
-        SetupClient(context, source, target);
-        SetupRoleAssignments(
-            "principal-9",
-            new PersistedRoleAssignment
-            {
-                TenantId = TargetTenantId,
-                AssignmentId = "assignment-1",
-                PrincipalId = "principal-9",
-                RoleName = "Owner",
-                ResourceType = ResourceNodeTypes.Tenant,
-                ResourceId = TargetTenantId,
-                ConcurrencyToken = "token",
-            },
-            new PersistedRoleAssignment
-            {
-                TenantId = TargetTenantId,
-                AssignmentId = "assignment-2",
-                PrincipalId = "principal-9",
-                RoleName = "Owner",
-                ResourceType = ResourceNodeTypes.Client,
-                ResourceId = "other-client",
-                ConcurrencyToken = "token",
-            }
-        );
-
-        await CreateContributor().PlanAsync(context, CancellationToken.None);
-
-        var nodes = context.RequiredCreateAuthorities.Cast<IResourceNode>().ToList();
-        Assert.Equal(2, nodes.Count);
-        Assert.Equal(TargetTenantId, nodes[0].TenantId);
-        Assert.Equal(ResourceNodeTypes.Tenant, nodes[0].ResourceType);
-        Assert.Equal(TargetTenantId, nodes[0].ResourceId);
-        Assert.Equal(ResourceNodeTypes.Client, nodes[1].ResourceType);
-        Assert.Equal("other-client", nodes[1].ResourceId);
-    }
-
-    [Fact]
     public async Task PlanAsync_WhenASourceClientIsHostManaged_NotesItAndReadsNoTarget()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         SetupSource(source);
@@ -587,7 +515,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheTargetClientIsHostManaged_AddsAnError()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
@@ -608,7 +535,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheSourceHoldsAMachineClient_LeavesItOut()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -628,7 +554,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheTargetClientIsAMachineClient_ReportsAnError()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
@@ -652,7 +577,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheDocumentNamesAJwksUriAndTheTargetHoldsPublicKeys_AddsAnError()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -680,7 +604,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
             .Setup(x => x.HasPublicKeys(target.Secrets.Value))
             .Returns(true)
             .Verifiable();
-        SetupRoleAssignments(target.PrincipalId);
 
         await CreateContributor().PlanAsync(context, CancellationToken.None);
 
@@ -692,7 +615,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheSourceActsForAMappedResourceServer_ReadsTheTargetBoundToIt()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
@@ -711,7 +633,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheSourceResourceServerIsNotMapped_AddsAnError()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1", resourceServerId: "rs-source");
         SetupSource(source);
@@ -727,7 +648,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheTargetActsForAnotherResourceServer_AddsAnError()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         context.MapIdentifier(ManagementResourceTypes.ResourceServer, "rs-source", "rs-target");
@@ -746,7 +666,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheSourceHasNoResourceServerAndTheTargetHasOne_AddsAnError()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
@@ -763,7 +682,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheDocumentIsInvalid_AddsAnErrorPerSettingError()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupTargetScope();
         SetupNoClientHostManaged();
         var context = CreateContext();
@@ -786,7 +704,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheDocumentIsIncoherentUnderThePromotedTenant_AddsAnError()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupTargetScope();
         SetupNoClientHostManaged();
         var context = CreateContext();
@@ -808,7 +725,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheSourceSetsAnEnvironmentBoundSetting_AddsANote()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(SourceTenantId, "client-1");
         SetupSource(source);
@@ -825,7 +741,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheClientNeedsACredentialAndTheTargetHoldsNone_AddsACredentialNote()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         var context = CreateContext();
         var source = CreateClient(
             SourceTenantId,
@@ -851,7 +766,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheTargetHoldsASecret_AddsNoCredentialNote()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupNoJwksUri();
         var context = CreateContext();
         var source = CreateClient(
@@ -882,7 +796,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheTenantSettingsChange_AddsAnErrorForAnIntroducedViolationOfAnUnpromotedClient()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         SetupTargetScope();
         SetupNoClientHostManaged();
         var context = CreateContext(targetTenantSettingsJson: """{"a":1}""");
@@ -924,7 +837,6 @@ public sealed class ClientPromotionContributorTests : IDisposable
     public async Task PlanAsync_WhenTheSourceHasSeveralPages_ReadsEveryPage()
     {
         SetupCompute();
-        SetupRoleAssignmentStore();
         var context = CreateContext();
         var first = CreateClient(SourceTenantId, "client-1", settingsJson: """{"a":1}""");
         var second = CreateClient(SourceTenantId, "client-2", settingsJson: """{"b":1}""");

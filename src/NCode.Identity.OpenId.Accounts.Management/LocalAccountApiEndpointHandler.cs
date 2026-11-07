@@ -15,6 +15,7 @@ using NCode.Identity.OpenId.Accounts.Management.Contracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -56,7 +57,9 @@ PATCH  api/tenants/{tenantId}/local-accounts/{localAccountId}/metadata
 /// register an <see cref="ILocalAccountStore"/> implementation (the Entity Framework reference or the ASP.NET Core
 /// Identity adapter) that these endpoints operate over. Deleting or disabling an account, or resetting its password,
 /// ends every session of its principal. Every password it sets meets the tenant's password policy; a refused password
-/// is answered 400 with the requirement it fails.
+/// is answered 400 with the requirement it fails. The security effects that follow a commit (ending the sessions of a
+/// disabled account or of a reset password, and clearing failed password attempts) run through
+/// <see cref="IPostCommitSecurityEffects"/>.
 /// </summary>
 internal class LocalAccountApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
@@ -68,7 +71,7 @@ internal class LocalAccountApiEndpointHandler(
     IOpenIdContextFactory openIdContextFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,
     IPasswordPolicy passwordPolicy,
-    IPasswordAttemptLimiter passwordAttemptLimiter
+    IPostCommitSecurityEffects postCommitSecurityEffects
 ) : ManagementApiEndpointHandler, IEndpointProvider
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
@@ -86,7 +89,8 @@ internal class LocalAccountApiEndpointHandler(
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
     private IPasswordPolicy PasswordPolicy { get; } = passwordPolicy;
-    private IPasswordAttemptLimiter PasswordAttemptLimiter { get; } = passwordAttemptLimiter;
+    private IPostCommitSecurityEffects PostCommitSecurityEffects { get; } =
+        postCommitSecurityEffects;
 
     /// <inheritdoc />
     public void Map(IEndpointRouteBuilder endpoints)
@@ -258,6 +262,11 @@ internal class LocalAccountApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        // The password an administrator sets replaces the one being guessed, so its failed attempts start over. The
+        // change is committed, so clearing them runs on its own bounded token, a failure is logged, and the audit
+        // record follows. See ADR-1237 and ADR-1468.
+        await PostCommitSecurityEffects.ResetPasswordAttemptsAsync(tenantId, request.UserName);
+
         var resource = ToLocalAccountResource(account);
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
@@ -267,11 +276,6 @@ internal class LocalAccountApiEndpointHandler(
             ResourceChangeTypes.Created,
             ToResourceValues(resource)
         );
-
-        // The password an administrator sets replaces the one being guessed, so its failed attempts start over. It
-        // runs last, with CancellationToken.None, because the limit fails closed: a counter store that throws must not
-        // skip the audit record. See ADR-1237.
-        await PasswordAttemptLimiter.ResetAsync(tenantId, request.UserName, CancellationToken.None);
 
         httpContext.Response.Headers.ETag = account.ConcurrencyToken;
         return TypedResults.Created(
@@ -535,20 +539,23 @@ internal class LocalAccountApiEndpointHandler(
             ? null
             : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
 
+        var principalId = isEnabled
+            ? null
+            : await FindSelfIssuedPrincipalIdAsync(storeManager, localAccountId, cancellationToken);
+
         account.IsEnabled = isEnabled;
         await store.UpdateAsync(account, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        if (tenantContext is not null)
+        if (tenantContext is not null && principalId is not null)
         {
             // A disabled account's sessions end, which revokes every grant of its principal and notifies its relying
-            // parties. The change is committed, so a client disconnect does not cancel the termination. See ADR-1224.
-            await TerminateAccountSessionsAsync(
+            // parties. The change is committed, so the termination runs on its own bounded token, a failure is
+            // logged, and the audit record follows. See ADR-1224 and ADR-1468.
+            await PostCommitSecurityEffects.TerminateSessionsAsync(
                 tenantContext,
-                storeManager,
-                localAccountId,
-                SessionTerminationReasons.AccountDisabled,
-                CancellationToken.None
+                principalId,
+                SessionTerminationReasons.AccountDisabled
             );
         }
 
@@ -611,6 +618,12 @@ internal class LocalAccountApiEndpointHandler(
             cancellationToken
         );
 
+        var principalId = await FindSelfIssuedPrincipalIdAsync(
+            storeManager,
+            localAccountId,
+            cancellationToken
+        );
+
         await WithPasswordBytesAsync(
             request.Password,
             (bytes, ct) => store.SetPasswordAsync(localAccountId, bytes, ct),
@@ -618,16 +631,22 @@ internal class LocalAccountApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a
-        // compromised account stop at once. The change is committed, so a client disconnect does not cancel the
-        // termination. See ADR-1226.
-        await TerminateAccountSessionsAsync(
-            tenantContext,
-            storeManager,
-            localAccountId,
-            SessionTerminationReasons.PasswordReset,
-            CancellationToken.None
-        );
+        if (principalId is not null)
+        {
+            // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a
+            // compromised account stop at once. The change is committed, so the termination runs on its own bounded
+            // token, a failure is logged, and the audit record follows. See ADR-1226 and ADR-1468.
+            await PostCommitSecurityEffects.TerminateSessionsAsync(
+                tenantContext,
+                principalId,
+                SessionTerminationReasons.PasswordReset
+            );
+        }
+
+        // The password an administrator sets replaces the one being guessed, so its failed attempts start over. The
+        // change is committed, so clearing them runs on its own bounded token, a failure is logged, and the audit
+        // record follows. See ADR-1237 and ADR-1468.
+        await PostCommitSecurityEffects.ResetPasswordAttemptsAsync(tenantId, account.UserName);
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
@@ -636,11 +655,6 @@ internal class LocalAccountApiEndpointHandler(
             ResourceChangeTypes.Updated,
             resourceValues: null
         );
-
-        // The password an administrator sets replaces the one being guessed, so its failed attempts start over. It
-        // runs last, with CancellationToken.None, because the limit fails closed: a counter store that throws must not
-        // skip ending the sessions or the audit record. See ADR-1237.
-        await PasswordAttemptLimiter.ResetAsync(tenantId, account.UserName, CancellationToken.None);
 
         return TypedResults.NoContent();
     }
@@ -875,12 +889,11 @@ internal class LocalAccountApiEndpointHandler(
         CancellationToken cancellationToken
     ) => await SessionService.RevokeAllAsync(tenantContext, principalId, reason, cancellationToken);
 
-    // Terminates every session of the principal behind the account's self-issued identity, if the account has one.
-    private async ValueTask TerminateAccountSessionsAsync(
-        OpenIdContext tenantContext,
+    // Resolves the principal behind the account's self-issued identity, if the account has one. A route resolves it
+    // before its write, so the effect that follows the commit is one call.
+    private static async ValueTask<string?> FindSelfIssuedPrincipalIdAsync(
         IStoreManager storeManager,
         string localAccountId,
-        string reason,
         CancellationToken cancellationToken
     )
     {
@@ -891,17 +904,7 @@ internal class LocalAccountApiEndpointHandler(
                 localAccountId,
                 cancellationToken
             );
-        if (identity is null)
-        {
-            return;
-        }
-
-        await TerminateSessionsAsync(
-            tenantContext,
-            identity.PrincipalId,
-            reason,
-            cancellationToken
-        );
+        return identity?.PrincipalId;
     }
 
     // Judges a password an administrator sets by the addressed tenant's effective settings, resolved from its stored

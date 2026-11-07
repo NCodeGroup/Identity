@@ -15,6 +15,7 @@ using NCode.Identity.OpenId.Accounts.Management.Contracts;
 using NCode.Identity.OpenId.Accounts.Stores;
 using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -49,7 +50,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     private Mock<IOpenIdContextFactory> MockOpenIdContextFactory { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<IPasswordPolicy> MockPasswordPolicy { get; }
-    private Mock<IPasswordAttemptLimiter> MockPasswordAttemptLimiter { get; }
+    private Mock<IPostCommitSecurityEffects> MockPostCommitSecurityEffects { get; }
     private LocalAccountApiEndpointHandler Handler { get; }
 
     public LocalAccountApiEndpointHandlerTests()
@@ -67,7 +68,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         MockOpenIdContextFactory = MockRepository.Create<IOpenIdContextFactory>();
         MockEffectiveSettingsResolver = MockRepository.Create<IEffectiveSettingsResolver>();
         MockPasswordPolicy = MockRepository.Create<IPasswordPolicy>();
-        MockPasswordAttemptLimiter = MockRepository.Create<IPasswordAttemptLimiter>();
+        MockPostCommitSecurityEffects = MockRepository.Create<IPostCommitSecurityEffects>();
 
         Handler = new LocalAccountApiEndpointHandler(
             MockStoreManagerFactory.Object,
@@ -79,7 +80,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             MockOpenIdContextFactory.Object,
             MockEffectiveSettingsResolver.Object,
             MockPasswordPolicy.Object,
-            MockPasswordAttemptLimiter.Object
+            MockPostCommitSecurityEffects.Object
         );
     }
 

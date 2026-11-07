@@ -53,7 +53,8 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
     private DefaultManagementAuditRecorder CreateRecorder(
         IEventPublisher eventPublisher,
         bool resolvesTenantEnvironment = true,
-        ILogger<DefaultManagementAuditRecorder>? logger = null
+        ILogger<DefaultManagementAuditRecorder>? logger = null,
+        IManagementTenantEnvironmentResolver? tenantEnvironmentResolver = null
     )
     {
         var mockEnvironment = MockRepository.Create<OpenIdEnvironment>();
@@ -70,26 +71,31 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         var mockEnvironmentProvider = MockRepository.Create<IOpenIdEnvironmentProvider>();
         mockEnvironmentProvider.Setup(x => x.Get()).Returns(mockEnvironment.Object).Verifiable();
 
-        var mockTenantEnvironmentResolver =
-            MockRepository.Create<IManagementTenantEnvironmentResolver>();
-        if (resolvesTenantEnvironment)
+        if (tenantEnvironmentResolver is null)
         {
-            mockTenantEnvironmentResolver
-                .Setup(x =>
-                    x.GetEnvironmentTypeAsync(
-                        It.IsAny<HttpContext>(),
-                        It.IsAny<string>(),
-                        It.IsAny<CancellationToken>()
+            var mockTenantEnvironmentResolver =
+                MockRepository.Create<IManagementTenantEnvironmentResolver>();
+            if (resolvesTenantEnvironment)
+            {
+                mockTenantEnvironmentResolver
+                    .Setup(x =>
+                        x.GetEnvironmentTypeAsync(
+                            It.IsAny<HttpContext>(),
+                            It.IsAny<string>(),
+                            It.IsAny<CancellationToken>()
+                        )
                     )
-                )
-                .ReturnsAsync(TenantEnvironmentType)
-                .Verifiable();
+                    .ReturnsAsync(TenantEnvironmentType)
+                    .Verifiable();
+            }
+
+            tenantEnvironmentResolver = mockTenantEnvironmentResolver.Object;
         }
 
         return new DefaultManagementAuditRecorder(
             eventPublisher,
             mockEnvironmentProvider.Object,
-            mockTenantEnvironmentResolver.Object,
+            tenantEnvironmentResolver,
             TimeProvider.System,
             logger ?? NullLogger<DefaultManagementAuditRecorder>.Instance
         );
@@ -160,6 +166,182 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         Assert.NotEqual(request.Token, publishToken);
         Assert.True(publishToken.CanBeCanceled);
         Assert.False(publishToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task RecordGrantRevokedAsync_WhenTheRequestIsCancelled_ResolvesTheEnvironmentOnThePublishToken()
+    {
+        using var request = new CancellationTokenSource();
+        await request.CancelAsync();
+        var httpContext = CreateHttpContext("admin-1");
+        httpContext.RequestAborted = request.Token;
+        var resolveToken = CancellationToken.None;
+        var mockResolver = MockRepository.Create<IManagementTenantEnvironmentResolver>();
+        mockResolver
+            .Setup(x =>
+                x.GetEnvironmentTypeAsync(
+                    It.IsAny<HttpContext>(),
+                    "tenant-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (HttpContext _, string _, CancellationToken token) =>
+                {
+                    resolveToken = token;
+                    token.ThrowIfCancellationRequested();
+                    return ValueTask.FromResult<string?>(TenantEnvironmentType);
+                }
+            )
+            .Verifiable();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        GrantRevokedAuditEvent? captured = null;
+        var publishToken = CancellationToken.None;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<GrantRevokedAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (GrantRevokedAuditEvent auditEvent, CancellationToken token) =>
+                {
+                    captured = auditEvent;
+                    publishToken = token;
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var recorder = CreateRecorder(
+            mockPublisher.Object,
+            tenantEnvironmentResolver: mockResolver.Object
+        );
+
+        await recorder.RecordGrantRevokedAsync(
+            httpContext,
+            "tenant-1",
+            "subject-1",
+            "client-1",
+            "authorization_code",
+            request.Token
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
+        Assert.Equal(publishToken, resolveToken);
+        Assert.NotEqual(request.Token, resolveToken);
+        Assert.True(resolveToken.CanBeCanceled);
+        Assert.False(resolveToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task RecordResourceChangeAsync_WhenTheRequestIsCancelled_ResolvesTheEnvironmentOnThePublishToken()
+    {
+        using var request = new CancellationTokenSource();
+        await request.CancelAsync();
+        var httpContext = CreateHttpContext("admin-1");
+        httpContext.RequestAborted = request.Token;
+        var resolveToken = CancellationToken.None;
+        var mockResolver = MockRepository.Create<IManagementTenantEnvironmentResolver>();
+        mockResolver
+            .Setup(x =>
+                x.GetEnvironmentTypeAsync(
+                    It.IsAny<HttpContext>(),
+                    "tenant-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (HttpContext _, string _, CancellationToken token) =>
+                {
+                    resolveToken = token;
+                    token.ThrowIfCancellationRequested();
+                    return ValueTask.FromResult<string?>(TenantEnvironmentType);
+                }
+            )
+            .Verifiable();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        ResourceChangeAuditEvent? captured = null;
+        var publishToken = CancellationToken.None;
+        mockPublisher
+            .Setup(x =>
+                x.PublishAsync(It.IsAny<ResourceChangeAuditEvent>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (ResourceChangeAuditEvent auditEvent, CancellationToken token) =>
+                {
+                    captured = auditEvent;
+                    publishToken = token;
+                }
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var recorder = CreateRecorder(
+            mockPublisher.Object,
+            tenantEnvironmentResolver: mockResolver.Object
+        );
+
+        await recorder.RecordResourceChangeAsync(
+            httpContext,
+            new PrincipalChangedAuditEvent
+            {
+                EventSource = AuditEventSources.Management,
+                TenantId = "tenant-1",
+                Outcome = AuditOutcome.Success,
+                ResourceId = "principal-1",
+                ChangeType = ResourceChangeTypes.Updated,
+            },
+            request.Token
+        );
+
+        Assert.NotNull(captured);
+        Assert.Equal(TenantEnvironmentType, captured.TenantEnvironmentType);
+        Assert.Equal(publishToken, resolveToken);
+        Assert.NotEqual(request.Token, resolveToken);
+        Assert.True(resolveToken.CanBeCanceled);
+        Assert.False(resolveToken.IsCancellationRequested);
+    }
+
+    [Fact]
+    public async Task RecordGrantRevokedAsync_WhenTheEnvironmentLookupThrows_LogsItAndDoesNotThrow()
+    {
+        var mockResolver = MockRepository.Create<IManagementTenantEnvironmentResolver>();
+        mockResolver
+            .Setup(x =>
+                x.GetEnvironmentTypeAsync(
+                    It.IsAny<HttpContext>(),
+                    "tenant-1",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new OperationCanceledException())
+            .Verifiable();
+        var mockPublisher = MockRepository.Create<IEventPublisher>();
+        var mockLogger = MockRepository.Create<ILogger<DefaultManagementAuditRecorder>>();
+        mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
+        mockLogger
+            .Setup(x =>
+                x.Log(
+                    LogLevel.Warning,
+                    It.Is<EventId>(id => id.Id == EventIds.AuditPublishFailed),
+                    It.IsAny<It.IsAnyType>(),
+                    It.IsAny<OperationCanceledException>(),
+                    (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()
+                )
+            )
+            .Verifiable();
+        var recorder = CreateRecorder(
+            mockPublisher.Object,
+            logger: mockLogger.Object,
+            tenantEnvironmentResolver: mockResolver.Object
+        );
+
+        await recorder.RecordGrantRevokedAsync(
+            CreateHttpContext("admin-1"),
+            "tenant-1",
+            "subject-1",
+            "client-1",
+            "authorization_code",
+            CancellationToken.None
+        );
     }
 
     #endregion

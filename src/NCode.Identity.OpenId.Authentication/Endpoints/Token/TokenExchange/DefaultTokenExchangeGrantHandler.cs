@@ -37,7 +37,8 @@ internal class DefaultTokenExchangeGrantHandler(
     ISubjectTokenValidator subjectTokenValidator,
     IPrincipalResolver principalResolver,
     IStoreManagerFactory storeManagerFactory,
-    IClientScopeService clientScopeService
+    IClientScopeService clientScopeService,
+    IClientPrincipalResolver clientPrincipalResolver
 ) : ITokenGrantHandler
 {
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -46,6 +47,7 @@ internal class DefaultTokenExchangeGrantHandler(
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private IClientScopeService ClientScopeService { get; } = clientScopeService;
+    private IClientPrincipalResolver ClientPrincipalResolver { get; } = clientPrincipalResolver;
 
     /// <inheritdoc />
     public IReadOnlySet<string> GrantTypes { get; } =
@@ -104,6 +106,22 @@ internal class DefaultTokenExchangeGrantHandler(
         {
             return errorFactory
                 .InvalidGrant("The subject_token was not issued to the requesting client.")
+                .WithStatusCode(StatusCodes.Status400BadRequest);
+        }
+
+        // A client acting for itself names no end-user whose authority an exchange could carry.
+        // See ADR-1450.
+        var actingClient = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
+            openIdContext,
+            subjectResult.Principal,
+            cancellationToken
+        );
+        if (actingClient is not null)
+        {
+            return errorFactory
+                .InvalidGrant(
+                    "The subject_token represents a client acting for itself, which token exchange does not accept."
+                )
                 .WithStatusCode(StatusCodes.Status400BadRequest);
         }
 

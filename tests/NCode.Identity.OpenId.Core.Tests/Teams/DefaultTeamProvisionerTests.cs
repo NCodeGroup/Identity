@@ -42,14 +42,12 @@ public sealed class DefaultTeamProvisionerTests : IDisposable
     public void Dispose() => Mocks.Verify();
 
     private static PersistedTeam CreateTeam(string displayName) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = TeamId,
             ConcurrencyToken = "token",
-            IsDisabled = false,
             DisplayName = displayName,
-            Settings = null!,
-        };
+        }.Build();
 
     private void SetupGetTeam(params PersistedTeam?[] results)
     {

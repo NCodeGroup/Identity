@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -608,17 +607,7 @@ public sealed class TeamSettingsReconciliationServiceTests : BaseTests
     }
 
     private static PersistedTeam CreateTeam(string teamId) =>
-        new()
-        {
-            TeamId = teamId,
-            DisplayName = teamId,
-            IsDisabled = false,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                Value = JsonElement.Parse("{}"),
-            },
-        };
+        new PersistedTeamBuilder { TeamId = teamId }.Build();
 
     #endregion
 }

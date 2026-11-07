@@ -207,30 +207,13 @@ public class TenantRouteTests
         );
 
         var store = storeManager.GetStore<ITenantStore>();
-        await store.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = tenantId,
-                TeamId = "platform",
-                Issuer = issuer,
-                ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                IsDisabled = false,
-                DisplayName = tenantId,
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                    Value = JsonSerializer.SerializeToElement(null, typeof(object)),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = tenantId,
+            Issuer = issuer,
+            Settings = JsonSerializer.SerializeToElement(null, typeof(object)),
+        }.Build();
+        await store.AddAsync(tenant, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 

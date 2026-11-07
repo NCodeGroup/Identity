@@ -420,30 +420,12 @@ public class TenantProvisioningTests
         var tenant = await store.GetOrDefaultAsync(tenantId, CancellationToken.None);
         if (tenant is null)
         {
-            await store.AddAsync(
-                new PersistedTenant
-                {
-                    TenantId = tenantId,
-                    TeamId = "platform",
-                    ConcurrencyToken = string.Empty,
-                    Issuer = issuer,
-                    IsDisabled = false,
-                    DisplayName = tenantId,
-                    Settings = new PersistedTenantSettings
-                    {
-                        TenantId = tenantId,
-                        ConcurrencyToken = string.Empty,
-                        Value = JsonSerializer.SerializeToElement(new { }),
-                    },
-                    Secrets = new PersistedTenantSecrets
-                    {
-                        TenantId = tenantId,
-                        ConcurrencyToken = string.Empty,
-                        Value = [],
-                    },
-                },
-                CancellationToken.None
-            );
+            var persistedTenant = new PersistedTenantBuilder
+            {
+                TenantId = tenantId,
+                Issuer = issuer,
+            }.Build();
+            await store.AddAsync(persistedTenant, CancellationToken.None);
         }
         else
         {

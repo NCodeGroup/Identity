@@ -128,22 +128,15 @@ public class DefaultTenantClientCoherenceCheckerTests : IDisposable
         };
 
     private static PersistedClientSettings CreateClientSettings(string clientId) =>
-        new()
-        {
-            TenantId = TenantId,
-            ClientId = clientId,
-            ConcurrencyToken = "settings-ct",
-            Value = JsonSerializer.SerializeToElement(new { }),
-        };
+        new PersistedClientBuilder { TenantId = TenantId, ClientId = clientId }.BuildSettings();
 
     private static PersistedClientSettings CreateUnreadableClientSettings(string clientId) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = clientId,
-            ConcurrencyToken = "settings-ct",
-            Value = JsonSerializer.SerializeToElement(new { retired = true }),
-        };
+            Settings = JsonSerializer.SerializeToElement(new { retired = true }),
+        }.BuildSettings();
 
     private static bool HasProperty(JsonElement element, string name) =>
         element.ValueKind == JsonValueKind.Object && element.TryGetProperty(name, out _);

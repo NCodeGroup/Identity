@@ -12,7 +12,8 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 /// Builds a <see cref="PersistedClient"/> for tests. Each property holds a value a test may care about and defaults to
 /// the most common fixture value; <see cref="Build"/> copies the tenant and client identifiers into the nested settings
 /// and secrets documents, whose concurrency tokens come from <see cref="SettingsConcurrencyToken"/> and
-/// <see cref="SecretsConcurrencyToken"/>.
+/// <see cref="SecretsConcurrencyToken"/>. <see cref="BuildSettings"/> and <see cref="BuildSecrets"/> build those
+/// documents alone.
 /// </summary>
 [ExcludeFromCodeCoverage]
 public sealed record PersistedClientBuilder
@@ -78,11 +79,43 @@ public sealed record PersistedClientBuilder
     public IReadOnlyCollection<PersistedSecret> Secrets { get; init; } = [];
 
     /// <summary>
+    /// Builds the client's <see cref="PersistedClientSettings"/> alone.
+    /// </summary>
+    /// <returns>
+    /// A new <see cref="PersistedClientSettings"/> that carries the tenant and client identifiers,
+    /// <see cref="SettingsConcurrencyToken"/> and <see cref="Settings"/>.
+    /// </returns>
+    public PersistedClientSettings BuildSettings() =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = SettingsConcurrencyToken,
+            Value = Settings,
+        };
+
+    /// <summary>
+    /// Builds the client's <see cref="PersistedClientSecrets"/> alone.
+    /// </summary>
+    /// <returns>
+    /// A new <see cref="PersistedClientSecrets"/> that carries the tenant and client identifiers,
+    /// <see cref="SecretsConcurrencyToken"/> and a copy of <see cref="Secrets"/>.
+    /// </returns>
+    public PersistedClientSecrets BuildSecrets() =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = SecretsConcurrencyToken,
+            Value = [.. Secrets],
+        };
+
+    /// <summary>
     /// Builds the <see cref="PersistedClient"/>.
     /// </summary>
     /// <returns>
-    /// A new <see cref="PersistedClient"/> whose settings and secrets carry the client's tenant and client identifiers
-    /// and a copy of <see cref="Secrets"/>.
+    /// A new <see cref="PersistedClient"/> whose settings and secrets come from <see cref="BuildSettings"/> and
+    /// <see cref="BuildSecrets"/>.
     /// </returns>
     public PersistedClient Build() =>
         new()
@@ -95,19 +128,7 @@ public sealed record PersistedClientBuilder
             ResourceServerId = ResourceServerId,
             OwningNodeType = OwningNodeType,
             OwningNodeId = OwningNodeId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = SettingsConcurrencyToken,
-                Value = Settings,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = SecretsConcurrencyToken,
-                Value = [.. Secrets],
-            },
+            Settings = BuildSettings(),
+            Secrets = BuildSecrets(),
         };
 }

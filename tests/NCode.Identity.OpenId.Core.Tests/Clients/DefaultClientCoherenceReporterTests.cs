@@ -155,6 +155,14 @@ public sealed class DefaultClientCoherenceReporterTests : BaseTests
     private static JsonElement CreateDocument(string name) =>
         JsonElement.Parse($$"""{"name":"{{name}}"}""");
 
+    private static PersistedClientSettings CreateClientSettings(string clientId) =>
+        new PersistedClientBuilder
+        {
+            TenantId = TenantId,
+            ClientId = clientId,
+            Settings = CreateDocument(clientId),
+        }.BuildSettings();
+
     private void SetupClientStore() =>
         MockStoreManager
             .Setup(x => x.GetStore<IClientStore>())
@@ -188,15 +196,7 @@ public sealed class DefaultClientCoherenceReporterTests : BaseTests
                 return ValueTask.FromResult(
                     new PagedResult<PersistedClientSettings>
                     {
-                        Items =
-                        [
-                            .. clientIds.Select(clientId => new PersistedClientSettings
-                            {
-                                TenantId = TenantId,
-                                ClientId = clientId,
-                                Value = CreateDocument(clientId),
-                            }),
-                        ],
+                        Items = [.. clientIds.Select(CreateClientSettings)],
                         NextCursor = nextCursor,
                     }
                 );

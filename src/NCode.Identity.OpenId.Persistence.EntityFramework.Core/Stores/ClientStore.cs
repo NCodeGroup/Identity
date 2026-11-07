@@ -224,6 +224,45 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedClient>> GetPageByOwningNodeAsync(
+        string owningNodeType,
+        string owningNodeId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedOwningNodeId = Normalize(owningNodeId);
+        var query = QueryClients()
+            .Where(client =>
+                client.OwningNodeType == owningNodeType
+                && client.NormalizedOwningNodeId == normalizedOwningNodeId
+            );
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var afterId = DecodeCursor(page.Cursor);
+        var entities = await GetEntityPageAsync(query, afterId, page.Limit + 1, cancellationToken);
+
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedClient?> GetByPrincipalOrDefaultAsync(
+        string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedPrincipalId = Normalize(principalId);
+        var entity = await QueryClients()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(
+                client => client.NormalizedPrincipalId == normalizedPrincipalId,
+                cancellationToken
+            );
+
+        return entity is null ? null : await MapFromEntityAsync(entity, cancellationToken);
+    }
+
+    /// <inheritdoc />
     protected override long GetSortKey(ClientEntity entity) => entity.Id;
 
     // A client is bound only to a resource server of its own tenant.

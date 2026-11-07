@@ -147,27 +147,12 @@ public sealed class ClientStoreRelationalRemovalTests : IDisposable
         };
 
     private static PersistedClient CreateClient(string clientId, bool withSecret) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = clientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = EmptyObject(),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = withSecret ? [CreateSecret($"{clientId}-secret")] : [],
-            },
-        };
+            Secrets = withSecret ? [CreateSecret($"{clientId}-secret")] : [],
+        }.Build();
 
     private static PersistedClientGrant CreateClientGrant(string clientId) =>
         new()

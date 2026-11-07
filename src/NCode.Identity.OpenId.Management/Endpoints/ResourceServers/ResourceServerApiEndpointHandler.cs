@@ -196,7 +196,7 @@ internal class ResourceServerApiEndpointHandler(
 
         resourceServers
             .MapGet("/{resourceServerId}/owners", ListOwnersAsync)
-            .Produces<CollectionResource<OwnerResource>>();
+            .Produces<RoleListResource>();
         resourceServers
             .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created)
@@ -848,9 +848,9 @@ internal class ResourceServerApiEndpointHandler(
     }
 
     /// <summary>
-    /// Lists a resource server's owners.
+    /// Lists a resource server's owners and whether the caller may grant and revoke the role.
     /// </summary>
-    /// <response code="200">A page of the resource server's owners.</response>
+    /// <response code="200">The resource server's owners and whether the caller may change them.</response>
     [EndpointName("api/resource-servers/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -859,13 +859,20 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        return await ProcessListOwnersAsync(
-            httpContext,
+        // See ADR-1465.
+        var resourceServerNode = ResourceNode.For(
             tenantId,
             ResourceNodeTypes.ResourceServer,
-            resourceServerId,
+            resourceServerId
+        );
+        return await ProcessListRoleAssignmentsAsync(
+            httpContext,
+            resourceServerNode,
+            BuiltInRoles.Owner,
             (storeManager, token) =>
                 ResourceServerExistsAsync(storeManager, resourceServerId, token),
+            (_, token) =>
+                HoldsAuthorityAsync(httpContext, resourceServerNode, Operations.Update, token),
             cancellationToken
         );
     }

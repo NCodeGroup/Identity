@@ -7,6 +7,7 @@ using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Authorization;
@@ -16,12 +17,12 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 /// </summary>
 internal class DefaultResourceOwnershipService(
     ICryptoService cryptoService,
-    ICallerPrincipalResolver callerPrincipalResolver,
+    IPrincipalResolver principalResolver,
     IAmbientTenantAccessor ambientTenantAccessor
 ) : IResourceOwnershipService
 {
     private ICryptoService CryptoService { get; } = cryptoService;
-    private ICallerPrincipalResolver CallerPrincipalResolver { get; } = callerPrincipalResolver;
+    private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
@@ -41,7 +42,7 @@ internal class DefaultResourceOwnershipService(
         string principalId;
         using (AmbientTenantAccessor.BeginScope(openIdContext.Tenant.TenantId))
         {
-            principalId = await CallerPrincipalResolver.ResolveCallerPrincipalIdAsync(
+            principalId = await PrincipalResolver.ResolvePrincipalIdAsync(
                 openIdContext,
                 user,
                 storeManager,

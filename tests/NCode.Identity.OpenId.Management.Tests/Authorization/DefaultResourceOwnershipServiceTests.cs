@@ -8,6 +8,7 @@ using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
@@ -33,7 +34,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         var storeManager = MockRepository.Create<IStoreManager>();
         var store = MockRepository.Create<IRoleAssignmentStore>();
         var crypto = MockRepository.Create<ICryptoService>();
-        var resolver = MockRepository.Create<ICallerPrincipalResolver>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
 
         crypto
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -41,7 +42,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
             .Verifiable();
         resolver
             .Setup(x =>
-                x.ResolveCallerPrincipalIdAsync(
+                x.ResolvePrincipalIdAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
@@ -97,7 +98,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         var storeManager = MockRepository.Create<IStoreManager>();
         var store = MockRepository.Create<IRoleAssignmentStore>();
         var crypto = MockRepository.Create<ICryptoService>();
-        var resolver = MockRepository.Create<ICallerPrincipalResolver>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
 
         crypto
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -106,7 +107,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         // The resolver maps the raw upstream subject to a stable, server-owned principal id (ADR-1035).
         resolver
             .Setup(x =>
-                x.ResolveCallerPrincipalIdAsync(
+                x.ResolvePrincipalIdAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
@@ -157,7 +158,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         var storeManager = MockRepository.Create<IStoreManager>();
         var store = MockRepository.Create<IRoleAssignmentStore>();
         var crypto = MockRepository.Create<ICryptoService>();
-        var resolver = MockRepository.Create<ICallerPrincipalResolver>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
 
         crypto
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
@@ -165,7 +166,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
             .Verifiable();
         resolver
             .Setup(x =>
-                x.ResolveCallerPrincipalIdAsync(
+                x.ResolvePrincipalIdAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
@@ -239,7 +240,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         var storeManager = MockRepository.Create<IStoreManager>();
         var store = MockRepository.Create<IRoleAssignmentStore>();
         var crypto = MockRepository.Create<ICryptoService>();
-        var resolver = MockRepository.Create<ICallerPrincipalResolver>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
         var openIdContext = MockRepository.Create<OpenIdContext>();
         var accessor = new StubAmbientTenantAccessor();
 
@@ -255,7 +256,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         string? tenantIdWhileResolving = null;
         resolver
             .Setup(x =>
-                x.ResolveCallerPrincipalIdAsync(
+                x.ResolvePrincipalIdAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
@@ -310,11 +311,11 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         string? resolvedPrincipalId
     )
     {
-        var resolver = MockRepository.Create<ICallerPrincipalResolver>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
 
         resolver
             .Setup(x =>
-                x.ResolveCallerPrincipalIdAsync(
+                x.ResolvePrincipalIdAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
@@ -347,11 +348,11 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
     [Fact]
     public async Task AssignCreatorAsync_WhenTheCallerHasNoPrincipal_ReturnsNull()
     {
-        var resolver = MockRepository.Create<ICallerPrincipalResolver>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
 
         resolver
             .Setup(x =>
-                x.ResolveCallerPrincipalIdAsync(
+                x.ResolvePrincipalIdAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
@@ -388,7 +389,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         // No store or crypto setups: a strict-mock failure would mean an assignment was written.
         var service = new DefaultResourceOwnershipService(
             MockRepository.Create<ICryptoService>().Object,
-            MockRepository.Create<ICallerPrincipalResolver>().Object,
+            MockRepository.Create<IPrincipalResolver>().Object,
             Mock.Of<IAmbientTenantAccessor>()
         );
 
@@ -450,7 +451,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var owners = await service.GetOwnersAsync(
@@ -499,7 +500,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             crypto.Object,
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.AddOwnerAsync(
@@ -542,7 +543,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         // No AddAsync/crypto setups: a strict-mock failure would mean a duplicate owner was written.
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.AddOwnerAsync(
@@ -581,7 +582,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.RemoveOwnerAsync(
@@ -620,7 +621,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         // No RemoveAsync setup: a strict-mock failure would mean the last owner was removed.
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.RemoveOwnerAsync(
@@ -664,7 +665,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.RemoveOwnerAsync(
@@ -706,7 +707,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.RemoveOwnerAsync(
@@ -770,7 +771,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         // No AddAsync/crypto setups: a strict-mock failure would mean a duplicate was written.
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.AddAssignmentAsync(
@@ -795,7 +796,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         // No AddAsync/crypto setups: a strict-mock failure would mean a duplicate was written.
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.AddAssignmentAsync(
@@ -832,7 +833,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             crypto.Object,
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.AddAssignmentAsync(
@@ -871,7 +872,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.RemoveAssignmentAsync(
@@ -902,7 +903,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.RemoveAssignmentAsync(
@@ -927,7 +928,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
 
         var service = new DefaultResourceOwnershipService(
             Mock.Of<ICryptoService>(),
-            Mock.Of<ICallerPrincipalResolver>(),
+            Mock.Of<IPrincipalResolver>(),
             Mock.Of<IAmbientTenantAccessor>()
         );
         var result = await service.RemoveAssignmentAsync(

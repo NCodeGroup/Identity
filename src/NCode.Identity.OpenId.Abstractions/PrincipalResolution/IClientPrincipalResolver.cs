@@ -11,9 +11,12 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 
 /// <summary>
 /// Provides an abstraction that recognizes a token in which a client acts for itself: its subject is the principal of
-/// the client its <c>client_id</c> claim names in the context's tenant.
+/// the client its <c>client_id</c> claim names in the context's tenant. An implementation answers each caller, which
+/// is the context's tenant, the subject and the <c>client_id</c> claim, once per request: its first answer, a client
+/// or none, stands for the rest of the request, and a change the request commits, such as deleting the client, does
+/// not alter it.
 /// </summary>
-// See ADR-1450.
+// See ADR-1450 and ADR-1470.
 [PublicAPI]
 public interface IClientPrincipalResolver
 {

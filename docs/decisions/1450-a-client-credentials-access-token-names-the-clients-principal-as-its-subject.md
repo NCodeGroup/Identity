@@ -2,7 +2,8 @@
 
 - **Status:** Accepted (amends
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) decision 2 and
-  [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md))
+  [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md);
+  amended by [ADR-1470](1470-a-callers-acting-client-is-resolved-once-per-request.md))
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 

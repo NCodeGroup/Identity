@@ -216,9 +216,7 @@ internal class ClientApiEndpointHandler(
             .ProducesValidationProblem()
             .WithNoStore();
 
-        clients
-            .MapGet("/{clientId}/owners", ListOwnersAsync)
-            .Produces<CollectionResource<OwnerResource>>();
+        clients.MapGet("/{clientId}/owners", ListOwnersAsync).Produces<RoleListResource>();
         clients
             .MapPost("/{clientId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created)
@@ -2196,9 +2194,9 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
-    /// Lists a client's owners.
+    /// Lists a client's owners and whether the caller may grant and revoke the role.
     /// </summary>
-    /// <response code="200">A page of the client's owners.</response>
+    /// <response code="200">The client's owners and whether the caller may change them.</response>
     [EndpointName("api/clients/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -2207,12 +2205,40 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        return await ProcessListOwnersAsync(
+        // See ADR-1465.
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        async ValueTask<bool> CanChangeOwnersAsync(
+            IStoreManager storeManager,
+            CancellationToken token
+        )
+        {
+            if (!await HoldsAuthorityAsync(httpContext, clientNode, Operations.Update, token))
+            {
+                return false;
+            }
+
+            var client = await GetClientOrDefaultAsync(storeManager, clientId, token);
+            if (client is null)
+            {
+                return false;
+            }
+
+            var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
+                httpContext,
+                storeManager,
+                client,
+                token
+            );
+            return changeRefusal is null;
+        }
+
+        return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            tenantId,
-            ResourceNodeTypes.Client,
-            clientId,
+            clientNode,
+            BuiltInRoles.Owner,
             (storeManager, token) => ClientExistsAsync(storeManager, clientId, token),
+            CanChangeOwnersAsync,
             cancellationToken
         );
     }

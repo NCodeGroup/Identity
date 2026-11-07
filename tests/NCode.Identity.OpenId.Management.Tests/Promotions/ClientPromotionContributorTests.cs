@@ -213,6 +213,7 @@ public sealed class ClientPromotionContributorTests : IDisposable
         bool isDisabled = false,
         string settingsJson = "{}",
         string principalId = "principal-1",
+        string? owningNodeType = null,
         params PersistedSecret[] secrets
     ) =>
         new()
@@ -223,6 +224,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
             IsDisabled = isDisabled,
             PrincipalId = principalId,
             ResourceServerId = resourceServerId,
+            OwningNodeType = owningNodeType,
+            OwningNodeId = owningNodeType is null ? null : "owner-1",
             Settings = new PersistedClientSettings
             {
                 TenantId = tenantId,
@@ -599,6 +602,50 @@ public sealed class ClientPromotionContributorTests : IDisposable
         Assert.Equal(ManagementResourceTypes.Client, error.ResourceType);
         Assert.Equal("client-1", error.ResourceId);
         Assert.Contains("host configures", error.Detail);
+    }
+
+    [Fact]
+    public async Task PlanAsync_WhenTheSourceHoldsAMachineClient_LeavesItOut()
+    {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        var context = CreateContext();
+        var source = CreateClient(
+            SourceTenantId,
+            "client-1",
+            owningNodeType: ResourceNodeTypes.Team
+        );
+        SetupSource(source);
+
+        await CreateContributor().PlanAsync(context, CancellationToken.None);
+
+        Assert.Empty(context.Changes);
+        Assert.Empty(context.Notes);
+        Assert.Empty(context.Errors);
+    }
+
+    [Fact]
+    public async Task PlanAsync_WhenTheTargetClientIsAMachineClient_ReportsAnError()
+    {
+        SetupCompute();
+        SetupRoleAssignmentStore();
+        SetupNoJwksUri();
+        var context = CreateContext();
+        var source = CreateClient(SourceTenantId, "client-1");
+        var target = CreateClient(
+            TargetTenantId,
+            "client-1",
+            owningNodeType: ResourceNodeTypes.Platform
+        );
+        SetupSource(source);
+        SetupClient(context, source, target);
+
+        await CreateContributor().PlanAsync(context, CancellationToken.None);
+
+        var error = Assert.Single(context.Errors);
+        Assert.Equal(ManagementResourceTypes.Client, error.ResourceType);
+        Assert.Equal("client-1", error.ResourceId);
+        Assert.Contains("machine client", error.Detail);
     }
 
     [Fact]

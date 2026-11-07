@@ -234,6 +234,13 @@ internal class ClientGrantPromotionContributor(IHostManagedClientChecker hostMan
 
             foreach (var client in clientPage.Items)
             {
+                // A machine client belongs to its owning node, not to the tenant's configuration.
+                // See ADR-1466.
+                if (client.OwningNodeType is not null)
+                {
+                    continue;
+                }
+
                 if (
                     HostManagedClientChecker.IsHostManaged(
                         context.SourceTenant.TenantId,

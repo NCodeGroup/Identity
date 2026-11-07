@@ -431,6 +431,13 @@ internal class ClientPromotionContributor(
 
         foreach (var source in sources)
         {
+            // A machine client belongs to its owning node, not to the tenant's configuration.
+            // See ADR-1466.
+            if (source.OwningNodeType is not null)
+            {
+                continue;
+            }
+
             if (
                 HostManagedClientChecker.IsHostManaged(
                     context.SourceTenant.TenantId,
@@ -485,6 +492,13 @@ internal class ClientPromotionContributor(
                 {
                     errors.Add(
                         "The host configures the client in the target tenant, so the promotion does not change it."
+                    );
+                }
+
+                if (target.OwningNodeType is not null)
+                {
+                    errors.Add(
+                        "The client in the target tenant is a machine client of the platform or a team, so the promotion does not change it."
                     );
                 }
 

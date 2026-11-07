@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Persistence;
@@ -120,7 +121,11 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
             TargetTenantSettings = JsonElements.EmptyObject,
         };
 
-    private static PersistedClient CreateClient(string tenantId, string clientId) =>
+    private static PersistedClient CreateClient(
+        string tenantId,
+        string clientId,
+        string? owningNodeType = null
+    ) =>
         new()
         {
             TenantId = tenantId,
@@ -129,6 +134,8 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
             IsDisabled = false,
             PrincipalId = "principal-1",
             ResourceServerId = null,
+            OwningNodeType = owningNodeType,
+            OwningNodeId = owningNodeType is null ? null : "owner-1",
             Settings = new PersistedClientSettings
             {
                 TenantId = tenantId,
@@ -402,6 +409,22 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
             .Returns(true)
             .Verifiable();
         SetupSourceClients(CreateClient(SourceTenantId, "client-1"));
+
+        await CreateContributor().PlanAsync(context, CancellationToken.None);
+
+        Assert.Empty(context.Changes);
+        Assert.Empty(context.Errors);
+    }
+
+    [Fact]
+    public async Task PlanAsync_WhenAClientIsAMachineClient_LeavesItsGrantsOut()
+    {
+        var context = CreateContext();
+        SetupStores();
+        SetupSourceScope();
+        SetupSourceClients(
+            CreateClient(SourceTenantId, "client-1", owningNodeType: ResourceNodeTypes.Team)
+        );
 
         await CreateContributor().PlanAsync(context, CancellationToken.None);
 

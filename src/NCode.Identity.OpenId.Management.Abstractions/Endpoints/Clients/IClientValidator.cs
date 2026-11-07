@@ -34,6 +34,24 @@ public interface IClientValidator
     );
 
     /// <summary>
+    /// Authorizes the caller to create a machine client of the node that owns it, from the route values alone, before
+    /// any row is read.
+    /// </summary>
+    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
+    /// <param name="controlPlaneTenantId">The identifier of the control-plane OpenID Tenant that receives the client.</param>
+    /// <param name="owningNodeType">The resource type of the node that owns the machine client.</param>
+    /// <param name="owningNodeId">The resource identifier of the node that owns the machine client.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ManagementError"/> describing the refusal, or <c>null</c> when the caller is authorized.</returns>
+    ValueTask<ManagementError?> AuthorizeCreateMachineClientAsync(
+        ClaimsPrincipal user,
+        string controlPlaneTenantId,
+        string owningNodeType,
+        string owningNodeId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Authorizes the caller to update the specified OpenID Client before any row is read.
     /// </summary>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>

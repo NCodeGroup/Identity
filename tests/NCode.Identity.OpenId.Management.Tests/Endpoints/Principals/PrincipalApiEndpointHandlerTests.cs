@@ -158,8 +158,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
                     It.Is<ResourceChangeAuditEvent>(e =>
                         e.ResourceType == ManagementResourceTypes.Principal
                         && e.ResourceId == PrincipalId
-                    ),
-                    It.IsAny<CancellationToken>()
+                    )
                 )
             )
             .Returns(ValueTask.CompletedTask)

@@ -218,8 +218,7 @@ internal class GrantApiEndpointHandler(
             subjectId,
             clientId,
             sessionId,
-            revoked,
-            cancellationToken
+            revoked
         );
 
         return TypedResults.Json(new GrantRevocationResult { Revoked = revoked });
@@ -323,8 +322,7 @@ internal class GrantApiEndpointHandler(
                 ResourceId = grantId,
                 ChangeType = ResourceChangeTypes.Created,
                 Outcome = AuditOutcome.Success,
-            },
-            cancellationToken
+            }
         );
 
         var response = new CreatedInitialAccessTokenResource
@@ -484,8 +482,7 @@ internal class GrantApiEndpointHandler(
                     tenantId,
                     grant.SubjectId,
                     grant.ClientId,
-                    grant.GrantType,
-                    cancellationToken
+                    grant.GrantType
                 );
             }
         }

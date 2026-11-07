@@ -756,8 +756,7 @@ internal class TenantApiEndpointHandler(
             tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Created,
-            ToResourceValues(ToTenantResource(tenant)),
-            cancellationToken
+            ToResourceValues(ToTenantResource(tenant))
         );
 
         if (creatorAssignment is not null)
@@ -765,8 +764,7 @@ internal class TenantApiEndpointHandler(
             await RecordRoleAssignmentChangedAsync(
                 httpContext,
                 creatorAssignment,
-                ResourceChangeTypes.Created,
-                cancellationToken
+                ResourceChangeTypes.Created
             );
         }
 
@@ -1046,8 +1044,7 @@ internal class TenantApiEndpointHandler(
             tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToTenantResource(tenant)),
-            cancellationToken
+            ToResourceValues(ToTenantResource(tenant))
         );
 
         await NotifyTenantChangedAsync(
@@ -1140,8 +1137,7 @@ internal class TenantApiEndpointHandler(
             tenant.TeamId,
             tenant.TenantId,
             ResourceChangeTypes.Deleted,
-            resourceValues,
-            cancellationToken
+            resourceValues
         );
 
         await NotifyTenantChangedAsync(
@@ -1563,8 +1559,7 @@ internal class TenantApiEndpointHandler(
             tenant.TeamId,
             tenantSettings.TenantId,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToTenantSettingsResource(tenantSettings)),
-            cancellationToken
+            ToResourceValues(ToTenantSettingsResource(tenantSettings))
         );
 
         await NotifyTenantChangedAsync(
@@ -1711,8 +1706,7 @@ internal class TenantApiEndpointHandler(
             tenantId,
             secretId,
             ResourceChangeTypes.Created,
-            ToResourceValues(secretResource),
-            cancellationToken
+            ToResourceValues(secretResource)
         );
 
         await NotifyTenantChangedAsync(
@@ -1817,8 +1811,7 @@ internal class TenantApiEndpointHandler(
             tenantId,
             secretId,
             ResourceChangeTypes.Created,
-            ToResourceValues(importedSecretResource),
-            cancellationToken
+            ToResourceValues(importedSecretResource)
         );
 
         await NotifyTenantChangedAsync(
@@ -1965,8 +1958,7 @@ internal class TenantApiEndpointHandler(
             tenantId,
             secretId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToSecretResource(updated)),
-            cancellationToken
+            ToResourceValues(ToSecretResource(updated))
         );
 
         await NotifyTenantChangedAsync(
@@ -2026,8 +2018,7 @@ internal class TenantApiEndpointHandler(
             tenantId,
             secretId,
             ResourceChangeTypes.Deleted,
-            secretValues,
-            cancellationToken
+            secretValues
         );
 
         await NotifyTenantChangedAsync(
@@ -2212,8 +2203,7 @@ internal class TenantApiEndpointHandler(
         await RecordRoleAssignmentChangedAsync(
             httpContext,
             grant.Assignment,
-            ResourceChangeTypes.Created,
-            cancellationToken
+            ResourceChangeTypes.Created
         );
 
         return TypedResults.Created(
@@ -2266,8 +2256,7 @@ internal class TenantApiEndpointHandler(
             await RecordRoleAssignmentChangedAsync(
                 httpContext,
                 assignment,
-                ResourceChangeTypes.Deleted,
-                cancellationToken
+                ResourceChangeTypes.Deleted
             );
         }
 

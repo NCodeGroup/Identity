@@ -399,8 +399,7 @@ internal class TeamApiEndpointHandler(
             httpContext,
             team.TeamId,
             ResourceChangeTypes.Created,
-            ToResourceValues(ToTeamResource(team)),
-            cancellationToken
+            ToResourceValues(ToTeamResource(team))
         );
 
         if (creatorAssignment is not null)
@@ -408,19 +407,13 @@ internal class TeamApiEndpointHandler(
             await RecordRoleAssignmentChangedAsync(
                 httpContext,
                 creatorAssignment,
-                ResourceChangeTypes.Created,
-                cancellationToken
+                ResourceChangeTypes.Created
             );
         }
 
         foreach (var admin in addedAdmins)
         {
-            await RecordRoleAssignmentChangedAsync(
-                httpContext,
-                admin,
-                ResourceChangeTypes.Created,
-                cancellationToken
-            );
+            await RecordRoleAssignmentChangedAsync(httpContext, admin, ResourceChangeTypes.Created);
         }
 
         httpContext.Response.Headers.ETag = team.ConcurrencyToken;
@@ -619,8 +612,7 @@ internal class TeamApiEndpointHandler(
             httpContext,
             team.TeamId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToTeamResource(team)),
-            cancellationToken
+            ToResourceValues(ToTeamResource(team))
         );
 
         await NotifyTeamChangedAsync(
@@ -690,8 +682,7 @@ internal class TeamApiEndpointHandler(
             httpContext,
             team.TeamId,
             ResourceChangeTypes.Deleted,
-            resourceValues,
-            cancellationToken
+            resourceValues
         );
 
         await NotifyTeamChangedAsync(
@@ -953,8 +944,7 @@ internal class TeamApiEndpointHandler(
             httpContext,
             teamSettings.TeamId,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToTeamSettingsResource(teamSettings)),
-            cancellationToken
+            ToResourceValues(ToTeamSettingsResource(teamSettings))
         );
 
         await NotifyTeamChangedAsync(
@@ -1294,8 +1284,7 @@ internal class TeamApiEndpointHandler(
         await RecordRoleAssignmentChangedAsync(
             httpContext,
             grant.Assignment,
-            ResourceChangeTypes.Created,
-            cancellationToken
+            ResourceChangeTypes.Created
         );
 
         return TypedResults.Created(
@@ -1347,8 +1336,7 @@ internal class TeamApiEndpointHandler(
             await RecordRoleAssignmentChangedAsync(
                 httpContext,
                 assignment,
-                ResourceChangeTypes.Deleted,
-                cancellationToken
+                ResourceChangeTypes.Deleted
             );
         }
 

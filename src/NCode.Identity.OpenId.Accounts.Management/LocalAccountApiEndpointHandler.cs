@@ -265,8 +265,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Created,
-            ToResourceValues(resource),
-            cancellationToken
+            ToResourceValues(resource)
         );
 
         // The password an administrator sets replaces the one being guessed, so its failed attempts start over. It
@@ -384,8 +383,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToLocalAccountResource(account)),
-            cancellationToken
+            ToResourceValues(ToLocalAccountResource(account))
         );
 
         httpContext.Response.Headers.ETag = account.ConcurrencyToken;
@@ -482,8 +480,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Deleted,
-            resourceValues: null,
-            cancellationToken
+            resourceValues: null
         );
 
         return TypedResults.NoContent();
@@ -560,8 +557,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToLocalAccountResource(account)),
-            cancellationToken
+            ToResourceValues(ToLocalAccountResource(account))
         );
 
         httpContext.Response.Headers.ETag = account.ConcurrencyToken;
@@ -638,8 +634,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            resourceValues: null,
-            cancellationToken
+            resourceValues: null
         );
 
         // The password an administrator sets replaces the one being guessed, so its failed attempts start over. It
@@ -715,8 +710,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            resourceValues: null,
-            cancellationToken
+            resourceValues: null
         );
 
         return TypedResults.NoContent();
@@ -793,8 +787,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            resourceValues: null,
-            cancellationToken
+            resourceValues: null
         );
 
         httpContext.Response.Headers.ETag = principal.ConcurrencyToken;

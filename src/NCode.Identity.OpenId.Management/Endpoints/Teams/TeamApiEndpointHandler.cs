@@ -176,7 +176,8 @@ internal class TeamApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         teams
             .MapPost("/{teamId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         teams
             .MapDelete("/{teamId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -187,7 +188,8 @@ internal class TeamApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         teams
             .MapPost("/{teamId}/admins", AddAdminAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         teams
             .MapDelete("/{teamId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -353,7 +355,7 @@ internal class TeamApiEndpointHandler(
         // resource from the database rather than the change tracker.
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        await ResourceOwnershipService.AssignCreatorAsync(
+        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
             storeManager,
@@ -371,9 +373,10 @@ internal class TeamApiEndpointHandler(
             team.TeamId,
             cancellationToken
         );
+        var addedAdmins = new List<PersistedRoleAssignment>();
         foreach (var owner in owners)
         {
-            await ResourceOwnershipService.AddAssignmentAsync(
+            var grant = await ResourceOwnershipService.AddAssignmentAsync(
                 storeManager,
                 controlPlaneTenantId,
                 ResourceNodeTypes.Team,
@@ -382,6 +385,10 @@ internal class TeamApiEndpointHandler(
                 BuiltInRoles.TeamAdmin,
                 cancellationToken
             );
+            if (grant.IsAdded)
+            {
+                addedAdmins.Add(grant.Assignment);
+            }
         }
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -395,6 +402,26 @@ internal class TeamApiEndpointHandler(
             ToResourceValues(ToTeamResource(team)),
             cancellationToken
         );
+
+        if (creatorAssignment is not null)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                creatorAssignment,
+                ResourceChangeTypes.Created,
+                cancellationToken
+            );
+        }
+
+        foreach (var admin in addedAdmins)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                admin,
+                ResourceChangeTypes.Created,
+                cancellationToken
+            );
+        }
 
         httpContext.Response.Headers.ETag = team.ConcurrencyToken;
         return TypedResults.Created($"/teams/{team.TeamId}", ToTeamResource(team));
@@ -1119,6 +1146,7 @@ internal class TeamApiEndpointHandler(
     /// Adds an owner to a team.
     /// </summary>
     /// <response code="201">The owner was added.</response>
+    /// <response code="200">The principal already owns the team.</response>
     [EndpointName("api/teams/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -1206,6 +1234,7 @@ internal class TeamApiEndpointHandler(
     /// team administrator or a global administrator at the team or above can grant it.
     /// </summary>
     /// <response code="201">The administrator was added.</response>
+    /// <response code="200">The principal already administers the team.</response>
     [EndpointName("api/teams/admins/add")]
     internal virtual async ValueTask<IResult> AddAdminAsync(
         HttpContext httpContext,
@@ -1248,6 +1277,18 @@ internal class TeamApiEndpointHandler(
             cancellationToken
         );
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        if (!grant.IsAdded)
+        {
+            return TypedResults.Ok(ToOwnerResource(grant.Assignment));
+        }
+
+        await RecordRoleAssignmentChangedAsync(
+            httpContext,
+            grant.Assignment,
+            ResourceChangeTypes.Created,
+            cancellationToken
+        );
 
         return TypedResults.Created(
             $"/teams/{teamId}/admins/{grant.Assignment.PrincipalId}",
@@ -1293,6 +1334,16 @@ internal class TeamApiEndpointHandler(
         }
 
         await storeManager.SaveChangesAsync(cancellationToken);
+        foreach (var assignment in removed)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                assignment,
+                ResourceChangeTypes.Deleted,
+                cancellationToken
+            );
+        }
+
         return TypedResults.NoContent();
     }
 

@@ -367,29 +367,13 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         bool isSystem = false,
         params PersistedScope[] scopes
     ) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = ResourceServerId,
-            Identifier = "https://api.example.com",
-            ConcurrencyToken = "rs-ct",
-            Name = "Example API",
             IsSystem = isSystem,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
             Scopes = scopes,
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     [Fact]
     public async Task ListAsync_WhenAuthorized_ReturnsPage()
@@ -927,28 +911,17 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetStore<ITenantStore>())
             .Returns(mockTenantStore.Object)
             .Verifiable();
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            SettingsConcurrencyToken = "tenant-ct",
+            Settings = JsonSerializer.SerializeToElement(
+                new Dictionary<string, object> { ["scope"] = "tenant" }
+            ),
+        }.Build();
         mockTenantStore
             .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new PersistedTenant
-                {
-                    TenantId = TenantId,
-                    TeamId = "platform",
-                    ConcurrencyToken = "tenant-ct",
-                    Issuer = null,
-                    IsDisabled = false,
-                    DisplayName = TenantId,
-                    Settings = new PersistedTenantSettings
-                    {
-                        TenantId = TenantId,
-                        ConcurrencyToken = "tenant-ct",
-                        Value = JsonSerializer.SerializeToElement(
-                            new Dictionary<string, object> { ["scope"] = "tenant" }
-                        ),
-                    },
-                    Secrets = null!,
-                }
-            )
+            .ReturnsAsync(tenant)
             .Verifiable();
         var descriptor = new SettingDescriptor<bool>
         {
@@ -1065,9 +1038,8 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     private static PersistedSecret CreatePersistedSecret() =>
-        new()
+        new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
             ConcurrencyToken = "secret-ct",
             Use = "sig",
             Algorithm = "RS256",
@@ -1077,10 +1049,9 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             RetiresWhen = DateTimeOffset.UtcNow.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Pkcs8,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
-        };
+        }.Build();
 
     [Fact]
     public async Task GetSettingsAsync_WhenAuthorized_ReturnsSettings()
@@ -1538,17 +1509,16 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
         SetupStore();
+        var secrets = new PersistedResourceServerBuilder
+        {
+            TenantId = TenantId,
+            ResourceServerId = ResourceServerId,
+            SecretsConcurrencyToken = "sec-ct",
+            Secrets = [CreatePersistedSecret()],
+        }.BuildSecrets();
         MockStore
             .Setup(x => x.GetSecretsOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new PersistedResourceServerSecrets
-                {
-                    TenantId = TenantId,
-                    ResourceServerId = ResourceServerId,
-                    ConcurrencyToken = "sec-ct",
-                    Value = [CreatePersistedSecret()],
-                }
-            )
+            .ReturnsAsync(secrets)
             .Verifiable();
 
         var result = await Handler.GetSecretsAsync(

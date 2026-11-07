@@ -71,27 +71,7 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
         new(MockPromotedSettingsComposer.Object, MockSettingSerializer.Object);
 
     private static PersistedTenant CreateTenant(string tenantId) =>
-        new()
-        {
-            TenantId = tenantId,
-            TeamId = TeamId,
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "settings-token",
-                Value = JsonElements.EmptyObject,
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-token",
-                Value = [],
-            },
-        };
+        new PersistedTenantBuilder { TenantId = tenantId, TeamId = TeamId }.Build();
 
     private TenantPromotionContext CreateContext(
         IReadOnlyList<TenantPromotionEnvironmentSettings>? environmentSettings = null
@@ -131,29 +111,17 @@ public sealed class ResourceServerPromotionContributorTests : IDisposable
         string settingsJson = "{}",
         params PersistedScope[] scopes
     ) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = tenantId,
             ResourceServerId = resourceServerId,
             Identifier = identifier,
-            ConcurrencyToken = "token",
             Name = name,
             IsSystem = isSystem,
             IsDisabled = isDisabled,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = tenantId,
-                ResourceServerId = resourceServerId,
-                Value = JsonElement.Parse(settingsJson),
-            },
+            Settings = JsonElement.Parse(settingsJson),
             Scopes = scopes,
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = tenantId,
-                ResourceServerId = resourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private static PromotedSettings CreatePromotedSettings(
         string documentJson,

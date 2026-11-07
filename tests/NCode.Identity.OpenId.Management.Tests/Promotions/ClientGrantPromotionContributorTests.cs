@@ -85,27 +85,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
         new(MockHostManagedClientChecker.Object);
 
     private static PersistedTenant CreateTenant(string tenantId) =>
-        new()
-        {
-            TenantId = tenantId,
-            TeamId = TeamId,
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "settings-token",
-                Value = JsonElements.EmptyObject,
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-token",
-                Value = [],
-            },
-        };
+        new PersistedTenantBuilder { TenantId = tenantId, TeamId = TeamId }.Build();
 
     private TenantPromotionContext CreateContext() =>
         new()
@@ -160,21 +140,13 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
         bool isSystem,
         params string[] scopes
     ) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = tenantId,
             ResourceServerId = resourceServerId,
             Identifier = identifier,
-            ConcurrencyToken = "token",
             Name = "Name",
             IsSystem = isSystem,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = tenantId,
-                ResourceServerId = resourceServerId,
-                Value = JsonElements.EmptyObject,
-            },
             Scopes =
             [
                 .. scopes.Select(x => new PersistedScope
@@ -184,13 +156,7 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
                     IsSystem = isSystem,
                 }),
             ],
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = tenantId,
-                ResourceServerId = resourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private void SetupSourceClients(params PersistedClient[] clients) =>
         MockClientStore

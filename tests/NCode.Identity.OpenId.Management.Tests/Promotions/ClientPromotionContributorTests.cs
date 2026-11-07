@@ -16,7 +16,6 @@ using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
-using NCode.Json;
 using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Promotions;
@@ -142,27 +141,7 @@ public sealed class ClientPromotionContributorTests : IDisposable
     }
 
     private static PersistedTenant CreateTenant(string tenantId) =>
-        new()
-        {
-            TenantId = tenantId,
-            TeamId = TeamId,
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "settings-token",
-                Value = JsonElements.EmptyObject,
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-token",
-                Value = [],
-            },
-        };
+        new PersistedTenantBuilder { TenantId = tenantId, TeamId = TeamId }.Build();
 
     private TenantPromotionContext CreateContext(
         IReadOnlyList<TenantPromotionEnvironmentSettings>? environmentSettings = null,
@@ -182,21 +161,15 @@ public sealed class ClientPromotionContributorTests : IDisposable
         };
 
     private static PersistedSecret CreateSecret(string secretType) =>
-        new()
+        new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.MaxValue,
             ExpiresWhen = DateTimeOffset.MaxValue,
             SecretType = secretType,
             SecretEncoding = "base64",
             Origin = "imported",
-            KeySizeBits = 256,
             EncodedValue = "value",
-        };
+        }.Build();
 
     private static PersistedClient CreateClient(
         string tenantId,

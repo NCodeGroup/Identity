@@ -56,27 +56,12 @@ public class DefaultAuthorityChainResolverTests : IDisposable
     }
 
     private static PersistedTenant CreateTenant(string teamId) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
             TeamId = teamId,
-            ConcurrencyToken = string.Empty,
-            Issuer = null,
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = default,
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+            Settings = default,
+        }.Build();
 
     private static PersistedTeam CreateTeam(string teamId, string[] ancestorTeamIds) =>
         new()

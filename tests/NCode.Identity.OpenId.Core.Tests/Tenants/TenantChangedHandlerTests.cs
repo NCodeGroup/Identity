@@ -98,17 +98,7 @@ public sealed class TenantChangedHandlerTests : IDisposable
             .Verifiable();
 
     private static PersistedTenant CreatePersistedTenant() =>
-        new()
-        {
-            TenantId = TenantId,
-            TeamId = "platform",
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = null!,
-            Secrets = null!,
-        };
+        new PersistedTenantBuilder { TenantId = TenantId }.Build();
 
     #region HandleAsync Tests
 

@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -49,8 +47,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
             : new ClaimsIdentity();
         return new ClaimsPrincipal(identity);
     }
-
-    private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
 
     private static PersistedClient CreateClient(
         string concurrencyToken = "client-ct",
@@ -490,29 +486,13 @@ public sealed class DefaultClientValidatorTests : IDisposable
         string tenantId = TenantId,
         bool isSystem = false
     ) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = tenantId,
             ResourceServerId = ResourceServerId,
-            Identifier = "https://api.example.com",
-            ConcurrencyToken = "rs-ct",
             Name = "API",
             IsSystem = isSystem,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = tenantId,
-                ResourceServerId = ResourceServerId,
-                Value = EmptyObject(),
-            },
-            Scopes = [],
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = tenantId,
-                ResourceServerId = ResourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     // The client create is judged against the stored rows only; the caller's authority is asserted before any row is read.
     private void SetupBoundClientCreate(PersistedResourceServer? resourceServer)

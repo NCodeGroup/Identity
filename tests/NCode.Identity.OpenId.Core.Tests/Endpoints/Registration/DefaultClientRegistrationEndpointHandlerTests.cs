@@ -1050,22 +1050,17 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         string secretEncoding = SecretEncodings.Spki,
         string? publicKey = null
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.MaxValue,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.MaxValue,
             SecretType = secretType,
             SecretEncoding = secretEncoding,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
             PublicKey = publicKey,
-        };
+        }.Build();
 
     #endregion
 

@@ -35,21 +35,7 @@ public class SeededLocalAccountValidatorTests : BaseTests
     #region Scaffolding
 
     private static PersistedTenant CreateTenant() =>
-        new()
-        {
-            TenantId = TenantId,
-            TeamId = "platform",
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                Value = JsonElement.Parse("{}"),
-            },
-            Secrets = null!,
-        };
+        new PersistedTenantBuilder { TenantId = TenantId }.Build();
 
     private static PersistedLocalAccount CreateAccount() =>
         new()

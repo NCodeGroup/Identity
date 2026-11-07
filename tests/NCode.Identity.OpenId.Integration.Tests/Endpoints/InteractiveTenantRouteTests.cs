@@ -567,34 +567,15 @@ public class InteractiveTenantRouteTests
             CancellationToken.None
         );
 
-        await storeManager
-            .GetStore<ITenantStore>()
-            .AddAsync(
-                new PersistedTenant
-                {
-                    TenantId = tenantId,
-                    TeamId = "platform",
-                    Issuer = $"http://localhost/{tenantId}",
-                    ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                    IsDisabled = false,
-                    DisplayName = tenantId,
-                    Settings = new PersistedTenantSettings
-                    {
-                        TenantId = tenantId,
-                        ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                        Value = settings is null
-                            ? JsonSerializer.SerializeToElement(null, typeof(object))
-                            : JsonSerializer.SerializeToElement(settings),
-                    },
-                    Secrets = new PersistedTenantSecrets
-                    {
-                        TenantId = tenantId,
-                        ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                        Value = [],
-                    },
-                },
-                CancellationToken.None
-            );
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = tenantId,
+            Issuer = $"http://localhost/{tenantId}",
+            Settings = settings is null
+                ? JsonSerializer.SerializeToElement(null, typeof(object))
+                : JsonSerializer.SerializeToElement(settings),
+        }.Build();
+        await storeManager.GetStore<ITenantStore>().AddAsync(tenant, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 

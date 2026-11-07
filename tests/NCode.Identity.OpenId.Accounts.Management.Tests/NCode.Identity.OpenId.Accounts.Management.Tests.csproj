@@ -29,5 +29,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Accounts.Management\NCode.Identity.OpenId.Accounts.Management.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.TestSupport\NCode.Identity.OpenId.Persistence.TestSupport.csproj" />
     </ItemGroup>
 </Project>

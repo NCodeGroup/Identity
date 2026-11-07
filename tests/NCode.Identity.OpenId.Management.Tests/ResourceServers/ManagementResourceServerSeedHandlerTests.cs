@@ -18,25 +18,22 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
     private const string TenantId = "tenant-1";
     private const string ManagementIdentifier = "urn:ncode:management";
 
-    private static SeedTenantCommand CreateCommand(IStoreManager storeManager, TenantPlane plane) =>
-        new(
+    private static SeedTenantCommand CreateCommand(IStoreManager storeManager, TenantPlane plane)
+    {
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            DisplayName = "Tenant One",
+        }.Build();
+        return new(
             new TenantSeedContext
             {
-                Tenant = new PersistedTenant
-                {
-                    TenantId = TenantId,
-                    TeamId = "platform",
-                    Issuer = null,
-                    ConcurrencyToken = "token",
-                    IsDisabled = false,
-                    DisplayName = "Tenant One",
-                    Settings = null!,
-                    Secrets = null!,
-                },
+                Tenant = tenant,
                 Plane = plane,
                 StoreManager = storeManager,
             }
         );
+    }
 
     private async Task<PersistedResourceServer?> SeedAsync(TenantPlane plane)
     {
@@ -113,36 +110,22 @@ public sealed class ManagementResourceServerSeedHandlerTests : IDisposable
         var store = MockRepository.Create<IResourceServerStore>();
         var crypto = MockRepository.Create<ICryptoService>();
 
+        var resourceServer = new PersistedResourceServerBuilder
+        {
+            TenantId = TenantId,
+            ResourceServerId = "existing",
+            Identifier = ManagementIdentifier,
+            Name = "Management",
+            IsSystem = true,
+            Settings = default,
+        }.Build();
+
         manager.Setup(x => x.GetStore<IResourceServerStore>()).Returns(store.Object).Verifiable();
         store
             .Setup(x =>
                 x.GetByIdentifierOrDefaultAsync(ManagementIdentifier, It.IsAny<CancellationToken>())
             )
-            .ReturnsAsync(
-                new PersistedResourceServer
-                {
-                    TenantId = TenantId,
-                    ResourceServerId = "existing",
-                    Identifier = ManagementIdentifier,
-                    ConcurrencyToken = "token",
-                    Name = "Management",
-                    IsSystem = true,
-                    IsDisabled = false,
-                    Settings = new PersistedResourceServerSettings
-                    {
-                        TenantId = TenantId,
-                        ResourceServerId = "existing",
-                        Value = default,
-                    },
-                    Scopes = [],
-                    Secrets = new PersistedResourceServerSecrets
-                    {
-                        TenantId = TenantId,
-                        ResourceServerId = "existing",
-                        Value = [],
-                    },
-                }
-            )
+            .ReturnsAsync(resourceServer)
             .Verifiable();
 
         var handler = new ManagementResourceServerSeedHandler(crypto.Object);

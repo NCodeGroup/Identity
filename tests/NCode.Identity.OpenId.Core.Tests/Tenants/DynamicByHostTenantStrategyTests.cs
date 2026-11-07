@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -70,27 +69,11 @@ public sealed class DynamicByHostTenantStrategyTests : IDisposable
     }
 
     private static PersistedTenant CreatePersistedTenant(string tenantId) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
-            TeamId = "platform",
-            ConcurrencyToken = "ct",
             Issuer = $"https://{IssuerHost}",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "ct",
-                Value = JsonSerializer.SerializeToElement(new { }),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "ct",
-                Value = [],
-            },
-        };
+        }.Build();
 
     #region TryGetTenantId Tests
 

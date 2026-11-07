@@ -1,12 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
@@ -56,54 +54,20 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         _provider.Dispose();
     }
 
-    private static JsonElement EmptyObject() =>
-        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
-
     private static PersistedSecret CreateSecret(string secretId, string encodedValue) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            ConcurrencyToken = string.Empty,
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = encodedValue,
-        };
+        }.Build();
 
     private async Task SeedTenantAsync(string tenantId, params PersistedSecret[] secrets)
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        await _tenantStore.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = tenantId,
-                TeamId = "platform",
-                ConcurrencyToken = string.Empty,
-                Issuer = null,
-                IsDisabled = false,
-                DisplayName = tenantId,
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = tenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = secrets,
-                },
-            },
-            CancellationToken.None
-        );
+        var tenant = new PersistedTenantBuilder { TenantId = tenantId, Secrets = secrets }.Build();
+        await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }
@@ -132,32 +96,15 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         params PersistedSecret[] secrets
     )
     {
-        await _resourceServerStore.AddAsync(
-            new PersistedResourceServer
-            {
-                TenantId = tenantId,
-                ResourceServerId = resourceServerId,
-                Identifier = $"https://{resourceServerId}.example.com",
-                ConcurrencyToken = string.Empty,
-                Name = resourceServerId,
-                IsSystem = false,
-                IsDisabled = false,
-                Settings = new PersistedResourceServerSettings
-                {
-                    TenantId = tenantId,
-                    ResourceServerId = resourceServerId,
-                    Value = EmptyObject(),
-                },
-                Scopes = [],
-                Secrets = new PersistedResourceServerSecrets
-                {
-                    TenantId = tenantId,
-                    ResourceServerId = resourceServerId,
-                    Value = secrets,
-                },
-            },
-            CancellationToken.None
-        );
+        var resourceServer = new PersistedResourceServerBuilder
+        {
+            TenantId = tenantId,
+            ResourceServerId = resourceServerId,
+            Identifier = $"https://{resourceServerId}.example.com",
+            Name = resourceServerId,
+            Secrets = secrets,
+        }.Build();
+        await _resourceServerStore.AddAsync(resourceServer, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }

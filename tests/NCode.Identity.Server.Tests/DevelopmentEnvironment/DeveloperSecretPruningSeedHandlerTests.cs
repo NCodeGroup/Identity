@@ -354,41 +354,26 @@ public sealed class DeveloperSecretPruningSeedHandlerTests : BaseTests
         string tenantId,
         IReadOnlyCollection<PersistedSecret> secrets
     ) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
-            TeamId = "platform",
-            Issuer = null,
-            IsDisabled = false,
             DisplayName = "Test Tenant",
-            Settings = new PersistedTenantSettings { TenantId = tenantId, Value = default },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "token",
-                Value = secrets,
-            },
-        };
+            Settings = default,
+            SecretsConcurrencyToken = "token",
+            Secrets = secrets,
+        }.Build();
 
     private static PersistedSecret CreatePersistedSecret(
         string secretId,
         string secretEncoding = SecretEncodings.Pkcs8
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = secretEncoding,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
-            EncodedValue = "AA",
-        };
+        }.Build();
 
     #endregion
 }

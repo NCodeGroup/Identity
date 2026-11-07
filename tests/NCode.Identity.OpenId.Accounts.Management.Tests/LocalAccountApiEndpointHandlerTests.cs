@@ -334,27 +334,12 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         };
 
     private static PersistedTenant CreateTenant() =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
             TeamId = TeamId,
             Issuer = "https://op.example/tenant-1",
-            ConcurrencyToken = "tenant-ct",
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = "settings-ct",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
-        };
+        }.Build();
 
     private static HttpContext CreateHttpContext()
     {

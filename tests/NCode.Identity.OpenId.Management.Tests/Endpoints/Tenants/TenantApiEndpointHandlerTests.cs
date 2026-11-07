@@ -509,54 +509,42 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         JsonSerializer.SerializeToElement(new JsonObject { ["foo"] = "bar" });
 
     private static PersistedTenant CreateTenant(string concurrencyToken, string? issuer = null) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            TeamId = "platform",
             ConcurrencyToken = concurrencyToken,
             Issuer = issuer,
-            IsDisabled = false,
             DisplayName = "Tenant One",
-            Settings = CreateSettings("settings-ct"),
-            Secrets = CreateSecretsCollection("secrets-ct"),
-        };
+            SettingsConcurrencyToken = "settings-ct",
+            SecretsConcurrencyToken = "secrets-ct",
+        }.Build();
 
     private static PersistedTenantSettings CreateSettings(string concurrencyToken) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            ConcurrencyToken = concurrencyToken,
-            Value = EmptyObject(),
-        };
+            SettingsConcurrencyToken = concurrencyToken,
+        }.BuildSettings();
 
     private static PersistedTenantSecrets CreateSecretsCollection(string concurrencyToken) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            ConcurrencyToken = concurrencyToken,
-            Value = [],
-        };
+            SecretsConcurrencyToken = concurrencyToken,
+        }.BuildSecrets();
 
     private static PersistedSecret CreatePersistedSecret(
         string secretId = "secret-1",
         string concurrencyToken = "secret-ct"
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
             ConcurrencyToken = concurrencyToken,
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "encoded",
-        };
+        }.Build();
 
     private static CreateSecretRequest CreateSecretRequest() =>
         new()
@@ -2558,23 +2546,17 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupSecretUpdateValidation();
         SetupTenantSecretChangedAudit();
         SetupStore();
-        var stored = new PersistedSecret
+        var stored = new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
             ConcurrencyToken = "secret-ct",
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
             RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
             ManagedBy = "rotation",
-            KeySizeBits = 256,
             EncodedValue = "encoded",
-        };
+        }.Build();
         MockTenantStore
             .Setup(x =>
                 x.GetSecretOrDefaultAsync(TenantId, "secret-1", It.IsAny<CancellationToken>())
@@ -3018,17 +3000,15 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     private static PersistedTenant CreateSeededTenant(string issuer) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = "acme",
-            TeamId = "platform",
             ConcurrencyToken = "seeded-ct",
             Issuer = issuer,
-            IsDisabled = false,
             DisplayName = "Tenant One",
-            Settings = CreateSettings("settings-ct"),
-            Secrets = CreateSecretsCollection("secrets-ct"),
-        };
+            SettingsConcurrencyToken = "settings-ct",
+            SecretsConcurrencyToken = "secrets-ct",
+        }.Build();
 
     [Fact]
     public async Task CreateTenantAsync_WhenTheTeamIsMissing_ReturnsNotFound()

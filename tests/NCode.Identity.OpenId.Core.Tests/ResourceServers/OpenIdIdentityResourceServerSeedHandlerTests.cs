@@ -17,25 +17,22 @@ public sealed class OpenIdIdentityResourceServerSeedHandlerTests
     private const string TenantId = "tenant-1";
     private const string OpenIdIdentifier = "urn:ncode:openid";
 
-    private static SeedTenantCommand CreateCommand(IStoreManager storeManager) =>
-        new(
+    private static SeedTenantCommand CreateCommand(IStoreManager storeManager)
+    {
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            DisplayName = "Tenant One",
+        }.Build();
+        return new(
             new TenantSeedContext
             {
-                Tenant = new PersistedTenant
-                {
-                    TenantId = TenantId,
-                    TeamId = "platform",
-                    Issuer = null,
-                    ConcurrencyToken = "token",
-                    IsDisabled = false,
-                    DisplayName = "Tenant One",
-                    Settings = null!,
-                    Secrets = null!,
-                },
+                Tenant = tenant,
                 Plane = TenantPlane.Workload,
                 StoreManager = storeManager,
             }
         );
+    }
 
     [Fact]
     public async Task HandleAsync_WhenAbsent_AddsResourceServer()
@@ -87,36 +84,22 @@ public sealed class OpenIdIdentityResourceServerSeedHandlerTests
         var store = mocks.Create<IResourceServerStore>();
         var crypto = mocks.Create<ICryptoService>();
 
+        var resourceServer = new PersistedResourceServerBuilder
+        {
+            TenantId = TenantId,
+            ResourceServerId = "existing",
+            Identifier = OpenIdIdentifier,
+            Name = "OpenID Connect",
+            IsSystem = true,
+            Settings = default,
+        }.Build();
+
         manager.Setup(x => x.GetStore<IResourceServerStore>()).Returns(store.Object).Verifiable();
         store
             .Setup(x =>
                 x.GetByIdentifierOrDefaultAsync(OpenIdIdentifier, It.IsAny<CancellationToken>())
             )
-            .ReturnsAsync(
-                new PersistedResourceServer
-                {
-                    TenantId = TenantId,
-                    ResourceServerId = "existing",
-                    Identifier = OpenIdIdentifier,
-                    ConcurrencyToken = "token",
-                    Name = "OpenID Connect",
-                    IsSystem = true,
-                    IsDisabled = false,
-                    Settings = new PersistedResourceServerSettings
-                    {
-                        TenantId = TenantId,
-                        ResourceServerId = "existing",
-                        Value = default,
-                    },
-                    Scopes = [],
-                    Secrets = new PersistedResourceServerSecrets
-                    {
-                        TenantId = TenantId,
-                        ResourceServerId = "existing",
-                        Value = [],
-                    },
-                }
-            )
+            .ReturnsAsync(resourceServer)
             .Verifiable();
 
         var handler = new OpenIdIdentityResourceServerSeedHandler(crypto.Object);

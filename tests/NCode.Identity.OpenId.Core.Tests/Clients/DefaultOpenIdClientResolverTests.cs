@@ -103,22 +103,14 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         DateTimeOffset expiresWhen,
         string secretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            ConcurrencyToken = "secret-ct",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = expiresWhen,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = expiresWhen,
-            SecretType = SecretTypes.Symmetric,
             SecretEncoding = secretEncoding,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "encoded",
-        };
+        }.Build();
 
     private void SetupStoredClient(PersistedClient? persistedClient) =>
         MockClientStore

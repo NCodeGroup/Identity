@@ -79,9 +79,6 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
 
     #region Helpers
 
-    private static JsonElement EmptyObject() =>
-        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
-
     private static PersistedScope Scope(string value) =>
         new()
         {
@@ -94,29 +91,14 @@ public sealed class DefaultResourceServerCredentialResolverTests : IDisposable
         string resourceServerId,
         params string[] scopes
     ) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = resourceServerId,
             Identifier = $"urn:{resourceServerId}",
-            ConcurrencyToken = "ct",
             Name = resourceServerId,
-            IsSystem = false,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = EmptyObject(),
-            },
             Scopes = scopes.Select(Scope).ToList(),
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private void SetupContext()
     {

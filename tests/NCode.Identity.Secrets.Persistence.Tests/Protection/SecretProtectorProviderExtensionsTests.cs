@@ -30,21 +30,14 @@ public class SecretProtectorProviderExtensionsTests : IDisposable
     }
 
     private static PersistedSecret CreateSecret(string secretEncoding, string encodedValue) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = Guid.NewGuid().ToString("N"),
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.UnixEpoch,
-            SecretType = SecretTypes.Symmetric,
             SecretEncoding = secretEncoding,
-            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = encodedValue,
-        };
+        }.Build();
 
     // The setup matches only the protected values that the predicate accepts, so any other collection fails the test.
     private void SetupGetProtector(Func<IReadOnlyCollection<string>, bool> predicate) =>

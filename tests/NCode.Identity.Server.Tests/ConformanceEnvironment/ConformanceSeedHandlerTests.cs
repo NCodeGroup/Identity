@@ -207,21 +207,7 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
         // Strict mock: the store manager is untouched on the guard paths under test.
         storeManager ??= CreateStrictMock<IStoreManager>().Object;
 
-        var persistedTenant = new PersistedTenant
-        {
-            TenantId = tenantId,
-            TeamId = "platform",
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                Value = JsonElement.Parse("{}"),
-            },
-            Secrets = null!,
-        };
+        var persistedTenant = new PersistedTenantBuilder { TenantId = tenantId }.Build();
 
         return new SeedTenantCommand(
             new TenantSeedContext
@@ -541,22 +527,17 @@ public class ConformanceSeedHandlerTests : SecretProtectionTestBase
             .Returns([])
             .Verifiable();
 
-        var importedKey = new PersistedSecret
+        var importedKey = new PersistedSecretBuilder
         {
             SecretId = "key-1",
             KeyId = "key-1",
-            Use = null,
             Algorithm = "ES256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.MaxValue,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.MaxValue,
             SecretType = "ecc",
             SecretEncoding = "spki",
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "public-key",
-        };
+        }.Build();
         const string jwks = """{"keys":[{"kty":"EC","kid":"key-1"}]}""";
         var mockKeyImporter = CreateStrictMock<IClientKeyImporter>();
         IReadOnlyList<PersistedSecret>? importedKeys = [importedKey];

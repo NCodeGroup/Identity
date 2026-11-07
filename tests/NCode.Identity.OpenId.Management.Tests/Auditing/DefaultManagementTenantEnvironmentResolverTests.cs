@@ -42,21 +42,11 @@ public sealed class DefaultManagementTenantEnvironmentResolverTests : IDisposabl
         );
 
     private static PersistedTenant CreateTenant() =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            TeamId = "platform",
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                Value = JsonElement.Parse("""{"environment_type":"staging"}"""),
-            },
-            Secrets = null!,
-        };
+            Settings = JsonElement.Parse("""{"environment_type":"staging"}"""),
+        }.Build();
 
     private void SetupStore(PersistedTenant? tenant)
     {

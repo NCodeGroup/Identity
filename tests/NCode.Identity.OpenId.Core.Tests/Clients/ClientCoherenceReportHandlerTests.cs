@@ -259,6 +259,13 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
     private static JsonElement CreateDocument(string name) =>
         JsonElement.Parse($$"""{"name":"{{name}}"}""");
 
+    private static PersistedTenantSettings CreateTenantSettings(string tenantId) =>
+        new PersistedTenantBuilder
+        {
+            TenantId = tenantId,
+            Settings = CreateDocument(tenantId),
+        }.BuildSettings();
+
     private ReconcileTeamSettingsCommand CreateCommand() => new(TeamId, TeamSettings);
 
     private ReconcileTeamSettingsCommand CreateCommandWithPreviousSettings() =>
@@ -341,14 +348,7 @@ public sealed class ClientCoherenceReportHandlerTests : BaseTests
             .ReturnsAsync(
                 new PagedResult<PersistedTenantSettings>
                 {
-                    Items =
-                    [
-                        .. tenantIds.Select(tenantId => new PersistedTenantSettings
-                        {
-                            TenantId = tenantId,
-                            Value = CreateDocument(tenantId),
-                        }),
-                    ],
+                    Items = [.. tenantIds.Select(CreateTenantSettings)],
                     NextCursor = null,
                 }
             )

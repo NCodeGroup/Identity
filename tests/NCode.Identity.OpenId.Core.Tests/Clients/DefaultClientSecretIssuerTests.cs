@@ -117,21 +117,15 @@ public class DefaultClientSecretIssuerTests : BaseTests
         string secretEncoding,
         DateTimeOffset? expiresWhen = null
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = expiresWhen ?? DateTimeOffset.MaxValue,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = expiresWhen ?? DateTimeOffset.MaxValue,
             SecretType = secretType,
             SecretEncoding = secretEncoding,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "nce1.value",
-        };
+        }.Build();
 
     private static PersistedSecret CreateReversibleSecret(string secretId) =>
         CreatePersistedSecret(secretId, SecretTypes.Symmetric, SecretEncodings.SymmetricRaw);

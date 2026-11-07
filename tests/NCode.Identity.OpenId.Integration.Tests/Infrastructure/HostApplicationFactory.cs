@@ -390,25 +390,24 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             foreach (var secret in secrets?.Value ?? [])
             {
                 await store.RemoveSecretAsync(clientId, secret.SecretId, CancellationToken.None);
-                expired.Add(
-                    new PersistedSecret
-                    {
-                        SecretId = secret.SecretId,
-                        KeyId = secret.KeyId,
-                        Use = secret.Use,
-                        Algorithm = secret.Algorithm,
-                        CreatedWhen = secret.CreatedWhen,
-                        ExpiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
-                        ActivatesWhen = secret.CreatedWhen,
-                        RetiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
-                        SecretType = secret.SecretType,
-                        SecretEncoding = secret.SecretEncoding,
-                        Origin = secret.Origin,
-                        KeySizeBits = secret.KeySizeBits,
-                        EncodedValue = secret.EncodedValue,
-                        PublicKey = secret.PublicKey,
-                    }
-                );
+                var expiredSecret = new PersistedSecretBuilder
+                {
+                    SecretId = secret.SecretId,
+                    KeyId = secret.KeyId,
+                    Use = secret.Use,
+                    Algorithm = secret.Algorithm,
+                    CreatedWhen = secret.CreatedWhen,
+                    ExpiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
+                    ActivatesWhen = secret.CreatedWhen,
+                    RetiresWhen = DateTimeOffset.UtcNow.AddMinutes(-1),
+                    SecretType = secret.SecretType,
+                    SecretEncoding = secret.SecretEncoding,
+                    Origin = secret.Origin,
+                    KeySizeBits = secret.KeySizeBits,
+                    EncodedValue = secret.EncodedValue,
+                    PublicKey = secret.PublicKey,
+                }.Build();
+                expired.Add(expiredSecret);
             }
 
             await storeManager.SaveChangesAsync(CancellationToken.None);
@@ -602,22 +601,17 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var publicKey = certificate.GetRSAPublicKey();
         var keySizeBits = publicKey!.KeySize;
 
-        return new PersistedSecret
+        return new PersistedSecretBuilder
         {
             SecretId = $"{clientId}-cert",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
             // A certificate is persisted as its crypto family plus the x509 encoding (ADR-1104).
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = Base64Url.EncodeToString(certificateBytes),
-        };
+        }.Build();
     }
 
     /// <summary>
@@ -736,21 +730,16 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var publicKey = certificate.GetRSAPublicKey();
         var keySizeBits = publicKey!.KeySize;
 
-        var persistedSecret = new PersistedSecret
+        var persistedSecret = new PersistedSecretBuilder
         {
             SecretId = $"{clientId}-cert",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(100),
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.X509,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = Base64Url.EncodeToString(certificateBytes),
-        };
+        }.Build();
 
         var settings = new Dictionary<string, object>(additionalSettings)
         {
@@ -949,39 +938,23 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         var resourceServerStore = storeManager.GetStore<IResourceServerStore>();
         var clientGrantStore = storeManager.GetStore<IClientGrantStore>();
 
-        await resourceServerStore.AddAsync(
-            new PersistedResourceServer
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Identifier = identifier,
-                ConcurrencyToken = string.Empty,
-                Name = resourceServerId,
-                IsSystem = false,
-                IsDisabled = false,
-                Settings = new PersistedResourceServerSettings
+        var resourceServer = new PersistedResourceServerBuilder
+        {
+            TenantId = TenantId,
+            ResourceServerId = resourceServerId,
+            Identifier = identifier,
+            Name = resourceServerId,
+            Settings = settingsJson,
+            Scopes = scopes
+                .Select(value => new PersistedScope
                 {
-                    TenantId = TenantId,
-                    ResourceServerId = resourceServerId,
-                    Value = settingsJson,
-                },
-                Scopes = scopes
-                    .Select(value => new PersistedScope
-                    {
-                        Value = value,
-                        Description = null,
-                        IsSystem = false,
-                    })
-                    .ToList(),
-                Secrets = new PersistedResourceServerSecrets
-                {
-                    TenantId = TenantId,
-                    ResourceServerId = resourceServerId,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+                    Value = value,
+                    Description = null,
+                    IsSystem = false,
+                })
+                .ToList(),
+        }.Build();
+        await resourceServerStore.AddAsync(resourceServer, CancellationToken.None);
         // Persist the resource server before the grant: the grant store resolves the resource-server foreign key,
         // and an in-memory query does not observe unsaved inserts.
         await storeManager.SaveChangesAsync(CancellationToken.None);
@@ -1319,27 +1292,13 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
     }
 
     private static PersistedTenant CreateEmptyTenant(string tenantId) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
             TeamId = TeamId,
             Issuer = TestServerIssuer,
-            ConcurrencyToken = Guid.NewGuid().ToString("N"),
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                Value = System.Text.Json.JsonSerializer.SerializeToElement(null, typeof(object)),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = Guid.NewGuid().ToString("N"),
-                Value = [],
-            },
-        };
+            Settings = System.Text.Json.JsonSerializer.SerializeToElement(null, typeof(object)),
+        }.Build();
 
     /// <inheritdoc />
     protected override void ConfigureWebHost(IWebHostBuilder builder)

@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -54,8 +52,6 @@ public sealed class DefaultClientGrantValidatorTests : IDisposable
         return new ClaimsPrincipal(identity);
     }
 
-    private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
-
     private static PersistedClientGrant CreateGrant(params string[] scopes) =>
         new()
         {
@@ -67,21 +63,10 @@ public sealed class DefaultClientGrantValidatorTests : IDisposable
         };
 
     private static PersistedResourceServer CreateResourceServer(params string[] scopeValues) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = ResourceServerId,
-            Identifier = "https://api.example.com",
-            ConcurrencyToken = "rs-ct",
-            Name = "Example API",
-            IsSystem = false,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Value = EmptyObject(),
-            },
             Scopes = scopeValues
                 .Select(value => new PersistedScope
                 {
@@ -90,13 +75,7 @@ public sealed class DefaultClientGrantValidatorTests : IDisposable
                     IsSystem = false,
                 })
                 .ToList(),
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private void SetupAuthorization(AuthorizationResult result)
     {

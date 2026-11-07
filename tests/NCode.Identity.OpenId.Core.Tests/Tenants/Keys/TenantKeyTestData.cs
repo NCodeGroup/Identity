@@ -3,7 +3,6 @@
 
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Core.Tenants.Keys;
@@ -45,10 +44,9 @@ internal static class TenantKeyTestData
         string? algorithm = "RS256",
         string? managedBy = SecretManagers.TenantKeyRollover
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            ConcurrencyToken = "secret-token",
             Use = SecretKeyUses.Signature,
             Algorithm = algorithm,
             CreatedWhen = createdWhen,
@@ -57,10 +55,8 @@ internal static class TenantKeyTestData
             ExpiresWhen = expiresWhen,
             SecretType = SecretKeyTypes.Rsa,
             SecretEncoding = SecretEncodings.Pkcs8,
-            Origin = SecretOrigins.Generated,
             ManagedBy = managedBy,
             KeySizeBits = 3072,
-            EncodedValue = "AA",
             PublicKey = "AQ",
-        };
+        }.Build();
 }

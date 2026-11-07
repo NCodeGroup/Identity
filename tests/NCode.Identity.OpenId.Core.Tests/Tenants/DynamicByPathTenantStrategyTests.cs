@@ -474,15 +474,10 @@ public sealed class DynamicByPathTenantStrategyTests : IDisposable
     }
 
     private static PersistedTenant CreateTenant(string tenantId, bool isDisabled) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
-            TeamId = "platform",
             Issuer = $"https://op.example/{tenantId}",
-            ConcurrencyToken = "token",
             IsDisabled = isDisabled,
-            DisplayName = tenantId,
-            Settings = null!,
-            Secrets = null!,
-        };
+        }.Build();
 }

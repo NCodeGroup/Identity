@@ -33,26 +33,7 @@ public sealed class TenantPromotionContextTests : IDisposable
     public void Dispose() => MockRepository.Verify();
 
     private static PersistedTenant CreateTenant(string tenantId) =>
-        new()
-        {
-            TenantId = tenantId,
-            TeamId = "team-1",
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                Value = JsonElements.EmptyObject,
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-token",
-                Value = [],
-            },
-        };
+        new PersistedTenantBuilder { TenantId = tenantId, TeamId = "team-1" }.Build();
 
     private TenantPromotionContext CreateContext(
         IReadOnlyList<TenantPromotionEnvironmentSettings>? environmentSettings = null

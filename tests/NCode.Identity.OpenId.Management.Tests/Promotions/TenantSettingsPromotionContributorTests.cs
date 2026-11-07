@@ -48,27 +48,13 @@ public sealed class TenantSettingsPromotionContributorTests : IDisposable
         new(MockPromotedSettingsComposer.Object, MockSettingSerializer.Object);
 
     private static PersistedTenant CreateTenant(string tenantId, string settingsJson) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
             TeamId = TeamId,
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "settings-token",
-                Value = JsonElement.Parse(settingsJson),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-token",
-                Value = [],
-            },
-        };
+            SettingsConcurrencyToken = "settings-token",
+            Settings = JsonElement.Parse(settingsJson),
+        }.Build();
 
     private TenantPromotionContext CreateContext(
         string sourceSettingsJson = """{"a":1}""",
@@ -342,12 +328,12 @@ public sealed class TenantSettingsPromotionContributorTests : IDisposable
     {
         var context = CreateContext();
         context.TargetTenantSettings = JsonElement.Parse("""{"a":1}""");
-        var persisted = new PersistedTenantSettings
+        var persisted = new PersistedTenantBuilder
         {
             TenantId = TargetTenantId,
-            ConcurrencyToken = "settings-token",
-            Value = JsonElement.Parse("""{"a":0}"""),
-        };
+            SettingsConcurrencyToken = "settings-token",
+            Settings = JsonElement.Parse("""{"a":0}"""),
+        }.BuildSettings();
         MockStoreManager
             .Setup(x => x.GetStore<ITenantStore>())
             .Returns(MockTenantStore.Object)

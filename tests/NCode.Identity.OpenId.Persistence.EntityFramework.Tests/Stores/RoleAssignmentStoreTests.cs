@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,9 +42,6 @@ public sealed class RoleAssignmentStoreTests : IDisposable
         _provider.Dispose();
     }
 
-    private static JsonElement EmptyObject() =>
-        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
-
     private static PersistedRoleAssignment CreateAssignment(
         string assignmentId,
         string principalId,
@@ -67,30 +63,12 @@ public sealed class RoleAssignmentStoreTests : IDisposable
     private async Task SeedTenantAsync()
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        await _tenantStore.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = TenantId,
-                TeamId = "platform",
-                ConcurrencyToken = string.Empty,
-                Issuer = null,
-                IsDisabled = false,
-                DisplayName = "Tenant One",
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = TenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = TenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            DisplayName = "Tenant One",
+        }.Build();
+        await _tenantStore.AddAsync(tenant, CancellationToken.None);
 
         // The tenant must be persisted before its dependents are added (an in-memory query does not observe
         // unsaved inserts).

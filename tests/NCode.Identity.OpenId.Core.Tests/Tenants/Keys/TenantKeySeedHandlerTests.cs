@@ -14,7 +14,6 @@ using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.OpenId.Tenants.Keys;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using NCode.Mediator;
@@ -331,39 +330,24 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
         );
 
     private static PersistedTenant CreateTenant(IReadOnlyCollection<PersistedSecret> secrets) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            TeamId = "platform",
             Issuer = "https://op.example/acme",
             ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = new PersistedTenantSettings { TenantId = TenantId, Value = default },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = "token",
-                Value = secrets,
-            },
-        };
+            Settings = default,
+            SecretsConcurrencyToken = "token",
+            Secrets = secrets,
+        }.Build();
 
     private static PersistedSecret CreateSecret(string secretId) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretKeyTypes.Rsa,
             SecretEncoding = SecretEncodings.Pkcs8,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = 3072,
-            EncodedValue = "AA",
-        };
+        }.Build();
 
     #endregion
 }

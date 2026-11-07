@@ -732,22 +732,18 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         DateTimeOffset? activatesWhen = null,
         DateTimeOffset? retiresWhen = null
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = "key-1",
-            ConcurrencyToken = "secret-ct",
             Use = "sig",
             Algorithm = algorithm,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             ActivatesWhen = activatesWhen ?? DateTimeOffset.UnixEpoch,
             RetiresWhen = retiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = SecretEncodings.Spki,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = Base64Url.EncodeToString(subjectPublicKeyInfo),
-        };
+        }.Build();
 
     // A brainpoolP256r1 key has P-256's type and size, so only its curve shows that ES256 does not accept it.
     [Fact]
@@ -824,22 +820,13 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         bool expected
     )
     {
-        var secret = new PersistedSecret
+        var secret = new PersistedSecretBuilder
         {
             SecretId = "key-1",
-            ConcurrencyToken = "secret-ct",
             Use = "sig",
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = "protected",
-        };
+        }.Build();
 
         var error = Validator.ValidateUpdate(secret, CreateUpdateRequest("sig", algorithm));
 
@@ -850,7 +837,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     public void ValidateUpdate_WhenSecretTypeIsUnknown_ReturnsBadRequest()
     {
         var secret = CreateRsaKey();
-        secret = new PersistedSecret
+        secret = new PersistedSecretBuilder
         {
             SecretId = secret.SecretId,
             ConcurrencyToken = secret.ConcurrencyToken,
@@ -865,7 +852,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             Origin = secret.Origin,
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
-        };
+        }.Build();
 
         var error = Validator.ValidateUpdate(secret, CreateUpdateRequest("sig", "PS256"));
 

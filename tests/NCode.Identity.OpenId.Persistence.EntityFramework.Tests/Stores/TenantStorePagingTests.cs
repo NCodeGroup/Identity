@@ -40,29 +40,14 @@ public sealed class TenantStorePagingTests : IDisposable
         int index,
         string teamId = "platform"
     ) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
             TeamId = teamId,
-            ConcurrencyToken = string.Empty,
-            Issuer = null,
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(
-                    new Dictionary<string, object> { ["index"] = index }
-                ),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+            Settings = JsonSerializer.SerializeToElement(
+                new Dictionary<string, object> { ["index"] = index }
+            ),
+        }.Build();
 
     private async Task SeedAsync(int count)
     {

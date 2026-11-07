@@ -197,27 +197,12 @@ public sealed class TenantPromotionApiEndpointHandlerTests : IDisposable
     }
 
     private static PersistedTenant CreateTenant(string tenantId, string teamId = TeamId) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
             TeamId = teamId,
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "settings-token",
-                Value = JsonElement.Parse("""{"a":1}"""),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-token",
-                Value = [],
-            },
-        };
+            Settings = JsonElement.Parse("""{"a":1}"""),
+        }.Build();
 
     private static PromoteTenantRequest CreateRequest(
         string sourceTenantId = SourceTenantId,

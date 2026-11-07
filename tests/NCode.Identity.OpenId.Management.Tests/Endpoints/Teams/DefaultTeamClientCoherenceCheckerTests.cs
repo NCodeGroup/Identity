@@ -89,12 +89,12 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         };
 
     private static PersistedTenantSettings CreateTenantSettings(string tenantId, string marker) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
-            ConcurrencyToken = "settings-ct",
-            Value = CreateDocument(marker),
-        };
+            SettingsConcurrencyToken = "settings-ct",
+            Settings = CreateDocument(marker),
+        }.BuildSettings();
 
     // Visits the listed teams in order, as a walk does, skipping a team whose parent was declined or skipped.
     private static async ValueTask WalkListedTeamsAsync(

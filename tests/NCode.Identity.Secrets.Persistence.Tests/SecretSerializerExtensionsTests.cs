@@ -11,21 +11,15 @@ namespace NCode.Identity.Secrets.Persistence;
 public class SecretSerializerExtensionsTests : IDisposable
 {
     private static PersistedSecret Secret { get; } =
-        new()
+        new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.UnixEpoch,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.UnixEpoch,
             SecretType = SecretTypes.Rsa,
             SecretEncoding = SecretEncodings.Spki,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "AAAA",
-        };
+        }.Build();
 
     public static TheoryData<Exception> ReadFailures =>
         new()

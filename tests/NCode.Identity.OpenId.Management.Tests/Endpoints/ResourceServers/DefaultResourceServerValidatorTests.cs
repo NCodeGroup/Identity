@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -50,32 +48,14 @@ public sealed class DefaultResourceServerValidatorTests : IDisposable
         return new ClaimsPrincipal(identity);
     }
 
-    private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
-
     private static PersistedResourceServer CreateResourceServer(bool isSystem = false) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = ResourceServerId,
             Identifier = Identifier,
-            ConcurrencyToken = "rs-ct",
-            Name = "Example API",
             IsSystem = isSystem,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Value = EmptyObject(),
-            },
-            Scopes = [],
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private void SetupAuthorization(AuthorizationResult result)
     {

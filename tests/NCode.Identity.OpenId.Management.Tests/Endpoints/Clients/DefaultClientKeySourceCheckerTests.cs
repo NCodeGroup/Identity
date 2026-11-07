@@ -21,21 +21,15 @@ public sealed class DefaultClientKeySourceCheckerTests
     }
 
     private static PersistedSecret CreateSecret(string secretType) =>
-        new()
+        new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.MaxValue,
             ExpiresWhen = DateTimeOffset.MaxValue,
             SecretType = secretType,
             SecretEncoding = "base64",
             Origin = "imported",
-            KeySizeBits = 256,
             EncodedValue = "value",
-        };
+        }.Build();
 
     private void SetupKeyType(string secretType, bool? isAsymmetric)
     {

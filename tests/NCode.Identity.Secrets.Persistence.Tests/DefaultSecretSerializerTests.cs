@@ -87,23 +87,20 @@ public class DefaultSecretSerializerTests
         DateTimeOffset? activatesWhen = null,
         DateTimeOffset? retiresWhen = null
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
             KeyId = keyId,
             Use = "sig",
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ActivatesWhen = activatesWhen ?? DateTimeOffset.UnixEpoch,
             RetiresWhen = retiresWhen ?? expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             ExpiresWhen = expiresWhen ?? DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = secretEncoding,
-            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
             EncodedValue = encodedValue,
             PublicKey = publicKey,
-        };
+        }.Build();
 
     private static DefaultSecretProtector CreateProtector()
     {

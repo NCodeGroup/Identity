@@ -1,13 +1,11 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Secrets.KeyWrapping;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Persistence.Stores;
@@ -71,48 +69,24 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     }
 
     private static PersistedSecret CreateSecret(string secretId) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            ConcurrencyToken = string.Empty,
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "encoded-value",
-        };
+        }.Build();
 
     private static PersistedTenant CreateTenant(params PersistedSecret[] secrets) =>
         CreateTenant(TenantId, secrets);
 
     private static PersistedTenant CreateTenant(string tenantId, PersistedSecret[] secrets) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
-            Issuer = null,
-            IsDisabled = false,
             DisplayName = "Tenant One",
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = string.Empty,
-                Value = secrets,
-            },
-        };
+            Secrets = secrets,
+        }.Build();
 
     private async Task SeedTenantAsync(params PersistedSecret[] secrets)
     {
@@ -138,21 +112,13 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     {
         const string resourceServerId = "rs-1";
 
-        var resourceServer = new PersistedResourceServer
+        var resourceServer = new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = resourceServerId,
             Identifier = isSystem ? "urn:ncode:openid" : "https://api.example.com",
-            ConcurrencyToken = string.Empty,
             Name = "Resource Server One",
             IsSystem = isSystem,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
             Scopes =
             [
                 new PersistedScope
@@ -162,13 +128,7 @@ public sealed class TenantStoreLifecycleTests : IDisposable
                     IsSystem = isSystem,
                 },
             ],
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
         await _resourceServerStore.AddAsync(resourceServer, CancellationToken.None);
         await _dbContext.SaveChangesAsync();

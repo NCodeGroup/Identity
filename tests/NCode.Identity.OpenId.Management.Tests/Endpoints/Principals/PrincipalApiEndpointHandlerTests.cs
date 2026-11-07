@@ -10,6 +10,7 @@ using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Authentication.Sessions;
+using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Contracts.Principals;
@@ -33,9 +34,10 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
     private Mock<IFederatedPrincipalStore> MockFederatedPrincipalStore { get; }
     private Mock<IAuthorizationService> MockAuthorizationService { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
-    private Mock<ISessionService> MockSessionService { get; }
+    private Mock<IPostCommitSecurityEffects> MockPostCommitSecurityEffects { get; }
     private Mock<IOpenIdContextFactory> MockOpenIdContextFactory { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
+    private List<string> Calls { get; } = [];
     private PrincipalApiEndpointHandler Handler { get; }
 
     public PrincipalApiEndpointHandlerTests()
@@ -46,7 +48,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         MockFederatedPrincipalStore = MockRepository.Create<IFederatedPrincipalStore>();
         MockAuthorizationService = MockRepository.Create<IAuthorizationService>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
-        MockSessionService = MockRepository.Create<ISessionService>();
+        MockPostCommitSecurityEffects = MockRepository.Create<IPostCommitSecurityEffects>();
         MockOpenIdContextFactory = MockRepository.Create<IOpenIdContextFactory>();
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
 
@@ -54,7 +56,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockCryptoService.Object,
-            MockSessionService.Object,
+            MockPostCommitSecurityEffects.Object,
             MockOpenIdContextFactory.Object,
             MockManagementAuditRecorder.Object
         );
@@ -118,7 +120,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
     }
 
     // Mocks the addressed-tenant context the block path materializes; a loose context suffices as it is only passed
-    // through to the (strict) session service and disposed.
+    // through to the (strict) security effects and disposed.
     private void SetupTenantContext()
     {
         MockOpenIdContextFactory
@@ -134,18 +136,18 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private void SetupSessionsRevoked(int count)
+    private void SetupSessionsTerminated()
     {
-        MockSessionService
+        MockPostCommitSecurityEffects
             .Setup(x =>
-                x.RevokeAllAsync(
+                x.TerminateSessionsAsync(
                     It.IsAny<OpenIdContext>(),
                     PrincipalId,
-                    SessionTerminationReasons.UserBlocked,
-                    It.Is<CancellationToken>(token => !token.CanBeCanceled)
+                    SessionTerminationReasons.UserBlocked
                 )
             )
-            .ReturnsAsync(count)
+            .Callback(() => Calls.Add("sessions"))
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
     }
 
@@ -161,6 +163,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
                     )
                 )
             )
+            .Callback(() => Calls.Add("audit"))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
     }
@@ -271,13 +274,13 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task BlockPrincipalAsync_WhenFound_BlocksEndsItsSessionsAndAudits()
+    public async Task BlockPrincipalAsync_WhenFound_BlocksThenEndsItsSessionsBeforeTheAudit()
     {
         SetupAuthorization(AuthorizationResult.Success());
         SetupPrincipal(CreatePrincipal(isBlocked: false));
         SetupBlockStateWritten(isBlocked: true);
         SetupTenantContext();
-        SetupSessionsRevoked(count: 1);
+        SetupSessionsTerminated();
         SetupAudit();
         var httpContext = CreateHttpContext(authenticated: true);
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -290,6 +293,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+        Assert.Equal(["sessions", "audit"], Calls);
     }
 
     [Fact]
@@ -328,7 +332,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupPrincipal(CreatePrincipal(isBlocked: true));
         SetupTenantContext();
-        SetupSessionsRevoked(count: 0);
+        SetupSessionsTerminated();
         SetupAudit();
         var httpContext = CreateHttpContext(authenticated: true);
         using var cancellationTokenSource = new CancellationTokenSource();
@@ -342,6 +346,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+        Assert.Equal(["sessions", "audit"], Calls);
     }
 
     #endregion

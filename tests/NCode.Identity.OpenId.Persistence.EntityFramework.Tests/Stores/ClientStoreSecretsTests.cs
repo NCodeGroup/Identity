@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,47 +47,22 @@ public sealed class ClientStoreSecretsTests : IDisposable
     }
 
     private static PersistedSecret CreateSecret(string secretId) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            ConcurrencyToken = string.Empty,
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "encoded-value",
-        };
+        }.Build();
 
     private async Task SeedClientAsync(params PersistedSecret[] secrets)
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        var tenant = new PersistedTenant
+        var tenant = new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
-            Issuer = null,
-            IsDisabled = false,
             DisplayName = "Tenant One",
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
         await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
@@ -234,23 +208,17 @@ public sealed class ClientStoreSecretsTests : IDisposable
     {
         await SeedClientAsync();
 
-        var added = new PersistedSecret
+        var added = new PersistedSecretBuilder
         {
             SecretId = "secret-2",
             KeyId = "client-kid",
-            ConcurrencyToken = string.Empty,
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded-value",
-        };
+        }.Build();
         await _store.AddSecretAsync(ClientId, added, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
@@ -273,9 +241,8 @@ public sealed class ClientStoreSecretsTests : IDisposable
         var current = await GetSecretOrDefaultAsync("secret-1");
         Assert.NotNull(current);
 
-        var updated = new PersistedSecret
+        var updated = new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
             ConcurrencyToken = current.ConcurrencyToken,
             Use = "enc",
             Algorithm = "RS512",
@@ -288,7 +255,7 @@ public sealed class ClientStoreSecretsTests : IDisposable
             Origin = current.Origin,
             KeySizeBits = current.KeySizeBits,
             EncodedValue = current.EncodedValue,
-        };
+        }.Build();
 
         await _store.UpdateSecretAsync(ClientId, updated, CancellationToken.None);
         await _dbContext.SaveChangesAsync();

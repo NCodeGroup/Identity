@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -56,9 +55,6 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
 
     #region Helpers
 
-    private static JsonElement EmptyObject() =>
-        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
-
     private static PersistedClient CreateClient(string clientId, string? resourceServerId) =>
         new PersistedClientBuilder
         {
@@ -68,54 +64,18 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
         }.Build();
 
     private static PersistedResourceServer CreateResourceServer(string resourceServerId) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = resourceServerId,
             Identifier = $"https://{resourceServerId}.example.com",
-            ConcurrencyToken = string.Empty,
             Name = resourceServerId,
-            IsSystem = false,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = EmptyObject(),
-            },
-            Scopes = [],
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private async Task SeedTenantAndResourceServersAsync()
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        var tenant = new PersistedTenant
-        {
-            TenantId = TenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
-            Issuer = null,
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = EmptyObject(),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        var tenant = new PersistedTenantBuilder { TenantId = TenantId }.Build();
         await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
 

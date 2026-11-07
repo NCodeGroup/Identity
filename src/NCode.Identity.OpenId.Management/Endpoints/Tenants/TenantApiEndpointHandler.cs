@@ -124,7 +124,10 @@ internal class TenantApiEndpointHandler(
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
     private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
         tenantClientCoherenceChecker;
-    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+
+    /// <inheritdoc />
+    protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+        managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =

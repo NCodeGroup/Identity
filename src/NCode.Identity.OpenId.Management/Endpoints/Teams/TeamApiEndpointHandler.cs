@@ -105,7 +105,10 @@ internal class TeamApiEndpointHandler(
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
     private ITeamClientCoherenceChecker TeamClientCoherenceChecker { get; } =
         teamClientCoherenceChecker;
-    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+
+    /// <inheritdoc />
+    protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+        managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =

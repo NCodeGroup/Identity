@@ -100,7 +100,10 @@ internal class ResourceServerApiEndpointHandler(
         settingScopeCollectionProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
-    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+
+    /// <inheritdoc />
+    protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+        managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =

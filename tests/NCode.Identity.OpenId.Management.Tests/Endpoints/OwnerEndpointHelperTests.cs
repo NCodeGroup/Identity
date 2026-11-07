@@ -2,10 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -25,15 +28,30 @@ public class OwnerEndpointHelperTests : IDisposable
     private sealed class TestHandler(
         IAuthorizationService authorizationService,
         IStoreManagerFactory storeManagerFactory,
-        IResourceOwnershipService ownershipService
+        IResourceOwnershipService ownershipService,
+        IManagementAuditRecorder managementAuditRecorder
     ) : BaseOwnableApiEndpointHandler
     {
+        public TestHandler(
+            IAuthorizationService authorizationService,
+            IStoreManagerFactory storeManagerFactory,
+            IResourceOwnershipService ownershipService
+        )
+            : this(
+                authorizationService,
+                storeManagerFactory,
+                ownershipService,
+                Mock.Of<IManagementAuditRecorder>()
+            ) { }
+
         protected override IAuthorizationService AuthorizationService { get; } =
             authorizationService;
         protected override ICryptoService CryptoService { get; } = Mock.Of<ICryptoService>();
         protected override IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
         protected override IResourceOwnershipService ResourceOwnershipService { get; } =
             ownershipService;
+        protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+            managementAuditRecorder;
     }
 
     private static HttpContext CreateHttpContext() =>
@@ -281,5 +299,57 @@ public class OwnerEndpointHelperTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task RecordRoleAssignmentChangedAsync_RecordsTheAssignmentAtItsNode()
+    {
+        var authz = MockRepository.Create<IAuthorizationService>();
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var recorder = MockRepository.Create<IManagementAuditRecorder>();
+        ResourceChangeAuditEvent? captured = null;
+        var httpContext = CreateHttpContext();
+        recorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    httpContext,
+                    It.IsAny<ResourceChangeAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<HttpContext, ResourceChangeAuditEvent, CancellationToken>(
+                (_, auditEvent, _) => captured = auditEvent
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        var handler = new TestHandler(
+            authz.Object,
+            factory.Object,
+            ownership.Object,
+            recorder.Object
+        );
+        await handler.RecordRoleAssignmentChangedAsync(
+            httpContext,
+            Owner("p2", "a2"),
+            ResourceChangeTypes.Created,
+            CancellationToken.None
+        );
+
+        var auditEvent = Assert.IsType<RoleAssignmentChangedAuditEvent>(captured);
+        Assert.Equal(AuditEventSources.Management, auditEvent.EventSource);
+        Assert.Equal(TenantId, auditEvent.TenantId);
+        Assert.Equal("p2", auditEvent.SubjectId);
+        Assert.Equal(ManagementResourceTypes.RoleAssignment, auditEvent.ResourceType);
+        Assert.Equal("a2", auditEvent.ResourceId);
+        Assert.Equal(ResourceNodeTypes.Client, auditEvent.NodeType);
+        Assert.Equal(ResourceId, auditEvent.NodeId);
+        Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
+        Assert.Equal(AuditOutcome.Success, auditEvent.Outcome);
+        var values = Assert.IsType<JsonElement>(auditEvent.ResourceValues);
+        Assert.Equal("a2", values.GetProperty("assignmentId").GetString());
+        Assert.Equal("p2", values.GetProperty("principalId").GetString());
+        Assert.Equal(BuiltInRoles.Owner, values.GetProperty("roleName").GetString());
     }
 }

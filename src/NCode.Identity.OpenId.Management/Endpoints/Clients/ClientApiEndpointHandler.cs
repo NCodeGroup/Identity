@@ -141,7 +141,10 @@ internal class ClientApiEndpointHandler(
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
     private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
-    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+
+    /// <inheritdoc />
+    protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+        managementAuditRecorder;
     private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
     private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
 

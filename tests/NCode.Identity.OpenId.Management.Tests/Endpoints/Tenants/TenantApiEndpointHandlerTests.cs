@@ -1387,35 +1387,23 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     private static PersistedTeam CreateLineageTeam(string lineageTeamId) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = lineageTeamId,
             ConcurrencyToken = "lineage-ct",
-            IsDisabled = false,
             DisplayName = "Customer",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = lineageTeamId,
-                ConcurrencyToken = "lineage-settings-ct",
-                Value = EmptyObject(),
-            },
-        };
+            SettingsConcurrencyToken = "lineage-settings-ct",
+        }.Build();
 
     private static PersistedTeam CreateTeam(IReadOnlyList<string>? ancestorTeamIds = null) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = TeamId,
             ConcurrencyToken = "team-ct",
-            IsDisabled = false,
             DisplayName = "Team One",
             AncestorTeamIds = ancestorTeamIds ?? [],
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = TeamId,
-                ConcurrencyToken = "team-settings-ct",
-                Value = EmptyObject(),
-            },
-        };
+            SettingsConcurrencyToken = "team-settings-ct",
+        }.Build();
 
     private void SetupTenantEnvironment(
         string environmentType = "production",

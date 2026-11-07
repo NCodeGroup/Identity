@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
@@ -60,20 +59,14 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         string displayName = "Team One",
         string? parentTeamId = null
     ) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
             ParentTeamId = parentTeamId,
             ConcurrencyToken = concurrencyToken,
-            IsDisabled = false,
             DisplayName = displayName,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = "settings-ct",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-        };
+            SettingsConcurrencyToken = "settings-ct",
+        }.Build();
 
     private void SetupAuthorization(AuthorizationResult result)
     {

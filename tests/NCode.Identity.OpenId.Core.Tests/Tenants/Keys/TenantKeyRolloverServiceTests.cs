@@ -685,20 +685,14 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         bool isDisabled,
         IReadOnlyList<string> ancestorTeamIds
     ) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
-            DisplayName = teamId,
             IsDisabled = isDisabled,
             AncestorTeamIds = ancestorTeamIds,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = "token",
-                Value = JsonElement.Parse("{}"),
-            },
             ConcurrencyToken = "token",
-        };
+            SettingsConcurrencyToken = "token",
+        }.Build();
 
     private void SetupSpecifications() =>
         MockPolicy
@@ -744,7 +738,12 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Verifiable();
 
     // Pages the teams only, each with its disabled flag.
-    private void SetupTeamPage(params (string TeamId, bool IsDisabled)[] teams) =>
+    private void SetupTeamPage(params (string TeamId, bool IsDisabled)[] teams)
+    {
+        PersistedTeam[] items =
+        [
+            .. teams.Select(team => CreateTeam(team.TeamId, team.IsDisabled, [])),
+        ];
         MockTeamStore
             .Setup(x =>
                 x.GetPageAsync(
@@ -752,29 +751,9 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(
-                new PagedResult<PersistedTeam>
-                {
-                    Items =
-                    [
-                        .. teams.Select(team => new PersistedTeam
-                        {
-                            TeamId = team.TeamId,
-                            DisplayName = team.TeamId,
-                            IsDisabled = team.IsDisabled,
-                            Settings = new PersistedTeamSettings
-                            {
-                                TeamId = team.TeamId,
-                                ConcurrencyToken = "token",
-                                Value = JsonElement.Parse("{}"),
-                            },
-                            ConcurrencyToken = "token",
-                        }),
-                    ],
-                    NextCursor = null,
-                }
-            )
+            .ReturnsAsync(new PagedResult<PersistedTeam> { Items = items, NextCursor = null })
             .Verifiable();
+    }
 
     private void SetupStoreManager()
     {

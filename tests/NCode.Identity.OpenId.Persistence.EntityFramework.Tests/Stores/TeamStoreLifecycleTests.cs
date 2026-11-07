@@ -44,19 +44,7 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     }
 
     private static PersistedTeam CreateTeam(string teamId = TeamId) =>
-        new()
-        {
-            TeamId = teamId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            DisplayName = "Team One",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-        };
+        new PersistedTeamBuilder { TeamId = teamId, DisplayName = "Team One" }.Build();
 
     private async Task SaveAndClearAsync()
     {
@@ -78,12 +66,14 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     }
 
     private static PersistedTeamSettings NewSettings(PersistedTeam team, string key) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = TeamId,
-            ConcurrencyToken = team.Settings.ConcurrencyToken,
-            Value = JsonSerializer.SerializeToElement(new Dictionary<string, object> { [key] = 1 }),
-        };
+            SettingsConcurrencyToken = team.Settings.ConcurrencyToken,
+            Settings = JsonSerializer.SerializeToElement(
+                new Dictionary<string, object> { [key] = 1 }
+            ),
+        }.BuildSettings();
 
     private async Task SeedTenantInTeamAsync()
     {

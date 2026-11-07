@@ -29,14 +29,16 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   references `Nullable.Extended.Analyzer` only in projects whose name does not end in `.Tests`.
 - 👁 **Organize tests with `#region` directives** by the member under test — template
   [Regions](csharp-tests.instructions.md#regions).
-- 👁 **Build a persisted fixture with its builder.** `PersistedClientBuilder`, `PersistedTenantBuilder` and
-  `PersistedResourceServerBuilder` live in `NCode.Identity.OpenId.Persistence.TestSupport` and `PersistedSecretBuilder`
-  in `NCode.Identity.Secrets.Persistence.TestSupport`, each in the namespace of the type it builds. `Build()` copies the
-  identifiers into the settings and secrets documents; their concurrency tokens come from `SettingsConcurrencyToken` and
-  `SecretsConcurrencyToken`. `BuildSettings()` and `BuildSecrets()` build one document for a store that returns it
-  alone. Set only the members that differ from the builder's defaults, and keep a private factory in a test file only
-  for the values its tests vary (`CreateClient(bool isDisabled)` in `DefaultPrincipalResolverTests`). A concurrency
-  token or identifier a test reads stays.
+- 👁 **Build a persisted fixture with its builder.** `PersistedClientBuilder`, `PersistedTenantBuilder`,
+  `PersistedTeamBuilder` and `PersistedResourceServerBuilder` live in `NCode.Identity.OpenId.Persistence.TestSupport`
+  and `PersistedSecretBuilder` in `NCode.Identity.Secrets.Persistence.TestSupport`, each in the namespace of the type
+  it builds. `Build()` copies the identifiers into the settings and secrets documents; their concurrency tokens come
+  from `SettingsConcurrencyToken` and `SecretsConcurrencyToken`. `BuildSettings()` and `BuildSecrets()` build one
+  document for a store that returns it alone, and a test that needs the document a built fixture carries reads it from
+  the fixture (`team.Settings` in `TeamApiEndpointHandlerTests`). Set only the members that differ from the builder's
+  defaults, and keep a private factory in a test file only for the values its tests vary
+  (`CreateClient(bool isDisabled)` in `DefaultPrincipalResolverTests`). A concurrency token or identifier a test reads
+  stays.
 - 👁 **A fixture that more than one test project builds lives in a shared support project**, such as
   `NCode.Identity.OpenId.Persistence.TestSupport` or `NCode.Identity.Secrets.Persistence.TestSupport`, never as a copy
   per test file.

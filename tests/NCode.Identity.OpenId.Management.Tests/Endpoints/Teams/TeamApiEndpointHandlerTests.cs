@@ -386,57 +386,42 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
 
     private static PersistedTeam CreateTeam(
         string concurrencyToken = "team-ct",
-        string? parentTeamId = null,
-        PersistedTeamSettings? settings = null
+        string? parentTeamId = null
     ) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = TeamId,
             ConcurrencyToken = concurrencyToken,
-            IsDisabled = false,
             ParentTeamId = parentTeamId,
             DisplayName = "Team One",
-            Settings = settings ?? CreateSettings("settings-ct"),
-        };
+            SettingsConcurrencyToken = "settings-ct",
+        }.Build();
 
-    private static PersistedTeamSettings CreateSettings(string concurrencyToken) =>
-        new()
+    private static PersistedTeamSettings CreateSettings() =>
+        new PersistedTeamBuilder
         {
             TeamId = TeamId,
-            ConcurrencyToken = concurrencyToken,
-            Value = EmptyObject(),
-        };
+            SettingsConcurrencyToken = "settings-ct",
+        }.BuildSettings();
 
     private static PersistedTeam CreateAncestorTeam(string ancestorId) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = ancestorId,
             ConcurrencyToken = "ancestor-ct",
-            IsDisabled = false,
             DisplayName = "Customer",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = ancestorId,
-                ConcurrencyToken = "ancestor-settings-ct",
-                Value = EmptyObject(),
-            },
-        };
+            SettingsConcurrencyToken = "ancestor-settings-ct",
+        }.Build();
 
     private static PersistedTeam CreateChildTeam(string childTeamId) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = childTeamId,
             ConcurrencyToken = "child-ct",
-            IsDisabled = false,
             ParentTeamId = TeamId,
             DisplayName = "Team One Web",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = childTeamId,
-                ConcurrencyToken = "child-settings-ct",
-                Value = EmptyObject(),
-            },
-        };
+            SettingsConcurrencyToken = "child-settings-ct",
+        }.Build();
 
     private static PersistedRoleAssignment CreateAssignment(string principalId, string roleName) =>
         new()
@@ -1641,7 +1626,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task GetSettingsAsync_WhenFoundAndAuthorized_ReturnsJsonWithTheETag()
     {
         SetupStore();
-        SetupTeamSettings(CreateSettings("settings-ct"));
+        SetupTeamSettings(CreateSettings());
         SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -1657,7 +1642,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     public async Task GetSettingsAsync_RequestsReadOnTheTeamNode()
     {
         SetupStore();
-        SetupTeamSettings(CreateSettings("settings-ct"));
+        SetupTeamSettings(CreateSettings());
         var captured = CaptureAuthorization();
 
         await Handler.GetSettingsAsync(
@@ -1981,8 +1966,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupNoChangedLimits();
         SetupStore();
-        var settings = CreateSettings("settings-ct");
-        SetupTeam(CreateTeam(settings: settings));
+        var team = CreateTeam();
+        var settings = team.Settings;
+        SetupTeam(team);
         SetupAuthorization(AuthorizationResult.Success());
         var current = CreateSettingCollection();
         var proposed = CreateSettingCollection();
@@ -2015,8 +2001,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupNoChangedLimits();
         SetupStore();
-        var settings = CreateSettings("settings-ct");
-        SetupTeam(CreateTeam(settings: settings));
+        var team = CreateTeam();
+        var settings = team.Settings;
+        SetupTeam(team);
         SetupAuthorization(AuthorizationResult.Success());
         var current = CreateSettingCollection();
         var proposed = CreateSettingCollection();
@@ -2056,8 +2043,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupNoChangedLimits();
         SetupStore();
-        var settings = CreateSettings("settings-ct");
-        SetupTeam(CreateTeam(settings: settings));
+        var team = CreateTeam();
+        var settings = team.Settings;
+        SetupTeam(team);
         SetupAuthorization(AuthorizationResult.Success());
         var platform = CreateSettingCollection();
         MockEffectiveSettingsResolver
@@ -2268,8 +2256,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
         SetupStore();
-        var settings = CreateSettings("settings-ct");
-        SetupTeam(CreateTeam(parentTeamId: ParentTeamId, settings: settings));
+        var team = CreateTeam(parentTeamId: ParentTeamId);
+        var settings = team.Settings;
+        SetupTeam(team);
         SetupAuthorization(AuthorizationResult.Success());
         MockAuthorizationService
             .Setup(x =>
@@ -2311,8 +2300,9 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupValidSettings();
         SetupChangedLimits([OpenIdSettingNames.MaxTenants]);
         SetupStore();
-        var settings = CreateSettings("settings-ct");
-        SetupTeam(CreateTeam(settings: settings));
+        var team = CreateTeam();
+        var settings = team.Settings;
+        SetupTeam(team);
         SetupAuthorization(AuthorizationResult.Success());
         MockAuthorizationService
             .Setup(x =>

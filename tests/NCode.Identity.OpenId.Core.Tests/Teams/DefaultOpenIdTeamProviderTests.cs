@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using Moq;
 using Moq.Protected;
 using NCode.Disposables;
@@ -27,18 +26,12 @@ public sealed class DefaultOpenIdTeamProviderTests
     }
 
     private static PersistedTeam CreatePersistedTeam(string teamId = "platform") =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
-            IsDisabled = false,
             DisplayName = "Platform",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = "token",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-        };
+            SettingsConcurrencyToken = "token",
+        }.Build();
 
     private static IStoreManagerFactory CreateStoreManagerFactory(
         MockRepository mocks,

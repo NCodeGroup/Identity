@@ -329,20 +329,15 @@ public sealed class DefaultTeamSettingsReconcilerTests : BaseTests
         string? reconciledFingerprint,
         JsonElement? reconciledSettings
     ) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = TeamId,
             DisplayName = "Acme",
-            IsDisabled = false,
             ConcurrencyToken = ConcurrencyToken,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = TeamId,
-                Value = JsonElement.Parse("""{"v":1}"""),
-            },
+            Settings = JsonElement.Parse("""{"v":1}"""),
             ReconciledSettingsFingerprint = reconciledFingerprint,
             ReconciledSettings = reconciledSettings,
-        };
+        }.Build();
 
     private void SetupStoreManager()
     {

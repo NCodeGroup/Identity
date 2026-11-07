@@ -64,20 +64,12 @@ public class DefaultAuthorityChainResolverTests : IDisposable
         }.Build();
 
     private static PersistedTeam CreateTeam(string teamId, string[] ancestorTeamIds) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            DisplayName = teamId,
             AncestorTeamIds = ancestorTeamIds,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = string.Empty,
-                Value = default,
-            },
-        };
+            Settings = default,
+        }.Build();
 
     private Mock<IStoreManager> CreateStoreManager(
         PersistedTenant? tenant,

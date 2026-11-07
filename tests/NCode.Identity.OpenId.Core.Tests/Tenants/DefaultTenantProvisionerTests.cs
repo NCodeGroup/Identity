@@ -75,14 +75,12 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     public void Dispose() => Mocks.Verify();
 
     private static PersistedTeam CreateTeam() =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = TeamId,
             ConcurrencyToken = "token",
-            IsDisabled = false,
             DisplayName = TeamDisplayName,
-            Settings = null!,
-        };
+        }.Build();
 
     private static PersistedTenant CreateTenant(string tenantId, string? issuer = null) =>
         new PersistedTenantBuilder { TenantId = tenantId, Issuer = issuer }.Build();

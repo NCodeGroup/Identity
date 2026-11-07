@@ -74,19 +74,13 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         && value.GetString() == marker;
 
     private static PersistedTeam CreateTeam(string teamId, string? parentTeamId, string marker) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
             ParentTeamId = parentTeamId,
-            IsDisabled = false,
-            DisplayName = teamId,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = "settings-ct",
-                Value = CreateDocument(marker),
-            },
-        };
+            SettingsConcurrencyToken = "settings-ct",
+            Settings = CreateDocument(marker),
+        }.Build();
 
     private static PersistedTenantSettings CreateTenantSettings(string tenantId, string marker) =>
         new PersistedTenantBuilder

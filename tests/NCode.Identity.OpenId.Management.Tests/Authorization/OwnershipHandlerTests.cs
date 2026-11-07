@@ -68,20 +68,12 @@ public class OwnershipHandlerTests : IDisposable
         }.Build();
 
     private static PersistedTeam CreateTeam(string teamId, string[] ancestorTeamIds) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            DisplayName = teamId,
             AncestorTeamIds = ancestorTeamIds,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = string.Empty,
-                Value = default,
-            },
-        };
+            Settings = default,
+        }.Build();
 
     // A requirement the handler does not decide reads nothing, a caller without a principal reads no assignments, and
     // a team or platform node reads no tenant.

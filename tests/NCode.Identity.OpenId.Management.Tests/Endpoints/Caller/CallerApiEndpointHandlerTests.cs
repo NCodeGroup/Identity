@@ -137,19 +137,14 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
         };
 
     private static PersistedTeam CreateTeam(string teamId) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
             ConcurrencyToken = "team-ct",
-            IsDisabled = false,
             DisplayName = $"Team {teamId}",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = "settings-ct",
-                Value = default,
-            },
-        };
+            SettingsConcurrencyToken = "settings-ct",
+            Settings = default,
+        }.Build();
 
     private static PersistedTenant CreateTenant(string tenantId, string teamId) =>
         new PersistedTenantBuilder

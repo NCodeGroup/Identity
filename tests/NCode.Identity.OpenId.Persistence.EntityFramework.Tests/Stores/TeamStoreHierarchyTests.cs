@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -41,20 +40,12 @@ public sealed class TeamStoreHierarchyTests : IDisposable
     }
 
     private static PersistedTeam CreateTeam(string teamId, string? parentTeamId = null) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
             ParentTeamId = parentTeamId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
             DisplayName = "Team",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-        };
+        }.Build();
 
     private async Task SaveAndClearAsync()
     {

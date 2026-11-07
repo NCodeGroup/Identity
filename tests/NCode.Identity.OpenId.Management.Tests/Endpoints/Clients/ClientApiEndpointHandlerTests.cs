@@ -740,19 +740,13 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     private static PersistedTeam CreateTeam(string teamId) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
             ConcurrencyToken = "team-ct",
-            IsDisabled = false,
             DisplayName = "Team One",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = "team-settings-ct",
-                Value = EmptyObject(),
-            },
-        };
+            SettingsConcurrencyToken = "team-settings-ct",
+        }.Build();
 
     private void SetupAuthorizeCreateMachineClient(
         string owningNodeType,

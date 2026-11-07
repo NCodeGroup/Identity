@@ -220,19 +220,11 @@ public class SecretLifecycleTests
         DateTimeOffset activatesWhen,
         DateTimeOffset retiresWhen
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
-            Use = null,
-            Algorithm = null,
             CreatedWhen = Created,
             ActivatesWhen = activatesWhen,
             RetiresWhen = retiresWhen,
             ExpiresWhen = Expires,
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
-            EncodedValue = "AA",
-        };
+        }.Build();
 }

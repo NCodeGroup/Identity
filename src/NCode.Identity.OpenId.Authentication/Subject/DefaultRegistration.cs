@@ -71,6 +71,13 @@ internal static class DefaultRegistration
                 DefaultAuthenticateSubjectHandler
             >();
 
+            // The security effects that follow a committed change run on their own bounded token.
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<
+                IPostCommitSecurityEffects,
+                DefaultPostCommitSecurityEffects
+            >();
+
             return builder;
         }
     }

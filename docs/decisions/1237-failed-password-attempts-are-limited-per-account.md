@@ -5,7 +5,10 @@
   verified in the same time whether or not an account has the user name; and by
   [ADR-1244](1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md): the verification's own
   lookup names the counted user name, and a password refused at the limit is verified against the dummy hash and
-  counted)
+  counted; and by
+  [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md): the management
+  API clears the count through `IPostCommitSecurityEffects` on its own bounded token, before the audit record, and a
+  failure is logged)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

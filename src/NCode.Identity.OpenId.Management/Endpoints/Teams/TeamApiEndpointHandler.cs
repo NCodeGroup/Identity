@@ -759,10 +759,12 @@ internal class TeamApiEndpointHandler(
                 : TeamNodes.GetNodeAbove(GetControlPlaneTenantId(httpContext), team.ParentTeamId);
         }
 
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Team);
+
         return await ProcessGetSettingLimitsAsync(
             httpContext,
             GetTeamNode(httpContext, teamId),
-            SettingSerializer.GetLimits(OpenIdSettingScopes.Team),
+            limitNames,
             ReadNodeAboveAsync,
             cancellationToken
         );

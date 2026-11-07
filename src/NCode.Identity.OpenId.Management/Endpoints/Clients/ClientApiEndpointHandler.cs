@@ -1012,10 +1012,12 @@ internal class ClientApiEndpointHandler(
                 : ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId);
         }
 
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Client);
+
         return await ProcessGetSettingLimitsAsync(
             httpContext,
             ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
-            SettingSerializer.GetLimits(OpenIdSettingScopes.Client),
+            limitNames,
             ReadNodeAboveAsync,
             cancellationToken
         );

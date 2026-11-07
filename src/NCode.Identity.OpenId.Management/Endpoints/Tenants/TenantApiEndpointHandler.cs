@@ -1292,10 +1292,12 @@ internal class TenantApiEndpointHandler(
             return tenant is null ? null : GetTeamNode(httpContext, tenant.TeamId);
         }
 
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Tenant);
+
         return await ProcessGetSettingLimitsAsync(
             httpContext,
             GetTenantNode(tenantId),
-            SettingSerializer.GetLimits(OpenIdSettingScopes.Tenant),
+            limitNames,
             ReadNodeAboveAsync,
             cancellationToken
         );

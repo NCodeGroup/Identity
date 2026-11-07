@@ -88,29 +88,15 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         bool isDisabled = false,
         IReadOnlyCollection<PersistedSecret>? secrets = null
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = tenantId,
             ClientId = ClientId,
             PrincipalId = PrincipalId,
-            ConcurrencyToken = "ct",
             IsDisabled = isDisabled,
             ResourceServerId = resourceServerId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = tenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = tenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = secrets ?? [],
-            },
-        };
+            Secrets = secrets ?? [],
+        }.Build();
 
     private static PersistedSecret CreatePersistedSecret(
         string secretId,

@@ -248,6 +248,8 @@ internal class ClientApiEndpointHandler(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             PrincipalId = client.PrincipalId,
+            OwningNodeType = client.OwningNodeType,
+            OwningNodeId = client.OwningNodeId,
             IsHostManaged = HostManagedClientChecker.IsHostManaged(
                 client.TenantId,
                 client.ClientId

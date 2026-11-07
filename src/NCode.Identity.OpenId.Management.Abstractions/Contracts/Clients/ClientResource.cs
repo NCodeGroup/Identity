@@ -39,6 +39,12 @@ public sealed class ClientResource : ISupportClientId, ISupportTenantId, ISuppor
     /// </summary>
     public required string PrincipalId { get; init; }
 
+    /// <inheritdoc cref="PersistedClient.OwningNodeType"/>
+    public string? OwningNodeType { get; init; }
+
+    /// <inheritdoc cref="PersistedClient.OwningNodeId"/>
+    public string? OwningNodeId { get; init; }
+
     /// <inheritdoc cref="PersistedClient.ResourceServerId"/>
     public string? ResourceServerId { get; init; }
 }

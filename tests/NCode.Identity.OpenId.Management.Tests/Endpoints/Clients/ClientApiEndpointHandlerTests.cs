@@ -712,6 +712,28 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(ClientId, resource.ClientId);
     }
 
+    [Fact]
+    public void ToClientResource_ForAMachineClient_CarriesItsOwningNode()
+    {
+        var template = CreateClient("ct-1");
+        var client = new PersistedClient
+        {
+            TenantId = template.TenantId,
+            ClientId = template.ClientId,
+            ConcurrencyToken = template.ConcurrencyToken,
+            IsDisabled = template.IsDisabled,
+            OwningNodeType = "team",
+            OwningNodeId = "team-1",
+            Settings = template.Settings,
+            Secrets = template.Secrets,
+        };
+
+        var resource = Handler.ToClientResource(client);
+
+        Assert.Equal("team", resource.OwningNodeType);
+        Assert.Equal("team-1", resource.OwningNodeId);
+    }
+
     #endregion
 
     #region CreateClientAsync Tests

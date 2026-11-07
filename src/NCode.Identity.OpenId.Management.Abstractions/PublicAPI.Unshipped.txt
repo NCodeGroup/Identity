@@ -176,6 +176,10 @@ NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsDisabled.get
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsDisabled.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsHostManaged.get -> bool
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.IsHostManaged.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.OwningNodeId.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.OwningNodeId.init -> void
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.OwningNodeType.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.OwningNodeType.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.PrincipalId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.PrincipalId.init -> void
 NCode.Identity.OpenId.Management.Contracts.Clients.ClientResource.TenantId.get -> string!

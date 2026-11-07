@@ -129,7 +129,8 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
     /// <summary>
     /// Processes an HTTP <c>POST</c> that grants a principal ownership of a resource: authorizes the caller against the
-    /// resource node, then adds the owner (idempotently). Responds <c>404</c> when the resource does not exist.
+    /// resource node, then adds the owner and records the grant. Responds <c>201</c> when the owner is added,
+    /// <c>200</c> when the principal already owns the resource, and <c>404</c> when the resource does not exist.
     /// </summary>
     protected internal virtual async ValueTask<IResult> ProcessAddOwnerAsync(
         HttpContext httpContext,
@@ -177,6 +178,18 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        if (!grant.IsAdded)
+        {
+            return TypedResults.Ok(ToOwnerResource(grant.Assignment));
+        }
+
+        await RecordRoleAssignmentChangedAsync(
+            httpContext,
+            grant.Assignment,
+            ResourceChangeTypes.Created,
+            cancellationToken
+        );
+
         return TypedResults.Created(
             $"{ownersPath}/{grant.Assignment.PrincipalId}",
             ToOwnerResource(grant.Assignment)
@@ -185,8 +198,8 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
     /// <summary>
     /// Processes an HTTP <c>DELETE</c> that revokes a principal's ownership of a resource: authorizes the caller
-    /// against the resource node, then removes the owner. Responds <c>409</c> when the removal would orphan the
-    /// resource and <c>404</c> when the principal is not an owner.
+    /// against the resource node, then removes the owner and records each removed assignment. Responds <c>409</c> when
+    /// the removal would orphan the resource and <c>404</c> when the principal is not an owner.
     /// </summary>
     protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
         HttpContext httpContext,
@@ -230,6 +243,16 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
             default:
                 await storeManager.SaveChangesAsync(cancellationToken);
+                foreach (var removed in removal.RemovedAssignments)
+                {
+                    await RecordRoleAssignmentChangedAsync(
+                        httpContext,
+                        removed,
+                        ResourceChangeTypes.Deleted,
+                        cancellationToken
+                    );
+                }
+
                 return TypedResults.NoContent();
         }
     }

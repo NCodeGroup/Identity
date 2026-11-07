@@ -285,6 +285,18 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
+    private void SetupRoleAssignmentChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
     private void SetupTeamChangedAnnouncement(bool settingsChanged) =>
         MockMediator
             .Setup(x =>
@@ -2572,6 +2584,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTeam(CreateTeam());
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.AddOwnerAsync(
@@ -2608,6 +2621,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var captured = CaptureAuthorization();
         SetupStoreManagerOnly();
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.RemoveOwnerAsync(
@@ -2644,6 +2658,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTeam(CreateTeam());
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.AddOwnerAsync(
@@ -2716,6 +2731,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupStoreManagerOnly();
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.RemoveOwnerAsync(

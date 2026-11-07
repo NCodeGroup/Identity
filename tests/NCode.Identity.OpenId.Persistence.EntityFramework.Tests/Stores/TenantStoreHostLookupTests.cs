@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,28 +40,12 @@ public sealed class TenantStoreHostLookupTests : IDisposable
         string? issuer,
         string? mtlsEndpointAliasAuthority
     ) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
             Issuer = issuer,
             MtlsEndpointAliasAuthority = mtlsEndpointAliasAuthority,
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private async Task SeedTenantAsync(
         string tenantId,

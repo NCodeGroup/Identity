@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -53,27 +52,12 @@ public sealed class TenantIssuerIndexTests : IDisposable
     }
 
     private static PersistedTenant CreatePersistedTenant(string tenantId, string? issuer) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
             Issuer = issuer,
-            IsDisabled = false,
             DisplayName = "Tenant",
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private int CountTenants()
     {

@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,27 +40,12 @@ public sealed class TenantStoreRetirementTests : IDisposable
     }
 
     private static PersistedTenant CreateTenant(string? issuer) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
             Issuer = issuer,
-            IsDisabled = false,
             DisplayName = "Tenant One",
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private async Task SeedTenantAsync(string? issuer)
     {

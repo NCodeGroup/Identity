@@ -54,29 +54,14 @@ public sealed class ResourceServerStoreTests : IDisposable
         bool isSystem = false,
         params PersistedScope[] scopes
     ) =>
-        new()
+        new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = ResourceServerId,
             Identifier = Identifier,
-            ConcurrencyToken = string.Empty,
-            Name = "Example API",
             IsSystem = isSystem,
-            IsDisabled = false,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
             Scopes = scopes,
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private static PersistedRoleAssignment CreateAssignment(
         string assignmentId,
@@ -98,27 +83,11 @@ public sealed class ResourceServerStoreTests : IDisposable
     private async Task SeedTenantAsync()
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        var tenant = new PersistedTenant
+        var tenant = new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
-            Issuer = null,
-            IsDisabled = false,
             DisplayName = "Tenant One",
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
         await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
@@ -352,10 +321,9 @@ public sealed class ResourceServerStoreTests : IDisposable
     #region Secret Sub-Resource Tests
 
     private static PersistedSecret CreateSecret(string secretId) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            ConcurrencyToken = string.Empty,
             Use = "sig",
             Algorithm = "RS256",
             CreatedWhen = DateTimeOffset.UtcNow,
@@ -364,10 +332,9 @@ public sealed class ResourceServerStoreTests : IDisposable
             RetiresWhen = DateTimeOffset.UtcNow.AddYears(1),
             SecretType = "rsa",
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Pkcs8,
-            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = "encoded",
-        };
+        }.Build();
 
     [Fact]
     public async Task AddSecretAsync_ThenGetSecrets_RoundtripsAndBumpsToken()
@@ -441,7 +408,7 @@ public sealed class ResourceServerStoreTests : IDisposable
         );
         Assert.NotNull(secret);
         var existing = secret.Value;
-        var updated = new PersistedSecret
+        var updated = new PersistedSecretBuilder
         {
             SecretId = existing.SecretId,
             ConcurrencyToken = existing.ConcurrencyToken,
@@ -456,7 +423,7 @@ public sealed class ResourceServerStoreTests : IDisposable
             Origin = existing.Origin,
             KeySizeBits = existing.KeySizeBits,
             EncodedValue = existing.EncodedValue,
-        };
+        }.Build();
 
         await _store.UpdateSecretAsync(ResourceServerId, updated, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
@@ -534,29 +501,16 @@ public sealed class ResourceServerStoreTests : IDisposable
         params string[] scopes
     )
     {
-        var resourceServer = new PersistedResourceServer
+        var resourceServer = new PersistedResourceServerBuilder
         {
             TenantId = TenantId,
             ResourceServerId = resourceServerId,
             Identifier = identifier,
-            ConcurrencyToken = string.Empty,
             Name = resourceServerId,
             IsSystem = isSystem,
             IsDisabled = isDisabled,
-            Settings = new PersistedResourceServerSettings
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
             Scopes = scopes.Select(scope => CreateScope(scope)).ToList(),
-            Secrets = new PersistedResourceServerSecrets
-            {
-                TenantId = TenantId,
-                ResourceServerId = resourceServerId,
-                Value = [],
-            },
-        };
+        }.Build();
 
         await _store.AddAsync(resourceServer, CancellationToken.None);
         await _dbContext.SaveChangesAsync();

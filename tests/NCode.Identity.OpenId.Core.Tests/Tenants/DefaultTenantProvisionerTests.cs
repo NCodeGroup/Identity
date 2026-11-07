@@ -462,6 +462,27 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     }
 
     [Fact]
+    public async Task SeedAsync_WhenWorkloadTenant_ReadsTheRootTenantToEnsureItAndTheWorkloadTenantOnceItsSeedCommits()
+    {
+        SetupTeam();
+        var root = CreateTenant(RootTenantId);
+        var workload = CreateTenant(WorkloadTenantId, WorkloadIssuer);
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(RootTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(root)
+            .Verifiable(Times.Exactly(2));
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(WorkloadTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(workload)
+            .Verifiable(Times.Exactly(2));
+        SetupSeed(seeded);
+
+        await Provisioner.SeedAsync(WorkloadTenantId, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task SeedAsync_WhenWorkloadTenantAndRootIsMissing_CreatesRootWithItsConfiguredName()
     {
         SetupTeam();
@@ -526,6 +547,40 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         await Assert.ThrowsAsync<HttpResultException>(async () =>
             await Provisioner.SeedAsync(RootTenantId, CancellationToken.None)
         );
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenTheSeedWritesTheTenantRow_ReturnsTheRowItsSeedCommitted()
+    {
+        var read = CreateTenant(RootTenantId);
+        var committed = CreateTenant(RootTenantId);
+        committed.ConcurrencyToken = "committed-token";
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, read, committed);
+        SetupSeed(seeded);
+
+        var result = await Provisioner.SeedAsync(RootTenantId, CancellationToken.None);
+
+        Assert.Same(committed, result);
+        var command = Assert.Single(seeded);
+        Assert.Same(read, command.Context.Tenant);
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenTheTenantIsRemovedOnceItsSeedCommits_ThrowsNotFound()
+    {
+        var root = CreateTenant(RootTenantId);
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root, (PersistedTenant?)null);
+        SetupSeed(seeded);
+
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await Provisioner.SeedAsync(RootTenantId, CancellationToken.None)
+        );
+
+        Assert.Single(seeded);
     }
 
     [Fact]

@@ -359,6 +359,12 @@ NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.get -
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.init -> void
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleListResource
+NCode.Identity.OpenId.Management.Contracts.RoleListResource.CanChange.get -> bool
+NCode.Identity.OpenId.Management.Contracts.RoleListResource.CanChange.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleListResource.Items.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.OwnerResource!>!
+NCode.Identity.OpenId.Management.Contracts.RoleListResource.Items.init -> void
+NCode.Identity.OpenId.Management.Contracts.RoleListResource.RoleListResource() -> void
 NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource
 NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.CanChange.get -> bool
 NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.CanChange.init -> void

@@ -24,7 +24,8 @@ export type RoleAssignmentsManagerProps = {
 /**
  * Container: the principals that hold one role on a node (the owners of a team, tenant, client or resource server, or
  * the administrators of a team or tenant), with a form to grant the role to a principal and a confirmed revoke. One
- * container serves every list through the role-list endpoints; a refused grant or revoke shows the server's error.
+ * container serves every list through the role-list endpoints. The grant form and revoke controls appear only when the
+ * list says the caller may change it (ADR-1465); a refused grant or revoke shows the server's error.
  */
 export function RoleAssignmentsManager({ list, title, description }: RoleAssignmentsManagerProps) {
   const { data, isLoading, error: loadError } = useListRoleAssignmentsQuery(list);
@@ -35,6 +36,8 @@ export function RoleAssignmentsManager({ list, title, description }: RoleAssignm
   const [error, setError] = useState<string>();
 
   const assignments = data?.items ?? [];
+  const canChange = data?.canChange ?? false;
+  const isReadOnly = data !== undefined && !data.canChange;
   const trimmed = principalId.trim();
 
   const handleGrant = async () => {
@@ -76,23 +79,35 @@ export function RoleAssignmentsManager({ list, title, description }: RoleAssignm
           {error}
         </Alert>
       )}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <TextField
-          size="small"
-          label="Principal ID"
-          value={principalId}
-          onChange={(event) => setPrincipalId(event.target.value)}
-          slotProps={{ htmlInput: { 'data-testid': `${list.role}-principal` } }}
-        />
-        <Button
-          variant="contained"
-          disabled={trimmed.length === 0 || isGranting}
-          onClick={handleGrant}
-          data-testid={`${list.role}-grant`}
+      {isReadOnly && (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mb: 1 }}
+          data-testid={`${list.role}-read-only`}
         >
-          Grant
-        </Button>
-      </Box>
+          You can see who holds this role but cannot grant or revoke it.
+        </Typography>
+      )}
+      {canChange && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <TextField
+            size="small"
+            label="Principal ID"
+            value={principalId}
+            onChange={(event) => setPrincipalId(event.target.value)}
+            slotProps={{ htmlInput: { 'data-testid': `${list.role}-principal` } }}
+          />
+          <Button
+            variant="contained"
+            disabled={trimmed.length === 0 || isGranting}
+            onClick={handleGrant}
+            data-testid={`${list.role}-grant`}
+          >
+            Grant
+          </Button>
+        </Box>
+      )}
       <DataStateBoundary
         isLoading={isLoading}
         error={loadError ? `Failed to load ${title.toLowerCase()}.` : undefined}
@@ -103,7 +118,7 @@ export function RoleAssignmentsManager({ list, title, description }: RoleAssignm
           label={title}
           testIdPrefix={list.role}
           assignments={assignments}
-          onRevoke={setRevoking}
+          {...(canChange ? { onRevoke: setRevoking } : {})}
         />
       </DataStateBoundary>
       <ConfirmDialog

@@ -223,6 +223,23 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupAuthorization(
+        IAuthorizationRequirement operation,
+        AuthorizationResult result
+    ) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Contains(operation)
+                    )
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
     private void SetupAuthorizeCreate(ManagementError? error) =>
         MockValidator
             .Setup(x =>
@@ -1179,6 +1196,83 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region ListOwnersAsync Tests
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayUpdateTheResourceServer_ReportsItMayChangeTheOwners()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.ResourceServer,
+                    ResourceServerId,
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateCreatorAssignment()])
+            .Verifiable();
+
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.True(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayOnlyReadTheResourceServer_ReportsItMayNotChangeTheOwners()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Failed());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.ResourceServer,
+                    ResourceServerId,
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateCreatorAssignment()])
+            .Verifiable();
+
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.False(value.CanChange);
     }
 
     #endregion

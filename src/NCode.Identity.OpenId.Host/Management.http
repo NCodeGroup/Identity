@@ -51,6 +51,10 @@ Accept: application/json
 GET {{host}}/api/tenants/{{tenantId}}/settings/limits
 Accept: application/json
 
+### List a tenant's administrators and whether the caller may grant or revoke the role there
+GET {{host}}/api/tenants/{{tenantId}}/admins
+Accept: application/json
+
 ### List teams (central-admin)
 GET {{host}}/api/teams?limit=50
 Accept: application/json

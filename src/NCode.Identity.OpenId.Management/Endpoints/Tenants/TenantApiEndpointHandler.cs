@@ -240,9 +240,7 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
-        tenants
-            .MapGet("/{tenantId}/owners", ListOwnersAsync)
-            .Produces<CollectionResource<OwnerResource>>();
+        tenants.MapGet("/{tenantId}/owners", ListOwnersAsync).Produces<RoleListResource>();
         tenants
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created)
@@ -251,9 +249,7 @@ internal class TenantApiEndpointHandler(
             .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
 
-        tenants
-            .MapGet("/{tenantId}/admins", ListAdminsAsync)
-            .Produces<CollectionResource<OwnerResource>>();
+        tenants.MapGet("/{tenantId}/admins", ListAdminsAsync).Produces<RoleListResource>();
         tenants
             .MapPost("/{tenantId}/admins", AddAdminAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created)
@@ -741,13 +737,11 @@ internal class TenantApiEndpointHandler(
 
         // The tenant is seeded as soon as it exists — after the root tenant — so its system resource servers and keys
         // are in place before its first request, through the one pipeline every tenant is seeded by (ADR-1166). The
-        // provisioner is scoped (its mediator is request-scoped), so it is resolved from the request's services.
+        // provisioner is scoped (its mediator is request-scoped), so it is resolved from the request's services. The
+        // seed returns the row it committed, whose concurrency token a seed contributor may have replaced (a seeded
+        // signing key changes its secrets), so the response reflects the tenant as it stands.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
-        await provisioner.SeedAsync(tenant.TenantId, cancellationToken);
-
-        // A seed contributor may write to the tenant row (a seeded signing key changes its secrets), which replaces its
-        // concurrency token, so the response reflects the tenant as it now stands.
-        tenant = await ReloadTenantAsync(tenant, cancellationToken);
+        tenant = await provisioner.SeedAsync(tenant.TenantId, cancellationToken);
 
         // The audit record carries the tenant's own state, as an update's and a deletion's do; the environment is
         // derived from its settings and stamps the audit event itself (ADR-1289).
@@ -2032,9 +2026,9 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Lists a tenant's owners.
+    /// Lists a tenant's owners and whether the caller may grant and revoke the role.
     /// </summary>
-    /// <response code="200">A page of the tenant's owners.</response>
+    /// <response code="200">The tenant's owners and whether the caller may change them.</response>
     [EndpointName("api/tenants/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -2042,12 +2036,14 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        return await ProcessListOwnersAsync(
+        // See ADR-1465.
+        var tenantNode = GetTenantNode(tenantId);
+        return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            tenantId,
-            ResourceNodeTypes.Tenant,
-            tenantId,
+            tenantNode,
+            BuiltInRoles.Owner,
             (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Update),
             cancellationToken
         );
     }
@@ -2101,9 +2097,9 @@ internal class TenantApiEndpointHandler(
 
     /// <summary>
     /// Lists a tenant's administrators: the principals that manage the tenant and everything beneath it and create its
-    /// resources.
+    /// resources, and whether the caller may grant and revoke the role.
     /// </summary>
-    /// <response code="200">The tenant's administrators.</response>
+    /// <response code="200">The tenant's administrators and whether the caller may change them.</response>
     // See ADR-1417
     [EndpointName("api/tenants/admins/list")]
     internal virtual async ValueTask<IResult> ListAdminsAsync(
@@ -2112,35 +2108,15 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTenantNode(tenantId),
-            Operations.Read
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await TenantExistsAsync(storeManager, tenantId, cancellationToken))
-        {
-            return TypedResults.NotFound();
-        }
-
-        var admins = await ResourceOwnershipService.GetAssignmentsAsync(
-            storeManager,
-            ResourceNodeTypes.Tenant,
-            tenantId,
+        // See ADR-1465.
+        var tenantNode = GetTenantNode(tenantId);
+        return await ProcessListRoleAssignmentsAsync(
+            httpContext,
+            tenantNode,
             BuiltInRoles.TenantAdmin,
+            (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Create),
             cancellationToken
-        );
-        return TypedResults.Json(
-            new CollectionResource<OwnerResource>
-            {
-                Items = admins.Select(ToOwnerResource).ToList(),
-                ContinuationToken = null,
-            }
         );
     }
 
@@ -2270,16 +2246,6 @@ internal class TenantApiEndpointHandler(
     ) =>
         await storeManager.GetStore<ITenantStore>().GetOrDefaultAsync(tenantId, cancellationToken)
             is not null;
-
-    private async ValueTask<PersistedTenant> ReloadTenantAsync(
-        PersistedTenant tenant,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-        return await store.GetOrDefaultAsync(tenant.TenantId, cancellationToken) ?? tenant;
-    }
 
     // An empty issuer means the tenant has none; storing it as empty would put it under the issuer's unique index.
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;

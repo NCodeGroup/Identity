@@ -1996,12 +1996,12 @@ describes the family as it is rather than its changes
   (`PersistedRoleAssignment` / `IRoleAssignmentStore`) back an additive `OwnershipHandler` that grants a principal every
   operation except `Create` on a resource it owns, or on any resource under a node it owns, and the principal that
   creates a client, resource server or tenant becomes its owner. Each of those resources has owner-management endpoints
-  (`GET`/`POST`/`DELETE /{resource}/{id}/owners`) returning `OwnerResource`, a grant the principal already holds
-  answers `200` with its assignment, and a one-owner invariant refuses to orphan a resource with `409`. The ownership
-  service reports what it changed (`RoleAssignmentGrant`, `OwnerRemoval`). The ownership service and resource-node
-  abstraction (`IResourceOwnershipService`, `IResourceNode`, `ResourceNode`, `ResourceNodeTypes`) are public, so
-  applications own and enforce their own resource
-  types; the built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
+  (`GET`/`POST`/`DELETE /{resource}/{id}/owners`), whose list answers `RoleListResource` and whose grant answers
+  `OwnerResource`, a grant the principal already holds answers `200` with its assignment, and a one-owner invariant
+  refuses to orphan a resource with `409`. The ownership service reports what it changed (`RoleAssignmentGrant`,
+  `OwnerRemoval`). The ownership service and resource-node abstraction (`IResourceOwnershipService`, `IResourceNode`,
+  `ResourceNode`, `ResourceNodeTypes`) are public, so applications own and enforce their own resource types; the
+  built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
 - **A client acting for itself is a principal.** Every client has a principal (`PersistedClient.PrincipalId`,
@@ -2329,7 +2329,11 @@ describes the family as it is rather than its changes
 - **The management console manages owners and administrators.** A team's and a tenant's Access surface lists, grants
   and revokes their administrators and owners, and a client's and a resource server's Access tab their owners, through
   `useListRoleAssignmentsQuery`, `useAddRoleAssignmentMutation` and `useRemoveRoleAssignmentMutation`, each taking a
-  `RoleList` from `@ncode/api` ([#582](https://github.com/NCodeGroup/Identity/issues/582)).
+  `RoleList` from `@ncode/api`. A list offers its grant form and revoke controls only when it answers `canChange`,
+  shows itself read-only otherwise, and every role list refreshes after any grant or revoke
+  ([#582](https://github.com/NCodeGroup/Identity/issues/582),
+  [#623](https://github.com/NCodeGroup/Identity/issues/623),
+  [ADR-1465](docs/decisions/1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md)).
 
 - **The management console manages secrets with a one-time reveal.** An owner's Secrets tab creates, lists and deletes
   secrets; generated key material is shown exactly once in a `RevealSecretDialog` with a copy affordance and is never
@@ -3280,16 +3284,20 @@ describes the family as it is rather than its changes
 - **A tenant is provisioned through one pipeline under every tenant strategy: the root tenant is created from
   configuration, and every tenant is seeded.** `ITenantProvisioner.EnsureCreatedAsync(teamId, tenantId, displayName)`
   ensures the tenant's team first through `ITeamProvisioner`, then creates a configuration-defined tenant at its
-  strategy's default issuer, judged like any other write, and `SeedAsync(tenantId)` seeds it; `ITenantStrategy` and
-  `ITenantResolver` expose `GetDefaultIssuerAsync`, which a custom strategy implements. Under the host and path
-  strategies the root (control-plane) tenant, configured under `TenantResolution:Root` (`TenantId`, `DisplayName`,
-  `Issuer`, `TeamId`, `TeamDisplayName`), is created when the first request reaches its address, so a multi-tenant
-  deployment boots from configuration alone: the bootstrap administrator, named into the root tenant, obtains the first
-  management token there. A tenant created through the management API is seeded before the response, so its OpenID and
-  management resource servers exist before its first request, and every tenant is seeded again when it is next
-  materialized, so every seed contributor a deployment registers reaches existing tenants under every strategy. The
-  Aspire conformance instance serves its own `conformance` tenant
-  ([ADR-1166](docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)).
+  strategy's default issuer, judged like any other write, and `SeedAsync(tenantId)` seeds it and returns the tenant row
+  its seed committed; `ITenantStrategy` and `ITenantResolver` expose `GetDefaultIssuerAsync`, which a custom strategy
+  implements. Under the host and path strategies the root (control-plane) tenant, configured under
+  `TenantResolution:Root` (`TenantId`, `DisplayName`, `Issuer`, `TeamId`, `TeamDisplayName`), is created when the first
+  request reaches its address, so a multi-tenant deployment boots from configuration alone: the bootstrap administrator,
+  named into the root tenant, obtains the first management token there. A tenant created through the management API is
+  seeded before the response, so its OpenID and management resource servers exist before its first request, and every
+  tenant is seeded again when it is next materialized, so every seed contributor a deployment registers reaches existing
+  tenants under every strategy. A tenant is materialized, and a created tenant answered, from the row its seed
+  committed, so it carries the concurrency tokens its own seed wrote, and a replica that revalidates its cached tenants
+  after a missed announcement keeps it. The Aspire conformance instance serves its own `conformance` tenant
+  ([ADR-1166](docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
+  [ADR-1463](docs/decisions/1463-a-seeded-tenant-is-materialized-from-the-row-its-seed-committed.md),
+  [#619](https://github.com/NCodeGroup/Identity/issues/619)).
 
 - **Concurrent seeds of one tenant converge.** When two replicas, or two requests that miss the tenant cache together,
   seed the same tenant, a seed whose commit fails runs once more in a fresh unit of work; seed contributors are
@@ -3750,6 +3758,14 @@ describes the family as it is rather than its changes
   edits, and its save never changes them
   ([ADR-1448](docs/decisions/1448-a-settings-reader-learns-which-limits-it-may-change.md),
   [#581](https://github.com/NCodeGroup/Identity/issues/581)).
+
+- **A caller learns whether it may grant and revoke a role where it reads who holds it.** `GET …/owners` on a team, a
+  tenant, a client and a resource server and `GET …/admins` on a team and a tenant answer `RoleListResource`: the
+  role's assignments (`items`) and `canChange`, whether the caller may grant and revoke the role there: `Update` at the
+  node for owners, `Create` for administrators, and for a client's owners also a client the host does not manage and
+  custody of the roles its principal holds
+  ([ADR-1465](docs/decisions/1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md),
+  [#623](https://github.com/NCodeGroup/Identity/issues/623)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and

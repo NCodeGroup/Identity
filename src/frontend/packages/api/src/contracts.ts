@@ -196,6 +196,12 @@ export type OwnerResource = {
   readonly roleName: string;
 };
 
+/** Mirror of `RoleListResource`: the principals that hold one role at a node and whether the caller may grant and revoke it there (ADR-1465). */
+export type RoleListResource = {
+  readonly items: readonly OwnerResource[];
+  readonly canChange: boolean;
+};
+
 /** The body that grants a principal a role at a node. */
 export type AddOwnerRequest = {
   readonly principalId: string;

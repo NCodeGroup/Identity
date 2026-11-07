@@ -7,7 +7,10 @@
   change keeps the current session; amended by
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
-  creates the schema this record names)
+  creates the schema this record names; amended by
+  [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md): a termination
+  that follows a committed change runs through `IPostCommitSecurityEffects` on its own bounded token, and a failure is
+  logged)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 

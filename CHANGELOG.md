@@ -5248,6 +5248,15 @@ describes the family as it is rather than its changes
   ([#621](https://github.com/NCodeGroup/Identity/issues/621),
   [ADR-1464](docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)).
 
+- **A security effect that follows a committed change is bounded and never fails the change.** Ending a principal's
+  or an account's sessions after a block, a disable, an administrator's password reset or a self-service password
+  change, and clearing the failed password attempts after an administrator sets a password, run through
+  `IPostCommitSecurityEffects` (`NCode.Identity.OpenId.Authentication.Abstractions`), each on its own 30-second token:
+  a client that disconnects skips none of them, a hung store holds the response at most 30 seconds, and an effect that
+  fails or times out is logged (`PostCommitSessionTerminationFailed`, `PostCommitPasswordAttemptResetFailed`) and never
+  fails the committed change or skips its audit record ([#626](https://github.com/NCodeGroup/Identity/issues/626),
+  [ADR-1468](docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
+
 - **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
   account's principal is terminated with the `password_reset` reason (`SessionTerminationReasons.PasswordReset`): its
   grants and refresh tokens are revoked, its relying parties receive back-channel logout, and its consents are kept

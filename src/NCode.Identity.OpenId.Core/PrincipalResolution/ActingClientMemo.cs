@@ -28,7 +28,9 @@ internal sealed class ActingClientMemo
             httpContext.Items.TryGetValue(ItemKey, out var stored)
             && stored is ActingClientMemo existing
         )
+        {
             return existing;
+        }
 
         var memo = new ActingClientMemo();
         httpContext.Items[ItemKey] = memo;

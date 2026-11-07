@@ -23,6 +23,8 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
     private const string ClientId = "client-1";
     private const string PrincipalId = "principal-1";
     private const string OtherPrincipalId = "principal-2";
+    private const string OtherTenantId = "tenant-2";
+    private const string OtherClientId = "client-2";
 
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
@@ -247,6 +249,58 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
         Assert.Same(otherClient, second);
     }
 
+    [Fact]
+    public async Task GetActingClientOrDefaultAsync_ForTheSameCallerInAnotherTenant_ReadsItsClient()
+    {
+        var client = CreateClient();
+        SetupClientRead(client);
+        var user = CreateUser(PrincipalId, ClientId);
+        var first = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            user,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+        var otherClient = CreateClient(principalId: PrincipalId);
+        SetupNextTenantRead(OtherTenantId);
+        SetupNextClientRead(otherClient, Times.Once());
+
+        var second = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            user,
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Same(client, first);
+        Assert.Same(otherClient, second);
+    }
+
+    [Fact]
+    public async Task GetActingClientOrDefaultAsync_ForAnotherClientId_ReadsItsClient()
+    {
+        var client = CreateClient();
+        SetupClientRead(client);
+        var first = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            CreateUser(PrincipalId, ClientId),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+        var otherClient = CreateClient(principalId: PrincipalId);
+        SetupNextClientRead(otherClient, Times.Once(), OtherClientId);
+
+        var second = await Resolver.GetActingClientOrDefaultAsync(
+            MockContext.Object,
+            CreateUser(PrincipalId, OtherClientId),
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Same(client, first);
+        Assert.Same(otherClient, second);
+    }
+
     #endregion
 
     #region Scaffolding
@@ -316,11 +370,30 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
     }
 
     // Replaces the client read of SetupClientRead, so the test states how many more reads it expects.
-    private void SetupNextClientRead(PersistedClient? client, Times times) =>
+    private void SetupNextClientRead(
+        PersistedClient? client,
+        Times times,
+        string clientId = ClientId
+    ) =>
         MockClientStore
-            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOrDefaultAsync(clientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(client)
             .Verifiable(times);
+
+    // Expects the next client read under another tenant's scope, which ends after the read.
+    private void SetupNextTenantRead(string tenantId)
+    {
+        var mockOtherTenant = CreateStrictMock<OpenIdTenant>();
+        mockOtherTenant.Setup(x => x.TenantId).Returns(tenantId).Verifiable();
+        MockContext.Setup(x => x.Tenant).Returns(mockOtherTenant.Object).Verifiable();
+
+        var mockScope = CreateStrictMock<IDisposable>();
+        mockScope.Setup(x => x.Dispose()).Verifiable();
+        MockAmbientTenantAccessor
+            .Setup(x => x.BeginScope(tenantId))
+            .Returns(mockScope.Object)
+            .Verifiable();
+    }
 
     #endregion
 }

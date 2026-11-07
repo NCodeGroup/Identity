@@ -58,7 +58,7 @@ internal class DefaultResourceOwnershipService(
             return null;
         }
 
-        // A creator that is a client cannot hold the role at the node becomes no owner.
+        // A creator that is a client is assigned no owner when it cannot hold the role at this node.
         // See ADR-1467.
         var creatorNode = ResourceNode.For(tenantId, resourceType, resourceId);
         var canHoldRole = await CanHoldRoleAsync(

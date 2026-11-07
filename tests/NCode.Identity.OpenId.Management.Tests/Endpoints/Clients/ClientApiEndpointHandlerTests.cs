@@ -1572,7 +1572,8 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         var json = Assert.IsType<JsonHttpResult<CollectionResource<ClientResource>>>(result);
-        Assert.Single(json.Value!.Items);
+        Assert.NotNull(json.Value);
+        Assert.Single(json.Value.Items);
         Assert.Equal("next", json.Value.ContinuationToken);
     }
 

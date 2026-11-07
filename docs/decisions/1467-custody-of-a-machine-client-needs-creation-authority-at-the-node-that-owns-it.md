@@ -9,9 +9,10 @@
 
 ## Context
 
-Whoever can set a client's credentials acts with every role the client holds. Checking custody against the roles the
-client holds when a credential is set leaves a hole: a credential set while the client held fewer roles keeps working
-after a later grant, so a custodian without the authority of the granted role acts with it. Cloud IAM leaves the custody
+Whoever can set a client's credentials acts with every role the client holds. Every role a machine client can hold lies
+within its owning node, so custody of a machine client needs creation authority at that node, whenever its credentials
+were set. Whoever can set its credentials could then grant every role it holds or will hold, and a credential set
+before a grant never lends authority the custodian lacks. Cloud IAM leaves the custody
 of a service account's keys to the operator (Google Cloud `iam.serviceAccountKeys.create`, Microsoft Entra application
 owners), and Microsoft Entra protects role-assignable groups by restricting who manages them.
 

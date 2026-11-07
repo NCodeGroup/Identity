@@ -52,7 +52,26 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             },
         };
 
-    private static HttpContext CreateHttpContext(string? actorId, bool withOpenIdContext = true)
+    private IOpenIdContextFeature CreateOpenIdContextFeature(string? tenantId)
+    {
+        var mockContext = MockRepository.Create<OpenIdContext>();
+        if (tenantId is not null)
+        {
+            var mockTenant = MockRepository.Create<OpenIdTenant>();
+            mockTenant.Setup(x => x.TenantId).Returns(tenantId).Verifiable();
+            mockContext.Setup(x => x.Tenant).Returns(mockTenant.Object).Verifiable();
+        }
+
+        var mockFeature = MockRepository.Create<IOpenIdContextFeature>();
+        mockFeature.Setup(x => x.OpenIdContext).Returns(mockContext.Object).Verifiable();
+        return mockFeature.Object;
+    }
+
+    private HttpContext CreateHttpContext(
+        string? actorId,
+        bool withOpenIdContext = true,
+        string? openIdTenantId = null
+    )
     {
         var httpContext = new DefaultHttpContext
         {
@@ -72,11 +91,8 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
         if (withOpenIdContext)
         {
-            httpContext.Features.Set<IOpenIdContextFeature>(
-                Mock.Of<IOpenIdContextFeature>(feature =>
-                    feature.OpenIdContext == Mock.Of<OpenIdContext>()
-                )
-            );
+            var feature = CreateOpenIdContextFeature(openIdTenantId);
+            httpContext.Features.Set(feature);
         }
 
         return httpContext;
@@ -695,15 +711,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             KeyInfo(owner, 1, retired: true)
         );
 
-        var httpContext = CreateHttpContext("admin-1");
-        httpContext.Features.Set<IOpenIdContextFeature>(
-            Mock.Of<IOpenIdContextFeature>(feature =>
-                feature.OpenIdContext
-                == Mock.Of<OpenIdContext>(context =>
-                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "tenant-1")
-                )
-            )
-        );
+        var httpContext = CreateHttpContext("admin-1", openIdTenantId: "tenant-1");
 
         await CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false)
             .RecordMasterKeyRotatedAsync(httpContext, rotation, MasterKeyChangeReasons.Requested);
@@ -962,15 +970,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
         var recorder = CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false);
 
-        var httpContext = CreateHttpContext("admin-1");
-        httpContext.Features.Set<IOpenIdContextFeature>(
-            Mock.Of<IOpenIdContextFeature>(feature =>
-                feature.OpenIdContext
-                == Mock.Of<OpenIdContext>(context =>
-                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "tenant-1")
-                )
-            )
-        );
+        var httpContext = CreateHttpContext("admin-1", openIdTenantId: "tenant-1");
         var resourceValues = JsonSerializer.SerializeToElement(new { name = "team" });
 
         await recorder.RecordTeamChangedAsync(
@@ -1171,15 +1171,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
 
         var recorder = CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false);
 
-        var httpContext = CreateHttpContext("admin-1");
-        httpContext.Features.Set<IOpenIdContextFeature>(
-            Mock.Of<IOpenIdContextFeature>(feature =>
-                feature.OpenIdContext
-                == Mock.Of<OpenIdContext>(context =>
-                    context.Tenant == Mock.Of<OpenIdTenant>(tenant => tenant.TenantId == "tenant-1")
-                )
-            )
-        );
+        var httpContext = CreateHttpContext("admin-1", openIdTenantId: "tenant-1");
         var resourceValues = JsonSerializer.SerializeToElement(new { flag = true });
 
         await recorder.RecordPlatformChangedAsync(

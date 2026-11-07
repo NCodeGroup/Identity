@@ -461,16 +461,12 @@ internal class DefaultManagementAuditRecorder(
                 TimeProvider,
                 static async (state, cancellationToken) =>
                 {
-                    var stamped = state.AuditEvent;
-                    stamped = (TEvent)(
-                        ((AuditEvent)stamped) with
-                        {
-                            Actor = await state.Recorder.GetActorAsync(
-                                state.HttpContext,
-                                cancellationToken
-                            ),
-                        }
+                    var actor = await state.Recorder.GetActorAsync(
+                        state.HttpContext,
+                        cancellationToken
                     );
+                    var stamped = state.AuditEvent;
+                    stamped = (TEvent)(((AuditEvent)stamped) with { Actor = actor });
 
                     if (state.TenantId is not null)
                     {

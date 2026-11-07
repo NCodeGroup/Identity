@@ -19,15 +19,7 @@ internal static class DefaultRegistration
         public void AddClientEndpoint()
         {
             builder.AddEndpoint<ClientApiEndpointHandler>();
-            builder.ServiceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
-            builder.ServiceCollection.TryAddSingleton<
-                IHostManagedClientChecker,
-                DefaultHostManagedClientChecker
-            >();
-            builder.ServiceCollection.TryAddSingleton<
-                IClientKeySourceChecker,
-                DefaultClientKeySourceChecker
-            >();
+            builder.AddClientServices();
         }
 
         /// <summary>
@@ -37,6 +29,11 @@ internal static class DefaultRegistration
         {
             builder.AddEndpoint<MachineClientEndpointProvider>();
             builder.ServiceCollection.TryAddSingleton<ClientApiEndpointHandler>();
+            builder.AddClientServices();
+        }
+
+        private void AddClientServices()
+        {
             builder.ServiceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
             builder.ServiceCollection.TryAddSingleton<
                 IHostManagedClientChecker,

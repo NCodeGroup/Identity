@@ -1177,15 +1177,11 @@ internal class TeamApiEndpointHandler(
         [FromRoute] string teamId,
         [FromRoute] string principalId,
         CancellationToken cancellationToken
-    ) =>
-        await ProcessRemoveOwnerAsync(
-            httpContext,
-            GetControlPlaneTenantId(httpContext),
-            ResourceNodeTypes.Team,
-            teamId,
-            principalId,
-            cancellationToken
-        );
+    )
+    {
+        var teamNode = GetTeamNode(httpContext, teamId);
+        return await ProcessRemoveOwnerAsync(httpContext, teamNode, principalId, cancellationToken);
+    }
 
     /// <summary>
     /// Lists a team's administrators, the principals that manage the team and everything beneath it, and whether the

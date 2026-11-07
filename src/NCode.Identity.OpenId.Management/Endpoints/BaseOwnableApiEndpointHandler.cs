@@ -15,13 +15,13 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Provides common functionality for management API endpoint handlers whose resources hold role lists: listing a
-/// role's assignments with whether the caller may change them, granting and revoking owners, and the one-owner
+/// role's holders with whether the caller may change them, granting and revoking any role, and the one-owner
 /// invariant.
 /// </summary>
 internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 {
     /// <summary>
-    /// Gets the factory used to open a unit of work for owner-management operations.
+    /// Gets the factory used to open a unit of work for role-list operations.
     /// </summary>
     protected abstract IStoreManagerFactory StoreManagerFactory { get; }
 
@@ -329,19 +329,27 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
     /// <summary>
     /// Processes an HTTP <c>DELETE</c> that revokes a principal's ownership of a resource: authorizes the caller
-    /// against the resource node, then removes the owner and records each removed assignment. Responds <c>409</c> when
-    /// the removal would orphan the resource and <c>404</c> when the principal is not an owner.
+    /// to update the resource node, then removes the owner and records each removed assignment. Responds <c>403</c>
+    /// when the caller lacks the operation, <c>409</c> when the removal would orphan the resource, <c>404</c> when the
+    /// principal is not an owner, and <c>204</c> when the owner is removed.
     /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="node">The resource node that the owner is assigned at.</param>
+    /// <param name="principalId">The identifier of the principal to remove as an owner.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
+    /// </returns>
+    // See ADR-1469.
     protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
         HttpContext httpContext,
-        string tenantId,
-        string resourceType,
-        string resourceId,
+        ResourceNode node,
         string principalId,
         CancellationToken cancellationToken
     )
     {
-        var node = ResourceNode.For(tenantId, resourceType, resourceId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
@@ -355,8 +363,8 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var removal = await ResourceOwnershipService.RemoveOwnerAsync(
             storeManager,
-            resourceType,
-            resourceId,
+            node.ResourceType,
+            node.ResourceId,
             principalId,
             cancellationToken
         );

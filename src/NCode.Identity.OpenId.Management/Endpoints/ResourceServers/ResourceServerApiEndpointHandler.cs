@@ -915,11 +915,14 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        return await ProcessRemoveOwnerAsync(
-            httpContext,
+        var resourceServerNode = ResourceNode.For(
             tenantId,
             ResourceNodeTypes.ResourceServer,
-            resourceServerId,
+            resourceServerId
+        );
+        return await ProcessRemoveOwnerAsync(
+            httpContext,
+            resourceServerNode,
             principalId,
             cancellationToken
         );

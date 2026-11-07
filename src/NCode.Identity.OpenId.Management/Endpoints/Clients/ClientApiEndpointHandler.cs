@@ -2628,9 +2628,10 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            clientNode,
             Operations.Update
         );
         if (!authorizationResult.Succeeded)
@@ -2655,9 +2656,7 @@ internal class ClientApiEndpointHandler(
 
         return await ProcessRemoveOwnerAsync(
             httpContext,
-            tenantId,
-            ResourceNodeTypes.Client,
-            clientId,
+            clientNode,
             principalId,
             cancellationToken
         );

@@ -129,6 +129,8 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
     private static ValueTask<bool> Missing(IStoreManager _, CancellationToken __) =>
         ValueTask.FromResult(false);
 
+    #region ProcessRemoveOwnerAsync Tests
+
     [Fact]
     public async Task ProcessRemoveOwnerAsync_WhenLastOwner_ReturnsConflict()
     {
@@ -163,11 +165,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             ownership.Object,
             recorder.Object
         );
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
         var result = await handler.ProcessRemoveOwnerAsync(
             CreateHttpContext(),
-            TenantId,
-            ResourceNodeTypes.Client,
-            ResourceId,
+            node,
             "p1",
             CancellationToken.None
         );
@@ -205,11 +206,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             ownership.Object,
             recorder.Object
         );
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
         var result = await handler.ProcessRemoveOwnerAsync(
             CreateHttpContext(),
-            TenantId,
-            ResourceNodeTypes.Client,
-            ResourceId,
+            node,
             "p1",
             CancellationToken.None
         );
@@ -254,11 +254,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             ownership.Object,
             recorder.Object
         );
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
         var result = await handler.ProcessRemoveOwnerAsync(
             CreateHttpContext(),
-            TenantId,
-            ResourceNodeTypes.Client,
-            ResourceId,
+            node,
             "p1",
             CancellationToken.None
         );
@@ -269,6 +268,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         Assert.Equal("a1", auditEvent.ResourceId);
         Assert.Equal("p1", auditEvent.SubjectId);
     }
+
+    #endregion
+
+    #region RecordRoleAssignmentChangedAsync Tests
 
     [Fact]
     public async Task RecordRoleAssignmentChangedAsync_RecordsTheAssignmentAtItsNode()
@@ -316,6 +319,8 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         Assert.Equal("p2", values.GetProperty("principalId").GetString());
         Assert.Equal(BuiltInRoles.Owner, values.GetProperty("roleName").GetString());
     }
+
+    #endregion
 
     #region ProcessListRoleAssignmentsAsync Tests
 

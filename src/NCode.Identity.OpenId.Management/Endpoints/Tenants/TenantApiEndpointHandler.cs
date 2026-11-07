@@ -2087,11 +2087,10 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var tenantNode = GetTenantNode(tenantId);
         return await ProcessRemoveOwnerAsync(
             httpContext,
-            tenantId,
-            ResourceNodeTypes.Tenant,
-            tenantId,
+            tenantNode,
             principalId,
             cancellationToken
         );

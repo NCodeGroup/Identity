@@ -192,8 +192,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -206,12 +205,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
                 )
             )
             .Callback(
-                (HttpContext _, ResourceChangeAuditEvent auditEvent, CancellationToken _) =>
+                (HttpContext _, ResourceChangeAuditEvent auditEvent) =>
                     capture((RoleAssignmentChangedAuditEvent)auditEvent)
             )
             .Returns(ValueTask.CompletedTask)
@@ -226,8 +224,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -242,8 +239,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -3303,19 +3299,12 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     ResourceChangeTypes.Created,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Callback(
-                (
-                    HttpContext _,
-                    string _,
-                    string _,
-                    string changeType,
-                    JsonElement? _,
-                    CancellationToken _
-                ) => recorded.Add($"tenant:{changeType}")
+                (HttpContext _, string _, string _, string changeType, JsonElement? _) =>
+                    recorded.Add($"tenant:{changeType}")
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();

@@ -820,18 +820,18 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .ReturnsAsync(
                 new PagedResult<PersistedTenantSettings>
                 {
-                    Items =
-                    [
-                        .. tenantIds.Select(tenantId => new PersistedTenantSettings
-                        {
-                            TenantId = tenantId,
-                            Value = JsonElement.Parse($$"""{"tenant":"{{tenantId}}"}"""),
-                        }),
-                    ],
+                    Items = [.. tenantIds.Select(CreateTenantSettings)],
                     NextCursor = nextCursor,
                 }
             )
             .Verifiable();
+
+    private static PersistedTenantSettings CreateTenantSettings(string tenantId) =>
+        new PersistedTenantBuilder
+        {
+            TenantId = tenantId,
+            Settings = JsonElement.Parse($$"""{"tenant":"{{tenantId}}"}"""),
+        }.BuildSettings();
 
     private Dictionary<string, IReadOnlySettingCollection> TenantSettings { get; } = [];
 
@@ -851,15 +851,16 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
             .Verifiable();
     }
 
-    private void SetupSecrets(string tenantId, IReadOnlyCollection<PersistedSecret>? secrets) =>
+    private void SetupSecrets(string tenantId, IReadOnlyCollection<PersistedSecret>? secrets)
+    {
+        var tenantSecrets = secrets is null
+            ? null
+            : new PersistedTenantBuilder { TenantId = tenantId, Secrets = secrets }.BuildSecrets();
         MockTenantStore
             .Setup(x => x.GetSecretsOrDefaultAsync(tenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                secrets is null
-                    ? null
-                    : new PersistedTenantSecrets { TenantId = tenantId, Value = secrets }
-            )
+            .ReturnsAsync(tenantSecrets)
             .Verifiable();
+    }
 
     private TenantKeyRolloverPlan SetupPlan(IReadOnlyCollection<PersistedSecret> held, bool empty)
     {

@@ -406,15 +406,10 @@ public sealed class StaticSingleTenantStrategyTests
         };
 
     private static PersistedTenant CreateTenant(bool isDisabled) =>
-        new()
+        new PersistedTenantBuilder
         {
-            TenantId = "tenant-1",
-            TeamId = "platform",
             Issuer = "https://op.example",
-            ConcurrencyToken = "token",
             IsDisabled = isDisabled,
             DisplayName = "Tenant One",
-            Settings = null!,
-            Secrets = null!,
-        };
+        }.Build();
 }

@@ -265,6 +265,12 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             ])
             .Verifiable();
 
+    private void SetupTeamLimits(params string[] limits) =>
+        MockSettingSerializer
+            .Setup(x => x.GetLimits(OpenIdSettingScopes.Team))
+            .Returns(limits)
+            .Verifiable();
+
     private void SetupTeamChangedAudit(string changeType) =>
         MockManagementAuditRecorder
             .Setup(x =>
@@ -272,9 +278,36 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     TeamId,
                     changeType,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private void SetupRoleAssignmentChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private void SetupRoleAssignmentChangedAuditCapture(
+        Action<RoleAssignmentChangedAuditEvent> capture
+    ) =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
+                )
+            )
+            .Callback(
+                (HttpContext _, ResourceChangeAuditEvent auditEvent) =>
+                    capture((RoleAssignmentChangedAuditEvent)auditEvent)
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -721,7 +754,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync(CreateAssignment("principal-1", BuiltInRoles.Owner))
             .Verifiable();
         MockResourceOwnershipService
             .Setup(x =>
@@ -746,10 +779,17 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-1", BuiltInRoles.TeamAdmin))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-1", BuiltInRoles.TeamAdmin),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
         SetupTeam(CreateTeam("reloaded-ct"));
         SetupTeamChangedAudit(ResourceChangeTypes.Created);
+        SetupRoleAssignmentChangedAudit();
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -766,6 +806,175 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         Assert.Equal(TeamId, created.Value?.TeamId);
         Assert.Equal(TeamId, added?.TeamId);
         Assert.Equal(TeamId, added?.Settings.TeamId);
+    }
+
+    [Fact]
+    public async Task CreateTeamAsync_WhenValid_RecordsTheTeamThenTheCreatorsOwnerAndTeamAdminAssignments()
+    {
+        SetupCreateAuthorization(null);
+        SetupStore();
+        SetupCreateValidation(null);
+        SetupValidSettings();
+        SetupSave();
+        MockTeamStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedTeam>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateAssignment("principal-1", BuiltInRoles.Owner))
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetOwnersAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.Owner)])
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-1",
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-1", BuiltInRoles.TeamAdmin),
+                    IsAdded = true,
+                }
+            )
+            .Verifiable();
+        SetupTeam(CreateTeam("reloaded-ct"));
+        var recorded = new List<string>();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTeamChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    TeamId,
+                    ResourceChangeTypes.Created,
+                    It.IsAny<JsonElement?>()
+                )
+            )
+            .Callback(
+                (HttpContext _, string _, string changeType, JsonElement? _) =>
+                    recorded.Add($"team:{changeType}")
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupRoleAssignmentChangedAuditCapture(auditEvent =>
+            recorded.Add(
+                $"{auditEvent.ChangeType}:{auditEvent.NodeType}/{auditEvent.NodeId}:{auditEvent.ResourceValues?.GetProperty("roleName").GetString()}"
+            )
+        );
+
+        await Handler.CreateTeamAsync(
+            CreateHttpContext(authenticated: true),
+            CreateCreateRequest(),
+            CancellationToken.None
+        );
+
+        Assert.Equal(
+            [
+                "team:created",
+                $"created:team/{TeamId}:{BuiltInRoles.Owner}",
+                $"created:team/{TeamId}:{BuiltInRoles.TeamAdmin}",
+            ],
+            recorded
+        );
+    }
+
+    [Fact]
+    public async Task CreateTeamAsync_WhenTheTeamAdminIsAlreadyHeld_RecordsOnlyTheCreatorsAssignment()
+    {
+        SetupCreateAuthorization(null);
+        SetupStore();
+        SetupCreateValidation(null);
+        SetupValidSettings();
+        SetupSave();
+        MockTeamStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedTeam>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AssignCreatorAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateAssignment("principal-1", BuiltInRoles.Owner))
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetOwnersAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.Owner)])
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-1",
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-1", BuiltInRoles.TeamAdmin),
+                    IsAdded = false,
+                }
+            )
+            .Verifiable();
+        SetupTeam(CreateTeam("reloaded-ct"));
+        SetupTeamChangedAudit(ResourceChangeTypes.Created);
+        var roleNames = new List<string?>();
+        SetupRoleAssignmentChangedAuditCapture(auditEvent =>
+            roleNames.Add(auditEvent.ResourceValues?.GetProperty("roleName").GetString())
+        );
+
+        await Handler.CreateTeamAsync(
+            CreateHttpContext(authenticated: true),
+            CreateCreateRequest(),
+            CancellationToken.None
+        );
+
+        Assert.Equal([BuiltInRoles.Owner], roleNames);
     }
 
     [Fact]
@@ -792,7 +1001,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((PersistedRoleAssignment?)null)
             .Verifiable();
         // A caller that resolves to no principal becomes no owner, so no AddAssignmentAsync setup exists: the strict
         // mock fails the test if a TeamAdmin assignment is granted.
@@ -982,7 +1191,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .Returns(ValueTask.CompletedTask)
+            .ReturnsAsync((PersistedRoleAssignment?)null)
             .Verifiable();
         MockResourceOwnershipService
             .Setup(x =>
@@ -1005,8 +1214,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     ChildTeamId,
                     ResourceChangeTypes.Created,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -1473,6 +1681,131 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
 
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region GetSettingLimitsAsync Tests
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayUpdateTheNodeAbove_ReportsCanChange()
+    {
+        SetupTeamLimits(OpenIdSettingNames.MaxTenants);
+        SetupStore();
+        SetupTeam(CreateTeam());
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.GetSettingLimitsAsync(
+            httpContext,
+            TeamId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.MaxTenants], json.Value?.Names);
+        Assert.True(json.Value?.CanChange);
+        Assert.False(httpContext.Response.Headers.ContainsKey("ETag"));
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheCallerMayNotUpdateTheNodeAbove_ReportsCannotChange()
+    {
+        SetupTeamLimits(OpenIdSettingNames.MaxTenants);
+        SetupStore();
+        SetupTeam(CreateTeam());
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Platform
+                    ),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.Equal([OpenIdSettingNames.MaxTenants], json.Value?.Names);
+        Assert.False(json.Value?.CanChange);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_ForAChildTeam_AuthorizesUpdateAtItsParentTeamNode()
+    {
+        SetupTeamLimits(OpenIdSettingNames.MaxTenants);
+        SetupStore();
+        SetupTeam(CreateTeam(parentTeamId: ParentTeamId));
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == ParentTeamId
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Single() == Operations.Update
+                    )
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
+        Assert.False(json.Value?.CanChange);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenTheTeamIsMissing_ReturnsNotFound()
+    {
+        SetupTeamLimits(OpenIdSettingNames.MaxTenants);
+        SetupStore();
+        SetupTeam(null);
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTeam()
+    {
+        SetupTeamLimits(OpenIdSettingNames.MaxTenants);
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
@@ -2435,6 +2768,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTeam(CreateTeam());
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.AddOwnerAsync(
@@ -2446,7 +2780,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.Owner))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.Owner),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         await Handler.AddOwnerAsync(
@@ -2465,6 +2805,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var captured = CaptureAuthorization();
         SetupStoreManagerOnly();
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.RemoveOwnerAsync(
@@ -2475,7 +2816,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.Removed)
+            .ReturnsAsync(
+                new OwnerRemoval
+                {
+                    Result = OwnerRemovalResult.Removed,
+                    RemovedAssignments = [CreateAssignment("principal-1", BuiltInRoles.Owner)],
+                }
+            )
             .Verifiable();
 
         await Handler.RemoveOwnerAsync(
@@ -2495,6 +2842,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTeam(CreateTeam());
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.AddOwnerAsync(
@@ -2506,7 +2854,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.Owner))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.Owner),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         var result = await Handler.AddOwnerAsync(
@@ -2535,7 +2889,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.LastOwnerForbidden)
+            .ReturnsAsync(
+                new OwnerRemoval
+                {
+                    Result = OwnerRemovalResult.LastOwnerForbidden,
+                    RemovedAssignments = [],
+                }
+            )
             .Verifiable();
 
         var result = await Handler.RemoveOwnerAsync(
@@ -2555,6 +2915,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupStoreManagerOnly();
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.RemoveOwnerAsync(
@@ -2565,7 +2926,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(OwnerRemovalResult.Removed)
+            .ReturnsAsync(
+                new OwnerRemoval
+                {
+                    Result = OwnerRemovalResult.Removed,
+                    RemovedAssignments = [CreateAssignment("principal-1", BuiltInRoles.Owner)],
+                }
+            )
             .Verifiable();
 
         var result = await Handler.RemoveOwnerAsync(
@@ -2653,6 +3020,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTeam(CreateTeam());
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.AddAssignmentAsync(
@@ -2665,7 +3033,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TeamAdmin))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TeamAdmin),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         var result = await Handler.AddAdminAsync(
@@ -2694,6 +3068,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTeam(CreateTeam());
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.AddAssignmentAsync(
@@ -2706,7 +3081,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(CreateAssignment("principal-2", BuiltInRoles.TeamAdmin))
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TeamAdmin),
+                    IsAdded = true,
+                }
+            )
             .Verifiable();
 
         await Handler.AddAdminAsync(
@@ -2719,6 +3100,89 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         Assert.Same(Operations.Create, Assert.Single(requirements));
         var node = Assert.IsAssignableFrom<IResourceNode>(authorizedResource);
         Assert.Equal((ResourceNodeTypes.Team, TeamId), (node.ResourceType, node.ResourceId));
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenAdded_RecordsACreatedRoleAssignmentAtTheTeam()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTeam(CreateTeam());
+        SetupSave();
+        RoleAssignmentChangedAuditEvent? recorded = null;
+        SetupRoleAssignmentChangedAuditCapture(auditEvent => recorded = auditEvent);
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-2",
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TeamAdmin),
+                    IsAdded = true,
+                }
+            )
+            .Verifiable();
+
+        await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        Assert.NotNull(recorded);
+        Assert.Equal(ResourceChangeTypes.Created, recorded.ChangeType);
+        Assert.Equal("principal-2", recorded.SubjectId);
+        Assert.Equal("assignment-principal-2", recorded.ResourceId);
+        Assert.Equal((ResourceNodeTypes.Team, TeamId), (recorded.NodeType, recorded.NodeId));
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenAlreadyHeld_ReturnsOkAndRecordsNothing()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTeam(CreateTeam());
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-2",
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TeamAdmin),
+                    IsAdded = false,
+                }
+            )
+            .Verifiable();
+
+        var result = await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<OwnerResource>>(result);
+        Assert.Equal("principal-2", ok.Value?.PrincipalId);
     }
 
     [Fact]
@@ -2760,6 +3224,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupStoreManagerOnly();
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.RemoveAssignmentAsync(
@@ -2771,7 +3236,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TeamAdmin)])
             .Verifiable();
 
         var result = await Handler.RemoveAdminAsync(
@@ -2798,6 +3263,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
         SetupStoreManagerOnly();
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.RemoveAssignmentAsync(
@@ -2809,7 +3275,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(true)
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TeamAdmin)])
             .Verifiable();
 
         await Handler.RemoveAdminAsync(
@@ -2822,6 +3288,42 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         Assert.Same(Operations.Create, Assert.Single(requirements));
         var node = Assert.IsAssignableFrom<IResourceNode>(authorizedResource);
         Assert.Equal((ResourceNodeTypes.Team, TeamId), (node.ResourceType, node.ResourceId));
+    }
+
+    [Fact]
+    public async Task RemoveAdminAsync_WhenRemoved_RecordsADeletedRoleAssignmentForEachRemoved()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStoreManagerOnly();
+        SetupSave();
+        var recorded = new List<RoleAssignmentChangedAuditEvent>();
+        SetupRoleAssignmentChangedAuditCapture(recorded.Add);
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.RemoveAssignmentAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-1",
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TeamAdmin)])
+            .Verifiable();
+
+        await Handler.RemoveAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        var auditEvent = Assert.Single(recorded);
+        Assert.Equal(ResourceChangeTypes.Deleted, auditEvent.ChangeType);
+        Assert.Equal("principal-1", auditEvent.SubjectId);
+        Assert.Equal("assignment-principal-1", auditEvent.ResourceId);
+        Assert.Equal((ResourceNodeTypes.Team, TeamId), (auditEvent.NodeType, auditEvent.NodeId));
     }
 
     [Fact]
@@ -2857,7 +3359,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(false)
+            .ReturnsAsync([])
             .Verifiable();
 
         var result = await Handler.RemoveAdminAsync(

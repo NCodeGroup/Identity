@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import { apiErrorMessage, type ApiError, useGetTeamUsageQuery } from '@ncode/store';
 import { DataStateBoundary, TeamUsageTable } from '@ncode/ui';
 import type { TeamSurface } from '../routes.js';
+import { OwnerAccessTab } from './OwnerAccessTab.js';
 import { OwnerSettingsTab } from './OwnerSettingsTab.js';
 import { TeamsPage } from './TeamsPage.js';
 import { TenantsPage } from './TenantsPage.js';
@@ -24,10 +25,10 @@ type TeamTabProps = {
 };
 
 /**
- * Container: one team's tenants, child teams, settings, or usage surface, as the `surface` prop names. The address
- * bar selects the surface (ADR-1255), so this page holds no tab state. Wires the team's tenant list to
+ * Container: one team's tenants, child teams, settings, access, or usage surface, as the `surface` prop names. The
+ * address bar selects the surface (ADR-1255), so this page holds no tab state. Wires the team's tenant list to
  * {@link TenantsPage}, its child team list to {@link TeamsPage}, the owner-generic {@link OwnerSettingsTab} to the
- * team, and shows the usage ledger of the team's tenants and of its descendant teams' tenants (ADR-1199, ADR-1426)
+ * team, lists and manages the team's administrators and owners through {@link OwnerAccessTab}, and shows the usage ledger of the team's tenants and of its descendant teams' tenants (ADR-1199, ADR-1426)
  * through {@link TeamUsageTable}.
  */
 export function TeamDetailPage({ teamId, surface, onOpenTenant, onOpenTeam }: TeamDetailPageProps) {
@@ -44,6 +45,7 @@ export function TeamDetailPage({ teamId, surface, onOpenTenant, onOpenTeam }: Te
       {surface === 'tenants' && <TenantsPage teamId={teamId} onOpenTenant={onOpenTenant} />}
       {surface === 'teams' && <TeamsPage parentTeamId={teamId} onOpenTeam={onOpenTeam} />}
       {surface === 'settings' && <OwnerSettingsTab owner={{ kind: 'team', teamId }} />}
+      {surface === 'access' && <OwnerAccessTab owner={{ kind: 'team', teamId }} />}
       {surface === 'usage' && <TeamUsageTab teamId={teamId} />}
     </>
   );

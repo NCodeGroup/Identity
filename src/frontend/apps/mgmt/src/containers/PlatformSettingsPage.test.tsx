@@ -48,6 +48,9 @@ describe('PlatformSettingsPage', () => {
       if (url.endsWith('/api/platform/settings')) {
         return jsonResponse({ concurrencyToken: 'st1', settings: { a: 1 } });
       }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: [], canChange: true });
+      }
       if (url.endsWith('/api/platform/effective-settings')) {
         return jsonResponse({ settings: { a: 1, b: true } });
       }
@@ -61,6 +64,30 @@ describe('PlatformSettingsPage', () => {
       expect(screen.getByTestId('settings-json')).toHaveValue(JSON.stringify({ a: 1 }, null, 2));
       expect(screen.getByTestId('effective-settings-json')).toHaveValue(
         JSON.stringify({ a: 1, b: true }, null, 2),
+      );
+    });
+  });
+
+  it('shows the limits read-only when the caller cannot change them', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/platform/settings')) {
+        return jsonResponse({ concurrencyToken: 'st1', settings: { a: 1, max_tenants: 5 } });
+      }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: ['max_tenants'], canChange: false });
+      }
+      if (url.endsWith('/api/platform/effective-settings')) {
+        return jsonResponse({ settings: { a: 1, max_tenants: 5 } });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('settings-json')).toHaveValue(JSON.stringify({ a: 1 }, null, 2));
+      expect(screen.getByTestId('locked-settings-json')).toHaveValue(
+        JSON.stringify({ max_tenants: 5 }, null, 2),
       );
     });
   });

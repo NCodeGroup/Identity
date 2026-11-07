@@ -27,6 +27,11 @@ export {
 } from './components/ResourceServerTable.js';
 export { ScopeTable, type ScopeRow, type ScopeTableProps } from './components/ScopeTable.js';
 export {
+  RoleAssignmentTable,
+  type RoleAssignmentRow,
+  type RoleAssignmentTableProps,
+} from './components/RoleAssignmentTable.js';
+export {
   TenantUsageTable,
   type TenantUsageRow,
   type TenantUsageTableProps,

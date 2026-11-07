@@ -1,4 +1,6 @@
 #nullable enable
+const NCode.Registration.HealthCheckTags.Readiness = "ready" -> string!
+NCode.Registration.HealthCheckTags
 NCode.Registration.IRegistrationMarker<TMarker>
 NCode.Registration.IServiceBuilder
 NCode.Registration.IServiceBuilder.NewBuilder<TNewMarker>() -> NCode.Registration.IServiceBuilder<TNewMarker>!

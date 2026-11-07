@@ -194,7 +194,7 @@ jobs:
         working-directory: .
         env:
           NCODE_MGMT_BUNDLE_INDEX: ${{ github.workspace }}/src/frontend/apps/mgmt/dist/index.html
-        run: dotnet test tests/NCode.Identity.ManagementConsole.Tests/NCode.Identity.ManagementConsole.Tests.csproj --nologo --filter "FullyQualifiedName~ManagementConsoleBundleReaderTests.RenderIndex_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
+        run: dotnet test tests/NCode.Identity.ManagementConsole.Tests/NCode.Identity.ManagementConsole.Tests.csproj --nologo --filter "FullyQualifiedName~ManagementConsolePageTests.Render_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
 
       - name: Upload test results
         if: always()

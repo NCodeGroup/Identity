@@ -4,7 +4,9 @@
   (amended by [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the
   chart references the root key, previous root key and recovery key Secrets and ConfigMap in place of the
   key-protection certificates, and refuses a Production release without a root key held outside the pod or a recovery
-  decision)
+  decision; and by
+  [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md): the
+  chart deploys the management console as an opt-in component)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0128](project-template/0128-liveness-never-checks-dependencies-readiness-does.md)

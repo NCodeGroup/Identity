@@ -3,7 +3,7 @@
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity;
+namespace NCode.Registration;
 
 /// <summary>
 /// Contains the tags that group the health checks a host maps to its probe endpoints.

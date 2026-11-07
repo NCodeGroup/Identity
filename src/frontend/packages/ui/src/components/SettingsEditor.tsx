@@ -14,11 +14,21 @@ export type SettingsEditorProps = {
   readonly isSaving?: boolean;
   /** A server-side error surfaced after a failed save. */
   readonly error?: string | undefined;
+  /** The limits the settings may carry. */
+  readonly limitNames?: readonly string[] | undefined;
+  /** When set, the limits are read-only: the document's limit entries as pretty JSON. */
+  readonly lockedJson?: string | undefined;
   readonly onSave: (settings: Record<string, unknown>) => void;
 };
 
-/** Parses editor text into a plain JSON object, or returns an error message for the editor to show. */
-function parseSettings(text: string): { object: Record<string, unknown> } | { error: string } {
+/**
+ * Parses editor text into a plain JSON object, or returns an error message for the editor to show.
+ * When {@link lockedNames} is given, text that carries one of those keys is refused.
+ */
+function parseSettings(
+  text: string,
+  lockedNames?: readonly string[],
+): { object: Record<string, unknown> } | { error: string } {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -28,7 +38,12 @@ function parseSettings(text: string): { object: Record<string, unknown> } | { er
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return { error: 'Settings must be a JSON object.' };
   }
-  return { object: parsed as Record<string, unknown> };
+  const object = parsed as Record<string, unknown>;
+  const lockedName = lockedNames?.find((name) => Object.hasOwn(object, name));
+  if (lockedName !== undefined) {
+    return { error: `'${lockedName}' is a limit set by the administrators above.` };
+  }
+  return { object };
 }
 
 /**
@@ -44,8 +59,11 @@ export function SettingsEditor({
   effectiveJson,
   isSaving = false,
   error,
+  limitNames = [],
+  lockedJson,
   onSave,
 }: SettingsEditorProps) {
+  const isLocked = lockedJson !== undefined;
   const [text, setText] = useState(initialJson);
   const previousInitialRef = useRef(initialJson);
 
@@ -56,7 +74,7 @@ export function SettingsEditor({
     }
   }, [initialJson]);
 
-  const parsed = parseSettings(text);
+  const parsed = parseSettings(text, isLocked ? limitNames : undefined);
   const parseError = 'error' in parsed ? parsed.error : undefined;
   const isDirty = text !== initialJson;
 
@@ -105,6 +123,41 @@ export function SettingsEditor({
           {isSaving ? 'Saving…' : 'Save settings'}
         </Button>
       </Box>
+      {limitNames.length > 0 && (
+        <Box>
+          {isLocked && (
+            <Typography variant="subtitle2" gutterBottom>
+              Limits (read-only)
+            </Typography>
+          )}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            component="p"
+            data-testid="settings-limits"
+          >
+            {isLocked
+              ? `Set by the administrators above: ${limitNames.join(', ')}.`
+              : `Limits: ${limitNames.join(', ')}. A limit set here bounds every scope beneath.`}
+          </Typography>
+          {isLocked && (
+            <TextField
+              value={lockedJson}
+              multiline
+              minRows={3}
+              fullWidth
+              slotProps={{
+                input: { readOnly: true },
+                htmlInput: {
+                  'data-testid': 'locked-settings-json',
+                  spellCheck: false,
+                  style: { fontFamily: 'monospace' },
+                },
+              }}
+            />
+          )}
+        </Box>
+      )}
       <Box>
         <Typography variant="subtitle2" gutterBottom>
           Effective settings (read-only)

@@ -274,9 +274,7 @@ public sealed class DefaultTenantPromoterTests : IDisposable
         {
             var resourceId = auditEvent.ResourceId;
             MockManagementAuditRecorder
-                .Setup(x =>
-                    x.RecordResourceChangeAsync(httpContext, auditEvent, CancellationToken.None)
-                )
+                .Setup(x => x.RecordResourceChangeAsync(httpContext, auditEvent))
                 .Callback(() => Calls.Add($"record {resourceId}"))
                 .Returns(ValueTask.CompletedTask)
                 .Verifiable();

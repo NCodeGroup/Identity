@@ -6,10 +6,10 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
  *
  * - `/home` — the caller's home: the places it holds authority (ADR-1420);
  * - `/teams`, `/settings`, `/encryption-keys` — the platform scope's surfaces;
- * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `teams`, `settings` and `usage`), the team id
- *   percent-encoded as one segment;
+ * - `/teams/{teamId}/{surface}` — a team scope's surfaces (`tenants`, `teams`, `settings`, `access` and `usage`), the
+ *   team id percent-encoded as one segment;
  * - `/tenants/{tenantId}/{surface}` — a tenant scope's surfaces (`clients`, `resource-servers`, `grants`, `secrets`,
- *   `encryption-keys`, `settings` and `usage`), the tenant id percent-encoded as one segment (ADR-1255).
+ *   `encryption-keys`, `settings`, `access` and `usage`), the tenant id percent-encoded as one segment (ADR-1255).
  *
  * This module is UI-free so the route grammar is unit-tested; `navigation.ts` binds it to the browser history.
  */
@@ -18,7 +18,7 @@ import { PLATFORM_SCOPE, teamScope, tenantScope, type ManagementScope } from '@n
 export const PLATFORM_SURFACES = ['teams', 'settings', 'encryption-keys'] as const;
 
 /** The surfaces of a team scope, in tab order. */
-export const TEAM_SURFACES = ['tenants', 'teams', 'settings', 'usage'] as const;
+export const TEAM_SURFACES = ['tenants', 'teams', 'settings', 'access', 'usage'] as const;
 
 /** The surfaces of a tenant scope, in tab order. */
 export const TENANT_SURFACES = [
@@ -28,6 +28,7 @@ export const TENANT_SURFACES = [
   'secrets',
   'encryption-keys',
   'settings',
+  'access',
   'usage',
 ] as const;
 
@@ -36,11 +37,12 @@ export type TeamSurface = (typeof TEAM_SURFACES)[number];
 export type TenantSurface = (typeof TENANT_SURFACES)[number];
 
 /**
- * The tenant surfaces that show the tenant's own secrets, settings and usage rather than the resources it holds.
+ * The tenant surfaces that show the tenant's own secrets, settings, access and usage rather than the resources it
+ * holds.
  */
 export type TenantOwnSurface = Extract<
   TenantSurface,
-  'secrets' | 'encryption-keys' | 'settings' | 'usage'
+  'secrets' | 'encryption-keys' | 'settings' | 'access' | 'usage'
 >;
 
 export type ConsoleRoute =

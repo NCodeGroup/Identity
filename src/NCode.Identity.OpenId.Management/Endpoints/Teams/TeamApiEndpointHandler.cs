@@ -45,6 +45,7 @@ POST api/teams/{teamId}/teams
 GET  api/teams/{teamId}/teams
 
 GET   api/teams/{teamId}/settings
+GET   api/teams/{teamId}/settings/limits
 PATCH api/teams/{teamId}/settings
 GET   api/teams/{teamId}/effective-settings
 GET   api/teams/{teamId}/usage
@@ -104,7 +105,10 @@ internal class TeamApiEndpointHandler(
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
     private ITeamClientCoherenceChecker TeamClientCoherenceChecker { get; } =
         teamClientCoherenceChecker;
-    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+
+    /// <inheritdoc />
+    protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+        managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -151,6 +155,9 @@ internal class TeamApiEndpointHandler(
 
         teams.MapGet("/{teamId}/settings", GetSettingsAsync).Produces<TeamSettingsResource>();
         teams
+            .MapGet("/{teamId}/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
+        teams
             .MapPatch("/{teamId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem();
@@ -169,7 +176,8 @@ internal class TeamApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         teams
             .MapPost("/{teamId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         teams
             .MapDelete("/{teamId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -180,7 +188,8 @@ internal class TeamApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         teams
             .MapPost("/{teamId}/admins", AddAdminAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         teams
             .MapDelete("/{teamId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -346,7 +355,7 @@ internal class TeamApiEndpointHandler(
         // resource from the database rather than the change tracker.
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        await ResourceOwnershipService.AssignCreatorAsync(
+        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
             storeManager,
@@ -364,9 +373,10 @@ internal class TeamApiEndpointHandler(
             team.TeamId,
             cancellationToken
         );
+        var addedAdmins = new List<PersistedRoleAssignment>();
         foreach (var owner in owners)
         {
-            await ResourceOwnershipService.AddAssignmentAsync(
+            var grant = await ResourceOwnershipService.AddAssignmentAsync(
                 storeManager,
                 controlPlaneTenantId,
                 ResourceNodeTypes.Team,
@@ -375,6 +385,10 @@ internal class TeamApiEndpointHandler(
                 BuiltInRoles.TeamAdmin,
                 cancellationToken
             );
+            if (grant.IsAdded)
+            {
+                addedAdmins.Add(grant.Assignment);
+            }
         }
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -385,9 +399,22 @@ internal class TeamApiEndpointHandler(
             httpContext,
             team.TeamId,
             ResourceChangeTypes.Created,
-            ToResourceValues(ToTeamResource(team)),
-            cancellationToken
+            ToResourceValues(ToTeamResource(team))
         );
+
+        if (creatorAssignment is not null)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                creatorAssignment,
+                ResourceChangeTypes.Created
+            );
+        }
+
+        foreach (var admin in addedAdmins)
+        {
+            await RecordRoleAssignmentChangedAsync(httpContext, admin, ResourceChangeTypes.Created);
+        }
 
         httpContext.Response.Headers.ETag = team.ConcurrencyToken;
         return TypedResults.Created($"/teams/{team.TeamId}", ToTeamResource(team));
@@ -585,8 +612,7 @@ internal class TeamApiEndpointHandler(
             httpContext,
             team.TeamId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToTeamResource(team)),
-            cancellationToken
+            ToResourceValues(ToTeamResource(team))
         );
 
         await NotifyTeamChangedAsync(
@@ -656,8 +682,7 @@ internal class TeamApiEndpointHandler(
             httpContext,
             team.TeamId,
             ResourceChangeTypes.Deleted,
-            resourceValues,
-            cancellationToken
+            resourceValues
         );
 
         await NotifyTeamChangedAsync(
@@ -695,6 +720,48 @@ internal class TeamApiEndpointHandler(
                 return await store.GetSettingsOrDefaultAsync(teamId, token);
             },
             ToTeamSettingsResource,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Gets the limits a team's settings carry and whether the caller may set them: whether it holds update authority
+    /// over the team's parent team, or over the platform for a top-level team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The team's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/teams/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        CancellationToken cancellationToken
+    )
+    {
+        async ValueTask<ResourceNode?> ReadNodeAboveAsync(CancellationToken token)
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+            var store = storeManager.GetStore<ITeamStore>();
+            var team = await store.GetOrDefaultAsync(teamId, token);
+            if (team is null)
+            {
+                return null;
+            }
+
+            var controlPlaneTenantId = GetControlPlaneTenantId(httpContext);
+            return TeamNodes.GetNodeAbove(controlPlaneTenantId, team.ParentTeamId);
+        }
+
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Team);
+        var teamNode = GetTeamNode(httpContext, teamId);
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            teamNode,
+            limitNames,
+            ReadNodeAboveAsync,
             cancellationToken
         );
     }
@@ -877,8 +944,7 @@ internal class TeamApiEndpointHandler(
             httpContext,
             teamSettings.TeamId,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToTeamSettingsResource(teamSettings)),
-            cancellationToken
+            ToResourceValues(ToTeamSettingsResource(teamSettings))
         );
 
         await NotifyTeamChangedAsync(
@@ -1077,6 +1143,7 @@ internal class TeamApiEndpointHandler(
     /// Adds an owner to a team.
     /// </summary>
     /// <response code="201">The owner was added.</response>
+    /// <response code="200">The principal already owns the team.</response>
     [EndpointName("api/teams/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -1164,6 +1231,7 @@ internal class TeamApiEndpointHandler(
     /// team administrator or a global administrator at the team or above can grant it.
     /// </summary>
     /// <response code="201">The administrator was added.</response>
+    /// <response code="200">The principal already administers the team.</response>
     [EndpointName("api/teams/admins/add")]
     internal virtual async ValueTask<IResult> AddAdminAsync(
         HttpContext httpContext,
@@ -1196,7 +1264,7 @@ internal class TeamApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        var admin = await ResourceOwnershipService.AddAssignmentAsync(
+        var grant = await ResourceOwnershipService.AddAssignmentAsync(
             storeManager,
             GetControlPlaneTenantId(httpContext),
             ResourceNodeTypes.Team,
@@ -1207,9 +1275,21 @@ internal class TeamApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var ownerResource = ToOwnerResource(grant.Assignment);
+        if (!grant.IsAdded)
+        {
+            return TypedResults.Ok(ownerResource);
+        }
+
+        await RecordRoleAssignmentChangedAsync(
+            httpContext,
+            grant.Assignment,
+            ResourceChangeTypes.Created
+        );
+
         return TypedResults.Created(
-            $"/teams/{teamId}/admins/{admin.PrincipalId}",
-            ToOwnerResource(admin)
+            $"/teams/{teamId}/admins/{grant.Assignment.PrincipalId}",
+            ownerResource
         );
     }
 
@@ -1245,12 +1325,21 @@ internal class TeamApiEndpointHandler(
             BuiltInRoles.TeamAdmin,
             cancellationToken
         );
-        if (!removed)
+        if (removed.Count == 0)
         {
             return TypedResults.NotFound();
         }
 
         await storeManager.SaveChangesAsync(cancellationToken);
+        foreach (var assignment in removed)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                assignment,
+                ResourceChangeTypes.Deleted
+            );
+        }
+
         return TypedResults.NoContent();
     }
 

@@ -67,4 +67,14 @@ public interface ISettingSerializer
     /// <returns>The names of the changed limits in ordinal order, or an empty list.</returns>
     // See ADR-1418.
     IReadOnlyList<string> GetChangedLimits(JsonElement currentJson, JsonElement newJson);
+
+    /// <summary>
+    /// Names the limits (<see cref="SettingDescriptor.IsLimit"/>) a settings document at the registered scope may
+    /// carry: each registered limit that applies within the scope.
+    /// </summary>
+    /// <param name="scopeName">The name of the registered scope whose settings document is described.</param>
+    /// <returns>The names in ordinal order, or an empty list.</returns>
+    /// <exception cref="ArgumentException"><paramref name="scopeName"/> is not a registered scope.</exception>
+    // See ADR-1418.
+    IReadOnlyList<string> GetLimits(string scopeName);
 }

@@ -41,6 +41,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 GET   api/tenants/{tenantId}/clients/{clientId}
 
 GET   api/tenants/{tenantId}/clients/{clientId}/settings
+GET   api/tenants/{tenantId}/clients/{clientId}/settings/limits
 PATCH api/tenants/{tenantId}/clients/{clientId}/settings
 GET   api/tenants/{tenantId}/clients/{clientId}/effective-settings
 
@@ -140,7 +141,10 @@ internal class ClientApiEndpointHandler(
     private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
     private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
-    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+
+    /// <inheritdoc />
+    protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+        managementAuditRecorder;
     private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
     private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
 
@@ -172,6 +176,9 @@ internal class ClientApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent);
 
         clients.MapGet("/{clientId}/settings", GetSettingsAsync).Produces<ClientSettingsResource>();
+        clients
+            .MapGet("/{clientId}/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
         // The response may reveal a secret the change issues, so no cache may keep it (ADR-1345).
         clients
             .MapPatch("/{clientId}/settings", UpdateSettingsAsync)
@@ -214,7 +221,8 @@ internal class ClientApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         clients
             .MapPost("/{clientId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         clients
             .MapDelete("/{clientId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -767,7 +775,7 @@ internal class ClientApiEndpointHandler(
         );
 
         await store.AddAsync(client, cancellationToken);
-        await ResourceOwnershipService.AssignCreatorAsync(
+        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
             storeManager,
@@ -785,9 +793,17 @@ internal class ClientApiEndpointHandler(
             client.TenantId,
             client.ClientId,
             ResourceChangeTypes.Created,
-            ToResourceValues(resource),
-            cancellationToken
+            ToResourceValues(resource)
         );
+
+        if (creatorAssignment is not null)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                creatorAssignment,
+                ResourceChangeTypes.Created
+            );
+        }
 
         // The store assigns the row token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = client.ConcurrencyToken;
@@ -885,8 +901,7 @@ internal class ClientApiEndpointHandler(
             client.TenantId,
             client.ClientId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToClientResource(client)),
-            cancellationToken
+            ToResourceValues(ToClientResource(client))
         );
 
         return TypedResults.NoContent();
@@ -961,8 +976,7 @@ internal class ClientApiEndpointHandler(
             client.TenantId,
             client.ClientId,
             ResourceChangeTypes.Deleted,
-            resourceValues,
-            cancellationToken
+            resourceValues
         );
 
         return TypedResults.NoContent();
@@ -999,6 +1013,46 @@ internal class ClientApiEndpointHandler(
                 return client?.Settings;
             },
             ToClientSettingsResource,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Gets the limits a client's settings carry and whether the caller may set them: whether it holds update authority
+    /// over the client's tenant.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="clientId">The identifier of the OpenID Client.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The client's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/clients/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string clientId,
+        CancellationToken cancellationToken
+    )
+    {
+        async ValueTask<ResourceNode?> ReadNodeAboveAsync(CancellationToken token)
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+            var store = storeManager.GetStore<IClientStore>();
+            var client = await store.GetOrDefaultAsync(clientId, token);
+            return client is null
+                ? null
+                : ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId);
+        }
+
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Client);
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            clientNode,
+            limitNames,
+            ReadNodeAboveAsync,
             cancellationToken
         );
     }
@@ -1264,11 +1318,10 @@ internal class ClientApiEndpointHandler(
             clientSettings.TenantId,
             clientSettings.ClientId,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToClientSettingsResource(clientSettings)),
-            cancellationToken
+            ToResourceValues(ToClientSettingsResource(clientSettings))
         );
 
-        await RecordSecretChangesAsync(httpContext, client, reconciliation, cancellationToken);
+        await RecordSecretChangesAsync(httpContext, client, reconciliation);
 
         httpContext.Response.Headers.ETag = clientSettings.ConcurrencyToken;
 
@@ -1281,8 +1334,7 @@ internal class ClientApiEndpointHandler(
     private async ValueTask RecordSecretChangesAsync(
         HttpContext httpContext,
         PersistedClient client,
-        ClientSecretReconciliation reconciliation,
-        CancellationToken cancellationToken
+        ClientSecretReconciliation reconciliation
     )
     {
         foreach (var secret in reconciliation.RemovedSecrets)
@@ -1293,8 +1345,7 @@ internal class ClientApiEndpointHandler(
                 client.ClientId,
                 secret.SecretId,
                 ResourceChangeTypes.Deleted,
-                ToResourceValues(ToSecretResource(secret)),
-                cancellationToken
+                ToResourceValues(ToSecretResource(secret))
             );
         }
 
@@ -1306,8 +1357,7 @@ internal class ClientApiEndpointHandler(
                 client.ClientId,
                 secret.SecretId,
                 ResourceChangeTypes.Created,
-                ToResourceValues(ToSecretResource(secret)),
-                cancellationToken
+                ToResourceValues(ToSecretResource(secret))
             );
         }
     }
@@ -1515,8 +1565,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             secretId,
             ResourceChangeTypes.Created,
-            ToResourceValues(secretResource),
-            cancellationToken
+            ToResourceValues(secretResource)
         );
 
         // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
@@ -1641,8 +1690,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             secretId,
             ResourceChangeTypes.Created,
-            ToResourceValues(secretResource),
-            cancellationToken
+            ToResourceValues(secretResource)
         );
 
         httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
@@ -1819,8 +1867,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             secretId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToSecretResource(updated)),
-            cancellationToken
+            ToResourceValues(ToSecretResource(updated))
         );
 
         return TypedResults.NoContent();
@@ -1898,8 +1945,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             secretId,
             ResourceChangeTypes.Deleted,
-            secretValues,
-            cancellationToken
+            secretValues
         );
 
         return TypedResults.NoContent();
@@ -2110,8 +2156,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             replacementId,
             ResourceChangeTypes.Created,
-            ToResourceValues(replacementResource),
-            cancellationToken
+            ToResourceValues(replacementResource)
         );
         if (shortened is not null)
         {
@@ -2123,8 +2168,7 @@ internal class ClientApiEndpointHandler(
                 clientId,
                 secretId,
                 ResourceChangeTypes.Updated,
-                shortenedValues,
-                cancellationToken
+                shortenedValues
             );
         }
 
@@ -2163,6 +2207,7 @@ internal class ClientApiEndpointHandler(
     /// Adds an owner to a client.
     /// </summary>
     /// <response code="201">The owner was added.</response>
+    /// <response code="200">The principal already owns the client.</response>
     [EndpointName("api/clients/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,

@@ -196,6 +196,9 @@ describe('TenantDetailPage', () => {
       if (url.endsWith('/api/tenants/acme/settings')) {
         return jsonResponse({ concurrencyToken: 'sc9', settings: { a: 1 } });
       }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: [], canChange: true });
+      }
       if (url.endsWith('/api/tenants/acme/effective-settings')) {
         return jsonResponse({ settings: { a: 1, issuer: 'https://op.test' } });
       }
@@ -213,6 +216,27 @@ describe('TenantDetailPage', () => {
       expect(patch?.url).toBe('https://api.test/api/tenants/acme/settings');
       expect(JSON.parse(patch?.body ?? '[]')).toEqual([{ op: 'replace', path: '/a', value: 2 }]);
     });
+  });
+
+  it("lists the tenant's administrators and owners on the access surface", async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/tenants/acme/admins')) {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-alice', principalId: 'alice', roleName: 'TenantAdmin' }],
+        });
+      }
+      if (url.endsWith('/api/tenants/acme/owners')) {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-bob', principalId: 'bob', roleName: 'Owner' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage('access');
+
+    expect(await screen.findByTestId('admins-row-alice')).toBeInTheDocument();
+    expect(await screen.findByTestId('owners-row-bob')).toBeInTheDocument();
   });
 
   it('shows the tenant usage ledger on the usage tab and narrows it to a chosen range', async () => {

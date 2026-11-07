@@ -15,6 +15,8 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.EncryptionKeys;
 using NCode.Identity.OpenId.Management.Contracts.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.EncryptionKeys;
@@ -37,6 +39,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Platform;
 /*
 
 GET   api/platform/settings
+GET   api/platform/settings/limits
 PATCH api/platform/settings
 GET   api/platform/effective-settings
 
@@ -96,6 +99,9 @@ internal class PlatformApiEndpointHandler(
 
         platform.MapGet("/settings", GetSettingsAsync).Produces<PlatformSettingsResource>();
         platform
+            .MapGet("/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
+        platform
             .MapPatch("/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem();
@@ -150,6 +156,31 @@ internal class PlatformApiEndpointHandler(
                 return await store.GetSettingsOrDefaultAsync(token);
             },
             ToPlatformSettingsResource,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Gets the limits the platform's settings carry and whether the caller may set them.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">The platform's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/platform/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Platform);
+        var platformNode = GetPlatformNode(httpContext);
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            platformNode,
+            limitNames,
+            _ => ValueTask.FromResult<ResourceNode?>(platformNode),
             cancellationToken
         );
     }
@@ -452,8 +483,7 @@ internal class PlatformApiEndpointHandler(
         await ManagementAuditRecorder.RecordPlatformChangedAsync(
             httpContext,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToPlatformSettingsResource(platformSettings)),
-            cancellationToken
+            ToResourceValues(ToPlatformSettingsResource(platformSettings))
         );
 
         await NotifyPlatformSettingsChangedAsync(

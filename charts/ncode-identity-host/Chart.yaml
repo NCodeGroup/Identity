@@ -2,7 +2,7 @@ apiVersion: v2
 name: ncode-identity-host
 description: >-
   NCode.Identity.OpenId.Host, the OpenID Connect and OAuth 2.0 server, as a rolling, non-root deployment behind an
-  ingress.
+  ingress, and optionally its management console on a host of its own.
 type: application
 # Released in lockstep with the host image; the release workflow stamps both from version.json.
 version: 0.0.1-alpha

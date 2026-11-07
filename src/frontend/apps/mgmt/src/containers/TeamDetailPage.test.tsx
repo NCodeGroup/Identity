@@ -119,6 +119,9 @@ describe('TeamDetailPage', () => {
       if (url.endsWith('/api/teams/acme/settings')) {
         return jsonResponse({ concurrencyToken: 'sc9', settings: { a: 1 } });
       }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: [], canChange: true });
+      }
       if (url.endsWith('/api/teams/acme/effective-settings')) {
         return jsonResponse({ settings: { a: 1, issuer: 'https://op.test' } });
       }
@@ -136,6 +139,27 @@ describe('TeamDetailPage', () => {
       expect(patch?.url).toBe('https://api.test/api/teams/acme/settings');
       expect(JSON.parse(patch?.body ?? '[]')).toEqual([{ op: 'replace', path: '/a', value: 2 }]);
     });
+  });
+
+  it("lists the team's administrators and owners on the access surface", async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/admins')) {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-alice', principalId: 'alice', roleName: 'TeamAdmin' }],
+        });
+      }
+      if (url.endsWith('/api/teams/acme/owners')) {
+        return jsonResponse({
+          items: [{ assignmentId: 'a-bob', principalId: 'bob', roleName: 'Owner' }],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage('access');
+
+    expect(await screen.findByTestId('admins-row-alice')).toBeInTheDocument();
+    expect(await screen.findByTestId('owners-row-bob')).toBeInTheDocument();
   });
 
   it('shows the team usage ledger on the usage tab and narrows it to a chosen range', async () => {

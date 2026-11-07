@@ -5,7 +5,9 @@
   [ADR-1071](1071-aspire-local-dev-orchestrator.md),
   [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md),
   [ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md),
-  [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md))
+  [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md); amended by
+  [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md): the
+  console's image and the host chart's management console component)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 

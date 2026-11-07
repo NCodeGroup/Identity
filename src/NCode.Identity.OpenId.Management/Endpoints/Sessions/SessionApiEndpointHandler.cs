@@ -200,8 +200,7 @@ internal class SessionApiEndpointHandler(
             tenantId,
             subjectId,
             sessionId: null,
-            revoked,
-            cancellationToken
+            revoked
         );
 
         return TypedResults.Json(new SessionRevocationResult { Revoked = revoked });
@@ -264,8 +263,7 @@ internal class SessionApiEndpointHandler(
             tenantId,
             found.SubjectId,
             sessionId,
-            revokedCount: terminated ? 1 : 0,
-            cancellationToken
+            revokedCount: terminated ? 1 : 0
         );
 
         return TypedResults.NoContent();

@@ -797,12 +797,11 @@ public sealed class TenantPromotionApiEndpointHandlerTests : IDisposable
                     TeamId,
                     TargetTenantId,
                     ResourceChangeTypes.Promoted,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
-            .Callback<HttpContext, string, string, string, JsonElement?, CancellationToken>(
-                (_, _, _, _, values, _) => resourceValues = values
+            .Callback<HttpContext, string, string, string, JsonElement?>(
+                (_, _, _, _, values) => resourceValues = values
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();

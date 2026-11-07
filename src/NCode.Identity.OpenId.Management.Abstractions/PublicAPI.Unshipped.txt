@@ -132,17 +132,17 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.SecretResource.KeyId.init -> 
 NCode.Identity.OpenId.Management.Endpoints.Secrets.ISecretValidator.ValidateUpdate(NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! secret, NCode.Identity.OpenId.Management.Contracts.Secrets.UpdateSecretRequest! request) -> NCode.Identity.OpenId.Management.ManagementError?
 override NCode.Identity.OpenId.Management.Auditing.InitialAccessTokenCreatedAuditEvent.ResourceType.get -> string!
 NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, string? grantType, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantsRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, string? sessionId, long revokedCount, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordSessionsRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? sessionId, long revokedCount, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceChangeAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Events.Audit.ResourceChangeAuditEvent! auditEvent, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerScopeChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! scopeValue, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! teamId, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordClientSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! clientId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, string? grantType) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordGrantsRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? clientId, string? sessionId, long revokedCount) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordSessionsRevokedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string? subjectId, string? sessionId, long revokedCount) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceChangeAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Events.Audit.ResourceChangeAuditEvent! auditEvent) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerScopeChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! scopeValue, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordResourceServerSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! resourceServerId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! teamId, string! tenantId, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTenantSecretChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! tenantId, string! secretId, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Auditing.ManagementAuditEventNames
 NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes
 NCode.Identity.OpenId.Management.Auditing.PrincipalChangedAuditEvent
@@ -355,6 +355,12 @@ NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.get -
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.RoleName.init -> void
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.RoleAssignmentResource.TenantId.init -> void
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.CanChange.get -> bool
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.CanChange.init -> void
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.Names.get -> System.Collections.Generic.IReadOnlyList<string!>!
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.Names.init -> void
+NCode.Identity.OpenId.Management.Contracts.SettingLimitsResource.SettingLimitsResource() -> void
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Principals.PrincipalResource.ConcurrencyToken.init -> void
@@ -773,7 +779,7 @@ NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Genera
 NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.IsValid.get -> bool
 static NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Invalid(NCode.Identity.OpenId.Management.ManagementError! error) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
 static NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation.Valid(NCode.Identity.Secrets.KeyMaterial.SecretKeyGenerationParameters! generationParameters) -> NCode.Identity.OpenId.Management.Endpoints.Secrets.SecretCreateValidation!
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordPlatformChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordPlatformChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.TeamId.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Teams.TeamResource.TeamId.init -> void
@@ -845,7 +851,7 @@ NCode.Identity.OpenId.Management.Auditing.TenantChangedAuditEvent.TeamId.init ->
 NCode.Identity.OpenId.Management.Auditing.TeamChangedAuditEvent
 override NCode.Identity.OpenId.Management.Auditing.TeamChangedAuditEvent.ResourceType.get -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Team = "team" -> string!
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTeamChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! teamId, string! changeType, System.Text.Json.JsonElement? resourceValues, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordTeamChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, string! teamId, string! changeType, System.Text.Json.JsonElement? resourceValues) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.AuthorizeCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, string? parentTeamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Teams.ITeamValidator.AuthorizeDeleteAsync(System.Security.Claims.ClaimsPrincipal! user, string! controlPlaneTenantId, string! teamId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
@@ -879,8 +885,8 @@ NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.Managed
 NCode.Identity.OpenId.Management.Contracts.Secrets.CreatedSecretResource.ManagedBy.init -> void
 const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyStates.Active = "active" -> string!
 const NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyStates.Retired = "retired" -> string!
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordMasterKeyRotatedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation! rotation, string! reason, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordRootKeyChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo! rootKey, string! change, string! reason, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordMasterKeyRotatedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Secrets.Persistence.Protection.MasterKeyRotation! rotation, string! reason) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Management.Auditing.IManagementAuditRecorder.RecordRootKeyChangedAsync(Microsoft.AspNetCore.Http.HttpContext! httpContext, NCode.Identity.Secrets.Persistence.Protection.OwnerRootKeyInfo! rootKey, string! change, string! reason) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.CreatedWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Management.Contracts.EncryptionKeys.EncryptionKeyResource.CreatedWhen.init -> void
@@ -1087,3 +1093,10 @@ NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddChangedLim
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.AddRequiredCreateAuthority(NCode.Identity.OpenId.Persistence.ISupportTenantId! node) -> void
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.MapIdentifier(string! resourceType, string! sourceId, string! targetId) -> void
 NCode.Identity.OpenId.Management.Promotions.TenantPromotionContext.TryGetTargetIdentifier(string! resourceType, string! sourceId, out string? targetId) -> bool
+const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.RoleAssignment = "role_assignment" -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeId.get -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeId.init -> void
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeType.get -> string!
+NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.NodeType.init -> void
+override NCode.Identity.OpenId.Management.Auditing.RoleAssignmentChangedAuditEvent.ResourceType.get -> string!

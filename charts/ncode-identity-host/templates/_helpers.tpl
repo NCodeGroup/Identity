@@ -487,3 +487,150 @@ The volumes of the host pod, which the Deployment and the secret protection Job 
 {{- toYaml . | nindent 0 }}
 {{- end }}
 {{- end }}
+
+{{/*
+The fully qualified name of the management console's resources. The release's fully qualified name is shortened first so
+the name, with its suffix, fits the 63-character limit.
+*/}}
+{{- define "identity-host.managementConsole.fullname" -}}
+{{- printf "%s-management-console" (include "identity-host.fullname" . | trunc 44 | trimSuffix "-") }}
+{{- end }}
+
+{{/*
+The labels that select the management console's pods.
+*/}}
+{{- define "identity-host.managementConsole.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "identity-host.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/component: management-console
+{{- end }}
+
+{{/*
+The labels every resource of the management console carries.
+*/}}
+{{- define "identity-host.managementConsole.labels" -}}
+{{ include "identity-host.commonLabels" . }}
+app.kubernetes.io/component: management-console
+{{- end }}
+
+{{/*
+The name of the management console's ServiceAccount.
+*/}}
+{{- define "identity-host.managementConsole.serviceAccountName" -}}
+{{- if .Values.managementConsole.serviceAccount.create }}
+{{- default (include "identity-host.managementConsole.fullname" .) .Values.managementConsole.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.managementConsole.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+The management console's container image: the digest when one is set, else the tag, which defaults to the chart's
+appVersion.
+*/}}
+{{- define "identity-host.managementConsole.image" -}}
+{{- if .Values.managementConsole.image.digest }}
+{{- printf "%s@%s" .Values.managementConsole.image.repository .Values.managementConsole.image.digest }}
+{{- else }}
+{{- printf "%s:%s" .Values.managementConsole.image.repository (default .Chart.AppVersion .Values.managementConsole.image.tag) }}
+{{- end }}
+{{- end }}
+
+{{/*
+The authority of the console's backend-for-frontend: managementConsole.authority, else the server's issuer when the
+release resolves its tenant with StaticSingle, else empty.
+*/}}
+{{- define "identity-host.managementConsole.authority" -}}
+{{- if .Values.managementConsole.authority }}
+{{- .Values.managementConsole.authority }}
+{{- else if eq .Values.tenantResolution.strategyCode "StaticSingle" }}
+{{- .Values.tenantResolution.staticSingle.issuer }}
+{{- end }}
+{{- end }}
+
+{{/*
+The URL the console calls the server's management API through: managementConsole.managementApiUrl, else /api on the
+console's host.
+*/}}
+{{- define "identity-host.managementConsole.managementApiUrl" -}}
+{{- .Values.managementConsole.managementApiUrl | default (printf "https://%s/api" .Values.managementConsole.host) }}
+{{- end }}
+
+{{/*
+Whether the management console shares its single-use state through its own Valkey.
+*/}}
+{{- define "identity-host.managementConsole.valkeyEnabled" -}}
+{{- if .Values.managementConsole.valkey.existingSecret }}true{{ end }}
+{{- end }}
+
+{{/*
+Refuses a management console the host would refuse, or one that would run replicas without shared state, before anything
+is applied. Rendered for its side effect only.
+*/}}
+{{- define "identity-host.managementConsole.validate" -}}
+{{- $console := .Values.managementConsole }}
+{{- if not $console.host }}
+{{- fail "managementConsole.host must be the console's public host name, such as manage.example.com." }}
+{{- end }}
+{{- if contains "*" $console.host }}
+{{- fail "managementConsole.host must be a concrete host name, not a wildcard." }}
+{{- end }}
+{{- if not (has $console.host .Values.allowedHosts) }}
+{{- fail "allowedHosts must list managementConsole.host: the management host routes /api to the server." }}
+{{- end }}
+{{- $authority := include "identity-host.managementConsole.authority" . }}
+{{- if not (hasPrefix "https://" $authority) }}
+{{- fail "managementConsole.authority must be the issuer's https URL; it defaults to tenantResolution.staticSingle.issuer when tenantResolution.strategyCode is StaticSingle." }}
+{{- end }}
+{{- if not $console.keys.clientKeySecret }}
+{{- fail "managementConsole.keys.clientKeySecret must name the Secret holding the client's private key under mgmt-client.pem." }}
+{{- end }}
+{{- if not $console.keys.dpopKeySecret }}
+{{- fail "managementConsole.keys.dpopKeySecret must name the Secret holding the DPoP private key under mgmt-dpop.pem." }}
+{{- end }}
+{{- if and (gt (int $console.replicaCount) 1) (not (include "identity-host.managementConsole.valkeyEnabled" .)) }}
+{{- fail "managementConsole.replicaCount above 1 requires managementConsole.valkey.existingSecret: replicas share their sessions through Valkey." }}
+{{- end }}
+{{- end }}
+
+{{/*
+The environment of the management console container.
+*/}}
+{{- define "identity-host.managementConsole.env" -}}
+{{- $console := .Values.managementConsole }}
+{{- $keyRoot := "/etc/ncode-identity/management-console" }}
+- name: ASPNETCORE_ENVIRONMENT
+  value: {{ .Values.environment | quote }}
+- name: AllowedHosts
+  value: {{ $console.host | quote }}
+{{- range $index, $network := .Values.forwardedHeaders.knownNetworks }}
+- name: ForwardedHeaders__KnownNetworks__{{ $index }}
+  value: {{ $network | quote }}
+{{- end }}
+{{- range $index, $proxy := .Values.forwardedHeaders.knownProxies }}
+- name: ForwardedHeaders__KnownProxies__{{ $index }}
+  value: {{ $proxy | quote }}
+{{- end }}
+- name: ForwardedHeaders__ForwardLimit
+  value: {{ .Values.forwardedHeaders.forwardLimit | quote }}
+- name: Bff__Frontends__mgmt__Authority
+  value: {{ include "identity-host.managementConsole.authority" . | quote }}
+- name: Bff__Frontends__mgmt__PublicOrigin
+  value: {{ printf "https://%s" $console.host | quote }}
+- name: Bff__KeyRings__mgmt-client__PemFiles__0
+  value: {{ printf "%s/client-key/mgmt-client.pem" $keyRoot | quote }}
+- name: Bff__KeyRings__mgmt-dpop__PemFiles__0
+  value: {{ printf "%s/dpop-key/mgmt-dpop.pem" $keyRoot | quote }}
+- name: ManagementConsole__ManagementApiUrl
+  value: {{ include "identity-host.managementConsole.managementApiUrl" . | quote }}
+{{- if include "identity-host.managementConsole.valkeyEnabled" . }}
+- name: ConnectionStrings__valkey
+  valueFrom:
+    secretKeyRef:
+      name: {{ $console.valkey.existingSecret }}
+      key: {{ $console.valkey.connectionStringKey }}
+{{- end }}
+{{- with $console.extraEnv }}
+{{- toYaml . | nindent 0 }}
+{{- end }}
+{{- end }}

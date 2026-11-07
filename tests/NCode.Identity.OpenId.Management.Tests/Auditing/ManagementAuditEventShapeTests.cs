@@ -298,6 +298,32 @@ public sealed class ManagementAuditEventShapeTests
 
     #endregion
 
+    #region RoleAssignmentChangedAuditEvent Tests
+
+    [Fact]
+    public void Resources_WhenARoleAssignmentChanges_ListsTheAssignmentThenItsNode()
+    {
+        var auditEvent = CreateRoleAssignmentChangedEvent();
+
+        Assert.Equal(
+            [
+                new AuditResource(ManagementResourceTypes.RoleAssignment, "assignment-1"),
+                new AuditResource(ManagementResourceTypes.Team, "team-1"),
+            ],
+            auditEvent.Resources
+        );
+    }
+
+    [Fact]
+    public void EventName_WhenCreated_IsRoleAssignmentCreated()
+    {
+        var auditEvent = CreateRoleAssignmentChangedEvent();
+
+        Assert.Equal("role_assignment.created", auditEvent.EventName);
+    }
+
+    #endregion
+
     #region Helpers
 
     private static JsonElement ParseRecord(IAuditEvent auditEvent)
@@ -352,6 +378,19 @@ public sealed class ManagementAuditEventShapeTests
             Outcome = AuditOutcome.Success,
             ResourceServerId = "resource-server-1",
             ResourceId = "secret-1",
+            ChangeType = ResourceChangeTypes.Created,
+        };
+
+    private static RoleAssignmentChangedAuditEvent CreateRoleAssignmentChangedEvent() =>
+        new()
+        {
+            EventId = Guid.NewGuid(),
+            EventTime = DateTimeOffset.UnixEpoch,
+            EventSource = AuditEventSources.Management,
+            Outcome = AuditOutcome.Success,
+            NodeType = ManagementResourceTypes.Team,
+            NodeId = "team-1",
+            ResourceId = "assignment-1",
             ChangeType = ResourceChangeTypes.Created,
         };
 

@@ -25,7 +25,7 @@ internal class DefaultResourceOwnershipService(
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
-    public async ValueTask AssignCreatorAsync(
+    public async ValueTask<PersistedRoleAssignment?> AssignCreatorAsync(
         OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
@@ -52,23 +52,22 @@ internal class DefaultResourceOwnershipService(
         // A caller that resolves to no principal becomes no owner.
         if (string.IsNullOrEmpty(principalId))
         {
-            return;
+            return null;
         }
 
         var store = storeManager.GetStore<IRoleAssignmentStore>();
-        await store.AddAsync(
-            new PersistedRoleAssignment
-            {
-                TenantId = tenantId,
-                AssignmentId = CryptoService.GenerateResourceId(),
-                PrincipalId = principalId,
-                RoleName = BuiltInRoles.Owner,
-                ResourceType = resourceType,
-                ResourceId = resourceId,
-                ConcurrencyToken = string.Empty,
-            },
-            cancellationToken
-        );
+        var assignment = new PersistedRoleAssignment
+        {
+            TenantId = tenantId,
+            AssignmentId = CryptoService.GenerateResourceId(),
+            PrincipalId = principalId,
+            RoleName = BuiltInRoles.Owner,
+            ResourceType = resourceType,
+            ResourceId = resourceId,
+            ConcurrencyToken = string.Empty,
+        };
+        await store.AddAsync(assignment, cancellationToken);
+        return assignment;
     }
 
     /// <inheritdoc />
@@ -87,7 +86,7 @@ internal class DefaultResourceOwnershipService(
         );
 
     /// <inheritdoc />
-    public ValueTask<PersistedRoleAssignment> AddOwnerAsync(
+    public ValueTask<RoleAssignmentGrant> AddOwnerAsync(
         IStoreManager storeManager,
         string tenantId,
         string resourceType,
@@ -106,7 +105,7 @@ internal class DefaultResourceOwnershipService(
         );
 
     /// <inheritdoc />
-    public async ValueTask<OwnerRemovalResult> RemoveOwnerAsync(
+    public async ValueTask<OwnerRemoval> RemoveOwnerAsync(
         IStoreManager storeManager,
         string resourceType,
         string resourceId,
@@ -126,16 +125,24 @@ internal class DefaultResourceOwnershipService(
         );
         if (toRemoveCount == 0)
         {
-            return OwnerRemovalResult.NotFound;
+            return new OwnerRemoval
+            {
+                Result = OwnerRemovalResult.NotFound,
+                RemovedAssignments = [],
+            };
         }
 
         // Refuse to orphan the resource; a tenant or global admin can always reassign ownership (ADR-1034).
         if (owners.Count - toRemoveCount < 1)
         {
-            return OwnerRemovalResult.LastOwnerForbidden;
+            return new OwnerRemoval
+            {
+                Result = OwnerRemovalResult.LastOwnerForbidden,
+                RemovedAssignments = [],
+            };
         }
 
-        await RemoveAssignmentAsync(
+        var removedAssignments = await RemoveAssignmentAsync(
             storeManager,
             resourceType,
             resourceId,
@@ -144,7 +151,11 @@ internal class DefaultResourceOwnershipService(
             cancellationToken
         );
 
-        return OwnerRemovalResult.Removed;
+        return new OwnerRemoval
+        {
+            Result = OwnerRemovalResult.Removed,
+            RemovedAssignments = removedAssignments,
+        };
     }
 
     // See ADR-1411
@@ -168,7 +179,7 @@ internal class DefaultResourceOwnershipService(
 
     // See ADR-1411
     /// <inheritdoc />
-    public async ValueTask<PersistedRoleAssignment> AddAssignmentAsync(
+    public async ValueTask<RoleAssignmentGrant> AddAssignmentAsync(
         IStoreManager storeManager,
         string tenantId,
         string resourceType,
@@ -193,7 +204,7 @@ internal class DefaultResourceOwnershipService(
         );
         if (existing is not null)
         {
-            return existing;
+            return new RoleAssignmentGrant { Assignment = existing, IsAdded = false };
         }
 
         var created = new PersistedRoleAssignment
@@ -207,12 +218,12 @@ internal class DefaultResourceOwnershipService(
             ConcurrencyToken = string.Empty,
         };
         await store.AddAsync(created, cancellationToken);
-        return created;
+        return new RoleAssignmentGrant { Assignment = created, IsAdded = true };
     }
 
     // See ADR-1411
     /// <inheritdoc />
-    public async ValueTask<bool> RemoveAssignmentAsync(
+    public async ValueTask<IReadOnlyList<PersistedRoleAssignment>> RemoveAssignmentAsync(
         IStoreManager storeManager,
         string resourceType,
         string resourceId,
@@ -234,7 +245,7 @@ internal class DefaultResourceOwnershipService(
             await store.RemoveAsync(assignment.AssignmentId, cancellationToken);
         }
 
-        return toRemove.Count > 0;
+        return toRemove;
     }
 
     private static bool HasRole(PersistedRoleAssignment assignment, string roleName) =>

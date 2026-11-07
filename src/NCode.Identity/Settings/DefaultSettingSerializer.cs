@@ -93,6 +93,30 @@ internal class DefaultSettingSerializer(
         return changed;
     }
 
+    /// <inheritdoc />
+    // See ADR-1418.
+    public IReadOnlyList<string> GetLimits(string scopeName)
+    {
+        var scopes = SettingScopeCollectionProvider.Collection;
+        if (!scopes.TryGet(scopeName, out _))
+        {
+            throw new ArgumentException(
+                $"'{scopeName}' is not a registered setting scope.",
+                nameof(scopeName)
+            );
+        }
+
+        var limits = new List<string>();
+        foreach (var descriptor in SettingDescriptorCollectionProvider.Collection)
+        {
+            if (descriptor.IsLimit && scopes.AppliesWithin(descriptor, scopeName))
+                limits.Add(descriptor.Name);
+        }
+
+        limits.Sort(StringComparer.Ordinal);
+        return limits;
+    }
+
     private static Dictionary<string, JsonElement> ReadProperties(JsonElement settingsJson)
     {
         var properties = new Dictionary<string, JsonElement>(StringComparer.Ordinal);

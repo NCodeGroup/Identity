@@ -9,5 +9,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.Secrets.Persistence.TestSupport\NCode.Identity.Secrets.Persistence.TestSupport.csproj" />
     </ItemGroup>
 </Project>

@@ -53,6 +53,11 @@ public static class DefaultRegistration
             >();
 
             serviceCollection.TryAddSingleton<
+                IAuthorityChainResolver,
+                DefaultAuthorityChainResolver
+            >();
+
+            serviceCollection.TryAddSingleton<
                 IManagementTenantEnvironmentResolver,
                 DefaultManagementTenantEnvironmentResolver
             >();

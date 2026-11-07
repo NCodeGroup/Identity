@@ -2,7 +2,10 @@
 
 - **Status:** Accepted (amended by
   [ADR-1450](1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md): a
-  client-credentials token names the client's principal as its subject)
+  client-credentials token names the client's principal as its subject; amended by
+  [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md): only a machine
+  client of the platform or a team holds roles)
+- **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) (a client acting for itself is the
   client case of the abstract principal);

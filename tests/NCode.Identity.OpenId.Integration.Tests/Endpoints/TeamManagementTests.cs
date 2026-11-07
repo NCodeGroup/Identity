@@ -1116,43 +1116,74 @@ public class TeamManagementTests
     }
 
     [Fact]
-    public async Task PostClientSecret_WhenTheCallerLacksTheAuthorityOfTheClientsRoles_ReturnsForbidden()
+    public async Task PostClientSecret_ForATeamsMachineClient_ByAnotherTeamsMachineClient_ReturnsForbidden()
     {
         using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
         await CreateTeamAsync(administrator, "acme", new { });
-        var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(administrator);
-        await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId);
-        var (managerClientId, managerSecret, managerPrincipalId) = await CreateMachineClientAsync(
-            administrator
+        await CreateTeamAsync(administrator, "globex", new { });
+        var (acmeClientId, _, _) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/acme/clients"
         );
-        await GrantTeamAdminAsync(administrator, "platform", managerPrincipalId);
+        var (managerClientId, managerSecret, managerPrincipalId) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/globex/clients"
+        );
+        await GrantTeamAdminAsync(administrator, "globex", managerPrincipalId);
         using var manager = await factory.CreateManagementClientAsync(
             managerClientId,
             managerSecret
         );
 
-        using var response = await PostClientSecretAsync(manager, teamClientId);
+        using var response = await PostClientSecretAsync(manager, acmeClientId);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
-    public async Task PostClientSecret_WhenTheClientHoldsNoRole_ReturnsCreated()
+    public async Task PostClientSecret_ByTheControlPlaneTenantAdministrator_ForAMachineClientThatHoldsNoRole_ReturnsForbidden()
     {
         using var factory = CreateFactory();
         using var administrator = await CreateAdministratorClientAsync(factory);
-        var (managerClientId, managerSecret, managerPrincipalId) = await CreateMachineClientAsync(
-            administrator
+        await CreateTeamAsync(administrator, "acme", new { });
+        var (teamClientId, _, _) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/acme/clients"
         );
-        await GrantTeamAdminAsync(administrator, "platform", managerPrincipalId);
-        var (plainClientId, _, _) = await CreateMachineClientAsync(administrator);
-        using var manager = await factory.CreateManagementClientAsync(
-            managerClientId,
-            managerSecret
+        var (platformClientId, _, _) = await CreateMachineClientAsync(administrator);
+        using var tenantAdmin = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            $"/api/tenants/{RootTenantId}/admins"
         );
 
-        using var response = await PostClientSecretAsync(manager, plainClientId);
+        using var teamResponse = await PostClientSecretAsync(tenantAdmin, teamClientId);
+        using var platformResponse = await PostClientSecretAsync(tenantAdmin, platformClientId);
+
+        Assert.Equal(HttpStatusCode.Forbidden, teamResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, platformResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostClientSecret_ByTheTeamsAdministrator_ForItsMachineClientThatHoldsTheTeamsRole_ReturnsCreated()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        var (teamClientId, _, teamPrincipalId) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/acme/clients"
+        );
+        await GrantTeamAdminAsync(administrator, "acme", teamPrincipalId);
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        using var response = await PostClientSecretAsync(teamAdmin, teamClientId);
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);

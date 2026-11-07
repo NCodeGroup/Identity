@@ -356,6 +356,26 @@ internal class TenantStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyDictionary<string, string>> GetConcurrencyTokensAsync(
+        IReadOnlyCollection<string> tenantIds,
+        CancellationToken cancellationToken
+    )
+    {
+        List<string?> normalizedTenantIds = [.. tenantIds.Select(Normalize)];
+        var rows = await DbContext
+            .Tenants.AsNoTracking()
+            .Where(tenant => normalizedTenantIds.Contains(tenant.NormalizedTenantId))
+            .Select(tenant => new { tenant.TenantId, tenant.ConcurrencyToken })
+            .ToListAsync(cancellationToken);
+
+        return rows.ToDictionary(
+            row => row.TenantId,
+            row => row.ConcurrencyToken,
+            StringComparer.OrdinalIgnoreCase
+        );
+    }
+
+    /// <inheritdoc />
     public async ValueTask<PersistedTenant?> GetOrDefaultByIssuerAsync(
         string issuer,
         CancellationToken cancellationToken
@@ -759,6 +779,25 @@ internal class TenantStore(
         DbContext.Secrets.Remove(tenantSecretEntity.Secret);
 
         // The tenant is tracked; mutating the token marks it Modified via change detection.
+        tenantEntity.SecretsConcurrencyToken = NextConcurrencyToken();
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<bool> MarkSecretsChangedAsync(
+        string tenantId,
+        CancellationToken cancellationToken
+    )
+    {
+        var tenantEntity = await GetEntityOrDefaultAsync(tenantId, cancellationToken);
+        if (tenantEntity is null)
+        {
+            return false;
+        }
+
+        // The tenant is tracked; a new secrets token marks it Modified, and the interceptor issues a new row token
+        // on save (ADR-1012).
         tenantEntity.SecretsConcurrencyToken = NextConcurrencyToken();
 
         return true;

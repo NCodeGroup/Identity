@@ -10,7 +10,9 @@
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names; decisions 4 and 5 superseded by [ADR-1412](1412-settings-are-reconciled-per-team.md):
-  the handlers page one team's tenants)
+  the handlers page one team's tenants; decision 2 amended by
+  [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md):
+  the tenant handler evicts only the tenants whose row changed)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md)

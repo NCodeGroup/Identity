@@ -168,14 +168,14 @@ internal class TeamStore(
         CancellationToken cancellationToken
     )
     {
-        var parent = await GetEntityOrDefaultAsync(teamId, cancellationToken);
-        if (parent is null)
-        {
-            return await BuildPageAsync([], page.Limit, cancellationToken);
-        }
-
-        var parentId = parent.Id;
-        var query = DbContext.Teams.Where(team => team.ParentTeamId == parentId);
+        // One untracked query, so a walk's unit of work tracks nothing. A team that does not exist
+        // matches no row, so its page is empty.
+        var normalizedTeamId = Normalize(teamId);
+        var query = DbContext
+            .Teams.AsNoTracking()
+            .Where(team =>
+                team.ParentTeam != null && team.ParentTeam.NormalizedTeamId == normalizedTeamId
+            );
 
         if (DecodeCursor(page.Cursor) is { } afterId)
         {
@@ -224,37 +224,6 @@ internal class TeamStore(
         }
 
         return lineage;
-    }
-
-    /// <inheritdoc />
-    // See ADR-1426.
-    public async ValueTask<IReadOnlyList<PersistedTeam>> GetDescendantsAsync(
-        string teamId,
-        CancellationToken cancellationToken
-    )
-    {
-        var entity = await GetEntityOrDefaultAsync(teamId, cancellationToken);
-        if (entity is null)
-        {
-            return [];
-        }
-
-        var prefix = entity.Path;
-        var entityId = entity.Id;
-        var entities = await DbContext
-            .Teams.AsNoTracking()
-            .Where(team => team.Path.StartsWith(prefix) && team.Id != entityId)
-            .OrderBy(team => team.Path.Length)
-            .ThenBy(team => team.Id)
-            .ToListAsync(cancellationToken);
-
-        var teams = new List<PersistedTeam>(entities.Count);
-        foreach (var descendant in entities)
-        {
-            teams.Add(await MapFromEntityAsync(descendant, cancellationToken));
-        }
-
-        return teams;
     }
 
     /// <inheritdoc />

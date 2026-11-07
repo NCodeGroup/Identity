@@ -2080,13 +2080,15 @@ describes the family as it is rather than its changes
   validation problem naming the setting when a registered ID token, UserInfo or introspection signing or encryption
   algorithm is outside its effective `*_values_supported` list; the default `A128CBC-HS256` of a registered encryption
   without an `enc` is checked the same way. A tenant settings update checks every client of the tenant, a team settings
-  update every client of the tenants of the team and of every team beneath it, and a platform
-  settings update every client of every tenant, each answering `400` naming the list and the client when the change
-  excludes an algorithm a client registers; a mismatch the change does not introduce is not reported. A mismatch is
-  reported when the settings are written rather than at issuance. `OpenIdPlatform.ConfiguredSettingsProvider` holds the
-  settings the platform derives from its defaults and the host's configuration, onto which its persisted settings document
+  update every client of the tenants of the team and of every team beneath it, walked a page of child teams at a time,
+  and a platform settings update every client of every tenant, each answering `400` naming the list and the client when
+  the change excludes an algorithm a client registers; a mismatch the change does not introduce is not reported. A
+  mismatch is reported when the settings are written rather than at issuance.
+  `OpenIdPlatform.ConfiguredSettingsProvider` holds the settings the platform derives from its defaults and the host's
+  configuration, onto which its persisted settings document
   is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
   page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
@@ -2920,19 +2922,24 @@ describes the family as it is rather than its changes
 
 - **A replica that may have missed a broadcast drops what the message would have invalidated.** The Valkey subscriber
   calls `IReplicaBroadcastHandler.HandleMissedMessagesAsync` once it subscribes a channel and whenever its connection is
-  restored. The tenant handler evicts every cached tenant through `IOpenIdTenantCache.ClearAsync`, the team handler
-  evicts only the cached teams whose stored row, or the row of a team above them, changed or is gone, with every team
-  and tenant beneath them, comparing the concurrency token of each served team and of every team it was materialized
-  over (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
+  restored. The tenant handler evicts only the cached tenants whose stored row changed or is gone, with their master
+  keys, comparing the concurrency token each served tenant was materialized from (`OpenIdTenant.ConcurrencyToken`,
+  `IOpenIdTenantCache.GetRevisionsAsync`) with the store's (`ITenantStore.GetConcurrencyTokensAsync`) and evicting
+  every cached tenant and master key when it cannot read them, because every change a `tenant-changed` announcement
+  carries commits to the tenant row, a tenant root key change through `ITenantStore.MarkSecretsChangedAsync`; the team
+  handler evicts only the cached teams whose stored row, or the row of a team above them, changed or is gone, with
+  every team and tenant beneath them, comparing the concurrency token of each served team and of every team it was
+  materialized over (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
   `IOpenIdTenantCache.GetTeamRevisionsAsync`) with the store's (`ITeamStore.GetConcurrencyTokensAsync`) and clearing
-  both caches when it cannot read them, and the platform
-  handler reads the platform's settings again
+  both caches when it cannot read them, and the platform handler reads the platform's settings again
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1219](docs/decisions/1219-server-settings-converge-on-every-replica-through-one-reconciliation.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md),
   issue [#249](https://github.com/NCodeGroup/Identity/issues/249),
-  [#564](https://github.com/NCodeGroup/Identity/issues/564)).
+  [#564](https://github.com/NCodeGroup/Identity/issues/564),
+  [#579](https://github.com/NCodeGroup/Identity/issues/579)).
 
 - **A committed tenant, team or platform settings change is applied and announced on its own bounded token.**
   `TenantChangedHandler`, `TeamChangedHandler` and `PlatformSettingsChangedHandler` evict, read back and announce a committed change each on its
@@ -3734,11 +3741,16 @@ describes the family as it is rather than its changes
   one team and every team beneath it when that team's settings change, each team once per pass and under its own lease
   `team-settings-reconciliation:{teamId}:{rowToken}:{fingerprint}`
   (`OpenId:Team:ReconciliationLeaseDuration`), and `ReconcileTeamSettingsCommand` reaches only that team's tenants.
-  Requests that arrive during a pass coalesce, one per team, and a request for every team covers them all, so none is
-  dropped however many arrive ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A
-  team change evicts the team, every team beneath it and their tenants on every replica over the `team-changed` channel
+  The teams beneath a team are walked depth first through `ITeamDescendantWalker`, which reads each team's child teams
+  a page at a time (`ITeamStore.GetChildPageAsync`) in a unit of work of its own and holds at most one page per level,
+  so a subtree of any size is reconciled in bounded memory. Requests that arrive during a pass coalesce, one per team,
+  and a request for every team covers them all, so none is dropped however many arrive
+  ([#559](https://github.com/NCodeGroup/Identity/issues/559)). A team change evicts the team, every team beneath it and
+  their tenants on every replica over the `team-changed` channel
   ([ADR-1412](docs/decisions/1412-settings-are-reconciled-per-team.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md),
+  [#601](https://github.com/NCodeGroup/Identity/issues/601)).
 
 - **Disabling a team suspends every team and tenant beneath it, and a team with tenants or teams cannot be deleted.** A
   tenant of a disabled team, or of a team beneath one, answers `404` on the protocol surface and on the management
@@ -5558,12 +5570,16 @@ describes the family as it is rather than its changes
   management API answers `503` with `Retry-After` and `retryAfterSeconds`, a protocol endpoint answers
   `temporarily_unavailable` with `503`, `Retry-After` and `Cache-Control: no-store`, and the authorization endpoint
   returns it to the client's redirect URI, the host logs the failure, and `root_key.unavailable` is audited; development
-  pruning never deletes the master keys of such a tenant
+  pruning never deletes the master keys of such a tenant. A change to the key's state marks the tenant's secrets changed
+  before the change is announced, so a replica that missed the announcement evicts the tenant when its connection is
+  restored
   ([#174](https://github.com/NCodeGroup/Identity/issues/174),
   [#573](https://github.com/NCodeGroup/Identity/issues/573),
+  [#579](https://github.com/NCodeGroup/Identity/issues/579),
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
-  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
+  [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md),
+  [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md)).
 - **An imported elliptic-curve public key is checked against its curve.** A JWK's `x` and `y` must each be the curve's
   field length, below its prime and satisfy its curve equation before the platform imports the point, so an off-curve or
   invalid-curve point is rejected with the same error on every platform

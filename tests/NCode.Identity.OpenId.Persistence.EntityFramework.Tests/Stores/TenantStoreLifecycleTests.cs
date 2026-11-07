@@ -270,6 +270,21 @@ public sealed class TenantStoreLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task GetConcurrencyTokensAsync_ReturnsTheRowTokenOfEachExistingTenant()
+    {
+        await SeedTenantAsync();
+        var tenant = Assert.Single(await _store.GetManyAsync([TenantId], CancellationToken.None));
+
+        var tokens = await _store.GetConcurrencyTokensAsync(
+            [TenantId.ToUpperInvariant(), "missing-tenant"],
+            CancellationToken.None
+        );
+
+        Assert.Single(tokens);
+        Assert.Equal(tenant.ConcurrencyToken, tokens[TenantId]);
+    }
+
+    [Fact]
     public async Task RemoveAsync_WhenNoDependents_RemovesAndReturnsTrue()
     {
         await SeedTenantAsync();

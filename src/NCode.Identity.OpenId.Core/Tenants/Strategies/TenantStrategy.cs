@@ -308,9 +308,7 @@ internal abstract class TenantStrategy(
             persistedTenant = await EnsureRootTenantAsync(httpContext, cancellationToken);
 
         if (persistedTenant is null)
-            throw TypedResults
-                .NotFound()
-                .AsException($"The tenant with identifier '{tenantId}' could not be found.");
+            throw TenantErrors.NotFound(tenantId);
 
         return ThrowIfDisabled(persistedTenant);
     }

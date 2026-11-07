@@ -2,17 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NCode.Identity.Exceptions;
 using NCode.Identity.OpenId.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Persistence;
-using NCode.Identity.Results;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
@@ -160,9 +157,14 @@ internal sealed class DefaultTenantProvisioner(
         // The seed's contributors may write the tenant row, which issues it new concurrency tokens, so the tenant is read
         // again once the seed has committed and its steps have run; a tenant materialized from it carries the tokens of
         // the row its own seed committed (ADR-1463).
-        return await FindTenantAsync(tenantId, cancellationToken) ?? throw TenantNotFound(tenantId);
+        return await FindTenantAsync(tenantId, cancellationToken)
+            ?? throw TenantErrors.NotFound(tenantId);
     }
 
+    /// <summary>
+    /// Seeds the specified tenant in one unit of work, retries a commit that another replica's write lost, and runs the
+    /// steps queued for after the commit, without reading the committed row.
+    /// </summary>
     private async ValueTask SeedInUnitOfWorkAsync(
         string tenantId,
         TenantPlane plane,
@@ -178,7 +180,7 @@ internal sealed class DefaultTenantProvisioner(
 
             var persistedTenant =
                 await store.GetOrDefaultAsync(tenantId, cancellationToken)
-                ?? throw TenantNotFound(tenantId);
+                ?? throw TenantErrors.NotFound(tenantId);
 
             var context = new TenantSeedContext
             {
@@ -228,11 +230,6 @@ internal sealed class DefaultTenantProvisioner(
             return;
         }
     }
-
-    private static HttpResultException TenantNotFound(string tenantId) =>
-        TypedResults
-            .NotFound()
-            .AsException($"The tenant with identifier '{tenantId}' could not be found.");
 
     private async ValueTask<PersistedTenant?> FindTenantAsync(
         string tenantId,

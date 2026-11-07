@@ -410,9 +410,7 @@ public class DefaultOpenIdTenantFactory(
 
         var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (persistedTenant is null)
-            throw TypedResults
-                .NotFound()
-                .AsException($"A tenant with id '{tenantId}' could not be found.");
+            throw TenantErrors.NotFound(tenantId);
 
         if (persistedTenant.IsDisabled)
             throw TypedResults

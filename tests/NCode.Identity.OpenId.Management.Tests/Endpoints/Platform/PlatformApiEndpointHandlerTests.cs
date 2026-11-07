@@ -563,19 +563,13 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         JsonElement settings,
         string? parentTeamId = null
     ) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
             ParentTeamId = parentTeamId,
-            IsDisabled = false,
-            DisplayName = teamId,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                ConcurrencyToken = "team-ct",
-                Value = settings,
-            },
-        };
+            SettingsConcurrencyToken = "team-ct",
+            Settings = settings,
+        }.Build();
 
     // Resolves every team document onto the platform collections and pages the given teams in one page.
     private void SetupTeamWalk(

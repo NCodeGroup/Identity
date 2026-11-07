@@ -19,22 +19,14 @@ public sealed class PersistedSecretExtensionsTests
         bool expected
     )
     {
-        var secret = new PersistedSecret
+        var secret = new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
             Use = "sig",
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = "test",
             SecretEncoding = secretEncoding,
-            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "value",
             PublicKey = publicKey,
-        };
+        }.Build();
 
         Assert.Equal(expected, secret.HasPublicKey());
     }
@@ -46,21 +38,17 @@ public sealed class PersistedSecretExtensionsTests
         DateTimeOffset retiresWhen,
         DateTimeOffset expiresWhen
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
             Use = "sig",
-            Algorithm = null,
             CreatedWhen = Now.AddDays(-100),
             ActivatesWhen = activatesWhen,
             RetiresWhen = retiresWhen,
             ExpiresWhen = expiresWhen,
             SecretType = "test",
             SecretEncoding = SecretEncodings.Pkcs8,
-            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "value",
-        };
+        }.Build();
 
     [Fact]
     public void GetLifecycleState_BeforeTheActivation_IsUpcoming()

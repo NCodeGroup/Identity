@@ -85,17 +85,7 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
         };
 
     private static PersistedTenant CreateTenant(string tenantId, string? issuer = null) =>
-        new()
-        {
-            TenantId = tenantId,
-            TeamId = "platform",
-            Issuer = issuer,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = null!,
-            Secrets = null!,
-        };
+        new PersistedTenantBuilder { TenantId = tenantId, Issuer = issuer }.Build();
 
     private void SetupTeam() =>
         MockTeamProvisioner

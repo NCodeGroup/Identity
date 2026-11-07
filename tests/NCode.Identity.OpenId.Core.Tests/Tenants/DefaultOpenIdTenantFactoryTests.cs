@@ -1045,28 +1045,7 @@ public sealed class DefaultOpenIdTenantFactoryTests
     private static PersistedTenant CreatePersistedTenant(
         string? issuer,
         string tenantId = "acme"
-    ) =>
-        new()
-        {
-            TenantId = tenantId,
-            TeamId = "platform",
-            Issuer = issuer,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "token",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "token",
-                Value = [],
-            },
-        };
+    ) => new PersistedTenantBuilder { TenantId = tenantId, Issuer = issuer }.Build();
 
     private sealed class LeaseTenantFactory(
         MockRepository mocks,

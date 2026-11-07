@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -163,15 +162,5 @@ public sealed class DefaultTeamDescendantWalkerTests : BaseTests
             .Verifiable();
 
     private static PersistedTeam CreateTeam(string teamId) =>
-        new()
-        {
-            TeamId = teamId,
-            DisplayName = teamId,
-            IsDisabled = false,
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = teamId,
-                Value = JsonElement.Parse("{}"),
-            },
-        };
+        new PersistedTeamBuilder { TeamId = teamId }.Build();
 }

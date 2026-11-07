@@ -555,23 +555,14 @@ public class DefaultEffectiveSettingsResolverTests : BaseTests
         string propertyName,
         string? parentTeamId = null
     ) =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = teamId,
             ConcurrencyToken = "token",
-            DisplayName = teamId,
-            IsDisabled = false,
             ParentTeamId = parentTeamId,
-            Settings = CreateTeamSettings(teamId, propertyName),
-        };
-
-    private static PersistedTeamSettings CreateTeamSettings(string teamId, string propertyName) =>
-        new()
-        {
-            TeamId = teamId,
-            ConcurrencyToken = "token",
-            Value = CreateDocument(propertyName),
-        };
+            SettingsConcurrencyToken = "token",
+            Settings = CreateDocument(propertyName),
+        }.Build();
 
     private (Mock<IPlatformStore> Platform, Mock<ITeamStore> Team) SetupPlatformAndTeamStores()
     {

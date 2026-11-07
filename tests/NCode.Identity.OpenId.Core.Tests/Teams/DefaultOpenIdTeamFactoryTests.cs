@@ -245,18 +245,17 @@ public sealed class DefaultOpenIdTeamFactoryTests
             .Returns([])
             .Verifiable();
         var persistedTeam = CreatePersistedTeam();
+        var storedSettings = new PersistedTeamBuilder
+        {
+            TeamId = "platform",
+            SettingsConcurrencyToken = persistedTeam.Settings.ConcurrencyToken,
+            Settings = persistedTeam.Settings.Value,
+        }.BuildSettings();
 
         var teamStore = mocks.Create<ITeamStore>();
         teamStore
             .Setup(x => x.GetSettingsAsync("platform", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new PersistedTeamSettings
-                {
-                    TeamId = "platform",
-                    ConcurrencyToken = persistedTeam.Settings.ConcurrencyToken,
-                    Value = persistedTeam.Settings.Value,
-                }
-            )
+            .ReturnsAsync(storedSettings)
             .Verifiable();
         var storeManager = mocks.Create<IStoreManager>();
         storeManager.Setup(x => x.GetStore<ITeamStore>()).Returns(teamStore.Object).Verifiable();
@@ -294,36 +293,24 @@ public sealed class DefaultOpenIdTeamFactoryTests
     #endregion
 
     private static PersistedTeam CreatePersistedTeam() =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = "platform",
             ConcurrencyToken = "row-token",
-            IsDisabled = false,
             DisplayName = "Platform",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = "platform",
-                ConcurrencyToken = "token",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-        };
+            SettingsConcurrencyToken = "token",
+        }.Build();
 
     private static PersistedTeam CreateChildPersistedTeam() =>
-        new()
+        new PersistedTeamBuilder
         {
             TeamId = "acme-web",
             ConcurrencyToken = "row-token",
             ParentTeamId = "acme",
             AncestorTeamIds = ["acme"],
-            IsDisabled = false,
             DisplayName = "Acme Web",
-            Settings = new PersistedTeamSettings
-            {
-                TeamId = "acme-web",
-                ConcurrencyToken = "token",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-        };
+            SettingsConcurrencyToken = "token",
+        }.Build();
 
     private static Mock<OpenIdPlatform> CreatePlatform(
         MockRepository mocks,

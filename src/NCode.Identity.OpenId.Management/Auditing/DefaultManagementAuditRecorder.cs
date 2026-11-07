@@ -21,7 +21,8 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// <summary>
 /// Provides the default implementation of <see cref="IManagementAuditRecorder"/> that derives the audit
 /// envelope — including the acting administrator and the effective environment type of the tenant the event names —
-/// from the current request and publishes through the event seam.
+/// from the current request and publishes through the event seam. The whole record, resolving the tenant's
+/// environment type included, runs on its own bounded token and never takes the request's cancellation.
 /// </summary>
 internal class DefaultManagementAuditRecorder(
     IEventPublisher eventPublisher,
@@ -37,16 +38,6 @@ internal class DefaultManagementAuditRecorder(
         tenantEnvironmentResolver;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<DefaultManagementAuditRecorder> Logger { get; } = logger;
-
-    /// <inheritdoc />
-    public ValueTask RecordGrantRevokedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string? subjectId,
-        string? clientId,
-        string? grantType,
-        CancellationToken cancellationToken
-    ) => RecordGrantRevokedAsync(httpContext, tenantId, subjectId, clientId, grantType);
 
     /// <inheritdoc />
     public ValueTask RecordGrantRevokedAsync(
@@ -74,25 +65,6 @@ internal class DefaultManagementAuditRecorder(
 
         return RecordAsync(httpContext, tenantId, auditEvent);
     }
-
-    /// <inheritdoc />
-    public ValueTask RecordGrantsRevokedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string? subjectId,
-        string? clientId,
-        string? sessionId,
-        long revokedCount,
-        CancellationToken cancellationToken
-    ) =>
-        RecordGrantsRevokedAsync(
-            httpContext,
-            tenantId,
-            subjectId,
-            clientId,
-            sessionId,
-            revokedCount
-        );
 
     /// <inheritdoc />
     public ValueTask RecordGrantsRevokedAsync(
@@ -129,16 +101,6 @@ internal class DefaultManagementAuditRecorder(
         string tenantId,
         string? subjectId,
         string? sessionId,
-        long revokedCount,
-        CancellationToken cancellationToken
-    ) => RecordSessionsRevokedAsync(httpContext, tenantId, subjectId, sessionId, revokedCount);
-
-    /// <inheritdoc />
-    public ValueTask RecordSessionsRevokedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string? subjectId,
-        string? sessionId,
         long revokedCount
     )
     {
@@ -159,16 +121,6 @@ internal class DefaultManagementAuditRecorder(
 
         return RecordAsync(httpContext, tenantId, auditEvent);
     }
-
-    /// <inheritdoc />
-    public ValueTask RecordClientChangedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string clientId,
-        string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) => RecordClientChangedAsync(httpContext, tenantId, clientId, changeType, resourceValues);
 
     /// <inheritdoc />
     public ValueTask RecordClientChangedAsync(
@@ -205,25 +157,6 @@ internal class DefaultManagementAuditRecorder(
         string clientId,
         string secretId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) =>
-        RecordClientSecretChangedAsync(
-            httpContext,
-            tenantId,
-            clientId,
-            secretId,
-            changeType,
-            resourceValues
-        );
-
-    /// <inheritdoc />
-    public ValueTask RecordClientSecretChangedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string clientId,
-        string secretId,
-        string changeType,
         JsonElement? resourceValues
     )
     {
@@ -251,15 +184,6 @@ internal class DefaultManagementAuditRecorder(
         HttpContext httpContext,
         string teamId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) => RecordTeamChangedAsync(httpContext, teamId, changeType, resourceValues);
-
-    /// <inheritdoc />
-    public ValueTask RecordTeamChangedAsync(
-        HttpContext httpContext,
-        string teamId,
-        string changeType,
         JsonElement? resourceValues
     )
     {
@@ -280,16 +204,6 @@ internal class DefaultManagementAuditRecorder(
 
         return RecordAsync(httpContext, null, auditEvent);
     }
-
-    /// <inheritdoc />
-    public ValueTask RecordTenantChangedAsync(
-        HttpContext httpContext,
-        string teamId,
-        string tenantId,
-        string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) => RecordTenantChangedAsync(httpContext, teamId, tenantId, changeType, resourceValues);
 
     /// <inheritdoc />
     public ValueTask RecordTenantChangedAsync(
@@ -325,17 +239,6 @@ internal class DefaultManagementAuditRecorder(
         string tenantId,
         string secretId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) =>
-        RecordTenantSecretChangedAsync(httpContext, tenantId, secretId, changeType, resourceValues);
-
-    /// <inheritdoc />
-    public ValueTask RecordTenantSecretChangedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string secretId,
-        string changeType,
         JsonElement? resourceValues
     )
     {
@@ -356,14 +259,6 @@ internal class DefaultManagementAuditRecorder(
 
         return RecordAsync(httpContext, tenantId, auditEvent);
     }
-
-    /// <inheritdoc />
-    public ValueTask RecordPlatformChangedAsync(
-        HttpContext httpContext,
-        string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) => RecordPlatformChangedAsync(httpContext, changeType, resourceValues);
 
     /// <inheritdoc />
     public ValueTask RecordPlatformChangedAsync(
@@ -396,23 +291,6 @@ internal class DefaultManagementAuditRecorder(
         string tenantId,
         string resourceServerId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) =>
-        RecordResourceServerChangedAsync(
-            httpContext,
-            tenantId,
-            resourceServerId,
-            changeType,
-            resourceValues
-        );
-
-    /// <inheritdoc />
-    public ValueTask RecordResourceServerChangedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string resourceServerId,
-        string changeType,
         JsonElement? resourceValues
     )
     {
@@ -433,25 +311,6 @@ internal class DefaultManagementAuditRecorder(
 
         return RecordAsync(httpContext, tenantId, auditEvent);
     }
-
-    /// <inheritdoc />
-    public ValueTask RecordResourceServerScopeChangedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string resourceServerId,
-        string scopeValue,
-        string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) =>
-        RecordResourceServerScopeChangedAsync(
-            httpContext,
-            tenantId,
-            resourceServerId,
-            scopeValue,
-            changeType,
-            resourceValues
-        );
 
     /// <inheritdoc />
     public ValueTask RecordResourceServerScopeChangedAsync(
@@ -489,25 +348,6 @@ internal class DefaultManagementAuditRecorder(
         string resourceServerId,
         string secretId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
-    ) =>
-        RecordResourceServerSecretChangedAsync(
-            httpContext,
-            tenantId,
-            resourceServerId,
-            secretId,
-            changeType,
-            resourceValues
-        );
-
-    /// <inheritdoc />
-    public ValueTask RecordResourceServerSecretChangedAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string resourceServerId,
-        string secretId,
-        string changeType,
         JsonElement? resourceValues
     )
     {
@@ -529,13 +369,6 @@ internal class DefaultManagementAuditRecorder(
 
         return RecordAsync(httpContext, tenantId, auditEvent);
     }
-
-    /// <inheritdoc />
-    public ValueTask RecordResourceChangeAsync(
-        HttpContext httpContext,
-        ResourceChangeAuditEvent auditEvent,
-        CancellationToken cancellationToken
-    ) => RecordResourceChangeAsync(httpContext, auditEvent);
 
     /// <inheritdoc />
     public ValueTask RecordResourceChangeAsync(
@@ -562,14 +395,6 @@ internal class DefaultManagementAuditRecorder(
             : null;
         return RecordAsync(httpContext, environmentTenantId, stamped);
     }
-
-    /// <inheritdoc />
-    public ValueTask RecordMasterKeyRotatedAsync(
-        HttpContext httpContext,
-        MasterKeyRotation rotation,
-        string reason,
-        CancellationToken cancellationToken
-    ) => RecordMasterKeyRotatedAsync(httpContext, rotation, reason);
 
     /// <inheritdoc />
     public ValueTask RecordMasterKeyRotatedAsync(
@@ -608,15 +433,6 @@ internal class DefaultManagementAuditRecorder(
 
         return RecordAsync(httpContext, tenantId, auditEvent);
     }
-
-    /// <inheritdoc />
-    public ValueTask RecordRootKeyChangedAsync(
-        HttpContext httpContext,
-        OwnerRootKeyInfo rootKey,
-        string change,
-        string reason,
-        CancellationToken cancellationToken
-    ) => RecordRootKeyChangedAsync(httpContext, rootKey, change, reason);
 
     /// <inheritdoc />
     public ValueTask RecordRootKeyChangedAsync(

@@ -101,7 +101,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         );
     }
 
-    #region PublishAsync Tests
+    #region RecordAsync Tests
 
     [Fact]
     public async Task RecordGrantRevokedAsync_WhenThePublisherThrows_LogsItAndDoesNotThrow()

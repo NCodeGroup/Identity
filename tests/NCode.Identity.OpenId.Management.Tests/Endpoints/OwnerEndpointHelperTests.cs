@@ -224,6 +224,50 @@ public class OwnerEndpointHelperTests : IDisposable
     }
 
     [Fact]
+    public async Task ProcessAddOwnerAsync_WhenThePrincipalCannotHoldTheRole_ReturnsConflictWithoutSavingOrRecording()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        // A strict store manager with no save setup fails the test when changes are saved.
+        var (factory, manager) = StoreManager();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        ownership
+            .Setup(x =>
+                x.AddOwnerAsync(
+                    manager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Client,
+                    ResourceId,
+                    "p2",
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new RoleAssignmentGrant { Assignment = null, IsAdded = false })
+            .Verifiable();
+        // A strict recorder with no setup fails the test when an event is recorded.
+        var recorder = MockRepository.Create<IManagementAuditRecorder>();
+
+        var handler = new TestHandler(
+            authz.Object,
+            factory.Object,
+            ownership.Object,
+            recorder.Object
+        );
+        var result = await handler.ProcessAddOwnerAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceNodeTypes.Client,
+            ResourceId,
+            new AddOwnerRequest { PrincipalId = "p2" },
+            "/clients/client-1/owners",
+            Exists,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task ProcessAddOwnerAsync_WhenResourceMissing_ReturnsNotFound()
     {
         var authz = Authz(AuthorizationResult.Success());

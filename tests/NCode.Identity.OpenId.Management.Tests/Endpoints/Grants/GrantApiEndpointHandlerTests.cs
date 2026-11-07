@@ -284,8 +284,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                     "subject-1",
                     null,
                     null,
-                    3,
-                    It.IsAny<CancellationToken>()
+                    3
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -430,8 +429,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                     TenantId,
                     "subject-1",
                     "client-1",
-                    "authorization_code",
-                    It.IsAny<CancellationToken>()
+                    "authorization_code"
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -615,8 +613,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     It.Is<InitialAccessTokenCreatedAuditEvent>(e =>
                         e.TenantId == TenantId && e.ResourceId == mintedGrantId
-                    ),
-                    It.IsAny<CancellationToken>()
+                    )
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -695,8 +692,7 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.IsAny<InitialAccessTokenCreatedAuditEvent>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<InitialAccessTokenCreatedAuditEvent>()
                 )
             )
             .Returns(ValueTask.CompletedTask)

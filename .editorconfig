@@ -143,3 +143,7 @@ dotnet_diagnostic.CA1869.severity = none
 # per-context subfolders (e.g. Migrations/OpenId, Migrations/DataProtection) as well as flat layouts.
 [**/Migrations/**.cs]
 generated_code = true
+
+# CA2016 is silenced here because each IManagementAuditRecorder member exists as a token-bearing and a token-less pair.
+[src/NCode.Identity.OpenId{.Management,.Accounts.Management}/**.cs]
+dotnet_diagnostic.CA2016.severity = none

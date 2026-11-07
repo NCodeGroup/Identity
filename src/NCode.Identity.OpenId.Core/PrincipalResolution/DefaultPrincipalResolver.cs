@@ -13,23 +13,26 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IPrincipalResolver"/>, which resolves an authenticated caller to
-/// a federated principal: the subject claim is interpreted first as a server-owned <c>PrincipalId</c> and, when that
-/// does not match, as an upstream <c>(issuer, subject)</c> external connection identity. The subject is derived through
-/// the environment's host-configured <c>GetSubjectId</c>; the issuer claim name is a per-tenant setting.
+/// a federated principal: the subject claim is interpreted first as a server-owned <c>PrincipalId</c>, then as the
+/// principal of a client acting for itself and, when neither matches, as an upstream <c>(issuer, subject)</c> external
+/// connection identity. A client acting for itself resolves to its principal while the client is enabled and to none
+/// when it is disabled, and is never provisioned as a federated principal. The subject is derived through the
+/// environment's host-configured <c>GetSubjectId</c>; the issuer claim name is a per-tenant setting.
 /// </summary>
-// See ADR-1053.
+// See ADR-1053 and ADR-1450.
 internal class DefaultPrincipalResolver(
     IStoreManagerFactory storeManagerFactory,
     ICryptoService cryptoService,
-    IFederatedIdentityLinkingPolicy linkingPolicy
+    IFederatedIdentityLinkingPolicy linkingPolicy,
+    IClientPrincipalResolver clientPrincipalResolver
 ) : IPrincipalResolver
 {
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ICryptoService CryptoService { get; } = cryptoService;
     private IFederatedIdentityLinkingPolicy LinkingPolicy { get; } = linkingPolicy;
+    private IClientPrincipalResolver ClientPrincipalResolver { get; } = clientPrincipalResolver;
 
-    /// <inheritdoc />
-    public async ValueTask<string?> ResolvePrincipalIdOrDefaultAsync(
+    private async ValueTask<(bool IsActingClient, string? PrincipalId)> FindPrincipalIdAsync(
         OpenIdContext openIdContext,
         ClaimsPrincipal user,
         IStoreManager storeManager,
@@ -39,7 +42,7 @@ internal class DefaultPrincipalResolver(
         var subject = openIdContext.GetSubjectId(user);
         if (string.IsNullOrEmpty(subject))
         {
-            return null;
+            return (false, null);
         }
 
         // The subject may already be a server-owned PrincipalId (the steady state, where the server issued the token).
@@ -47,7 +50,19 @@ internal class DefaultPrincipalResolver(
         var existingPrincipal = await principalStore.GetOrDefaultAsync(subject, cancellationToken);
         if (existingPrincipal is not null)
         {
-            return existingPrincipal.PrincipalId;
+            return (false, existingPrincipal.PrincipalId);
+        }
+
+        // Otherwise the subject may be the principal of the client that is acting for itself.
+        var actingClient = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
+            openIdContext,
+            user,
+            storeManager,
+            cancellationToken
+        );
+        if (actingClient is not null)
+        {
+            return (true, actingClient.IsDisabled ? null : actingClient.PrincipalId);
         }
 
         // Otherwise the subject is an upstream value paired with its issuer.
@@ -55,7 +70,7 @@ internal class DefaultPrincipalResolver(
         var issuer = user.FindFirstValue(settings.GetValue(OpenIdSettingKeys.PrincipalIssuerClaim));
         if (string.IsNullOrEmpty(issuer))
         {
-            return null;
+            return (false, null);
         }
 
         var identityStore = storeManager.GetStore<IFederatedIdentityStore>();
@@ -64,7 +79,24 @@ internal class DefaultPrincipalResolver(
             subject,
             cancellationToken
         );
-        return identity?.PrincipalId;
+        return (false, identity?.PrincipalId);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<string?> ResolvePrincipalIdOrDefaultAsync(
+        OpenIdContext openIdContext,
+        ClaimsPrincipal user,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
+        var found = await FindPrincipalIdAsync(
+            openIdContext,
+            user,
+            storeManager,
+            cancellationToken
+        );
+        return found.PrincipalId;
     }
 
     /// <inheritdoc />
@@ -75,15 +107,21 @@ internal class DefaultPrincipalResolver(
         CancellationToken cancellationToken
     )
     {
-        var existing = await ResolvePrincipalIdOrDefaultAsync(
+        var found = await FindPrincipalIdAsync(
             openIdContext,
             user,
             storeManager,
             cancellationToken
         );
-        if (existing is not null)
+        if (found.PrincipalId is not null)
         {
-            return existing;
+            return found.PrincipalId;
+        }
+
+        // A client acting for itself is never provisioned as a federated principal.
+        if (found.IsActingClient)
+        {
+            return string.Empty;
         }
 
         var subject = openIdContext.GetSubjectId(user);

@@ -48,13 +48,13 @@ public static class DefaultRegistration
             );
 
             serviceCollection.TryAddSingleton<
-                ICallerPrincipalResolver,
-                DefaultCallerPrincipalResolver
+                IResourceOwnershipService,
+                DefaultResourceOwnershipService
             >();
 
             serviceCollection.TryAddSingleton<
-                IResourceOwnershipService,
-                DefaultResourceOwnershipService
+                IAuthorityChainResolver,
+                DefaultAuthorityChainResolver
             >();
 
             serviceCollection.TryAddSingleton<

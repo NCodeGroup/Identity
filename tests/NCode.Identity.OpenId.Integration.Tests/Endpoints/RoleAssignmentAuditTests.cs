@@ -30,19 +30,29 @@ public class RoleAssignmentAuditTests
     private const string ControlPlaneTenantId = "root";
     private const string TeamId = "acme";
     private const string TenantId = "acme-dev";
+    private const string ChildTeamId = "acme-labs";
 
     #region CreateTeam Tests
 
+    // A machine client holds roles only within its owning node (ADR-1467), so the creator is the team's machine client
+    // and the team it creates sits beneath its owning team.
     [Fact]
     public async Task CreateTeam_RecordsTheCreatorsOwnerAndTeamAdminAssignments()
     {
         var recorder = new RecordingAuditEventHandler();
         using var factory = new RoleAssignmentAuditHostApplicationFactory(recorder);
         using var administrator = await CreateAdministratorClientAsync(factory);
-
         await CreateTeamAsync(administrator);
+        var (clientId, clientSecret, principalId) = await CreateTeamMachineClientAsync(
+            administrator
+        );
+        using var grant = await PostAdminAsync(administrator, principalId);
+        Assert.Equal(HttpStatusCode.Created, grant.StatusCode);
+        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
 
-        var changes = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId);
+        await CreateChildTeamAsync(machine);
+
+        var changes = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, ChildTeamId);
         Assert.All(
             changes,
             change =>
@@ -53,7 +63,7 @@ public class RoleAssignmentAuditTests
         );
         Assert.Contains(changes, change => GetRoleName(change) == BuiltInRoles.Owner);
         Assert.Contains(changes, change => GetRoleName(change) == BuiltInRoles.TeamAdmin);
-        Assert.Single(changes.Select(change => change.SubjectId).Distinct());
+        Assert.All(changes, change => Assert.Equal(principalId, change.SubjectId));
     }
 
     #endregion
@@ -67,7 +77,7 @@ public class RoleAssignmentAuditTests
         using var factory = new RoleAssignmentAuditHostApplicationFactory(recorder);
         using var administrator = await CreateAdministratorClientAsync(factory);
         await CreateTeamAsync(administrator);
-        var principalId = await CreateMachineClientPrincipalAsync(administrator);
+        var (_, _, principalId) = await CreateTeamMachineClientAsync(administrator);
 
         using var response = await PostAdminAsync(administrator, principalId);
 
@@ -102,7 +112,7 @@ public class RoleAssignmentAuditTests
         using var factory = new RoleAssignmentAuditHostApplicationFactory(recorder);
         using var administrator = await CreateAdministratorClientAsync(factory);
         await CreateTeamAsync(administrator);
-        var principalId = await CreateMachineClientPrincipalAsync(administrator);
+        var (_, _, principalId) = await CreateTeamMachineClientAsync(administrator);
         using var first = await PostAdminAsync(administrator, principalId);
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
         var changesBefore = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId);
@@ -128,13 +138,11 @@ public class RoleAssignmentAuditTests
         using var administrator = await CreateAdministratorClientAsync(factory);
         await CreateTeamAsync(administrator);
         await CreateTenantAsync(administrator);
-        var principalId = await CreateMachineClientPrincipalAsync(administrator);
-        using var grant = await administrator.PostAsJsonAsync(
-            $"/api/tenants/{TenantId}/owners",
-            new { principalId }
-        );
-        var grantBody = await grant.Content.ReadAsStringAsync();
-        Assert.True(grant.StatusCode == HttpStatusCode.Created, grantBody);
+        // The resource keeps at least one owner, so a second one holds it while the first is revoked.
+        var (_, _, keptPrincipalId) = await CreateTeamMachineClientAsync(administrator);
+        await PostTenantOwnerAsync(administrator, keptPrincipalId);
+        var (_, _, principalId) = await CreateTeamMachineClientAsync(administrator);
+        await PostTenantOwnerAsync(administrator, principalId);
 
         using var revoke = await administrator.DeleteAsync(
             $"/api/tenants/{TenantId}/owners/{principalId}"
@@ -197,6 +205,22 @@ public class RoleAssignmentAuditTests
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
+    private static async Task CreateChildTeamAsync(HttpClient client)
+    {
+        using var response = await client.PostAsJsonAsync(
+            $"/api/teams/{TeamId}/teams",
+            new
+            {
+                teamId = ChildTeamId,
+                displayName = ChildTeamId,
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
     private static async Task CreateTenantAsync(HttpClient client)
     {
         using var response = await client.PostAsJsonAsync(
@@ -213,11 +237,16 @@ public class RoleAssignmentAuditTests
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
     }
 
-    // Creates a client in the control-plane tenant and returns the principal that its tokens resolve to.
-    private static async Task<string> CreateMachineClientPrincipalAsync(HttpClient administrator)
+    // Creates a machine client of the team, which authenticates with HTTP Basic, and returns its credentials and the
+    // principal that its tokens resolve to.
+    private static async Task<(
+        string ClientId,
+        string ClientSecret,
+        string PrincipalId
+    )> CreateTeamMachineClientAsync(HttpClient administrator)
     {
         using var created = await administrator.PostAsJsonAsync(
-            $"/api/tenants/{ControlPlaneTenantId}/clients",
+            $"/api/teams/{TeamId}/clients",
             new
             {
                 isDisabled = false,
@@ -231,8 +260,36 @@ public class RoleAssignmentAuditTests
         );
         var createdBody = await created.Content.ReadAsStringAsync();
         Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
-        return JsonElement.Parse(createdBody).GetProperty("principalId").GetString()
-            ?? throw new InvalidOperationException("The response has no principalId.");
+        var createdClient = JsonElement.Parse(createdBody);
+        var clientId = createdClient.GetProperty("clientId").GetString();
+        Assert.NotNull(clientId);
+        var principalId = createdClient.GetProperty("principalId").GetString();
+        Assert.NotNull(principalId);
+
+        using var secret = await administrator.PostAsJsonAsync(
+            $"/api/tenants/{ControlPlaneTenantId}/clients/{clientId}/secrets",
+            new
+            {
+                secretType = "symmetric",
+                keySizeBits = 256,
+                expiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            }
+        );
+        var secretBody = await secret.Content.ReadAsStringAsync();
+        Assert.True(secret.StatusCode == HttpStatusCode.Created, secretBody);
+        var material = JsonElement.Parse(secretBody).GetProperty("secretMaterial").GetString();
+        Assert.NotNull(material);
+        return (clientId, material, principalId);
+    }
+
+    private static async Task PostTenantOwnerAsync(HttpClient administrator, string principalId)
+    {
+        using var grant = await administrator.PostAsJsonAsync(
+            $"/api/tenants/{TenantId}/owners",
+            new { principalId }
+        );
+        var body = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, body);
     }
 
     private static Task<HttpResponseMessage> PostAdminAsync(

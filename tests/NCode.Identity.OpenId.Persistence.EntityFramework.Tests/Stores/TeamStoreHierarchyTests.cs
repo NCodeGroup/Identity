@@ -227,7 +227,10 @@ public sealed class TeamStoreHierarchyTests : IDisposable
             await _store.RemoveAsync("acme-web", CancellationToken.None)
         );
 
-        Assert.Contains("still has one or more tenants or teams", exception.Message);
+        Assert.Contains(
+            "still has one or more tenants, teams or machine clients",
+            exception.Message
+        );
     }
 
     #endregion

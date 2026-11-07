@@ -37,10 +37,11 @@ NCode.Identity.OpenId.Management.Authorization.ResourceNode.TenantId.get -> stri
 NCode.Identity.OpenId.Management.Authorization.ResourceNode.TenantId.init -> void
 NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant
-NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.Assignment.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment!
+NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.Assignment.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedRoleAssignment?
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.Assignment.init -> void
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsAdded.get -> bool
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsAdded.init -> void
+NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsRefused.get -> bool
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.RoleAssignmentGrant() -> void
 NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration

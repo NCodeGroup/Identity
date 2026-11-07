@@ -257,7 +257,8 @@ internal class DefaultTeamValidator(
             return new ManagementError
             {
                 StatusCode = StatusCodes.Status409Conflict,
-                Detail = "The team cannot be deleted while it still has tenants or teams.",
+                Detail =
+                    "The team cannot be deleted while it still has tenants, teams or machine clients.",
             };
         }
 

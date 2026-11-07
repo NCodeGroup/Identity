@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
+using System.Text.Json;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
@@ -21,6 +22,7 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
 {
     private const string PrincipalId = "principal-1";
     private const string TenantId = "tenant-1";
+    private const string ClientId = "client-1";
     private const string Issuer = "https://issuer.example";
     private const string Subject = "upstream-subject-1";
     private const string GeneratedId = "generated-id";
@@ -86,6 +88,70 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
             ConcurrencyToken = string.Empty,
         };
 
+    private static PersistedClient CreateClient(bool isDisabled) =>
+        new()
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+            PrincipalId = PrincipalId,
+            ConcurrencyToken = "ct",
+            IsDisabled = isDisabled,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = TenantId,
+                ClientId = ClientId,
+                ConcurrencyToken = "ct",
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = TenantId,
+                ClientId = ClientId,
+                ConcurrencyToken = "ct",
+                Value = [],
+            },
+        };
+
+    private IClientPrincipalResolver CreateClientResolver(PersistedClient? client)
+    {
+        var resolver = CreateStrictMock<IClientPrincipalResolver>();
+        resolver
+            .Setup(x =>
+                x.GetActingClientOrDefaultAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(client)
+            .Verifiable();
+        return resolver.Object;
+    }
+
+    private DefaultPrincipalResolver CreateActingClientResolver(PersistedClient client) =>
+        new(
+            CreateStrictMock<IStoreManagerFactory>().Object,
+            CreateStrictMock<ICryptoService>().Object,
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object,
+            CreateClientResolver(client)
+        );
+
+    private IStoreManager CreateStoreManagerWithoutPrincipal()
+    {
+        var manager = CreateStrictMock<IStoreManager>();
+        var principalStore = CreateStrictMock<IFederatedPrincipalStore>();
+        manager
+            .Setup(x => x.GetStore<IFederatedPrincipalStore>())
+            .Returns(principalStore.Object)
+            .Verifiable();
+        principalStore
+            .Setup(x => x.GetOrDefaultAsync(PrincipalId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((PersistedFederatedPrincipal?)null)
+            .Verifiable();
+        return manager.Object;
+    }
+
     [Fact]
     public async Task ResolvePrincipalIdOrDefaultAsync_WhenSubjectIsPrincipalId_ReturnsIt()
     {
@@ -104,7 +170,8 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         var resolver = new DefaultPrincipalResolver(
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object,
+            CreateStrictMock<IClientPrincipalResolver>().Object
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
@@ -144,7 +211,8 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         var resolver = new DefaultPrincipalResolver(
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object,
+            CreateClientResolver(null)
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
@@ -165,7 +233,8 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         var resolver = new DefaultPrincipalResolver(
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object,
+            CreateStrictMock<IClientPrincipalResolver>().Object
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
@@ -196,7 +265,8 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         var resolver = new DefaultPrincipalResolver(
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object,
+            CreateClientResolver(null)
         );
 
         var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
@@ -227,7 +297,8 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         var resolver = new DefaultPrincipalResolver(
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object,
+            CreateStrictMock<IClientPrincipalResolver>().Object
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
@@ -301,7 +372,8 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         var resolver = new DefaultPrincipalResolver(
             CreateStrictMock<IStoreManagerFactory>().Object,
             crypto.Object,
-            linkingPolicy.Object
+            linkingPolicy.Object,
+            CreateClientResolver(null)
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
@@ -389,7 +461,8 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         var resolver = new DefaultPrincipalResolver(
             CreateStrictMock<IStoreManagerFactory>().Object,
             crypto.Object,
-            linkingPolicy.Object
+            linkingPolicy.Object,
+            CreateClientResolver(null)
         );
 
         var result = await resolver.ResolvePrincipalIdAsync(
@@ -428,7 +501,8 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         var resolver = new DefaultPrincipalResolver(
             CreateStrictMock<IStoreManagerFactory>().Object,
             CreateStrictMock<ICryptoService>().Object,
-            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object
+            CreateStrictMock<IFederatedIdentityLinkingPolicy>().Object,
+            CreateClientResolver(null)
         );
 
         // Subject present but no issuer: cannot form a durable identity, so the subject value is used as-is.
@@ -440,5 +514,50 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         );
 
         Assert.Equal(Subject, result);
+    }
+
+    [Fact]
+    public async Task ResolvePrincipalIdOrDefaultAsync_WhenAClientActsForItself_ReturnsItsPrincipal()
+    {
+        var resolver = CreateActingClientResolver(CreateClient(isDisabled: false));
+
+        var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
+            CreateOpenIdContext(),
+            CreateUser(new Claim("sub", PrincipalId), new Claim("client_id", ClientId)),
+            CreateStoreManagerWithoutPrincipal(),
+            CancellationToken.None
+        );
+
+        Assert.Equal(PrincipalId, result);
+    }
+
+    [Fact]
+    public async Task ResolvePrincipalIdOrDefaultAsync_WhenTheActingClientIsDisabled_ReturnsNull()
+    {
+        var resolver = CreateActingClientResolver(CreateClient(isDisabled: true));
+
+        var result = await resolver.ResolvePrincipalIdOrDefaultAsync(
+            CreateOpenIdContext(),
+            CreateUser(new Claim("sub", PrincipalId), new Claim("client_id", ClientId)),
+            CreateStoreManagerWithoutPrincipal(),
+            CancellationToken.None
+        );
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ResolvePrincipalIdAsync_WhenTheActingClientIsDisabled_ReturnsEmptyWithoutProvisioning()
+    {
+        var resolver = CreateActingClientResolver(CreateClient(isDisabled: true));
+
+        var result = await resolver.ResolvePrincipalIdAsync(
+            CreateOpenIdContext(),
+            CreateUser(new Claim("sub", PrincipalId), new Claim("client_id", ClientId)),
+            CreateStoreManagerWithoutPrincipal(),
+            CancellationToken.None
+        );
+
+        Assert.Equal(string.Empty, result);
     }
 }

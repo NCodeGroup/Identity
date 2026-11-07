@@ -8,7 +8,9 @@
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a host enables
   `client_credentials` at the platform, under `OpenId:Platform:Settings:grant_types_supported`; amended by
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): a tenant administrator is a
-  `TenantAdmin` assignment at the tenant's node)
+  `TenantAdmin` assignment at the tenant's node; amended by
+  [ADR-1450](1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md): a client-credentials
+  token names the client's principal as its subject)
 - **Date:** 2026-10-04
 - **Deciders:** NCode Group
 

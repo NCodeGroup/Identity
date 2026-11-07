@@ -5,7 +5,11 @@ using System.Buffers.Text;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
+using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Persistence.Stores;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
@@ -64,6 +68,41 @@ public class TokenEndpointClientCredentialsTests
                 : [audElement.GetString()];
         Assert.Contains("https://api.integration.test", audiences);
         Assert.DoesNotContain(ClientId, audiences);
+    }
+
+    [Fact]
+    public async Task PostToken_WithClientCredentials_NamesTheClientsPrincipalAsTheSubject()
+    {
+        using var factory = new HostApplicationFactory();
+        await factory.SeedConfidentialClientAsync(ClientId, ClientSecret);
+        await factory.SeedResourceServerWithClientGrantAsync(
+            ClientId,
+            "it-rs-api",
+            "https://api.integration.test",
+            TestPlatformSettingsProvider.ApiScope
+        );
+
+        var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions { AllowAutoRedirect = false }
+        );
+
+        using var content = CreateBody(ClientSecret);
+        using var response = await client.PostAsync("/oauth2/token", content);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        var root = JsonElement.Parse(body);
+        var accessToken = root.GetProperty("access_token").GetString();
+        Assert.NotNull(accessToken);
+
+        var principalId = await GetClientPrincipalIdAsync(factory);
+        var payload = DecodeJwtPayload(accessToken);
+
+        // A client acting for itself is the token's subject, and 'sub' names its principal (ADR-1450).
+        Assert.Equal(principalId, payload.GetProperty("sub").GetString());
+        Assert.NotEqual(ClientId, payload.GetProperty("sub").GetString());
+        Assert.Equal(ClientId, payload.GetProperty("client_id").GetString());
     }
 
     [Fact]
@@ -134,6 +173,24 @@ public class TokenEndpointClientCredentialsTests
                 ["scope"] = TestPlatformSettingsProvider.ApiScope,
             }
         );
+
+    private static async Task<string> GetClientPrincipalIdAsync(HostApplicationFactory factory)
+    {
+        using var scope = factory.Services.CreateScope();
+        var services = scope.ServiceProvider;
+        using var tenantScope = services
+            .GetRequiredService<IAmbientTenantAccessor>()
+            .BeginScope(HostApplicationFactory.TenantId);
+        await using var storeManager = await services
+            .GetRequiredService<IStoreManagerFactory>()
+            .CreateAsync(CancellationToken.None);
+
+        var persistedClient = await storeManager
+            .GetStore<IClientStore>()
+            .GetOrDefaultAsync(ClientId, CancellationToken.None);
+        Assert.NotNull(persistedClient);
+        return persistedClient.PrincipalId;
+    }
 
     private static JsonElement DecodeJwtPayload(string jwt)
     {

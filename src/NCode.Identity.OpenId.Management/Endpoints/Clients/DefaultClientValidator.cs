@@ -52,6 +52,23 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
     }
 
     /// <inheritdoc />
+    // See ADR-1466.
+    public ValueTask<ManagementError?> AuthorizeCreateMachineClientAsync(
+        ClaimsPrincipal user,
+        string controlPlaneTenantId,
+        string owningNodeType,
+        string owningNodeId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(controlPlaneTenantId, owningNodeType, owningNodeId),
+            Operations.Create,
+            "The caller is not authorized to create a machine client of this owner.",
+            "Authentication is required to create a machine client."
+        );
+
+    /// <inheritdoc />
     public ValueTask<ManagementError?> AuthorizeUpdateAsync(
         ClaimsPrincipal user,
         string tenantId,

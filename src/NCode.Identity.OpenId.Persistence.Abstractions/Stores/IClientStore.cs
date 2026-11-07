@@ -60,6 +60,35 @@ public interface IClientStore : IStore<PersistedClient>
     );
 
     /// <summary>
+    /// Gets a single page of the machine clients that the specified node owns in the ambient tenant, ordered by their
+    /// identifier, using keyset (cursor) pagination.
+    /// </summary>
+    /// <param name="owningNodeType">The type of the owning node: <c>platform</c> or <c>team</c>.</param>
+    /// <param name="owningNodeId">The identifier of the owning node: the team's identifier, or <c>platform</c>.</param>
+    /// <param name="page">The <see cref="PageRequest"/> describing the pagination window (cursor and limit).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the page of
+    /// <see cref="PersistedClient"/> instances and the cursor for the next page.</returns>
+    ValueTask<PagedResult<PersistedClient>> GetPageByOwningNodeAsync(
+        string owningNodeType,
+        string owningNodeId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Attempts to get the <see cref="PersistedClient"/> whose principal is the specified identifier, in any tenant.
+    /// A principal names at most one client in any tenant.
+    /// </summary>
+    /// <param name="principalId">The identifier of the client's principal.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the <see cref="PersistedClient"/> if found; otherwise <c>null</c>.</returns>
+    ValueTask<PersistedClient?> GetByPrincipalOrDefaultAsync(
+        string principalId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Attempts to get a <see cref="PersistedClient"/> instance from the store with the specified identifier.
     /// </summary>
     /// <param name="clientId">The identifier of the <see cref="PersistedClient"/> instance to retrieve.</param>

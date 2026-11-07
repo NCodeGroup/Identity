@@ -91,7 +91,7 @@ internal class DefaultUserInfoEndpointProvider(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The authenticated end-user's claims.</response>
     /// <response code="401">The access token is missing, invalid, or expired, or the client it was issued to is not
-    /// enabled.</response>
+    /// enabled, or the token names no end-user.</response>
     internal virtual async ValueTask<IResult> HandleRouteAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
@@ -140,6 +140,14 @@ internal class DefaultUserInfoEndpointProvider(
             cancellationToken
         );
         if (openIdClient is null)
+        {
+            await AuditDeniedAsync(openIdContext, ticket.PrincipalId, clientId, cancellationToken);
+            return InvalidToken(errorFactory);
+        }
+
+        // UserInfo answers for an end-user; a token in which the client acts for itself names none (OpenID Connect Core 1.0 §5.3).
+        // See ADR-1450.
+        if (string.Equals(ticket.PrincipalId, openIdClient.PrincipalId, StringComparison.Ordinal))
         {
             await AuditDeniedAsync(openIdContext, ticket.PrincipalId, clientId, cancellationToken);
             return InvalidToken(errorFactory);

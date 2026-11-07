@@ -20,7 +20,9 @@ public interface IResourceOwnershipService
     /// <summary>
     /// Assigns the calling principal the <see cref="BuiltInRoles.Owner"/> role at the newly-created resource node,
     /// enlisted in the supplied unit of work so it commits atomically with the resource. When the caller
-    /// resolves to no principal, the resource starts with no owner and the administrators above it manage it.
+    /// resolves to no principal, the resource starts with no owner and the administrators above it manage it. The
+    /// same holds when the caller is a client that cannot hold the role there: a client holds a role only as a
+    /// machine client, at the node that owns it or beneath it.
     /// </summary>
     /// <param name="openIdContext">The <see cref="OpenIdContext"/> for the current request, whose tenant settings
     /// configure how the creating principal is resolved.</param>
@@ -31,7 +33,8 @@ public interface IResourceOwnershipService
     /// <param name="resourceId">The identifier of the resource node.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the assignment
-    /// that was added, or <see langword="null"/> when the caller resolves to no principal.</returns>
+    /// that was added, or <see langword="null"/> when the caller resolves to no principal or is a client that cannot
+    /// hold the role at the node.</returns>
     ValueTask<PersistedRoleAssignment?> AssignCreatorAsync(
         OpenIdContext openIdContext,
         ClaimsPrincipal user,
@@ -61,7 +64,8 @@ public interface IResourceOwnershipService
     /// <summary>
     /// Grants the specified principal the <see cref="BuiltInRoles.Owner"/> role at the resource node, enlisted in the
     /// supplied unit of work. The operation is idempotent: when the principal is already an owner, the existing
-    /// assignment is returned unchanged.
+    /// assignment is returned unchanged. The grant is refused when the principal is a client that cannot hold the role
+    /// there: a client holds a role only as a machine client, at the node that owns it or beneath it.
     /// </summary>
     /// <param name="storeManager">The unit of work to enlist in.</param>
     /// <param name="tenantId">The identifier of the tenant that owns the resource.</param>
@@ -70,7 +74,7 @@ public interface IResourceOwnershipService
     /// <param name="principalId">The identifier of the principal to grant ownership to.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the owner
-    /// assignment and whether the grant added it.</returns>
+    /// assignment and whether the grant added it, or a refused grant.</returns>
     ValueTask<RoleAssignmentGrant> AddOwnerAsync(
         IStoreManager storeManager,
         string tenantId,
@@ -122,7 +126,8 @@ public interface IResourceOwnershipService
     /// <summary>
     /// Grants the specified principal a role at the resource node, enlisted in the supplied unit of work. The
     /// operation is idempotent: when the principal already holds the role at the node, the existing assignment is
-    /// returned unchanged.
+    /// returned unchanged. The grant is refused when the principal is a client that cannot hold the role there: a
+    /// client holds a role only as a machine client, at the node that owns it or beneath it.
     /// </summary>
     /// <param name="storeManager">The unit of work to enlist in.</param>
     /// <param name="tenantId">The identifier of the tenant that owns the resource.</param>
@@ -132,7 +137,7 @@ public interface IResourceOwnershipService
     /// <param name="roleName">The name of the role.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
-    /// assignment and whether the grant added it.</returns>
+    /// assignment and whether the grant added it, or a refused grant.</returns>
     ValueTask<RoleAssignmentGrant> AddAssignmentAsync(
         IStoreManager storeManager,
         string tenantId,

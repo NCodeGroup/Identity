@@ -62,6 +62,7 @@ internal class DefaultOpenIdClientFactory(ISecretKeyCollectionFactory secretKeyC
     ) =>
         new DefaultOpenIdClient(
             definition.ClientId,
+            definition.PrincipalId,
             definition.Settings,
             secretKeys,
             definition.SecretVerifiers,

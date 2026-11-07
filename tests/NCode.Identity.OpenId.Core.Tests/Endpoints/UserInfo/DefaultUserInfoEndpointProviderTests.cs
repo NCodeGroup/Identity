@@ -119,6 +119,7 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     private OpenIdClient SetupClient(bool signsResponse = false, bool auditsAccess = false)
     {
         var mockClient = CreateStrictMock<OpenIdClient>();
+        mockClient.SetupGet(x => x.PrincipalId).Returns("client-principal-1").Verifiable();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.AuditUserInfoAccess))
@@ -150,6 +151,24 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
             .Verifiable();
 
         return mockClient.Object;
+    }
+
+    // A client acting for itself is refused before its settings or id are read.
+    private void SetupActingClient()
+    {
+        var mockClient = CreateStrictMock<OpenIdClient>();
+        mockClient.SetupGet(x => x.PrincipalId).Returns("principal-1").Verifiable();
+
+        MockClientResolver
+            .Setup(x =>
+                x.ResolveClientOrDefaultAsync(
+                    OpenIdContext,
+                    ClientId,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(mockClient.Object)
+            .Verifiable();
     }
 
     // A refusal reads whether the tenant's settings audit the access, since no client's settings can be read.
@@ -230,6 +249,18 @@ public class DefaultUserInfoEndpointProviderTests : BaseTests
     {
         SetupAuthenticatedSubject(ClientId);
         SetupUnresolvedClient();
+        SetupTenantAudit(auditsAccess: false);
+
+        await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);
+
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidToken, CreatedErrorCode);
+    }
+
+    [Fact]
+    public async Task HandleRouteAsync_WhenTheTokenIsTheClientActingForItself_ReturnsInvalidToken()
+    {
+        SetupAuthenticatedSubject(ClientId);
+        SetupActingClient();
         SetupTenantAudit(auditsAccess: false);
 
         await Provider.HandleRouteAsync(HttpContext, CancellationToken.None);

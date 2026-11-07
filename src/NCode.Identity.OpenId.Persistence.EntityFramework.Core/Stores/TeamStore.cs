@@ -436,7 +436,7 @@ internal class TeamStore(
         if (await HasDependentsAsync(teamEntity, cancellationToken))
         {
             throw new InvalidOperationException(
-                $"The team with TeamId='{teamId}' cannot be removed because it still has one or more tenants or teams."
+                $"The team with TeamId='{teamId}' cannot be removed because it still has one or more tenants, teams or machine clients."
             );
         }
 
@@ -507,6 +507,14 @@ internal class TeamStore(
             || await DbContext.Teams.AnyAsync(
                 team => team.ParentTeamId == entity.Id,
                 cancellationToken
-            );
+            )
+            || await DbContext
+                .Clients.IgnoreQueryFilters()
+                .AnyAsync(
+                    client =>
+                        client.OwningNodeType == OpenIdResourceTypes.Team
+                        && client.NormalizedOwningNodeId == entity.NormalizedTeamId,
+                    cancellationToken
+                );
     }
 }

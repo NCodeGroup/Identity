@@ -1,17 +1,16 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Events;
 using NCode.Identity.Events.Audit;
-using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Auditing;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Logging;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.Persistence;
 using NCode.Identity.Secrets.Persistence.Auditing;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -28,6 +27,7 @@ internal class DefaultManagementAuditRecorder(
     IEventPublisher eventPublisher,
     IOpenIdEnvironmentProvider environmentProvider,
     IManagementTenantEnvironmentResolver tenantEnvironmentResolver,
+    IClientPrincipalResolver clientPrincipalResolver,
     TimeProvider timeProvider,
     ILogger<DefaultManagementAuditRecorder> logger
 ) : IManagementAuditRecorder
@@ -36,6 +36,7 @@ internal class DefaultManagementAuditRecorder(
     private IOpenIdEnvironmentProvider EnvironmentProvider { get; } = environmentProvider;
     private IManagementTenantEnvironmentResolver TenantEnvironmentResolver { get; } =
         tenantEnvironmentResolver;
+    private IClientPrincipalResolver ClientPrincipalResolver { get; } = clientPrincipalResolver;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private ILogger<DefaultManagementAuditRecorder> Logger { get; } = logger;
 
@@ -57,7 +58,6 @@ internal class DefaultManagementAuditRecorder(
             TenantId = tenantId,
             SubjectId = subjectId,
             ClientId = clientId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             GrantType = grantType,
@@ -85,7 +85,6 @@ internal class DefaultManagementAuditRecorder(
             TenantId = tenantId,
             SubjectId = subjectId,
             ClientId = clientId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             SessionId = sessionId,
@@ -112,7 +111,6 @@ internal class DefaultManagementAuditRecorder(
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
             SubjectId = subjectId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             SessionId = sessionId,
@@ -139,7 +137,6 @@ internal class DefaultManagementAuditRecorder(
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
             ClientId = clientId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = clientId,
@@ -168,7 +165,6 @@ internal class DefaultManagementAuditRecorder(
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
             ClientId = clientId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = secretId,
@@ -194,7 +190,6 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = httpContext.GetOpenIdContext().Tenant.TenantId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = teamId,
@@ -221,7 +216,6 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             TeamId = teamId,
@@ -249,7 +243,6 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = secretId,
@@ -274,7 +267,6 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = httpContext.GetOpenIdContext().Tenant.TenantId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = OpenIdConstants.PlatformResourceId,
@@ -301,7 +293,6 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceId = resourceServerId,
@@ -329,7 +320,6 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceServerId = resourceServerId,
@@ -358,7 +348,6 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = tenantId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             ResourceServerId = resourceServerId,
@@ -386,7 +375,6 @@ internal class DefaultManagementAuditRecorder(
             EventId = Guid.CreateVersion7(now),
             EventTime = now,
             EventSource = AuditEventSources.Management,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
         };
 
@@ -422,7 +410,6 @@ internal class DefaultManagementAuditRecorder(
             EventTime = now,
             EventSource = AuditEventSources.Management,
             TenantId = recordedTenantId,
-            Actor = GetActor(httpContext),
             Request = CreateRequest(httpContext),
             Outcome = AuditOutcome.Success,
             Change = MasterKeyChanges.Rotated,
@@ -450,7 +437,7 @@ internal class DefaultManagementAuditRecorder(
             change,
             reason,
             AuditEventSources.Management,
-            GetActor(httpContext),
+            AuditActor.Anonymous,
             now
         );
         auditEvent = auditEvent with { Request = CreateRequest(httpContext) };
@@ -474,7 +461,13 @@ internal class DefaultManagementAuditRecorder(
                 TimeProvider,
                 static async (state, cancellationToken) =>
                 {
+                    var actor = await state.Recorder.GetActorAsync(
+                        state.HttpContext,
+                        cancellationToken
+                    );
                     var stamped = state.AuditEvent;
+                    stamped = (TEvent)(((AuditEvent)stamped) with { Actor = actor });
+
                     if (state.TenantId is not null)
                     {
                         var environmentType =
@@ -510,20 +503,29 @@ internal class DefaultManagementAuditRecorder(
     private static AuditRequest CreateRequest(HttpContext httpContext) =>
         AuditRequestFactory.Create(httpContext);
 
-    private AuditActor GetActor(HttpContext httpContext)
+    private async ValueTask<AuditActor> GetActorAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
     {
-        var subjectId = GetActorId(httpContext);
-        if (!string.IsNullOrEmpty(subjectId))
+        // A client acting for itself is the actor of the changes it makes.
+        // See ADR-1419 and ADR-1450.
+        var openIdContext = httpContext.GetOpenIdContextOrDefault();
+        if (openIdContext is not null)
         {
-            return AuditActor.Administrator(subjectId);
+            var client = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
+                openIdContext,
+                httpContext.User,
+                cancellationToken
+            );
+
+            if (client is not null)
+            {
+                return AuditActor.Client(client.ClientId);
+            }
         }
 
-        // A client acting for itself is the actor of the changes it makes.
-        // See ADR-1419.
-        var clientId = httpContext.User.FindFirstValue(JoseClaimNames.Payload.ClientId);
-        return string.IsNullOrEmpty(clientId)
-            ? AuditActor.Administrator(subjectId)
-            : AuditActor.Client(clientId);
+        return AuditActor.Administrator(GetActorId(httpContext));
     }
 
     // The actor is a self-issued/control-plane admin, so its subject is read with

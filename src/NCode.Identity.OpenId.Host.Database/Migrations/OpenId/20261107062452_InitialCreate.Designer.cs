@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     [DbContext(typeof(OpenIdDbContext))]
-    [Migration("20261106022228_InitialCreate")]
+    [Migration("20261107062452_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -296,6 +296,11 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("NormalizedOwningNodeId")
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("NormalizedPrincipalId")
                         .IsRequired()
                         .HasMaxLength(300)
@@ -307,6 +312,16 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                         .HasMaxLength(300)
                         .IsUnicode(false)
                         .HasColumnType("character varying(300)");
+
+                    b.Property<string>("OwningNodeId")
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("OwningNodeType")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("PrincipalId")
                         .IsRequired()
@@ -338,12 +353,14 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ResourceServerId");
-
-                    b.HasIndex("TenantId", "NormalizedClientId")
+                    b.HasIndex("NormalizedPrincipalId")
                         .IsUnique();
 
-                    b.HasIndex("TenantId", "NormalizedPrincipalId")
+                    b.HasIndex("ResourceServerId");
+
+                    b.HasIndex("OwningNodeType", "NormalizedOwningNodeId");
+
+                    b.HasIndex("TenantId", "NormalizedClientId")
                         .IsUnique();
 
                     b.ToTable("Clients", (string)null);

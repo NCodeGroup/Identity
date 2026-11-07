@@ -158,16 +158,16 @@ public interface ITeamStore : IStore<PersistedTeam>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the team was removed; otherwise <c>false</c> when no matching team existed.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when a tenant or team still belongs to the team.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when a tenant, team or machine client still belongs to the team.</exception>
     ValueTask<bool> RemoveAsync(string teamId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Determines whether an OpenId Team still has dependents: any tenant or team that belongs to it.
+    /// Determines whether an OpenId Team still has dependents: any tenant, team or machine client that belongs to it.
     /// </summary>
     /// <param name="teamId">The identifier of the OpenId Team.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
-    /// when any tenant or team belongs to the team; otherwise <c>false</c> (including when no such team exists).</returns>
+    /// when any tenant, team or machine client belongs to the team; otherwise <c>false</c> (including when no such team exists).</returns>
     ValueTask<bool> HasDependentsAsync(string teamId, CancellationToken cancellationToken);
 
     /// <summary>

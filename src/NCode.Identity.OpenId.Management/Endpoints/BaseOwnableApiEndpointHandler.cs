@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -165,9 +166,21 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     }
 
     /// <summary>
+    /// Creates the <c>409 Conflict</c> response for a grant that is refused because the principal is a client that
+    /// cannot hold the role at the node.
+    /// </summary>
+    // See ADR-1467.
+    internal static ProblemHttpResult RoleRefusedForPrincipal() =>
+        TypedResults.Problem(
+            detail: "A client holds a role only as a machine client, at the node that owns it or a node beneath it.",
+            statusCode: StatusCodes.Status409Conflict
+        );
+
+    /// <summary>
     /// Processes an HTTP <c>POST</c> that grants a principal ownership of a resource: authorizes the caller against the
     /// resource node, then adds the owner and records the grant. Responds <c>201</c> when the owner is added,
-    /// <c>200</c> when the principal already owns the resource, and <c>404</c> when the resource does not exist.
+    /// <c>200</c> when the principal already owns the resource, <c>409</c> when the principal is a client that cannot
+    /// hold the role there, and <c>404</c> when the resource does not exist.
     /// </summary>
     protected internal virtual async ValueTask<IResult> ProcessAddOwnerAsync(
         HttpContext httpContext,
@@ -213,6 +226,11 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             request.PrincipalId,
             cancellationToken
         );
+        if (grant.IsRefused)
+        {
+            return RoleRefusedForPrincipal();
+        }
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var ownerResource = ToOwnerResource(grant.Assignment);

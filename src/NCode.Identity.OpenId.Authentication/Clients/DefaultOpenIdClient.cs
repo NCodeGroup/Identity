@@ -13,6 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// </summary>
 internal class DefaultOpenIdClient(
     string clientId,
+    string principalId,
     IReadOnlySettingCollection settings,
     ISecretKeyCollection secretKeys,
     IReadOnlyCollection<SecretVerifier> secretVerifiers,
@@ -23,6 +24,9 @@ internal class DefaultOpenIdClient(
 {
     /// <inheritdoc />
     public override string ClientId { get; } = clientId;
+
+    /// <inheritdoc />
+    public override string PrincipalId { get; } = principalId;
 
     /// <inheritdoc />
     public override IReadOnlySettingCollection Settings { get; } = settings;

@@ -494,4 +494,169 @@ public class OwnerEndpointHelperTests : IDisposable
         Assert.Equal("p2", values.GetProperty("principalId").GetString());
         Assert.Equal(BuiltInRoles.Owner, values.GetProperty("roleName").GetString());
     }
+
+    #region ProcessListRoleAssignmentsAsync Tests
+
+    [Fact]
+    public async Task ProcessListRoleAssignmentsAsync_WhenTheCallerMayChange_ReturnsTheAssignmentsAndCanChange()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        var (factory, manager) = StoreManager();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        ownership
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    manager.Object,
+                    ResourceNodeTypes.Client,
+                    ResourceId,
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([Owner("p1")])
+            .Verifiable();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var result = await handler.ProcessListRoleAssignmentsAsync(
+            CreateHttpContext(),
+            node,
+            BuiltInRoles.Owner,
+            Exists,
+            (_, _) => ValueTask.FromResult(true),
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var roleList = Assert.IsType<RoleListResource>(json.Value);
+        var item = Assert.Single(roleList.Items);
+        Assert.Equal("p1", item.PrincipalId);
+        Assert.True(roleList.CanChange);
+    }
+
+    [Fact]
+    public async Task ProcessListRoleAssignmentsAsync_WhenTheCallerMayNotChange_ReturnsTheAssignmentsWithoutCanChange()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        var (factory, manager) = StoreManager();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        ownership
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    manager.Object,
+                    ResourceNodeTypes.Client,
+                    ResourceId,
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([Owner("p1")])
+            .Verifiable();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var result = await handler.ProcessListRoleAssignmentsAsync(
+            CreateHttpContext(),
+            node,
+            BuiltInRoles.Owner,
+            Exists,
+            (_, _) => ValueTask.FromResult(false),
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var roleList = Assert.IsType<RoleListResource>(json.Value);
+        var item = Assert.Single(roleList.Items);
+        Assert.Equal("p1", item.PrincipalId);
+        Assert.False(roleList.CanChange);
+    }
+
+    [Fact]
+    public async Task ProcessListRoleAssignmentsAsync_WhenUnauthorized_ForbidsWithoutOpeningTheStore()
+    {
+        var authz = Authz(AuthorizationResult.Failed());
+        // A forbidden request never opens the store.
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var result = await handler.ProcessListRoleAssignmentsAsync(
+            CreateHttpContext(),
+            node,
+            BuiltInRoles.Owner,
+            Exists,
+            (_, _) => ValueTask.FromResult(true),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProcessListRoleAssignmentsAsync_WhenTheResourceIsMissing_ReturnsNotFound()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        var (factory, _) = StoreManager();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var result = await handler.ProcessListRoleAssignmentsAsync(
+            CreateHttpContext(),
+            node,
+            BuiltInRoles.Owner,
+            Missing,
+            (_, _) => throw new InvalidOperationException("canChangeAsync must not run."),
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region HoldsAuthorityAsync Tests
+
+    [Fact]
+    public async Task HoldsAuthorityAsync_WhenAuthorized_ReturnsTrue()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var holds = await handler.HoldsAuthorityAsync(
+            CreateHttpContext(),
+            node,
+            Operations.Update,
+            CancellationToken.None
+        );
+
+        Assert.True(holds);
+    }
+
+    [Fact]
+    public async Task HoldsAuthorityAsync_WhenForbidden_ReturnsFalse()
+    {
+        var authz = Authz(AuthorizationResult.Failed());
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var holds = await handler.HoldsAuthorityAsync(
+            CreateHttpContext(),
+            node,
+            Operations.Update,
+            CancellationToken.None
+        );
+
+        Assert.False(holds);
+    }
+
+    #endregion
 }

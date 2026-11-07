@@ -131,6 +131,93 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     }
 
     /// <summary>
+    /// Determines whether the caller holds an operation at a resource node.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="node">The resource node the operation applies to.</param>
+    /// <param name="operation">The operation to authorize.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is <c>true</c> when the caller holds the operation at the
+    /// node; otherwise, <c>false</c>.
+    /// </returns>
+    // See ADR-1465.
+    protected internal virtual async ValueTask<bool> HoldsAuthorityAsync(
+        HttpContext httpContext,
+        ResourceNode node,
+        IAuthorizationRequirement operation,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            operation
+        );
+        return authorizationResult.Succeeded;
+    }
+
+    /// <summary>
+    /// Processes an HTTP <c>GET</c> for the principals that hold one role at a resource node: authorizes the caller
+    /// to read the node, then returns the assignments of the role and whether the caller may grant and revoke the
+    /// role there. Responds <c>404</c> when the resource does not exist.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="node">The resource node that the role is assigned at.</param>
+    /// <param name="roleName">The name of the role whose assignments are listed.</param>
+    /// <param name="resourceExistsAsync">Determines whether the resource of the node exists.</param>
+    /// <param name="canChangeAsync">
+    /// Determines whether the caller may grant and revoke the role at the node, which is the
+    /// <see cref="RoleListResource.CanChange"/> value of the response.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
+    /// </returns>
+    // See ADR-1465.
+    protected internal virtual async ValueTask<IResult> ProcessListRoleAssignmentsAsync(
+        HttpContext httpContext,
+        ResourceNode node,
+        string roleName,
+        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
+        Func<IStoreManager, CancellationToken, ValueTask<bool>> canChangeAsync,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            Operations.Read
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        if (!await resourceExistsAsync(storeManager, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var assignments = await ResourceOwnershipService.GetAssignmentsAsync(
+            storeManager,
+            node.ResourceType,
+            node.ResourceId,
+            roleName,
+            cancellationToken
+        );
+        var canChange = await canChangeAsync(storeManager, cancellationToken);
+        var items = assignments.Select(ToOwnerResource).ToList();
+        var roleList = new RoleListResource { Items = items, CanChange = canChange };
+        return TypedResults.Json(roleList);
+    }
+
+    /// <summary>
     /// Processes an HTTP <c>POST</c> that grants a principal ownership of a resource: authorizes the caller against the
     /// resource node, then adds the owner and records the grant. Responds <c>201</c> when the owner is added,
     /// <c>200</c> when the principal already owns the resource, and <c>404</c> when the resource does not exist.

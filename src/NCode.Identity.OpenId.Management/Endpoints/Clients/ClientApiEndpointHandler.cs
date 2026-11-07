@@ -24,6 +24,7 @@ using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -37,6 +38,11 @@ using SystemTextJsonPatch.Exceptions;
 namespace NCode.Identity.OpenId.Management.Endpoints.Clients;
 
 /*
+
+POST  api/teams/{teamId}/clients
+GET   api/teams/{teamId}/clients
+POST  api/platform/clients
+GET   api/platform/clients
 
 GET   api/tenants/{tenantId}/clients/{clientId}
 
@@ -80,7 +86,8 @@ internal class ClientApiEndpointHandler(
     IManagementAuditRecorder managementAuditRecorder,
     IHostManagedClientChecker hostManagedClientChecker,
     IClientKeySourceChecker clientKeySourceChecker,
-    ILogger<ClientApiEndpointHandler> logger
+    ILogger<ClientApiEndpointHandler> logger,
+    IAmbientTenantAccessor ambientTenantAccessor
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
     // See ADR-1466.
@@ -198,6 +205,7 @@ internal class ClientApiEndpointHandler(
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
         resourceOwnershipService;
     private ILogger<ClientApiEndpointHandler> Logger { get; } = logger;
+    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
     /// <inheritdoc />
     protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
@@ -621,6 +629,105 @@ internal class ClientApiEndpointHandler(
     }
 
     /// <summary>
+    /// Lists the machine clients of a team.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of clients to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">A page of the machine clients the team owns.</response>
+    // See ADR-1466.
+    [EndpointName("api/teams/clients/list")]
+    internal virtual async ValueTask<IResult> ListTeamClientsAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var teamNode = GetTeamNode(httpContext, teamId);
+        return await ListMachineClientsAsync(
+            httpContext,
+            teamNode,
+            cursor,
+            limit,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Lists the machine clients of the platform.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of clients to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="200">A page of the machine clients the platform owns.</response>
+    // See ADR-1466.
+    [EndpointName("api/platform/clients/list")]
+    internal virtual async ValueTask<IResult> ListPlatformClientsAsync(
+        HttpContext httpContext,
+        [FromQuery] string? cursor,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var platformNode = GetPlatformNode(httpContext);
+        return await ListMachineClientsAsync(
+            httpContext,
+            platformNode,
+            cursor,
+            limit,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Lists the machine clients a node owns, after authorizing the caller at that node.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="owningNode">The platform or team node that owns the machine clients.</param>
+    /// <param name="cursor">The opaque continuation token from a previous page, or <c>null</c> for the first page.</param>
+    /// <param name="limit">The maximum number of clients to return on the page.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The result carrying a page of the machine clients the node owns, or the error that refused it.</returns>
+    // See ADR-1466.
+    internal virtual async ValueTask<IResult> ListMachineClientsAsync(
+        HttpContext httpContext,
+        ResourceNode owningNode,
+        string? cursor,
+        int? limit,
+        CancellationToken cancellationToken
+    )
+    {
+        var effectiveLimit = NormalizeLimit(limit);
+
+        return await ProcessListAsync(
+            httpContext,
+            owningNode,
+            async () =>
+            {
+                // Machine clients live in the control-plane tenant, which the node carries.
+                using var scope = AmbientTenantAccessor.BeginScope(owningNode.TenantId);
+                await using var storeManager = await StoreManagerFactory.CreateAsync(
+                    cancellationToken
+                );
+                var store = storeManager.GetStore<IClientStore>();
+                var page = new PageRequest { Cursor = cursor, Limit = effectiveLimit };
+                return await store.GetPageByOwningNodeAsync(
+                    owningNode.ResourceType,
+                    owningNode.ResourceId,
+                    page,
+                    cancellationToken
+                );
+            },
+            ToClientResource
+        );
+    }
+
+    /// <summary>
     /// Lists the clients of a tenant that the tenant's effective settings make incoherent.
     /// </summary>
     /// <remarks>
@@ -759,6 +866,134 @@ internal class ClientApiEndpointHandler(
                 ClientId = clientId,
                 ConcurrencyToken = string.Empty,
                 Value = SerializeToElement(ToJsonObject(request.Settings)),
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = tenantId,
+                ClientId = clientId,
+                ConcurrencyToken = string.Empty,
+                Value = [],
+            },
+        };
+
+        return await AddClientAsync(httpContext, storeManager, client, request, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates a machine client of a team. The client obtains tokens only for itself.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="teamId">The identifier of the team that owns the client.</param>
+    /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The created machine client.</response>
+    // See ADR-1466.
+    [EndpointName("api/teams/clients/create")]
+    internal virtual async ValueTask<IResult> CreateTeamClientAsync(
+        HttpContext httpContext,
+        [FromRoute] string teamId,
+        [FromBody] CreateClientRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var teamNode = GetTeamNode(httpContext, teamId);
+        return await CreateMachineClientAsync(httpContext, teamNode, request, cancellationToken);
+    }
+
+    /// <summary>
+    /// Creates a machine client of the platform. The client obtains tokens only for itself.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The created machine client.</response>
+    // See ADR-1466.
+    [EndpointName("api/platform/clients/create")]
+    internal virtual async ValueTask<IResult> CreatePlatformClientAsync(
+        HttpContext httpContext,
+        [FromBody] CreateClientRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var platformNode = GetPlatformNode(httpContext);
+        return await CreateMachineClientAsync(
+            httpContext,
+            platformNode,
+            request,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Creates a machine client of the node that owns it: a control-plane-tenant client limited to the
+    /// <c>client_credentials</c> grant that acts for itself, not for a resource server.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="owningNode">The platform or team node that owns the client.</param>
+    /// <param name="request">The <see cref="CreateClientRequest"/> describing the client to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <c>201</c> result carrying the created client, or the error that refused it.</returns>
+    // See ADR-1466.
+    internal virtual async ValueTask<IResult> CreateMachineClientAsync(
+        HttpContext httpContext,
+        ResourceNode owningNode,
+        CreateClientRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        // Authorization is asserted from the route values, before any row is read (ADR-1424, ADR-1451).
+        var authorizationError = await ClientValidator.AuthorizeCreateMachineClientAsync(
+            httpContext.User,
+            owningNode.TenantId,
+            owningNode.ResourceType,
+            owningNode.ResourceId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
+        if (!string.IsNullOrEmpty(request.ResourceServerId))
+        {
+            return TypedResults.Problem(
+                detail: "A machine client acts for itself, not for a resource server.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        // The node carries the control-plane tenant id, which is where a machine client lives.
+        var tenantId = owningNode.TenantId;
+        using var scope = AmbientTenantAccessor.BeginScope(tenantId);
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+
+        var clientId = CryptoService.GenerateResourceId();
+
+        var settings = ToJsonObject(request.Settings);
+        if (!settings.ContainsKey(OpenIdSettingNames.GrantTypesSupported))
+        {
+            settings[OpenIdSettingNames.GrantTypesSupported] = new JsonArray(
+                OpenIdProtocol.GrantTypes.ClientCredentials
+            );
+        }
+
+        var settingsValue = SerializeToElement(settings);
+
+        var client = new PersistedClient
+        {
+            TenantId = tenantId,
+            ClientId = clientId,
+            ConcurrencyToken = string.Empty,
+            IsDisabled = request.IsDisabled,
+            ResourceServerId = null,
+            OwningNodeType = owningNode.ResourceType,
+            OwningNodeId = owningNode.ResourceId,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = tenantId,
+                ClientId = clientId,
+                ConcurrencyToken = string.Empty,
+                Value = settingsValue,
             },
             Secrets = new PersistedClientSecrets
             {

@@ -529,6 +529,40 @@ public sealed class DefaultTenantProvisionerTests : IDisposable
     }
 
     [Fact]
+    public async Task SeedAsync_WhenTheSeedWritesTheTenantRow_ReturnsTheRowItsSeedCommitted()
+    {
+        var read = CreateTenant(RootTenantId);
+        var committed = CreateTenant(RootTenantId);
+        committed.ConcurrencyToken = "committed-token";
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, read, committed);
+        SetupSeed(seeded);
+
+        var result = await Provisioner.SeedAsync(RootTenantId, CancellationToken.None);
+
+        Assert.Same(committed, result);
+        var command = Assert.Single(seeded);
+        Assert.Same(read, command.Context.Tenant);
+    }
+
+    [Fact]
+    public async Task SeedAsync_WhenTheTenantIsRemovedOnceItsSeedCommits_ThrowsNotFound()
+    {
+        var root = CreateTenant(RootTenantId);
+        var seeded = new List<SeedTenantCommand>();
+        SetupStoreManager();
+        SetupGetTenant(RootTenantId, root, (PersistedTenant?)null);
+        SetupSeed(seeded);
+
+        await Assert.ThrowsAsync<HttpResultException>(async () =>
+            await Provisioner.SeedAsync(RootTenantId, CancellationToken.None)
+        );
+
+        Assert.Single(seeded);
+    }
+
+    [Fact]
     public async Task SeedAsync_WhenCommitLosesToAConcurrentSeed_SeedsAgainInAFreshUnitOfWork()
     {
         var first = CreateTenant(RootTenantId);

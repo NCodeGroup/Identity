@@ -1459,6 +1459,10 @@ NCode.Identity.OpenId.Authentication.Subject.AuthenticationContextReferenceReque
 NCode.Identity.OpenId.Authentication.Subject.AuthenticationContextReferenceRequest.Settings.init -> void
 NCode.Identity.OpenId.Authentication.Subject.IAuthenticationContextReferenceResolver
 NCode.Identity.OpenId.Authentication.Subject.IAuthenticationContextReferenceResolver.ResolveAsync(NCode.Identity.OpenId.Authentication.Subject.AuthenticationContextReferenceRequest request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string?>
+NCode.Identity.OpenId.Authentication.Subject.IPostCommitSecurityEffects
+NCode.Identity.OpenId.Authentication.Subject.IPostCommitSecurityEffects.ResetPasswordAttemptsAsync(string! tenantId, string! userName) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Subject.IPostCommitSecurityEffects.TerminateOtherSessionsAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, string! currentSessionId, string! reason) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Authentication.Subject.IPostCommitSecurityEffects.TerminateSessionsAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, string! subjectId, string! reason) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Authentication.Subject.ISubjectIdentifierService
 NCode.Identity.OpenId.Authentication.Subject.ISubjectIdentifierService.ProjectSubjectId(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, NCode.Identity.OpenId.Authentication.Clients.OpenIdClient! openIdClient, string! principalId) -> string!
 NCode.Identity.OpenId.Authentication.Subject.SubjectAuthentication

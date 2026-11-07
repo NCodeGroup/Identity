@@ -67,13 +67,7 @@ export function ClientsPage({ tenantId, resourceServerId, embedded = false }: Cl
   const [selectedId, setSelectedId] = useState<string>();
   const selected = clients.find((c) => c.clientId === selectedId);
   if (selected) {
-    return (
-      <ClientDetailPage
-        tenantId={tenantId}
-        client={selected}
-        onBack={() => setSelectedId(undefined)}
-      />
-    );
+    return <ClientDetailPage client={selected} onBack={() => setSelectedId(undefined)} />;
   }
 
   const openCreate = () => {

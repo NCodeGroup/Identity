@@ -30,6 +30,9 @@ export type SecretOwner = Exclude<
 /** The owners that have master keys to report and rekey: the platform or a tenant. */
 export type EncryptionKeyOwner = Extract<ManagementOwner, { readonly kind: 'platform' | 'tenant' }>;
 
+/** The owners of machine clients: the platform and a team (ADR-1466). */
+export type MachineClientOwner = Extract<ManagementOwner, { readonly kind: 'platform' | 'team' }>;
+
 /** The owners that hold an owner list: every node of the resource tree except the platform. */
 export type RoleOwner = Exclude<ManagementOwner, { readonly kind: 'platform' }>;
 

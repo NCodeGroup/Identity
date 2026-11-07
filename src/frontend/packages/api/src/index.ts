@@ -81,6 +81,7 @@ export {
   type AdministeredOwner,
   type ClientOwner,
   type ManagementOwner,
+  type MachineClientOwner,
   type RoleList,
   type RoleOwner,
   type SecretOwner,

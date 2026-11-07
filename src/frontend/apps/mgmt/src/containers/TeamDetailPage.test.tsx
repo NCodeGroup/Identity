@@ -111,6 +111,33 @@ describe('TeamDetailPage', () => {
     expect(onOpenTeam).toHaveBeenCalledWith('acme-web');
   });
 
+  it("lists the team's machine clients on the clients surface", async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/clients')) {
+        return jsonResponse({
+          items: [
+            {
+              clientId: 'bot',
+              tenantId: 'control',
+              concurrencyToken: 'c1',
+              isDisabled: false,
+              resourceServerId: null,
+              principalId: 'principal-bot',
+              owningNodeType: 'team',
+              owningNodeId: 'acme',
+            },
+          ],
+        });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage('clients');
+
+    expect(await screen.findByTestId('client-row-bot')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Machine clients' })).toBeInTheDocument();
+  });
+
   it('saves edited team settings as a JSON Patch diff on the settings tab', async () => {
     const calls = installFetch((url, method) => {
       if (url.endsWith('/api/teams/acme/settings') && method === 'PATCH') {

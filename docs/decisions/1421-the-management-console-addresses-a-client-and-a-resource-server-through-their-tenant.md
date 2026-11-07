@@ -1,6 +1,9 @@
 # 1421. The management console addresses a client and a resource server through their tenant
 
 - **Status:** Accepted
+  (amended by [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md):
+  `ClientDetailPage` takes the client and addresses it through `client.tenantId`, the control-plane tenant for a
+  machine client)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1257](1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),

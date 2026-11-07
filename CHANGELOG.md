@@ -3825,13 +3825,19 @@ describes the family as it is rather than its changes
   its team as a parent resource
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
-- **The management console manages teams and the platform's settings.** The platform scope has a Teams surface
-  (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete), a Settings surface and an Encryption keys surface;
-  the platform's team list names each team's parent; a team scope has its tenants, child teams, settings and usage
-  (`TeamUsageTable`, which names each entry's team), and its exit leads to its parent team; the console routes `/teams`,
-  `/settings`, `/encryption-keys`, `/teams/{teamId}/{tenants|teams|settings|usage}` and `/tenants/{tenantId}/…`
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+- **The management console manages teams, machine clients and the platform's settings.** The platform scope has a
+  Teams surface (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete), a Clients surface, a Settings
+  surface and an Encryption keys surface; the platform's team list names each team's parent; a team scope has its
+  tenants, child teams, clients, settings, access and usage (`TeamUsageTable`, which names each entry's team), and its
+  exit leads to its parent team. The platform's and a team's Clients surface lists, creates, disables and deletes the
+  machine clients it owns (`MachineClientsPage`) and opens each one's secrets, settings and owners through the
+  control-plane tenant's client routes, where a client's detail names the platform or team that owns it and its
+  principal; the console routes `/teams`, `/clients`, `/settings`, `/encryption-keys`,
+  `/teams/{teamId}/{tenants|teams|clients|settings|access|usage}` and `/tenants/{tenantId}/…`
+  ([#636](https://github.com/NCodeGroup/Identity/issues/636),
+  [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
 
 - **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key

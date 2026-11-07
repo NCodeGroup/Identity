@@ -238,7 +238,7 @@ export type UpdateTeamFields = {
 };
 
 /**
- * Mirror of `ClientResource` (tenant scope). A client has no display name; it is identified by id.
+ * Mirror of `ClientResource`. A client has no display name; it is identified by id.
  * `resourceServerId` names the resource server the client acts for — its credential at the token
  * introspection endpoint, accepted nowhere else — or is `null` for an ordinary client.
  */
@@ -250,6 +250,10 @@ export type ClientResource = {
   readonly resourceServerId: string | null;
   /** The client's principal, which role assignments name to grant the client authority. */
   readonly principalId: string;
+  /** The type of the node that owns this machine client — `platform` or `team` — or `null` for an ordinary client (ADR-1466). */
+  readonly owningNodeType: string | null;
+  /** The identifier of the node that owns this machine client: the team's id, or `platform`; `null` for an ordinary client. */
+  readonly owningNodeId: string | null;
 };
 
 /**

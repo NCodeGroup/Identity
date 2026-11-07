@@ -37,6 +37,7 @@ import {
   type EncryptionRootKeyResource,
   type GrantResource,
   type GrantRevocationResult,
+  type MachineClientOwner,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
   type RoleHolderResource,
@@ -401,6 +402,32 @@ export const managementApi = createApi({
       invalidatesTags: (_result, _error, { tenantId, clientId }) => [
         { type: 'Client', id: tenantTag(tenantId, LIST_TAG) },
         { type: 'Client', id: tenantTag(tenantId, clientId) },
+      ],
+    }),
+    // The machine clients the platform or a team owns (ADR-1466). Each lives in the control-plane tenant, so its
+    // item tag is that tenant's and a change through the tenant's client routes refetches the owner's list.
+    listMachineClients: build.query<CollectionResource<ClientResource>, MachineClientOwner>({
+      query: (owner) => `${ownerApiPath(owner)}/clients`,
+      providesTags: (result, _error, owner) => [
+        { type: 'Client' as const, id: scopeTagId(ownerScope(owner), LIST_TAG) },
+        ...(result?.items ?? []).map((c) => ({
+          type: 'Client' as const,
+          id: tenantTag(c.tenantId, c.clientId),
+        })),
+      ],
+    }),
+    createMachineClient: build.mutation<
+      ClientResource,
+      { owner: MachineClientOwner; body: CreateClientRequest }
+    >({
+      query: ({ owner, body }) => ({
+        url: `${ownerApiPath(owner)}/clients`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, _error, { owner }) => [
+        { type: 'Client' as const, id: scopeTagId(ownerScope(owner), LIST_TAG) },
+        ...(result ? [{ type: 'Client' as const, id: tenantTag(result.tenantId, LIST_TAG) }] : []),
       ],
     }),
     listResourceServers: build.query<
@@ -788,6 +815,8 @@ export const {
   useCreateClientMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,
+  useListMachineClientsQuery,
+  useCreateMachineClientMutation,
   useCreateResourceServerMutation,
   useUpdateResourceServerMutation,
   useDeleteResourceServerMutation,

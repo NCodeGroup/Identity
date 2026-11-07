@@ -4111,8 +4111,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 x.RecordMasterKeyRotatedAsync(
                     It.IsAny<HttpContext>(),
                     rotation,
-                    MasterKeyChangeReasons.Requested,
-                    It.IsAny<CancellationToken>()
+                    MasterKeyChangeReasons.Requested
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -4522,8 +4521,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     rootKey,
                     RootKeyChanges.Set,
-                    RootKeyChangeReasons.Requested,
-                    It.IsAny<CancellationToken>()
+                    RootKeyChangeReasons.Requested
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -4533,8 +4531,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 x.RecordMasterKeyRotatedAsync(
                     It.IsAny<HttpContext>(),
                     rotation,
-                    MasterKeyChangeReasons.RootKeyChanged,
-                    It.IsAny<CancellationToken>()
+                    MasterKeyChangeReasons.RootKeyChanged
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -4679,8 +4676,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     unavailable,
                     RootKeyChanges.Unavailable,
-                    RootKeyChangeReasons.ValidationFailed,
-                    It.IsAny<CancellationToken>()
+                    RootKeyChangeReasons.ValidationFailed
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -4934,8 +4930,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     It.Is<OwnerRootKeyInfo>(info => info.State == OwnerRootKeyStates.Removing),
                     RootKeyChanges.Removed,
-                    RootKeyChangeReasons.Requested,
-                    It.IsAny<CancellationToken>()
+                    RootKeyChangeReasons.Requested
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -4976,8 +4971,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     It.IsAny<OwnerRootKeyInfo>(),
                     RootKeyChanges.Removed,
-                    RootKeyChangeReasons.Requested,
-                    It.IsAny<CancellationToken>()
+                    RootKeyChangeReasons.Requested
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -5043,8 +5037,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     unavailable,
                     RootKeyChanges.Unavailable,
-                    RootKeyChangeReasons.ValidationFailed,
-                    It.IsAny<CancellationToken>()
+                    RootKeyChangeReasons.ValidationFailed
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -5089,8 +5082,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     restored,
                     RootKeyChanges.Restored,
-                    RootKeyChangeReasons.ValidationSucceeded,
-                    It.IsAny<CancellationToken>()
+                    RootKeyChangeReasons.ValidationSucceeded
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -5100,8 +5092,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                 x.RecordMasterKeyRotatedAsync(
                     It.IsAny<HttpContext>(),
                     rotation,
-                    MasterKeyChangeReasons.RootKeyChanged,
-                    It.IsAny<CancellationToken>()
+                    MasterKeyChangeReasons.RootKeyChanged
                 )
             )
             .Returns(ValueTask.CompletedTask)

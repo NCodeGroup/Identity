@@ -1591,8 +1591,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
                 x.RecordMasterKeyRotatedAsync(
                     It.IsAny<HttpContext>(),
                     rotation,
-                    MasterKeyChangeReasons.Requested,
-                    It.IsAny<CancellationToken>()
+                    MasterKeyChangeReasons.Requested
                 )
             )
             .Returns(ValueTask.CompletedTask)

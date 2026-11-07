@@ -146,24 +146,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         );
         var store = storeManager.GetStore<IClientStore>();
 
-        var persistedClient = new PersistedClient
+        var persistedClient = new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = clientId,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = settingsJson,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = [],
-            },
-        };
+            Settings = settingsJson,
+        }.Build();
 
         await store.AddAsync(persistedClient, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
@@ -695,24 +683,12 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         );
         var store = storeManager.GetStore<IClientStore>();
 
-        var persistedClient = new PersistedClient
+        var persistedClient = new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = clientId,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = settingsJson,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = [],
-            },
-        };
+            Settings = settingsJson,
+        }.Build();
 
         await store.AddAsync(persistedClient, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
@@ -871,24 +847,13 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         );
         var store = storeManager.GetStore<IClientStore>();
 
-        var persistedClient = new PersistedClient
+        var persistedClient = new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = clientId,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = settingsJson,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                Value = [.. secrets],
-            },
-        };
+            Settings = settingsJson,
+            Secrets = secrets,
+        }.Build();
 
         await store.AddAsync(persistedClient, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
@@ -1067,32 +1032,15 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             tokenEndpointAuthMethod: null
         );
 
-        var emptySettingsJson = System.Text.Json.JsonSerializer.SerializeToElement(
-            new Dictionary<string, object>()
-        );
+        var persistedClient = new PersistedClientBuilder
+        {
+            TenantId = TenantId,
+            ClientId = clientId,
+            Secrets = [persistedSecret],
+        }.Build();
 
         var clientStore = storeManager.GetStore<IClientStore>();
-        await clientStore.AddAsync(
-            new PersistedClient
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                IsDisabled = false,
-                Settings = new PersistedClientSettings
-                {
-                    TenantId = TenantId,
-                    ClientId = clientId,
-                    Value = emptySettingsJson,
-                },
-                Secrets = new PersistedClientSecrets
-                {
-                    TenantId = TenantId,
-                    ClientId = clientId,
-                    Value = [persistedSecret],
-                },
-            },
-            CancellationToken.None
-        );
+        await clientStore.AddAsync(persistedClient, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
     }
 

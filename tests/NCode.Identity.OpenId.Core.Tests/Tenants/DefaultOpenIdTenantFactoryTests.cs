@@ -642,6 +642,106 @@ public sealed class DefaultOpenIdTenantFactoryTests
         mocks.Verify();
     }
 
+    [Fact]
+    public async Task MaterializeTenantAsync_WhenTheSeedCommitsTheTenantRow_CachesTheTenantWithTheRowTokenItsSeedCommitted()
+    {
+        var mocks = new MockRepository(MockBehavior.Strict);
+
+        var tenantResolver = mocks.Create<ITenantResolver>();
+        var tenantCache = mocks.Create<IOpenIdTenantCache>();
+        var provisioner = mocks.Create<ITenantProvisioner>();
+        var teamProvider = mocks.Create<IOpenIdTeamProvider>();
+
+        var team = Mock.Of<OpenIdTeam>(x => x.IsDisabled == false);
+        var teamLease = AsyncSharedReference.Create(team, _ => ValueTask.CompletedTask);
+        teamProvider
+            .Setup(x =>
+                x.GetTeamAsync(
+                    It.IsAny<OpenIdEnvironment>(),
+                    It.IsAny<OpenIdPlatform>(),
+                    "platform",
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(teamLease.AddReference())
+            .Verifiable();
+
+        var tenantId = "acme";
+        tenantResolver
+            .Setup(x => x.TryGetTenantId(It.IsAny<HttpContext>(), out tenantId))
+            .Returns(true)
+            .Verifiable();
+        tenantCache
+            .Setup(x =>
+                x.TryGetAsync("acme", It.IsAny<IPropertyBag>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(default(AsyncSharedReferenceLease<OpenIdTenant>))
+            .Verifiable();
+        tenantResolver
+            .Setup(x =>
+                x.ResolveTenantAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreatePersistedTenant("https://op.example/acme"))
+            .Verifiable();
+        var committedTenant = CreatePersistedTenant("https://op.example/acme");
+        committedTenant.ConcurrencyToken = "committed-token";
+        provisioner
+            .Setup(x => x.SeedAsync("acme", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(committedTenant)
+            .Verifiable();
+
+        string? cachedToken = null;
+        tenantCache
+            .Setup(x =>
+                x.SetAsync(
+                    "acme",
+                    It.IsAny<AsyncSharedReferenceLease<OpenIdTenant>>(),
+                    It.IsAny<IPropertyBag>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (
+                    string _,
+                    AsyncSharedReferenceLease<OpenIdTenant> tenant,
+                    IPropertyBag _,
+                    CancellationToken _
+                ) =>
+                {
+                    cachedToken = tenant.Value.ConcurrencyToken;
+                    return ValueTask.CompletedTask;
+                }
+            )
+            .Verifiable();
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = new ServiceCollection()
+                .AddSingleton(provisioner.Object)
+                .BuildServiceProvider(),
+        };
+
+        var factory = new LeaseTenantFactory(
+            mocks,
+            tenantResolver.Object,
+            tenantCache.Object,
+            teamProvider.Object
+        );
+
+        await using var tenantLease = await factory.CreateTenantForRequestAsync(
+            httpContext,
+            Mock.Of<OpenIdEnvironment>(),
+            Mock.Of<OpenIdPlatform>(),
+            Mock.Of<IPropertyBag>(),
+            CancellationToken.None
+        );
+
+        Assert.Equal("committed-token", tenantLease.Value.ConcurrencyToken);
+        Assert.Equal("committed-token", cachedToken);
+        mocks.Verify();
+    }
+
     #endregion
 
     #region GetTenantIssuerAsync Tests

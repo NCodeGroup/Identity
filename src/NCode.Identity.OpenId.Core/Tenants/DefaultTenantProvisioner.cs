@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Logging;
@@ -11,7 +10,6 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
 using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Persistence;
-using NCode.Identity.Results;
 using NCode.Mediator;
 using NCode.Persistence.Stores;
 
@@ -22,10 +20,12 @@ namespace NCode.Identity.OpenId.Tenants;
 /// strategy derives for it, judged by the same rules as every other tenant written, and it seeds a tenant — after the root
 /// tenant — by fanning out <see cref="SeedTenantCommand"/> to every registered handler within a single unit of work,
 /// then runs the steps the handlers queued for after the commit, each on its own bounded token; a step that fails is
-/// logged, the remaining steps run, and the seed stands, because its unit of work has committed.
+/// logged, the remaining steps run, and the seed stands, because its unit of work has committed. It then reads the tenant
+/// again in a fresh unit of work and returns the row its seed committed.
 /// </summary>
-// See ADR-1045 (one seeding pipeline), ADR-1166 (a tenant is provisioned through one pipeline under every strategy)
-// and ADR-1351 (an effect that follows a committed change runs on its own bounded token).
+// See ADR-1045 (one seeding pipeline), ADR-1166 (a tenant is provisioned through one pipeline under every strategy),
+// ADR-1351 (an effect that follows a committed change runs on its own bounded token) and ADR-1463 (a seeded tenant is
+// returned as its seed committed it).
 internal sealed class DefaultTenantProvisioner(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor,
@@ -145,11 +145,32 @@ internal sealed class DefaultTenantProvisioner(
                 RootOptions.DisplayName,
                 cancellationToken
             );
-            await SeedAsync(rootTenantId, cancellationToken);
+            await SeedInUnitOfWorkAsync(rootTenantId, TenantPlane.Root, cancellationToken);
         }
 
-        var plane = isRootTenant ? TenantPlane.Root : TenantPlane.Workload;
+        await SeedInUnitOfWorkAsync(
+            tenantId,
+            isRootTenant ? TenantPlane.Root : TenantPlane.Workload,
+            cancellationToken
+        );
 
+        // The seed's contributors may write the tenant row, which issues it new concurrency tokens, so the tenant is read
+        // again once the seed has committed and its steps have run; a tenant materialized from it carries the tokens of
+        // the row its own seed committed (ADR-1463).
+        return await FindTenantAsync(tenantId, cancellationToken)
+            ?? throw TenantErrors.NotFound(tenantId);
+    }
+
+    /// <summary>
+    /// Seeds the specified tenant in one unit of work, retries a commit that another replica's write lost, and runs the
+    /// steps queued for after the commit, without reading the committed row.
+    /// </summary>
+    private async ValueTask SeedInUnitOfWorkAsync(
+        string tenantId,
+        TenantPlane plane,
+        CancellationToken cancellationToken
+    )
+    {
         for (var attempt = 1; ; ++attempt)
         {
             // Scope the whole seed to this tenant so every seed handler's tenant-bound queries resolve to it.
@@ -159,9 +180,7 @@ internal sealed class DefaultTenantProvisioner(
 
             var persistedTenant =
                 await store.GetOrDefaultAsync(tenantId, cancellationToken)
-                ?? throw TypedResults
-                    .NotFound()
-                    .AsException($"The tenant with identifier '{tenantId}' could not be found.");
+                ?? throw TenantErrors.NotFound(tenantId);
 
             var context = new TenantSeedContext
             {
@@ -208,7 +227,7 @@ internal sealed class DefaultTenantProvisioner(
                 }
             }
 
-            return persistedTenant;
+            return;
         }
     }
 

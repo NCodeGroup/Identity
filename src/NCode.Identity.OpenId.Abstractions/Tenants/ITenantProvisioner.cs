@@ -44,7 +44,8 @@ public interface ITenantProvisioner
     /// </summary>
     /// <param name="tenantId">The identifier of the tenant to seed.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the seeded
-    /// <see cref="PersistedTenant"/>.</returns>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the
+    /// <see cref="PersistedTenant"/> as its seed committed it: read once the seed's unit of work has committed and the
+    /// steps that follow it have run, so its row, settings and secrets concurrency tokens are those the seed wrote.</returns>
     ValueTask<PersistedTenant> SeedAsync(string tenantId, CancellationToken cancellationToken);
 }

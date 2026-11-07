@@ -16,6 +16,7 @@ using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
+using NCode.PropertyBag;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
@@ -157,6 +158,34 @@ public class TenantKeyProvisioningTests
         var reseeded = await GetSecretIdsAsync(factory, HostApplicationFactory.TenantId);
         Assert.Equal(3, provisioned.Count);
         Assert.Equal(provisioned, reseeded);
+    }
+
+    [Fact]
+    public async Task GetJwks_OnAColdStart_CachesTheTenantWithTheRowTokenItsSeedCommitted()
+    {
+        using var factory = CreateStaticFactory();
+        using var client = factory.CreateClient();
+
+        // This materialization seeds the tenant's keys.
+        await GetJwksAsync(client, host: null);
+
+        var tenantCache = factory.Services.GetRequiredService<IOpenIdTenantCache>();
+        var propertyBag = PropertyBagFactory.Create();
+        var revisions = await tenantCache.GetRevisionsAsync(propertyBag, CancellationToken.None);
+        var served = Assert.Single(
+            revisions,
+            revision => revision.TenantId == HostApplicationFactory.TenantId
+        );
+
+        using var serviceScope = factory.Services.CreateScope();
+        await using var storeManager = await serviceScope
+            .ServiceProvider.GetRequiredService<IStoreManagerFactory>()
+            .CreateAsync(CancellationToken.None);
+        var stored = await storeManager
+            .GetStore<ITenantStore>()
+            .GetConcurrencyTokensAsync([HostApplicationFactory.TenantId], CancellationToken.None);
+
+        Assert.Equal(stored[HostApplicationFactory.TenantId], served.ConcurrencyToken);
     }
 
     [Fact]

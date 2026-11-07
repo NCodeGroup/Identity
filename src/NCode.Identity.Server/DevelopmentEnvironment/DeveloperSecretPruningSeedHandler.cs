@@ -61,8 +61,8 @@ internal sealed class DeveloperSecretPruningSeedHandler(
             await store.RemoveSecretAsync(tenant.TenantId, secretId, cancellationToken);
         }
 
-        // Refresh the in-memory secrets so the contributors that follow, and the materialization after the seed, observe
-        // the pruned state without re-reading the still-uncommitted unit of work.
+        // Refresh the in-memory secrets so the contributors that follow observe the pruned state without re-reading
+        // the still-uncommitted unit of work.
         tenant.Secrets = new PersistedTenantSecrets
         {
             TenantId = tenant.Secrets.TenantId,

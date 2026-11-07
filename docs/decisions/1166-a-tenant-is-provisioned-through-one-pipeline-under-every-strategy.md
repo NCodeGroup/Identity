@@ -3,7 +3,8 @@
 - **Status:** Accepted (production key provisioning realized by
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md); amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a tenant is created
-  under its team at `POST /api/teams/{teamId}/tenants`)
+  under its team at `POST /api/teams/{teamId}/tenants`; amended by
+  [ADR-1463](1463-a-seeded-tenant-is-materialized-from-the-row-its-seed-committed.md): `SeedAsync` returns the tenant row its seed committed)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group
 

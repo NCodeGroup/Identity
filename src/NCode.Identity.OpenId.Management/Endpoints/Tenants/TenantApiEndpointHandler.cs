@@ -741,13 +741,11 @@ internal class TenantApiEndpointHandler(
 
         // The tenant is seeded as soon as it exists — after the root tenant — so its system resource servers and keys
         // are in place before its first request, through the one pipeline every tenant is seeded by (ADR-1166). The
-        // provisioner is scoped (its mediator is request-scoped), so it is resolved from the request's services.
+        // provisioner is scoped (its mediator is request-scoped), so it is resolved from the request's services. The
+        // seed returns the row it committed, whose concurrency token a seed contributor may have replaced (a seeded
+        // signing key changes its secrets), so the response reflects the tenant as it stands.
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
-        await provisioner.SeedAsync(tenant.TenantId, cancellationToken);
-
-        // A seed contributor may write to the tenant row (a seeded signing key changes its secrets), which replaces its
-        // concurrency token, so the response reflects the tenant as it now stands.
-        tenant = await ReloadTenantAsync(tenant, cancellationToken);
+        tenant = await provisioner.SeedAsync(tenant.TenantId, cancellationToken);
 
         // The audit record carries the tenant's own state, as an update's and a deletion's do; the environment is
         // derived from its settings and stamps the audit event itself (ADR-1289).
@@ -2270,16 +2268,6 @@ internal class TenantApiEndpointHandler(
     ) =>
         await storeManager.GetStore<ITenantStore>().GetOrDefaultAsync(tenantId, cancellationToken)
             is not null;
-
-    private async ValueTask<PersistedTenant> ReloadTenantAsync(
-        PersistedTenant tenant,
-        CancellationToken cancellationToken
-    )
-    {
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var store = storeManager.GetStore<ITenantStore>();
-        return await store.GetOrDefaultAsync(tenant.TenantId, cancellationToken) ?? tenant;
-    }
 
     // An empty issuer means the tenant has none; storing it as empty would put it under the issuer's unique index.
     private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;

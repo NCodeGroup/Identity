@@ -231,7 +231,9 @@ public class DefaultOpenIdTenantFactory(
 
         // A tenant is seeded whenever it is materialized: the bootstrap of a tenant created on demand, and the
         // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-1166). The provisioner
-        // is scoped (its mediator is request-scoped), so it is resolved from the request's services.
+        // is scoped (its mediator is request-scoped), so it is resolved from the request's services. The seed returns the
+        // tenant row it committed, so the tenant carries the row, settings and secrets concurrency tokens of its own seed,
+        // and a replica that revalidates its cached tenants after a missed announcement keeps it (ADR-1454, ADR-1463).
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         var persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
 
@@ -408,9 +410,7 @@ public class DefaultOpenIdTenantFactory(
 
         var persistedTenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
         if (persistedTenant is null)
-            throw TypedResults
-                .NotFound()
-                .AsException($"A tenant with id '{tenantId}' could not be found.");
+            throw TenantErrors.NotFound(tenantId);
 
         if (persistedTenant.IsDisabled)
             throw TypedResults

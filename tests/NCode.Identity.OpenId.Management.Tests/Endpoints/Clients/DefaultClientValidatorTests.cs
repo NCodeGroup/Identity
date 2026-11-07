@@ -282,6 +282,46 @@ public sealed class DefaultClientValidatorTests : IDisposable
 
     #endregion
 
+    #region AuthorizeCreateMachineClientAsync Tests
+
+    [Fact]
+    public async Task AuthorizeCreateMachineClientAsync_AuthorizesCreateOnTheOwningNode()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheNode(Operations.Create);
+
+        await Validator.AuthorizeCreateMachineClientAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ResourceNodeTypes.Team,
+            "team-1",
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource());
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Team, node.ResourceType);
+        Assert.Equal("team-1", node.ResourceId);
+    }
+
+    [Fact]
+    public async Task AuthorizeCreateMachineClientAsync_WhenForbiddenAndAuthenticated_Returns403()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeCreateMachineClientAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ResourceNodeTypes.Team,
+            "team-1",
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    #endregion
+
     #region AuthorizeUpdateAsync Tests
 
     [Fact]

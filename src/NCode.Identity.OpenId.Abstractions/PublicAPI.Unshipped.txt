@@ -539,6 +539,9 @@ NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.JoinKey.
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.JoinKey.init -> void
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.LinkedPrincipalId.get -> string?
 NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision.LinkedPrincipalId.init -> void
+NCode.Identity.OpenId.PrincipalResolution.IClientPrincipalResolver
+NCode.Identity.OpenId.PrincipalResolution.IClientPrincipalResolver.GetActingClientOrDefaultAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient?>
+NCode.Identity.OpenId.PrincipalResolution.IClientPrincipalResolver.GetActingClientOrDefaultAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient?>
 NCode.Identity.OpenId.PrincipalResolution.IFederatedIdentityLinkingPolicy
 NCode.Identity.OpenId.PrincipalResolution.IFederatedIdentityLinkingPolicy.ResolveLinkAsync(NCode.Identity.OpenId.Contexts.OpenIdContext! openIdContext, System.Security.Claims.ClaimsPrincipal! user, NCode.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.PrincipalResolution.FederatedIdentityLinkDecision!>
 NCode.Identity.OpenId.PrincipalResolution.IPrincipalResolver

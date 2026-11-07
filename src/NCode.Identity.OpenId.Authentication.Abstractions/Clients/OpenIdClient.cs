@@ -22,6 +22,11 @@ public abstract class OpenIdClient
     public abstract string ClientId { get; }
 
     /// <summary>
+    /// Gets the identifier of the client's principal: the subject of a token the client obtains for itself.
+    /// </summary>
+    public abstract string PrincipalId { get; }
+
+    /// <summary>
     /// Gets the <see cref="IReadOnlySettingCollection"/> containing the client's settings merged with tenant settings.
     /// </summary>
     public abstract IReadOnlySettingCollection Settings { get; }

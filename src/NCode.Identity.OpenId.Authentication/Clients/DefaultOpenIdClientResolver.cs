@@ -192,6 +192,7 @@ internal class DefaultOpenIdClientResolver(
         var definition = new OpenIdClientDefinition
         {
             ClientId = persistedClient.ClientId,
+            PrincipalId = persistedClient.PrincipalId,
             Settings = effectiveSettings,
             Secrets = secrets,
             SecretVerifiers = verifiers,

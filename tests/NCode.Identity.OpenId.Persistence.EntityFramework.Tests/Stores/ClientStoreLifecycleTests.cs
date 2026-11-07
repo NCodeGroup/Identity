@@ -173,6 +173,33 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     }
 
     [Fact]
+    public async Task AddAsync_WithAnOwningNode_ReadsItBack()
+    {
+        await SeedTenantAsync();
+        var template = CreateClient();
+        var client = new PersistedClient
+        {
+            TenantId = template.TenantId,
+            ClientId = template.ClientId,
+            ConcurrencyToken = template.ConcurrencyToken,
+            IsDisabled = template.IsDisabled,
+            OwningNodeType = "team",
+            OwningNodeId = "Team-One",
+            Settings = template.Settings,
+            Secrets = template.Secrets,
+        };
+
+        await _store.AddAsync(client, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+        _dbContext.ChangeTracker.Clear();
+
+        var reloaded = await _store.GetOrDefaultAsync(ClientId, CancellationToken.None);
+        Assert.NotNull(reloaded);
+        Assert.Equal("team", reloaded.OwningNodeType);
+        Assert.Equal("Team-One", reloaded.OwningNodeId);
+    }
+
+    [Fact]
     public async Task RemoveAsync_WhenNoSecrets_RemovesAndReturnsTrue()
     {
         await SeedClientAsync();

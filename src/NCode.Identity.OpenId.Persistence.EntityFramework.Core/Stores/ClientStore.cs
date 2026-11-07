@@ -91,6 +91,8 @@ internal class ClientStore(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             PrincipalId = client.PrincipalId,
+            OwningNodeType = client.OwningNodeType,
+            OwningNodeId = client.OwningNodeId,
             ResourceServerId = client.ResourceServer?.ResourceServerId,
             Settings = await MapSettingsAsync(client, cancellationToken),
             Secrets = await MapSecretsAsync(client, cancellationToken),
@@ -222,6 +224,48 @@ internal class ClientStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<PagedResult<PersistedClient>> GetPageByOwningNodeAsync(
+        string owningNodeType,
+        string owningNodeId,
+        PageRequest page,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedOwningNodeId = Normalize(owningNodeId);
+        var query = QueryClients()
+            .Where(client =>
+                client.OwningNodeType == owningNodeType
+                && client.NormalizedOwningNodeId == normalizedOwningNodeId
+            );
+
+        // Fetch one extra row so a full page signals that another page exists.
+        var afterId = DecodeCursor(page.Cursor);
+        var entities = await GetEntityPageAsync(query, afterId, page.Limit + 1, cancellationToken);
+
+        return await BuildPageAsync(entities, page.Limit, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask<PersistedClient?> GetByPrincipalOrDefaultAsync(
+        string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var normalizedPrincipalId = Normalize(principalId);
+
+        // A principal is unique across tenants (the unique index on the normalized principal), so at most one row
+        // matches. Roles are granted at nodes of the control plane, whatever tenant the client lives in. See ADR-1467.
+        var entity = await QueryClients()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(
+                client => client.NormalizedPrincipalId == normalizedPrincipalId,
+                cancellationToken
+            );
+
+        return entity is null ? null : await MapFromEntityAsync(entity, cancellationToken);
+    }
+
+    /// <inheritdoc />
     protected override long GetSortKey(ClientEntity entity) => entity.Id;
 
     // A client is bound only to a resource server of its own tenant.
@@ -281,6 +325,11 @@ internal class ClientStore(
             NormalizedClientId = Normalize(persistedClient.ClientId),
             PrincipalId = persistedClient.PrincipalId,
             NormalizedPrincipalId = Normalize(persistedClient.PrincipalId),
+            OwningNodeType = persistedClient.OwningNodeType,
+            OwningNodeId = persistedClient.OwningNodeId,
+            NormalizedOwningNodeId = persistedClient.OwningNodeId is null
+                ? null
+                : Normalize(persistedClient.OwningNodeId),
             ConcurrencyToken = persistedClient.ConcurrencyToken,
             SettingsConcurrencyToken = persistedClient.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedClient.Secrets.ConcurrencyToken,

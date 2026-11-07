@@ -5,7 +5,6 @@ using System.Text.Json;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Management.Auditing;
-using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
@@ -147,7 +146,6 @@ internal class ClientPromotionContributor(
             }
         }
 
-        await AddRequiredCreateAuthoritiesAsync(context, computation.Promotions, cancellationToken);
         await AddIntroducedViolationsAsync(context, computation, cancellationToken);
     }
 
@@ -294,44 +292,6 @@ internal class ClientPromotionContributor(
             ) && (target is null || target.Secrets.Value.Count == 0);
     }
 
-    private static async ValueTask AddRequiredCreateAuthoritiesAsync(
-        TenantPromotionContext context,
-        IReadOnlyList<ClientPromotion> promotions,
-        CancellationToken cancellationToken
-    )
-    {
-        var store = context.StoreManager.GetStore<IRoleAssignmentStore>();
-
-        foreach (var promotion in promotions)
-        {
-            if (
-                promotion.Action != TenantPromotionActions.Updated
-                || promotion.Target is not { } target
-            )
-            {
-                continue;
-            }
-
-            using var scope = context.BeginTargetScope();
-
-            var assignments = await store.GetByPrincipalAsync(
-                target.PrincipalId,
-                cancellationToken
-            );
-
-            foreach (var assignment in assignments)
-            {
-                context.AddRequiredCreateAuthority(
-                    ResourceNode.For(
-                        assignment.TenantId,
-                        assignment.ResourceType,
-                        assignment.ResourceId
-                    )
-                );
-            }
-        }
-    }
-
     private async ValueTask AddIntroducedViolationsAsync(
         TenantPromotionContext context,
         ClientPromotionComputation computation,
@@ -431,6 +391,13 @@ internal class ClientPromotionContributor(
 
         foreach (var source in sources)
         {
+            // A machine client belongs to its owning node, not to the tenant's configuration.
+            // See ADR-1466.
+            if (source.OwningNodeType is not null)
+            {
+                continue;
+            }
+
             if (
                 HostManagedClientChecker.IsHostManaged(
                     context.SourceTenant.TenantId,
@@ -485,6 +452,13 @@ internal class ClientPromotionContributor(
                 {
                     errors.Add(
                         "The host configures the client in the target tenant, so the promotion does not change it."
+                    );
+                }
+
+                if (target.OwningNodeType is not null)
+                {
+                    errors.Add(
+                        "The client in the target tenant is a machine client of the platform or a team, so the promotion does not change it."
                     );
                 }
 

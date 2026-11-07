@@ -10,6 +10,7 @@ using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
+using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Persistence.Stores;
 
@@ -112,7 +113,7 @@ public class OwnershipHandlerTests : IDisposable
     )
     {
         var factory = MockRepository.Create<IStoreManagerFactory>();
-        var resolver = MockRepository.Create<ICallerPrincipalResolver>();
+        var resolver = MockRepository.Create<IPrincipalResolver>();
         var accessor = MockRepository.Create<IHttpContextAccessor>();
         var ambient = MockRepository.Create<IAmbientTenantAccessor>();
         if (decides)
@@ -135,7 +136,8 @@ public class OwnershipHandlerTests : IDisposable
             factory.Object,
             resolver.Object,
             accessor.Object,
-            ambient.Object
+            ambient.Object,
+            new DefaultAuthorityChainResolver(ambient.Object)
         );
         var context = new AuthorizationHandlerContext([requirement], user, resource);
 
@@ -154,7 +156,7 @@ public class OwnershipHandlerTests : IDisposable
 
     private void SetupDecision(
         Mock<IStoreManagerFactory> factory,
-        Mock<ICallerPrincipalResolver> resolver,
+        Mock<IPrincipalResolver> resolver,
         Mock<IHttpContextAccessor> accessor,
         Mock<IAmbientTenantAccessor> ambient,
         ISupportTenantId resource,
@@ -180,7 +182,7 @@ public class OwnershipHandlerTests : IDisposable
         // The resolver maps the caller to a stable principal id; mirror the token's subject claim (ADR-1035).
         resolver
             .Setup(x =>
-                x.ResolveCallerPrincipalIdOrDefaultAsync(
+                x.ResolvePrincipalIdOrDefaultAsync(
                     It.IsAny<OpenIdContext>(),
                     It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<IStoreManager>(),
@@ -224,6 +226,32 @@ public class OwnershipHandlerTests : IDisposable
                         x.GetOrDefaultAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())
                     )
                     .ReturnsAsync(CreateTeam(storedTeamId, teamAncestors ?? []))
+                    .Verifiable();
+            }
+
+            // A client node's owning node is read from the client row in the node's tenant scope.
+            if (resource is IResourceNode { ResourceType: ResourceNodeTypes.Client } clientNode)
+            {
+                if (!string.Equals(clientNode.TenantId, TenantId, StringComparison.Ordinal))
+                {
+                    var clientScope = MockRepository.Create<IDisposable>();
+                    clientScope.Setup(x => x.Dispose()).Verifiable();
+                    ambient
+                        .Setup(x => x.BeginScope(clientNode.TenantId))
+                        .Returns(clientScope.Object)
+                        .Verifiable();
+                }
+
+                var clientStore = MockRepository.Create<IClientStore>();
+                manager
+                    .Setup(x => x.GetStore<IClientStore>())
+                    .Returns(clientStore.Object)
+                    .Verifiable();
+                clientStore
+                    .Setup(x =>
+                        x.GetOrDefaultAsync(clientNode.ResourceId, It.IsAny<CancellationToken>())
+                    )
+                    .ReturnsAsync((PersistedClient?)null)
                     .Verifiable();
             }
 

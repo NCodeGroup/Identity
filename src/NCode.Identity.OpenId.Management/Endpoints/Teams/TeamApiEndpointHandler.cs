@@ -1254,6 +1254,11 @@ internal class TeamApiEndpointHandler(
             BuiltInRoles.TeamAdmin,
             cancellationToken
         );
+        if (grant.IsRefused)
+        {
+            return RoleRefusedForPrincipal();
+        }
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var ownerResource = ToOwnerResource(grant.Assignment);

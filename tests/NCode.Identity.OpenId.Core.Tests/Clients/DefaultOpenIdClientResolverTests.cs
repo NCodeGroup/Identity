@@ -27,6 +27,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
 {
     private const string TenantId = "tenant-1";
     private const string ClientId = "client-1";
+    private const string PrincipalId = "principal-1";
     private const string ResourceServerId = "rs-1";
 
     private static readonly DateTimeOffset Now = DateTimeOffset.UnixEpoch.AddYears(50);
@@ -42,6 +43,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
     private Mock<OpenIdContext> MockContext { get; }
     private Mock<OpenIdTenant> MockTenant { get; }
     private DefaultHttpContext HttpContext { get; } = new();
+    private OpenIdClientDefinition? CreatedDefinition { get; set; }
     private DefaultOpenIdClientResolver Resolver { get; }
 
     public DefaultOpenIdClientResolverTests()
@@ -90,6 +92,7 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         {
             TenantId = tenantId,
             ClientId = ClientId,
+            PrincipalId = PrincipalId,
             ConcurrencyToken = "ct",
             IsDisabled = isDisabled,
             ResourceServerId = resourceServerId,
@@ -230,6 +233,9 @@ public class DefaultOpenIdClientResolverTests : BaseTests
                     It.IsAny<CancellationToken>()
                 )
             )
+            .Callback<OpenIdContext, OpenIdClientDefinition, CancellationToken>(
+                (_, definition, _) => CreatedDefinition = definition
+            )
             .ReturnsAsync(client)
             .Verifiable();
 
@@ -286,6 +292,18 @@ public class DefaultOpenIdClientResolverTests : BaseTests
         var client = await ResolveAsync();
 
         Assert.Same(expected, client);
+    }
+
+    [Fact]
+    public async Task ResolveClientOrDefaultAsync_WhenTheClientExists_PassesItsPrincipalToTheFactory()
+    {
+        SetupStoredClient(CreatePersistedClient());
+        SetupClientCreation(expectedResourceServerId: null);
+
+        await ResolveAsync();
+
+        Assert.NotNull(CreatedDefinition);
+        Assert.Equal(PrincipalId, CreatedDefinition.PrincipalId);
     }
 
     [Fact]

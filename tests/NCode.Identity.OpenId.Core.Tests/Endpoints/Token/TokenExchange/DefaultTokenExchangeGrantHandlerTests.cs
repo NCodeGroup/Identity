@@ -16,6 +16,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Models;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
+using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.PrincipalResolution;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
@@ -38,6 +39,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     private Mock<IPrincipalResolver> MockPrincipalResolver { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
     private Mock<IClientScopeService> MockClientScopeService { get; }
+    private Mock<IClientPrincipalResolver> MockClientPrincipalResolver { get; }
     private DefaultTokenExchangeGrantHandler Handler { get; }
 
     public DefaultTokenExchangeGrantHandlerTests()
@@ -47,13 +49,15 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         MockPrincipalResolver = CreateStrictMock<IPrincipalResolver>();
         MockStoreManagerFactory = CreateStrictMock<IStoreManagerFactory>();
         MockClientScopeService = CreateStrictMock<IClientScopeService>();
+        MockClientPrincipalResolver = CreateStrictMock<IClientPrincipalResolver>();
         Handler = new DefaultTokenExchangeGrantHandler(
             TimeProvider,
             MockTokenService.Object,
             MockSubjectTokenValidator.Object,
             MockPrincipalResolver.Object,
             MockStoreManagerFactory.Object,
-            MockClientScopeService.Object
+            MockClientScopeService.Object,
+            MockClientPrincipalResolver.Object
         );
     }
 
@@ -154,6 +158,45 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
             )
             .Verifiable();
     }
+
+    // A subject token that names no client acting for itself, read once the requester is entitled to the token.
+    private void SetupNoActingClient() => SetupActingClient(null);
+
+    private void SetupActingClient(PersistedClient? client) =>
+        MockClientPrincipalResolver
+            .Setup(x =>
+                x.GetActingClientOrDefaultAsync(
+                    It.IsAny<OpenIdContext>(),
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<PersistedClient?>(client))
+            .Verifiable();
+
+    private static PersistedClient CreateClient() =>
+        new()
+        {
+            TenantId = "tenant-1",
+            ClientId = "subject-client",
+            PrincipalId = "subject-principal",
+            ConcurrencyToken = "ct",
+            IsDisabled = false,
+            Settings = new PersistedClientSettings
+            {
+                TenantId = "tenant-1",
+                ClientId = "subject-client",
+                ConcurrencyToken = "ct",
+                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            Secrets = new PersistedClientSecrets
+            {
+                TenantId = "tenant-1",
+                ClientId = "subject-client",
+                ConcurrencyToken = "ct",
+                Value = [],
+            },
+        };
 
     #endregion
 
@@ -291,6 +334,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenRequestedTokenTypeUnsupported_ReturnsError()
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
+        SetupNoActingClient();
         var mockClient = SetupConfidentialClient();
         var mockTokenRequest = SetupTokenRequest(
             requestedTokenType: "urn:ietf:params:oauth:token-type:saml2",
@@ -317,6 +361,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenRefreshTokenRequestedButNotAllowed_ReturnsError()
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
+        SetupNoActingClient();
         var mockClient = SetupConfidentialClient();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
@@ -350,6 +395,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenRefreshTokenRequestedAndSubjectHasNoAuthTime_ReturnsError()
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
+        SetupNoActingClient();
         var mockClient = SetupConfidentialClient();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
@@ -386,6 +432,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
         var authTime = UtcNow - TimeSpan.FromDays(31);
 
         var (mockContext, mockError) = SetupContextWithErrorFactory();
+        SetupNoActingClient();
         var mockClient = SetupConfidentialClient();
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
@@ -428,6 +475,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenActorTokenTypeMissing_ReturnsError()
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
+        SetupNoActingClient();
         var mockClient = SetupConfidentialClient();
         var mockTokenRequest = SetupTokenRequest(actorToken: "actor.jwt", actorTokenType: null);
 
@@ -451,6 +499,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenSubjectAndActorAreSame_ReturnsError()
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
+        SetupNoActingClient();
         var mockClient = SetupConfidentialClient();
         var mockTokenRequest = SetupTokenRequest(
             actorToken: "actor.jwt",
@@ -481,6 +530,7 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     public async Task HandleAsync_WhenSubjectTokenDoesNotAuthorizeActor_ReturnsError()
     {
         var (mockContext, mockError) = SetupContextWithErrorFactory();
+        SetupNoActingClient();
         var mockClient = SetupConfidentialClient();
         var mockTokenRequest = SetupTokenRequest(
             actorToken: "actor.jwt",
@@ -513,9 +563,34 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
     #region Subject
 
     [Fact]
+    public async Task HandleAsync_WhenTheSubjectTokenIsAClientActingForItself_ReturnsInvalidGrant()
+    {
+        var (mockContext, mockError) = SetupContextWithErrorFactory();
+        SetupActingClient(CreateClient());
+        var mockClient = SetupConfidentialClient();
+        var mockTokenRequest = SetupTokenRequest(readsThrough: RequestReads.SubjectTokenType);
+
+        SetupSubjectValidatorSuccess(
+            "subject.jwt",
+            $$"""{"sub":"subject-principal","client_id":"{{RequesterClientId}}"}"""
+        );
+
+        var result = await Handler.HandleAsync(
+            mockContext.Object,
+            mockClient.Object,
+            mockTokenRequest.Object,
+            ProofOfPossessionBinding.Unbound,
+            CancellationToken.None
+        );
+
+        Assert.Same(mockError.Object, result);
+    }
+
+    [Fact]
     public async Task HandleAsync_WhenTheSubjectTokenIsValid_ValidatesTheSubjectAsOneOfThisTenant()
     {
         var (mockContext, _) = SetupContextWithErrorFactory();
+        SetupNoActingClient();
         var mockClient = SetupConfidentialClient();
         var mockTokenRequest = SetupTokenRequest();
 

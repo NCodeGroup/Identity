@@ -89,6 +89,8 @@ NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ClientId.get -> string!
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ClientId.init -> void
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.OpenIdClientDefinition() -> void
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.PrincipalId.get -> string!
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.PrincipalId.init -> void
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ResourceServerId.get -> string?
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ResourceServerId.init -> void
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!
@@ -202,6 +204,7 @@ NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.RequiredAudiences.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
 NCode.Identity.OpenId.Authentication.Subject.AuthenticateResourceRequestCommand.RequiredAudiences.init -> void
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.ClientId.get -> string!
+abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.PrincipalId.get -> string!
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.ConfidentialClient.get -> NCode.Identity.OpenId.Authentication.Clients.OpenIdConfidentialClient?
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.IsConfidential.get -> bool
 abstract NCode.Identity.OpenId.Authentication.Clients.OpenIdClient.PropertyBag.get -> NCode.PropertyBag.IPropertyBag!

@@ -54,7 +54,8 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
     );
 
     private GetAccessTokenSubjectClaimsCommand CreateCommand(
-        SubjectAuthentication? subjectAuthentication
+        SubjectAuthentication? subjectAuthentication,
+        OpenIdClient? openIdClient = null
     )
     {
         IReadOnlyList<string> scopes = ["openid"];
@@ -76,7 +77,7 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
 
         return new GetAccessTokenSubjectClaimsCommand(
             CreateStrictMock<OpenIdContext>().Object,
-            CreateStrictMock<OpenIdClient>().Object,
+            openIdClient ?? CreateStrictMock<OpenIdClient>().Object,
             tokenContext,
             []
         );
@@ -90,11 +91,17 @@ public class DefaultGetAccessTokenSubjectClaimsHandlerTests : BaseTests
     #region HandleAsync Tests
 
     [Fact]
-    public async Task HandleAsync_WhenNoSubjectAuthentication_DoesNotCopyClaims()
+    public async Task HandleAsync_WhenNoSubjectAuthentication_EmitsOnlyTheClientsPrincipalAsSubject()
     {
-        var command = CreateCommand(subjectAuthentication: null);
+        var mockClient = CreateStrictMock<OpenIdClient>();
+        mockClient.Setup(x => x.PrincipalId).Returns("client-principal-id").Verifiable();
+        var command = CreateCommand(subjectAuthentication: null, mockClient.Object);
 
         await Handler.HandleAsync(command, CancellationToken.None);
+
+        var claim = Assert.Single(command.SubjectClaims);
+        Assert.Equal(JoseClaimNames.Payload.Sub, claim.Type);
+        Assert.Equal("client-principal-id", claim.Value);
     }
 
     [Fact]

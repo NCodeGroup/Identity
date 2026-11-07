@@ -35,6 +35,24 @@ public sealed class PersistedClient : BasePersistedClientResource
     public string PrincipalId { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets the type of the node that owns this client as its machine client — <c>platform</c> or <c>team</c> — or
+    /// <c>null</c> for an ordinary client. A machine client lives in the control-plane tenant, obtains tokens only for
+    /// itself, holds roles only at its owning node or beneath it, and is changed only with creation authority at that
+    /// node. It is set when the client is created and never changes.
+    /// </summary>
+    // See ADR-1466.
+    [MaxLength(MaxLengths.ResourceType)]
+    public string? OwningNodeType { get; init; }
+
+    /// <summary>
+    /// Gets the identifier of the node that owns this client: the team's identifier, or <c>platform</c>; <c>null</c>
+    /// for an ordinary client.
+    /// </summary>
+    // See ADR-1466.
+    [MaxLength(MaxLengths.ResourceId)]
+    public string? OwningNodeId { get; init; }
+
+    /// <summary>
     /// Gets the identifier of the resource server this client acts for, or <c>null</c> for an ordinary client. A
     /// client bound to a resource server is that resource server's credential at the token introspection endpoint and
     /// is accepted nowhere else. The binding is set when the client is created and never changes.

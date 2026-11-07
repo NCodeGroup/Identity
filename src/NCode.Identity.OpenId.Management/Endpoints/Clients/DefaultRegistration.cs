@@ -19,6 +19,21 @@ internal static class DefaultRegistration
         public void AddClientEndpoint()
         {
             builder.AddEndpoint<ClientApiEndpointHandler>();
+            builder.AddClientServices();
+        }
+
+        /// <summary>
+        /// Registers the routes that create and list machine clients and the services they depend on.
+        /// </summary>
+        public void AddMachineClientEndpoint()
+        {
+            builder.AddEndpoint<MachineClientEndpointProvider>();
+            builder.ServiceCollection.TryAddSingleton<ClientApiEndpointHandler>();
+            builder.AddClientServices();
+        }
+
+        private void AddClientServices()
+        {
             builder.ServiceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
             builder.ServiceCollection.TryAddSingleton<
                 IHostManagedClientChecker,

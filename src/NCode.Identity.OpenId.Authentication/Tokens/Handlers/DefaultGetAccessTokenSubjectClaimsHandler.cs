@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Security.Claims;
 using NCode.Identity.Claims;
 using NCode.Identity.Jose;
 using NCode.Identity.OpenId.Authentication.Subject;
@@ -12,6 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens.Handlers;
 /// <summary>
 /// Provides a default implementation for a <see cref="GetAccessTokenSubjectClaimsCommand"/> handler that generates the
 /// subject claims for an access token. Custom claims are added by additional handlers provided by the application.
+/// With no authenticated subject, the client acts for itself and the subject claim names the client's principal.
 /// </summary>
 internal class DefaultGetAccessTokenSubjectClaimsHandler(
     IClaimsService claimsService,
@@ -35,6 +37,9 @@ internal class DefaultGetAccessTokenSubjectClaimsHandler(
 
         if (!tokenRequest.SubjectAuthentication.HasValue)
         {
+            // A client acting for itself is the token's subject: 'sub' names its principal (RFC 9068 §2.2).
+            // See ADR-1450.
+            targetClaims.Add(new Claim(JoseClaimNames.Payload.Sub, openIdClient.PrincipalId));
             return ValueTask.CompletedTask;
         }
 

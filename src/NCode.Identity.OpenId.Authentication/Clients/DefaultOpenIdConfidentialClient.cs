@@ -25,6 +25,9 @@ internal class DefaultOpenIdConfidentialClient(
     public override string ClientId => PublicClient.ClientId;
 
     /// <inheritdoc />
+    public override string PrincipalId => PublicClient.PrincipalId;
+
+    /// <inheritdoc />
     public override IReadOnlySettingCollection Settings => PublicClient.Settings;
 
     /// <inheritdoc />

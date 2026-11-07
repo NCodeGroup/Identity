@@ -65,7 +65,7 @@ public class TokenExchangeEndpointTests
             .GetString();
         Assert.False(string.IsNullOrEmpty(accessToken));
 
-        // The token names the client and no subject, so no principal is resolved from it.
+        // The token names the client's own principal, which no exchange accepts.
         using var exchangeContent = new FormUrlEncodedContent(
             new Dictionary<string, string>
             {
@@ -84,7 +84,7 @@ public class TokenExchangeEndpointTests
         var root = JsonElement.Parse(exchangeBody);
         Assert.Equal("invalid_grant", root.GetProperty("error").GetString());
         Assert.Contains(
-            "could not be resolved to a known principal",
+            "represents a client acting for itself",
             root.GetProperty("error_description").GetString()
         );
     }

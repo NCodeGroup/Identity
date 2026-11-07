@@ -30,9 +30,10 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Organize tests with `#region` directives** by the member under test — template
   [Regions](csharp-tests.instructions.md#regions).
 - 👁 **Build a `PersistedClient` with `PersistedClientBuilder`.** It lives in the support project
-  `NCode.Identity.OpenId.Persistence.TestSupport`, in the namespace of the type it builds, and copies the tenant,
-  client and concurrency tokens into the settings and secrets documents. Set only the members that differ from the
-  builder's defaults, and keep a private factory in a test file only for the values its tests vary
+  `NCode.Identity.OpenId.Persistence.TestSupport`, in the namespace of the type it builds. `Build()` copies the tenant
+  and client identifiers into the settings and secrets documents; their concurrency tokens come from
+  `SettingsConcurrencyToken` and `SecretsConcurrencyToken`. Set only the members that differ from the builder's
+  defaults, and keep a private factory in a test file only for the values its tests vary
   (`CreateClient(bool isDisabled)` in `DefaultPrincipalResolverTests`).
 - 👁 **A fixture that more than one test project builds lives in a shared support project**, such as
   `NCode.Identity.OpenId.Persistence.TestSupport`, never as a copy per test file.

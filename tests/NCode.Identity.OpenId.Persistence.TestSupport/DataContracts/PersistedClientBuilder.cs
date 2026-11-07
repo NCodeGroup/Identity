@@ -10,36 +10,80 @@ namespace NCode.Identity.OpenId.Persistence.DataContracts;
 
 /// <summary>
 /// Builds a <see cref="PersistedClient"/> for tests. Each property holds a value a test may care about and defaults to
-/// the most common fixture value; <see cref="Build"/> copies the tenant and client identifiers and the concurrency
-/// tokens into the nested settings and secrets documents.
+/// the most common fixture value; <see cref="Build"/> copies the tenant and client identifiers into the nested settings
+/// and secrets documents, whose concurrency tokens come from <see cref="SettingsConcurrencyToken"/> and
+/// <see cref="SecretsConcurrencyToken"/>.
 /// </summary>
 [ExcludeFromCodeCoverage]
 public sealed record PersistedClientBuilder
 {
+    /// <summary>
+    /// Gets the client's tenant identifier. Defaults to <c>tenant-1</c>.
+    /// </summary>
     public string TenantId { get; init; } = "tenant-1";
 
+    /// <summary>
+    /// Gets the client's identifier. Defaults to <c>client-1</c>.
+    /// </summary>
     public string ClientId { get; init; } = "client-1";
 
+    /// <summary>
+    /// Gets the identifier of the client's principal. Defaults to an empty string.
+    /// </summary>
     public string PrincipalId { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Gets the concurrency token of the client. Defaults to an empty string.
+    /// </summary>
     public string ConcurrencyToken { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Gets the concurrency token of the client's settings document. Defaults to an empty string.
+    /// </summary>
     public string SettingsConcurrencyToken { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Gets the concurrency token of the client's secrets document. Defaults to an empty string.
+    /// </summary>
     public string SecretsConcurrencyToken { get; init; } = string.Empty;
 
+    /// <summary>
+    /// Gets a value indicating whether the client is disabled. Defaults to <see langword="false"/>.
+    /// </summary>
     public bool IsDisabled { get; init; }
 
+    /// <summary>
+    /// Gets the type of the node that owns the client. Defaults to <see langword="null"/>.
+    /// </summary>
     public string? OwningNodeType { get; init; }
 
+    /// <summary>
+    /// Gets the identifier of the node that owns the client. Defaults to <see langword="null"/>.
+    /// </summary>
     public string? OwningNodeId { get; init; }
 
+    /// <summary>
+    /// Gets the identifier of the resource server the client belongs to. Defaults to <see langword="null"/>.
+    /// </summary>
     public string? ResourceServerId { get; init; }
 
+    /// <summary>
+    /// Gets the value of the client's settings document. Defaults to an empty JSON object.
+    /// </summary>
     public JsonElement Settings { get; init; } = JsonElements.EmptyObject;
 
+    /// <summary>
+    /// Gets the secrets of the client. Defaults to an empty collection.
+    /// </summary>
     public IReadOnlyCollection<PersistedSecret> Secrets { get; init; } = [];
 
+    /// <summary>
+    /// Builds the <see cref="PersistedClient"/>.
+    /// </summary>
+    /// <returns>
+    /// A new <see cref="PersistedClient"/> whose settings and secrets carry the client's tenant and client identifiers
+    /// and a copy of <see cref="Secrets"/>.
+    /// </returns>
     public PersistedClient Build() =>
         new()
         {

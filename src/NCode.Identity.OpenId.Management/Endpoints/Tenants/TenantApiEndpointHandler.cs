@@ -240,9 +240,7 @@ internal class TenantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
-        tenants
-            .MapGet("/{tenantId}/owners", ListOwnersAsync)
-            .Produces<CollectionResource<OwnerResource>>();
+        tenants.MapGet("/{tenantId}/owners", ListOwnersAsync).Produces<RoleListResource>();
         tenants
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created)
@@ -251,9 +249,7 @@ internal class TenantApiEndpointHandler(
             .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
 
-        tenants
-            .MapGet("/{tenantId}/admins", ListAdminsAsync)
-            .Produces<CollectionResource<OwnerResource>>();
+        tenants.MapGet("/{tenantId}/admins", ListAdminsAsync).Produces<RoleListResource>();
         tenants
             .MapPost("/{tenantId}/admins", AddAdminAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created)
@@ -2041,9 +2037,9 @@ internal class TenantApiEndpointHandler(
     }
 
     /// <summary>
-    /// Lists a tenant's owners.
+    /// Lists a tenant's owners and whether the caller may grant and revoke the role.
     /// </summary>
-    /// <response code="200">A page of the tenant's owners.</response>
+    /// <response code="200">The tenant's owners and whether the caller may change them.</response>
     [EndpointName("api/tenants/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
@@ -2051,12 +2047,14 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        return await ProcessListOwnersAsync(
+        // See ADR-1465.
+        var tenantNode = GetTenantNode(tenantId);
+        return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            tenantId,
-            ResourceNodeTypes.Tenant,
-            tenantId,
+            tenantNode,
+            BuiltInRoles.Owner,
             (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
+            (_, token) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Update, token),
             cancellationToken
         );
     }
@@ -2110,9 +2108,9 @@ internal class TenantApiEndpointHandler(
 
     /// <summary>
     /// Lists a tenant's administrators: the principals that manage the tenant and everything beneath it and create its
-    /// resources.
+    /// resources, and whether the caller may grant and revoke the role.
     /// </summary>
-    /// <response code="200">The tenant's administrators.</response>
+    /// <response code="200">The tenant's administrators and whether the caller may change them.</response>
     // See ADR-1417
     [EndpointName("api/tenants/admins/list")]
     internal virtual async ValueTask<IResult> ListAdminsAsync(
@@ -2121,35 +2119,15 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTenantNode(tenantId),
-            Operations.Read
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await TenantExistsAsync(storeManager, tenantId, cancellationToken))
-        {
-            return TypedResults.NotFound();
-        }
-
-        var admins = await ResourceOwnershipService.GetAssignmentsAsync(
-            storeManager,
-            ResourceNodeTypes.Tenant,
-            tenantId,
+        // See ADR-1465.
+        var tenantNode = GetTenantNode(tenantId);
+        return await ProcessListRoleAssignmentsAsync(
+            httpContext,
+            tenantNode,
             BuiltInRoles.TenantAdmin,
+            (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
+            (_, token) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Create, token),
             cancellationToken
-        );
-        return TypedResults.Json(
-            new CollectionResource<OwnerResource>
-            {
-                Items = admins.Select(ToOwnerResource).ToList(),
-                ContinuationToken = null,
-            }
         );
     }
 

@@ -344,6 +344,23 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    private void SetupAuthorization(
+        IAuthorizationRequirement operation,
+        AuthorizationResult result
+    ) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Contains(operation)
+                    )
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
     private void SetupResourceId(string id = "generated-id")
     {
         MockCryptoService
@@ -5156,6 +5173,75 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #endregion
 
+    #region Owners Tests
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayUpdateTheTenant_ReportsItMayChangeTheOwners()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.Owner)])
+            .Verifiable();
+
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.True(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayOnlyReadTheTenant_ReportsItMayNotChangeTheOwners()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Failed());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.Owner)])
+            .Verifiable();
+
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.False(value.CanChange);
+    }
+
+    #endregion
+
     #region Admins Tests
 
     [Fact]
@@ -5183,12 +5269,48 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
-        var admin = Assert.Single(json.Value!.Items);
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        var admin = Assert.Single(value.Items);
         Assert.Equal(
             ("principal-1", BuiltInRoles.TenantAdmin),
             (admin.PrincipalId, admin.RoleName)
         );
+        Assert.True(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListAdminsAsync_WhenTheCallerMayNotCreateAtTheTenant_ReportsItMayNotChangeTheAdministrators()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupAuthorization(Operations.Create, AuthorizationResult.Failed());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TenantAdmin)])
+            .Verifiable();
+
+        var result = await Handler.ListAdminsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.False(value.CanChange);
     }
 
     [Fact]

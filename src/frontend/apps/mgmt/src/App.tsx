@@ -62,12 +62,11 @@ const surfaceFallback = <CircularProgress aria-label="Loading" data-testid="surf
  * active management scope (the platform, team or tenant security boundary) and, within it, the active surface. The
  * home lists the places the caller holds authority (ADR-1420); once that access is known, a caller without platform
  * authority is sent home from a platform route, and the team and tenant back controls lead to a place the caller can
- * open. In the
- * platform scope that is the teams, the platform's machine clients, its settings or its encryption keys; within a
- * team it is the team's tenants, child teams, machine clients, settings, access or usage; within a tenant it is clients, resource servers, grants, or one
- * of the tenant's own surfaces: secrets, encryption keys, settings, access, or usage (ADR-1255). All data fetching lives in the
- * child containers; this component only maps the route to a
- * surface and tab changes to navigation.
+ * open. In the platform scope that is the teams, the platform's machine clients, its settings or its encryption
+ * keys; within a team it is the team's tenants, child teams, machine clients, settings, access or usage; within a
+ * tenant it is clients, resource servers, grants, or one of the tenant's own surfaces: secrets, encryption keys,
+ * settings, access, or usage (ADR-1255). All data fetching lives in the child containers; this component only maps
+ * the route to a surface and tab changes to navigation.
  */
 export function App() {
   const user = useAppSelector((state) => state.session.user);

@@ -444,16 +444,16 @@ public class TeamManagementTests
         return (clientId, material);
     }
 
-    // Creates a client in the control-plane tenant that authenticates with HTTP Basic and returns its credentials and
-    // the principal that its tokens resolve to.
+    // Creates a machine client of the platform, or of the node that ownerPath names, that authenticates with HTTP Basic
+    // and returns its credentials and the principal that its tokens resolve to.
     private static async Task<(
         string ClientId,
         string ClientSecret,
         string PrincipalId
-    )> CreateMachineClientAsync(HttpClient administrator)
+    )> CreateMachineClientAsync(HttpClient caller, string ownerPath = "/api/platform/clients")
     {
-        using var created = await administrator.PostAsJsonAsync(
-            $"/api/tenants/{RootTenantId}/clients",
+        using var created = await caller.PostAsJsonAsync(
+            ownerPath,
             new
             {
                 isDisabled = false,
@@ -473,7 +473,7 @@ public class TeamManagementTests
         var principalId = createdClient.GetProperty("principalId").GetString();
         Assert.NotNull(principalId);
 
-        using var secret = await administrator.PostAsJsonAsync(
+        using var secret = await caller.PostAsJsonAsync(
             $"/api/tenants/{RootTenantId}/clients/{clientId}/secrets",
             new
             {
@@ -1171,6 +1171,94 @@ public class TeamManagementTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+    }
+
+    [Fact]
+    public async Task TeamAdmin_CreatesAMachineClientThatAdministersItsTeamOnly()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var user = await CreateTeamUserClientAsync(factory, administrator, "acme", "admins");
+
+        var (clientId, clientSecret, principalId) = await CreateMachineClientAsync(
+            user,
+            "/api/teams/acme/clients"
+        );
+
+        using var read = await user.GetAsync($"/api/tenants/{RootTenantId}/clients/{clientId}");
+        var readBody = await read.Content.ReadAsStringAsync();
+        Assert.True(read.StatusCode == HttpStatusCode.OK, readBody);
+        var readJson = JsonElement.Parse(readBody);
+        Assert.Equal("team", readJson.GetProperty("owningNodeType").GetString());
+        Assert.Equal("acme", readJson.GetProperty("owningNodeId").GetString());
+
+        await GrantTeamAdminAsync(user, "acme", principalId);
+        using var machine = await factory.CreateManagementClientAsync(clientId, clientSecret);
+
+        await CreateTenantAsync(machine, "acme", "acme-dev");
+
+        using var forbidden = await PostTenantAsync(machine, "globex", "globex-dev");
+        Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
+    }
+
+    [Fact]
+    public async Task ListTeamClients_ListsOnlyTheTeamsMachineClients()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        var (acmeClientId, _, _) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/acme/clients"
+        );
+        var (globexClientId, _, _) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/globex/clients"
+        );
+
+        using var response = await administrator.GetAsync("/api/teams/acme/clients");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+        var clientIds = JsonElement
+            .Parse(body)
+            .GetProperty("items")
+            .EnumerateArray()
+            .Select(item => item.GetProperty("clientId").GetString())
+            .ToList();
+        Assert.Contains(acmeClientId, clientIds);
+        Assert.DoesNotContain(globexClientId, clientIds);
+    }
+
+    [Fact]
+    public async Task CreatePlatformClient_IsOwnedByThePlatformAndListedThere()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var created = await administrator.PostAsJsonAsync(
+            "/api/platform/clients",
+            new { isDisabled = false, settings = new { } }
+        );
+
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.True(created.StatusCode == HttpStatusCode.Created, createdBody);
+        var createdJson = JsonElement.Parse(createdBody);
+        Assert.Equal("platform", createdJson.GetProperty("owningNodeType").GetString());
+        Assert.Equal("platform", createdJson.GetProperty("owningNodeId").GetString());
+        var clientId = createdJson.GetProperty("clientId").GetString();
+
+        using var listed = await administrator.GetAsync("/api/platform/clients");
+
+        var listedBody = await listed.Content.ReadAsStringAsync();
+        Assert.True(listed.StatusCode == HttpStatusCode.OK, listedBody);
+        Assert.Contains(
+            JsonElement.Parse(listedBody).GetProperty("items").EnumerateArray(),
+            item => item.GetProperty("clientId").GetString() == clientId
+        );
     }
 
     #endregion

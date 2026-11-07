@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,9 +53,6 @@ public sealed class ClientGrantStoreTests : IDisposable
         _provider.Dispose();
     }
 
-    private static JsonElement EmptyObject() =>
-        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
-
     private static PersistedClientGrant CreateGrant(params string[] scopes) =>
         new()
         {
@@ -70,30 +66,12 @@ public sealed class ClientGrantStoreTests : IDisposable
     private async Task SeedAsync()
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        await _tenantStore.AddAsync(
-            new PersistedTenant
-            {
-                TenantId = TenantId,
-                TeamId = "platform",
-                ConcurrencyToken = string.Empty,
-                Issuer = null,
-                IsDisabled = false,
-                DisplayName = "Tenant One",
-                Settings = new PersistedTenantSettings
-                {
-                    TenantId = TenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedTenantSecrets
-                {
-                    TenantId = TenantId,
-                    ConcurrencyToken = string.Empty,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var tenant = new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            DisplayName = "Tenant One",
+        }.Build();
+        await _tenantStore.AddAsync(tenant, CancellationToken.None);
 
         // The tenant must be persisted before its dependents are added (an in-memory query does not observe
         // unsaved inserts).
@@ -106,32 +84,12 @@ public sealed class ClientGrantStoreTests : IDisposable
         }.Build();
         await _clientStore.AddAsync(client, CancellationToken.None);
 
-        await _resourceServerStore.AddAsync(
-            new PersistedResourceServer
-            {
-                TenantId = TenantId,
-                ResourceServerId = ResourceServerId,
-                Identifier = "https://api.example.com",
-                ConcurrencyToken = string.Empty,
-                Name = "Example API",
-                IsSystem = false,
-                IsDisabled = false,
-                Settings = new PersistedResourceServerSettings
-                {
-                    TenantId = TenantId,
-                    ResourceServerId = ResourceServerId,
-                    Value = EmptyObject(),
-                },
-                Scopes = [],
-                Secrets = new PersistedResourceServerSecrets
-                {
-                    TenantId = TenantId,
-                    ResourceServerId = ResourceServerId,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var resourceServer = new PersistedResourceServerBuilder
+        {
+            TenantId = TenantId,
+            ResourceServerId = ResourceServerId,
+        }.Build();
+        await _resourceServerStore.AddAsync(resourceServer, CancellationToken.None);
 
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();

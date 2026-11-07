@@ -754,16 +754,21 @@ internal class TeamApiEndpointHandler(
             await using var storeManager = await StoreManagerFactory.CreateAsync(token);
             var store = storeManager.GetStore<ITeamStore>();
             var team = await store.GetOrDefaultAsync(teamId, token);
-            return team is null
-                ? null
-                : TeamNodes.GetNodeAbove(GetControlPlaneTenantId(httpContext), team.ParentTeamId);
+            if (team is null)
+            {
+                return null;
+            }
+
+            var controlPlaneTenantId = GetControlPlaneTenantId(httpContext);
+            return TeamNodes.GetNodeAbove(controlPlaneTenantId, team.ParentTeamId);
         }
 
         var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Team);
+        var teamNode = GetTeamNode(httpContext, teamId);
 
         return await ProcessGetSettingLimitsAsync(
             httpContext,
-            GetTeamNode(httpContext, teamId),
+            teamNode,
             limitNames,
             ReadNodeAboveAsync,
             cancellationToken
@@ -1280,9 +1285,10 @@ internal class TeamApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var ownerResource = ToOwnerResource(grant.Assignment);
         if (!grant.IsAdded)
         {
-            return TypedResults.Ok(ToOwnerResource(grant.Assignment));
+            return TypedResults.Ok(ownerResource);
         }
 
         await RecordRoleAssignmentChangedAsync(
@@ -1294,7 +1300,7 @@ internal class TeamApiEndpointHandler(
 
         return TypedResults.Created(
             $"/teams/{teamId}/admins/{grant.Assignment.PrincipalId}",
-            ToOwnerResource(grant.Assignment)
+            ownerResource
         );
     }
 

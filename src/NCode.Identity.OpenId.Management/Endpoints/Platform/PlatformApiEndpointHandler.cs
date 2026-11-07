@@ -174,12 +174,13 @@ internal class PlatformApiEndpointHandler(
     )
     {
         var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Platform);
+        var platformNode = GetPlatformNode(httpContext);
 
         return await ProcessGetSettingLimitsAsync(
             httpContext,
-            GetPlatformNode(httpContext),
+            platformNode,
             limitNames,
-            _ => ValueTask.FromResult<ResourceNode?>(GetPlatformNode(httpContext)),
+            _ => ValueTask.FromResult<ResourceNode?>(platformNode),
             cancellationToken
         );
     }

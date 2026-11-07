@@ -1293,10 +1293,11 @@ internal class TenantApiEndpointHandler(
         }
 
         var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Tenant);
+        var tenantNode = GetTenantNode(tenantId);
 
         return await ProcessGetSettingLimitsAsync(
             httpContext,
-            GetTenantNode(tenantId),
+            tenantNode,
             limitNames,
             ReadNodeAboveAsync,
             cancellationToken
@@ -2202,9 +2203,10 @@ internal class TenantApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var ownerResource = ToOwnerResource(grant.Assignment);
         if (!grant.IsAdded)
         {
-            return TypedResults.Ok(ToOwnerResource(grant.Assignment));
+            return TypedResults.Ok(ownerResource);
         }
 
         await RecordRoleAssignmentChangedAsync(
@@ -2216,7 +2218,7 @@ internal class TenantApiEndpointHandler(
 
         return TypedResults.Created(
             $"/tenants/{tenantId}/admins/{grant.Assignment.PrincipalId}",
-            ToOwnerResource(grant.Assignment)
+            ownerResource
         );
     }
 

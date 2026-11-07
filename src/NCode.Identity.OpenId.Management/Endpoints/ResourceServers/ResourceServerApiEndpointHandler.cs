@@ -1071,10 +1071,15 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.ResourceServer);
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
 
         return await ProcessGetSettingLimitsAsync(
             httpContext,
-            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            resourceServerNode,
             limitNames,
             ReadNodeAboveAsync,
             cancellationToken

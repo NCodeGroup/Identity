@@ -51,8 +51,10 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         PersistedRoleAssignment assignment,
         string changeType,
         CancellationToken cancellationToken
-    ) =>
-        ManagementAuditRecorder.RecordResourceChangeAsync(
+    )
+    {
+        var ownerResource = ToOwnerResource(assignment);
+        return ManagementAuditRecorder.RecordResourceChangeAsync(
             httpContext,
             new RoleAssignmentChangedAuditEvent
             {
@@ -63,11 +65,12 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
                 NodeType = assignment.ResourceType,
                 NodeId = assignment.ResourceId,
                 ChangeType = changeType,
-                ResourceValues = ToResourceValues(ToOwnerResource(assignment)),
+                ResourceValues = ToResourceValues(ownerResource),
                 Outcome = AuditOutcome.Success,
             },
             cancellationToken
         );
+    }
 
     /// <summary>
     /// Maps an owner role assignment to its <see cref="OwnerResource"/> representation.
@@ -178,9 +181,10 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var ownerResource = ToOwnerResource(grant.Assignment);
         if (!grant.IsAdded)
         {
-            return TypedResults.Ok(ToOwnerResource(grant.Assignment));
+            return TypedResults.Ok(ownerResource);
         }
 
         await RecordRoleAssignmentChangedAsync(
@@ -190,10 +194,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             cancellationToken
         );
 
-        return TypedResults.Created(
-            $"{ownersPath}/{grant.Assignment.PrincipalId}",
-            ToOwnerResource(grant.Assignment)
-        );
+        return TypedResults.Created($"{ownersPath}/{grant.Assignment.PrincipalId}", ownerResource);
     }
 
     /// <summary>

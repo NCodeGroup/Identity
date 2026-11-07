@@ -513,6 +513,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
         );
 
         Assert.NotNull(captured);
+        Assert.NotNull(result.Assignment);
         Assert.Equal("p2", result.Assignment.PrincipalId);
         Assert.Equal("new-assign", result.Assignment.AssignmentId);
         Assert.Equal(BuiltInRoles.Owner, result.Assignment.RoleName);
@@ -555,6 +556,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
             CancellationToken.None
         );
 
+        Assert.NotNull(result.Assignment);
         Assert.Equal("a1", result.Assignment.AssignmentId);
         Assert.False(result.IsAdded);
     }
@@ -784,6 +786,7 @@ public class DefaultResourceOwnershipServiceTests : IDisposable
             CancellationToken.None
         );
 
+        Assert.NotNull(result.Assignment);
         Assert.Equal("a1", result.Assignment.AssignmentId);
     }
 

@@ -15,13 +15,23 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 public sealed class RoleAssignmentGrant
 {
     /// <summary>
-    /// Gets the role assignment the principal holds at the resource node.
+    /// Gets the role assignment the principal holds at the resource node, or <see langword="null"/> when the grant is
+    /// refused.
     /// </summary>
-    public required PersistedRoleAssignment Assignment { get; init; }
+    public PersistedRoleAssignment? Assignment { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the assignment was added by the grant. The value is <see langword="false"/>
     /// when the principal already held the role at the node and the existing assignment was returned unchanged.
     /// </summary>
+    [MemberNotNullWhen(true, nameof(Assignment))]
     public required bool IsAdded { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the grant was refused because the principal is a client that cannot hold the
+    /// role at the node.
+    /// </summary>
+    // See ADR-1467.
+    [MemberNotNullWhen(false, nameof(Assignment))]
+    public bool IsRefused => Assignment is null;
 }

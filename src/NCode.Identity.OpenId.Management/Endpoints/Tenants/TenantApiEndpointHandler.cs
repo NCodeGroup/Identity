@@ -2168,6 +2168,11 @@ internal class TenantApiEndpointHandler(
             BuiltInRoles.TenantAdmin,
             cancellationToken
         );
+        if (grant.IsRefused)
+        {
+            return RoleRefusedForPrincipal();
+        }
+
         await storeManager.SaveChangesAsync(cancellationToken);
 
         var ownerResource = ToOwnerResource(grant.Assignment);

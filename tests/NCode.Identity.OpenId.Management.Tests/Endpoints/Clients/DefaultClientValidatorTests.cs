@@ -56,28 +56,13 @@ public sealed class DefaultClientValidatorTests : IDisposable
         string concurrencyToken = "client-ct",
         string? resourceServerId = null
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
             ConcurrencyToken = concurrencyToken,
-            IsDisabled = false,
             ResourceServerId = resourceServerId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "settings-ct",
-                Value = EmptyObject(),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
-        };
+        }.Build();
 
     private void SetupAuthorization(AuthorizationResult result)
     {

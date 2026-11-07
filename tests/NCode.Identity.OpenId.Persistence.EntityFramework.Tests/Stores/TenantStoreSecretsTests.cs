@@ -1,12 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Persistence.Stores;
 
@@ -43,47 +41,23 @@ public sealed class TenantStoreSecretsTests : IDisposable
     }
 
     private static PersistedSecret CreateSecret(string secretId) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            ConcurrencyToken = string.Empty,
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "encoded-value",
-        };
+        }.Build();
 
     private async Task SeedTenantAsync(params PersistedSecret[] secrets)
     {
         _dbContext.SeedTeam(_provider.GetRequiredService<IIdGenerator<long>>(), "platform");
-        var tenant = new PersistedTenant
+        var tenant = new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            TeamId = "platform",
-            ConcurrencyToken = string.Empty,
-            Issuer = null,
-            IsDisabled = false,
             DisplayName = "Tenant One",
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = TenantId,
-                ConcurrencyToken = string.Empty,
-                Value = secrets,
-            },
-        };
+            Secrets = secrets,
+        }.Build();
 
         await _store.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
@@ -182,9 +156,8 @@ public sealed class TenantStoreSecretsTests : IDisposable
         );
         Assert.NotNull(current);
 
-        var updated = new PersistedSecret
+        var updated = new PersistedSecretBuilder
         {
-            SecretId = "secret-1",
             ConcurrencyToken = current.ConcurrencyToken,
             Use = "enc",
             Algorithm = "RS512",
@@ -197,7 +170,7 @@ public sealed class TenantStoreSecretsTests : IDisposable
             Origin = current.Origin,
             KeySizeBits = current.KeySizeBits,
             EncodedValue = current.EncodedValue,
-        };
+        }.Build();
 
         await _store.UpdateSecretAsync(TenantId, updated, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
@@ -222,13 +195,12 @@ public sealed class TenantStoreSecretsTests : IDisposable
     {
         await SeedTenantAsync();
         var secret = CreateSecret("secret-1");
-        var staged = new PersistedSecret
+        var staged = new PersistedSecretBuilder
         {
             SecretId = secret.SecretId,
             ConcurrencyToken = secret.ConcurrencyToken,
             Use = secret.Use,
             Algorithm = secret.Algorithm,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ActivatesWhen = DateTimeOffset.UnixEpoch.AddDays(2),
             RetiresWhen = DateTimeOffset.UnixEpoch.AddDays(92),
             ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
@@ -238,7 +210,7 @@ public sealed class TenantStoreSecretsTests : IDisposable
             ManagedBy = "rotation",
             KeySizeBits = secret.KeySizeBits,
             EncodedValue = secret.EncodedValue,
-        };
+        }.Build();
 
         await _store.AddSecretAsync(TenantId, staged, CancellationToken.None);
         await _dbContext.SaveChangesAsync();

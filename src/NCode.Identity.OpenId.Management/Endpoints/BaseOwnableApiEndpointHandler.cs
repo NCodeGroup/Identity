@@ -166,6 +166,17 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     }
 
     /// <summary>
+    /// Creates the <c>409 Conflict</c> response for a grant that is refused because the principal is a client that
+    /// cannot hold the role at the node.
+    /// </summary>
+    // See ADR-1467.
+    internal static ProblemHttpResult RoleRefusedForPrincipal() =>
+        TypedResults.Problem(
+            detail: "A client holds a role only as a machine client, at the node that owns it or a node beneath it.",
+            statusCode: StatusCodes.Status409Conflict
+        );
+
+    /// <summary>
     /// Processes an HTTP <c>POST</c> that grants a principal one role at a resource node: authorizes the caller to
     /// perform the operation at the node, then adds the assignment and records the grant. Responds <c>403</c> when
     /// the caller lacks the operation, <c>400</c> when the request names no principal, <c>404</c> when the resource
@@ -315,17 +326,6 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
         return TypedResults.NoContent();
     }
-
-    /// <summary>
-    /// Creates the <c>409 Conflict</c> response for a grant that is refused because the principal is a client that
-    /// cannot hold the role at the node.
-    /// </summary>
-    // See ADR-1467.
-    internal static ProblemHttpResult RoleRefusedForPrincipal() =>
-        TypedResults.Problem(
-            detail: "A client holds a role only as a machine client, at the node that owns it or a node beneath it.",
-            statusCode: StatusCodes.Status409Conflict
-        );
 
     /// <summary>
     /// Processes an HTTP <c>DELETE</c> that revokes a principal's ownership of a resource: authorizes the caller

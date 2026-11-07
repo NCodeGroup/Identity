@@ -724,7 +724,8 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
 
         Assert.Equal(node, authorizedResource);
         Assert.NotNull(authorizedRequirements);
-        Assert.Same(Operations.Create, Assert.Single(authorizedRequirements));
+        var requirement = Assert.Single(authorizedRequirements);
+        Assert.Same(Operations.Create, requirement);
     }
 
     #endregion
@@ -776,7 +777,8 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         Assert.IsType<NoContent>(result);
         Assert.Equal(2, captured.Count);
         Assert.All(captured, x => Assert.Equal(ResourceChangeTypes.Deleted, x.ChangeType));
-        Assert.Equal(["a1", "a3"], captured.Select(x => x.ResourceId));
+        var removedIds = captured.Select(x => x.ResourceId).ToList();
+        Assert.Equal(["a1", "a3"], removedIds);
     }
 
     [Fact]
@@ -883,7 +885,8 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
 
         Assert.Equal(node, authorizedResource);
         Assert.NotNull(authorizedRequirements);
-        Assert.Same(Operations.Create, Assert.Single(authorizedRequirements));
+        var requirement = Assert.Single(authorizedRequirements);
+        Assert.Same(Operations.Create, requirement);
     }
 
     #endregion

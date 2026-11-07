@@ -626,40 +626,29 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         JsonElement settings,
         params PersistedSecret[] secrets
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
             ConcurrencyToken = concurrencyToken,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "settings-ct",
-                Value = settings,
-            },
-            Secrets = CreateSecretsCollection("secrets-ct", secrets),
-        };
+            SettingsConcurrencyToken = "settings-ct",
+            SecretsConcurrencyToken = "secrets-ct",
+            Settings = settings,
+            Secrets = secrets,
+        }.Build();
 
     private static PersistedClient CreateMachineClient() =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
             ConcurrencyToken = "client-ct",
-            IsDisabled = false,
+            SettingsConcurrencyToken = "settings-ct",
+            SecretsConcurrencyToken = "secrets-ct",
             OwningNodeType = ResourceNodeTypes.Team,
             OwningNodeId = "team-1",
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "settings-ct",
-                Value = JsonElement.Parse("""{"grant_types_supported":["client_credentials"]}"""),
-            },
-            Secrets = CreateSecretsCollection("secrets-ct"),
-        };
+            Settings = JsonElement.Parse("""{"grant_types_supported":["client_credentials"]}"""),
+        }.Build();
 
     private static JsonElement JwksUriSettings() =>
         JsonSerializer.SerializeToElement(
@@ -867,18 +856,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public void ToClientResource_ForAMachineClient_CarriesItsOwningNode()
     {
-        var template = CreateClient("ct-1");
-        var client = new PersistedClient
+        var client = new PersistedClientBuilder
         {
-            TenantId = template.TenantId,
-            ClientId = template.ClientId,
-            ConcurrencyToken = template.ConcurrencyToken,
-            IsDisabled = template.IsDisabled,
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = "ct-1",
+            SettingsConcurrencyToken = "settings-ct",
+            SecretsConcurrencyToken = "secrets-ct",
             OwningNodeType = "team",
             OwningNodeId = "team-1",
-            Settings = template.Settings,
-            Secrets = template.Secrets,
-        };
+        }.Build();
 
         var resource = Handler.ToClientResource(client);
 
@@ -893,18 +880,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     [Fact]
     public void GetNodeAbove_ForAMachineClient_ReturnsItsOwningNode()
     {
-        var template = CreateClient("ct-1");
-        var client = new PersistedClient
+        var client = new PersistedClientBuilder
         {
-            TenantId = template.TenantId,
-            ClientId = template.ClientId,
-            ConcurrencyToken = template.ConcurrencyToken,
-            IsDisabled = template.IsDisabled,
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = "ct-1",
+            SettingsConcurrencyToken = "settings-ct",
+            SecretsConcurrencyToken = "secrets-ct",
             OwningNodeType = ResourceNodeTypes.Team,
             OwningNodeId = "team-1",
-            Settings = template.Settings,
-            Secrets = template.Secrets,
-        };
+        }.Build();
 
         var node = ClientApiEndpointHandler.GetNodeAbove(client);
 
@@ -1983,18 +1968,16 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupClientLimits(OpenIdSettingNames.RateLimitClientPerMinute);
         SetupStore();
-        var template = CreateClient("client-ct");
-        var client = new PersistedClient
+        var client = new PersistedClientBuilder
         {
-            TenantId = template.TenantId,
-            ClientId = template.ClientId,
-            ConcurrencyToken = template.ConcurrencyToken,
-            IsDisabled = template.IsDisabled,
+            TenantId = TenantId,
+            ClientId = ClientId,
+            ConcurrencyToken = "client-ct",
+            SettingsConcurrencyToken = "settings-ct",
+            SecretsConcurrencyToken = "secrets-ct",
             OwningNodeType = ResourceNodeTypes.Team,
             OwningNodeId = "team-1",
-            Settings = template.Settings,
-            Secrets = template.Secrets,
-        };
+        }.Build();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(client)

@@ -276,6 +276,9 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
       if (url.endsWith('/api/platform/settings')) {
         return jsonResponse({ concurrencyToken: 'st', settings: { a: 1 } });
       }
+      if (url.endsWith('/settings/limits')) {
+        return jsonResponse({ names: [], canChange: true });
+      }
       if (url.endsWith('/api/platform/effective-settings')) {
         return jsonResponse({ settings: { a: 1 } });
       }

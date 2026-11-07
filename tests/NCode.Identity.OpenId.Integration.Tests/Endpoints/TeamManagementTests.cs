@@ -1881,6 +1881,91 @@ public class TeamManagementTests
 
     #endregion
 
+    #region GetSettingLimits Tests
+
+    [Fact]
+    public async Task GetSettingLimits_AsATeamAdmin_ReportsItsTeamsLimitsItCannotChange()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        var limits = await GetJsonAsync(teamAdmin, "/api/teams/acme/settings/limits");
+
+        Assert.Contains(OpenIdSettingNames.MaxTenants, GetLimitNames(limits));
+        Assert.False(limits.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetSettingLimits_AsATeamAdmin_ReportsItsTenantsLimitsItCanChange()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+
+        var limits = await GetJsonAsync(teamAdmin, "/api/tenants/acme-dev/settings/limits");
+
+        Assert.Contains(OpenIdSettingNames.RateLimitTenantPerMinute, GetLimitNames(limits));
+        Assert.True(limits.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetSettingLimits_AsATenantOwner_ReportsItsTenantsLimitsItCannotChange()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var owner = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/owners"
+        );
+
+        var limits = await GetJsonAsync(owner, "/api/tenants/acme-dev/settings/limits");
+
+        Assert.Contains(OpenIdSettingNames.RateLimitTenantPerMinute, GetLimitNames(limits));
+        Assert.False(limits.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task GetSettingLimits_AsThePlatformAdministrator_ReportsATeamsLimitsItCanChange()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { max_tenants = 2 });
+
+        var limits = await GetJsonAsync(administrator, "/api/teams/acme/settings/limits");
+
+        Assert.Contains(OpenIdSettingNames.MaxTenants, GetLimitNames(limits));
+        Assert.True(limits.GetProperty("canChange").GetBoolean());
+    }
+
+    private static string[] GetLimitNames(JsonElement limits) =>
+        [
+            .. limits
+                .GetProperty("names")
+                .EnumerateArray()
+                .Select(name =>
+                    name.GetString() ?? throw new InvalidOperationException("A limit name is null.")
+                ),
+        ];
+
+    #endregion
+
     #region PatchTeamSettings Tests
 
     [Fact]

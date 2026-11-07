@@ -37,3 +37,17 @@ export const WithError: Story = {
     onSave: () => undefined,
   },
 };
+
+export const LockedLimits: Story = {
+  args: {
+    initialJson: JSON.stringify({ accessTokenLifetime: 3600 }, null, 2),
+    effectiveJson: JSON.stringify(
+      { accessTokenLifetime: 3600, maxAccessTokenLifetime: 7200, issuer: 'https://op.test' },
+      null,
+      2,
+    ),
+    limitNames: ['maxAccessTokenLifetime', 'maxIdTokenLifetime'],
+    lockedJson: JSON.stringify({ maxAccessTokenLifetime: 7200 }, null, 2),
+    onSave: () => undefined,
+  },
+};

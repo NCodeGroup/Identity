@@ -197,6 +197,7 @@ The management types are `ManagementResourceTypes`, and the local-account type i
 | `resource_server.secret` | A secret belonging to a resource server.                                                                                                                               |
 | `initial_access_token`   | An initial access token (RFC 7591) for dynamic client registration.                                                                                                    |
 | `principal`              | An end user's federated principal.                                                                                                                                     |
+| `role_assignment`        | A role a principal holds at a resource node: an owner or an administrator of a team, tenant, client or resource server.                                                |
 | `local_account`          | A local account.                                                                                                                                                       |
 
 ## Event catalog
@@ -372,23 +373,26 @@ A resource-change event is named `<resource_type>.<change_type>`, where `change_
 `details.resource_values` is a non-sensitive snapshot of the resource, never secret material. A promotion records each
 change it writes, then `tenant.promoted` on the target tenant, whose `resource_values` is the promotion's report.
 
-| Event name prefix (`resource_type`) | Owning resource listed second |
-| ----------------------------------- | ----------------------------- |
-| `client`                            | none                          |
-| `client.secret`                     | `client`                      |
-| `tenant`                            | `team`                        |
-| `tenant.secret`                     | `tenant`                      |
-| `platform`                          | none                          |
-| `team`                              | none                          |
-| `resource_server`                   | none                          |
-| `resource_server.scope`             | `resource_server`             |
-| `resource_server.secret`            | `resource_server`             |
-| `initial_access_token`              | none                          |
-| `principal`                         | none                          |
-| `local_account`                     | none                          |
+| Event name prefix (`resource_type`) | Owning resource listed second                                                  |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| `client`                            | none                                                                           |
+| `client.secret`                     | `client`                                                                       |
+| `tenant`                            | `team`                                                                         |
+| `tenant.secret`                     | `tenant`                                                                       |
+| `platform`                          | none                                                                           |
+| `team`                              | none                                                                           |
+| `resource_server`                   | none                                                                           |
+| `resource_server.scope`             | `resource_server`                                                              |
+| `resource_server.secret`            | `resource_server`                                                              |
+| `initial_access_token`              | none                                                                           |
+| `principal`                         | none                                                                           |
+| `role_assignment`                   | the node the role is held at (`team`, `tenant`, `client` or `resource_server`) |
+| `local_account`                     | none                                                                           |
 
 For example, `client.secret.created` lists the secret first and its client second. An initial access token is recorded as
-`initial_access_token.created`; the record never carries the token itself.
+`initial_access_token.created`; the record never carries the token itself. A role a principal is granted or revoked is
+recorded as `role_assignment.created` or `role_assignment.deleted`: `subject_id` is the principal, `resource_values`
+carries the `assignmentId`, `principalId` and `roleName`, and a grant the principal already holds records nothing.
 
 ## Where records go
 
@@ -558,7 +562,8 @@ Category : "NCode.Identity.Audit" and State.audit.event_name : "client.authentic
 ### Who changed configuration
 
 Use it to attribute a configuration change. Read `audit.actor.id` (the administrator), `audit.event_name` (such as
-`client.secret.created`) and `audit.resources` (the changed resource, then the resource that owns it).
+`client.secret.created` or `role_assignment.created`) and `audit.resources` (the changed resource, then the resource
+that owns it).
 
 ```text
 Category : "NCode.Identity.Audit" and State.audit.event_category : "management"

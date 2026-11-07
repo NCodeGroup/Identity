@@ -1,11 +1,17 @@
 import { useMemo, useState } from 'react';
 import { DataStateBoundary, SettingsEditor } from '@ncode/ui';
-import type { EffectiveSettingsResource, SettingsResource } from '@ncode/api';
+import type {
+  EffectiveSettingsResource,
+  SettingLimitsResource,
+  SettingsResource,
+} from '@ncode/api';
 import { apiErrorMessage, type ApiError } from '@ncode/store';
 
 export type SettingsManagerProps = {
   readonly settings: SettingsResource | undefined;
   readonly effective: EffectiveSettingsResource | undefined;
+  /** The limits the settings may carry and whether the caller may change them; undefined until loaded. */
+  readonly limits: SettingLimitsResource | undefined;
   readonly isLoading: boolean;
   readonly loadError: boolean;
   readonly isSaving: boolean;
@@ -30,6 +36,7 @@ export type SettingsManagerProps = {
 export function SettingsManager({
   settings,
   effective,
+  limits,
   isLoading,
   loadError,
   isSaving,
@@ -37,10 +44,22 @@ export function SettingsManager({
 }: SettingsManagerProps) {
   const [saveError, setSaveError] = useState<string>();
 
+  const isLocked = limits !== undefined && !limits.canChange && limits.names.length > 0;
+  const { locked, editable } = useMemo(() => {
+    const lockedEntries: Record<string, unknown> = {};
+    const editableEntries: Record<string, unknown> = {};
+    const limitNames = new Set(limits?.names ?? []);
+    for (const [key, value] of Object.entries(settings?.settings ?? {})) {
+      (limitNames.has(key) ? lockedEntries : editableEntries)[key] = value;
+    }
+    return { locked: lockedEntries, editable: editableEntries };
+  }, [settings?.settings, limits?.names]);
+
   const initialJson = useMemo(
-    () => JSON.stringify(settings?.settings ?? {}, null, 2),
-    [settings?.settings],
+    () => JSON.stringify(isLocked ? editable : (settings?.settings ?? {}), null, 2),
+    [isLocked, editable, settings?.settings],
   );
+  const lockedJson = useMemo(() => JSON.stringify(locked, null, 2), [locked]);
   const effectiveJson = useMemo(
     () => JSON.stringify(effective?.settings ?? {}, null, 2),
     [effective?.settings],
@@ -55,7 +74,7 @@ export function SettingsManager({
       await onSave({
         concurrencyToken: settings.concurrencyToken,
         original: settings.settings,
-        desired,
+        desired: isLocked ? { ...desired, ...locked } : desired,
       });
     } catch (submitError) {
       setSaveError(apiErrorMessage(submitError as ApiError));
@@ -70,6 +89,8 @@ export function SettingsManager({
       <SettingsEditor
         initialJson={initialJson}
         effectiveJson={effectiveJson}
+        limitNames={limits?.names ?? []}
+        lockedJson={isLocked ? lockedJson : undefined}
         isSaving={isSaving}
         error={saveError}
         onSave={handleSave}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CreatedSecretResource, ManagementOwner } from '@ncode/api';
 import {
   useGetEffectiveSettingsQuery,
+  useGetSettingLimitsQuery,
   useGetSettingsQuery,
   useUpdateSettingsMutation,
 } from '@ncode/store';
@@ -23,6 +24,11 @@ export type OwnerSettingsTabProps = {
 export function OwnerSettingsTab({ owner }: OwnerSettingsTabProps) {
   const { data: settings, isLoading, error } = useGetSettingsQuery(owner);
   const { data: effective } = useGetEffectiveSettingsQuery(owner);
+  const {
+    data: limits,
+    isLoading: limitsLoading,
+    error: limitsError,
+  } = useGetSettingLimitsQuery(owner);
   const [updateSettings, { isLoading: isSaving }] = useUpdateSettingsMutation();
   const [issued, setIssued] = useState<CreatedSecretResource | null>(null);
 
@@ -31,8 +37,9 @@ export function OwnerSettingsTab({ owner }: OwnerSettingsTabProps) {
       <SettingsManager
         settings={settings}
         effective={effective}
-        isLoading={isLoading}
-        loadError={Boolean(error)}
+        limits={limits}
+        isLoading={isLoading || limitsLoading}
+        loadError={Boolean(error) || Boolean(limitsError)}
         isSaving={isSaving}
         onSave={async ({ concurrencyToken, original, desired }) => {
           const issuedSecret = await updateSettings({

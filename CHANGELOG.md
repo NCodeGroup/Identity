@@ -1996,9 +1996,11 @@ describes the family as it is rather than its changes
   (`PersistedRoleAssignment` / `IRoleAssignmentStore`) back an additive `OwnershipHandler` that grants a principal every
   operation except `Create` on a resource it owns, or on any resource under a node it owns, and the principal that
   creates a client, resource server or tenant becomes its owner. Each of those resources has owner-management endpoints
-  (`GET`/`POST`/`DELETE /{resource}/{id}/owners`) returning `OwnerResource`, and a one-owner invariant refuses to orphan
-  a resource with `409`. The ownership service and resource-node abstraction (`IResourceOwnershipService`,
-  `IResourceNode`, `ResourceNode`, `ResourceNodeTypes`) are public, so applications own and enforce their own resource
+  (`GET`/`POST`/`DELETE /{resource}/{id}/owners`) returning `OwnerResource`, a grant the principal already holds
+  answers `200` with its assignment, and a one-owner invariant refuses to orphan a resource with `409`. The ownership
+  service reports what it changed (`RoleAssignmentGrant`, `OwnerRemoval`). The ownership service and resource-node
+  abstraction (`IResourceOwnershipService`, `IResourceNode`, `ResourceNode`, `ResourceNodeTypes`) are public, so
+  applications own and enforce their own resource
   types; the built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
@@ -2323,6 +2325,11 @@ describes the family as it is rather than its changes
   `OwnerSettingsTab` serve every detail page: clients, resource servers, the tenant's own surfaces, teams and the platform
   ([ADR-1257](docs/decisions/1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md),
   issue [#236](https://github.com/NCodeGroup/Identity/issues/236)).
+
+- **The management console manages owners and administrators.** A team's and a tenant's Access surface lists, grants
+  and revokes their administrators and owners, and a client's and a resource server's Access tab their owners, through
+  `useListRoleAssignmentsQuery`, `useAddRoleAssignmentMutation` and `useRemoveRoleAssignmentMutation`, each taking a
+  `RoleList` from `@ncode/api` ([#582](https://github.com/NCodeGroup/Identity/issues/582)).
 
 - **The management console manages secrets with a one-time reveal.** An owner's Secrets tab creates, lists and deletes
   secrets; generated key material is shown exactly once in a `RevealSecretDialog` with a copy affordance and is never
@@ -3735,6 +3742,14 @@ describes the family as it is rather than its changes
   ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/Identity/issues/563)).
+
+- **A caller learns which limits a scope's settings carry and whether it may change them.** `GET …/settings/limits` on
+  the platform, a team, a tenant, a client and a resource server answers `SettingLimitsResource`: the limits the
+  settings may carry (`ISettingSerializer.GetLimits`) and `canChange`, whether the caller holds `Update` at the node
+  above. The management console shows a caller without that authority the limits read-only beside the settings it
+  edits, and its save never changes them
+  ([ADR-1448](docs/decisions/1448-a-settings-reader-learns-which-limits-it-may-change.md),
+  [#581](https://github.com/NCodeGroup/Identity/issues/581)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
@@ -5192,8 +5207,11 @@ describes the family as it is rather than its changes
   `ResourceServerChangedAuditEvent`, `ResourceServerScopeChangedAuditEvent` and `ResourceServerSecretChangedAuditEvent`
   for every resource-server operation (create, update and delete, scopes, settings and secrets, issue
   [#139](https://github.com/NCodeGroup/Identity/issues/139)), `PrincipalChangedAuditEvent` for a block or unblock
-  (resource type `principal`, `ManagementResourceTypes.Principal`) and `LocalAccountChangedAuditEvent` for a local
-  account.
+  (resource type `principal`, `ManagementResourceTypes.Principal`), `LocalAccountChangedAuditEvent` for a local
+  account and `RoleAssignmentChangedAuditEvent` (`role_assignment.created` / `role_assignment.deleted`) for every role
+  the management API grants or revokes, the creator's included, naming the acting administrator
+  ([ADR-1449](docs/decisions/1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
+  [#583](https://github.com/NCodeGroup/Identity/issues/583)).
 
 - **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
   account's principal is terminated with the `password_reset` reason (`SessionTerminationReasons.PasswordReset`): its

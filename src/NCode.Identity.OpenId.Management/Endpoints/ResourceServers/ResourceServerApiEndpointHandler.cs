@@ -49,6 +49,7 @@ PUT    api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeV
 DELETE api/tenants/{tenantId}/resource-servers/{resourceServerId}/scopes/{scopeValue}
 
 GET   api/tenants/{tenantId}/resource-servers/{resourceServerId}/settings
+GET   api/tenants/{tenantId}/resource-servers/{resourceServerId}/settings/limits
 PATCH api/tenants/{tenantId}/resource-servers/{resourceServerId}/settings
 GET   api/tenants/{tenantId}/resource-servers/{resourceServerId}/effective-settings
 
@@ -99,7 +100,10 @@ internal class ResourceServerApiEndpointHandler(
         settingScopeCollectionProvider;
     private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
         effectiveSettingsResolver;
-    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+
+    /// <inheritdoc />
+    protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
+        managementAuditRecorder;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -154,6 +158,9 @@ internal class ResourceServerApiEndpointHandler(
             .MapGet("/{resourceServerId}/settings", GetSettingsAsync)
             .Produces<ResourceServerSettingsResource>();
         resourceServers
+            .MapGet("/{resourceServerId}/settings/limits", GetSettingLimitsAsync)
+            .Produces<SettingLimitsResource>();
+        resourceServers
             .MapPatch("/{resourceServerId}/settings", UpdateSettingsAsync)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesValidationProblem();
@@ -192,7 +199,8 @@ internal class ResourceServerApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         resourceServers
             .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         resourceServers
             .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -370,7 +378,7 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         await store.AddAsync(resourceServer, cancellationToken);
-        await ResourceOwnershipService.AssignCreatorAsync(
+        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
             storeManager,
@@ -389,6 +397,16 @@ internal class ResourceServerApiEndpointHandler(
             ToResourceValues(ToResourceServerResource(resourceServer)),
             cancellationToken
         );
+
+        if (creatorAssignment is not null)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                creatorAssignment,
+                ResourceChangeTypes.Created,
+                cancellationToken
+            );
+        }
 
         httpContext.Response.Headers.ETag = resourceServer.ConcurrencyToken;
         return TypedResults.Created(
@@ -856,6 +874,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Adds an owner to a resource server.
     /// </summary>
     /// <response code="201">The owner was added.</response>
+    /// <response code="200">The principal already owns the resource server.</response>
     [EndpointName("api/resource-servers/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -1019,6 +1038,50 @@ internal class ResourceServerApiEndpointHandler(
                 return resourceServer?.Settings;
             },
             ToResourceServerSettingsResource,
+            cancellationToken
+        );
+    }
+
+    /// <summary>
+    /// Gets the limits a resource server's settings carry and whether the caller may set them: whether it holds update
+    /// authority over the resource server's tenant.
+    /// </summary>
+    /// <response code="200">The resource server's setting limits.</response>
+    // See ADR-1448.
+    [EndpointName("api/resource-servers/settings/limits/get")]
+    internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromRoute] string resourceServerId,
+        CancellationToken cancellationToken
+    )
+    {
+        async ValueTask<ResourceNode?> ReadNodeAboveAsync(CancellationToken token)
+        {
+            await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+            var store = storeManager.GetStore<IResourceServerStore>();
+            var resourceServer = await store.GetOrDefaultAsync(resourceServerId, token);
+            return resourceServer is null
+                ? null
+                : ResourceNode.For(
+                    resourceServer.TenantId,
+                    ResourceNodeTypes.Tenant,
+                    resourceServer.TenantId
+                );
+        }
+
+        var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.ResourceServer);
+        var resourceServerNode = ResourceNode.For(
+            tenantId,
+            ResourceNodeTypes.ResourceServer,
+            resourceServerId
+        );
+
+        return await ProcessGetSettingLimitsAsync(
+            httpContext,
+            resourceServerNode,
+            limitNames,
+            ReadNodeAboveAsync,
             cancellationToken
         );
     }

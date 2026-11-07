@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Authorization;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Tenants;
@@ -202,6 +203,55 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
         return TypedResults.Problem(
             detail: $"The caller may not change the limits {names}: a limit is set by the administrators above the resource whose settings carry it.",
             statusCode: StatusCodes.Status403Forbidden
+        );
+    }
+
+    /// <summary>
+    /// Processes an HTTP <c>GET</c> request for the limits a settings document may carry: authorizes
+    /// <see cref="Operations.Read"/> at the node, reads the node above it (<c>404 Not Found</c> when it is absent), and
+    /// answers the limits together with whether the caller may update the node above. The answer is specific to the
+    /// caller and carries no <c>ETag</c>.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="node">The node whose settings document carries the limits.</param>
+    /// <param name="limits">The names of the limits the document may carry.</param>
+    /// <param name="readNodeAboveAsync">A function that reads the node above <paramref name="node"/>, or returns <c>null</c> when not found.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
+    // See ADR-1448.
+    internal virtual ValueTask<IResult> ProcessGetSettingLimitsAsync(
+        HttpContext httpContext,
+        ResourceNode node,
+        IReadOnlyList<string> limits,
+        Func<CancellationToken, ValueTask<ResourceNode?>> readNodeAboveAsync,
+        CancellationToken cancellationToken
+    )
+    {
+        async ValueTask<SettingLimitsResource> MapAsync(
+            ResourceNode nodeAbove,
+            CancellationToken token
+        )
+        {
+            var authorizationResult = await AuthorizationService.AuthorizeAsync(
+                httpContext.User,
+                nodeAbove,
+                Operations.Update
+            );
+
+            return new SettingLimitsResource
+            {
+                Names = [.. limits],
+                CanChange = authorizationResult.Succeeded,
+            };
+        }
+
+        return ProcessGetAsync(
+            httpContext,
+            node,
+            Operations.Read,
+            readNodeAboveAsync,
+            MapAsync,
+            cancellationToken
         );
     }
 

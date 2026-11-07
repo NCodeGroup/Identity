@@ -93,27 +93,12 @@ public sealed class ClientStoreSecretsTests : IDisposable
         await _tenantStore.AddAsync(tenant, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
 
-        var client = new PersistedClient
+        var client = new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = secrets,
-            },
-        };
+            Secrets = secrets,
+        }.Build();
 
         await _store.AddAsync(client, CancellationToken.None);
         await _dbContext.SaveChangesAsync();

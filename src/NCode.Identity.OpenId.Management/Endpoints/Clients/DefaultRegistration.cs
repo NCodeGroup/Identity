@@ -29,5 +29,23 @@ internal static class DefaultRegistration
                 DefaultClientKeySourceChecker
             >();
         }
+
+        /// <summary>
+        /// Registers the routes that create and list machine clients and the services they depend on.
+        /// </summary>
+        public void AddMachineClientEndpoint()
+        {
+            builder.AddEndpoint<MachineClientEndpointProvider>();
+            builder.ServiceCollection.TryAddSingleton<ClientApiEndpointHandler>();
+            builder.ServiceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
+            builder.ServiceCollection.TryAddSingleton<
+                IHostManagedClientChecker,
+                DefaultHostManagedClientChecker
+            >();
+            builder.ServiceCollection.TryAddSingleton<
+                IClientKeySourceChecker,
+                DefaultClientKeySourceChecker
+            >();
+        }
     }
 }

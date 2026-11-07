@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using NCode.Identity.OpenId.Management.Endpoints.Caller;
 using NCode.Identity.OpenId.Management.Endpoints.Capabilities;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Platform;
 using NCode.Identity.OpenId.Management.Endpoints.Teams;
 using NCode.Identity.OpenId.Management.Endpoints.Tenants;
@@ -48,6 +49,7 @@ internal sealed class ManagementRootGroup : IEndpointGroup
         builder.AddCallerEndpoint();
         builder.AddPlatformEndpoint();
         builder.AddTeamEndpoint();
+        builder.AddMachineClientEndpoint();
         builder.AddTenantEndpoint();
         builder.AddGroup<TenantManagementGroup>();
     }

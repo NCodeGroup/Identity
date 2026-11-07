@@ -14,7 +14,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.Logging;
@@ -140,22 +139,17 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
     }
 
     private static PersistedSecret CreateImportedKey() =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = "key-1",
             KeyId = "key-1",
-            Use = null,
             Algorithm = "ES256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
             ExpiresWhen = DateTimeOffset.MaxValue,
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
             RetiresWhen = DateTimeOffset.MaxValue,
             SecretType = "ecc",
             SecretEncoding = "spki",
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "public-key",
-        };
+        }.Build();
 
     private static DeveloperBffClientSeed CreateBffClient(string? jwks) =>
         new()
@@ -284,21 +278,7 @@ public class DeveloperInteractiveSeedHandlerTests : BaseTests
         IStoreManager storeManager
     )
     {
-        var persistedTenant = new PersistedTenant
-        {
-            TenantId = tenantId,
-            TeamId = "platform",
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                Value = JsonElement.Parse("{}"),
-            },
-            Secrets = null!,
-        };
+        var persistedTenant = new PersistedTenantBuilder { TenantId = tenantId }.Build();
 
         return new SeedTenantCommand(
             new TenantSeedContext

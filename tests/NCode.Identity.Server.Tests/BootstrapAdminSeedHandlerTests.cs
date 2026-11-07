@@ -15,7 +15,6 @@ using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.OpenId.Tenants;
-using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -153,21 +152,7 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
         // Strict mock: the store manager is untouched on the guard paths under test.
         storeManager ??= CreateStrictMock<IStoreManager>().Object;
 
-        var persistedTenant = new PersistedTenant
-        {
-            TenantId = tenantId,
-            TeamId = "platform",
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                Value = JsonElement.Parse("{}"),
-            },
-            Secrets = new PersistedTenantSecrets { TenantId = tenantId, Value = [] },
-        };
+        var persistedTenant = new PersistedTenantBuilder { TenantId = tenantId }.Build();
 
         return new SeedTenantCommand(
             new TenantSeedContext
@@ -315,27 +300,18 @@ public class BootstrapAdminSeedHandlerTests : SecretProtectionTestBase
             ClientId = ClientId,
             Settings = clientSettings,
         }.Build();
-        var staleSecret = new PersistedSecret
+        var staleSecret = new PersistedSecretBuilder
         {
             SecretId = StaleSecretId,
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = 8,
             EncodedValue = "nce1.stale",
-        };
-        var existingSecrets = new PersistedClientSecrets
+        }.Build();
+        var existingSecrets = new PersistedClientBuilder
         {
             TenantId = WorkloadTenantId,
             ClientId = ClientId,
-            Value = [staleSecret],
-        };
+            Secrets = [staleSecret],
+        }.BuildSecrets();
 
         PersistedSecret? addedSecret = null;
         var mockClientStore = CreateStrictMock<IClientStore>();

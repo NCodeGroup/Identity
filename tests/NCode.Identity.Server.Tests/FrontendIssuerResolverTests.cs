@@ -76,21 +76,13 @@ public sealed class FrontendIssuerResolverTests : BaseTests
             .Verifiable();
 
     private static PersistedTenant CreateTenant(string tenantId, string? issuer) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
-            TeamId = "platform",
             Issuer = issuer,
-            IsDisabled = false,
             DisplayName = "Test Tenant",
-            Settings = new PersistedTenantSettings { TenantId = tenantId, Value = default },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "token",
-                Value = [],
-            },
-        };
+            Settings = default,
+        }.Build();
 
     #region ResolveIssuerAsync Tests
 

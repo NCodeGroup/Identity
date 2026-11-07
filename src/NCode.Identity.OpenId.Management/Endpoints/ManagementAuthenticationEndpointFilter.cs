@@ -56,11 +56,11 @@ internal sealed class ManagementAuthenticationEndpointFilter(
             {
                 httpContext.User = disposition.Principal;
 
-                // The caller's acting client is resolved before the endpoint changes anything, and the resolver
-                // gives this answer for the rest of the request, so a change the request commits, such as a
-                // machine client deleting itself, does not alter the actor its audit records.
+                // The call is kept for the answer the request remembers, which the audit recorder reads after the
+                // commit, so a change the request commits, such as a machine client deleting itself, does not alter
+                // the actor its audit records.
                 // See ADR-1470.
-                await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
+                _ = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
                     openIdContext,
                     disposition.Principal,
                     httpContext.RequestAborted

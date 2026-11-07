@@ -15,8 +15,6 @@ internal sealed class ActingClientMemo
 {
     private static object ItemKey { get; } = new();
 
-    private Dictionary<ActingCaller, PersistedClient?> Clients { get; } = [];
-
     /// <summary>
     /// Gets the memo of a request, storing an empty memo on the request first when it has none.
     /// </summary>
@@ -36,6 +34,8 @@ internal sealed class ActingClientMemo
         httpContext.Items[ItemKey] = memo;
         return memo;
     }
+
+    private Dictionary<ActingCaller, PersistedClient?> Clients { get; } = [];
 
     /// <summary>
     /// Gets the client that a caller was remembered to act as.

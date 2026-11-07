@@ -15,17 +15,14 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// Provides the default implementation of <see cref="IClientPrincipalResolver"/>, which recognizes a caller whose
 /// subject, derived through the environment's host-configured <c>GetSubjectId</c>, is the principal of the client its
 /// <c>client_id</c> claim names in the context's tenant. It answers each caller once per request: the first answer, a
-/// client or none, is kept in the request's <see cref="ActingClientMemo"/> and stands for the rest of the request.
+/// client or none, is kept for the rest of the request.
 /// </summary>
-// See ADR-1450 and ADR-1470.
+// See ADR-1450 and ADR-1470, which keeps the answers in the request's ActingClientMemo.
 internal class DefaultClientPrincipalResolver(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor
 ) : IClientPrincipalResolver
 {
-    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
-    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
-
     private static bool TryGetCaller(
         OpenIdContext openIdContext,
         ClaimsPrincipal user,
@@ -46,6 +43,9 @@ internal class DefaultClientPrincipalResolver(
         return true;
     }
 
+    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
+
     /// <inheritdoc />
     public async ValueTask<PersistedClient?> GetActingClientOrDefaultAsync(
         OpenIdContext openIdContext,
@@ -65,9 +65,7 @@ internal class DefaultClientPrincipalResolver(
             return remembered;
         }
 
-        var client = await ReadActingClientAsync(caller, storeManager, cancellationToken);
-        memo.Remember(caller, client);
-        return client;
+        return await ReadActingClientAsync(memo, caller, storeManager, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -89,15 +87,11 @@ internal class DefaultClientPrincipalResolver(
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        return await GetActingClientOrDefaultAsync(
-            openIdContext,
-            user,
-            storeManager,
-            cancellationToken
-        );
+        return await ReadActingClientAsync(memo, caller, storeManager, cancellationToken);
     }
 
     private async ValueTask<PersistedClient?> ReadActingClientAsync(
+        ActingClientMemo memo,
         ActingCaller caller,
         IStoreManager storeManager,
         CancellationToken cancellationToken
@@ -107,15 +101,14 @@ internal class DefaultClientPrincipalResolver(
 
         using var scope = AmbientTenantAccessor.BeginScope(caller.TenantId);
 
-        var client = await clientStore.GetOrDefaultAsync(caller.ClientId, cancellationToken);
-        if (
-            client is null
-            || !string.Equals(client.PrincipalId, caller.Subject, StringComparison.Ordinal)
-        )
-        {
-            return null;
-        }
+        var stored = await clientStore.GetOrDefaultAsync(caller.ClientId, cancellationToken);
+        var client =
+            stored is not null
+            && string.Equals(stored.PrincipalId, caller.Subject, StringComparison.Ordinal)
+                ? stored
+                : null;
 
+        memo.Remember(caller, client);
         return client;
     }
 }

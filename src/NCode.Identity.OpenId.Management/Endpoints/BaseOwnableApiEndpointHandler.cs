@@ -13,8 +13,9 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
-/// Provides common functionality for management API endpoint handlers whose resources are ownable, including the
-/// owner-management endpoints (list, grant, revoke) and the one-owner invariant.
+/// Provides common functionality for management API endpoint handlers whose resources hold role lists: listing a
+/// role's assignments with whether the caller may change them, granting and revoking owners, and the one-owner
+/// invariant.
 /// </summary>
 internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 {
@@ -84,51 +85,6 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             PrincipalId = assignment.PrincipalId,
             RoleName = assignment.RoleName,
         };
-
-    /// <summary>
-    /// Processes an HTTP <c>GET</c> for a resource's owners: authorizes the caller against the resource node, then
-    /// returns the owner assignments. Responds <c>404</c> when the resource does not exist.
-    /// </summary>
-    protected internal virtual async ValueTask<IResult> ProcessListOwnersAsync(
-        HttpContext httpContext,
-        string tenantId,
-        string resourceType,
-        string resourceId,
-        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
-        CancellationToken cancellationToken
-    )
-    {
-        var node = ResourceNode.For(tenantId, resourceType, resourceId);
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            node,
-            Operations.Read
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await resourceExistsAsync(storeManager, cancellationToken))
-        {
-            return TypedResults.NotFound();
-        }
-
-        var owners = await ResourceOwnershipService.GetOwnersAsync(
-            storeManager,
-            resourceType,
-            resourceId,
-            cancellationToken
-        );
-        return TypedResults.Json(
-            new CollectionResource<OwnerResource>
-            {
-                Items = owners.Select(ToOwnerResource).ToList(),
-                ContinuationToken = null,
-            }
-        );
-    }
 
     /// <summary>
     /// Determines whether the caller holds an operation at a resource node.

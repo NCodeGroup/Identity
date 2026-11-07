@@ -123,62 +123,6 @@ public class OwnerEndpointHelperTests : IDisposable
         ValueTask.FromResult(false);
 
     [Fact]
-    public async Task ProcessListOwnersAsync_WhenAuthorized_ReturnsOwners()
-    {
-        var authz = Authz(AuthorizationResult.Success());
-        var (factory, manager) = StoreManager();
-        var ownership = MockRepository.Create<IResourceOwnershipService>();
-        ownership
-            .Setup(x =>
-                x.GetOwnersAsync(
-                    manager.Object,
-                    ResourceNodeTypes.Client,
-                    ResourceId,
-                    It.IsAny<CancellationToken>()
-                )
-            )
-            .ReturnsAsync([Owner("p1")])
-            .Verifiable();
-
-        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
-        var result = await handler.ProcessListOwnersAsync(
-            CreateHttpContext(),
-            TenantId,
-            ResourceNodeTypes.Client,
-            ResourceId,
-            Exists,
-            CancellationToken.None
-        );
-
-        var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
-        var collection = Assert.IsType<CollectionResource<OwnerResource>>(json.Value);
-        Assert.Single(collection.Items);
-    }
-
-    [Fact]
-    public async Task ProcessListOwnersAsync_WhenUnauthorized_Forbids()
-    {
-        var authz = Authz(AuthorizationResult.Failed());
-        // A forbidden request never opens the store.
-        var factory = MockRepository.Create<IStoreManagerFactory>();
-        var ownership = MockRepository.Create<IResourceOwnershipService>();
-
-        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
-        var result = await handler.ProcessListOwnersAsync(
-            CreateHttpContext(),
-            TenantId,
-            ResourceNodeTypes.Client,
-            ResourceId,
-            Exists,
-            CancellationToken.None
-        );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-
-        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
-    }
-
-    [Fact]
     public async Task ProcessAddOwnerAsync_WhenAdded_ReturnsCreatedAndRecordsCreated()
     {
         var authz = Authz(AuthorizationResult.Success());

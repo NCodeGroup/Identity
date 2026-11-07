@@ -89,6 +89,8 @@ NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ClientId.get -> string!
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ClientId.init -> void
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.OpenIdClientDefinition() -> void
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.PrincipalId.get -> string!
+NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.PrincipalId.init -> void
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ResourceServerId.get -> string?
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.ResourceServerId.init -> void
 NCode.Identity.OpenId.Authentication.Clients.OpenIdClientDefinition.Secrets.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Keys.SecretKey!>!

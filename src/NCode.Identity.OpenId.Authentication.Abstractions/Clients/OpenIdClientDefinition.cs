@@ -23,6 +23,11 @@ public sealed class OpenIdClientDefinition
     public required string ClientId { get; init; }
 
     /// <summary>
+    /// Gets the identifier of the client's principal: the subject of a token the client obtains for itself.
+    /// </summary>
+    public required string PrincipalId { get; init; }
+
+    /// <summary>
     /// Gets the client's effective settings: the tenant's settings merged with the client's own.
     /// </summary>
     public required IReadOnlySettingCollection Settings { get; init; }

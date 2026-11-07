@@ -136,7 +136,8 @@ public class OwnershipHandlerTests : IDisposable
             factory.Object,
             resolver.Object,
             accessor.Object,
-            ambient.Object
+            ambient.Object,
+            new DefaultAuthorityChainResolver()
         );
         var context = new AuthorizationHandlerContext([requirement], user, resource);
 

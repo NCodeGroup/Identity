@@ -96,8 +96,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
                 x.RecordPlatformChangedAsync(
                     It.IsAny<HttpContext>(),
                     ResourceChangeTypes.SettingsUpdated,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)

@@ -483,8 +483,7 @@ internal class PlatformApiEndpointHandler(
         await ManagementAuditRecorder.RecordPlatformChangedAsync(
             httpContext,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToPlatformSettingsResource(platformSettings)),
-            cancellationToken
+            ToResourceValues(ToPlatformSettingsResource(platformSettings))
         );
 
         await NotifyPlatformSettingsChangedAsync(

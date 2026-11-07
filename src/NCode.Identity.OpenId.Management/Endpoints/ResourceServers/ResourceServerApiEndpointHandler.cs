@@ -883,11 +883,17 @@ internal class ResourceServerApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        return await ProcessAddOwnerAsync(
-            httpContext,
+        // See ADR-1469.
+        var resourceServerNode = ResourceNode.For(
             tenantId,
             ResourceNodeTypes.ResourceServer,
-            resourceServerId,
+            resourceServerId
+        );
+        return await ProcessAddRoleAssignmentAsync(
+            httpContext,
+            resourceServerNode,
+            BuiltInRoles.Owner,
+            Operations.Update,
             request,
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/owners",
             (storeManager, token) =>

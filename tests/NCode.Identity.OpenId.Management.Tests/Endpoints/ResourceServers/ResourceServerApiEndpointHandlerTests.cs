@@ -1277,6 +1277,96 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
     #endregion
 
+    #region AddOwnerAsync Tests
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenAuthorized_GrantsTheOwnerRoleAndReturnsCreatedBeneathTheResourceServersOwners()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.ResourceServer,
+                    ResourceServerId,
+                    "principal-1",
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant { Assignment = CreateCreatorAssignment(), IsAdded = true }
+            )
+            .Verifiable();
+        var recorded = new List<RoleAssignmentChangedAuditEvent>();
+        SetupRoleAssignmentChangedAuditCapture(recorded.Add);
+
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new AddRoleHolderRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<RoleHolderResource>>(result);
+        Assert.Equal(
+            $"/tenants/{TenantId}/resource-servers/{ResourceServerId}/owners/principal-1",
+            created.Location
+        );
+        var auditEvent = Assert.Single(recorded);
+        Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenThePrincipalCannotHoldTheRole_ReturnsConflictWithoutSavingOrRecording()
+    {
+        // Strict mocks: no SaveChangesAsync and no audit setup, so saving or recording would fail the test.
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServer())
+            .Verifiable();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.ResourceServer,
+                    ResourceServerId,
+                    "principal-1",
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new RoleAssignmentGrant { Assignment = null, IsAdded = false })
+            .Verifiable();
+
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new AddRoleHolderRequest { PrincipalId = "principal-1" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
     [Fact]
     public async Task UpdateSettingsAsync_WhenAuthorized_ReturnsNoContent()
     {

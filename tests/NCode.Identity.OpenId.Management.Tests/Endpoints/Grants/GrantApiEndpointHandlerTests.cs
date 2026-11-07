@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -756,34 +755,17 @@ public sealed class GrantApiEndpointHandlerTests : IDisposable
 
     private void SetupResourceServer(string tenantId, bool isSystem)
     {
+        var resourceServer = new PersistedResourceServerBuilder
+        {
+            TenantId = tenantId,
+            ResourceServerId = ResourceServerId,
+            IsSystem = isSystem,
+        }.Build();
+
         var mockResourceServerStore = MockRepository.Create<IResourceServerStore>();
         mockResourceServerStore
             .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                new PersistedResourceServer
-                {
-                    TenantId = tenantId,
-                    ResourceServerId = ResourceServerId,
-                    Identifier = "https://api.example.com",
-                    ConcurrencyToken = "rs-ct",
-                    Name = "Example API",
-                    IsSystem = isSystem,
-                    IsDisabled = false,
-                    Settings = new PersistedResourceServerSettings
-                    {
-                        TenantId = tenantId,
-                        ResourceServerId = ResourceServerId,
-                        Value = JsonSerializer.SerializeToElement(new { }),
-                    },
-                    Scopes = [],
-                    Secrets = new PersistedResourceServerSecrets
-                    {
-                        TenantId = tenantId,
-                        ResourceServerId = ResourceServerId,
-                        Value = [],
-                    },
-                }
-            )
+            .ReturnsAsync(resourceServer)
             .Verifiable();
 
         MockStoreManagerFactory

@@ -7,14 +7,15 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts;
 
 /// <summary>
-/// Represents the request to grant a principal ownership of a resource.
+/// Represents the request to grant a principal the role of a role list at its node.
 /// </summary>
+// See ADR-1469.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class AddOwnerRequest
+public sealed class AddRoleHolderRequest
 {
     /// <summary>
-    /// Gets the identifier of the principal to grant ownership to.
+    /// Gets the identifier of the principal to grant the role to.
     /// </summary>
     public required string PrincipalId { get; init; }
 }

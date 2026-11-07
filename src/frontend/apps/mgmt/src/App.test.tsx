@@ -9,6 +9,7 @@ import { App } from './App.js';
 import './containers/ClientsPage.js';
 import './containers/GrantsPage.js';
 import './containers/HomePage.js';
+import './containers/MachineClientsPage.js';
 import './containers/ResourceServersPage.js';
 import './containers/PlatformSettingsPage.js';
 import './containers/TeamDetailPage.js';
@@ -341,6 +342,32 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
     expect(window.location.pathname).toBe('/encryption-keys');
   });
 
+  it('switches to the platform Clients surface', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url =
+          input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+        if (url.endsWith('/api/platform/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('platform-tab-clients'));
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'The platform has no machine clients yet.',
+    );
+    expect(window.location.pathname).toBe('/clients');
+  });
+
   it('lists teams and crosses into a team scope', async () => {
     vi.stubGlobal(
       'fetch',
@@ -416,6 +443,34 @@ describe('App (platform ↔ team ↔ tenant boundary)', () => {
 
     expect(await screen.findByTestId('team-row-acme-web')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/teams/acme/teams');
+  });
+
+  it("switches to a team's machine clients", async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url =
+          input instanceof Request ? input.url : input instanceof URL ? input.href : String(input);
+        if (url.endsWith('/api/teams/acme/clients')) {
+          return jsonResponse({ items: [] });
+        }
+        const directory = directoryResponse(url);
+        if (directory) {
+          return directory;
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    renderApp();
+
+    fireEvent.click(await screen.findByTestId('team-row-acme'));
+    fireEvent.click(await screen.findByTestId('team-tab-clients'));
+
+    expect(await screen.findByTestId('data-empty')).toHaveTextContent(
+      'This team has no machine clients yet.',
+    );
+    expect(window.location.pathname).toBe('/teams/acme/clients');
   });
 
   it('exits a child team to its parent team', async () => {

@@ -13,7 +13,7 @@ import {
   roleListTagId,
   scopeTagId,
   teamScope,
-  type AddOwnerRequest,
+  type AddRoleHolderRequest,
   type CallerResource,
   type ClientOwner,
   type ClientResource,
@@ -37,9 +37,10 @@ import {
   type EncryptionRootKeyResource,
   type GrantResource,
   type GrantRevocationResult,
+  type MachineClientOwner,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
-  type OwnerResource,
+  type RoleHolderResource,
   type PromoteTenantRequest,
   type PublicKeyResource,
   type ResourceServerResource,
@@ -403,6 +404,32 @@ export const managementApi = createApi({
         { type: 'Client', id: tenantTag(tenantId, clientId) },
       ],
     }),
+    // The machine clients the platform or a team owns (ADR-1466). Each lives in the control-plane tenant, so its
+    // item tag is that tenant's and a change through the tenant's client routes refetches the owner's list.
+    listMachineClients: build.query<CollectionResource<ClientResource>, MachineClientOwner>({
+      query: (owner) => `${ownerApiPath(owner)}/clients`,
+      providesTags: (result, _error, owner) => [
+        { type: 'Client' as const, id: scopeTagId(ownerScope(owner), LIST_TAG) },
+        ...(result?.items ?? []).map((c) => ({
+          type: 'Client' as const,
+          id: tenantTag(c.tenantId, c.clientId),
+        })),
+      ],
+    }),
+    createMachineClient: build.mutation<
+      ClientResource,
+      { owner: MachineClientOwner; body: CreateClientRequest }
+    >({
+      query: ({ owner, body }) => ({
+        url: `${ownerApiPath(owner)}/clients`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (result, _error, { owner }) => [
+        { type: 'Client' as const, id: scopeTagId(ownerScope(owner), LIST_TAG) },
+        ...(result ? [{ type: 'Client' as const, id: tenantTag(result.tenantId, LIST_TAG) }] : []),
+      ],
+    }),
     listResourceServers: build.query<
       CollectionResource<ResourceServerResource>,
       { tenantId: string }
@@ -741,11 +768,11 @@ export const managementApi = createApi({
         { type: 'RoleAssignment', id: roleListTagId(list) },
       ],
     }),
-    addRoleAssignment: build.mutation<OwnerResource, { list: RoleList; principalId: string }>({
+    addRoleAssignment: build.mutation<RoleHolderResource, { list: RoleList; principalId: string }>({
       query: ({ list, principalId }) => ({
         url: roleListApiPath(list),
         method: 'POST',
-        body: { principalId } satisfies AddOwnerRequest,
+        body: { principalId } satisfies AddRoleHolderRequest,
       }),
       // A role change can change the caller's own access, its authority over every role list and its authority over
       // any scope's limits.
@@ -788,6 +815,8 @@ export const {
   useCreateClientMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,
+  useListMachineClientsQuery,
+  useCreateMachineClientMutation,
   useCreateResourceServerMutation,
   useUpdateResourceServerMutation,
   useDeleteResourceServerMutation,

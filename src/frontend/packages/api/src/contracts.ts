@@ -189,8 +189,8 @@ export type RoleAssignmentResource = {
   readonly tenantId: string;
 };
 
-/** Mirror of `OwnerResource`: one role a principal holds at a node. */
-export type OwnerResource = {
+/** Mirror of `RoleHolderResource`: a principal that holds one role at a node. */
+export type RoleHolderResource = {
   readonly assignmentId: string;
   readonly principalId: string;
   readonly roleName: string;
@@ -198,12 +198,12 @@ export type OwnerResource = {
 
 /** Mirror of `RoleListResource`: the principals that hold one role at a node and whether the caller may grant and revoke it there (ADR-1465). */
 export type RoleListResource = {
-  readonly items: readonly OwnerResource[];
+  readonly items: readonly RoleHolderResource[];
   readonly canChange: boolean;
 };
 
-/** The body that grants a principal a role at a node. */
-export type AddOwnerRequest = {
+/** Mirror of `AddRoleHolderRequest`: the body that grants a principal the role of a role list at its node. */
+export type AddRoleHolderRequest = {
   readonly principalId: string;
 };
 
@@ -238,7 +238,7 @@ export type UpdateTeamFields = {
 };
 
 /**
- * Mirror of `ClientResource` (tenant scope). A client has no display name; it is identified by id.
+ * Mirror of `ClientResource`. A client has no display name; it is identified by id.
  * `resourceServerId` names the resource server the client acts for — its credential at the token
  * introspection endpoint, accepted nowhere else — or is `null` for an ordinary client.
  */
@@ -250,6 +250,10 @@ export type ClientResource = {
   readonly resourceServerId: string | null;
   /** The client's principal, which role assignments name to grant the client authority. */
   readonly principalId: string;
+  /** The type of the node that owns this machine client — `platform` or `team` — or `null` for an ordinary client (ADR-1466). */
+  readonly owningNodeType: string | null;
+  /** The identifier of the node that owns this machine client: the team's id, or `platform`; `null` for an ordinary client. */
+  readonly owningNodeId: string | null;
 };
 
 /**

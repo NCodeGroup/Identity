@@ -2840,12 +2840,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
-                x.AddOwnerAsync(
+                x.AddAssignmentAsync(
                     MockStoreManager.Object,
                     ControlPlaneTenantId,
                     ResourceNodeTypes.Team,
                     TeamId,
                     "principal-2",
+                    BuiltInRoles.Owner,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -2861,7 +2862,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         await Handler.AddOwnerAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -2914,12 +2915,13 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
-                x.AddOwnerAsync(
+                x.AddAssignmentAsync(
                     MockStoreManager.Object,
                     ControlPlaneTenantId,
                     ResourceNodeTypes.Team,
                     TeamId,
                     "principal-2",
+                    BuiltInRoles.Owner,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -2935,12 +2937,45 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddOwnerAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
-        var created = Assert.IsType<Created<OwnerResource>>(result);
+        var created = Assert.IsType<Created<RoleHolderResource>>(result);
         Assert.Equal($"/teams/{TeamId}/owners/principal-2", created.Location);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenThePrincipalCannotHoldTheRole_ReturnsConflictWithoutSavingOrRecording()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTeam(CreateTeam());
+        // Strict mocks: no save or audit setup, so saving or recording would fail the test.
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    ControlPlaneTenantId,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    "principal-2",
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new RoleAssignmentGrant { Assignment = null, IsAdded = false })
+            .Verifiable();
+
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
     [Fact]
@@ -3178,11 +3213,11 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
-        var created = Assert.IsType<Created<OwnerResource>>(result);
+        var created = Assert.IsType<Created<RoleHolderResource>>(result);
         Assert.Equal($"/teams/{TeamId}/admins/principal-2", created.Location);
     }
 
@@ -3226,7 +3261,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -3268,7 +3303,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -3310,11 +3345,11 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
-        var ok = Assert.IsType<Ok<OwnerResource>>(result);
+        var ok = Assert.IsType<Ok<RoleHolderResource>>(result);
         Assert.Equal("principal-2", ok.Value?.PrincipalId);
     }
 
@@ -3343,7 +3378,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -3359,7 +3394,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -3376,7 +3411,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TeamId,
-            new AddOwnerRequest { PrincipalId = string.Empty },
+            new AddRoleHolderRequest { PrincipalId = string.Empty },
             CancellationToken.None
         );
 

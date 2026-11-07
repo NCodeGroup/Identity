@@ -1997,7 +1997,7 @@ describes the family as it is rather than its changes
   operation except `Create` on a resource it owns, or on any resource under a node it owns, and the principal that
   creates a client, resource server or tenant becomes its owner. Each of those resources has owner-management endpoints
   (`GET`/`POST`/`DELETE /{resource}/{id}/owners`), whose list answers `RoleListResource` and whose grant answers
-  `OwnerResource`, a grant the principal already holds answers `200` with its assignment, and a one-owner invariant
+  `RoleHolderResource`, a grant the principal already holds answers `200` with its assignment, and a one-owner invariant
   refuses to orphan a resource with `409`. The ownership service reports what it changed (`RoleAssignmentGrant`,
   `OwnerRemoval`). The ownership service and resource-node abstraction (`IResourceOwnershipService`, `IResourceNode`,
   `ResourceNode`, `ResourceNodeTypes`) are public, so applications own and enforce their own resource types; the
@@ -3780,11 +3780,17 @@ describes the family as it is rather than its changes
 
 - **A caller learns whether it may grant and revoke a role where it reads who holds it.** `GET …/owners` on a team, a
   tenant, a client and a resource server and `GET …/admins` on a team and a tenant answer `RoleListResource`: the
-  role's assignments (`items`) and `canChange`, whether the caller may grant and revoke the role there: `Update` at the
-  node for owners, `Create` for administrators, and for a client's owners also a client the host does not manage and
-  custody of the roles its principal holds
+  role's holders (`items`, each a `RoleHolderResource`) and `canChange`, whether the caller may grant and revoke the
+  role there: `Update` at the node for owners, `Create` for administrators, and for a client's owners also a client the
+  host does not manage and, for a machine client, creation authority at the node that owns it. `POST` on each list
+  takes `AddRoleHolderRequest` and answers the `RoleHolderResource` it grants, or `409` for a client's principal that
+  cannot hold the role there, and every list grants and revokes its role through one flow, so every role answers the
+  same statuses and records the same audit events
   ([ADR-1465](docs/decisions/1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md),
-  [#623](https://github.com/NCodeGroup/Identity/issues/623)).
+  [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md),
+  [ADR-1469](docs/decisions/1469-every-role-list-shares-role-neutral-contracts-and-one-grant-and-revoke-flow.md),
+  [#623](https://github.com/NCodeGroup/Identity/issues/623), [#627](https://github.com/NCodeGroup/Identity/issues/627),
+  [#628](https://github.com/NCodeGroup/Identity/issues/628)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and
@@ -3826,13 +3832,19 @@ describes the family as it is rather than its changes
   its team as a parent resource
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
 
-- **The management console manages teams and the platform's settings.** The platform scope has a Teams surface
-  (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete), a Settings surface and an Encryption keys surface;
-  the platform's team list names each team's parent; a team scope has its tenants, child teams, settings and usage
-  (`TeamUsageTable`, which names each entry's team), and its exit leads to its parent team; the console routes `/teams`,
-  `/settings`, `/encryption-keys`, `/teams/{teamId}/{tenants|teams|settings|usage}` and `/tenants/{tenantId}/…`
-  ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+- **The management console manages teams, machine clients and the platform's settings.** The platform scope has a
+  Teams surface (`TeamTable`, `TeamFormDialog`, create, edit, disable and delete), a Clients surface, a Settings
+  surface and an Encryption keys surface; the platform's team list names each team's parent; a team scope has its
+  tenants, child teams, clients, settings, access and usage (`TeamUsageTable`, which names each entry's team), and its
+  exit leads to its parent team. The platform's and a team's Clients surface lists, creates, disables and deletes the
+  machine clients it owns (`MachineClientsPage`) and opens each one's secrets, settings and owners through the
+  control-plane tenant's client routes, where a client's detail names the platform or team that owns it and its
+  principal; the console routes `/teams`, `/clients`, `/settings`, `/encryption-keys`,
+  `/teams/{teamId}/{tenants|teams|clients|settings|access|usage}` and `/tenants/{tenantId}/…`
+  ([#636](https://github.com/NCodeGroup/Identity/issues/636),
+  [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
 
 - **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key

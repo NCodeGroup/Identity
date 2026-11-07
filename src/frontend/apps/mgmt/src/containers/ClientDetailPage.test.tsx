@@ -20,6 +20,8 @@ const client: ClientResource = {
   isDisabled: false,
   resourceServerId: null,
   principalId: 'principal-web',
+  owningNodeType: null,
+  owningNodeId: null,
 };
 
 function renderPage(overrides: Partial<ClientResource> = {}, onBack = vi.fn()) {
@@ -28,7 +30,7 @@ function renderPage(overrides: Partial<ClientResource> = {}, onBack = vi.fn()) {
   });
   render(
     <Provider store={store}>
-      <ClientDetailPage tenantId="acme" client={{ ...client, ...overrides }} onBack={onBack} />
+      <ClientDetailPage client={{ ...client, ...overrides }} onBack={onBack} />
     </Provider>,
   );
   return onBack;
@@ -104,6 +106,7 @@ describe('ClientDetailPage', () => {
 
     expect(screen.getByRole('heading', { name: 'web' })).toBeInTheDocument();
     expect(screen.getByText('Client · Active')).toBeInTheDocument();
+    expect(screen.queryByTestId('client-principal')).not.toBeInTheDocument();
     expect(await screen.findByTestId('data-empty')).toHaveTextContent(
       'This client has no secrets yet.',
     );
@@ -144,6 +147,48 @@ describe('ClientDetailPage', () => {
 
     expect(
       screen.getByText('Client · Active · Acts for resource server rs-orders'),
+    ).toBeInTheDocument();
+    expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
+  });
+
+  it('names the team that owns a machine client and its principal', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/api/tenants/control/clients/web/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage({
+      tenantId: 'control',
+      owningNodeType: 'team',
+      owningNodeId: 'acme',
+      principalId: 'principal-bot',
+    });
+
+    expect(screen.getByText('Client · Active · Machine client of team acme')).toBeInTheDocument();
+    expect(screen.getByTestId('client-principal')).toHaveTextContent('Principal principal-bot');
+    expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
+  });
+
+  it('names the platform as the owner of a platform machine client', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/capabilities')) {
+        return jsonResponse({ secretTypes: [] });
+      }
+      if (url.endsWith('/api/tenants/control/clients/web/secrets')) {
+        return jsonResponse({ concurrencyToken: 'c1', secrets: [] });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderPage({ tenantId: 'control', owningNodeType: 'platform', owningNodeId: 'platform' });
+
+    expect(
+      screen.getByText('Client · Active · Machine client of the platform'),
     ).toBeInTheDocument();
     expect(await screen.findByTestId('data-empty')).toBeInTheDocument();
   });

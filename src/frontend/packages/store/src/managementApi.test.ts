@@ -2413,7 +2413,7 @@ describe('managementApi role assignment requests', () => {
   const tenantOwners: RoleList = { role: 'owners', owner: { kind: 'tenant', tenantId: 'acme' } };
 
   it('listRoleAssignments GETs the administrators of a team', async () => {
-    const captured = mockFetch(jsonResponse({ items: [] }));
+    const captured = mockFetch(jsonResponse({ items: [], canChange: true }));
     const store = createStore();
 
     await store.dispatch(managementApi.endpoints.listRoleAssignments.initiate(teamAdmins));
@@ -2455,15 +2455,17 @@ describe('managementApi role assignment requests', () => {
     expect(captured[0]?.method).toBe('DELETE');
   });
 
-  it('addRoleAssignment refetches the list it grants into', async () => {
+  it('addRoleAssignment refetches every role list, whose canChange a role change can change', async () => {
     const fetches = routeFetch((method) =>
       method === 'GET'
-        ? jsonResponse({ items: [] })
+        ? jsonResponse({ items: [], canChange: true })
         : jsonResponse({ assignmentId: 'a-1', principalId: 'p-1', roleName: 'Owner' }, 201),
     );
     const store = createStore();
     await store.dispatch(managementApi.endpoints.listRoleAssignments.initiate(tenantOwners));
+    await store.dispatch(managementApi.endpoints.listRoleAssignments.initiate(teamAdmins));
     expect(fetches.count('GET', '/api/tenants/acme/owners')).toBe(1);
+    expect(fetches.count('GET', '/api/teams/t%2F1/admins')).toBe(1);
 
     await store.dispatch(
       managementApi.endpoints.addRoleAssignment.initiate({
@@ -2474,5 +2476,30 @@ describe('managementApi role assignment requests', () => {
     await settle(store);
 
     expect(fetches.count('GET', '/api/tenants/acme/owners')).toBe(2);
+    expect(fetches.count('GET', '/api/teams/t%2F1/admins')).toBe(2);
+  });
+
+  it('removeRoleAssignment refetches every role list', async () => {
+    const fetches = routeFetch((method) =>
+      method === 'GET'
+        ? jsonResponse({ items: [], canChange: true })
+        : new Response(null, { status: 204 }),
+    );
+    const store = createStore();
+    await store.dispatch(managementApi.endpoints.listRoleAssignments.initiate(tenantOwners));
+    await store.dispatch(managementApi.endpoints.listRoleAssignments.initiate(teamAdmins));
+    expect(fetches.count('GET', '/api/tenants/acme/owners')).toBe(1);
+    expect(fetches.count('GET', '/api/teams/t%2F1/admins')).toBe(1);
+
+    await store.dispatch(
+      managementApi.endpoints.removeRoleAssignment.initiate({
+        list: tenantOwners,
+        principalId: 'p-1',
+      }),
+    );
+    await settle(store);
+
+    expect(fetches.count('GET', '/api/tenants/acme/owners')).toBe(2);
+    expect(fetches.count('GET', '/api/teams/t%2F1/admins')).toBe(2);
   });
 });

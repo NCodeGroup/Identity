@@ -49,26 +49,7 @@ public sealed class DefaultTenantPromoterTests : IDisposable
     }
 
     private static PersistedTenant CreateTenant(string tenantId) =>
-        new()
-        {
-            TenantId = tenantId,
-            TeamId = TeamId,
-            Issuer = null,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                Value = JsonElements.EmptyObject,
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-token",
-                Value = [],
-            },
-        };
+        new PersistedTenantBuilder { TenantId = tenantId, TeamId = TeamId }.Build();
 
     private TenantPromotionContext CreateContext(
         IReadOnlyList<TenantPromotionEnvironmentSettings>? environmentSettings = null

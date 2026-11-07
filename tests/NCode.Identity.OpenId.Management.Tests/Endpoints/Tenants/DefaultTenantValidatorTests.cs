@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -58,35 +56,20 @@ public sealed class DefaultTenantValidatorTests : IDisposable
         return new ClaimsPrincipal(identity);
     }
 
-    private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
-
     private static PersistedTenant CreateTenant(
         string tenantId = TenantId,
         string concurrencyToken = "tenant-ct",
         string? issuer = Issuer,
         string displayName = "Tenant One"
     ) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
             TeamId = TeamId,
             ConcurrencyToken = concurrencyToken,
             Issuer = issuer,
-            IsDisabled = false,
             DisplayName = displayName,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "settings-ct",
-                Value = EmptyObject(),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
-        };
+        }.Build();
 
     private void SetupAuthorization(AuthorizationResult result)
     {

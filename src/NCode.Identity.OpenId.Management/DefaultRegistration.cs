@@ -48,11 +48,6 @@ public static class DefaultRegistration
             );
 
             serviceCollection.TryAddSingleton<
-                ICallerPrincipalResolver,
-                DefaultCallerPrincipalResolver
-            >();
-
-            serviceCollection.TryAddSingleton<
                 IResourceOwnershipService,
                 DefaultResourceOwnershipService
             >();

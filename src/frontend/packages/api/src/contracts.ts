@@ -189,8 +189,8 @@ export type RoleAssignmentResource = {
   readonly tenantId: string;
 };
 
-/** Mirror of `OwnerResource`: one role a principal holds at a node. */
-export type OwnerResource = {
+/** Mirror of `RoleHolderResource`: a principal that holds one role at a node. */
+export type RoleHolderResource = {
   readonly assignmentId: string;
   readonly principalId: string;
   readonly roleName: string;
@@ -198,12 +198,12 @@ export type OwnerResource = {
 
 /** Mirror of `RoleListResource`: the principals that hold one role at a node and whether the caller may grant and revoke it there (ADR-1465). */
 export type RoleListResource = {
-  readonly items: readonly OwnerResource[];
+  readonly items: readonly RoleHolderResource[];
   readonly canChange: boolean;
 };
 
-/** The body that grants a principal a role at a node. */
-export type AddOwnerRequest = {
+/** Mirror of `AddRoleHolderRequest`: the body that grants a principal the role of a role list at its node. */
+export type AddRoleHolderRequest = {
   readonly principalId: string;
 };
 

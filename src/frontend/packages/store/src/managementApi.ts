@@ -13,7 +13,7 @@ import {
   roleListTagId,
   scopeTagId,
   teamScope,
-  type AddOwnerRequest,
+  type AddRoleHolderRequest,
   type CallerResource,
   type ClientOwner,
   type ClientResource,
@@ -39,7 +39,7 @@ import {
   type GrantRevocationResult,
   type ManagementCapabilitiesResource,
   type ManagementOwner,
-  type OwnerResource,
+  type RoleHolderResource,
   type PromoteTenantRequest,
   type PublicKeyResource,
   type ResourceServerResource,
@@ -741,11 +741,11 @@ export const managementApi = createApi({
         { type: 'RoleAssignment', id: roleListTagId(list) },
       ],
     }),
-    addRoleAssignment: build.mutation<OwnerResource, { list: RoleList; principalId: string }>({
+    addRoleAssignment: build.mutation<RoleHolderResource, { list: RoleList; principalId: string }>({
       query: ({ list, principalId }) => ({
         url: roleListApiPath(list),
         method: 'POST',
-        body: { principalId } satisfies AddOwnerRequest,
+        body: { principalId } satisfies AddRoleHolderRequest,
       }),
       // A role change can change the caller's own access, its authority over every role list and its authority over
       // any scope's limits.

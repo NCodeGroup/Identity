@@ -65,7 +65,7 @@ describe('RoleAssignmentsManager', () => {
   it('lists the principals that hold the role', async () => {
     installFetch((url, method) => {
       if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
-        return jsonResponse({ items: [assignment('alice'), assignment('bob')] });
+        return jsonResponse({ items: [assignment('alice'), assignment('bob')], canChange: true });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
@@ -87,6 +87,7 @@ describe('RoleAssignmentsManager', () => {
       if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
         return jsonResponse({
           items: granted ? [assignment('alice'), assignment('carol')] : [assignment('alice')],
+          canChange: true,
         });
       }
       throw new Error(`Unexpected ${method} ${url}`);
@@ -112,7 +113,7 @@ describe('RoleAssignmentsManager', () => {
         return new Response(null, { status: 204 });
       }
       if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
-        return jsonResponse({ items: [assignment('alice')] });
+        return jsonResponse({ items: [assignment('alice')], canChange: true });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
@@ -132,7 +133,7 @@ describe('RoleAssignmentsManager', () => {
   it('keeps the role when the revoke is cancelled', async () => {
     const calls = installFetch((url, method) => {
       if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
-        return jsonResponse({ items: [assignment('alice')] });
+        return jsonResponse({ items: [assignment('alice')], canChange: true });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
@@ -155,7 +156,7 @@ describe('RoleAssignmentsManager', () => {
         return jsonResponse({ title: 'Forbidden', status: 403 }, 403);
       }
       if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
-        return jsonResponse({ items: [assignment('alice')] });
+        return jsonResponse({ items: [assignment('alice')], canChange: true });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
@@ -173,7 +174,7 @@ describe('RoleAssignmentsManager', () => {
         return jsonResponse({ title: 'Forbidden', status: 403 }, 403);
       }
       if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
-        return jsonResponse({ items: [] });
+        return jsonResponse({ items: [], canChange: true });
       }
       throw new Error(`Unexpected ${method} ${url}`);
     });
@@ -184,6 +185,22 @@ describe('RoleAssignmentsManager', () => {
     fireEvent.click(screen.getByTestId('admins-grant'));
 
     expect(await screen.findByTestId('admins-error')).toHaveTextContent('Forbidden');
+  });
+  it('shows the list read-only to a caller who may not change it', async () => {
+    installFetch((url, method) => {
+      if (url.endsWith('/api/teams/acme/admins') && method === 'GET') {
+        return jsonResponse({ items: [assignment('alice')], canChange: false });
+      }
+      throw new Error(`Unexpected ${method} ${url}`);
+    });
+
+    renderManager();
+
+    expect(await screen.findByTestId('admins-row-alice')).toBeInTheDocument();
+    expect(screen.getByTestId('admins-read-only')).toBeInTheDocument();
+    expect(screen.queryByTestId('admins-principal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admins-grant')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('admins-revoke-alice')).not.toBeInTheDocument();
   });
 });
 

@@ -221,7 +221,8 @@ internal class ClientApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         clients
             .MapPost("/{clientId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         clients
             .MapDelete("/{clientId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -761,7 +762,7 @@ internal class ClientApiEndpointHandler(
         );
 
         await store.AddAsync(client, cancellationToken);
-        await ResourceOwnershipService.AssignCreatorAsync(
+        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
             storeManager,
@@ -782,6 +783,16 @@ internal class ClientApiEndpointHandler(
             ToResourceValues(resource),
             cancellationToken
         );
+
+        if (creatorAssignment is not null)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                creatorAssignment,
+                ResourceChangeTypes.Created,
+                cancellationToken
+            );
+        }
 
         // The store assigns the row token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = client.ConcurrencyToken;
@@ -2155,6 +2166,7 @@ internal class ClientApiEndpointHandler(
     /// Adds an owner to a client.
     /// </summary>
     /// <response code="201">The owner was added.</response>
+    /// <response code="200">The principal already owns the client.</response>
     [EndpointName("api/clients/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,

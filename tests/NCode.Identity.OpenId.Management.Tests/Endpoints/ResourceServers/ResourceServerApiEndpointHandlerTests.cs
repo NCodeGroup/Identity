@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
@@ -100,7 +101,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
     }
 
     // Only a request that creates the resource assigns its creator as its owner.
-    private void SetupCreatorAssignment() =>
+    private void SetupCreatorAssignment(PersistedRoleAssignment? assignment = null) =>
         MockResourceOwnershipService
             .Setup(x =>
                 x.AssignCreatorAsync(
@@ -113,8 +114,39 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync((PersistedRoleAssignment?)null)
+            .ReturnsAsync(assignment)
             .Verifiable();
+
+    // Only a request that grants or revokes a role records it.
+    private void SetupRoleAssignmentChangedAuditCapture(
+        Action<RoleAssignmentChangedAuditEvent> capture
+    ) =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (HttpContext _, ResourceChangeAuditEvent auditEvent, CancellationToken _) =>
+                    capture((RoleAssignmentChangedAuditEvent)auditEvent)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private static PersistedRoleAssignment CreateCreatorAssignment() =>
+        new()
+        {
+            TenantId = TenantId,
+            AssignmentId = "assignment-principal-1",
+            PrincipalId = "principal-1",
+            RoleName = BuiltInRoles.Owner,
+            ResourceType = ResourceNodeTypes.ResourceServer,
+            ResourceId = "generated-rs-id",
+            ConcurrencyToken = "assignment-ct",
+        };
 
     // Only a request that changes a secret records it.
     private void SetupResourceServerSecretChangedAudit() =>
@@ -385,6 +417,80 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<ResourceServerResource>>(result);
         Assert.Equal("generated-rs-id", created.Value?.ResourceServerId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheCreatorIsAssignedOwner_RecordsTheCreatorsAssignment()
+    {
+        SetupCreatorAssignment(CreateCreatorAssignment());
+        SetupResourceServerChangedAudit();
+        var recorded = new List<RoleAssignmentChangedAuditEvent>();
+        SetupRoleAssignmentChangedAuditCapture(recorded.Add);
+
+        await CreateResourceServerAsync();
+
+        var auditEvent = Assert.Single(recorded);
+        Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
+        Assert.Equal(ResourceNodeTypes.ResourceServer, auditEvent.NodeType);
+        Assert.Equal("generated-rs-id", auditEvent.NodeId);
+        Assert.Equal("principal-1", auditEvent.SubjectId);
+        Assert.Equal("assignment-principal-1", auditEvent.ResourceId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTheCallerHasNoPrincipal_RecordsNoRoleAssignment()
+    {
+        // Strict mocks: no RoleAssignmentChangedAuditEvent setup, so recording one would fail the test.
+        SetupCreatorAssignment();
+        SetupResourceServerChangedAudit();
+
+        var result = await CreateResourceServerAsync();
+
+        Assert.IsType<Created<ResourceServerResource>>(result);
+    }
+
+    private async Task<IResult> CreateResourceServerAsync()
+    {
+        SetupValidSettings();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("generated-rs-id")
+            .Verifiable();
+        SetupStore();
+        MockValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedResourceServer>(),
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockStore
+            .Setup(x =>
+                x.AddAsync(It.IsAny<PersistedResourceServer>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        return await Handler.CreateAsync(
+            CreateHttpContext(),
+            TenantId,
+            new CreateResourceServerRequest
+            {
+                Identifier = "https://api.example.com",
+                Name = "Example API",
+                IsDisabled = false,
+                Settings = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
+            },
+            CancellationToken.None
+        );
     }
 
     [Fact]

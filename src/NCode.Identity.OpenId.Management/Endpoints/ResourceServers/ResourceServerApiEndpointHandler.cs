@@ -199,7 +199,8 @@ internal class ResourceServerApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         resourceServers
             .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         resourceServers
             .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -367,7 +368,7 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         await store.AddAsync(resourceServer, cancellationToken);
-        await ResourceOwnershipService.AssignCreatorAsync(
+        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
             storeManager,
@@ -386,6 +387,16 @@ internal class ResourceServerApiEndpointHandler(
             ToResourceValues(ToResourceServerResource(resourceServer)),
             cancellationToken
         );
+
+        if (creatorAssignment is not null)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                creatorAssignment,
+                ResourceChangeTypes.Created,
+                cancellationToken
+            );
+        }
 
         httpContext.Response.Headers.ETag = resourceServer.ConcurrencyToken;
         return TypedResults.Created(
@@ -811,6 +822,7 @@ internal class ResourceServerApiEndpointHandler(
     /// Adds an owner to a resource server.
     /// </summary>
     /// <response code="201">The owner was added.</response>
+    /// <response code="200">The principal already owns the resource server.</response>
     [EndpointName("api/resource-servers/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,

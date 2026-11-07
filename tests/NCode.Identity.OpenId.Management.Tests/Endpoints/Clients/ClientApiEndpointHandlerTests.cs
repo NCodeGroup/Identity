@@ -183,7 +183,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     // Only a request that creates the resource assigns its creator as its owner.
-    private void SetupCreatorAssignment() =>
+    private void SetupCreatorAssignment(PersistedRoleAssignment? assignment = null) =>
         MockResourceOwnershipService
             .Setup(x =>
                 x.AssignCreatorAsync(
@@ -196,8 +196,39 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync((PersistedRoleAssignment?)null)
+            .ReturnsAsync(assignment)
             .Verifiable();
+
+    // Only a request that grants or revokes a role records it.
+    private void SetupRoleAssignmentChangedAuditCapture(
+        Action<RoleAssignmentChangedAuditEvent> capture
+    ) =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (HttpContext _, ResourceChangeAuditEvent auditEvent, CancellationToken _) =>
+                    capture((RoleAssignmentChangedAuditEvent)auditEvent)
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private static PersistedRoleAssignment CreateCreatorAssignment() =>
+        new()
+        {
+            TenantId = TenantId,
+            AssignmentId = "assignment-principal-1",
+            PrincipalId = "principal-1",
+            RoleName = BuiltInRoles.Owner,
+            ResourceType = ResourceNodeTypes.Client,
+            ResourceId = "generated-id",
+            ConcurrencyToken = "assignment-ct",
+        };
 
     // Only a request that changes a secret records it.
     private void SetupClientSecretChangedAudit() =>
@@ -779,6 +810,71 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var created = Assert.IsType<Created<ClientResource>>(result);
         Assert.Equal("rs-1", captured?.ResourceServerId);
         Assert.Equal("rs-1", created.Value?.ResourceServerId);
+    }
+
+    [Fact]
+    public async Task CreateClientAsync_WhenTheCreatorIsAssignedOwner_RecordsTheCreatorsAssignment()
+    {
+        SetupCreatorAssignment(CreateCreatorAssignment());
+        SetupClientChangedAudit();
+        var recorded = new List<RoleAssignmentChangedAuditEvent>();
+        SetupRoleAssignmentChangedAuditCapture(recorded.Add);
+
+        await CreateClientAsync();
+
+        var auditEvent = Assert.Single(recorded);
+        Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
+        Assert.Equal(ResourceNodeTypes.Client, auditEvent.NodeType);
+        Assert.Equal("generated-id", auditEvent.NodeId);
+        Assert.Equal("principal-1", auditEvent.SubjectId);
+        Assert.Equal("assignment-principal-1", auditEvent.ResourceId);
+    }
+
+    [Fact]
+    public async Task CreateClientAsync_WhenTheCallerHasNoPrincipal_RecordsNoRoleAssignment()
+    {
+        // Strict mocks: no RoleAssignmentChangedAuditEvent setup, so recording one would fail the test.
+        SetupCreatorAssignment();
+        SetupClientChangedAudit();
+
+        var result = await CreateClientAsync();
+
+        Assert.IsType<Created<ClientResource>>(result);
+    }
+
+    private async Task<IResult> CreateClientAsync()
+    {
+        SetupValidSettings();
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockClientValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<PersistedClient>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddAsync(It.IsAny<PersistedClient>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupEffectiveSettings();
+        SetupCreatedClientAuthenticationMethod();
+
+        return await Handler.CreateClientAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() },
+            CancellationToken.None
+        );
     }
 
     [Fact]

@@ -44,6 +44,7 @@ import {
   type PublicKeyResource,
   type ResourceServerResource,
   type RoleList,
+  type RoleListResource,
   type ScopeResource,
   type SecretsResource,
   type SecretOwner,
@@ -734,7 +735,7 @@ export const managementApi = createApi({
     }),
     // The owners of a team, tenant, client or resource server and the administrators of a team or tenant, addressed by
     // a role list (ADR-1257).
-    listRoleAssignments: build.query<CollectionResource<OwnerResource>, RoleList>({
+    listRoleAssignments: build.query<RoleListResource, RoleList>({
       query: (list) => roleListApiPath(list),
       providesTags: (_result, _error, list) => [
         { type: 'RoleAssignment', id: roleListTagId(list) },
@@ -746,24 +747,18 @@ export const managementApi = createApi({
         method: 'POST',
         body: { principalId } satisfies AddOwnerRequest,
       }),
-      // A role change can change the caller's own access and its authority over any scope's limits.
-      invalidatesTags: (_result, _error, { list }) => [
-        { type: 'RoleAssignment', id: roleListTagId(list) },
-        { type: 'Caller', id: callerTag },
-        'SettingLimits',
-      ],
+      // A role change can change the caller's own access, its authority over every role list and its authority over
+      // any scope's limits.
+      invalidatesTags: ['RoleAssignment', { type: 'Caller', id: callerTag }, 'SettingLimits'],
     }),
     removeRoleAssignment: build.mutation<void, { list: RoleList; principalId: string }>({
       query: ({ list, principalId }) => ({
         url: `${roleListApiPath(list)}/${encodeURIComponent(principalId)}`,
         method: 'DELETE',
       }),
-      // A role change can change the caller's own access and its authority over any scope's limits.
-      invalidatesTags: (_result, _error, { list }) => [
-        { type: 'RoleAssignment', id: roleListTagId(list) },
-        { type: 'Caller', id: callerTag },
-        'SettingLimits',
-      ],
+      // A role change can change the caller's own access, its authority over every role list and its authority over
+      // any scope's limits.
+      invalidatesTags: ['RoleAssignment', { type: 'Caller', id: callerTag }, 'SettingLimits'],
     }),
   }),
 });

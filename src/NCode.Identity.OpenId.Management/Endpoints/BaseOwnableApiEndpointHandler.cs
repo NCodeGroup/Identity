@@ -13,8 +13,9 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
-/// Provides common functionality for management API endpoint handlers whose resources are ownable, including the
-/// owner-management endpoints (list, grant, revoke) and the one-owner invariant.
+/// Provides common functionality for management API endpoint handlers whose resources hold role lists: listing a
+/// role's assignments with whether the caller may change them, granting and revoking owners, and the one-owner
+/// invariant.
 /// </summary>
 internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 {
@@ -81,19 +82,59 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         };
 
     /// <summary>
-    /// Processes an HTTP <c>GET</c> for a resource's owners: authorizes the caller against the resource node, then
-    /// returns the owner assignments. Responds <c>404</c> when the resource does not exist.
+    /// Determines whether the caller holds an operation at a resource node.
     /// </summary>
-    protected internal virtual async ValueTask<IResult> ProcessListOwnersAsync(
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="node">The resource node the operation applies to.</param>
+    /// <param name="operation">The operation to authorize.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is <c>true</c> when the caller holds the operation at the
+    /// node; otherwise, <c>false</c>.
+    /// </returns>
+    // See ADR-1465.
+    protected internal virtual async ValueTask<bool> HoldsAuthorityAsync(
         HttpContext httpContext,
-        string tenantId,
-        string resourceType,
-        string resourceId,
+        ResourceNode node,
+        IAuthorizationRequirement operation
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            operation
+        );
+        return authorizationResult.Succeeded;
+    }
+
+    /// <summary>
+    /// Processes an HTTP <c>GET</c> for the principals that hold one role at a resource node: authorizes the caller
+    /// to read the node, then returns the assignments of the role and whether the caller may grant and revoke the
+    /// role there. Responds <c>404</c> when the resource does not exist.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="node">The resource node that the role is assigned at.</param>
+    /// <param name="roleName">The name of the role whose assignments are listed.</param>
+    /// <param name="resourceExistsAsync">Determines whether the resource of the node exists.</param>
+    /// <param name="canChangeAsync">
+    /// Determines whether the caller may grant and revoke the role at the node, which is the
+    /// <see cref="RoleListResource.CanChange"/> value of the response.
+    /// </param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
+    /// </returns>
+    // See ADR-1465.
+    protected internal virtual async ValueTask<IResult> ProcessListRoleAssignmentsAsync(
+        HttpContext httpContext,
+        ResourceNode node,
+        string roleName,
         Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
+        Func<IStoreManager, CancellationToken, ValueTask<bool>> canChangeAsync,
         CancellationToken cancellationToken
     )
     {
-        var node = ResourceNode.For(tenantId, resourceType, resourceId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
@@ -110,19 +151,17 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             return TypedResults.NotFound();
         }
 
-        var owners = await ResourceOwnershipService.GetOwnersAsync(
+        var assignments = await ResourceOwnershipService.GetAssignmentsAsync(
             storeManager,
-            resourceType,
-            resourceId,
+            node.ResourceType,
+            node.ResourceId,
+            roleName,
             cancellationToken
         );
-        return TypedResults.Json(
-            new CollectionResource<OwnerResource>
-            {
-                Items = owners.Select(ToOwnerResource).ToList(),
-                ContinuationToken = null,
-            }
-        );
+        var canChange = await canChangeAsync(storeManager, cancellationToken);
+        var items = assignments.Select(ToOwnerResource).ToList();
+        var roleList = new RoleListResource { Items = items, CanChange = canChange };
+        return TypedResults.Json(roleList);
     }
 
     /// <summary>

@@ -171,9 +171,7 @@ internal class TeamApiEndpointHandler(
             .Produces(StatusCodes.Status403Forbidden)
             .Produces(StatusCodes.Status404NotFound);
 
-        teams
-            .MapGet("/{teamId}/owners", ListOwnersAsync)
-            .Produces<CollectionResource<OwnerResource>>();
+        teams.MapGet("/{teamId}/owners", ListOwnersAsync).Produces<RoleListResource>();
         teams
             .MapPost("/{teamId}/owners", AddOwnerAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created)
@@ -183,9 +181,7 @@ internal class TeamApiEndpointHandler(
             .Produces(StatusCodes.Status204NoContent)
             .Produces(StatusCodes.Status409Conflict);
 
-        teams
-            .MapGet("/{teamId}/admins", ListAdminsAsync)
-            .Produces<CollectionResource<OwnerResource>>();
+        teams.MapGet("/{teamId}/admins", ListAdminsAsync).Produces<RoleListResource>();
         teams
             .MapPost("/{teamId}/admins", AddAdminAsync)
             .Produces<OwnerResource>(StatusCodes.Status201Created)
@@ -1121,23 +1117,27 @@ internal class TeamApiEndpointHandler(
     }
 
     /// <summary>
-    /// Lists a team's owners.
+    /// Lists a team's owners and whether the caller may grant and revoke the role.
     /// </summary>
-    /// <response code="200">The team's owners.</response>
+    /// <response code="200">The team's owners and whether the caller may change them.</response>
     [EndpointName("api/teams/owners/list")]
     internal virtual async ValueTask<IResult> ListOwnersAsync(
         HttpContext httpContext,
         [FromRoute] string teamId,
         CancellationToken cancellationToken
-    ) =>
-        await ProcessListOwnersAsync(
+    )
+    {
+        // See ADR-1465.
+        var teamNode = GetTeamNode(httpContext, teamId);
+        return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            GetControlPlaneTenantId(httpContext),
-            ResourceNodeTypes.Team,
-            teamId,
+            teamNode,
+            BuiltInRoles.Owner,
             (storeManager, token) => TeamExistsAsync(storeManager, teamId, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, teamNode, Operations.Update),
             cancellationToken
         );
+    }
 
     /// <summary>
     /// Adds an owner to a team.
@@ -1184,9 +1184,10 @@ internal class TeamApiEndpointHandler(
         );
 
     /// <summary>
-    /// Lists a team's administrators: the principals that manage the team and everything beneath it.
+    /// Lists a team's administrators, the principals that manage the team and everything beneath it, and whether the
+    /// caller may grant and revoke the role.
     /// </summary>
-    /// <response code="200">The team's administrators.</response>
+    /// <response code="200">The team's administrators and whether the caller may change them.</response>
     [EndpointName("api/teams/admins/list")]
     internal virtual async ValueTask<IResult> ListAdminsAsync(
         HttpContext httpContext,
@@ -1194,35 +1195,15 @@ internal class TeamApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTeamNode(httpContext, teamId),
-            Operations.Read
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await TeamExistsAsync(storeManager, teamId, cancellationToken))
-        {
-            return TypedResults.NotFound();
-        }
-
-        var admins = await ResourceOwnershipService.GetAssignmentsAsync(
-            storeManager,
-            ResourceNodeTypes.Team,
-            teamId,
+        // See ADR-1465.
+        var teamNode = GetTeamNode(httpContext, teamId);
+        return await ProcessListRoleAssignmentsAsync(
+            httpContext,
+            teamNode,
             BuiltInRoles.TeamAdmin,
+            (storeManager, token) => TeamExistsAsync(storeManager, teamId, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, teamNode, Operations.Create),
             cancellationToken
-        );
-        return TypedResults.Json(
-            new CollectionResource<OwnerResource>
-            {
-                Items = admins.Select(ToOwnerResource).ToList(),
-                ContinuationToken = null,
-            }
         );
     }
 

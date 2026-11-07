@@ -380,6 +380,29 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .ReturnsAsync(result)
             .Verifiable();
 
+    // The authorization of the client's node for one operation, which the caller's authority for that operation decides.
+    private void SetupClientNodeAuthorization(
+        IAuthorizationRequirement operation,
+        AuthorizationResult result
+    ) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Client
+                        && ((ResourceNode)resource).ResourceId == ClientId
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Contains(operation)
+                    )
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
     // The authorization of a node the client's principal holds a role at, which the caller's authority to grant decides.
     private void SetupRoleNodeAuthorization(AuthorizationResult result) =>
         MockAuthorizationService
@@ -408,6 +431,33 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             ResourceId = "team-1",
             ConcurrencyToken = "assignment-ct",
         };
+
+    private static PersistedRoleAssignment CreateOwnerAssignment() =>
+        new()
+        {
+            TenantId = TenantId,
+            AssignmentId = "assignment-owner",
+            PrincipalId = "principal-1",
+            RoleName = BuiltInRoles.Owner,
+            ResourceType = ResourceNodeTypes.Client,
+            ResourceId = ClientId,
+            ConcurrencyToken = "assignment-ct",
+        };
+
+    // Only a request that lists a client's owners reads the assignments of the owner role at the client.
+    private void SetupOwners() =>
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Client,
+                    ClientId,
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateOwnerAssignment()])
+            .Verifiable();
 
     // The host configures the client, so a handler built with the policy refuses every change to it.
     private ClientApiEndpointHandler CreateHostManagedHandler()
@@ -4451,6 +4501,120 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region ListOwnersAsync Tests
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayChangeTheClient_ReportsItMayChangeTheOwners()
+    {
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupClientLookup();
+        SetupClientRoleAssignments();
+        SetupOwners();
+
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.True(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheClientHoldsATeamRoleTheCallerCannotGrant_ReportsItMayNotChangeTheOwners()
+    {
+        SetupClientRoleAssignments(CreateTeamAssignment());
+        SetupStore();
+        SetupClientLookup();
+        SetupOwners();
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupRoleNodeAuthorization(AuthorizationResult.Failed());
+
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.False(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheClientIsHostManaged_ReportsItMayNotChangeTheOwners()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupClientLookup();
+        SetupOwners();
+        var handler = CreateHostManagedHandler();
+
+        var result = await handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.False(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayOnlyReadTheClient_ReportsItMayNotChangeTheOwners()
+    {
+        SetupClientNodeAuthorization(AuthorizationResult.Success());
+        SetupClientNodeAuthorization(Operations.Update, AuthorizationResult.Failed());
+        SetupStore();
+        SetupClientLookup();
+        SetupOwners();
+
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.False(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayNotReadTheClient_ReturnsForbiddenBeforeReadingTheClient()
+    {
+        SetupClientNodeAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no store manager factory setup, so reading the client would fail the test.
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion

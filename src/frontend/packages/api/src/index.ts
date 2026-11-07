@@ -34,6 +34,7 @@ export type {
   PublicKeyResource,
   ResourceServerResource,
   RoleAssignmentResource,
+  RoleListResource,
   ScopeResource,
   SecretResource,
   SecretsResource,

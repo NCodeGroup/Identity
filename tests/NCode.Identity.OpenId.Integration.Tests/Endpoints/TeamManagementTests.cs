@@ -1966,6 +1966,181 @@ public class TeamManagementTests
 
     #endregion
 
+    #region ListRoleAssignments Tests
+
+    [Fact]
+    public async Task ListRoleAssignments_AsATenantOwner_ReportsItMayChangeTheOwners()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var owner = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/owners"
+        );
+
+        var owners = await GetJsonAsync(owner, "/api/tenants/acme-dev/owners");
+
+        Assert.True(owners.GetProperty("canChange").GetBoolean());
+        Assert.NotEmpty(owners.GetProperty("items").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task ListRoleAssignments_AsATenantOwner_ReportsItMayNotChangeTheAdministrators()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var owner = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/owners"
+        );
+
+        var admins = await GetJsonAsync(owner, "/api/tenants/acme-dev/admins");
+
+        Assert.False(admins.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ListRoleAssignments_AsATeamAdmin_ReportsItMayChangeItsTenantsAdministrators()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+
+        var admins = await GetJsonAsync(teamAdmin, "/api/tenants/acme-dev/admins");
+
+        Assert.True(admins.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ListRoleAssignments_AsATeamAdmin_ReportsItMayChangeItsTeamsAdministrators()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        var admins = await GetJsonAsync(teamAdmin, "/api/teams/acme/admins");
+
+        Assert.True(admins.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ListRoleAssignments_AsATeamOwner_ReportsItMayChangeItsTeamsOwners()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var owner = await CreateTeamUserClientAsync(factory, administrator, "acme", "owners");
+
+        var owners = await GetJsonAsync(owner, "/api/teams/acme/owners");
+
+        Assert.True(owners.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ListRoleAssignments_AsAnAdministrator_ReportsItMayChangeAClientsOwners()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        var clientId = await CreateClientForRoleListAsync(administrator, "acme-dev");
+
+        var owners = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/acme-dev/clients/{clientId}/owners"
+        );
+
+        Assert.True(owners.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ListRoleAssignments_AsAnAdministrator_ReportsItMayChangeAResourceServersOwners()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        var resourceServerId = await CreateResourceServerForRoleListAsync(
+            administrator,
+            "acme-dev"
+        );
+
+        var owners = await GetJsonAsync(
+            administrator,
+            $"/api/tenants/acme-dev/resource-servers/{resourceServerId}/owners"
+        );
+
+        Assert.True(owners.GetProperty("canChange").GetBoolean());
+    }
+
+    private static async Task<string> CreateClientForRoleListAsync(
+        HttpClient client,
+        string tenantId
+    )
+    {
+        using var response = await client.PostAsJsonAsync(
+            $"/api/tenants/{tenantId}/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    ["token_endpoint_auth_method"] = OpenIdProtocol
+                        .ClientAuthenticationMethods
+                        .ClientSecretPost,
+                },
+            }
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var clientId = JsonElement.Parse(body).GetProperty("clientId").GetString();
+        Assert.NotNull(clientId);
+        return clientId;
+    }
+
+    private static async Task<string> CreateResourceServerForRoleListAsync(
+        HttpClient client,
+        string tenantId
+    )
+    {
+        using var response = await client.PostAsJsonAsync(
+            $"/api/tenants/{tenantId}/resource-servers",
+            new
+            {
+                identifier = "https://api.acme-dev.test",
+                name = "Acme API",
+                isDisabled = false,
+                settings = new { },
+            }
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var resourceServerId = JsonElement.Parse(body).GetProperty("resourceServerId").GetString();
+        Assert.NotNull(resourceServerId);
+        return resourceServerId;
+    }
+
+    #endregion
+
     #region PatchTeamSettings Tests
 
     [Fact]

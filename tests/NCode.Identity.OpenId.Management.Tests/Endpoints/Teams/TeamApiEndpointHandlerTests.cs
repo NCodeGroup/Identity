@@ -154,6 +154,23 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .ReturnsAsync(result)
             .Verifiable();
 
+    private void SetupAuthorization(
+        IAuthorizationRequirement operation,
+        AuthorizationResult result
+    ) =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Contains(operation)
+                    )
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+
     private void SetupAuthorizationCapture(Action<object?> capture) =>
         MockAuthorizationService
             .Setup(x =>
@@ -2712,10 +2729,11 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         SetupTeam(CreateTeam());
         MockResourceOwnershipService
             .Setup(x =>
-                x.GetOwnersAsync(
+                x.GetAssignmentsAsync(
                     MockStoreManager.Object,
                     ResourceNodeTypes.Team,
                     TeamId,
+                    BuiltInRoles.Owner,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -2728,24 +2746,26 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
         var value = json.Value;
         Assert.NotNull(value);
         Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.True(value.CanChange);
     }
 
     [Fact]
-    public async Task ListOwnersAsync_RequestsReadOnTheTeamNode()
+    public async Task ListOwnersAsync_AsksForUpdateOnTheTeamNode()
     {
         var captured = CaptureAuthorization();
         SetupStore();
         SetupTeam(CreateTeam());
         MockResourceOwnershipService
             .Setup(x =>
-                x.GetOwnersAsync(
+                x.GetAssignmentsAsync(
                     MockStoreManager.Object,
                     ResourceNodeTypes.Team,
                     TeamId,
+                    BuiltInRoles.Owner,
                     It.IsAny<CancellationToken>()
                 )
             )
@@ -2758,7 +2778,56 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        AssertTeamNodeRequest(captured, Operations.Read);
+        AssertTeamNodeRequest(captured, Operations.Update);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayOnlyReadTheTeam_ReportsItMayNotChangeTheOwners()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Failed());
+        SetupStore();
+        SetupTeam(CreateTeam());
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.Owner)])
+            .Verifiable();
+
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.False(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayNotReadTheTeam_ReturnsTheErrorWithoutReadingTheTeam()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no IStoreManagerFactory.CreateAsync setup, so reading the team would fail the test.
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -2974,11 +3043,75 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
         var value = json.Value;
         Assert.NotNull(value);
         var admin = Assert.Single(value.Items);
         Assert.Equal(("principal-1", BuiltInRoles.TeamAdmin), (admin.PrincipalId, admin.RoleName));
+    }
+
+    [Fact]
+    public async Task ListAdminsAsync_WhenTheCallerMayCreateAtTheTeam_ReportsItMayChangeTheAdministrators()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTeam(CreateTeam());
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TeamAdmin)])
+            .Verifiable();
+
+        var result = await Handler.ListAdminsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.True(value.CanChange);
+    }
+
+    [Fact]
+    public async Task ListAdminsAsync_WhenTheCallerMayNotCreateAtTheTeam_ReportsItMayNotChangeTheAdministrators()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupAuthorization(Operations.Create, AuthorizationResult.Failed());
+        SetupStore();
+        SetupTeam(CreateTeam());
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.GetAssignmentsAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Team,
+                    TeamId,
+                    BuiltInRoles.TeamAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TeamAdmin)])
+            .Verifiable();
+
+        var result = await Handler.ListAdminsAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
+        var value = json.Value;
+        Assert.NotNull(value);
+        Assert.Equal("principal-1", Assert.Single(value.Items).PrincipalId);
+        Assert.False(value.CanChange);
     }
 
     [Fact]

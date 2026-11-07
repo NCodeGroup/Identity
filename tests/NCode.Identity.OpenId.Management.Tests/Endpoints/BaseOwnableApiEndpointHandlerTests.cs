@@ -25,6 +25,7 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
     private const string TenantId = "tenant-1";
     private const string ResourceId = "client-1";
     private const string RoleName = "custom-role";
+    private const string RoleListPath = "/clients/client-1/holders";
 
     private sealed class TestHandler(
         IAuthorizationService authorizationService,
@@ -129,6 +130,21 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
     private static ValueTask<bool> Missing(IStoreManager _, CancellationToken __) =>
         ValueTask.FromResult(false);
 
+    private static RoleList CreateRoleList(
+        ResourceNode node,
+        string roleName,
+        IAuthorizationRequirement operation,
+        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync
+    ) =>
+        new()
+        {
+            Node = node,
+            RoleName = roleName,
+            Operation = operation,
+            Path = RoleListPath,
+            ResourceExistsAsync = resourceExistsAsync,
+        };
+
     #region ProcessRemoveOwnerAsync Tests
 
     [Fact]
@@ -166,9 +182,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             recorder.Object
         );
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+        var roleList = CreateRoleList(node, BuiltInRoles.Owner, Operations.Update, Exists);
         var result = await handler.ProcessRemoveOwnerAsync(
             CreateHttpContext(),
-            node,
+            roleList,
             "p1",
             CancellationToken.None
         );
@@ -207,9 +224,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             recorder.Object
         );
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+        var roleList = CreateRoleList(node, BuiltInRoles.Owner, Operations.Update, Exists);
         var result = await handler.ProcessRemoveOwnerAsync(
             CreateHttpContext(),
-            node,
+            roleList,
             "p1",
             CancellationToken.None
         );
@@ -255,9 +273,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             recorder.Object
         );
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+        var roleList = CreateRoleList(node, BuiltInRoles.Owner, Operations.Update, Exists);
         var result = await handler.ProcessRemoveOwnerAsync(
             CreateHttpContext(),
-            node,
+            roleList,
             "p1",
             CancellationToken.None
         );
@@ -345,20 +364,19 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, BuiltInRoles.Owner, Operations.Update, Exists);
         var result = await handler.ProcessListRoleAssignmentsAsync(
             CreateHttpContext(),
-            node,
-            BuiltInRoles.Owner,
-            Exists,
+            roleList,
             (_, _) => ValueTask.FromResult(true),
             CancellationToken.None
         );
 
         var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
-        var roleList = Assert.IsType<RoleListResource>(json.Value);
-        var item = Assert.Single(roleList.Items);
+        var roleListResource = Assert.IsType<RoleListResource>(json.Value);
+        var item = Assert.Single(roleListResource.Items);
         Assert.Equal("p1", item.PrincipalId);
-        Assert.True(roleList.CanChange);
+        Assert.True(roleListResource.CanChange);
     }
 
     [Fact]
@@ -382,20 +400,19 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, BuiltInRoles.Owner, Operations.Update, Exists);
         var result = await handler.ProcessListRoleAssignmentsAsync(
             CreateHttpContext(),
-            node,
-            BuiltInRoles.Owner,
-            Exists,
+            roleList,
             (_, _) => ValueTask.FromResult(false),
             CancellationToken.None
         );
 
         var json = Assert.IsType<JsonHttpResult<RoleListResource>>(result);
-        var roleList = Assert.IsType<RoleListResource>(json.Value);
-        var item = Assert.Single(roleList.Items);
+        var roleListResource = Assert.IsType<RoleListResource>(json.Value);
+        var item = Assert.Single(roleListResource.Items);
         Assert.Equal("p1", item.PrincipalId);
-        Assert.False(roleList.CanChange);
+        Assert.False(roleListResource.CanChange);
     }
 
     [Fact]
@@ -408,11 +425,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, BuiltInRoles.Owner, Operations.Update, Exists);
         var result = await handler.ProcessListRoleAssignmentsAsync(
             CreateHttpContext(),
-            node,
-            BuiltInRoles.Owner,
-            Exists,
+            roleList,
             (_, _) => ValueTask.FromResult(true),
             CancellationToken.None
         );
@@ -431,11 +447,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, BuiltInRoles.Owner, Operations.Update, Missing);
         var result = await handler.ProcessListRoleAssignmentsAsync(
             CreateHttpContext(),
-            node,
-            BuiltInRoles.Owner,
-            Missing,
+            roleList,
             (_, _) => throw new InvalidOperationException("canChangeAsync must not run."),
             CancellationToken.None
         );
@@ -487,14 +502,11 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             ownership.Object,
             recorder.Object
         );
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         var result = await handler.ProcessAddRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             new AddRoleHolderRequest { PrincipalId = "p2" },
-            "/clients/client-1/holders",
-            Exists,
             CancellationToken.None
         );
 
@@ -548,14 +560,11 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             ownership.Object,
             recorder.Object
         );
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         var result = await handler.ProcessAddRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             new AddRoleHolderRequest { PrincipalId = "p2" },
-            "/clients/client-1/holders",
-            Exists,
             CancellationToken.None
         );
 
@@ -595,14 +604,11 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             ownership.Object,
             recorder.Object
         );
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         var result = await handler.ProcessAddRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             new AddRoleHolderRequest { PrincipalId = "p2" },
-            "/clients/client-1/holders",
-            Exists,
             CancellationToken.None
         );
 
@@ -619,14 +625,11 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Missing);
         var result = await handler.ProcessAddRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             new AddRoleHolderRequest { PrincipalId = "p2" },
-            "/clients/client-1/holders",
-            Missing,
             CancellationToken.None
         );
 
@@ -643,14 +646,11 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         var result = await handler.ProcessAddRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             new AddRoleHolderRequest { PrincipalId = "" },
-            "/clients/client-1/holders",
-            Exists,
             CancellationToken.None
         );
 
@@ -668,14 +668,11 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         var result = await handler.ProcessAddRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             new AddRoleHolderRequest { PrincipalId = "p2" },
-            "/clients/client-1/holders",
-            Exists,
             CancellationToken.None
         );
 
@@ -711,14 +708,11 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         await handler.ProcessAddRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             new AddRoleHolderRequest { PrincipalId = "p2" },
-            "/clients/client-1/holders",
-            Exists,
             CancellationToken.None
         );
 
@@ -765,11 +759,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             ownership.Object,
             recorder.Object
         );
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         var result = await handler.ProcessRemoveRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             "p1",
             CancellationToken.None
         );
@@ -811,11 +804,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
             ownership.Object,
             recorder.Object
         );
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         var result = await handler.ProcessRemoveRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             "p1",
             CancellationToken.None
         );
@@ -833,11 +825,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         var result = await handler.ProcessRemoveRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             "p1",
             CancellationToken.None
         );
@@ -874,11 +865,10 @@ public class BaseOwnableApiEndpointHandlerTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var roleList = CreateRoleList(node, RoleName, Operations.Create, Exists);
         await handler.ProcessRemoveRoleAssignmentAsync(
             CreateHttpContext(),
-            node,
-            RoleName,
-            Operations.Create,
+            roleList,
             "p1",
             CancellationToken.None
         );

@@ -54,6 +54,18 @@ NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabi
 NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.DiscoverManagementCapabilitiesCommand(NCode.Identity.OpenId.Contexts.OpenIdContext! OpenIdContext, System.Collections.Generic.Dictionary<string!, object!>! Capabilities) -> void
 NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.OpenIdContext.get -> NCode.Identity.OpenId.Contexts.OpenIdContext!
 NCode.Identity.OpenId.Management.Endpoints.Capabilities.DiscoverManagementCapabilitiesCommand.OpenIdContext.init -> void
+NCode.Identity.OpenId.Management.Endpoints.RoleList
+NCode.Identity.OpenId.Management.Endpoints.RoleList.Node.get -> NCode.Identity.OpenId.Management.Authorization.ResourceNode!
+NCode.Identity.OpenId.Management.Endpoints.RoleList.Node.init -> void
+NCode.Identity.OpenId.Management.Endpoints.RoleList.Operation.get -> Microsoft.AspNetCore.Authorization.IAuthorizationRequirement!
+NCode.Identity.OpenId.Management.Endpoints.RoleList.Operation.init -> void
+NCode.Identity.OpenId.Management.Endpoints.RoleList.Path.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.RoleList.Path.init -> void
+NCode.Identity.OpenId.Management.Endpoints.RoleList.ResourceExistsAsync.get -> System.Func<NCode.Persistence.Stores.IStoreManager!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<bool>>!
+NCode.Identity.OpenId.Management.Endpoints.RoleList.ResourceExistsAsync.init -> void
+NCode.Identity.OpenId.Management.Endpoints.RoleList.RoleList() -> void
+NCode.Identity.OpenId.Management.Endpoints.RoleList.RoleName.get -> string!
+NCode.Identity.OpenId.Management.Endpoints.RoleList.RoleName.init -> void
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.OpenId.Management.ServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddAuthorizationHandler<THandler>() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

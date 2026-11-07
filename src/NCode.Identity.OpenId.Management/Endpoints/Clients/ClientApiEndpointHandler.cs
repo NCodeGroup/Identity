@@ -2526,14 +2526,14 @@ internal class ClientApiEndpointHandler(
     )
     {
         // See ADR-1465.
-        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+        var roleList = GetOwnerList(tenantId, clientId);
 
         async ValueTask<bool> CanChangeOwnersAsync(
             IStoreManager storeManager,
             CancellationToken token
         )
         {
-            if (!await HoldsAuthorityAsync(httpContext, clientNode, Operations.Update))
+            if (!await HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation))
             {
                 return false;
             }
@@ -2554,9 +2554,7 @@ internal class ClientApiEndpointHandler(
 
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            clientNode,
-            BuiltInRoles.Owner,
-            (storeManager, token) => ClientExistsAsync(storeManager, clientId, token),
+            roleList,
             CanChangeOwnersAsync,
             cancellationToken
         );
@@ -2577,11 +2575,11 @@ internal class ClientApiEndpointHandler(
     )
     {
         // See ADR-1469.
-        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+        var roleList = GetOwnerList(tenantId, clientId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            clientNode,
-            Operations.Update
+            roleList.Node,
+            roleList.Operation
         );
         if (!authorizationResult.Succeeded)
         {
@@ -2605,12 +2603,8 @@ internal class ClientApiEndpointHandler(
 
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            clientNode,
-            BuiltInRoles.Owner,
-            Operations.Update,
+            roleList,
             request,
-            $"/tenants/{tenantId}/clients/{clientId}/owners",
-            (storeManager, token) => ClientExistsAsync(storeManager, clientId, token),
             cancellationToken
         );
     }
@@ -2628,11 +2622,11 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+        var roleList = GetOwnerList(tenantId, clientId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            clientNode,
-            Operations.Update
+            roleList.Node,
+            roleList.Operation
         );
         if (!authorizationResult.Succeeded)
         {
@@ -2654,13 +2648,20 @@ internal class ClientApiEndpointHandler(
             }
         }
 
-        return await ProcessRemoveOwnerAsync(
-            httpContext,
-            clientNode,
-            principalId,
-            cancellationToken
-        );
+        return await ProcessRemoveOwnerAsync(httpContext, roleList, principalId, cancellationToken);
     }
+
+    // Describes the owners of a client: the role is granted and revoked with 'Update' at the client's node.
+    private static RoleList GetOwnerList(string tenantId, string clientId) =>
+        new()
+        {
+            Node = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            RoleName = BuiltInRoles.Owner,
+            Operation = Operations.Update,
+            Path = $"/tenants/{tenantId}/clients/{clientId}/owners",
+            ResourceExistsAsync = (storeManager, token) =>
+                ClientExistsAsync(storeManager, clientId, token),
+        };
 
     /// <summary>
     /// Gets the refusal of a change to a client: the <c>409 Conflict</c> for a client the host configures, else the

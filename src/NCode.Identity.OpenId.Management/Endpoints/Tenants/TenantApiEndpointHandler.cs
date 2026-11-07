@@ -2037,13 +2037,11 @@ internal class TenantApiEndpointHandler(
     )
     {
         // See ADR-1465.
-        var tenantNode = GetTenantNode(tenantId);
+        var roleList = GetOwnerList(tenantId);
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            tenantNode,
-            BuiltInRoles.Owner,
-            (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
-            (_, _) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Update),
+            roleList,
+            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
             cancellationToken
         );
     }
@@ -2062,15 +2060,11 @@ internal class TenantApiEndpointHandler(
     )
     {
         // See ADR-1469.
-        var tenantNode = GetTenantNode(tenantId);
+        var roleList = GetOwnerList(tenantId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            tenantNode,
-            BuiltInRoles.Owner,
-            Operations.Update,
+            roleList,
             request,
-            $"/tenants/{tenantId}/owners",
-            (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
             cancellationToken
         );
     }
@@ -2087,13 +2081,8 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var tenantNode = GetTenantNode(tenantId);
-        return await ProcessRemoveOwnerAsync(
-            httpContext,
-            tenantNode,
-            principalId,
-            cancellationToken
-        );
+        var roleList = GetOwnerList(tenantId);
+        return await ProcessRemoveOwnerAsync(httpContext, roleList, principalId, cancellationToken);
     }
 
     /// <summary>
@@ -2110,13 +2099,11 @@ internal class TenantApiEndpointHandler(
     )
     {
         // See ADR-1465.
-        var tenantNode = GetTenantNode(tenantId);
+        var roleList = GetAdminList(tenantId);
         return await ProcessListRoleAssignmentsAsync(
             httpContext,
-            tenantNode,
-            BuiltInRoles.TenantAdmin,
-            (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
-            (_, _) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Create),
+            roleList,
+            (_, _) => HoldsAuthorityAsync(httpContext, roleList.Node, roleList.Operation),
             cancellationToken
         );
     }
@@ -2137,15 +2124,11 @@ internal class TenantApiEndpointHandler(
     )
     {
         // See ADR-1469.
-        var tenantNode = GetTenantNode(tenantId);
+        var roleList = GetAdminList(tenantId);
         return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            tenantNode,
-            BuiltInRoles.TenantAdmin,
-            Operations.Create,
+            roleList,
             request,
-            $"/tenants/{tenantId}/admins",
-            (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
             cancellationToken
         );
     }
@@ -2165,16 +2148,38 @@ internal class TenantApiEndpointHandler(
     )
     {
         // See ADR-1469.
-        var tenantNode = GetTenantNode(tenantId);
+        var roleList = GetAdminList(tenantId);
         return await ProcessRemoveRoleAssignmentAsync(
             httpContext,
-            tenantNode,
-            BuiltInRoles.TenantAdmin,
-            Operations.Create,
+            roleList,
             principalId,
             cancellationToken
         );
     }
+
+    // Describes the owners of a tenant: the role is granted and revoked with 'Update' at the tenant's node.
+    private static RoleList GetOwnerList(string tenantId) =>
+        new()
+        {
+            Node = GetTenantNode(tenantId),
+            RoleName = BuiltInRoles.Owner,
+            Operation = Operations.Update,
+            Path = $"/tenants/{tenantId}/owners",
+            ResourceExistsAsync = (storeManager, token) =>
+                TenantExistsAsync(storeManager, tenantId, token),
+        };
+
+    // Describes the administrators of a tenant: the role is granted and revoked with 'Create' at the tenant's node.
+    private static RoleList GetAdminList(string tenantId) =>
+        new()
+        {
+            Node = GetTenantNode(tenantId),
+            RoleName = BuiltInRoles.TenantAdmin,
+            Operation = Operations.Create,
+            Path = $"/tenants/{tenantId}/admins",
+            ResourceExistsAsync = (storeManager, token) =>
+                TenantExistsAsync(storeManager, tenantId, token),
+        };
 
     private static async ValueTask<bool> TenantExistsAsync(
         IStoreManager storeManager,

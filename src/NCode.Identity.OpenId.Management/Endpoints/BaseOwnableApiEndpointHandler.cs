@@ -113,9 +113,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// role there. Responds <c>404</c> when the resource does not exist.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
-    /// <param name="node">The resource node that the role is assigned at.</param>
-    /// <param name="roleName">The name of the role whose assignments are listed.</param>
-    /// <param name="resourceExistsAsync">Determines whether the resource of the node exists.</param>
+    /// <param name="roleList">The <see cref="RoleList"/> that describes the role whose assignments are listed.</param>
     /// <param name="canChangeAsync">
     /// Determines whether the caller may grant and revoke the role at the node, which is the
     /// <see cref="RoleListResource.CanChange"/> value of the response.
@@ -129,13 +127,12 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     // See ADR-1465.
     protected internal virtual async ValueTask<IResult> ProcessListRoleAssignmentsAsync(
         HttpContext httpContext,
-        ResourceNode node,
-        string roleName,
-        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
+        RoleList roleList,
         Func<IStoreManager, CancellationToken, ValueTask<bool>> canChangeAsync,
         CancellationToken cancellationToken
     )
     {
+        var node = roleList.Node;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
@@ -147,7 +144,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await resourceExistsAsync(storeManager, cancellationToken))
+        if (!await roleList.ResourceExistsAsync(storeManager, cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -156,13 +153,13 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             storeManager,
             node.ResourceType,
             node.ResourceId,
-            roleName,
+            roleList.RoleName,
             cancellationToken
         );
         var canChange = await canChangeAsync(storeManager, cancellationToken);
         var items = assignments.Select(ToRoleHolderResource).ToList();
-        var roleList = new RoleListResource { Items = items, CanChange = canChange };
-        return TypedResults.Json(roleList);
+        var roleListResource = new RoleListResource { Items = items, CanChange = canChange };
+        return TypedResults.Json(roleListResource);
     }
 
     /// <summary>
@@ -184,12 +181,8 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// when the principal already holds the role, and <c>201</c> when the role is granted.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
-    /// <param name="node">The resource node that the role is assigned at.</param>
-    /// <param name="roleName">The name of the role to grant.</param>
-    /// <param name="operation">The operation that authorizes the grant at the node.</param>
+    /// <param name="roleList">The <see cref="RoleList"/> that describes the role to grant.</param>
     /// <param name="request">The <see cref="AddRoleHolderRequest"/> that names the principal to grant the role to.</param>
-    /// <param name="roleListPath">The path of the role list, which the <c>Location</c> of a grant is beneath.</param>
-    /// <param name="resourceExistsAsync">Determines whether the resource of the node exists.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
     /// </param>
@@ -199,19 +192,16 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     // See ADR-1469.
     protected internal virtual async ValueTask<IResult> ProcessAddRoleAssignmentAsync(
         HttpContext httpContext,
-        ResourceNode node,
-        string roleName,
-        IAuthorizationRequirement operation,
+        RoleList roleList,
         AddRoleHolderRequest request,
-        string roleListPath,
-        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
         CancellationToken cancellationToken
     )
     {
+        var node = roleList.Node;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
-            operation
+            roleList.Operation
         );
         if (!authorizationResult.Succeeded)
         {
@@ -227,7 +217,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await resourceExistsAsync(storeManager, cancellationToken))
+        if (!await roleList.ResourceExistsAsync(storeManager, cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -238,7 +228,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             node.ResourceType,
             node.ResourceId,
             request.PrincipalId,
-            roleName,
+            roleList.RoleName,
             cancellationToken
         );
         if (grant.IsRefused)
@@ -260,7 +250,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             ResourceChangeTypes.Created
         );
 
-        return TypedResults.Created($"{roleListPath}/{grant.Assignment.PrincipalId}", roleHolder);
+        return TypedResults.Created($"{roleList.Path}/{grant.Assignment.PrincipalId}", roleHolder);
     }
 
     /// <summary>
@@ -270,9 +260,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <c>204</c> when the role is revoked.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
-    /// <param name="node">The resource node that the role is assigned at.</param>
-    /// <param name="roleName">The name of the role to revoke.</param>
-    /// <param name="operation">The operation that authorizes the revoke at the node.</param>
+    /// <param name="roleList">The <see cref="RoleList"/> that describes the role to revoke.</param>
     /// <param name="principalId">The identifier of the principal to revoke the role from.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
@@ -283,17 +271,16 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     // See ADR-1469.
     protected internal virtual async ValueTask<IResult> ProcessRemoveRoleAssignmentAsync(
         HttpContext httpContext,
-        ResourceNode node,
-        string roleName,
-        IAuthorizationRequirement operation,
+        RoleList roleList,
         string principalId,
         CancellationToken cancellationToken
     )
     {
+        var node = roleList.Node;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
-            operation
+            roleList.Operation
         );
         if (!authorizationResult.Succeeded)
         {
@@ -306,7 +293,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             node.ResourceType,
             node.ResourceId,
             principalId,
-            roleName,
+            roleList.RoleName,
             cancellationToken
         );
         if (removed.Count == 0)
@@ -334,7 +321,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// principal is not an owner, and <c>204</c> when the owner is removed.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
-    /// <param name="node">The resource node that the owner is assigned at.</param>
+    /// <param name="roleList">The <see cref="RoleList"/> that describes the owners of the resource.</param>
     /// <param name="principalId">The identifier of the principal to remove as an owner.</param>
     /// <param name="cancellationToken">
     /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
@@ -345,15 +332,16 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     // See ADR-1469.
     protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
         HttpContext httpContext,
-        ResourceNode node,
+        RoleList roleList,
         string principalId,
         CancellationToken cancellationToken
     )
     {
+        var node = roleList.Node;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
-            Operations.Update
+            roleList.Operation
         );
         if (!authorizationResult.Succeeded)
         {

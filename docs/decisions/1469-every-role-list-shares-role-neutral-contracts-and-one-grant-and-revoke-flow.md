@@ -36,16 +36,16 @@ assignment's node ([ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-fr
    does not repeat it, and the audit record of a grant or revoke carries the same three members
    ([ADR-1449](1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md)).
 2. **`RoleAssignmentResource` is the contract of an assignment read across nodes,** and names its node.
-3. **One flow grants every role.** Given the node, the role name, the operation that authorizes the change and the
-   list's path, it authorizes the operation at the node, answers `400` for a request that names no principal and `404`
-   for a missing resource, and writes the assignment. It answers `409` when the ownership service refuses the grant,
-   saving and recording nothing
+3. **One flow grants every role.** The flows take one `RoleList` that names the node, the role, the operation that
+   authorizes the change, the list's path and the check that the resource exists. The grant authorizes the operation at
+   the node, answers `400` for a request that names no principal and `404` for a missing resource, and writes the
+   assignment. It answers `409` when the ownership service refuses the grant, saving and recording nothing
    ([ADR-1467](1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md)); `200` with the
    existing assignment when the principal already holds the role; or `201` at `<list path>/<principalId>`, recording
    the grant.
-4. **One flow revokes every role but the owner.** Given the node, the role name and the operation, it authorizes the
-   operation at the node, answers `404` when the principal does not hold the role, and otherwise commits the removal,
-   records each removed assignment and answers `204`.
+4. **One flow revokes every role but the owner.** Given the `RoleList`, it authorizes the operation at the node,
+   answers `404` when the principal does not hold the role, and otherwise commits the removal, records each removed
+   assignment and answers `204`.
 5. **An owner is revoked through its own flow,** because the one-owner rule (`409`) depends on the list rather than
    the caller.
 6. **A route whose resource adds refusals applies them before the shared flow,** as a client's owners refuse a client
@@ -67,7 +67,7 @@ assignment's node ([ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-fr
 
 - Every role list answers the same statuses and records the same audit events for a grant and a revoke, and refuses a
   client's principal that cannot hold its role the same way.
-- A role list for another role is a route that names its node, role, operation and path and calls the shared flow.
+- A role list for another role is a route that describes its list as a `RoleList` and calls the shared flow.
 - A browser client reads and grants every role list through one set of types.
 
 ## References

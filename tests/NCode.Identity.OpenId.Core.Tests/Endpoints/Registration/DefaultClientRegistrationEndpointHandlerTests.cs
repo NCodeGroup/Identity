@@ -813,27 +813,8 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
         };
         var settings = handler.BuildSettingsObject(request, resolved);
 
-        var client = new PersistedClient
-        {
-            TenantId = "tenant-1",
-            ClientId = "client-1",
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = "tenant-1",
-                ClientId = "client-1",
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(settings),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = "tenant-1",
-                ClientId = "client-1",
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        var settingsElement = JsonSerializer.SerializeToElement(settings);
+        var client = CreateClient(settingsElement);
 
         var response = handler.ToResponse(client);
 
@@ -1587,28 +1568,7 @@ public class DefaultClientRegistrationEndpointHandlerTests : BaseTests
     private static PersistedClient CreateClient(
         JsonElement settings,
         params PersistedSecret[] secrets
-    ) =>
-        new()
-        {
-            TenantId = "tenant-1",
-            ClientId = "client-1",
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = "tenant-1",
-                ClientId = "client-1",
-                ConcurrencyToken = string.Empty,
-                Value = settings,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = "tenant-1",
-                ClientId = "client-1",
-                ConcurrencyToken = string.Empty,
-                Value = secrets,
-            },
-        };
+    ) => new PersistedClientBuilder { Settings = settings, Secrets = secrets }.Build();
 
     #endregion
 }

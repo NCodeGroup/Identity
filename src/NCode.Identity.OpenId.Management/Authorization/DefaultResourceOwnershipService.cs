@@ -18,12 +18,14 @@ namespace NCode.Identity.OpenId.Management.Authorization;
 internal class DefaultResourceOwnershipService(
     ICryptoService cryptoService,
     IPrincipalResolver principalResolver,
-    IAmbientTenantAccessor ambientTenantAccessor
+    IAmbientTenantAccessor ambientTenantAccessor,
+    IAuthorityChainResolver authorityChainResolver
 ) : IResourceOwnershipService
 {
     private ICryptoService CryptoService { get; } = cryptoService;
     private IPrincipalResolver PrincipalResolver { get; } = principalResolver;
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
+    private IAuthorityChainResolver AuthorityChainResolver { get; } = authorityChainResolver;
 
     /// <inheritdoc />
     public async ValueTask<PersistedRoleAssignment?> AssignCreatorAsync(
@@ -52,6 +54,20 @@ internal class DefaultResourceOwnershipService(
 
         // A caller that resolves to no principal becomes no owner.
         if (string.IsNullOrEmpty(principalId))
+        {
+            return null;
+        }
+
+        // A creator that is a client cannot hold the role at the node becomes no owner.
+        // See ADR-1467.
+        var creatorNode = ResourceNode.For(tenantId, resourceType, resourceId);
+        var canHoldRole = await CanHoldRoleAsync(
+            storeManager,
+            principalId,
+            creatorNode,
+            cancellationToken
+        );
+        if (!canHoldRole)
         {
             return null;
         }
@@ -192,6 +208,20 @@ internal class DefaultResourceOwnershipService(
     {
         ArgumentException.ThrowIfNullOrEmpty(principalId);
 
+        // A client holds a role only as a machine client, at the node that owns it or a node beneath it.
+        // See ADR-1467.
+        var node = ResourceNode.For(tenantId, resourceType, resourceId);
+        var canHoldRole = await CanHoldRoleAsync(
+            storeManager,
+            principalId,
+            node,
+            cancellationToken
+        );
+        if (!canHoldRole)
+        {
+            return new RoleAssignmentGrant { Assignment = null, IsAdded = false };
+        }
+
         var store = storeManager.GetStore<IRoleAssignmentStore>();
         var assignments = await store.GetByResourceAsync(
             resourceType,
@@ -247,6 +277,46 @@ internal class DefaultResourceOwnershipService(
         }
 
         return toRemove;
+    }
+
+    // See ADR-1467.
+    private async ValueTask<bool> CanHoldRoleAsync(
+        IStoreManager storeManager,
+        string principalId,
+        IResourceNode node,
+        CancellationToken cancellationToken
+    )
+    {
+        var clientStore = storeManager.GetStore<IClientStore>();
+        var client = await clientStore.GetByPrincipalOrDefaultAsync(principalId, cancellationToken);
+        if (client is null)
+        {
+            return true;
+        }
+
+        if (client.OwningNodeType is null || client.OwningNodeId is null)
+        {
+            return false;
+        }
+
+        if (
+            string.Equals(
+                client.OwningNodeType,
+                ResourceNodeTypes.Platform,
+                StringComparison.Ordinal
+            )
+        )
+        {
+            return true;
+        }
+
+        var ancestorNodes = await AuthorityChainResolver.GetAncestorNodesAsync(
+            node,
+            storeManager,
+            cancellationToken
+        );
+        var normalizedOwningNodeId = client.OwningNodeId.ToLowerInvariant();
+        return ancestorNodes.Contains((client.OwningNodeType, normalizedOwningNodeId));
     }
 
     private static bool HasRole(PersistedRoleAssignment assignment, string roleName) =>

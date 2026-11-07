@@ -46,6 +46,15 @@ internal class DefaultManagementAuditRecorder(
         string? clientId,
         string? grantType,
         CancellationToken cancellationToken
+    ) => RecordGrantRevokedAsync(httpContext, tenantId, subjectId, clientId, grantType);
+
+    /// <inheritdoc />
+    public ValueTask RecordGrantRevokedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string? subjectId,
+        string? clientId,
+        string? grantType
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -75,6 +84,24 @@ internal class DefaultManagementAuditRecorder(
         string? sessionId,
         long revokedCount,
         CancellationToken cancellationToken
+    ) =>
+        RecordGrantsRevokedAsync(
+            httpContext,
+            tenantId,
+            subjectId,
+            clientId,
+            sessionId,
+            revokedCount
+        );
+
+    /// <inheritdoc />
+    public ValueTask RecordGrantsRevokedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string? subjectId,
+        string? clientId,
+        string? sessionId,
+        long revokedCount
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -104,6 +131,15 @@ internal class DefaultManagementAuditRecorder(
         string? sessionId,
         long revokedCount,
         CancellationToken cancellationToken
+    ) => RecordSessionsRevokedAsync(httpContext, tenantId, subjectId, sessionId, revokedCount);
+
+    /// <inheritdoc />
+    public ValueTask RecordSessionsRevokedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string? subjectId,
+        string? sessionId,
+        long revokedCount
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -132,6 +168,15 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) => RecordClientChangedAsync(httpContext, tenantId, clientId, changeType, resourceValues);
+
+    /// <inheritdoc />
+    public ValueTask RecordClientChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string clientId,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -162,6 +207,24 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) =>
+        RecordClientSecretChangedAsync(
+            httpContext,
+            tenantId,
+            clientId,
+            secretId,
+            changeType,
+            resourceValues
+        );
+
+    /// <inheritdoc />
+    public ValueTask RecordClientSecretChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string clientId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -190,6 +253,14 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) => RecordTeamChangedAsync(httpContext, teamId, changeType, resourceValues);
+
+    /// <inheritdoc />
+    public ValueTask RecordTeamChangedAsync(
+        HttpContext httpContext,
+        string teamId,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -218,6 +289,15 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) => RecordTenantChangedAsync(httpContext, teamId, tenantId, changeType, resourceValues);
+
+    /// <inheritdoc />
+    public ValueTask RecordTenantChangedAsync(
+        HttpContext httpContext,
+        string teamId,
+        string tenantId,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -247,6 +327,16 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) =>
+        RecordTenantSecretChangedAsync(httpContext, tenantId, secretId, changeType, resourceValues);
+
+    /// <inheritdoc />
+    public ValueTask RecordTenantSecretChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -273,6 +363,13 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) => RecordPlatformChangedAsync(httpContext, changeType, resourceValues);
+
+    /// <inheritdoc />
+    public ValueTask RecordPlatformChangedAsync(
+        HttpContext httpContext,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -301,6 +398,22 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) =>
+        RecordResourceServerChangedAsync(
+            httpContext,
+            tenantId,
+            resourceServerId,
+            changeType,
+            resourceValues
+        );
+
+    /// <inheritdoc />
+    public ValueTask RecordResourceServerChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -330,6 +443,24 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) =>
+        RecordResourceServerScopeChangedAsync(
+            httpContext,
+            tenantId,
+            resourceServerId,
+            scopeValue,
+            changeType,
+            resourceValues
+        );
+
+    /// <inheritdoc />
+    public ValueTask RecordResourceServerScopeChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string scopeValue,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -360,6 +491,24 @@ internal class DefaultManagementAuditRecorder(
         string changeType,
         JsonElement? resourceValues,
         CancellationToken cancellationToken
+    ) =>
+        RecordResourceServerSecretChangedAsync(
+            httpContext,
+            tenantId,
+            resourceServerId,
+            secretId,
+            changeType,
+            resourceValues
+        );
+
+    /// <inheritdoc />
+    public ValueTask RecordResourceServerSecretChangedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        string resourceServerId,
+        string secretId,
+        string changeType,
+        JsonElement? resourceValues
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -386,6 +535,12 @@ internal class DefaultManagementAuditRecorder(
         HttpContext httpContext,
         ResourceChangeAuditEvent auditEvent,
         CancellationToken cancellationToken
+    ) => RecordResourceChangeAsync(httpContext, auditEvent);
+
+    /// <inheritdoc />
+    public ValueTask RecordResourceChangeAsync(
+        HttpContext httpContext,
+        ResourceChangeAuditEvent auditEvent
     )
     {
         ArgumentNullException.ThrowIfNull(auditEvent);
@@ -408,11 +563,19 @@ internal class DefaultManagementAuditRecorder(
         return RecordAsync(httpContext, environmentTenantId, stamped);
     }
 
+    /// <inheritdoc />
     public ValueTask RecordMasterKeyRotatedAsync(
         HttpContext httpContext,
         MasterKeyRotation rotation,
         string reason,
         CancellationToken cancellationToken
+    ) => RecordMasterKeyRotatedAsync(httpContext, rotation, reason);
+
+    /// <inheritdoc />
+    public ValueTask RecordMasterKeyRotatedAsync(
+        HttpContext httpContext,
+        MasterKeyRotation rotation,
+        string reason
     )
     {
         var now = TimeProvider.GetUtcNow();
@@ -453,6 +616,14 @@ internal class DefaultManagementAuditRecorder(
         string change,
         string reason,
         CancellationToken cancellationToken
+    ) => RecordRootKeyChangedAsync(httpContext, rootKey, change, reason);
+
+    /// <inheritdoc />
+    public ValueTask RecordRootKeyChangedAsync(
+        HttpContext httpContext,
+        OwnerRootKeyInfo rootKey,
+        string change,
+        string reason
     )
     {
         var now = TimeProvider.GetUtcNow();

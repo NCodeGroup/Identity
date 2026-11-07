@@ -1998,10 +1998,10 @@ describes the family as it is rather than its changes
   creates a client, resource server or tenant becomes its owner. Each of those resources has owner-management endpoints
   (`GET`/`POST`/`DELETE /{resource}/{id}/owners`), whose list answers `RoleListResource` and whose grant answers
   `OwnerResource`, a grant the principal already holds answers `200` with its assignment, and a one-owner invariant
-  refuses to orphan a resource with `409`. The ownership service reports what it changed (`RoleAssignmentGrant`, `OwnerRemoval`). The ownership service and resource-node
-  abstraction (`IResourceOwnershipService`, `IResourceNode`, `ResourceNode`, `ResourceNodeTypes`) are public, so
-  applications own and enforce their own resource
-  types; the built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
+  refuses to orphan a resource with `409`. The ownership service reports what it changed (`RoleAssignmentGrant`,
+  `OwnerRemoval`). The ownership service and resource-node abstraction (`IResourceOwnershipService`, `IResourceNode`,
+  `ResourceNode`, `ResourceNodeTypes`) are public, so applications own and enforce their own resource types; the
+  built-in `ResourceNodeTypes` values are the `OpenIdResourceTypes` values. See
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
 - **A client acting for itself is a principal.** Every client has a principal (`PersistedClient.PrincipalId`,

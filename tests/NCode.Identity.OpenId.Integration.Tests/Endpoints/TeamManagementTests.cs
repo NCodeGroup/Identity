@@ -1261,6 +1261,99 @@ public class TeamManagementTests
         );
     }
 
+    [Fact]
+    public async Task TeamAdmin_GetsForbiddenForAnotherTeamsAndThePlatformsMachineClients()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTeamAsync(administrator, "globex", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        foreach (var path in new[] { "/api/teams/globex/clients", "/api/platform/clients" })
+        {
+            using var created = await teamAdmin.PostAsJsonAsync(
+                path,
+                new { isDisabled = false, settings = new { } }
+            );
+            var createdBody = await created.Content.ReadAsStringAsync();
+            Assert.True(created.StatusCode == HttpStatusCode.Forbidden, $"{path}: {createdBody}");
+
+            await AssertGetStatusAsync(teamAdmin, path, HttpStatusCode.Forbidden);
+        }
+    }
+
+    [Fact]
+    public async Task CreateTeamClient_WithAnInteractiveGrantType_ReturnsBadRequest()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+
+        using var response = await administrator.PostAsJsonAsync(
+            "/api/teams/acme/clients",
+            new
+            {
+                isDisabled = false,
+                settings = new Dictionary<string, object>
+                {
+                    [OpenIdSettingNames.GrantTypesSupported] = new[] { "authorization_code" },
+                },
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+    }
+
+    [Fact]
+    public async Task PatchMachineClientSettings_WithAnotherGrantType_ReturnsBadRequest()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        var (clientId, _, _) = await CreateMachineClientAsync(
+            administrator,
+            "/api/teams/acme/clients"
+        );
+
+        using var response = await SendPatchAsync(
+            administrator,
+            $"/api/tenants/{RootTenantId}/clients/{clientId}/settings",
+            new[]
+            {
+                new
+                {
+                    op = "replace",
+                    path = "/grant_types_supported",
+                    value = new[] { "authorization_code", "client_credentials" },
+                },
+            }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+    }
+
+    [Fact]
+    public async Task DeleteTeam_WhileItOwnsAMachineClient_ReturnsConflict()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateMachineClientAsync(administrator, "/api/teams/acme/clients");
+
+        using var response = await administrator.DeleteAsync("/api/teams/acme");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Conflict, body);
+    }
+
     #endregion
 
     #region Caller Tests

@@ -137,7 +137,7 @@ public class OwnershipHandlerTests : IDisposable
             resolver.Object,
             accessor.Object,
             ambient.Object,
-            new DefaultAuthorityChainResolver()
+            new DefaultAuthorityChainResolver(ambient.Object)
         );
         var context = new AuthorizationHandlerContext([requirement], user, resource);
 
@@ -226,6 +226,32 @@ public class OwnershipHandlerTests : IDisposable
                         x.GetOrDefaultAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())
                     )
                     .ReturnsAsync(CreateTeam(storedTeamId, teamAncestors ?? []))
+                    .Verifiable();
+            }
+
+            // A client node's owning node is read from the client row in the node's tenant scope.
+            if (resource is IResourceNode { ResourceType: ResourceNodeTypes.Client } clientNode)
+            {
+                if (!string.Equals(clientNode.TenantId, TenantId, StringComparison.Ordinal))
+                {
+                    var clientScope = MockRepository.Create<IDisposable>();
+                    clientScope.Setup(x => x.Dispose()).Verifiable();
+                    ambient
+                        .Setup(x => x.BeginScope(clientNode.TenantId))
+                        .Returns(clientScope.Object)
+                        .Verifiable();
+                }
+
+                var clientStore = MockRepository.Create<IClientStore>();
+                manager
+                    .Setup(x => x.GetStore<IClientStore>())
+                    .Returns(clientStore.Object)
+                    .Verifiable();
+                clientStore
+                    .Setup(x =>
+                        x.GetOrDefaultAsync(clientNode.ResourceId, It.IsAny<CancellationToken>())
+                    )
+                    .ReturnsAsync((PersistedClient?)null)
                     .Verifiable();
             }
 

@@ -2854,7 +2854,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         return assert => assert(validated);
     }
 
-    private void SetupCreatePersistence(PersistedTenant reloaded)
+    private void SetupCreatePersistence(PersistedTenant seeded)
     {
         MockTenantStore
             .Setup(x => x.AddAsync(It.IsAny<PersistedTenant>(), It.IsAny<CancellationToken>()))
@@ -2868,11 +2868,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockTenantProvisioner
             .Setup(x => x.SeedAsync("acme", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(reloaded)
-            .Verifiable();
-        MockTenantStore
-            .Setup(x => x.GetOrDefaultAsync("acme", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(reloaded)
+            .ReturnsAsync(seeded)
             .Verifiable();
     }
 
@@ -3143,7 +3139,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        // A seed contributor may replace the row's concurrency token, so the response carries the reloaded one.
+        // The seed returns the row it committed, whose concurrency token a seed contributor may have replaced, so the response carries it.
         var created = Assert.IsType<Created<TenantResource>>(result);
         Assert.NotNull(created.Value);
         Assert.Equal("seeded-ct", created.Value.ConcurrencyToken);

@@ -15,13 +15,13 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 
 /// <summary>
 /// Provides common functionality for management API endpoint handlers whose resources hold role lists: listing a
-/// role's assignments with whether the caller may change them, granting and revoking owners, and the one-owner
+/// role's holders with whether the caller may change them, granting and revoking any role, and the one-owner
 /// invariant.
 /// </summary>
 internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 {
     /// <summary>
-    /// Gets the factory used to open a unit of work for owner-management operations.
+    /// Gets the factory used to open a unit of work for role-list operations.
     /// </summary>
     protected abstract IStoreManagerFactory StoreManagerFactory { get; }
 
@@ -51,7 +51,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         string changeType
     )
     {
-        var ownerResource = ToOwnerResource(assignment);
+        var roleHolder = ToRoleHolderResource(assignment);
         return ManagementAuditRecorder.RecordResourceChangeAsync(
             httpContext,
             new RoleAssignmentChangedAuditEvent
@@ -63,18 +63,18 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
                 NodeType = assignment.ResourceType,
                 NodeId = assignment.ResourceId,
                 ChangeType = changeType,
-                ResourceValues = ToResourceValues(ownerResource),
+                ResourceValues = ToResourceValues(roleHolder),
                 Outcome = AuditOutcome.Success,
             }
         );
     }
 
     /// <summary>
-    /// Maps an owner role assignment to its <see cref="OwnerResource"/> representation.
+    /// Maps a role assignment to its <see cref="RoleHolderResource"/> representation.
     /// </summary>
-    /// <param name="assignment">The owner role assignment to map.</param>
-    /// <returns>The mapped <see cref="OwnerResource"/>.</returns>
-    internal virtual OwnerResource ToOwnerResource(PersistedRoleAssignment assignment) =>
+    /// <param name="assignment">The role assignment to map.</param>
+    /// <returns>The mapped <see cref="RoleHolderResource"/>.</returns>
+    internal virtual RoleHolderResource ToRoleHolderResource(PersistedRoleAssignment assignment) =>
         new()
         {
             AssignmentId = assignment.AssignmentId,
@@ -113,9 +113,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// role there. Responds <c>404</c> when the resource does not exist.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
-    /// <param name="node">The resource node that the role is assigned at.</param>
-    /// <param name="roleName">The name of the role whose assignments are listed.</param>
-    /// <param name="resourceExistsAsync">Determines whether the resource of the node exists.</param>
+    /// <param name="roleList">The <see cref="RoleList"/> that describes the role whose assignments are listed.</param>
     /// <param name="canChangeAsync">
     /// Determines whether the caller may grant and revoke the role at the node, which is the
     /// <see cref="RoleListResource.CanChange"/> value of the response.
@@ -129,13 +127,12 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     // See ADR-1465.
     protected internal virtual async ValueTask<IResult> ProcessListRoleAssignmentsAsync(
         HttpContext httpContext,
-        ResourceNode node,
-        string roleName,
-        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
+        RoleList roleList,
         Func<IStoreManager, CancellationToken, ValueTask<bool>> canChangeAsync,
         CancellationToken cancellationToken
     )
     {
+        var node = roleList.Node;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
@@ -147,7 +144,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await resourceExistsAsync(storeManager, cancellationToken))
+        if (!await roleList.ResourceExistsAsync(storeManager, cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -156,13 +153,13 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             storeManager,
             node.ResourceType,
             node.ResourceId,
-            roleName,
+            roleList.RoleName,
             cancellationToken
         );
         var canChange = await canChangeAsync(storeManager, cancellationToken);
-        var items = assignments.Select(ToOwnerResource).ToList();
-        var roleList = new RoleListResource { Items = items, CanChange = canChange };
-        return TypedResults.Json(roleList);
+        var items = assignments.Select(ToRoleHolderResource).ToList();
+        var roleListResource = new RoleListResource { Items = items, CanChange = canChange };
+        return TypedResults.Json(roleListResource);
     }
 
     /// <summary>
@@ -177,27 +174,34 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         );
 
     /// <summary>
-    /// Processes an HTTP <c>POST</c> that grants a principal ownership of a resource: authorizes the caller against the
-    /// resource node, then adds the owner and records the grant. Responds <c>201</c> when the owner is added,
-    /// <c>200</c> when the principal already owns the resource, <c>409</c> when the principal is a client that cannot
-    /// hold the role there, and <c>404</c> when the resource does not exist.
+    /// Processes an HTTP <c>POST</c> that grants a principal one role at a resource node: authorizes the caller to
+    /// perform the operation at the node, then adds the assignment and records the grant. Responds <c>403</c> when
+    /// the caller lacks the operation, <c>400</c> when the request names no principal, <c>404</c> when the resource
+    /// does not exist, <c>409</c> when the principal is a client that cannot hold the role at the node, <c>200</c>
+    /// when the principal already holds the role, and <c>201</c> when the role is granted.
     /// </summary>
-    protected internal virtual async ValueTask<IResult> ProcessAddOwnerAsync(
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="roleList">The <see cref="RoleList"/> that describes the role to grant.</param>
+    /// <param name="request">The <see cref="AddRoleHolderRequest"/> that names the principal to grant the role to.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
+    /// </returns>
+    // See ADR-1469.
+    protected internal virtual async ValueTask<IResult> ProcessAddRoleAssignmentAsync(
         HttpContext httpContext,
-        string tenantId,
-        string resourceType,
-        string resourceId,
-        AddOwnerRequest request,
-        string ownersPath,
-        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
+        RoleList roleList,
+        AddRoleHolderRequest request,
         CancellationToken cancellationToken
     )
     {
-        var node = ResourceNode.For(tenantId, resourceType, resourceId);
+        var node = roleList.Node;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
-            Operations.Update
+            roleList.Operation
         );
         if (!authorizationResult.Succeeded)
         {
@@ -213,17 +217,18 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         }
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await resourceExistsAsync(storeManager, cancellationToken))
+        if (!await roleList.ResourceExistsAsync(storeManager, cancellationToken))
         {
             return TypedResults.NotFound();
         }
 
-        var grant = await ResourceOwnershipService.AddOwnerAsync(
+        var grant = await ResourceOwnershipService.AddAssignmentAsync(
             storeManager,
-            tenantId,
-            resourceType,
-            resourceId,
+            node.TenantId,
+            node.ResourceType,
+            node.ResourceId,
             request.PrincipalId,
+            roleList.RoleName,
             cancellationToken
         );
         if (grant.IsRefused)
@@ -233,10 +238,10 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        var ownerResource = ToOwnerResource(grant.Assignment);
+        var roleHolder = ToRoleHolderResource(grant.Assignment);
         if (!grant.IsAdded)
         {
-            return TypedResults.Ok(ownerResource);
+            return TypedResults.Ok(roleHolder);
         }
 
         await RecordRoleAssignmentChangedAsync(
@@ -245,28 +250,98 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             ResourceChangeTypes.Created
         );
 
-        return TypedResults.Created($"{ownersPath}/{grant.Assignment.PrincipalId}", ownerResource);
+        return TypedResults.Created($"{roleList.Path}/{grant.Assignment.PrincipalId}", roleHolder);
     }
 
     /// <summary>
-    /// Processes an HTTP <c>DELETE</c> that revokes a principal's ownership of a resource: authorizes the caller
-    /// against the resource node, then removes the owner and records each removed assignment. Responds <c>409</c> when
-    /// the removal would orphan the resource and <c>404</c> when the principal is not an owner.
+    /// Processes an HTTP <c>DELETE</c> that revokes a principal's role at a resource node: authorizes the caller to
+    /// perform the operation at the node, then removes the assignment and records each removed assignment. Responds
+    /// <c>403</c> when the caller lacks the operation, <c>404</c> when the principal does not hold the role, and
+    /// <c>204</c> when the role is revoked.
     /// </summary>
-    protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="roleList">The <see cref="RoleList"/> that describes the role to revoke.</param>
+    /// <param name="principalId">The identifier of the principal to revoke the role from.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
+    /// </returns>
+    // See ADR-1469.
+    protected internal virtual async ValueTask<IResult> ProcessRemoveRoleAssignmentAsync(
         HttpContext httpContext,
-        string tenantId,
-        string resourceType,
-        string resourceId,
+        RoleList roleList,
         string principalId,
         CancellationToken cancellationToken
     )
     {
-        var node = ResourceNode.For(tenantId, resourceType, resourceId);
+        var node = roleList.Node;
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
             node,
-            Operations.Update
+            roleList.Operation
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var removed = await ResourceOwnershipService.RemoveAssignmentAsync(
+            storeManager,
+            node.ResourceType,
+            node.ResourceId,
+            principalId,
+            roleList.RoleName,
+            cancellationToken
+        );
+        if (removed.Count == 0)
+        {
+            return TypedResults.NotFound();
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+        foreach (var assignment in removed)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                assignment,
+                ResourceChangeTypes.Deleted
+            );
+        }
+
+        return TypedResults.NoContent();
+    }
+
+    /// <summary>
+    /// Processes an HTTP <c>DELETE</c> that revokes a principal's ownership of a resource: authorizes the caller
+    /// to update the resource node, then removes the owner and records each removed assignment. Responds <c>403</c>
+    /// when the caller lacks the operation, <c>409</c> when the removal would orphan the resource, <c>404</c> when the
+    /// principal is not an owner, and <c>204</c> when the owner is removed.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="roleList">The <see cref="RoleList"/> that describes the owners of the resource.</param>
+    /// <param name="principalId">The identifier of the principal to remove as an owner.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
+    /// </returns>
+    // See ADR-1469.
+    protected internal virtual async ValueTask<IResult> ProcessRemoveOwnerAsync(
+        HttpContext httpContext,
+        RoleList roleList,
+        string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var node = roleList.Node;
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            roleList.Operation
         );
         if (!authorizationResult.Succeeded)
         {
@@ -276,8 +351,8 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var removal = await ResourceOwnershipService.RemoveOwnerAsync(
             storeManager,
-            resourceType,
-            resourceId,
+            node.ResourceType,
+            node.ResourceId,
             principalId,
             cancellationToken
         );

@@ -1997,7 +1997,7 @@ describes the family as it is rather than its changes
   operation except `Create` on a resource it owns, or on any resource under a node it owns, and the principal that
   creates a client, resource server or tenant becomes its owner. Each of those resources has owner-management endpoints
   (`GET`/`POST`/`DELETE /{resource}/{id}/owners`), whose list answers `RoleListResource` and whose grant answers
-  `OwnerResource`, a grant the principal already holds answers `200` with its assignment, and a one-owner invariant
+  `RoleHolderResource`, a grant the principal already holds answers `200` with its assignment, and a one-owner invariant
   refuses to orphan a resource with `409`. The ownership service reports what it changed (`RoleAssignmentGrant`,
   `OwnerRemoval`). The ownership service and resource-node abstraction (`IResourceOwnershipService`, `IResourceNode`,
   `ResourceNode`, `ResourceNodeTypes`) are public, so applications own and enforce their own resource types; the
@@ -3773,11 +3773,17 @@ describes the family as it is rather than its changes
 
 - **A caller learns whether it may grant and revoke a role where it reads who holds it.** `GET …/owners` on a team, a
   tenant, a client and a resource server and `GET …/admins` on a team and a tenant answer `RoleListResource`: the
-  role's assignments (`items`) and `canChange`, whether the caller may grant and revoke the role there: `Update` at the
-  node for owners, `Create` for administrators, and for a client's owners also a client the host does not manage and
-  custody of the roles its principal holds
+  role's holders (`items`, each a `RoleHolderResource`) and `canChange`, whether the caller may grant and revoke the
+  role there: `Update` at the node for owners, `Create` for administrators, and for a client's owners also a client the
+  host does not manage and, for a machine client, creation authority at the node that owns it. `POST` on each list
+  takes `AddRoleHolderRequest` and answers the `RoleHolderResource` it grants, or `409` for a client's principal that
+  cannot hold the role there, and every list grants and revokes its role through one flow, so every role answers the
+  same statuses and records the same audit events
   ([ADR-1465](docs/decisions/1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md),
-  [#623](https://github.com/NCodeGroup/Identity/issues/623)).
+  [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md),
+  [ADR-1469](docs/decisions/1469-every-role-list-shares-role-neutral-contracts-and-one-grant-and-revoke-flow.md),
+  [#623](https://github.com/NCodeGroup/Identity/issues/623), [#627](https://github.com/NCodeGroup/Identity/issues/627),
+  [#628](https://github.com/NCodeGroup/Identity/issues/628)).
 
 - **Settings are reconciled per team.** Each team records the effective settings its tenants and clients were last
   reconciled against; `TeamSettingsReconciliationService` reconciles every team when the platform's settings change and

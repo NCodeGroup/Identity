@@ -7,20 +7,21 @@ using JetBrains.Annotations;
 namespace NCode.Identity.OpenId.Management.Contracts;
 
 /// <summary>
-/// Represents an owner of a resource: a role assignment that grants a principal authority over the resource and
-/// everything beneath it.
+/// Represents a principal that holds one role at a node of the resource hierarchy: an item of a role list and the
+/// answer to a grant of the role.
 /// </summary>
+// See ADR-1469.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
-public sealed class OwnerResource
+public sealed class RoleHolderResource
 {
     /// <summary>
-    /// Gets the opaque identifier of the owner (role) assignment.
+    /// Gets the opaque identifier of the role assignment.
     /// </summary>
     public required string AssignmentId { get; init; }
 
     /// <summary>
-    /// Gets the identifier of the principal that owns the resource.
+    /// Gets the identifier of the principal that holds the role.
     /// </summary>
     public required string PrincipalId { get; init; }
 

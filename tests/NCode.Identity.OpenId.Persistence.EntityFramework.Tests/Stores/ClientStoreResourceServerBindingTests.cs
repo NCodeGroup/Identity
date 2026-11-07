@@ -60,28 +60,12 @@ public sealed class ClientStoreResourceServerBindingTests : IDisposable
         JsonSerializer.SerializeToElement(new Dictionary<string, object>());
 
     private static PersistedClient CreateClient(string clientId, string? resourceServerId) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = clientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
             ResourceServerId = resourceServerId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = EmptyObject(),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private static PersistedResourceServer CreateResourceServer(string resourceServerId) =>
         new()

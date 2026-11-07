@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using IdGen;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,31 +61,8 @@ public sealed class FederatedPrincipalStoreTests : IDisposable
             ConcurrencyToken = string.Empty,
         };
 
-    private static JsonElement EmptyObject() =>
-        JsonSerializer.SerializeToElement(new Dictionary<string, object>());
-
     private static PersistedClient CreateClient(string clientId) =>
-        new()
-        {
-            TenantId = TenantId,
-            ClientId = clientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = EmptyObject(),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        new PersistedClientBuilder { TenantId = TenantId, ClientId = clientId }.Build();
 
     private static PersistedConsent CreateConsent(string clientId, string subjectId) =>
         new()

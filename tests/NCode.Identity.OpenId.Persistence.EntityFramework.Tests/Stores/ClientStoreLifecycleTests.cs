@@ -66,27 +66,12 @@ public sealed class ClientStoreLifecycleTests : IDisposable
         };
 
     private static PersistedClient CreateClient(params PersistedSecret[] secrets) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = secrets,
-            },
-        };
+            Secrets = secrets,
+        }.Build();
 
     private static PersistedRoleAssignment CreateAssignment(
         string assignmentId,
@@ -176,18 +161,13 @@ public sealed class ClientStoreLifecycleTests : IDisposable
     public async Task AddAsync_WithAnOwningNode_ReadsItBack()
     {
         await SeedTenantAsync();
-        var template = CreateClient();
-        var client = new PersistedClient
+        var client = new PersistedClientBuilder
         {
-            TenantId = template.TenantId,
-            ClientId = template.ClientId,
-            ConcurrencyToken = template.ConcurrencyToken,
-            IsDisabled = template.IsDisabled,
+            TenantId = TenantId,
+            ClientId = ClientId,
             OwningNodeType = "team",
             OwningNodeId = "Team-One",
-            Settings = template.Settings,
-            Secrets = template.Secrets,
-        };
+        }.Build();
 
         await _store.AddAsync(client, CancellationToken.None);
         await _dbContext.SaveChangesAsync();

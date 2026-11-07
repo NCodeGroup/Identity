@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
 using Moq;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Contexts;
@@ -89,28 +88,13 @@ public sealed class DefaultPrincipalResolverTests : BaseTests
         };
 
     private static PersistedClient CreateClient(bool isDisabled) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
             PrincipalId = PrincipalId,
-            ConcurrencyToken = "ct",
             IsDisabled = isDisabled,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = [],
-            },
-        };
+        }.Build();
 
     private IClientPrincipalResolver CreateClientResolver(PersistedClient? client)
     {

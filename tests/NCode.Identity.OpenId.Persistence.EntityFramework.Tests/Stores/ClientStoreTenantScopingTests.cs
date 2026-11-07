@@ -88,27 +88,12 @@ public sealed class ClientStoreTenantScopingTests : IDisposable
         string clientId,
         params PersistedSecret[] secrets
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = tenantId,
             ClientId = clientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = secrets,
-            },
-        };
+            Secrets = secrets,
+        }.Build();
 
     private async Task SeedTenantAsync(string tenantId)
     {

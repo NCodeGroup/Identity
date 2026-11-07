@@ -37,5 +37,6 @@
         <ProjectReference Include="..\..\src\NCode.Identity.Secrets\NCode.Identity.Secrets.csproj" />
         <!-- The client-key importer is exercised over the real secret importer and serializer. -->
         <ProjectReference Include="..\..\src\NCode.Identity.Secrets.Persistence\NCode.Identity.Secrets.Persistence.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.TestSupport\NCode.Identity.OpenId.Persistence.TestSupport.csproj" />
     </ItemGroup>
 </Project>

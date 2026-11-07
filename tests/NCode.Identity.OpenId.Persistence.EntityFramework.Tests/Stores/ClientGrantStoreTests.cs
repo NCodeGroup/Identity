@@ -99,30 +99,12 @@ public sealed class ClientGrantStoreTests : IDisposable
         // unsaved inserts).
         await _dbContext.SaveChangesAsync();
 
-        await _clientStore.AddAsync(
-            new PersistedClient
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                IsDisabled = false,
-                Settings = new PersistedClientSettings
-                {
-                    TenantId = TenantId,
-                    ClientId = ClientId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedClientSecrets
-                {
-                    TenantId = TenantId,
-                    ClientId = ClientId,
-                    ConcurrencyToken = string.Empty,
-                    Value = [],
-                },
-            },
-            CancellationToken.None
-        );
+        var client = new PersistedClientBuilder
+        {
+            TenantId = TenantId,
+            ClientId = ClientId,
+        }.Build();
+        await _clientStore.AddAsync(client, CancellationToken.None);
 
         await _resourceServerStore.AddAsync(
             new PersistedResourceServer

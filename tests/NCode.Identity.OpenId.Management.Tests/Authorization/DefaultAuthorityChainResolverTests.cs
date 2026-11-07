@@ -33,29 +33,13 @@ public class DefaultAuthorityChainResolverTests : IDisposable
     }
 
     private static PersistedClient CreateClient(string? owningNodeType, string? owningNodeId) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
             OwningNodeType = owningNodeType,
             OwningNodeId = owningNodeId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = default,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private void SetupClientRead(Mock<IStoreManager> manager, PersistedClient? client)
     {

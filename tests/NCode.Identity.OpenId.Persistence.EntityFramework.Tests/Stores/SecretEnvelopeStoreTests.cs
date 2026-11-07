@@ -114,30 +114,14 @@ public sealed class SecretEnvelopeStoreTests : IDisposable
         params PersistedSecret[] secrets
     )
     {
-        await _clientStore.AddAsync(
-            new PersistedClient
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                IsDisabled = false,
-                Settings = new PersistedClientSettings
-                {
-                    TenantId = tenantId,
-                    ClientId = clientId,
-                    ConcurrencyToken = string.Empty,
-                    Value = EmptyObject(),
-                },
-                Secrets = new PersistedClientSecrets
-                {
-                    TenantId = tenantId,
-                    ClientId = clientId,
-                    ConcurrencyToken = string.Empty,
-                    Value = secrets,
-                },
-            },
-            CancellationToken.None
-        );
+        var client = new PersistedClientBuilder
+        {
+            TenantId = tenantId,
+            ClientId = clientId,
+            Secrets = secrets,
+        }.Build();
+
+        await _clientStore.AddAsync(client, CancellationToken.None);
         await _dbContext.SaveChangesAsync();
         _dbContext.ChangeTracker.Clear();
     }

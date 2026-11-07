@@ -126,31 +126,17 @@ public sealed class ClientGrantPromotionContributorTests : IDisposable
         string clientId,
         string? owningNodeType = null
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = tenantId,
             ClientId = clientId,
             ConcurrencyToken = "token",
-            IsDisabled = false,
+            SettingsConcurrencyToken = "settings-token",
+            SecretsConcurrencyToken = "secrets-token",
             PrincipalId = "principal-1",
-            ResourceServerId = null,
             OwningNodeType = owningNodeType,
             OwningNodeId = owningNodeType is null ? null : "owner-1",
-            Settings = new PersistedClientSettings
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = "settings-token",
-                Value = JsonElements.EmptyObject,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = "secrets-token",
-                Value = [],
-            },
-        };
+        }.Build();
 
     private static PersistedClientGrant CreateGrant(
         string tenantId,

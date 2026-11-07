@@ -310,37 +310,20 @@ public class TeamManagementTests
                 },
                 CancellationToken.None
             );
-        await storeManager
-            .GetStore<IClientStore>()
-            .AddAsync(
-                new PersistedClient
-                {
-                    TenantId = RootTenantId,
-                    ClientId = ConsoleClientId,
-                    IsDisabled = false,
-                    Settings = new PersistedClientSettings
-                    {
-                        TenantId = RootTenantId,
-                        ClientId = ConsoleClientId,
-                        Value = JsonSerializer.SerializeToElement(
-                            new Dictionary<string, object>
-                            {
-                                ["redirect_uris"] = new[] { ConsoleRedirectUri },
-                                ["token_endpoint_auth_method"] = OpenIdProtocol
-                                    .ClientAuthenticationMethods
-                                    .None,
-                            }
-                        ),
-                    },
-                    Secrets = new PersistedClientSecrets
-                    {
-                        TenantId = RootTenantId,
-                        ClientId = ConsoleClientId,
-                        Value = [],
-                    },
-                },
-                CancellationToken.None
-            );
+        var consoleSettings = JsonSerializer.SerializeToElement(
+            new Dictionary<string, object>
+            {
+                ["redirect_uris"] = new[] { ConsoleRedirectUri },
+                ["token_endpoint_auth_method"] = OpenIdProtocol.ClientAuthenticationMethods.None,
+            }
+        );
+        var consoleClient = new PersistedClientBuilder
+        {
+            TenantId = RootTenantId,
+            ClientId = ConsoleClientId,
+            Settings = consoleSettings,
+        }.Build();
+        await storeManager.GetStore<IClientStore>().AddAsync(consoleClient, CancellationToken.None);
         await storeManager.SaveChangesAsync(CancellationToken.None);
 
         return principalId;

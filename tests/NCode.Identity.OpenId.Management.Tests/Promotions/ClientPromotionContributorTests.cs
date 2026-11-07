@@ -208,31 +208,21 @@ public sealed class ClientPromotionContributorTests : IDisposable
         string? owningNodeType = null,
         params PersistedSecret[] secrets
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = tenantId,
             ClientId = clientId,
             ConcurrencyToken = "token",
+            SettingsConcurrencyToken = "settings-token",
+            SecretsConcurrencyToken = "secrets-token",
             IsDisabled = isDisabled,
             PrincipalId = principalId,
             ResourceServerId = resourceServerId,
             OwningNodeType = owningNodeType,
             OwningNodeId = owningNodeType is null ? null : "owner-1",
-            Settings = new PersistedClientSettings
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = "settings-token",
-                Value = JsonElement.Parse(settingsJson),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = "secrets-token",
-                Value = secrets,
-            },
-        };
+            Settings = JsonElement.Parse(settingsJson),
+            Secrets = secrets,
+        }.Build();
 
     private static PromotedSettings CreatePromotedSettings(
         string documentJson,

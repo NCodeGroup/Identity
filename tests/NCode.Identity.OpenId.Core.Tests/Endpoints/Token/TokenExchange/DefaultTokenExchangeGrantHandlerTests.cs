@@ -175,28 +175,11 @@ public class DefaultTokenExchangeGrantHandlerTests : BaseTests
             .Verifiable();
 
     private static PersistedClient CreateClient() =>
-        new()
+        new PersistedClientBuilder
         {
-            TenantId = "tenant-1",
             ClientId = "subject-client",
             PrincipalId = "subject-principal",
-            ConcurrencyToken = "ct",
-            IsDisabled = false,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = "tenant-1",
-                ClientId = "subject-client",
-                ConcurrencyToken = "ct",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = "tenant-1",
-                ClientId = "subject-client",
-                ConcurrencyToken = "ct",
-                Value = [],
-            },
-        };
+        }.Build();
 
     #endregion
 

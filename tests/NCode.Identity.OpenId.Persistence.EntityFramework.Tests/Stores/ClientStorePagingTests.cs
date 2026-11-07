@@ -53,29 +53,13 @@ public sealed class ClientStorePagingTests : IDisposable
         string? owningNodeType = null,
         string? owningNodeId = null
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = tenantId,
             ClientId = clientId,
-            ConcurrencyToken = string.Empty,
-            IsDisabled = false,
             OwningNodeType = owningNodeType,
             OwningNodeId = owningNodeId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
-        };
+        }.Build();
 
     private async Task SeedAsync(int count)
     {

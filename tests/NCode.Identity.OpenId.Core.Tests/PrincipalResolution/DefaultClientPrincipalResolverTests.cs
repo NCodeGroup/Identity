@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Claims;
-using System.Text.Json;
 using Moq;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Core.Tests;
@@ -164,28 +163,13 @@ public sealed class DefaultClientPrincipalResolverTests : BaseTests
     }
 
     private static PersistedClient CreateClient(bool isDisabled = false) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
             PrincipalId = PrincipalId,
-            ConcurrencyToken = "ct",
             IsDisabled = isDisabled,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = JsonSerializer.SerializeToElement(new Dictionary<string, object>()),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = TenantId,
-                ClientId = ClientId,
-                ConcurrencyToken = "ct",
-                Value = [],
-            },
-        };
+        }.Build();
 
     // Expects the client to be read under the context's tenant scope, which ends after the read.
     private void SetupClientRead(PersistedClient? client)

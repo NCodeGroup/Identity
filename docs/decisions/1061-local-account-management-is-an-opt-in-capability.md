@@ -1,6 +1,6 @@
 # 1061. Local-account management is an opt-in capability that plugs into the Management slice
 
-- **Status:** Accepted
+- **Status:** Accepted (amended by [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md))
 - **Date:** 2026-10-10
 - **Deciders:** NCode Group
 
@@ -67,7 +67,7 @@ A capability package authors management endpoints against abstractions, not the 
 ### Audit recording is a generic, capability-agnostic seam
 
 The management audit recorder exposes one generic entry point,
-`RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent, ct)`: it stamps the common audit envelope (event id,
+`RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent)`: it stamps the common audit envelope (event id,
 timestamp, correlation id, acting administrator, source) onto a caller-supplied resource-change event and publishes it,
 keying dispatch off the event's runtime type. Each capability defines and owns its own `ResourceChangeAuditEvent`
 subtype and records through this seam, so the base auditing abstraction carries no per-capability method and does not

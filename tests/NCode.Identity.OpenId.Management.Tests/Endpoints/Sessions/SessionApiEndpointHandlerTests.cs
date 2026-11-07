@@ -229,14 +229,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockManagementAuditRecorder
             .Setup(x =>
-                x.RecordSessionsRevokedAsync(
-                    It.IsAny<HttpContext>(),
-                    TenantId,
-                    SubjectId,
-                    null,
-                    2,
-                    It.IsAny<CancellationToken>()
-                )
+                x.RecordSessionsRevokedAsync(It.IsAny<HttpContext>(), TenantId, SubjectId, null, 2)
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -273,14 +266,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockManagementAuditRecorder
             .Setup(x =>
-                x.RecordSessionsRevokedAsync(
-                    It.IsAny<HttpContext>(),
-                    TenantId,
-                    SubjectId,
-                    null,
-                    0,
-                    It.IsAny<CancellationToken>()
-                )
+                x.RecordSessionsRevokedAsync(It.IsAny<HttpContext>(), TenantId, SubjectId, null, 0)
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -372,14 +358,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockManagementAuditRecorder
             .Setup(x =>
-                x.RecordSessionsRevokedAsync(
-                    It.IsAny<HttpContext>(),
-                    TenantId,
-                    SubjectId,
-                    "s1",
-                    1,
-                    It.IsAny<CancellationToken>()
-                )
+                x.RecordSessionsRevokedAsync(It.IsAny<HttpContext>(), TenantId, SubjectId, "s1", 1)
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -436,14 +415,7 @@ public sealed class SessionApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockManagementAuditRecorder
             .Setup(x =>
-                x.RecordSessionsRevokedAsync(
-                    It.IsAny<HttpContext>(),
-                    TenantId,
-                    SubjectId,
-                    "s1",
-                    0,
-                    It.IsAny<CancellationToken>()
-                )
+                x.RecordSessionsRevokedAsync(It.IsAny<HttpContext>(), TenantId, SubjectId, "s1", 0)
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();

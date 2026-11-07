@@ -178,7 +178,7 @@ internal class PrincipalApiEndpointHandler(
             CancellationToken.None
         );
 
-        await RecordPrincipalChangedAsync(httpContext, tenantId, principal, cancellationToken);
+        await RecordPrincipalChangedAsync(httpContext, tenantId, principal);
 
         return TypedResults.NoContent();
     }
@@ -211,7 +211,7 @@ internal class PrincipalApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        await RecordPrincipalChangedAsync(httpContext, tenantId, principal, cancellationToken);
+        await RecordPrincipalChangedAsync(httpContext, tenantId, principal);
 
         return TypedResults.NoContent();
     }
@@ -254,8 +254,7 @@ internal class PrincipalApiEndpointHandler(
     private ValueTask RecordPrincipalChangedAsync(
         HttpContext httpContext,
         string tenantId,
-        PersistedFederatedPrincipal principal,
-        CancellationToken cancellationToken
+        PersistedFederatedPrincipal principal
     ) =>
         ManagementAuditRecorder.RecordResourceChangeAsync(
             httpContext,
@@ -268,8 +267,7 @@ internal class PrincipalApiEndpointHandler(
                 ChangeType = ResourceChangeTypes.Updated,
                 ResourceValues = ToResourceValues(ToPrincipalResource(principal)),
                 Outcome = AuditOutcome.Success,
-            },
-            cancellationToken
+            }
         );
 
     private async ValueTask<bool> AuthorizeTenantAsync(

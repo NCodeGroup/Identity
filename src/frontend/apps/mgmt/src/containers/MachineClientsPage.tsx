@@ -1,128 +1,42 @@
-import { useState } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import {
-  ClientFormDialog,
-  ClientTable,
-  ConfirmDialog,
-  DataStateBoundary,
-  emptyClientFormValues,
-  type ClientFormValues,
-} from '@ncode/ui';
-import type { ClientResource, MachineClientOwner } from '@ncode/api';
-import {
-  apiErrorMessage,
-  useCreateMachineClientMutation,
-  useDeleteClientMutation,
-  useListMachineClientsQuery,
-  useUpdateClientMutation,
-  type ApiError,
-} from '@ncode/store';
+import { ClientFormDialog, ClientTable, ConfirmDialog, DataStateBoundary } from '@ncode/ui';
+import type { MachineClientOwner } from '@ncode/api';
+import { useCreateMachineClientMutation, useListMachineClientsQuery } from '@ncode/store';
 import { ClientDetailPage } from './ClientDetailPage.js';
+import { useClientAdministration } from './useClientAdministration.js';
 
 export type MachineClientsPageProps = {
   readonly owner: MachineClientOwner;
 };
 
-type DialogState =
-  | { readonly kind: 'none' }
-  | { readonly kind: 'create' }
-  | { readonly kind: 'edit'; readonly client: ClientResource }
-  | { readonly kind: 'delete'; readonly client: ClientResource };
-
-const closed: DialogState = { kind: 'none' };
-
 /**
  * Container: browses and administers the machine clients the platform or a team owns (ADR-1466);
  * each lives in the control-plane tenant, so its edit, delete and detail go through that tenant's
  * client routes (ADR-1421). Wires the RTK Query machine-client list and the client mutations to the
- * stateless {@link ClientTable}, {@link ClientFormDialog}, and {@link ConfirmDialog}; owns only
- * dialog/error state.
+ * stateless {@link ClientTable}, {@link ClientFormDialog}, and {@link ConfirmDialog}; the dialog and
+ * error state live in {@link useClientAdministration}.
  */
 export function MachineClientsPage({ owner }: MachineClientsPageProps) {
   const { data, isLoading, error } = useListMachineClientsQuery(owner);
   const clients = data?.items ?? [];
 
-  const [createMachineClient, { isLoading: isCreating }] = useCreateMachineClientMutation();
-  const [updateClient, { isLoading: isUpdating }] = useUpdateClientMutation();
-  const [deleteClient, { isLoading: isDeleting }] = useDeleteClientMutation();
-
-  const [dialog, setDialog] = useState<DialogState>(closed);
-  const [formError, setFormError] = useState<string>();
-  const [deleteError, setDeleteError] = useState<string>();
-
-  const [selectedId, setSelectedId] = useState<string>();
-  const selected = clients.find((c) => c.clientId === selectedId);
-  if (selected) {
-    return <ClientDetailPage client={selected} onBack={() => setSelectedId(undefined)} />;
+  const [createMachineClient] = useCreateMachineClientMutation();
+  const admin = useClientAdministration({
+    clients,
+    createClient: (values) =>
+      createMachineClient({
+        owner,
+        body: { isDisabled: values.isDisabled, settings: {} },
+      }).unwrap(),
+  });
+  if (admin.selected) {
+    return <ClientDetailPage client={admin.selected} onBack={admin.clearSelection} />;
   }
 
   const scope = owner.kind === 'platform' ? 'the platform' : 'this team';
-
-  const openCreate = () => {
-    setFormError(undefined);
-    setDialog({ kind: 'create' });
-  };
-  const openEdit = (clientId: string) => {
-    const client = clients.find((c) => c.clientId === clientId);
-    if (!client) {
-      return;
-    }
-    setFormError(undefined);
-    setDialog({ kind: 'edit', client });
-  };
-  const openDelete = (clientId: string) => {
-    const client = clients.find((c) => c.clientId === clientId);
-    if (!client) {
-      return;
-    }
-    setDeleteError(undefined);
-    setDialog({ kind: 'delete', client });
-  };
-
-  const formOpen = dialog.kind === 'create' || dialog.kind === 'edit';
-  const formInitial: ClientFormValues =
-    dialog.kind === 'edit' ? { isDisabled: dialog.client.isDisabled } : emptyClientFormValues;
-
-  const handleSubmit = async (values: ClientFormValues) => {
-    setFormError(undefined);
-    try {
-      if (dialog.kind === 'create') {
-        await createMachineClient({
-          owner,
-          body: { isDisabled: values.isDisabled, settings: {} },
-        }).unwrap();
-      } else if (dialog.kind === 'edit') {
-        await updateClient({
-          tenantId: dialog.client.tenantId,
-          clientId: dialog.client.clientId,
-          concurrencyToken: dialog.client.concurrencyToken,
-          fields: { isDisabled: values.isDisabled },
-        }).unwrap();
-      }
-      setDialog(closed);
-    } catch (submitError) {
-      setFormError(apiErrorMessage(submitError as ApiError));
-    }
-  };
-
-  const handleDelete = async () => {
-    if (dialog.kind !== 'delete') {
-      return;
-    }
-    setDeleteError(undefined);
-    try {
-      await deleteClient({
-        tenantId: dialog.client.tenantId,
-        clientId: dialog.client.clientId,
-      }).unwrap();
-      setDialog(closed);
-    } catch (removeError) {
-      setDeleteError(apiErrorMessage(removeError as ApiError));
-    }
-  };
 
   return (
     <>
@@ -140,7 +54,7 @@ export function MachineClientsPage({ owner }: MachineClientsPageProps) {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={openCreate}
+          onClick={admin.openCreate}
           data-testid="create-machine-client"
         >
           Create machine client
@@ -166,35 +80,35 @@ export function MachineClientsPage({ owner }: MachineClientsPageProps) {
       >
         <ClientTable
           clients={clients}
-          onSelect={setSelectedId}
-          onEdit={openEdit}
-          onDelete={openDelete}
+          onSelect={admin.select}
+          onEdit={admin.openEdit}
+          onDelete={admin.openDelete}
         />
       </DataStateBoundary>
 
       <ClientFormDialog
-        open={formOpen}
-        title={dialog.kind === 'edit' ? 'Edit machine client' : 'Create machine client'}
-        submitLabel={dialog.kind === 'edit' ? 'Save' : 'Create'}
-        initialValues={formInitial}
-        isSubmitting={isCreating || isUpdating}
-        error={formError}
-        onSubmit={handleSubmit}
-        onCancel={() => setDialog(closed)}
+        open={admin.formOpen}
+        title={admin.isEditing ? 'Edit machine client' : 'Create machine client'}
+        submitLabel={admin.isEditing ? 'Save' : 'Create'}
+        initialValues={admin.formInitial}
+        isSubmitting={admin.isSubmitting}
+        error={admin.formError}
+        onSubmit={admin.handleSubmit}
+        onCancel={admin.close}
       />
 
       <ConfirmDialog
-        open={dialog.kind === 'delete'}
+        open={admin.deleteTarget !== undefined}
         title="Delete machine client"
         message={
-          dialog.kind === 'delete'
-            ? `Delete machine client “${dialog.client.clientId}”? This cannot be undone.`
+          admin.deleteTarget
+            ? `Delete machine client “${admin.deleteTarget.clientId}”? This cannot be undone.`
             : ''
         }
-        isBusy={isDeleting}
-        error={deleteError}
-        onConfirm={handleDelete}
-        onCancel={() => setDialog(closed)}
+        isBusy={admin.isDeleting}
+        error={admin.deleteError}
+        onConfirm={admin.handleDelete}
+        onCancel={admin.close}
       />
     </>
   );

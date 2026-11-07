@@ -1,26 +1,11 @@
-import { useState } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import {
-  ClientFormDialog,
-  ClientTable,
-  ConfirmDialog,
-  DataStateBoundary,
-  emptyClientFormValues,
-  type ClientFormValues,
-} from '@ncode/ui';
-import type { ClientResource } from '@ncode/api';
-import {
-  apiErrorMessage,
-  useCreateClientMutation,
-  useDeleteClientMutation,
-  useListClientsQuery,
-  useUpdateClientMutation,
-  type ApiError,
-} from '@ncode/store';
+import { ClientFormDialog, ClientTable, ConfirmDialog, DataStateBoundary } from '@ncode/ui';
+import { useCreateClientMutation, useListClientsQuery } from '@ncode/store';
 import { ClientDetailPage } from './ClientDetailPage.js';
+import { useClientAdministration } from './useClientAdministration.js';
 
 export type ClientsPageProps = {
   readonly tenantId: string;
@@ -34,21 +19,14 @@ export type ClientsPageProps = {
   readonly embedded?: boolean;
 };
 
-type DialogState =
-  | { readonly kind: 'none' }
-  | { readonly kind: 'create' }
-  | { readonly kind: 'edit'; readonly client: ClientResource }
-  | { readonly kind: 'delete'; readonly client: ClientResource };
-
-const closed: DialogState = { kind: 'none' };
-
 /**
  * Container: browses and administers the clients of a tenant. The tenant is passed down from the
  * stateful shell, so a tenant administrator view is always bound to its own tenant (the API path is
  * nested under the tenant — the boundary is structural, not a filter). Given a resource
  * server, it administers the clients that act for it — that resource server's credentials at the
  * token introspection endpoint. Wires the RTK Query client list and mutations to the stateless
- * {@link ClientTable}, {@link ClientFormDialog}, and {@link ConfirmDialog}; owns only dialog/error state.
+ * {@link ClientTable}, {@link ClientFormDialog}, and {@link ConfirmDialog}; the dialog and error
+ * state live in {@link useClientAdministration}.
  */
 export function ClientsPage({ tenantId, resourceServerId, embedded = false }: ClientsPageProps) {
   const { data, isLoading, error } = useListClientsQuery(
@@ -56,83 +34,22 @@ export function ClientsPage({ tenantId, resourceServerId, embedded = false }: Cl
   );
   const clients = data?.items ?? [];
 
-  const [createClient, { isLoading: isCreating }] = useCreateClientMutation();
-  const [updateClient, { isLoading: isUpdating }] = useUpdateClientMutation();
-  const [deleteClient, { isLoading: isDeleting }] = useDeleteClientMutation();
-
-  const [dialog, setDialog] = useState<DialogState>(closed);
-  const [formError, setFormError] = useState<string>();
-  const [deleteError, setDeleteError] = useState<string>();
-
-  const [selectedId, setSelectedId] = useState<string>();
-  const selected = clients.find((c) => c.clientId === selectedId);
-  if (selected) {
-    return <ClientDetailPage client={selected} onBack={() => setSelectedId(undefined)} />;
+  const [createClient] = useCreateClientMutation();
+  const admin = useClientAdministration({
+    clients,
+    createClient: (values) =>
+      createClient({
+        tenantId,
+        body: {
+          isDisabled: values.isDisabled,
+          ...(resourceServerId ? { resourceServerId } : {}),
+          settings: {},
+        },
+      }).unwrap(),
+  });
+  if (admin.selected) {
+    return <ClientDetailPage client={admin.selected} onBack={admin.clearSelection} />;
   }
-
-  const openCreate = () => {
-    setFormError(undefined);
-    setDialog({ kind: 'create' });
-  };
-  const openEdit = (clientId: string) => {
-    const client = clients.find((c) => c.clientId === clientId);
-    if (!client) {
-      return;
-    }
-    setFormError(undefined);
-    setDialog({ kind: 'edit', client });
-  };
-  const openDelete = (clientId: string) => {
-    const client = clients.find((c) => c.clientId === clientId);
-    if (!client) {
-      return;
-    }
-    setDeleteError(undefined);
-    setDialog({ kind: 'delete', client });
-  };
-
-  const formOpen = dialog.kind === 'create' || dialog.kind === 'edit';
-  const formInitial: ClientFormValues =
-    dialog.kind === 'edit' ? { isDisabled: dialog.client.isDisabled } : emptyClientFormValues;
-
-  const handleSubmit = async (values: ClientFormValues) => {
-    setFormError(undefined);
-    try {
-      if (dialog.kind === 'create') {
-        await createClient({
-          tenantId,
-          body: {
-            isDisabled: values.isDisabled,
-            ...(resourceServerId ? { resourceServerId } : {}),
-            settings: {},
-          },
-        }).unwrap();
-      } else if (dialog.kind === 'edit') {
-        await updateClient({
-          tenantId,
-          clientId: dialog.client.clientId,
-          concurrencyToken: dialog.client.concurrencyToken,
-          fields: { isDisabled: values.isDisabled },
-        }).unwrap();
-      }
-      setDialog(closed);
-    } catch (submitError) {
-      setFormError(apiErrorMessage(submitError as ApiError));
-    }
-  };
-
-  const handleDelete = async () => {
-    if (dialog.kind !== 'delete') {
-      return;
-    }
-    setDeleteError(undefined);
-    try {
-      await deleteClient({ tenantId, clientId: dialog.client.clientId }).unwrap();
-      setDialog(closed);
-    } catch (removeError) {
-      setDeleteError(apiErrorMessage(removeError as ApiError));
-    }
-  };
 
   return (
     <>
@@ -152,7 +69,7 @@ export function ClientsPage({ tenantId, resourceServerId, embedded = false }: Cl
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={openCreate}
+          onClick={admin.openCreate}
           data-testid="create-client"
         >
           Create client
@@ -170,35 +87,35 @@ export function ClientsPage({ tenantId, resourceServerId, embedded = false }: Cl
       >
         <ClientTable
           clients={clients}
-          onSelect={setSelectedId}
-          onEdit={openEdit}
-          onDelete={openDelete}
+          onSelect={admin.select}
+          onEdit={admin.openEdit}
+          onDelete={admin.openDelete}
         />
       </DataStateBoundary>
 
       <ClientFormDialog
-        open={formOpen}
-        title={dialog.kind === 'edit' ? 'Edit client' : 'Create client'}
-        submitLabel={dialog.kind === 'edit' ? 'Save' : 'Create'}
-        initialValues={formInitial}
-        isSubmitting={isCreating || isUpdating}
-        error={formError}
-        onSubmit={handleSubmit}
-        onCancel={() => setDialog(closed)}
+        open={admin.formOpen}
+        title={admin.isEditing ? 'Edit client' : 'Create client'}
+        submitLabel={admin.isEditing ? 'Save' : 'Create'}
+        initialValues={admin.formInitial}
+        isSubmitting={admin.isSubmitting}
+        error={admin.formError}
+        onSubmit={admin.handleSubmit}
+        onCancel={admin.close}
       />
 
       <ConfirmDialog
-        open={dialog.kind === 'delete'}
+        open={admin.deleteTarget !== undefined}
         title="Delete client"
         message={
-          dialog.kind === 'delete'
-            ? `Delete client “${dialog.client.clientId}”? This cannot be undone.`
+          admin.deleteTarget
+            ? `Delete client “${admin.deleteTarget.clientId}”? This cannot be undone.`
             : ''
         }
-        isBusy={isDeleting}
-        error={deleteError}
-        onConfirm={handleDelete}
-        onCancel={() => setDialog(closed)}
+        isBusy={admin.isDeleting}
+        error={admin.deleteError}
+        onConfirm={admin.handleDelete}
+        onCancel={admin.close}
       />
     </>
   );

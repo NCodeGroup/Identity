@@ -2061,11 +2061,13 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        return await ProcessAddOwnerAsync(
+        // See ADR-1469.
+        var tenantNode = GetTenantNode(tenantId);
+        return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            tenantId,
-            ResourceNodeTypes.Tenant,
-            tenantId,
+            tenantNode,
+            BuiltInRoles.Owner,
+            Operations.Update,
             request,
             $"/tenants/{tenantId}/owners",
             (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
@@ -2135,61 +2137,17 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTenantNode(tenantId),
-            Operations.Create
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        if (string.IsNullOrEmpty(request.PrincipalId))
-        {
-            return TypedResults.Problem(
-                detail: "The 'principalId' is required.",
-                statusCode: StatusCodes.Status400BadRequest
-            );
-        }
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        if (!await TenantExistsAsync(storeManager, tenantId, cancellationToken))
-        {
-            return TypedResults.NotFound();
-        }
-
-        var grant = await ResourceOwnershipService.AddAssignmentAsync(
-            storeManager,
-            tenantId,
-            ResourceNodeTypes.Tenant,
-            tenantId,
-            request.PrincipalId,
-            BuiltInRoles.TenantAdmin,
-            cancellationToken
-        );
-        if (grant.IsRefused)
-        {
-            return RoleRefusedForPrincipal();
-        }
-
-        await storeManager.SaveChangesAsync(cancellationToken);
-
-        var ownerResource = ToRoleHolderResource(grant.Assignment);
-        if (!grant.IsAdded)
-        {
-            return TypedResults.Ok(ownerResource);
-        }
-
-        await RecordRoleAssignmentChangedAsync(
+        // See ADR-1469.
+        var tenantNode = GetTenantNode(tenantId);
+        return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            grant.Assignment,
-            ResourceChangeTypes.Created
-        );
-
-        return TypedResults.Created(
-            $"/tenants/{tenantId}/admins/{grant.Assignment.PrincipalId}",
-            ownerResource
+            tenantNode,
+            BuiltInRoles.TenantAdmin,
+            Operations.Create,
+            request,
+            $"/tenants/{tenantId}/admins",
+            (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
+            cancellationToken
         );
     }
 
@@ -2207,41 +2165,16 @@ internal class TenantApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            GetTenantNode(tenantId),
-            Operations.Create
-        );
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
-        var removed = await ResourceOwnershipService.RemoveAssignmentAsync(
-            storeManager,
-            ResourceNodeTypes.Tenant,
-            tenantId,
-            principalId,
+        // See ADR-1469.
+        var tenantNode = GetTenantNode(tenantId);
+        return await ProcessRemoveRoleAssignmentAsync(
+            httpContext,
+            tenantNode,
             BuiltInRoles.TenantAdmin,
+            Operations.Create,
+            principalId,
             cancellationToken
         );
-        if (removed.Count == 0)
-        {
-            return TypedResults.NotFound();
-        }
-
-        await storeManager.SaveChangesAsync(cancellationToken);
-        foreach (var assignment in removed)
-        {
-            await RecordRoleAssignmentChangedAsync(
-                httpContext,
-                assignment,
-                ResourceChangeTypes.Deleted
-            );
-        }
-
-        return TypedResults.NoContent();
     }
 
     private static async ValueTask<bool> TenantExistsAsync(

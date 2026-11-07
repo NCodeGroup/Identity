@@ -5218,6 +5218,83 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #endregion
 
+    #region AddOwnerAsync Tests
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenAuthorized_GrantsTheOwnerRoleAndReturnsCreatedBeneathTheTenantsOwners()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        SetupSave();
+        SetupRoleAssignmentChangedAudit();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-2",
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.Owner),
+                    IsAdded = true,
+                }
+            )
+            .Verifiable();
+
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<RoleHolderResource>>(result);
+        Assert.Equal($"/tenants/{TenantId}/owners/principal-2", created.Location);
+    }
+
+    [Fact]
+    public async Task AddOwnerAsync_WhenThePrincipalCannotHoldTheRole_ReturnsConflictWithoutSavingOrRecording()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        // Strict mocks: no save or audit setup, so saving or recording would fail the test.
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-2",
+                    BuiltInRoles.Owner,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new RoleAssignmentGrant { Assignment = null, IsAdded = false })
+            .Verifiable();
+
+        var result = await Handler.AddOwnerAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
     #region Admins Tests
 
     [Fact]

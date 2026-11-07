@@ -151,7 +151,8 @@ public class OwnerEndpointHelperTests : IDisposable
         );
 
         var json = Assert.IsType<JsonHttpResult<CollectionResource<OwnerResource>>>(result);
-        Assert.Single(json.Value!.Items);
+        var collection = Assert.IsType<CollectionResource<OwnerResource>>(json.Value);
+        Assert.Single(collection.Items);
     }
 
     [Fact]
@@ -275,7 +276,8 @@ public class OwnerEndpointHelperTests : IDisposable
         );
 
         var ok = Assert.IsType<Ok<OwnerResource>>(result);
-        Assert.Equal("a2", ok.Value!.AssignmentId);
+        var owner = Assert.IsType<OwnerResource>(ok.Value);
+        Assert.Equal("a2", owner.AssignmentId);
     }
 
     [Fact]

@@ -31,6 +31,8 @@ public class RoleAssignmentAuditTests
     private const string TeamId = "acme";
     private const string TenantId = "acme-dev";
 
+    #region CreateTeam Tests
+
     [Fact]
     public async Task CreateTeam_RecordsTheCreatorsOwnerAndTeamAdminAssignments()
     {
@@ -54,6 +56,10 @@ public class RoleAssignmentAuditTests
         Assert.Single(changes.Select(change => change.SubjectId).Distinct());
     }
 
+    #endregion
+
+    #region AddTeamAdmin Tests
+
     [Fact]
     public async Task AddTeamAdmin_RecordsACreatedRoleAssignmentNamingTheActor()
     {
@@ -67,10 +73,8 @@ public class RoleAssignmentAuditTests
 
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.Created, body);
-        var change = Assert.Single(
-            GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId),
-            change => change.SubjectId == principalId
-        );
+        var changes = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId);
+        var change = Assert.Single(changes, change => change.SubjectId == principalId);
         Assert.Equal("role_assignment.created", change.EventName);
         Assert.Equal(BuiltInRoles.TeamAdmin, GetRoleName(change));
         Assert.Equal(principalId, GetString(change, "principalId"));
@@ -101,17 +105,20 @@ public class RoleAssignmentAuditTests
         var principalId = await CreateMachineClientPrincipalAsync(administrator);
         using var first = await PostAdminAsync(administrator, principalId);
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
-        var recorded = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId).Count;
+        var changesBefore = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId);
+        var recorded = changesBefore.Count;
 
         using var second = await PostAdminAsync(administrator, principalId);
 
         var body = await second.Content.ReadAsStringAsync();
         Assert.True(second.StatusCode == HttpStatusCode.OK, body);
-        Assert.Equal(
-            recorded,
-            GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId).Count
-        );
+        var changes = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Team, TeamId);
+        Assert.Equal(recorded, changes.Count);
     }
+
+    #endregion
+
+    #region RemoveTenantOwner Tests
 
     [Fact]
     public async Task RemoveTenantOwner_RecordsADeletedRoleAssignment()
@@ -135,8 +142,9 @@ public class RoleAssignmentAuditTests
 
         var revokeBody = await revoke.Content.ReadAsStringAsync();
         Assert.True(revoke.StatusCode == HttpStatusCode.NoContent, revokeBody);
+        var changes = GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Tenant, TenantId);
         var change = Assert.Single(
-            GetRoleAssignmentChanges(recorder, ResourceNodeTypes.Tenant, TenantId),
+            changes,
             change => change.ChangeType == ResourceChangeTypes.Deleted
         );
         Assert.Equal("role_assignment.deleted", change.EventName);
@@ -144,6 +152,8 @@ public class RoleAssignmentAuditTests
         Assert.Equal(BuiltInRoles.Owner, GetRoleName(change));
         Assert.Equal(BootstrapClientId, change.Actor.Id);
     }
+
+    #endregion
 
     #region Scaffolding
 

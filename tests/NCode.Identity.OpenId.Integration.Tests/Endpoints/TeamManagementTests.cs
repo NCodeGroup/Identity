@@ -1955,7 +1955,14 @@ public class TeamManagementTests
     }
 
     private static string[] GetLimitNames(JsonElement limits) =>
-        [.. limits.GetProperty("names").EnumerateArray().Select(name => name.GetString()!)];
+        [
+            .. limits
+                .GetProperty("names")
+                .EnumerateArray()
+                .Select(name =>
+                    name.GetString() ?? throw new InvalidOperationException("A limit name is null.")
+                ),
+        ];
 
     #endregion
 

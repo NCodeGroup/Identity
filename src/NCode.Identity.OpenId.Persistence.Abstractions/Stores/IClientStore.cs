@@ -78,6 +78,7 @@ public interface IClientStore : IStore<PersistedClient>
 
     /// <summary>
     /// Attempts to get the <see cref="PersistedClient"/> whose principal is the specified identifier, in any tenant.
+    /// A principal names at most one client in any tenant.
     /// </summary>
     /// <param name="principalId">The identifier of the client's principal.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>

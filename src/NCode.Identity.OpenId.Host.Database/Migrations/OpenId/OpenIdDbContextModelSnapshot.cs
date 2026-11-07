@@ -350,14 +350,14 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasKey("Id");
 
+                    b.HasIndex("NormalizedPrincipalId")
+                        .IsUnique();
+
                     b.HasIndex("ResourceServerId");
 
                     b.HasIndex("OwningNodeType", "NormalizedOwningNodeId");
 
                     b.HasIndex("TenantId", "NormalizedClientId")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId", "NormalizedPrincipalId")
                         .IsUnique();
 
                     b.ToTable("Clients", (string)null);

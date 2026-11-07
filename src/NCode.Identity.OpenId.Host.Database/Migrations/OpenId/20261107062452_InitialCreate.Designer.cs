@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     [DbContext(typeof(OpenIdDbContext))]
-    [Migration("20261107045013_InitialCreate")]
+    [Migration("20261107062452_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -353,14 +353,14 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
                     b.HasKey("Id");
 
+                    b.HasIndex("NormalizedPrincipalId")
+                        .IsUnique();
+
                     b.HasIndex("ResourceServerId");
 
                     b.HasIndex("OwningNodeType", "NormalizedOwningNodeId");
 
                     b.HasIndex("TenantId", "NormalizedClientId")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId", "NormalizedPrincipalId")
                         .IsUnique();
 
                     b.ToTable("Clients", (string)null);

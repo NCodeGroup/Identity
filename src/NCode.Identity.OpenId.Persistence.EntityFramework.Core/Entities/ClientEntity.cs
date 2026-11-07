@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// The complimentary DTO for this entity is <see cref="PersistedClient"/>.
 /// </summary>
 [Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
-[Index(nameof(TenantId), nameof(NormalizedPrincipalId), IsUnique = true)]
+[Index(nameof(NormalizedPrincipalId), IsUnique = true)]
 [Index(nameof(OwningNodeType), nameof(NormalizedOwningNodeId))]
 public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {

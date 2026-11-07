@@ -784,6 +784,12 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Clients_NormalizedPrincipalId",
+                table: "Clients",
+                column: "NormalizedPrincipalId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Clients_OwningNodeType_NormalizedOwningNodeId",
                 table: "Clients",
                 columns: new[] { "OwningNodeType", "NormalizedOwningNodeId" });
@@ -797,12 +803,6 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 name: "IX_Clients_TenantId_NormalizedClientId",
                 table: "Clients",
                 columns: new[] { "TenantId", "NormalizedClientId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Clients_TenantId_NormalizedPrincipalId",
-                table: "Clients",
-                columns: new[] { "TenantId", "NormalizedPrincipalId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(

@@ -252,6 +252,9 @@ internal class ClientStore(
     )
     {
         var normalizedPrincipalId = Normalize(principalId);
+
+        // A principal is unique across tenants (the unique index on the normalized principal), so at most one row
+        // matches. Roles are granted at nodes of the control plane, whatever tenant the client lives in. See ADR-1467.
         var entity = await QueryClients()
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(

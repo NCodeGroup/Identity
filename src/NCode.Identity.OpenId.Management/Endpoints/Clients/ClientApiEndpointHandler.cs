@@ -2576,9 +2576,11 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        // See ADR-1469.
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
         var authorizationResult = await AuthorizationService.AuthorizeAsync(
             httpContext.User,
-            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            clientNode,
             Operations.Update
         );
         if (!authorizationResult.Succeeded)
@@ -2601,11 +2603,11 @@ internal class ClientApiEndpointHandler(
             }
         }
 
-        return await ProcessAddOwnerAsync(
+        return await ProcessAddRoleAssignmentAsync(
             httpContext,
-            tenantId,
-            ResourceNodeTypes.Client,
-            clientId,
+            clientNode,
+            BuiltInRoles.Owner,
+            Operations.Update,
             request,
             $"/tenants/{tenantId}/clients/{clientId}/owners",
             (storeManager, token) => ClientExistsAsync(storeManager, clientId, token),

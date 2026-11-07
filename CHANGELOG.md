@@ -2005,14 +2005,27 @@ describes the family as it is rather than its changes
   [ADR-1034](docs/decisions/1034-persisted-role-assignments-and-ownership.md).
 
 - **A client acting for itself is a principal.** Every client has a principal (`PersistedClient.PrincipalId`,
-  `ClientResource.principalId`) that its store generates when the client is added — 128 random bits, Base64Url — and
-  that no caller chooses. A token a client obtains for itself, which names no subject, resolves to that principal in
-  the tenant that authenticated it, so a machine client of the control-plane tenant holds role assignments as a person
-  does: `TeamAdmin` through `POST /api/teams/{teamId}/admins` and `Owner` through the `…/owners` endpoints. It becomes
-  the owner of what it creates, its management changes are audited with the `client` actor, a disabled client holds
-  no authority, and deleting a client removes the assignments it holds
-  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
-  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)).
+  `ClientResource.principalId`, `OpenIdClient.PrincipalId`) that its store generates when the client is added — 128
+  random bits, Base64Url — and that no caller chooses. A `client_credentials` access token names it as its `sub` beside
+  the client's `client_id` (RFC 9068 §2.2), and `IPrincipalResolver` resolves such a subject to the client's principal
+  through `IClientPrincipalResolver` while the client is enabled and to none once it is disabled, never provisioning a
+  federated principal for it. Token exchange refuses such a token as its `subject_token` (`invalid_grant`) and accepts
+  it as its `actor_token`, and UserInfo refuses it (`invalid_token`). A machine client becomes the owner of what it
+  creates, its management changes are audited with the `client` actor, and deleting a client removes the assignments it
+  holds ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  [#587](https://github.com/NCodeGroup/Identity/issues/587),
+  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
+  [ADR-1450](docs/decisions/1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md)).
+
+- **A team or the platform owns its machine clients.** `POST`/`GET /api/teams/{teamId}/clients` and
+  `POST`/`GET /api/platform/clients` create and list the control-plane clients that the team or the platform owns
+  (`PersistedClient.OwningNodeType`/`OwningNodeId`, `ClientResource.owningNodeType`/`owningNodeId`,
+  `IClientStore.GetPageByOwningNodeAsync`), with creation or read authority at that node. A machine client obtains
+  tokens only for itself (its `grant_types_supported` is `client_credentials` alone, `400` otherwise), is managed
+  through the control-plane tenant's client routes by its owner's administrators, holds roles only at its owning node
+  or beneath it, and is left alone by promotions; a team that owns one cannot be deleted (`409`)
+  ([#588](https://github.com/NCodeGroup/Identity/issues/588),
+  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)).
 
 - **The management API tells a caller where it holds authority.** `GET /api/me` returns the caller's principal
   (`CallerResource.principalId`), whether it holds authority at the platform node (`isPlatformAdministrator`) and its
@@ -3724,16 +3737,15 @@ describes the family as it is rather than its changes
 - **A team promotes one tenant's configuration to another.** `POST /api/teams/{teamId}/promotions/preview` reports what
   a promotion would create, update or leave unchanged and `POST /api/teams/{teamId}/promotions` applies it: the
   tenant's settings, its resource servers and scopes, its clients (keeping their `client_id`) and client grants, never
-  secrets, keys, grants, principals, role assignments, a client the host configures, or a setting whose value belongs
-  to the environment (`SettingDescriptor.IsEnvironmentBound`, such as `redirect_uris`), whose target values the request
-  may supply. Both tenants belong to the team the route names, not to a team beneath it, so a parent team's
-  administrators promote within a child team through that team's route; a promotion needs read authority on the source
-  and creation authority on the target, and a promoted limit needs the authority that sets it (`403` naming the limit). A promotion that changes a client holding role assignments needs
-  creation authority at each node that holds them, as changing that client does
-  ([ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)). It
-  records each change and `tenant.promoted`, and the console offers it on a team's tenants page
+  secrets, keys, grants, principals, role assignments, a client the host configures, a machine client, or a setting
+  whose value belongs to the environment (`SettingDescriptor.IsEnvironmentBound`, such as `redirect_uris`), whose target
+  values the request may supply. Both tenants belong to the team the route names, not to a team beneath it, so a
+  parent team's administrators promote within a child team through that team's route; a promotion needs read authority
+  on the source and creation authority on the target, and a promoted limit needs the authority that sets it (`403`
+  naming the limit). It records each change and `tenant.promoted`, and the console offers it on a team's tenants page
   ([ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
+  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
   [#565](https://github.com/NCodeGroup/Identity/issues/565)).
 
 - **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
@@ -5627,11 +5639,14 @@ describes the family as it is rather than its changes
   ([#575](https://github.com/NCodeGroup/Identity/issues/575),
   [ADR-1427](docs/decisions/1427-an-imported-elliptic-curve-point-is-checked-against-its-curve-before-the-platform-imports-it.md)).
 
-- **Managing a client's credentials needs the authority its roles carry.** Updating, deleting, configuring or changing
-  the owners or secrets of a client whose principal holds role assignments also needs the authority to grant each of
-  them, so a caller who manages the control-plane tenant's clients cannot mint a secret for a client that administers
-  a team it does not
-  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
-  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)).
+- **Custody of a machine client needs the authority to grant every role it can hold.** Updating, deleting, configuring
+  or changing the owners or secrets of a machine client needs creation authority at the platform or team that owns it,
+  and a role is granted to a client's principal only when it is a machine client and only at its owning node or beneath
+  it (`409` otherwise), so whoever can set a client's credentials could grant every role it holds, whenever the
+  credentials were set, and an administrator of the control-plane tenant cannot set the credentials of a team's machine
+  client ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  [#589](https://github.com/NCodeGroup/Identity/issues/589),
+  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
+  [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md)).
 
 [Unreleased]: https://github.com/NCodeGroup/Identity/commits/main

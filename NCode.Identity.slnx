@@ -122,6 +122,7 @@
         <Project Path="tests/NCode.Identity.OpenId.Persistence.TestSupport/NCode.Identity.OpenId.Persistence.TestSupport.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.Abstractions.Tests/NCode.Identity.Secrets.Abstractions.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.Persistence.Tests/NCode.Identity.Secrets.Persistence.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.Secrets.Persistence.TestSupport/NCode.Identity.Secrets.Persistence.TestSupport.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.Tests/NCode.Identity.Secrets.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests/NCode.Identity.Secrets.KeyWrapping.AwsKms.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Tests/NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Tests.csproj" />

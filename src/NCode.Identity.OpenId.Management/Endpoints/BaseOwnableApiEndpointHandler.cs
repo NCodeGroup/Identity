@@ -51,7 +51,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         string changeType
     )
     {
-        var ownerResource = ToRoleHolderResource(assignment);
+        var roleHolder = ToRoleHolderResource(assignment);
         return ManagementAuditRecorder.RecordResourceChangeAsync(
             httpContext,
             new RoleAssignmentChangedAuditEvent
@@ -63,16 +63,16 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
                 NodeType = assignment.ResourceType,
                 NodeId = assignment.ResourceId,
                 ChangeType = changeType,
-                ResourceValues = ToResourceValues(ownerResource),
+                ResourceValues = ToResourceValues(roleHolder),
                 Outcome = AuditOutcome.Success,
             }
         );
     }
 
     /// <summary>
-    /// Maps an owner role assignment to its <see cref="RoleHolderResource"/> representation.
+    /// Maps a role assignment to its <see cref="RoleHolderResource"/> representation.
     /// </summary>
-    /// <param name="assignment">The owner role assignment to map.</param>
+    /// <param name="assignment">The role assignment to map.</param>
     /// <returns>The mapped <see cref="RoleHolderResource"/>.</returns>
     internal virtual RoleHolderResource ToRoleHolderResource(PersistedRoleAssignment assignment) =>
         new()
@@ -163,6 +163,157 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         var items = assignments.Select(ToRoleHolderResource).ToList();
         var roleList = new RoleListResource { Items = items, CanChange = canChange };
         return TypedResults.Json(roleList);
+    }
+
+    /// <summary>
+    /// Processes an HTTP <c>POST</c> that grants a principal one role at a resource node: authorizes the caller to
+    /// perform the operation at the node, then adds the assignment and records the grant. Responds <c>403</c> when
+    /// the caller lacks the operation, <c>400</c> when the request names no principal, <c>404</c> when the resource
+    /// does not exist, <c>409</c> when the principal is a client that cannot hold the role at the node, <c>200</c>
+    /// when the principal already holds the role, and <c>201</c> when the role is granted.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="node">The resource node that the role is assigned at.</param>
+    /// <param name="roleName">The name of the role to grant.</param>
+    /// <param name="operation">The operation that authorizes the grant at the node.</param>
+    /// <param name="request">The <see cref="AddRoleHolderRequest"/> that names the principal to grant the role to.</param>
+    /// <param name="roleListPath">The path of the role list, which the <c>Location</c> of a grant is beneath.</param>
+    /// <param name="resourceExistsAsync">Determines whether the resource of the node exists.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
+    /// </returns>
+    // See ADR-1469.
+    protected internal virtual async ValueTask<IResult> ProcessAddRoleAssignmentAsync(
+        HttpContext httpContext,
+        ResourceNode node,
+        string roleName,
+        IAuthorizationRequirement operation,
+        AddRoleHolderRequest request,
+        string roleListPath,
+        Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            operation
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        if (string.IsNullOrEmpty(request.PrincipalId))
+        {
+            return TypedResults.Problem(
+                detail: "The 'principalId' is required.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        if (!await resourceExistsAsync(storeManager, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        var grant = await ResourceOwnershipService.AddAssignmentAsync(
+            storeManager,
+            node.TenantId,
+            node.ResourceType,
+            node.ResourceId,
+            request.PrincipalId,
+            roleName,
+            cancellationToken
+        );
+        if (grant.IsRefused)
+        {
+            return RoleRefusedForPrincipal();
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        var roleHolder = ToRoleHolderResource(grant.Assignment);
+        if (!grant.IsAdded)
+        {
+            return TypedResults.Ok(roleHolder);
+        }
+
+        await RecordRoleAssignmentChangedAsync(
+            httpContext,
+            grant.Assignment,
+            ResourceChangeTypes.Created
+        );
+
+        return TypedResults.Created($"{roleListPath}/{grant.Assignment.PrincipalId}", roleHolder);
+    }
+
+    /// <summary>
+    /// Processes an HTTP <c>DELETE</c> that revokes a principal's role at a resource node: authorizes the caller to
+    /// perform the operation at the node, then removes the assignment and records each removed assignment. Responds
+    /// <c>403</c> when the caller lacks the operation, <c>404</c> when the principal does not hold the role, and
+    /// <c>204</c> when the role is revoked.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
+    /// <param name="node">The resource node that the role is assigned at.</param>
+    /// <param name="roleName">The name of the role to revoke.</param>
+    /// <param name="operation">The operation that authorizes the revoke at the node.</param>
+    /// <param name="principalId">The identifier of the principal to revoke the role from.</param>
+    /// <param name="cancellationToken">
+    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
+    /// </param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="IResult"/> of the response.
+    /// </returns>
+    // See ADR-1469.
+    protected internal virtual async ValueTask<IResult> ProcessRemoveRoleAssignmentAsync(
+        HttpContext httpContext,
+        ResourceNode node,
+        string roleName,
+        IAuthorizationRequirement operation,
+        string principalId,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            node,
+            operation
+        );
+        if (!authorizationResult.Succeeded)
+        {
+            return AuthorizationFailed(httpContext);
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var removed = await ResourceOwnershipService.RemoveAssignmentAsync(
+            storeManager,
+            node.ResourceType,
+            node.ResourceId,
+            principalId,
+            roleName,
+            cancellationToken
+        );
+        if (removed.Count == 0)
+        {
+            return TypedResults.NotFound();
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+        foreach (var assignment in removed)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                assignment,
+                ResourceChangeTypes.Deleted
+            );
+        }
+
+        return TypedResults.NoContent();
     }
 
     /// <summary>

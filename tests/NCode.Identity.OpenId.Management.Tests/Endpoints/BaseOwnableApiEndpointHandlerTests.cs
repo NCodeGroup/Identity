@@ -16,7 +16,7 @@ using NCode.Persistence.Stores;
 
 namespace NCode.Identity.OpenId.Management.Endpoints;
 
-public class OwnerEndpointHelperTests : IDisposable
+public class BaseOwnableApiEndpointHandlerTests : IDisposable
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
 
@@ -24,6 +24,7 @@ public class OwnerEndpointHelperTests : IDisposable
 
     private const string TenantId = "tenant-1";
     private const string ResourceId = "client-1";
+    private const string RoleName = "custom-role";
 
     private sealed class TestHandler(
         IAuthorizationService authorizationService,
@@ -84,17 +85,24 @@ public class OwnerEndpointHelperTests : IDisposable
         return (factory, manager);
     }
 
-    private static PersistedRoleAssignment Owner(string principalId, string assignmentId = "a1") =>
+    private static PersistedRoleAssignment Assignment(
+        string principalId,
+        string roleName,
+        string assignmentId = "a1"
+    ) =>
         new()
         {
             TenantId = TenantId,
             AssignmentId = assignmentId,
             PrincipalId = principalId,
-            RoleName = BuiltInRoles.Owner,
+            RoleName = roleName,
             ResourceType = ResourceNodeTypes.Client,
             ResourceId = ResourceId,
             ConcurrencyToken = string.Empty,
         };
+
+    private static PersistedRoleAssignment Owner(string principalId, string assignmentId = "a1") =>
+        Assignment(principalId, BuiltInRoles.Owner, assignmentId);
 
     private Mock<IManagementAuditRecorder> Recorder(List<RoleAssignmentChangedAuditEvent> captured)
     {
@@ -596,6 +604,449 @@ public class OwnerEndpointHelperTests : IDisposable
         );
 
         Assert.IsType<NotFound>(result);
+    }
+
+    #endregion
+
+    #region ProcessAddRoleAssignmentAsync Tests
+
+    [Fact]
+    public async Task ProcessAddRoleAssignmentAsync_WhenAdded_ReturnsCreatedBeneathTheRoleListAndRecordsCreated()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        var (factory, manager) = StoreManager();
+        manager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        ownership
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    manager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Client,
+                    ResourceId,
+                    "p2",
+                    RoleName,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = Assignment("p2", RoleName, "a2"),
+                    IsAdded = true,
+                }
+            )
+            .Verifiable();
+        var captured = new List<RoleAssignmentChangedAuditEvent>();
+        var recorder = Recorder(captured);
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(
+            authz.Object,
+            factory.Object,
+            ownership.Object,
+            recorder.Object
+        );
+        var result = await handler.ProcessAddRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            new AddRoleHolderRequest { PrincipalId = "p2" },
+            "/clients/client-1/holders",
+            Exists,
+            CancellationToken.None
+        );
+
+        var created = Assert.IsType<Created<RoleHolderResource>>(result);
+        Assert.Equal("/clients/client-1/holders/p2", created.Location);
+        var roleHolder = Assert.IsType<RoleHolderResource>(created.Value);
+        Assert.Equal(RoleName, roleHolder.RoleName);
+        var auditEvent = Assert.Single(captured);
+        Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
+        Assert.Equal("a2", auditEvent.ResourceId);
+        Assert.Equal("p2", auditEvent.SubjectId);
+    }
+
+    [Fact]
+    public async Task ProcessAddRoleAssignmentAsync_WhenAlreadyHeld_ReturnsOkAndRecordsNothing()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        var (factory, manager) = StoreManager();
+        manager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        ownership
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    manager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Client,
+                    ResourceId,
+                    "p2",
+                    RoleName,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = Assignment("p2", RoleName, "a2"),
+                    IsAdded = false,
+                }
+            )
+            .Verifiable();
+        // A strict recorder with no setup fails the test when an event is recorded.
+        var recorder = MockRepository.Create<IManagementAuditRecorder>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(
+            authz.Object,
+            factory.Object,
+            ownership.Object,
+            recorder.Object
+        );
+        var result = await handler.ProcessAddRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            new AddRoleHolderRequest { PrincipalId = "p2" },
+            "/clients/client-1/holders",
+            Exists,
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<RoleHolderResource>>(result);
+        var roleHolder = Assert.IsType<RoleHolderResource>(ok.Value);
+        Assert.Equal("a2", roleHolder.AssignmentId);
+    }
+
+    [Fact]
+    public async Task ProcessAddRoleAssignmentAsync_WhenThePrincipalCannotHoldTheRole_ReturnsConflictWithoutSavingOrRecording()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        // A strict store manager with no save setup fails the test when changes are saved.
+        var (factory, manager) = StoreManager();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        ownership
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    manager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Client,
+                    ResourceId,
+                    "p2",
+                    RoleName,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(new RoleAssignmentGrant { Assignment = null, IsAdded = false })
+            .Verifiable();
+        // A strict recorder with no setup fails the test when an event is recorded.
+        var recorder = MockRepository.Create<IManagementAuditRecorder>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(
+            authz.Object,
+            factory.Object,
+            ownership.Object,
+            recorder.Object
+        );
+        var result = await handler.ProcessAddRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            new AddRoleHolderRequest { PrincipalId = "p2" },
+            "/clients/client-1/holders",
+            Exists,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProcessAddRoleAssignmentAsync_WhenTheResourceIsMissing_ReturnsNotFound()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        var (factory, _) = StoreManager();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var result = await handler.ProcessAddRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            new AddRoleHolderRequest { PrincipalId = "p2" },
+            "/clients/client-1/holders",
+            Missing,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task ProcessAddRoleAssignmentAsync_WhenThePrincipalIsMissing_ReturnsBadRequestWithoutOpeningTheStore()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        // A request without a principal never opens the store.
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var result = await handler.ProcessAddRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            new AddRoleHolderRequest { PrincipalId = "" },
+            "/clients/client-1/holders",
+            Exists,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProcessAddRoleAssignmentAsync_WhenForbidden_ReturnsForbiddenWithoutOpeningTheStore()
+    {
+        var authz = Authz(AuthorizationResult.Failed());
+        // A forbidden request never opens the store.
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var result = await handler.ProcessAddRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            new AddRoleHolderRequest { PrincipalId = "p2" },
+            "/clients/client-1/holders",
+            Exists,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProcessAddRoleAssignmentAsync_AuthorizesTheOperationAtTheNode()
+    {
+        object? authorizedResource = null;
+        IEnumerable<IAuthorizationRequirement>? authorizedRequirements = null;
+        var authz = MockRepository.Create<IAuthorizationService>();
+        authz
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback<ClaimsPrincipal, object?, IEnumerable<IAuthorizationRequirement>>(
+                (_, resource, requirements) =>
+                {
+                    authorizedResource = resource;
+                    authorizedRequirements = requirements;
+                }
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        await handler.ProcessAddRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            new AddRoleHolderRequest { PrincipalId = "p2" },
+            "/clients/client-1/holders",
+            Exists,
+            CancellationToken.None
+        );
+
+        Assert.Equal(node, authorizedResource);
+        Assert.NotNull(authorizedRequirements);
+        Assert.Same(Operations.Create, Assert.Single(authorizedRequirements));
+    }
+
+    #endregion
+
+    #region ProcessRemoveRoleAssignmentAsync Tests
+
+    [Fact]
+    public async Task ProcessRemoveRoleAssignmentAsync_WhenRemoved_ReturnsNoContentAndRecordsDeletedForEachRemoved()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        var (factory, manager) = StoreManager();
+        manager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        ownership
+            .Setup(x =>
+                x.RemoveAssignmentAsync(
+                    manager.Object,
+                    ResourceNodeTypes.Client,
+                    ResourceId,
+                    "p1",
+                    RoleName,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([Assignment("p1", RoleName, "a1"), Assignment("p1", RoleName, "a3")])
+            .Verifiable();
+        var captured = new List<RoleAssignmentChangedAuditEvent>();
+        var recorder = Recorder(captured);
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(
+            authz.Object,
+            factory.Object,
+            ownership.Object,
+            recorder.Object
+        );
+        var result = await handler.ProcessRemoveRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            "p1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal(2, captured.Count);
+        Assert.All(captured, x => Assert.Equal(ResourceChangeTypes.Deleted, x.ChangeType));
+        Assert.Equal(["a1", "a3"], captured.Select(x => x.ResourceId));
+    }
+
+    [Fact]
+    public async Task ProcessRemoveRoleAssignmentAsync_WhenNotHeld_ReturnsNotFoundAndRecordsNothing()
+    {
+        var authz = Authz(AuthorizationResult.Success());
+        // A strict store manager with no save setup fails the test when changes are saved.
+        var (factory, manager) = StoreManager();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        ownership
+            .Setup(x =>
+                x.RemoveAssignmentAsync(
+                    manager.Object,
+                    ResourceNodeTypes.Client,
+                    ResourceId,
+                    "p1",
+                    RoleName,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([])
+            .Verifiable();
+        // A strict recorder with no setup fails the test when an event is recorded.
+        var recorder = MockRepository.Create<IManagementAuditRecorder>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(
+            authz.Object,
+            factory.Object,
+            ownership.Object,
+            recorder.Object
+        );
+        var result = await handler.ProcessRemoveRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            "p1",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task ProcessRemoveRoleAssignmentAsync_WhenForbidden_ReturnsForbiddenWithoutOpeningTheStore()
+    {
+        var authz = Authz(AuthorizationResult.Failed());
+        // A forbidden request never opens the store.
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        var result = await handler.ProcessRemoveRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            "p1",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProcessRemoveRoleAssignmentAsync_AuthorizesTheOperationAtTheNode()
+    {
+        object? authorizedResource = null;
+        IEnumerable<IAuthorizationRequirement>? authorizedRequirements = null;
+        var authz = MockRepository.Create<IAuthorizationService>();
+        authz
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .Callback<ClaimsPrincipal, object?, IEnumerable<IAuthorizationRequirement>>(
+                (_, resource, requirements) =>
+                {
+                    authorizedResource = resource;
+                    authorizedRequirements = requirements;
+                }
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+        var factory = MockRepository.Create<IStoreManagerFactory>();
+        var ownership = MockRepository.Create<IResourceOwnershipService>();
+        var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
+
+        var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
+        await handler.ProcessRemoveRoleAssignmentAsync(
+            CreateHttpContext(),
+            node,
+            RoleName,
+            Operations.Create,
+            "p1",
+            CancellationToken.None
+        );
+
+        Assert.Equal(node, authorizedResource);
+        Assert.NotNull(authorizedRequirements);
+        Assert.Same(Operations.Create, Assert.Single(authorizedRequirements));
     }
 
     #endregion

@@ -2008,11 +2008,11 @@ describes the family as it is rather than its changes
   `ClientResource.principalId`, `OpenIdClient.PrincipalId`) that its store generates when the client is added — 128
   random bits, Base64Url — and that no caller chooses. A `client_credentials` access token names it as its `sub` beside
   the client's `client_id` (RFC 9068 §2.2), and `IPrincipalResolver` resolves such a subject to the client's principal
-  through `IClientPrincipalResolver` while the client is enabled and to none once it is disabled, never provisioning a
+  through `IClientPrincipalResolver` while the client is enabled and to none when it is disabled, never provisioning a
   federated principal for it. Token exchange refuses such a token as its `subject_token` (`invalid_grant`) and accepts
   it as its `actor_token`, and UserInfo refuses it (`invalid_token`). A machine client becomes the owner of what it
-  creates, its management changes are audited with the `client` actor, and deleting a client removes the assignments it
-  holds ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  creates within its owning node, its management changes are audited with the `client` actor, and deleting a client
+  removes the assignments it holds ([#557](https://github.com/NCodeGroup/Identity/issues/557),
   [#587](https://github.com/NCodeGroup/Identity/issues/587),
   [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
   [ADR-1450](docs/decisions/1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md)).

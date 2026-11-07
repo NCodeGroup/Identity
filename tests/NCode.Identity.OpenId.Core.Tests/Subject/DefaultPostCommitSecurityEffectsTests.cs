@@ -228,6 +228,45 @@ public sealed class DefaultPostCommitSecurityEffectsTests : BaseTests
         Assert.IsAssignableFrom<InvalidOperationException>(record.Exception);
     }
 
+    [Fact]
+    public async Task TerminateOtherSessionsAsync_WhenTheBoundElapses_LogsAnErrorAndDoesNotThrow()
+    {
+        var context = CreateContext();
+        MockSessionService
+            .Setup(x =>
+                x.RevokeAllExceptAsync(
+                    context,
+                    SubjectId,
+                    SessionId,
+                    SessionTerminationReasons.PasswordChanged,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (OpenIdContext _, string _, string _, string _, CancellationToken x) =>
+                {
+                    TimeProvider.Advance(PostCommitWork.Timeout);
+                    return x.IsCancellationRequested
+                        ? ValueTask.FromCanceled<int>(x)
+                        : ValueTask.FromResult(0);
+                }
+            )
+            .Verifiable();
+
+        await Effects.TerminateOtherSessionsAsync(
+            context,
+            SubjectId,
+            SessionId,
+            SessionTerminationReasons.PasswordChanged
+        );
+
+        var snapshot = Logger.Collector.GetSnapshot();
+        var record = Assert.Single(snapshot);
+        Assert.Equal(EventIds.PostCommitSessionTerminationFailed, record.Id.Id);
+        Assert.Equal(LogLevel.Error, record.Level);
+        Assert.IsAssignableFrom<OperationCanceledException>(record.Exception);
+    }
+
     #endregion
 
     #region ResetPasswordAttemptsAsync Tests
@@ -275,6 +314,23 @@ public sealed class DefaultPostCommitSecurityEffectsTests : BaseTests
         Assert.Equal(EventIds.PostCommitPasswordAttemptResetFailed, record.Id.Id);
         Assert.Equal(LogLevel.Warning, record.Level);
         Assert.IsAssignableFrom<OperationCanceledException>(record.Exception);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAttemptsAsync_WhenTheLimiterThrows_LogsAWarningAndDoesNotThrow()
+    {
+        MockPasswordAttemptLimiter
+            .Setup(x => x.ResetAsync(TenantId, UserName, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException())
+            .Verifiable();
+
+        await Effects.ResetPasswordAttemptsAsync(TenantId, UserName);
+
+        var snapshot = Logger.Collector.GetSnapshot();
+        var record = Assert.Single(snapshot);
+        Assert.Equal(EventIds.PostCommitPasswordAttemptResetFailed, record.Id.Id);
+        Assert.Equal(LogLevel.Warning, record.Level);
+        Assert.IsAssignableFrom<InvalidOperationException>(record.Exception);
     }
 
     #endregion

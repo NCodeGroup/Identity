@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
+using Moq.Protected;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.Exceptions;
@@ -123,9 +124,12 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
     // through to the (strict) security effects and disposed.
     private void SetupTenantContext()
     {
-        // A partial mock of the abstract context, which the handler disposes.
-        var openIdContext = MockRepository.Create<OpenIdContext>(MockBehavior.Loose);
-        openIdContext.CallBase = true;
+        var openIdContext = MockRepository.Create<OpenIdContext>();
+        openIdContext
+            .Protected()
+            .Setup<ValueTask>("DisposeAsyncCore")
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
         MockOpenIdContextFactory
             .Setup(x =>
                 x.CreateForTenantAsync(

@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -95,27 +94,7 @@ public sealed class DefaultTenantResolverTests
     }
 
     private static PersistedTenant CreatePersistedTenant(string tenantId) =>
-        new()
-        {
-            TenantId = tenantId,
-            TeamId = "platform",
-            ConcurrencyToken = "ct",
-            Issuer = Issuer,
-            IsDisabled = false,
-            DisplayName = tenantId,
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "ct",
-                Value = JsonSerializer.SerializeToElement(new { }),
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "ct",
-                Value = [],
-            },
-        };
+        new PersistedTenantBuilder { TenantId = tenantId, Issuer = Issuer }.Build();
 
     [Fact]
     public async Task ValidateTenantAsync_WhenIdentifierAndIssuerAreInvalid_ReportsBothWithoutConsultingTheStrategy()
@@ -531,17 +510,12 @@ public sealed class DefaultTenantResolverTests
         var mocks = new MockRepository(MockBehavior.Strict);
         var strategy = CreateStrategy(mocks);
         var httpContext = new DefaultHttpContext();
-        var tenant = new PersistedTenant
+        var tenant = new PersistedTenantBuilder
         {
             TenantId = RootTenantOptions.DefaultTenantId,
-            TeamId = "platform",
             Issuer = Issuer,
-            ConcurrencyToken = "token",
-            IsDisabled = false,
             DisplayName = RootTenantOptions.DefaultDisplayName,
-            Settings = null!,
-            Secrets = null!,
-        };
+        }.Build();
         strategy
             .Setup(x => x.ResolveControlPlaneTenantAsync(httpContext, CancellationToken.None))
             .ReturnsAsync(tenant)

@@ -2009,13 +2009,20 @@ describes the family as it is rather than its changes
   random bits, Base64Url — and that no caller chooses. A `client_credentials` access token names it as its `sub` beside
   the client's `client_id` (RFC 9068 §2.2), and `IPrincipalResolver` resolves such a subject to the client's principal
   through `IClientPrincipalResolver` while the client is enabled and to none when it is disabled, never provisioning a
-  federated principal for it. Token exchange refuses such a token as its `subject_token` (`invalid_grant`) and accepts
-  it as its `actor_token`, and UserInfo refuses it (`invalid_token`). A machine client becomes the owner of what it
-  creates within its owning node, its management changes are audited with the `client` actor, and deleting a client
-  removes the assignments it holds ([#557](https://github.com/NCodeGroup/Identity/issues/557),
+  federated principal for it. `IClientPrincipalResolver` answers each caller once per request, so a request reads the
+  client its caller acts as at most once. Token exchange refuses such a token as its `subject_token` (`invalid_grant`)
+  and accepts it as its `actor_token`, and UserInfo refuses it (`invalid_token`), both as `IClientPrincipalResolver`
+  decides. A machine client becomes the owner of what it creates within its owning node, its management changes are
+  audited with the `client` actor, which the management API resolves when it authenticates the caller, so a machine
+  client that deletes itself is recorded as the `client` actor, and deleting a client removes the assignments it holds
+  ([#557](https://github.com/NCodeGroup/Identity/issues/557),
   [#587](https://github.com/NCodeGroup/Identity/issues/587),
+  [#632](https://github.com/NCodeGroup/Identity/issues/632),
+  [#633](https://github.com/NCodeGroup/Identity/issues/633),
+  [#634](https://github.com/NCodeGroup/Identity/issues/634),
   [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
-  [ADR-1450](docs/decisions/1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md)).
+  [ADR-1450](docs/decisions/1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md),
+  [ADR-1470](docs/decisions/1470-a-callers-acting-client-is-resolved-once-per-request.md)).
 
 - **A team or the platform owns its machine clients.** `POST`/`GET /api/teams/{teamId}/clients` and
   `POST`/`GET /api/platform/clients` create and list the control-plane clients that the team or the platform owns

@@ -577,38 +577,25 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     private static JsonElement EmptyObject() => JsonSerializer.SerializeToElement(new JsonObject());
 
-    private static PersistedTenantSettings CreateTenantSettings() =>
-        new()
-        {
-            TenantId = TenantId,
-            ConcurrencyToken = "tenant-settings-ct",
-            Value = EmptyObject(),
-        };
-
     private static PersistedTenant CreateTenant() =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = TenantId,
-            TeamId = "platform",
             ConcurrencyToken = "tenant-ct",
-            Issuer = null,
-            IsDisabled = false,
-            DisplayName = TenantId,
-            Settings = CreateTenantSettings(),
-            Secrets = null!,
-        };
+            SettingsConcurrencyToken = "tenant-settings-ct",
+        }.Build();
 
     private static PersistedClientSecrets CreateSecretsCollection(
         string concurrencyToken,
         params PersistedSecret[] secrets
     ) =>
-        new()
+        new PersistedClientBuilder
         {
             TenantId = TenantId,
             ClientId = ClientId,
-            ConcurrencyToken = concurrencyToken,
-            Value = secrets,
-        };
+            SecretsConcurrencyToken = concurrencyToken,
+            Secrets = secrets,
+        }.BuildSecrets();
 
     private static PersistedClientSecret CreateClientSecret(string secretId = "secret-1") =>
         new()
@@ -665,44 +652,31 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     private static PersistedSecret CreatePublicKeySecret(string secretId, string? keyId) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
             KeyId = keyId,
             ConcurrencyToken = "secret-ct",
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretTypes.Rsa,
             SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Spki,
-            Origin = SecretOrigins.Generated,
             KeySizeBits = 2048,
             EncodedValue = RsaSubjectPublicKeyInfo,
-        };
+        }.Build();
 
     private static PersistedSecret CreatePersistedSecret(
         string secretId = "secret-1",
         string concurrencyToken = "secret-ct"
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
             ConcurrencyToken = concurrencyToken,
             Use = "sig",
             Algorithm = "RS256",
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            SecretType = SecretTypes.Symmetric,
-            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.SymmetricRaw,
-            Origin = SecretOrigins.Generated,
-            KeySizeBits = 256,
             EncodedValue = "encoded",
-        };
+        }.Build();
 
     private static CreateSecretRequest CreateSecretRequest() =>
         new()
@@ -4099,6 +4073,21 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         // The operator can tell a secret that client_secret_jwt cannot use from one it can. See ADR-1391.
         SetupStore();
         var stored = CreatePersistedSecret();
+        var verifier = new PersistedSecretBuilder
+        {
+            SecretId = stored.SecretId,
+            ConcurrencyToken = stored.ConcurrencyToken,
+            Use = stored.Use,
+            Algorithm = stored.Algorithm,
+            CreatedWhen = stored.CreatedWhen,
+            ExpiresWhen = stored.ExpiresWhen,
+            ActivatesWhen = stored.CreatedWhen,
+            RetiresWhen = stored.ExpiresWhen,
+            SecretType = stored.SecretType,
+            SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Verifier,
+            KeySizeBits = stored.KeySizeBits,
+            EncodedValue = stored.EncodedValue,
+        }.Build();
         MockClientStore
             .Setup(x =>
                 x.GetSecretOrDefaultAsync(ClientId, "secret-1", It.IsAny<CancellationToken>())
@@ -4108,22 +4097,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                 {
                     TenantId = TenantId,
                     ClientId = ClientId,
-                    Value = new PersistedSecret
-                    {
-                        SecretId = stored.SecretId,
-                        ConcurrencyToken = stored.ConcurrencyToken,
-                        Use = stored.Use,
-                        Algorithm = stored.Algorithm,
-                        CreatedWhen = stored.CreatedWhen,
-                        ExpiresWhen = stored.ExpiresWhen,
-                        ActivatesWhen = stored.CreatedWhen,
-                        RetiresWhen = stored.ExpiresWhen,
-                        SecretType = stored.SecretType,
-                        SecretEncoding = NCode.Identity.Secrets.SecretEncodings.Verifier,
-                        Origin = SecretOrigins.Generated,
-                        KeySizeBits = stored.KeySizeBits,
-                        EncodedValue = stored.EncodedValue,
-                    },
+                    Value = verifier,
                 }
             )
             .Verifiable();

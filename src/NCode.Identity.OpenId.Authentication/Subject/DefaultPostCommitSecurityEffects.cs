@@ -60,7 +60,7 @@ internal sealed class DefaultPostCommitSecurityEffects(
             // The change is committed and no caller token reaches the effect, so every failure, its bound
             // included, is logged.
             var tenantId = openIdContext.Tenant.TenantId;
-            Logger.PostCommitSessionTerminationFailed(exception, tenantId, subjectId, reason);
+            Logger.PostCommitSessionTerminationFailed(exception, tenantId, subjectId);
         }
     }
 
@@ -100,7 +100,7 @@ internal sealed class DefaultPostCommitSecurityEffects(
             // The change is committed and no caller token reaches the effect, so every failure, its bound
             // included, is logged.
             var tenantId = openIdContext.Tenant.TenantId;
-            Logger.PostCommitSessionTerminationFailed(exception, tenantId, subjectId, reason);
+            Logger.PostCommitSessionTerminationFailed(exception, tenantId, subjectId);
         }
     }
 

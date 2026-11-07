@@ -43,8 +43,8 @@ its own bounded token, and a failure is logged, never thrown.**
 3. **A failure is logged, never thrown.** A call that throws, or a bound that elapses, is caught. A failed session
    termination is logged as `PostCommitSessionTerminationFailed` at `Error`, because the sessions stay active. A failed
    count reset is logged as `PostCommitPasswordAttemptResetFailed` at `Warning`, because the limit fails closed. The
-   session-termination entries carry the tenant id, the subject id and the reason, and the count-reset entry carries the
-   tenant id; no entry carries the user name. The change answers success.
+   session-termination entries carry the tenant id and the subject id, and the count-reset entry carries the tenant id;
+   no entry carries the user name or the reason. The change answers success.
 4. **The order is commit, then the security effects, then the audit record.** The five call sites and their reasons:
    - blocking a principal ends its sessions with `UserBlocked`;
    - disabling a local account ends its sessions with `AccountDisabled`;

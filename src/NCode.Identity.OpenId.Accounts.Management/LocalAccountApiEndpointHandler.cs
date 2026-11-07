@@ -532,16 +532,17 @@ internal class LocalAccountApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // A disabled account's sessions end, so the tenant's context is created before the account is written: a tenant
-        // that is not served refuses the request here, before anything is committed or audited. Enabling an account ends
-        // no session and needs no context.
-        await using var tenantContext = isEnabled
-            ? null
-            : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
-
+        // Disabling an account with a self-issued identity ends its principal's sessions, so the tenant's context is
+        // created before the account is written: a tenant that is not served refuses the request here, before anything
+        // is committed or audited. Enabling an account, or disabling one without a self-issued identity, ends no
+        // session and needs no context.
         var principalId = isEnabled
             ? null
             : await FindSelfIssuedPrincipalIdAsync(storeManager, localAccountId, cancellationToken);
+
+        await using var tenantContext = principalId is null
+            ? null
+            : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
 
         account.IsEnabled = isEnabled;
         await store.UpdateAsync(account, cancellationToken);
@@ -610,19 +611,18 @@ internal class LocalAccountApiEndpointHandler(
             return ToErrorResult(passwordError);
         }
 
-        // The tenant's context is created before the password is written: a tenant that is not served refuses the
-        // request here, before anything is committed or audited.
-        await using var tenantContext = await CreateTenantContextAsync(
-            httpContext,
-            tenantId,
-            cancellationToken
-        );
-
+        // An account with a self-issued identity has its principal's sessions ended, so the tenant's context is created
+        // before the password is written: a tenant that is not served refuses the request here, before anything is
+        // committed or audited. An account without one ends no session and needs no context.
         var principalId = await FindSelfIssuedPrincipalIdAsync(
             storeManager,
             localAccountId,
             cancellationToken
         );
+
+        await using var tenantContext = principalId is null
+            ? null
+            : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
 
         await WithPasswordBytesAsync(
             request.Password,
@@ -631,7 +631,7 @@ internal class LocalAccountApiEndpointHandler(
         );
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        if (principalId is not null)
+        if (tenantContext is not null && principalId is not null)
         {
             // A reset password ends the sessions of the account's principal and revokes its grants, so the tokens of a
             // compromised account stop at once. The change is committed, so the termination runs on its own bounded

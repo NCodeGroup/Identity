@@ -674,14 +674,13 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.PostCommitSessionTerminationFailed,
         Level = LogLevel.Error,
-        Message = "The sessions of subject '{SubjectId}' in tenant '{TenantId}' could not be terminated with reason '{Reason}' after a committed change; repeat the change to terminate them."
+        Message = "The sessions of subject '{SubjectId}' in tenant '{TenantId}' could not be terminated after a committed change; repeat the change to terminate them."
     )]
     internal static partial void PostCommitSessionTerminationFailed(
         this ILogger logger,
         Exception exception,
         string tenantId,
-        string subjectId,
-        string reason
+        string subjectId
     );
 
     [LoggerMessage(

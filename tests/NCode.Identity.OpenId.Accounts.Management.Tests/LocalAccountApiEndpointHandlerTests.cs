@@ -392,6 +392,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     {
         SetupAuthorizeUpdate(error: null);
         SetupAccount(CreateAccount());
+        SetupSelfIssuedIdentity();
         SetupTenantIsNotServed();
         var httpContext = CreateHttpContext();
 
@@ -503,7 +504,6 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         var account = CreateAccount();
         SetupAuthorizeUpdate(error: null);
         SetupAccount(account);
-        SetupTenantContext();
         SetupNoSelfIssuedIdentity();
         MockLocalAccountStore
             .Setup(x =>
@@ -559,6 +559,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         SetupAuthorizeUpdate(error: null);
         SetupAccount(CreateAccount());
         SetupPasswordAccepted();
+        SetupSelfIssuedIdentity();
         SetupTenantIsNotServed();
         var httpContext = CreateHttpContext();
 
@@ -634,7 +635,6 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         SetupAuthorizeUpdate(error: null);
         SetupAccount(CreateAccount());
         SetupPasswordAccepted();
-        SetupTenantContext();
         SetupNoSelfIssuedIdentity();
         MockLocalAccountStore
             .Setup(x =>

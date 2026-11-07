@@ -1966,6 +1966,68 @@ public class TeamManagementTests
 
     #endregion
 
+    #region ListRoleAssignments Tests
+
+    [Fact]
+    public async Task ListRoleAssignments_AsATenantOwner_ReportsItMayChangeTheOwnersButNotTheAdministrators()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        await CreateTenantAsync(administrator, "acme", "acme-dev");
+        using var owner = await CreateGrantedUserClientAsync(
+            factory,
+            administrator,
+            "/api/tenants/acme-dev/owners"
+        );
+
+        var owners = await GetJsonAsync(owner, "/api/tenants/acme-dev/owners");
+        var admins = await GetJsonAsync(owner, "/api/tenants/acme-dev/admins");
+
+        Assert.True(owners.GetProperty("canChange").GetBoolean());
+        Assert.NotEmpty(owners.GetProperty("items").EnumerateArray());
+        Assert.False(admins.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ListRoleAssignments_AsATeamAdmin_ReportsItMayChangeItsTenantsAdministrators()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+        await CreateTenantAsync(teamAdmin, "acme", "acme-dev");
+
+        var admins = await GetJsonAsync(teamAdmin, "/api/tenants/acme-dev/admins");
+
+        Assert.True(admins.GetProperty("canChange").GetBoolean());
+    }
+
+    [Fact]
+    public async Task ListRoleAssignments_AsATeamAdmin_ReportsItMayChangeItsTeamsAdministrators()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+        await CreateTeamAsync(administrator, "acme", new { });
+        using var teamAdmin = await CreateTeamUserClientAsync(
+            factory,
+            administrator,
+            "acme",
+            "admins"
+        );
+
+        var admins = await GetJsonAsync(teamAdmin, "/api/teams/acme/admins");
+
+        Assert.True(admins.GetProperty("canChange").GetBoolean());
+    }
+
+    #endregion
+
     #region PatchTeamSettings Tests
 
     [Fact]

@@ -967,6 +967,18 @@ internal class ClientApiEndpointHandler(
         using var scope = AmbientTenantAccessor.BeginScope(tenantId);
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
+        // A team owns its machine clients whether or not it is disabled, as it owns its tenants.
+        // See ADR-1466.
+        if (owningNode.ResourceType == ResourceNodeTypes.Team)
+        {
+            var teamStore = storeManager.GetStore<ITeamStore>();
+            var team = await teamStore.GetOrDefaultAsync(owningNode.ResourceId, cancellationToken);
+            if (team is null)
+            {
+                return TypedResults.NotFound();
+            }
+        }
+
         var clientId = CryptoService.GenerateResourceId();
 
         var settings = ToJsonObject(request.Settings);

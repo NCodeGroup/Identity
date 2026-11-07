@@ -67,6 +67,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<IClientCoherenceReporter> MockClientCoherenceReporter { get; }
     private Mock<IClientSecretIssuer> MockClientSecretIssuer { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
+    private Mock<ITeamStore> MockTeamStore { get; }
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private Mock<IHostManagedClientPolicy> MockHostManagedClientPolicy { get; }
@@ -104,6 +105,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         MockClientCoherenceReporter = MockRepository.Create<IClientCoherenceReporter>();
         MockClientSecretIssuer = MockRepository.Create<IClientSecretIssuer>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
+        MockTeamStore = MockRepository.Create<ITeamStore>();
         MockResourceOwnershipService = MockRepository.Create<IResourceOwnershipService>();
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
@@ -761,6 +763,34 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
     }
 
+    // A machine client of a team is created only when the team exists, which the creation reads from the team store.
+    private void SetupTeamLookup(string teamId, PersistedTeam? team)
+    {
+        MockStoreManager
+            .Setup(x => x.GetStore<ITeamStore>())
+            .Returns(MockTeamStore.Object)
+            .Verifiable();
+        MockTeamStore
+            .Setup(x => x.GetOrDefaultAsync(teamId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(team)
+            .Verifiable();
+    }
+
+    private static PersistedTeam CreateTeam(string teamId) =>
+        new()
+        {
+            TeamId = teamId,
+            ConcurrencyToken = "team-ct",
+            IsDisabled = false,
+            DisplayName = "Team One",
+            Settings = new PersistedTeamSettings
+            {
+                TeamId = teamId,
+                ConcurrencyToken = "team-settings-ct",
+                Value = EmptyObject(),
+            },
+        };
+
     private void SetupAuthorizeCreateMachineClient(
         string owningNodeType,
         string owningNodeId,
@@ -1233,6 +1263,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task CreateTeamClientAsync_StoresAClientCredentialsOnlyClientOwnedByTheTeamWithoutACreatorOwner()
     {
         SetupAuthorizeCreateMachineClient(ResourceNodeTypes.Team, "team-1", error: null);
+        SetupTeamLookup("team-1", CreateTeam("team-1"));
         PersistedClient? captured = null;
         SetupMachineClientCreation(client => captured = client);
 
@@ -1304,6 +1335,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     public async Task CreateTeamClientAsync_WithAnotherGrantType_ReturnsValidationProblem()
     {
         SetupAuthorizeCreateMachineClient(ResourceNodeTypes.Team, "team-1", error: null);
+        SetupTeamLookup("team-1", CreateTeam("team-1"));
         SetupMachineClientScope();
         SetupStore();
         SetupResourceId("generated-id");
@@ -1323,6 +1355,36 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var problem = Assert.IsType<ValidationProblem>(result);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
         Assert.Equal([OpenIdSettingNames.GrantTypesSupported], problem.ProblemDetails.Errors.Keys);
+    }
+
+    #endregion
+
+    #region CreateMachineClientAsync Tests
+
+    [Fact]
+    public async Task CreateMachineClientAsync_WhenTheTeamDoesNotExist_ReturnsNotFound()
+    {
+        SetupAuthorizeCreateMachineClient(ResourceNodeTypes.Team, "missing", error: null);
+        SetupMachineClientScope();
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        SetupTeamLookup("missing", team: null);
+
+        var request = new CreateClientRequest { IsDisabled = false, Settings = EmptyObject() };
+        var owningNode = ResourceNode.For(TenantId, ResourceNodeTypes.Team, "missing");
+
+        // Strict mocks: no client store write is set up, so storing a client would fail the test.
+        var result = await Handler.CreateMachineClientAsync(
+            CreateHttpContext(authenticated: true),
+            owningNode,
+            request,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
     }
 
     #endregion

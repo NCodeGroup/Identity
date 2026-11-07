@@ -1426,6 +1426,21 @@ public class TeamManagementTests
     }
 
     [Fact]
+    public async Task CreateTeamClient_ForATeamThatDoesNotExist_ReturnsNotFound()
+    {
+        using var factory = CreateFactory();
+        using var administrator = await CreateAdministratorClientAsync(factory);
+
+        using var response = await administrator.PostAsJsonAsync(
+            "/api/teams/missing/clients",
+            new { isDisabled = false, settings = new { } }
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NotFound, body);
+    }
+
+    [Fact]
     public async Task PatchMachineClientSettings_WithAnotherGrantType_ReturnsBadRequest()
     {
         using var factory = CreateFactory();

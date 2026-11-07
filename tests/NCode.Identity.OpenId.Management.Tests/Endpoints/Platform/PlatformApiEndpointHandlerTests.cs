@@ -1410,6 +1410,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync((PersistedPlatformSettings?)null)
             .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
 
         var httpContext = CreateHttpContext(authenticated: true);
 
@@ -1424,14 +1425,8 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateSettingsAsync_WhenForbidden_ReturnsForbid()
+    public async Task UpdateSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingThePlatform()
     {
-        SetupStore();
-        var settings = CreateSettings("settings-ct", EmptyObject());
-        MockPlatformStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(settings)
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: true);
@@ -1451,12 +1446,6 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     [Fact]
     public async Task UpdateSettingsAsync_WhenUnauthenticated_ReturnsUnauthorized()
     {
-        SetupStore();
-        var settings = CreateSettings("settings-ct", EmptyObject());
-        MockPlatformStore
-            .Setup(x => x.GetSettingsOrDefaultAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(settings)
-            .Verifiable();
         SetupAuthorization(AuthorizationResult.Failed());
 
         var httpContext = CreateHttpContext(authenticated: false);
@@ -1559,6 +1548,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         SetupPlatformRow(exists: false);
+        SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.GetEncryptionKeysAsync(
             CreateHttpContext(authenticated: true),
@@ -1569,10 +1559,8 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEncryptionKeysAsync_WhenNotAuthorized_DoesNotReadTheStatus()
+    public async Task GetEncryptionKeysAsync_WhenNotAuthorized_ReturnsForbiddenWithoutReadingThePlatform()
     {
-        SetupStore();
-        SetupPlatformRow(exists: true);
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.GetEncryptionKeysAsync(
@@ -1580,7 +1568,8 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsNotType<Ok<EncryptionKeysResource>>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     [Fact]
@@ -1675,6 +1664,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     {
         SetupStore();
         SetupPlatformRow(exists: false);
+        SetupAuthorization(AuthorizationResult.Success());
 
         var result = await Handler.RekeyEncryptionKeysAsync(
             CreateHttpContext(authenticated: true),
@@ -1685,10 +1675,8 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task RekeyEncryptionKeysAsync_WhenNotAuthorized_NeverRotates()
+    public async Task RekeyEncryptionKeysAsync_WhenNotAuthorized_ReturnsForbiddenWithoutReadingThePlatform()
     {
-        SetupStore();
-        SetupPlatformRow(exists: true);
         SetupAuthorization(AuthorizationResult.Failed());
 
         var result = await Handler.RekeyEncryptionKeysAsync(
@@ -1696,7 +1684,8 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsNotType<Ok<EncryptionKeyRotationResource>>(result);
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
 
     #endregion

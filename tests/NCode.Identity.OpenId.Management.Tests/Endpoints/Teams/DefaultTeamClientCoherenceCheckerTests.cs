@@ -9,6 +9,7 @@ using NCode.Identity.OpenId.Management.Logging;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
+using NCode.Identity.OpenId.Teams;
 using NCode.Identity.Settings;
 using NCode.Persistence.Stores;
 
@@ -19,13 +20,14 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
     private const string TeamId = "acme";
     private const string ChildTeamId = "acme-web";
     private const string GrandchildTeamId = "acme-web-eu";
+    private const string ApiTeamId = "acme-api";
 
     private MockRepository MockRepository { get; }
     private Mock<IEffectiveSettingsResolver> MockEffectiveSettingsResolver { get; }
     private Mock<ITenantClientCoherenceChecker> MockTenantClientCoherenceChecker { get; }
     private Mock<ILogger<DefaultTeamClientCoherenceChecker>> MockLogger { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
-    private Mock<ITeamStore> MockTeamStore { get; }
+    private Mock<ITeamDescendantWalker> MockTeamDescendantWalker { get; }
     private Mock<ITenantStore> MockTenantStore { get; }
     private Mock<IReadOnlySettingCollection> MockCurrentSettings { get; }
     private Mock<IReadOnlySettingCollection> MockNewSettings { get; }
@@ -38,15 +40,11 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         MockTenantClientCoherenceChecker = MockRepository.Create<ITenantClientCoherenceChecker>();
         MockLogger = MockRepository.Create<ILogger<DefaultTeamClientCoherenceChecker>>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
-        MockTeamStore = MockRepository.Create<ITeamStore>();
+        MockTeamDescendantWalker = MockRepository.Create<ITeamDescendantWalker>();
         MockTenantStore = MockRepository.Create<ITenantStore>();
         MockCurrentSettings = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
         MockNewSettings = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
 
-        MockStoreManager
-            .Setup(x => x.GetStore<ITeamStore>())
-            .Returns(MockTeamStore.Object)
-            .Verifiable();
         MockStoreManager
             .Setup(x => x.GetStore<ITenantStore>())
             .Returns(MockTenantStore.Object)
@@ -55,6 +53,7 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         Checker = new DefaultTeamClientCoherenceChecker(
             MockEffectiveSettingsResolver.Object,
             MockTenantClientCoherenceChecker.Object,
+            MockTeamDescendantWalker.Object,
             MockLogger.Object
         );
     }
@@ -97,12 +96,47 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
             Value = CreateDocument(marker),
         };
 
+    // Visits the listed teams in order, as a walk does, skipping a team whose parent was declined or skipped.
+    private static async ValueTask WalkListedTeamsAsync(
+        IReadOnlyList<PersistedTeam> descendants,
+        Func<PersistedTeam, CancellationToken, ValueTask<bool>> visitAsync,
+        CancellationToken cancellationToken
+    )
+    {
+        var skipped = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var team in descendants)
+        {
+            if (team.ParentTeamId is not null && skipped.Contains(team.ParentTeamId))
+            {
+                skipped.Add(team.TeamId);
+                continue;
+            }
+
+            if (!await visitAsync(team, cancellationToken))
+            {
+                skipped.Add(team.TeamId);
+            }
+        }
+    }
+
     private void SetupDescendants(string teamId, params IEnumerable<PersistedTeam> descendants)
     {
         var buffered = (IReadOnlyList<PersistedTeam>)[.. descendants];
-        MockTeamStore
-            .Setup(x => x.GetDescendantsAsync(teamId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(buffered)
+        MockTeamDescendantWalker
+            .Setup(x =>
+                x.WalkDescendantsAsync(
+                    teamId,
+                    It.IsAny<Func<PersistedTeam, CancellationToken, ValueTask<bool>>>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(
+                (
+                    string _,
+                    Func<PersistedTeam, CancellationToken, ValueTask<bool>> visitAsync,
+                    CancellationToken cancellationToken
+                ) => WalkListedTeamsAsync(buffered, visitAsync, cancellationToken)
+            )
             .Verifiable();
     }
 
@@ -375,6 +409,91 @@ public class DefaultTeamClientCoherenceCheckerTests : IDisposable
         var errors = await FindAsync();
 
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task FindIntroducedViolationsAsync_WhenATeamFollowsADeeperBranch_ResolvesItUnderItsOwnParent()
+    {
+        var mockChildCurrent = MockRepository.Create<IReadOnlySettingCollection>(
+            MockBehavior.Loose
+        );
+        var mockChildNew = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
+        var mockGrandchildCurrent = MockRepository.Create<IReadOnlySettingCollection>(
+            MockBehavior.Loose
+        );
+        var mockGrandchildNew = MockRepository.Create<IReadOnlySettingCollection>(
+            MockBehavior.Loose
+        );
+        var mockApiCurrent = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
+        var mockApiNew = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
+        var mockTenantCurrent = MockRepository.Create<IReadOnlySettingCollection>(
+            MockBehavior.Loose
+        );
+        var mockTenantNew = MockRepository.Create<IReadOnlySettingCollection>(MockBehavior.Loose);
+        SetupDescendants(
+            TeamId,
+            CreateTeam(ChildTeamId, TeamId, "child"),
+            CreateTeam(GrandchildTeamId, ChildTeamId, "grandchild"),
+            CreateTeam(ApiTeamId, TeamId, "api")
+        );
+        SetupTenants(TeamId);
+        SetupTenants(ChildTeamId);
+        SetupTenants(GrandchildTeamId);
+        SetupTenants(ApiTeamId, CreateTenantSettings("tenant-4", "tenant-4"));
+        SetupResolve(
+            MockCurrentSettings.Object,
+            OpenIdSettingScopes.Team,
+            "child",
+            mockChildCurrent.Object
+        );
+        SetupResolve(
+            MockNewSettings.Object,
+            OpenIdSettingScopes.Team,
+            "child",
+            mockChildNew.Object
+        );
+        SetupResolve(
+            mockChildCurrent.Object,
+            OpenIdSettingScopes.Team,
+            "grandchild",
+            mockGrandchildCurrent.Object
+        );
+        SetupResolve(
+            mockChildNew.Object,
+            OpenIdSettingScopes.Team,
+            "grandchild",
+            mockGrandchildNew.Object
+        );
+        SetupResolve(
+            MockCurrentSettings.Object,
+            OpenIdSettingScopes.Team,
+            "api",
+            mockApiCurrent.Object
+        );
+        SetupResolve(MockNewSettings.Object, OpenIdSettingScopes.Team, "api", mockApiNew.Object);
+        SetupResolve(
+            mockApiCurrent.Object,
+            OpenIdSettingScopes.Tenant,
+            "tenant-4",
+            mockTenantCurrent.Object
+        );
+        SetupResolve(
+            mockApiNew.Object,
+            OpenIdSettingScopes.Tenant,
+            "tenant-4",
+            mockTenantNew.Object
+        );
+        SetupTenantCheck(
+            "tenant-4",
+            mockTenantCurrent.Object,
+            mockTenantNew.Object,
+            CreateFinding("client-4")
+        );
+
+        var errors = await FindAsync();
+
+        var error = Assert.Single(errors);
+        Assert.Contains("client 'client-4' of tenant 'tenant-4'", error.Message);
     }
 
     [Fact]

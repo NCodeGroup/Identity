@@ -7,7 +7,9 @@
   [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
   [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) and
-  [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md))
+  [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md); amended by
+  [ADR-1455](1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md): a subtree is walked one
+  page of child teams per level, and `ITeamStore` has no read of a whole subtree)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 

@@ -1859,9 +1859,9 @@ internal class TenantApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<ITenantStore>();
                 var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, token);
-                return TenantOwnedResource.ForOrDefault(tenantId, secret);
+                return secret;
             },
-            x => ToSecretResource(x.Value),
+            ToSecretResource,
             cancellationToken
         );
     }
@@ -1891,10 +1891,10 @@ internal class TenantApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<ITenantStore>();
                 var secret = await store.GetSecretOrDefaultAsync(tenantId, secretId, token);
-                return TenantOwnedResource.ForOrDefault(tenantId, secret);
+                return secret;
             },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value),
+            SecretPublicKeyConverter.Convert,
             cancellationToken
         );
     }

@@ -142,27 +142,6 @@ public sealed class TeamStoreHierarchyTests : IDisposable
 
     #endregion
 
-    #region GetDescendantsAsync Tests
-
-    [Fact]
-    public async Task GetDescendantsAsync_ReturnsEveryLevelWithParentsFirst()
-    {
-        await SeedTreeAsync();
-
-        var descendants = await _store.GetDescendantsAsync("acme", CancellationToken.None);
-
-        var teamIds = descendants.Select(team => team.TeamId).ToList();
-        Assert.Equal(3, teamIds.Count);
-        Assert.Contains("acme-web", teamIds);
-        Assert.Contains("acme-api", teamIds);
-        Assert.Contains("acme-web-eu", teamIds);
-        Assert.DoesNotContain("acme-x", teamIds);
-        Assert.DoesNotContain("acme", teamIds);
-        Assert.True(teamIds.IndexOf("acme-web") < teamIds.IndexOf("acme-web-eu"));
-    }
-
-    #endregion
-
     #region CountDescendantsAsync Tests
 
     [Fact]
@@ -205,6 +184,21 @@ public sealed class TeamStoreHierarchyTests : IDisposable
             ["acme-api", "acme-web"],
             first.Items.Concat(second.Items).Select(team => team.TeamId).Order()
         );
+    }
+
+    [Fact]
+    public async Task GetChildPageAsync_WhenTheTeamDoesNotExist_ReturnsAnEmptyPage()
+    {
+        await SeedTreeAsync();
+
+        var page = await _store.GetChildPageAsync(
+            "missing-team",
+            new PageRequest { Limit = 10 },
+            CancellationToken.None
+        );
+
+        Assert.Empty(page.Items);
+        Assert.Null(page.NextCursor);
     }
 
     #endregion

@@ -320,4 +320,33 @@ public sealed class TenantStoreSecretsTests : IDisposable
     }
 
     #endregion
+
+    #region MarkSecretsChangedAsync Tests
+
+    [Fact]
+    public async Task MarkSecretsChangedAsync_WhenTheTenantExists_IssuesANewSecretsToken()
+    {
+        await SeedTenantAsync(CreateSecret("secret-1"));
+        var tokenBefore = await GetTenantSecretsTokenAsync();
+
+        var marked = await _store.MarkSecretsChangedAsync(TenantId, CancellationToken.None);
+        await _dbContext.SaveChangesAsync();
+
+        Assert.True(marked);
+
+        var tokenAfter = await GetTenantSecretsTokenAsync();
+        Assert.NotEqual(tokenBefore, tokenAfter);
+    }
+
+    [Fact]
+    public async Task MarkSecretsChangedAsync_WhenTheTenantIsMissing_ReturnsFalse()
+    {
+        await SeedTenantAsync(CreateSecret("secret-1"));
+
+        var marked = await _store.MarkSecretsChangedAsync("missing", CancellationToken.None);
+
+        Assert.False(marked);
+    }
+
+    #endregion
 }

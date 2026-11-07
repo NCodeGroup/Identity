@@ -93,6 +93,47 @@ public sealed class DefaultClientValidatorTests : IDisposable
             .Verifiable();
     }
 
+    private Func<object?> SetupAuthorizationCapturingTheNode(IAuthorizationRequirement requirement)
+    {
+        object? authorizedResource = null;
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r => r.Contains(requirement))
+                )
+            )
+            .Callback(
+                (ClaimsPrincipal _, object? resource, IEnumerable<IAuthorizationRequirement> _) =>
+                    authorizedResource = resource
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+        return () => authorizedResource;
+    }
+
+    private static bool IsNodeOfType(object? resource, string resourceType) =>
+        resource is ResourceNode node && node.ResourceType == resourceType;
+
+    private void SetupAuthorizationForResourceType(
+        string resourceType,
+        IAuthorizationRequirement requirement,
+        AuthorizationResult result
+    )
+    {
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource => IsNodeOfType(resource, resourceType)),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(r => r.Contains(requirement))
+                )
+            )
+            .ReturnsAsync(result)
+            .Verifiable();
+    }
+
     private void SetupClientStore()
     {
         MockStoreManager
@@ -103,17 +144,32 @@ public sealed class DefaultClientValidatorTests : IDisposable
 
     #endregion
 
-    #region ValidateCreateAsync Tests
+    #region AuthorizeCreateAsync Tests
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenForbiddenAndAuthenticated_Returns403()
+    public async Task AuthorizeCreateAsync_WhenAuthorized_ReturnsNull()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            resourceServerId: null,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeCreateAsync_WhenForbiddenAndAuthenticated_Returns403()
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await Validator.ValidateCreateAsync(
+        var error = await Validator.AuthorizeCreateAsync(
             CreateUser(authenticated: true),
-            CreateClient(),
-            MockStoreManager.Object,
+            TenantId,
+            resourceServerId: null,
             CancellationToken.None
         );
 
@@ -122,14 +178,14 @@ public sealed class DefaultClientValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenForbiddenAndAnonymous_Returns401()
+    public async Task AuthorizeCreateAsync_WhenForbiddenAndAnonymous_Returns401()
     {
         SetupAuthorization(AuthorizationResult.Failed());
 
-        var error = await Validator.ValidateCreateAsync(
+        var error = await Validator.AuthorizeCreateAsync(
             CreateUser(authenticated: false),
-            CreateClient(),
-            MockStoreManager.Object,
+            TenantId,
+            resourceServerId: null,
             CancellationToken.None
         );
 
@@ -138,9 +194,237 @@ public sealed class DefaultClientValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenClientExists_Returns409()
+    public async Task AuthorizeCreateAsync_AuthorizesCreateOnTheTenantNode()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheNode(Operations.Create);
+
+        await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            resourceServerId: null,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource());
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Tenant, node.ResourceType);
+        Assert.Equal(TenantId, node.ResourceId);
+    }
+
+    [Fact]
+    public async Task AuthorizeCreateAsync_WhenTheCallerCannotCreateInTheTenant_DoesNotAuthorizeTheResourceServer()
+    {
+        SetupAuthorizationForResourceType(
+            ResourceNodeTypes.Tenant,
+            Operations.Create,
+            AuthorizationResult.Failed()
+        );
+
+        var error = await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeCreateAsync_WhenTheCallerCannotUpdateTheNamedResourceServer_Returns403()
+    {
+        SetupAuthorizationForResourceType(
+            ResourceNodeTypes.Tenant,
+            Operations.Create,
+            AuthorizationResult.Success()
+        );
+        SetupAuthorizationForResourceType(
+            ResourceNodeTypes.ResourceServer,
+            Operations.Update,
+            AuthorizationResult.Failed()
+        );
+
+        var error = await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeCreateAsync_WhenTheCallerCanUpdateTheNamedResourceServer_ReturnsNull()
+    {
+        SetupAuthorizationForResourceType(
+            ResourceNodeTypes.Tenant,
+            Operations.Create,
+            AuthorizationResult.Success()
+        );
+        SetupAuthorizationForResourceType(
+            ResourceNodeTypes.ResourceServer,
+            Operations.Update,
+            AuthorizationResult.Success()
+        );
+
+        var error = await Validator.AuthorizeCreateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ResourceServerId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    #endregion
+
+    #region AuthorizeUpdateAsync Tests
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenAuthorized_ReturnsNull()
     {
         SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenForbiddenAndAuthenticated_Returns403()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_WhenForbiddenAndAnonymous_Returns401()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: false),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeUpdateAsync_AuthorizesUpdateOnTheClientNode()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheNode(Operations.Update);
+
+        await Validator.AuthorizeUpdateAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource());
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Client, node.ResourceType);
+        Assert.Equal(ClientId, node.ResourceId);
+    }
+
+    #endregion
+
+    #region AuthorizeDeleteAsync Tests
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenAuthorized_ReturnsNull()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenForbiddenAndAuthenticated_Returns403()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_WhenForbiddenAndAnonymous_Returns401()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        var error = await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: false),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status401Unauthorized, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AuthorizeDeleteAsync_AuthorizesDeleteOnTheClientNode()
+    {
+        var authorizedResource = SetupAuthorizationCapturingTheNode(Operations.Delete);
+
+        await Validator.AuthorizeDeleteAsync(
+            CreateUser(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var node = Assert.IsType<ResourceNode>(authorizedResource());
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Client, node.ResourceType);
+        Assert.Equal(ClientId, node.ResourceId);
+    }
+
+    #endregion
+
+    #region ValidateCreateAsync Tests
+
+    [Fact]
+    public async Task ValidateCreateAsync_WhenClientExists_Returns409()
+    {
         SetupClientStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -148,7 +432,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
             .Verifiable();
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
             CreateClient(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -161,7 +444,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenValid_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
         SetupClientStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -169,7 +451,6 @@ public sealed class DefaultClientValidatorTests : IDisposable
             .Verifiable();
 
         var error = await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
             CreateClient(),
             MockStoreManager.Object,
             CancellationToken.None
@@ -208,22 +489,9 @@ public sealed class DefaultClientValidatorTests : IDisposable
             },
         };
 
-    // The client create is authorized; the binding then asks for the right to update the resource server.
-    private void SetupBoundClientCreate(
-        PersistedResourceServer? resourceServer,
-        AuthorizationResult? resourceServerAuthorization = null
-    )
+    // The client create is judged against the stored rows only; the caller's authority is asserted before any row is read.
+    private void SetupBoundClientCreate(PersistedResourceServer? resourceServer)
     {
-        MockAuthorizationService
-            .Setup(x =>
-                x.AuthorizeAsync(
-                    It.IsAny<ClaimsPrincipal>(),
-                    It.Is<object?>(resource => resource is PersistedClient),
-                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
-                )
-            )
-            .ReturnsAsync(AuthorizationResult.Success())
-            .Verifiable();
         SetupClientStore();
         MockClientStore
             .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
@@ -239,25 +507,10 @@ public sealed class DefaultClientValidatorTests : IDisposable
             .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(resourceServer)
             .Verifiable();
-
-        if (resourceServerAuthorization is not null)
-        {
-            MockAuthorizationService
-                .Setup(x =>
-                    x.AuthorizeAsync(
-                        It.IsAny<ClaimsPrincipal>(),
-                        It.Is<object?>(resource => resource is ResourceNode),
-                        It.IsAny<IEnumerable<IAuthorizationRequirement>>()
-                    )
-                )
-                .ReturnsAsync(resourceServerAuthorization)
-                .Verifiable();
-        }
     }
 
     private async Task<ManagementError?> ValidateBoundCreateAsync() =>
         await Validator.ValidateCreateAsync(
-            CreateUser(authenticated: true),
             CreateClient(resourceServerId: ResourceServerId),
             MockStoreManager.Object,
             CancellationToken.None
@@ -286,20 +539,9 @@ public sealed class DefaultClientValidatorTests : IDisposable
     }
 
     [Fact]
-    public async Task ValidateCreateAsync_WhenTheCallerCannotUpdateTheBoundResourceServer_Returns403()
-    {
-        SetupBoundClientCreate(CreateResourceServer(), AuthorizationResult.Failed());
-
-        var error = await ValidateBoundCreateAsync();
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
-    }
-
-    [Fact]
     public async Task ValidateCreateAsync_WhenTheBoundResourceServerIsASystemResourceServer_Returns400()
     {
-        SetupBoundClientCreate(CreateResourceServer(isSystem: true), AuthorizationResult.Success());
+        SetupBoundClientCreate(CreateResourceServer(isSystem: true));
 
         var error = await ValidateBoundCreateAsync();
 
@@ -310,7 +552,7 @@ public sealed class DefaultClientValidatorTests : IDisposable
     [Fact]
     public async Task ValidateCreateAsync_WhenTheBindingIsValid_ReturnsNull()
     {
-        SetupBoundClientCreate(CreateResourceServer(), AuthorizationResult.Success());
+        SetupBoundClientCreate(CreateResourceServer());
 
         var error = await ValidateBoundCreateAsync();
 
@@ -322,30 +564,9 @@ public sealed class DefaultClientValidatorTests : IDisposable
     #region ValidateUpdateAsync Tests
 
     [Fact]
-    public async Task ValidateUpdateAsync_WhenForbidden_Returns403()
-    {
-        SetupAuthorization(AuthorizationResult.Failed());
-
-        var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
-            CreateClient(),
-            new UpdateClientRequest(),
-            ifMatch: null,
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
-    }
-
-    [Fact]
     public async Task ValidateUpdateAsync_WhenIfMatchMismatch_Returns412()
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateClient("client-ct"),
             new UpdateClientRequest(),
             ifMatch: "stale-token",
@@ -360,10 +581,7 @@ public sealed class DefaultClientValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIfMatchMatches_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateClient("client-ct"),
             new UpdateClientRequest(),
             ifMatch: "client-ct",
@@ -377,10 +595,7 @@ public sealed class DefaultClientValidatorTests : IDisposable
     [Fact]
     public async Task ValidateUpdateAsync_WhenIfMatchNull_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Success());
-
         var error = await Validator.ValidateUpdateAsync(
-            CreateUser(authenticated: true),
             CreateClient(),
             new UpdateClientRequest(),
             ifMatch: null,
@@ -396,28 +611,9 @@ public sealed class DefaultClientValidatorTests : IDisposable
     #region ValidateDeleteAsync Tests
 
     [Fact]
-    public async Task ValidateDeleteAsync_WhenForbidden_Returns403()
+    public async Task ValidateDeleteAsync_ReturnsNull()
     {
-        SetupAuthorization(AuthorizationResult.Failed());
-
         var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
-            CreateClient(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        Assert.NotNull(error);
-        Assert.Equal(StatusCodes.Status403Forbidden, error.StatusCode);
-    }
-
-    [Fact]
-    public async Task ValidateDeleteAsync_WhenValid_ReturnsNull()
-    {
-        SetupAuthorization(AuthorizationResult.Success());
-
-        var error = await Validator.ValidateDeleteAsync(
-            CreateUser(authenticated: true),
             CreateClient(),
             MockStoreManager.Object,
             CancellationToken.None

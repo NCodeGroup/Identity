@@ -682,6 +682,22 @@ internal class ClientApiEndpointHandler(
     {
         var openIdContext = httpContext.GetOpenIdContext();
 
+        var resourceServerId = string.IsNullOrEmpty(request.ResourceServerId)
+            ? null
+            : request.ResourceServerId;
+
+        // Authorization is asserted from the route and the request, before any row is read (ADR-1424, ADR-1451).
+        var authorizationError = await ClientValidator.AuthorizeCreateAsync(
+            httpContext.User,
+            tenantId,
+            resourceServerId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -693,9 +709,7 @@ internal class ClientApiEndpointHandler(
             ClientId = clientId,
             ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
-            ResourceServerId = string.IsNullOrEmpty(request.ResourceServerId)
-                ? null
-                : request.ResourceServerId,
+            ResourceServerId = resourceServerId,
             Settings = new PersistedClientSettings
             {
                 TenantId = tenantId,
@@ -712,9 +726,8 @@ internal class ClientApiEndpointHandler(
             },
         };
 
-        // Core preconditions (authorization + uniqueness) are asserted by the validator (ADR-1014).
+        // Core preconditions (uniqueness, the resource server) are asserted by the validator (ADR-1014).
         var error = await ClientValidator.ValidateCreateAsync(
-            httpContext.User,
             client,
             storeManager,
             cancellationToken
@@ -803,6 +816,7 @@ internal class ClientApiEndpointHandler(
     /// Updates a client.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the client metadata.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current client.</param>
@@ -811,12 +825,24 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/update")]
     internal virtual async ValueTask<IResult> UpdateClientAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromBody] JsonPatchDocument<UpdateClientRequest> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await ClientValidator.AuthorizeUpdateAsync(
+            httpContext.User,
+            tenantId,
+            clientId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -841,10 +867,9 @@ internal class ClientApiEndpointHandler(
             );
         }
 
-        // Core preconditions (authorization + If-Match) are asserted by the validator against the hydrated
+        // The core precondition (If-Match) is asserted by the validator against the hydrated
         // model (ADR-1015).
         var error = await ClientValidator.ValidateUpdateAsync(
-            httpContext.User,
             client,
             model,
             ifMatch,
@@ -889,16 +914,29 @@ internal class ClientApiEndpointHandler(
     /// Deletes a client.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The client was deleted.</response>
     [EndpointName("api/clients/delete")]
     internal virtual async ValueTask<IResult> DeleteClientAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         CancellationToken cancellationToken
     )
     {
+        var authorizationError = await ClientValidator.AuthorizeDeleteAsync(
+            httpContext.User,
+            tenantId,
+            clientId,
+            cancellationToken
+        );
+        if (authorizationError is not null)
+        {
+            return ToErrorResult(authorizationError);
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -908,9 +946,8 @@ internal class ClientApiEndpointHandler(
             return TypedResults.NotFound();
         }
 
-        // The core precondition (authorization) is asserted by the validator (ADR-1014); the store removes everything that exists for the client (ADR-1212).
+        // The store removes everything that exists for the client (ADR-1212).
         var error = await ClientValidator.ValidateDeleteAsync(
-            httpContext.User,
             client,
             storeManager,
             cancellationToken
@@ -1084,6 +1121,7 @@ internal class ClientApiEndpointHandler(
     /// revealed in this response only. Settings that leave the method as it is leave the secrets as they are.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
@@ -1094,12 +1132,26 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromBody] JsonPatchDocument<JsonObject> request,
         [FromHeader(Name = "If-Match")] string? ifMatch,
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Update,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1110,17 +1162,6 @@ internal class ClientApiEndpointHandler(
         }
 
         var clientSettings = client.Settings;
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            clientSettings,
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
             httpContext,
@@ -1247,14 +1288,15 @@ internal class ClientApiEndpointHandler(
         // Issuing a secret is creating one, which needs the authority CreateSecretAsync needs.
         if (reconciliation.IssuedSecret is not null)
         {
-            var createResult = await AuthorizationService.AuthorizeAsync(
-                httpContext.User,
-                client,
-                Operations.Create
+            var createFailure = await GetAuthorizationFailureAsync(
+                httpContext,
+                clientNode,
+                Operations.Create,
+                cancellationToken
             );
-            if (!createResult.Succeeded)
+            if (createFailure is not null)
             {
-                return AuthorizationFailed(httpContext);
+                return createFailure;
             }
         }
 
@@ -1377,6 +1419,19 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Create,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1384,17 +1439,6 @@ internal class ClientApiEndpointHandler(
         if (client is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
@@ -1560,6 +1604,19 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Create,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1567,17 +1624,6 @@ internal class ClientApiEndpointHandler(
         if (client is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Create
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(
@@ -1693,13 +1739,10 @@ internal class ClientApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<IClientStore>();
 
-                // The discrete getter resolves the secret together with its owning TenantId.
                 var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
-                return clientSecret is null
-                    ? null
-                    : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+                return clientSecret?.Value;
             },
-            x => ToSecretResource(x.Value),
+            ToSecretResource,
             cancellationToken
         );
     }
@@ -1732,14 +1775,11 @@ internal class ClientApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
                 var store = storeManager.GetStore<IClientStore>();
 
-                // The discrete getter resolves the secret together with its owning TenantId.
                 var clientSecret = await store.GetSecretOrDefaultAsync(clientId, secretId, token);
-                return clientSecret is null
-                    ? null
-                    : TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value);
+                return clientSecret?.Value;
             },
             // The public key is read from its stored public half, so no master key is loaded (ADR-1268).
-            x => SecretPublicKeyConverter.Convert(x.Value),
+            SecretPublicKeyConverter.Convert,
             cancellationToken
         );
     }
@@ -1748,6 +1788,7 @@ internal class ClientApiEndpointHandler(
     /// Updates a client secret's metadata.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
@@ -1757,6 +1798,7 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string secretId,
         [FromBody] UpdateSecretRequest request,
@@ -1764,6 +1806,19 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Update,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1778,17 +1833,6 @@ internal class ClientApiEndpointHandler(
         }
 
         var secret = clientSecret.Value;
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(clientSecret.TenantId, secret),
-            Operations.Update
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
 
         var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
         if (client is null)
@@ -1843,6 +1887,7 @@ internal class ClientApiEndpointHandler(
     /// Deletes a client secret.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
@@ -1850,11 +1895,25 @@ internal class ClientApiEndpointHandler(
     [EndpointName("api/clients/secrets/delete")]
     internal virtual async ValueTask<IResult> DeleteSecretAsync(
         HttpContext httpContext,
+        [FromRoute] string tenantId,
         [FromRoute] string clientId,
         [FromRoute] string secretId,
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Delete,
+            cancellationToken
+        );
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1866,17 +1925,6 @@ internal class ClientApiEndpointHandler(
         if (clientSecret is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var authorizationResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(clientSecret.TenantId, clientSecret.Value),
-            Operations.Delete
-        );
-
-        if (!authorizationResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var client = await GetClientOrDefaultAsync(storeManager, clientId, cancellationToken);
@@ -1945,6 +1993,30 @@ internal class ClientApiEndpointHandler(
         CancellationToken cancellationToken
     )
     {
+        var clientNode = ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId);
+
+        var createFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Create,
+            cancellationToken
+        );
+        if (createFailure is not null)
+        {
+            return createFailure;
+        }
+
+        var updateFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            clientNode,
+            Operations.Update,
+            cancellationToken
+        );
+        if (updateFailure is not null)
+        {
+            return updateFailure;
+        }
+
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
         var store = storeManager.GetStore<IClientStore>();
 
@@ -1955,26 +2027,6 @@ internal class ClientApiEndpointHandler(
         if (client is null || secret is null)
         {
             return TypedResults.NotFound();
-        }
-
-        var createResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            client,
-            Operations.Create
-        );
-        if (!createResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
-        }
-
-        var updateResult = await AuthorizationService.AuthorizeAsync(
-            httpContext.User,
-            TenantOwnedResource.For(client.TenantId, secret),
-            Operations.Update
-        );
-        if (!updateResult.Succeeded)
-        {
-            return AuthorizationFailed(httpContext);
         }
 
         var changeRefusal = await GetClientChangeRefusalOrDefaultAsync(

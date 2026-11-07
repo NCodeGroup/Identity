@@ -27,7 +27,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// while the row is unchanged. A lease that is held, a pass that fails, and a record that loses a race with a change
 /// to the row leave the settings unreconciled, so the caller tries again.
 /// </summary>
-// See ADR-1219 and ADR-1411.
+// See ADR-1411 and ADR-1412.
 internal sealed class DefaultTeamSettingsReconciler(
     IStoreManagerFactory storeManagerFactory,
     IEffectiveSettingsResolver effectiveSettingsResolver,
@@ -86,7 +86,7 @@ internal sealed class DefaultTeamSettingsReconciler(
         )
             return true;
 
-        // Replicas that observe one change share the key; every write to the row changes the token (ADR-1219).
+        // Replicas that observe one change share the key; every write to the row changes the token (ADR-1412).
         var leaseKey = $"{LeasePurpose}:{teamId}:{persistedTeam.ConcurrencyToken}:{fingerprint}";
         var leaseExpiresWhen = TimeProvider.GetUtcNow() + Options.Team.ReconciliationLeaseDuration;
         if (!await ExpiringKeySet.TryAddAsync(leaseKey, leaseExpiresWhen, cancellationToken))

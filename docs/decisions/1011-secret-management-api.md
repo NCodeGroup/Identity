@@ -11,7 +11,10 @@
   stored envelope of the same material, amended by [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md); amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
-  settings under `/api/platform`)
+  settings under `/api/platform`;
+  amended by [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md): every secret and
+  owner operation authorizes the caller at the node its route names before it reads, so no loaded secret is wrapped
+  for authorization)
 - **Date:** 2026-09-29
 - **Deciders:** NCode.Identity maintainers
 - **Refines:** [project-template ADR-0146](project-template/0146-secrets-are-never-logged-compared-in-constant-time-and-shown-once.md)

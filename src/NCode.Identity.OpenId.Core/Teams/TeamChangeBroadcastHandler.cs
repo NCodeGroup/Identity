@@ -103,7 +103,7 @@ internal sealed class TeamChangeBroadcastHandler(
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             Logger.TeamCacheRevalidationFailed(exception);
             return null;
@@ -159,7 +159,7 @@ internal sealed class TeamChangeBroadcastHandler(
             {
                 await HandleAsync(teamId, cancellationToken);
             }
-            catch (Exception exception) when (exception is not OperationCanceledException)
+            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
             {
                 Logger.TeamCacheEvictionFailed(exception, teamId);
                 failed = true;
@@ -180,7 +180,7 @@ internal sealed class TeamChangeBroadcastHandler(
         {
             await TeamCache.ClearAsync(propertyBag, cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             Logger.TeamCacheClearFailed(exception);
         }
@@ -189,7 +189,7 @@ internal sealed class TeamChangeBroadcastHandler(
         {
             await TenantCache.ClearAsync(propertyBag, cancellationToken);
         }
-        catch (Exception exception) when (exception is not OperationCanceledException)
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
             Logger.TenantCacheClearFailed(exception);
         }

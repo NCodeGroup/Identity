@@ -59,7 +59,7 @@ internal static class DefaultRegistration
                 ServiceDescriptor.Singleton<IReplicaBroadcastHandler, TeamChangeBroadcastHandler>()
             );
 
-            // One replica reconciles each change to a team's effective settings in the background (ADR-1219).
+            // One replica reconciles each change to a team's effective settings in the background (ADR-1412).
             builder.ServiceCollection.TryAddSingleton<TeamSettingsReconciliationQueue>();
             builder.ServiceCollection.TryAddSingleton<
                 ITeamSettingsReconciliationTrigger,
@@ -70,6 +70,12 @@ internal static class DefaultRegistration
                 DefaultTeamSettingsReconciler
             >();
             builder.ServiceCollection.AddHostedService<TeamSettingsReconciliationService>();
+
+            // A team's subtree is walked one page of child teams per level (ADR-1455).
+            builder.ServiceCollection.TryAddSingleton<
+                ITeamDescendantWalker,
+                DefaultTeamDescendantWalker
+            >();
 
             return builder;
         }

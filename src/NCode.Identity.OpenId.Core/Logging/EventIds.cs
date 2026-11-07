@@ -87,4 +87,8 @@ internal static class EventIds
     public const int TeamCacheEvictionFailed = Base + 38;
 
     public const int TemporarilyUnavailable = Base + 39;
+
+    public const int TenantCacheRevalidationFailed = Base + 40;
+
+    public const int TenantCacheEvictionFailed = Base + 41;
 }

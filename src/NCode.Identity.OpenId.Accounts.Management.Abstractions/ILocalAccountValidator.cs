@@ -9,34 +9,68 @@ using NCode.Persistence.Stores;
 namespace NCode.Identity.OpenId.Accounts.Management;
 
 /// <summary>
-/// Validates the intrinsic core preconditions for local-account management operations. Register a custom
-/// implementation to replace or extend the default validation.
+/// Validates the intrinsic core preconditions for local-account management operations. The <c>Authorize*</c> members
+/// judge the caller from the route values before any row is read, and the <c>Validate*</c> members judge the row.
+/// Register a custom implementation to replace or extend the default validation.
 /// </summary>
 [PublicAPI]
 public interface ILocalAccountValidator
 {
     /// <summary>
-    /// Validates that a local account with the specified username may be created by the caller in the tenant.
+    /// Authorizes the caller to create local accounts in the specified tenant before any row is read.
     /// </summary>
     /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
     /// <param name="tenantId">The identifier of the tenant the account is created in.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ManagementError"/> describing the refusal, or <c>null</c> when the caller is authorized.</returns>
+    ValueTask<ManagementError?> AuthorizeCreateAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Authorizes the caller to update local accounts in the specified tenant before any row is read.
+    /// </summary>
+    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
+    /// <param name="tenantId">The identifier of the tenant the account belongs to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ManagementError"/> describing the refusal, or <c>null</c> when the caller is authorized.</returns>
+    ValueTask<ManagementError?> AuthorizeUpdateAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Authorizes the caller to delete local accounts in the specified tenant before any row is read.
+    /// </summary>
+    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
+    /// <param name="tenantId">The identifier of the tenant the account belongs to.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>A <see cref="ManagementError"/> describing the refusal, or <c>null</c> when the caller is authorized.</returns>
+    ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
+    /// Validates that a local account with the specified username may be created.
+    /// </summary>
     /// <param name="userName">The proposed username (login handle) of the account.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateCreateAsync(
-        ClaimsPrincipal user,
-        string tenantId,
         string userName,
         IStoreManager storeManager,
         CancellationToken cancellationToken
     );
 
     /// <summary>
-    /// Validates that the specified local account may be updated by the caller.
+    /// Validates that the specified local account may be updated.
     /// </summary>
-    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
-    /// <param name="tenantId">The identifier of the tenant the account belongs to.</param>
     /// <param name="localAccountId">The opaque identifier of the account being updated.</param>
     /// <param name="userName">The proposed (patched) username of the account.</param>
     /// <param name="concurrencyToken">The current concurrency token of the account.</param>
@@ -45,8 +79,6 @@ public interface ILocalAccountValidator
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateUpdateAsync(
-        ClaimsPrincipal user,
-        string tenantId,
         string localAccountId,
         string userName,
         string concurrencyToken,
@@ -56,17 +88,13 @@ public interface ILocalAccountValidator
     );
 
     /// <summary>
-    /// Validates that the specified local account may be deleted by the caller.
+    /// Validates that the specified local account may be deleted.
     /// </summary>
-    /// <param name="user">The <see cref="ClaimsPrincipal"/> for the current caller.</param>
-    /// <param name="tenantId">The identifier of the tenant the account belongs to.</param>
     /// <param name="localAccountId">The opaque identifier of the account being deleted.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>
     ValueTask<ManagementError?> ValidateDeleteAsync(
-        ClaimsPrincipal user,
-        string tenantId,
         string localAccountId,
         IStoreManager storeManager,
         CancellationToken cancellationToken

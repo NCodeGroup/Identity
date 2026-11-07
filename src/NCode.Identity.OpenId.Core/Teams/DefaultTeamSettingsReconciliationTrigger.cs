@@ -8,7 +8,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// each request to the <see cref="TeamSettingsReconciliationQueue"/> the <see cref="TeamSettingsReconciliationService"/>
 /// reads, where requests coalesce and none is dropped.
 /// </summary>
-// See ADR-1219 and ADR-1411.
+// See ADR-1411 and ADR-1412.
 internal sealed class DefaultTeamSettingsReconciliationTrigger(
     TeamSettingsReconciliationQueue queue
 ) : ITeamSettingsReconciliationTrigger

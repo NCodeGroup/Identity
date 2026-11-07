@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Platform;
 /// </summary>
 /// <param name="PreviousSettings">The platform's persisted settings document before the change.</param>
 /// <param name="Settings">The platform's persisted settings document after the change.</param>
-// See ADR-1169 and ADR-1219.
+// See ADR-1169, ADR-1219 and ADR-1412.
 [PublicAPI]
 public readonly record struct PlatformSettingsChangedCommand(
     JsonElement PreviousSettings,

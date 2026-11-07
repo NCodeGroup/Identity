@@ -20,25 +20,74 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
         IClientValidator
 {
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateCreateAsync(
+    // Creating a client is authority at its tenant's node. A client that acts for a resource server receives the access
+    // tokens issued for it at introspection, so binding one is a change to the resource server: the caller must also be
+    // allowed to update it. The resource server's node is built from the request, before any row is read.
+    public async ValueTask<ManagementError?> AuthorizeCreateAsync(
         ClaimsPrincipal user,
-        PersistedClient client,
-        IStoreManager storeManager,
+        string tenantId,
+        string? resourceServerId,
         CancellationToken cancellationToken
     )
     {
         var error = await AuthorizeAsync(
             user,
-            client,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Tenant, tenantId),
             Operations.Create,
             "The caller is not authorized to create this client.",
             "Authentication is required to create this client."
         );
-        if (error is not null)
+        if (error is not null || resourceServerId is null)
         {
             return error;
         }
 
+        return await AuthorizeAsync(
+            user,
+            ResourceNode.For(tenantId, ResourceNodeTypes.ResourceServer, resourceServerId),
+            Operations.Update,
+            "The caller is not authorized to create a client for this resource server.",
+            "Authentication is required to create a client for this resource server."
+        );
+    }
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeUpdateAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        string clientId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Update,
+            "The caller is not authorized to update this client.",
+            "Authentication is required to update this client."
+        );
+
+    /// <inheritdoc />
+    public ValueTask<ManagementError?> AuthorizeDeleteAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        string clientId,
+        CancellationToken cancellationToken
+    ) =>
+        AuthorizeAsync(
+            user,
+            ResourceNode.For(tenantId, ResourceNodeTypes.Client, clientId),
+            Operations.Delete,
+            "The caller is not authorized to delete this client.",
+            "Authentication is required to delete this client."
+        );
+
+    /// <inheritdoc />
+    public async ValueTask<ManagementError?> ValidateCreateAsync(
+        PersistedClient client,
+        IStoreManager storeManager,
+        CancellationToken cancellationToken
+    )
+    {
         var clientStore = storeManager.GetStore<IClientStore>();
         var existing = await clientStore.GetOrDefaultAsync(client.ClientId, cancellationToken);
         if (existing is not null)
@@ -50,19 +99,12 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
             };
         }
 
-        return await ValidateResourceServerBindingAsync(
-            user,
-            client,
-            storeManager,
-            cancellationToken
-        );
+        return await ValidateResourceServerBindingAsync(client, storeManager, cancellationToken);
     }
 
-    // A client that acts for a resource server receives the access tokens issued for it at introspection, so binding one
-    // is a change to the resource server: the caller must be allowed to update it. A system resource server is read by
-    // the server itself and never acts through a client (ADR-1168).
-    private async ValueTask<ManagementError?> ValidateResourceServerBindingAsync(
-        ClaimsPrincipal user,
+    // The resource server a client acts for must exist in the client's tenant. A system resource server is read by the
+    // server itself and never acts through a client (ADR-1168).
+    private static async ValueTask<ManagementError?> ValidateResourceServerBindingAsync(
         PersistedClient client,
         IStoreManager storeManager,
         CancellationToken cancellationToken
@@ -90,22 +132,6 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
             };
         }
 
-        var error = await AuthorizeAsync(
-            user,
-            ResourceNode.For(
-                resourceServer.TenantId,
-                ResourceNodeTypes.ResourceServer,
-                resourceServer.ResourceServerId
-            ),
-            Operations.Update,
-            "The caller is not authorized to create a client for this resource server.",
-            "Authentication is required to create a client for this resource server."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         if (resourceServer.IsSystem)
         {
             return new ManagementError
@@ -119,8 +145,7 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
     }
 
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateUpdateAsync(
-        ClaimsPrincipal user,
+    public ValueTask<ManagementError?> ValidateUpdateAsync(
         PersistedClient client,
         UpdateClientRequest model,
         string? ifMatch,
@@ -128,47 +153,27 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
         CancellationToken cancellationToken
     )
     {
-        var error = await AuthorizeAsync(
-            user,
-            ResourceNode.For(client.TenantId, ResourceNodeTypes.Client, client.ClientId),
-            Operations.Update,
-            "The caller is not authorized to update this client.",
-            "Authentication is required to update this client."
-        );
-        if (error is not null)
-        {
-            return error;
-        }
-
         if (
             !string.IsNullOrEmpty(ifMatch)
             && !string.Equals(ifMatch, client.ConcurrencyToken, StringComparison.Ordinal)
         )
         {
-            return new ManagementError
-            {
-                StatusCode = StatusCodes.Status412PreconditionFailed,
-                Detail = "The supplied If-Match token does not match the current client.",
-            };
+            return ValueTask.FromResult<ManagementError?>(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status412PreconditionFailed,
+                    Detail = "The supplied If-Match token does not match the current client.",
+                }
+            );
         }
 
-        return null;
+        return ValueTask.FromResult<ManagementError?>(null);
     }
 
     /// <inheritdoc />
-    public async ValueTask<ManagementError?> ValidateDeleteAsync(
-        ClaimsPrincipal user,
+    public ValueTask<ManagementError?> ValidateDeleteAsync(
         PersistedClient client,
         IStoreManager storeManager,
         CancellationToken cancellationToken
-    )
-    {
-        return await AuthorizeAsync(
-            user,
-            ResourceNode.For(client.TenantId, ResourceNodeTypes.Client, client.ClientId),
-            Operations.Delete,
-            "The caller is not authorized to delete this client.",
-            "Authentication is required to delete this client."
-        );
-    }
+    ) => ValueTask.FromResult<ManagementError?>(null);
 }

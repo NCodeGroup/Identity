@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.AspNetCore;
 using NCode.Identity.Bff;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.ManagementConsole.Options;
@@ -75,17 +76,16 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
-    public async Task AddManagementConsole_Always_RegistersTheHandlersAndTheReader()
+    public async Task AddManagementConsole_Always_RegistersTheHandlersAndTheBundle()
     {
         var serviceCollection = CreateServices();
 
         serviceCollection.AddManagementConsole(CreateConfiguration());
 
         await using var provider = serviceCollection.BuildServiceProvider();
-        Assert.NotNull(provider.GetRequiredService<ManagementConsoleBundleReader>());
+        Assert.NotNull(provider.GetRequiredService<SinglePageBundle<ManagementConsolePage>>());
         Assert.NotNull(provider.GetRequiredService<ManagementConsoleBootstrapHandler>());
         Assert.NotNull(provider.GetRequiredService<ManagementConsolePageHandler>());
-        Assert.NotNull(provider.GetRequiredService<ManagementConsoleAssetHandler>());
     }
 
     [Fact]

@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.AspNetCore;
 using NCode.Collections.Providers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Commands;
 using NCode.Identity.OpenId.Authentication.Endpoints.EndSession.Commands;
@@ -107,7 +108,14 @@ public static class DefaultRegistration
                 )
                 .ValidateOnStart();
 
-            serviceCollection.TryAddSingleton<InteractiveBundleReader>();
+            serviceCollection.TryAddSingleton(
+                static serviceProvider => new SinglePageBundle<InteractiveBundleShell>(
+                    serviceProvider
+                        .GetRequiredService<IOptions<InteractiveAuthenticationOptions>>()
+                        .Value.BundleRootPath,
+                    InteractiveBundleShell.TryCreate
+                )
+            );
             serviceCollection.TryAddSingleton<InteractiveSurfacePaths>();
 
             // The locales the surface ships are the UI locales the tenant settings and discovery name, English first.
@@ -424,7 +432,7 @@ public static class DefaultRegistration
     }
 
     private static string? ResolveBundleRootPath(string? bundleRootPath, string contentRootPath) =>
-        string.IsNullOrWhiteSpace(bundleRootPath) || Path.IsPathRooted(bundleRootPath)
+        string.IsNullOrWhiteSpace(bundleRootPath)
             ? bundleRootPath
-            : Path.Combine(contentRootPath, bundleRootPath);
+            : Path.GetFullPath(bundleRootPath, contentRootPath);
 }

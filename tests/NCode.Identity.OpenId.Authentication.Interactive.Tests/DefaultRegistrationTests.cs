@@ -135,7 +135,7 @@ public sealed class DefaultRegistrationTests : IDisposable
         );
 
         Assert.Equal(
-            Path.Combine(ContentRootPath, "../frontend/apps/auth/dist"),
+            Path.GetFullPath("../frontend/apps/auth/dist", ContentRootPath),
             options.BundleRootPath
         );
     }
@@ -169,7 +169,7 @@ public sealed class DefaultRegistrationTests : IDisposable
             configure => configure.BundleRootPath = "b"
         );
 
-        Assert.Equal(Path.Combine(ContentRootPath, "b"), options.BundleRootPath);
+        Assert.Equal(Path.GetFullPath("b", ContentRootPath), options.BundleRootPath);
     }
 
     [Fact]

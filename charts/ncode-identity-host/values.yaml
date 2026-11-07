@@ -203,6 +203,93 @@ tolerations: []
 affinity: {}
 priorityClassName: ""
 
+# The management console, a second Deployment from its own image that serves the console's bundle and its BFF on its own
+# host (ADR-1458). Its host's Ingress routes /api to the server and every other path to the console.
+managementConsole:
+  enabled: false
+  # More than one replica requires valkey.existingSecret below.
+  replicaCount: 1
+  image:
+    repository: ghcr.io/ncodegroup/ncode-identity-management-console
+    # Defaults to the chart's appVersion.
+    tag: ""
+    # When set, the image is pulled by digest and the tag is ignored.
+    digest: ""
+    pullPolicy: IfNotPresent
+  # The console's public host name, such as manage.example.com. It is the console's AllowedHosts, its origin
+  # https://<host>, and the host its Ingress routes. allowedHosts must list it, because /api on it reaches the server.
+  host: ""
+  # Bff:Frontends:mgmt:Authority. Defaults to tenantResolution.staticSingle.issuer under StaticSingle.
+  authority: ""
+  # ManagementConsole:ManagementApiUrl. Defaults to https://<host>/api.
+  managementApiUrl: ""
+  keys:
+    # Secret holding the client's private key under the key 'mgmt-client.pem'.
+    clientKeySecret: ""
+    # Secret holding the DPoP private key under the key 'mgmt-dpop.pem'.
+    dpopKeySecret: ""
+  # The console's own Valkey, never the server's.
+  valkey:
+    existingSecret: ""
+    connectionStringKey: connection-string
+  service:
+    type: ClusterIP
+    port: 80
+  # Routes /api to the server and / to the console.
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    tls: []
+    #  - secretName: manage-example-com-tls
+    #    hosts:
+    #      - manage.example.com
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+  preStopSleepSeconds: 10
+  terminationGracePeriodSeconds: 45
+  probes:
+    startup:
+      periodSeconds: 2
+      timeoutSeconds: 3
+      failureThreshold: 60
+    liveness:
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    readiness:
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  # Spread replicas across nodes when the scheduler can.
+  topologySpread:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  priorityClassName: ""
+  # Any other console setting, as environment variables, and extra volumes.
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
 # Any other host setting, as environment variables (for example Logging__LogLevel__Default), and extra volumes. The
 # migration Job receives them too, so a setting the database connection needs (a CA bundle, say) reaches both.
 extraEnv: []

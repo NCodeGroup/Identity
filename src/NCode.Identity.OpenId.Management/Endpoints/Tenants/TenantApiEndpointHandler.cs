@@ -2054,7 +2054,7 @@ internal class TenantApiEndpointHandler(
             tenantNode,
             BuiltInRoles.Owner,
             (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
-            (_, token) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Update, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Update),
             cancellationToken
         );
     }
@@ -2126,7 +2126,7 @@ internal class TenantApiEndpointHandler(
             tenantNode,
             BuiltInRoles.TenantAdmin,
             (storeManager, token) => TenantExistsAsync(storeManager, tenantId, token),
-            (_, token) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Create, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, tenantNode, Operations.Create),
             cancellationToken
         );
     }

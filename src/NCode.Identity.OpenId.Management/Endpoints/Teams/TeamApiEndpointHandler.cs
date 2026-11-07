@@ -1144,7 +1144,7 @@ internal class TeamApiEndpointHandler(
             teamNode,
             BuiltInRoles.Owner,
             (storeManager, token) => TeamExistsAsync(storeManager, teamId, token),
-            (_, token) => HoldsAuthorityAsync(httpContext, teamNode, Operations.Update, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, teamNode, Operations.Update),
             cancellationToken
         );
     }
@@ -1212,7 +1212,7 @@ internal class TeamApiEndpointHandler(
             teamNode,
             BuiltInRoles.TeamAdmin,
             (storeManager, token) => TeamExistsAsync(storeManager, teamId, token),
-            (_, token) => HoldsAuthorityAsync(httpContext, teamNode, Operations.Create, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, teamNode, Operations.Create),
             cancellationToken
         );
     }

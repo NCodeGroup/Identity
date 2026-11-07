@@ -2820,6 +2820,22 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task ListOwnersAsync_WhenTheCallerMayNotReadTheTeam_ReturnsTheErrorWithoutReadingTheTeam()
+    {
+        SetupAuthorization(AuthorizationResult.Failed());
+
+        // Strict mocks: no IStoreManagerFactory.CreateAsync setup, so reading the team would fail the test.
+        var result = await Handler.ListOwnersAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
     public async Task AddOwnerAsync_RequestsUpdateOnTheTeamNode()
     {
         var captured = CaptureAuthorization();

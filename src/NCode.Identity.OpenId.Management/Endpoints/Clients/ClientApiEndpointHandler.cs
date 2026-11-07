@@ -2213,7 +2213,7 @@ internal class ClientApiEndpointHandler(
             CancellationToken token
         )
         {
-            if (!await HoldsAuthorityAsync(httpContext, clientNode, Operations.Update, token))
+            if (!await HoldsAuthorityAsync(httpContext, clientNode, Operations.Update))
             {
                 return false;
             }

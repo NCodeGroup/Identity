@@ -92,9 +92,6 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
     /// <param name="node">The resource node the operation applies to.</param>
     /// <param name="operation">The operation to authorize.</param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is <c>true</c> when the caller holds the operation at the
     /// node; otherwise, <c>false</c>.
@@ -103,8 +100,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     protected internal virtual async ValueTask<bool> HoldsAuthorityAsync(
         HttpContext httpContext,
         ResourceNode node,
-        IAuthorizationRequirement operation,
-        CancellationToken cancellationToken
+        IAuthorizationRequirement operation
     )
     {
         var authorizationResult = await AuthorizationService.AuthorizeAsync(

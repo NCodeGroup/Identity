@@ -871,8 +871,7 @@ internal class ResourceServerApiEndpointHandler(
             BuiltInRoles.Owner,
             (storeManager, token) =>
                 ResourceServerExistsAsync(storeManager, resourceServerId, token),
-            (_, token) =>
-                HoldsAuthorityAsync(httpContext, resourceServerNode, Operations.Update, token),
+            (_, _) => HoldsAuthorityAsync(httpContext, resourceServerNode, Operations.Update),
             cancellationToken
         );
     }

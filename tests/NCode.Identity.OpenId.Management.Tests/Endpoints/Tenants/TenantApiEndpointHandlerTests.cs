@@ -5173,7 +5173,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
     #endregion
 
-    #region Owners Tests
+    #region ListOwnersAsync Tests
 
     [Fact]
     public async Task ListOwnersAsync_WhenTheCallerMayUpdateTheTenant_ReportsItMayChangeTheOwners()

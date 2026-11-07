@@ -573,12 +573,7 @@ public class OwnerEndpointHelperTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
-        var holds = await handler.HoldsAuthorityAsync(
-            CreateHttpContext(),
-            node,
-            Operations.Update,
-            CancellationToken.None
-        );
+        var holds = await handler.HoldsAuthorityAsync(CreateHttpContext(), node, Operations.Update);
 
         Assert.True(holds);
     }
@@ -592,12 +587,7 @@ public class OwnerEndpointHelperTests : IDisposable
         var node = ResourceNode.For(TenantId, ResourceNodeTypes.Client, ResourceId);
 
         var handler = new TestHandler(authz.Object, factory.Object, ownership.Object);
-        var holds = await handler.HoldsAuthorityAsync(
-            CreateHttpContext(),
-            node,
-            Operations.Update,
-            CancellationToken.None
-        );
+        var holds = await handler.HoldsAuthorityAsync(CreateHttpContext(), node, Operations.Update);
 
         Assert.False(holds);
     }

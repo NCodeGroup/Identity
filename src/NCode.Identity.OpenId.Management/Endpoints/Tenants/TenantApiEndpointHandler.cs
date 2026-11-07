@@ -245,7 +245,8 @@ internal class TenantApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         tenants
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         tenants
             .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -255,7 +256,8 @@ internal class TenantApiEndpointHandler(
             .Produces<CollectionResource<OwnerResource>>();
         tenants
             .MapPost("/{tenantId}/admins", AddAdminAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created);
+            .Produces<OwnerResource>(StatusCodes.Status201Created)
+            .Produces<OwnerResource>(StatusCodes.Status200OK);
         tenants
             .MapDelete("/{tenantId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -726,7 +728,7 @@ internal class TenantApiEndpointHandler(
         // tenant before seeding it.
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        await ResourceOwnershipService.AssignCreatorAsync(
+        var creatorAssignment = await ResourceOwnershipService.AssignCreatorAsync(
             openIdContext,
             httpContext.User,
             storeManager,
@@ -757,6 +759,16 @@ internal class TenantApiEndpointHandler(
             ToResourceValues(ToTenantResource(tenant)),
             cancellationToken
         );
+
+        if (creatorAssignment is not null)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                creatorAssignment,
+                ResourceChangeTypes.Created,
+                cancellationToken
+            );
+        }
 
         var toTenantResource = await CreateTenantResourceMapperAsync([tenant], cancellationToken);
         var resource = toTenantResource(tenant);
@@ -2050,6 +2062,7 @@ internal class TenantApiEndpointHandler(
     /// Adds an owner to a tenant.
     /// </summary>
     /// <response code="201">The owner was added.</response>
+    /// <response code="200">The principal already owns the tenant.</response>
     [EndpointName("api/tenants/owners/add")]
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
@@ -2142,6 +2155,7 @@ internal class TenantApiEndpointHandler(
     /// only a tenant, team or global administrator at the tenant or above can grant it.
     /// </summary>
     /// <response code="201">The administrator was added.</response>
+    /// <response code="200">The principal already administers the tenant.</response>
     // See ADR-1417
     [EndpointName("api/tenants/admins/add")]
     internal virtual async ValueTask<IResult> AddAdminAsync(
@@ -2185,6 +2199,18 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
         await storeManager.SaveChangesAsync(cancellationToken);
+
+        if (!grant.IsAdded)
+        {
+            return TypedResults.Ok(ToOwnerResource(grant.Assignment));
+        }
+
+        await RecordRoleAssignmentChangedAsync(
+            httpContext,
+            grant.Assignment,
+            ResourceChangeTypes.Created,
+            cancellationToken
+        );
 
         return TypedResults.Created(
             $"/tenants/{tenantId}/admins/{grant.Assignment.PrincipalId}",
@@ -2231,6 +2257,16 @@ internal class TenantApiEndpointHandler(
         }
 
         await storeManager.SaveChangesAsync(cancellationToken);
+        foreach (var assignment in removed)
+        {
+            await RecordRoleAssignmentChangedAsync(
+                httpContext,
+                assignment,
+                ResourceChangeTypes.Deleted,
+                cancellationToken
+            );
+        }
+
         return TypedResults.NoContent();
     }
 

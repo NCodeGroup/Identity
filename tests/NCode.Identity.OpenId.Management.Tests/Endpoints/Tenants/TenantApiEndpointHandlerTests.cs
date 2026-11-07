@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Cryptography;
+using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
@@ -169,7 +170,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     // Only a request that creates the resource assigns its creator as its owner.
-    private void SetupCreatorAssignment() =>
+    private void SetupCreatorAssignment(PersistedRoleAssignment? assignment = null) =>
         MockResourceOwnershipService
             .Setup(x =>
                 x.AssignCreatorAsync(
@@ -182,7 +183,38 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync((PersistedRoleAssignment?)null)
+            .ReturnsAsync(assignment)
+            .Verifiable();
+
+    // Only a request that grants or revokes a role records it.
+    private void SetupRoleAssignmentChangedAudit() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+    private void SetupRoleAssignmentChangedAuditCapture(
+        Action<RoleAssignmentChangedAuditEvent> capture
+    ) =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordResourceChangeAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (HttpContext _, ResourceChangeAuditEvent auditEvent, CancellationToken _) =>
+                    capture((RoleAssignmentChangedAuditEvent)auditEvent)
+            )
+            .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
     // Only a request that changes a secret records it.
@@ -3252,6 +3284,61 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateTenantAsync_WhenTheCreatorIsAssignedOwner_RecordsTheTenantThenTheCreatorsAssignment()
+    {
+        SetupTeamForCreate(resolveSettings: true);
+        SetupCreatorAssignment(CreateAssignment("principal-1", BuiltInRoles.Owner));
+        SetupDefaultAlias("acme", alias: null);
+        SetupValidSettings();
+        SetupStore();
+        SetupDefaultIssuer("acme", DerivedIssuer);
+        SetupCreateValidation();
+        SetupCreatePersistence(CreateSeededTenant(DerivedIssuer));
+        SetupTenantEnvironment(tenantId: "acme");
+        var recorded = new List<string>();
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTenantChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    ResourceChangeTypes.Created,
+                    It.IsAny<JsonElement?>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(
+                (
+                    HttpContext _,
+                    string _,
+                    string _,
+                    string changeType,
+                    JsonElement? _,
+                    CancellationToken _
+                ) => recorded.Add($"tenant:{changeType}")
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupRoleAssignmentChangedAuditCapture(auditEvent =>
+            recorded.Add(
+                $"{auditEvent.ChangeType}:{auditEvent.NodeType}/{auditEvent.NodeId}:{auditEvent.ResourceValues?.GetProperty("roleName").GetString()}"
+            )
+        );
+
+        await Handler.CreateTenantAsync(
+            CreateHttpContext(authenticated: true),
+            TeamId,
+            CreateTenantRequest(),
+            CancellationToken.None
+        );
+
+        Assert.Equal(
+            ["tenant:created", $"created:tenant/{TenantId}:{BuiltInRoles.Owner}"],
+            recorded
+        );
+    }
+
+    [Fact]
     public async Task CreateTenantAsync_WhenSettingsCannotBeHonored_ReturnsValidationProblem()
     {
         SetupTeamForCreate(resolveSettings: true);
@@ -5160,6 +5247,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTenant(CreateTenant("tenant-ct"));
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.AddAssignmentAsync(
@@ -5207,6 +5295,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupStore();
         SetupTenant(CreateTenant("tenant-ct"));
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.AddAssignmentAsync(
@@ -5241,6 +5330,89 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             (TenantId, ResourceNodeTypes.Tenant, TenantId),
             (node.TenantId, node.ResourceType, node.ResourceId)
         );
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenAdded_RecordsACreatedRoleAssignmentAtTheTenant()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        SetupSave();
+        RoleAssignmentChangedAuditEvent? recorded = null;
+        SetupRoleAssignmentChangedAuditCapture(auditEvent => recorded = auditEvent);
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-2",
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TenantAdmin),
+                    IsAdded = true,
+                }
+            )
+            .Verifiable();
+
+        await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        Assert.NotNull(recorded);
+        Assert.Equal(ResourceChangeTypes.Created, recorded.ChangeType);
+        Assert.Equal("principal-2", recorded.SubjectId);
+        Assert.Equal("assignment-principal-2", recorded.ResourceId);
+        Assert.Equal((ResourceNodeTypes.Tenant, TenantId), (recorded.NodeType, recorded.NodeId));
+    }
+
+    [Fact]
+    public async Task AddAdminAsync_WhenAlreadyHeld_ReturnsOkAndRecordsNothing()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(CreateTenant("tenant-ct"));
+        SetupSave();
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.AddAssignmentAsync(
+                    MockStoreManager.Object,
+                    TenantId,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-2",
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new RoleAssignmentGrant
+                {
+                    Assignment = CreateAssignment("principal-2", BuiltInRoles.TenantAdmin),
+                    IsAdded = false,
+                }
+            )
+            .Verifiable();
+
+        var result = await Handler.AddAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new AddOwnerRequest { PrincipalId = "principal-2" },
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<OwnerResource>>(result);
+        Assert.Equal("principal-2", ok.Value?.PrincipalId);
     }
 
     [Fact]
@@ -5300,6 +5472,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         SetupAuthorization(AuthorizationResult.Success());
         SetupStoreManagerOnly();
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.RemoveAssignmentAsync(
@@ -5338,6 +5511,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         );
         SetupStoreManagerOnly();
         SetupSave();
+        SetupRoleAssignmentChangedAudit();
         MockResourceOwnershipService
             .Setup(x =>
                 x.RemoveAssignmentAsync(
@@ -5364,6 +5538,45 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.Equal(
             (TenantId, ResourceNodeTypes.Tenant, TenantId),
             (node.TenantId, node.ResourceType, node.ResourceId)
+        );
+    }
+
+    [Fact]
+    public async Task RemoveAdminAsync_WhenRemoved_RecordsADeletedRoleAssignmentForEachRemoved()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStoreManagerOnly();
+        SetupSave();
+        var recorded = new List<RoleAssignmentChangedAuditEvent>();
+        SetupRoleAssignmentChangedAuditCapture(recorded.Add);
+        MockResourceOwnershipService
+            .Setup(x =>
+                x.RemoveAssignmentAsync(
+                    MockStoreManager.Object,
+                    ResourceNodeTypes.Tenant,
+                    TenantId,
+                    "principal-1",
+                    BuiltInRoles.TenantAdmin,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync([CreateAssignment("principal-1", BuiltInRoles.TenantAdmin)])
+            .Verifiable();
+
+        await Handler.RemoveAdminAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            "principal-1",
+            CancellationToken.None
+        );
+
+        var auditEvent = Assert.Single(recorded);
+        Assert.Equal(ResourceChangeTypes.Deleted, auditEvent.ChangeType);
+        Assert.Equal("principal-1", auditEvent.SubjectId);
+        Assert.Equal("assignment-principal-1", auditEvent.ResourceId);
+        Assert.Equal(
+            (ResourceNodeTypes.Tenant, TenantId),
+            (auditEvent.NodeType, auditEvent.NodeId)
         );
     }
 

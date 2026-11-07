@@ -152,27 +152,14 @@ public sealed class CallerApiEndpointHandlerTests : IDisposable
         };
 
     private static PersistedTenant CreateTenant(string tenantId, string teamId) =>
-        new()
+        new PersistedTenantBuilder
         {
             TenantId = tenantId,
             TeamId = teamId,
-            ConcurrencyToken = "tenant-ct",
-            Issuer = null,
-            IsDisabled = false,
             DisplayName = $"Tenant {tenantId}",
-            Settings = new PersistedTenantSettings
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "settings-ct",
-                Value = default,
-            },
-            Secrets = new PersistedTenantSecrets
-            {
-                TenantId = tenantId,
-                ConcurrencyToken = "secrets-ct",
-                Value = [],
-            },
-        };
+            SettingsConcurrencyToken = "settings-ct",
+            Settings = default,
+        }.Build();
 
     #endregion
 

@@ -1300,7 +1300,7 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
         string? publicKey = null,
         bool withPublicKey = true
     ) =>
-        new()
+        new PersistedSecretBuilder
         {
             PublicKey = withPublicKey
                 ? publicKey ?? CreatePublicKey(secretType, keySizeBits)
@@ -1308,16 +1308,10 @@ public sealed class DefaultTenantKeyPolicyTests : IAsyncLifetime
             SecretId = "secret",
             Use = use,
             Algorithm = algorithm,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = secretType,
             SecretEncoding = encoding,
-            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
             KeySizeBits = keySizeBits,
-            EncodedValue = "AA",
-        };
+        }.Build();
 
     #endregion
 }

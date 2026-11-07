@@ -12,7 +12,7 @@ namespace NCode.Identity.OpenId.Authentication.Subject;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IPostCommitSecurityEffects"/> that runs each effect in its
-/// own <see cref="PostCommitWork.RunAsync{TState}"/> step and logs a failure instead of throwing it.
+/// own <see cref="PostCommitWork.RunAsync{TState}"/> step, logs a failure and never throws it.
 /// </summary>
 // See ADR-1468.
 internal sealed class DefaultPostCommitSecurityEffects(

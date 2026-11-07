@@ -123,6 +123,9 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
     // through to the (strict) security effects and disposed.
     private void SetupTenantContext()
     {
+        // A partial mock of the abstract context, which the handler disposes.
+        var openIdContext = MockRepository.Create<OpenIdContext>(MockBehavior.Loose);
+        openIdContext.CallBase = true;
         MockOpenIdContextFactory
             .Setup(x =>
                 x.CreateForTenantAsync(
@@ -132,7 +135,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
-            .ReturnsAsync(Mock.Of<OpenIdContext>())
+            .ReturnsAsync(openIdContext.Object)
             .Verifiable();
     }
 

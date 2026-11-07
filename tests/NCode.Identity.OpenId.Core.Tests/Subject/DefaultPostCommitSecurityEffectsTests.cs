@@ -129,7 +129,8 @@ public sealed class DefaultPostCommitSecurityEffectsTests : BaseTests
             SessionTerminationReasons.UserBlocked
         );
 
-        var record = Assert.Single(Logger.Collector.GetSnapshot());
+        var snapshot = Logger.Collector.GetSnapshot();
+        var record = Assert.Single(snapshot);
         Assert.Equal(EventIds.PostCommitSessionTerminationFailed, record.Id.Id);
         Assert.Equal(LogLevel.Error, record.Level);
         Assert.IsAssignableFrom<OperationCanceledException>(record.Exception);
@@ -157,7 +158,8 @@ public sealed class DefaultPostCommitSecurityEffectsTests : BaseTests
             SessionTerminationReasons.UserBlocked
         );
 
-        var record = Assert.Single(Logger.Collector.GetSnapshot());
+        var snapshot = Logger.Collector.GetSnapshot();
+        var record = Assert.Single(snapshot);
         Assert.Equal(EventIds.PostCommitSessionTerminationFailed, record.Id.Id);
         Assert.Equal(LogLevel.Error, record.Level);
         Assert.IsAssignableFrom<InvalidOperationException>(record.Exception);
@@ -219,7 +221,8 @@ public sealed class DefaultPostCommitSecurityEffectsTests : BaseTests
             SessionTerminationReasons.PasswordChanged
         );
 
-        var record = Assert.Single(Logger.Collector.GetSnapshot());
+        var snapshot = Logger.Collector.GetSnapshot();
+        var record = Assert.Single(snapshot);
         Assert.Equal(EventIds.PostCommitSessionTerminationFailed, record.Id.Id);
         Assert.Equal(LogLevel.Error, record.Level);
         Assert.IsAssignableFrom<InvalidOperationException>(record.Exception);
@@ -267,7 +270,8 @@ public sealed class DefaultPostCommitSecurityEffectsTests : BaseTests
 
         await Effects.ResetPasswordAttemptsAsync(TenantId, UserName);
 
-        var record = Assert.Single(Logger.Collector.GetSnapshot());
+        var snapshot = Logger.Collector.GetSnapshot();
+        var record = Assert.Single(snapshot);
         Assert.Equal(EventIds.PostCommitPasswordAttemptResetFailed, record.Id.Id);
         Assert.Equal(LogLevel.Warning, record.Level);
         Assert.IsAssignableFrom<OperationCanceledException>(record.Exception);

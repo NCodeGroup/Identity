@@ -133,8 +133,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "subject-1",
             "client-1",
-            "authorization_code",
-            CancellationToken.None
+            "authorization_code"
         );
     }
 
@@ -153,14 +152,15 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         var recorder = CreateRecorder(mockPublisher.Object);
         using var request = new CancellationTokenSource();
         await request.CancelAsync();
+        var httpContext = CreateHttpContext("admin-1");
+        httpContext.RequestAborted = request.Token;
 
         await recorder.RecordGrantRevokedAsync(
-            CreateHttpContext("admin-1"),
+            httpContext,
             "tenant-1",
             "subject-1",
             "client-1",
-            "authorization_code",
-            request.Token
+            "authorization_code"
         );
 
         Assert.NotEqual(request.Token, publishToken);
@@ -220,8 +220,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "subject-1",
             "client-1",
-            "authorization_code",
-            request.Token
+            "authorization_code"
         );
 
         Assert.NotNull(captured);
@@ -288,8 +287,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
                 Outcome = AuditOutcome.Success,
                 ResourceId = "principal-1",
                 ChangeType = ResourceChangeTypes.Updated,
-            },
-            request.Token
+            }
         );
 
         Assert.NotNull(captured);
@@ -339,8 +337,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "subject-1",
             "client-1",
-            "authorization_code",
-            CancellationToken.None
+            "authorization_code"
         );
     }
 
@@ -373,8 +370,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "subject-1",
             "client-1",
-            "authorization_code",
-            CancellationToken.None
+            "authorization_code"
         );
 
         Assert.NotNull(captured);
@@ -422,8 +418,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "subject-1",
             "client-1",
-            "authorization_code",
-            CancellationToken.None
+            "authorization_code"
         );
 
         Assert.NotNull(captured);
@@ -472,8 +467,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .RecordMasterKeyRotatedAsync(
                 CreateHttpContext("admin-1"),
                 rotation,
-                MasterKeyChangeReasons.Requested,
-                CancellationToken.None
+                MasterKeyChangeReasons.Requested
             );
 
         Assert.NotNull(captured);
@@ -518,8 +512,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             .RecordMasterKeyRotatedAsync(
                 CreateHttpContext("admin-1"),
                 rotation,
-                MasterKeyChangeReasons.RootKeyChanged,
-                CancellationToken.None
+                MasterKeyChangeReasons.RootKeyChanged
             );
 
         Assert.NotNull(captured);
@@ -570,8 +563,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
                 CreateHttpContext("admin-1"),
                 rootKey,
                 change,
-                RootKeyChangeReasons.Requested,
-                CancellationToken.None
+                RootKeyChangeReasons.Requested
             );
 
         Assert.NotNull(captured);
@@ -620,12 +612,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         );
 
         await CreateRecorder(mockPublisher.Object, resolvesTenantEnvironment: false)
-            .RecordMasterKeyRotatedAsync(
-                httpContext,
-                rotation,
-                MasterKeyChangeReasons.Requested,
-                CancellationToken.None
-            );
+            .RecordMasterKeyRotatedAsync(httpContext, rotation, MasterKeyChangeReasons.Requested);
 
         Assert.NotNull(captured);
         Assert.Equal("master_key.rotated", captured.EventName);
@@ -670,8 +657,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "subject-1",
             clientId: null,
             sessionId: "sid-1",
-            revokedCount: 7,
-            CancellationToken.None
+            revokedCount: 7
         );
 
         Assert.NotNull(captured);
@@ -721,8 +707,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "subject-1",
             sessionId: "sid-1",
-            revokedCount: 1,
-            CancellationToken.None
+            revokedCount: 1
         );
 
         Assert.NotNull(captured);
@@ -772,8 +757,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "client-1",
             ResourceChangeTypes.Created,
-            resourceValues,
-            CancellationToken.None
+            resourceValues
         );
 
         Assert.NotNull(captured);
@@ -833,8 +817,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "client-1",
             "secret-1",
             ResourceChangeTypes.Deleted,
-            resourceValues: null,
-            CancellationToken.None
+            resourceValues: null
         );
 
         Assert.NotNull(captured);
@@ -900,8 +883,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             httpContext,
             "team-1",
             ResourceChangeTypes.Updated,
-            resourceValues,
-            CancellationToken.None
+            resourceValues
         );
 
         Assert.NotNull(captured);
@@ -950,8 +932,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "platform",
             "tenant-1",
             ResourceChangeTypes.Updated,
-            resourceValues,
-            CancellationToken.None
+            resourceValues
         );
 
         Assert.NotNull(captured);
@@ -1002,8 +983,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "team-7",
             "tenant-1",
             ResourceChangeTypes.Created,
-            null,
-            CancellationToken.None
+            null
         );
 
         Assert.NotNull(captured);
@@ -1047,8 +1027,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "secret-1",
             ResourceChangeTypes.Created,
-            resourceValues: null,
-            CancellationToken.None
+            resourceValues: null
         );
 
         Assert.NotNull(captured);
@@ -1112,8 +1091,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
         await recorder.RecordPlatformChangedAsync(
             httpContext,
             ResourceChangeTypes.SettingsUpdated,
-            resourceValues,
-            CancellationToken.None
+            resourceValues
         );
 
         Assert.NotNull(captured);
@@ -1177,8 +1155,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "tenant-1",
             "resource-server-1",
             ResourceChangeTypes.Updated,
-            resourceValues,
-            CancellationToken.None
+            resourceValues
         );
 
         Assert.NotNull(captured);
@@ -1237,8 +1214,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "resource-server-1",
             "read:things",
             ResourceChangeTypes.Created,
-            resourceValues: null,
-            CancellationToken.None
+            resourceValues: null
         );
 
         Assert.NotNull(captured);
@@ -1300,8 +1276,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
             "resource-server-1",
             "secret-1",
             ResourceChangeTypes.Deleted,
-            resourceValues: null,
-            CancellationToken.None
+            resourceValues: null
         );
 
         Assert.NotNull(captured);
@@ -1358,8 +1333,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
                 Outcome = AuditOutcome.Success,
                 ResourceId = "principal-1",
                 ChangeType = ResourceChangeTypes.Updated,
-            },
-            CancellationToken.None
+            }
         );
 
         Assert.NotNull(captured);
@@ -1392,8 +1366,7 @@ public sealed class DefaultManagementAuditRecorderTests : IDisposable
                 Outcome = AuditOutcome.Success,
                 ResourceId = "principal-1",
                 ChangeType = ResourceChangeTypes.Updated,
-            },
-            CancellationToken.None
+            }
         );
 
         Assert.NotNull(captured);

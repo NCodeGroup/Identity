@@ -209,8 +209,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -225,8 +224,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -3797,8 +3795,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     ClientId,
                     "secret-2",
                     ResourceChangeTypes.Created,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 ),
             Times.Once
         );
@@ -3810,8 +3807,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     ClientId,
                     "secret-1",
                     ResourceChangeTypes.Deleted,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 ),
             Times.Never
         );
@@ -3823,8 +3819,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     ClientId,
                     "secret-1",
                     ResourceChangeTypes.Updated,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 ),
             Times.Never
         );
@@ -3939,8 +3934,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     ClientId,
                     "secret-1",
                     ResourceChangeTypes.Updated,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 ),
             Times.Once
         );
@@ -3998,8 +3992,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
                     ClientId,
                     "secret-1",
                     ResourceChangeTypes.Updated,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 ),
             Times.Never
         );

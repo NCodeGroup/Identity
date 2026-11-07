@@ -785,8 +785,7 @@ internal class ClientApiEndpointHandler(
             client.TenantId,
             client.ClientId,
             ResourceChangeTypes.Created,
-            ToResourceValues(resource),
-            cancellationToken
+            ToResourceValues(resource)
         );
 
         // The store assigns the row token on insert (ADR-1012), so no re-read is needed.
@@ -885,8 +884,7 @@ internal class ClientApiEndpointHandler(
             client.TenantId,
             client.ClientId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToClientResource(client)),
-            cancellationToken
+            ToResourceValues(ToClientResource(client))
         );
 
         return TypedResults.NoContent();
@@ -961,8 +959,7 @@ internal class ClientApiEndpointHandler(
             client.TenantId,
             client.ClientId,
             ResourceChangeTypes.Deleted,
-            resourceValues,
-            cancellationToken
+            resourceValues
         );
 
         return TypedResults.NoContent();
@@ -1264,11 +1261,10 @@ internal class ClientApiEndpointHandler(
             clientSettings.TenantId,
             clientSettings.ClientId,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToClientSettingsResource(clientSettings)),
-            cancellationToken
+            ToResourceValues(ToClientSettingsResource(clientSettings))
         );
 
-        await RecordSecretChangesAsync(httpContext, client, reconciliation, cancellationToken);
+        await RecordSecretChangesAsync(httpContext, client, reconciliation);
 
         httpContext.Response.Headers.ETag = clientSettings.ConcurrencyToken;
 
@@ -1281,8 +1277,7 @@ internal class ClientApiEndpointHandler(
     private async ValueTask RecordSecretChangesAsync(
         HttpContext httpContext,
         PersistedClient client,
-        ClientSecretReconciliation reconciliation,
-        CancellationToken cancellationToken
+        ClientSecretReconciliation reconciliation
     )
     {
         foreach (var secret in reconciliation.RemovedSecrets)
@@ -1293,8 +1288,7 @@ internal class ClientApiEndpointHandler(
                 client.ClientId,
                 secret.SecretId,
                 ResourceChangeTypes.Deleted,
-                ToResourceValues(ToSecretResource(secret)),
-                cancellationToken
+                ToResourceValues(ToSecretResource(secret))
             );
         }
 
@@ -1306,8 +1300,7 @@ internal class ClientApiEndpointHandler(
                 client.ClientId,
                 secret.SecretId,
                 ResourceChangeTypes.Created,
-                ToResourceValues(ToSecretResource(secret)),
-                cancellationToken
+                ToResourceValues(ToSecretResource(secret))
             );
         }
     }
@@ -1515,8 +1508,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             secretId,
             ResourceChangeTypes.Created,
-            ToResourceValues(secretResource),
-            cancellationToken
+            ToResourceValues(secretResource)
         );
 
         // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
@@ -1641,8 +1633,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             secretId,
             ResourceChangeTypes.Created,
-            ToResourceValues(secretResource),
-            cancellationToken
+            ToResourceValues(secretResource)
         );
 
         httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
@@ -1819,8 +1810,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             secretId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToSecretResource(updated)),
-            cancellationToken
+            ToResourceValues(ToSecretResource(updated))
         );
 
         return TypedResults.NoContent();
@@ -1898,8 +1888,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             secretId,
             ResourceChangeTypes.Deleted,
-            secretValues,
-            cancellationToken
+            secretValues
         );
 
         return TypedResults.NoContent();
@@ -2110,8 +2099,7 @@ internal class ClientApiEndpointHandler(
             clientId,
             replacementId,
             ResourceChangeTypes.Created,
-            ToResourceValues(replacementResource),
-            cancellationToken
+            ToResourceValues(replacementResource)
         );
         if (shortened is not null)
         {
@@ -2123,8 +2111,7 @@ internal class ClientApiEndpointHandler(
                 clientId,
                 secretId,
                 ResourceChangeTypes.Updated,
-                shortenedValues,
-                cancellationToken
+                shortenedValues
             );
         }
 

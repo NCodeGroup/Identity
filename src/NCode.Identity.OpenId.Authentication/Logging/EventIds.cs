@@ -84,4 +84,6 @@ internal static class EventIds
     public const int EndedSessionTerminationFailedForSession = Base + 71;
     public const int ClientAuthenticationAttemptLimitReached = Base + 72;
     public const int ClientAuthenticationAttemptLimitSkippedWithoutRemoteAddress = Base + 73;
+    public const int PostCommitSessionTerminationFailed = Base + 74;
+    public const int PostCommitPasswordAttemptResetFailed = Base + 75;
 }

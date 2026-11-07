@@ -45,6 +45,7 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     IContinueRefusalService continueRefusalService,
     IInteractivePasswordChanger passwordChanger,
     ISessionService sessionService,
+    IPostCommitSecurityEffects postCommitSecurityEffects,
     TimeProvider timeProvider,
     IAntiforgery antiforgery,
     SinglePageBundle<InteractiveBundleShell> bundle,
@@ -71,6 +72,8 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
     private IContinueRefusalService ContinueRefusalService { get; } = continueRefusalService;
     private IInteractivePasswordChanger PasswordChanger { get; } = passwordChanger;
     private ISessionService SessionService { get; } = sessionService;
+    private IPostCommitSecurityEffects PostCommitSecurityEffects { get; } =
+        postCommitSecurityEffects;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IAntiforgery Antiforgery { get; } = antiforgery;
     private SinglePageBundle<InteractiveBundleShell> Bundle { get; } = bundle;
@@ -1114,14 +1117,13 @@ internal sealed class InteractiveAuthenticationEndpointHandler(
         }
 
         // A change keeps the current session, ends every other one and revokes the grants issued under no session.
-        // The password is already saved, so a client disconnect does not cancel the termination.
-        // See ADR-1226 and ADR-1230.
-        await SessionService.RevokeAllExceptAsync(
+        // The password is saved, so the termination runs on its own bounded token and a failure is logged.
+        // See ADR-1230 and ADR-1468.
+        await PostCommitSecurityEffects.TerminateOtherSessionsAsync(
             openIdContext,
             subjectId,
             currentSessionId,
-            SessionTerminationReasons.PasswordChanged,
-            CancellationToken.None
+            SessionTerminationReasons.PasswordChanged
         );
         return RedirectToPasswordPage(httpContext, StatusQueryName, PasswordChangedStatus);
     }

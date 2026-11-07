@@ -31,9 +31,10 @@ than inlining the rationale.
   as one whose only asynchronous call is `IAuthorizationService.AuthorizeAsync`. The token is part of the method's
   contract, so a call added later honors it; a root call site with no token in hand passes `CancellationToken.None`.
   The exception is a method whose whole work follows a committed change and runs on its own bounded token through
-  `PostCommitWork`, such as every `IManagementAuditRecorder` method: it takes no `CancellationToken`, so no caller can
-  pass one that drops the effect
-  ([ADR-1464](../../docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)).
+  `PostCommitWork`, such as every `IManagementAuditRecorder` and `IPostCommitSecurityEffects` method: it takes no
+  `CancellationToken`, so no caller can pass one that drops the effect
+  ([ADR-1464](../../docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md),
+  [ADR-1468](../../docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 - ✅ **No sync-over-async** — template [Language and Async](csharp.instructions.md#language-and-async);
   [`build/BannedSymbols.txt`](../../build/BannedSymbols.txt) bans it in every project, tests included (`RS0030`).
 - 👁 **Fire-and-forget offloads use `Task.Run`, never `Task.Factory.StartNew` with an `async` delegate** — template
@@ -641,14 +642,19 @@ than inlining the rationale.
   every unrevoked session, an ended one included
   ([ADR-1228](../../docs/decisions/1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md)).
 - 👁 **A security effect that follows a committed change — ending the sessions after a password change or reset, an
-  account disable or a principal block — runs with `CancellationToken.None`.** A client disconnect must not leave the
-  change committed without its effect; a step that precedes its commit keeps the request token. Likewise, once a
+  account disable or a principal block, or clearing the failed password attempts after an administrator sets a
+  password — runs through `IPostCommitSecurityEffects`.** Each effect runs on its own token bounded by
+  `PostCommitWork.Timeout`, so a client disconnect can't leave the change committed without its effect and a hung
+  store can't hold the response; a failure is logged, never thrown, and the audit record follows. A step that precedes
+  its commit keeps the request token. Likewise, once a
   request wins a single-use lease (the BFF refresh lease), the guarded operation and its write-back run with
   `CancellationToken.None`, bounded by the client's own timeout, and a logout removes the session before any outbound
   call it makes. See
   [ADR-1226](../../docs/decisions/1226-an-administrator-can-block-any-end-user-and-a-password-reset-ends-the-accounts-sessions.md),
-  [ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) and
-  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md).
+  [ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
+  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
+  and
+  [ADR-1468](../../docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md).
 - 👁 **A cookie authentication handler authenticates only the endpoints its guard checked.** The BFF's handler
   authenticates the cookie on a guarded endpoint (an API, `/bff/user`, a page) and returns no result everywhere else, so
   a cookie the browser attaches to an unguarded endpoint is never a credential there. See
@@ -728,11 +734,12 @@ than inlining the rationale.
   name the account holds (or the submitted name when none has it), and verifies a refused password against its dummy
   hash, so a refusal costs and answers what a wrong password does. Call `RecordFailureAsync` with
   `CancellationToken.None` and the result's `UserName` for every result that is not verified, a refusal included; after
-  a verified password, or a password an administrator sets, call `ResetAsync`, last when other effects such as ending
-  sessions must not depend on the counter store. Never look the account up a second time to name the count. A count of
-  a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
+  a verified password, call `ResetAsync`; after a password an administrator sets commits, clear the count through
+  `IPostCommitSecurityEffects.ResetPasswordAttemptsAsync`. Never look the account up a second time to name the count. A
+  count of a run of events that ends is cleared with `IExpiringCounterSet.RemoveAsync`
   ([ADR-1237](../../docs/decisions/1237-failed-password-attempts-are-limited-per-account.md),
-  [ADR-1244](../../docs/decisions/1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md)).
+  [ADR-1244](../../docs/decisions/1244-a-password-refused-at-the-attempt-limit-costs-what-a-wrong-one-costs.md),
+  [ADR-1468](../../docs/decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
 - 👁 **A password is judged, hashed and verified in its Unicode Normalization Form C (NFC), and a failed verification
   takes as long whether or not the account exists.** `DefaultPasswordPolicy` judges the NFC form and every
   `IPasswordHasher` hashes and verifies it, verifying the submitted form as a fallback that reports

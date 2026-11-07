@@ -19,7 +19,9 @@ public sealed class TenantSeedContext
     private List<Func<CancellationToken, ValueTask>> CommittedSteps { get; } = [];
 
     /// <summary>
-    /// Gets the tenant being seeded.
+    /// Gets the tenant being seeded: the seed's working copy, read before the contributors run. A contributor that
+    /// changes the tenant's settings or secrets updates this instance, so the contributors that follow observe the
+    /// change before the seed commits; the provisioner returns the tenant as the seed committed it.
     /// </summary>
     public required PersistedTenant Tenant { get; init; }
 

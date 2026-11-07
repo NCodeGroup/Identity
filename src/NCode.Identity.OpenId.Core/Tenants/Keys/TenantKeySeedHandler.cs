@@ -94,8 +94,8 @@ internal class TenantKeySeedHandler(
             cancellationToken
         );
 
-        // The materialization that follows the seed reads the tenant's secrets from this instance, before the unit of
-        // work commits, so it must already carry the keys as the plan left them.
+        // The contributors that follow read the tenant's secrets from this instance, before the unit of work commits,
+        // so it carries the keys as the plan left them.
         tenant.Secrets = new PersistedTenantSecrets
         {
             TenantId = tenant.Secrets.TenantId,

@@ -310,18 +310,18 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             .ReturnsAsync(
                 new PagedResult<PersistedTenantSettings>
                 {
-                    Items =
-                    [
-                        .. tenantIds.Select(tenantId => new PersistedTenantSettings
-                        {
-                            TenantId = tenantId,
-                            Value = JsonElement.Parse($$"""{"tenant":"{{tenantId}}"}"""),
-                        }),
-                    ],
+                    Items = [.. tenantIds.Select(CreateTenantSettings)],
                     NextCursor = nextCursor,
                 }
             )
             .Verifiable();
+
+    private static PersistedTenantSettings CreateTenantSettings(string tenantId) =>
+        new PersistedTenantBuilder
+        {
+            TenantId = tenantId,
+            Settings = JsonElement.Parse($$"""{"tenant":"{{tenantId}}"}"""),
+        }.BuildSettings();
 
     private void SetupTenantSettings(string tenantId, string[] algorithms) =>
         SetupTenantSettings(TeamSettings, tenantId, algorithms);
@@ -360,15 +360,16 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             .Returns(hasServingKey)
             .Verifiable();
 
-    private void SetupSecrets(string tenantId, IReadOnlyCollection<PersistedSecret>? secrets) =>
+    private void SetupSecrets(string tenantId, IReadOnlyCollection<PersistedSecret>? secrets)
+    {
+        var tenantSecrets = secrets is null
+            ? null
+            : new PersistedTenantBuilder { TenantId = tenantId, Secrets = secrets }.BuildSecrets();
         MockTenantStore
             .Setup(x => x.GetSecretsOrDefaultAsync(tenantId, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(
-                secrets is null
-                    ? null
-                    : new PersistedTenantSecrets { TenantId = tenantId, Value = secrets }
-            )
+            .ReturnsAsync(tenantSecrets)
             .Verifiable();
+    }
 
     private void SetupAnnouncement(string tenantId, Exception? failure = null)
     {
@@ -405,21 +406,12 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     }
 
     private static PersistedSecret CreateSecret(string secretId) =>
-        new()
+        new PersistedSecretBuilder
         {
             SecretId = secretId,
-            Use = null,
-            Algorithm = null,
-            CreatedWhen = DateTimeOffset.UnixEpoch,
-            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            ActivatesWhen = DateTimeOffset.UnixEpoch,
-            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
             SecretType = SecretKeyTypes.Ecc,
             SecretEncoding = SecretEncodings.Pkcs8,
-            Origin = NCode.Identity.Secrets.Persistence.SecretOrigins.Generated,
-            KeySizeBits = 256,
-            EncodedValue = "AA",
-        };
+        }.Build();
 
     #endregion
 }

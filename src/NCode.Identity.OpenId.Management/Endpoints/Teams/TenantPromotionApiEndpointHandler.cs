@@ -169,8 +169,7 @@ internal class TenantPromotionApiEndpointHandler(
             teamId,
             context.TargetTenant.TenantId,
             ResourceChangeTypes.Promoted,
-            ToResourceValues(report),
-            cancellationToken
+            ToResourceValues(report)
         );
 
         await NotifyTenantChangedAsync(

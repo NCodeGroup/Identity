@@ -95,8 +95,7 @@ internal static class EncryptionKeyEndpoints
         await auditRecorder.RecordMasterKeyRotatedAsync(
             httpContext,
             rotation,
-            MasterKeyChangeReasons.Requested,
-            cancellationToken
+            MasterKeyChangeReasons.Requested
         );
 
         return TypedResults.Ok(
@@ -162,8 +161,7 @@ internal static class EncryptionKeyEndpoints
                     httpContext,
                     unavailable,
                     RootKeyChanges.Unavailable,
-                    RootKeyChangeReasons.ValidationFailed,
-                    cancellationToken
+                    RootKeyChangeReasons.ValidationFailed
                 );
             }
 
@@ -185,8 +183,7 @@ internal static class EncryptionKeyEndpoints
                 httpContext,
                 change.RootKey,
                 changed,
-                RootKeyChangeReasons.Requested,
-                cancellationToken
+                RootKeyChangeReasons.Requested
             );
         }
 
@@ -195,8 +192,7 @@ internal static class EncryptionKeyEndpoints
             await auditRecorder.RecordMasterKeyRotatedAsync(
                 httpContext,
                 rotation,
-                MasterKeyChangeReasons.RootKeyChanged,
-                cancellationToken
+                MasterKeyChangeReasons.RootKeyChanged
             );
         }
 
@@ -239,8 +235,7 @@ internal static class EncryptionKeyEndpoints
                     State = OwnerRootKeyStates.Removing,
                 },
                 RootKeyChanges.Removed,
-                RootKeyChangeReasons.Requested,
-                cancellationToken
+                RootKeyChangeReasons.Requested
             );
         }
 
@@ -270,8 +265,7 @@ internal static class EncryptionKeyEndpoints
                 httpContext,
                 rootKey,
                 change,
-                RootKeyChangeReasons.ForValidation(change),
-                cancellationToken
+                RootKeyChangeReasons.ForValidation(change)
             );
         }
 
@@ -280,8 +274,7 @@ internal static class EncryptionKeyEndpoints
             await auditRecorder.RecordMasterKeyRotatedAsync(
                 httpContext,
                 rotation,
-                MasterKeyChangeReasons.RootKeyChanged,
-                cancellationToken
+                MasterKeyChangeReasons.RootKeyChanged
             );
         }
 

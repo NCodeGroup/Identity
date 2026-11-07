@@ -19,6 +19,11 @@ namespace NCode.Identity.OpenId.Management.Auditing;
 /// Management operations have no end-user subject; the <em>actor</em> is the administrator performing
 /// the action, derived from the authenticated principal on the request. Audit events carry identifiers
 /// and metadata only, never secret material.
+/// <para>
+/// Each method records a change that has committed, so the whole record, resolving the tenant's environment type
+/// included, runs on a bounded token of its own and no method takes the request's cancellation: a client that
+/// disconnects never drops the record, and a record that fails is logged, never thrown.
+/// </para>
 /// </remarks>
 [PublicAPI]
 public interface IManagementAuditRecorder
@@ -31,9 +36,6 @@ public interface IManagementAuditRecorder
     /// <param name="subjectId">The identifier of the subject the grant was issued for, if any.</param>
     /// <param name="clientId">The identifier of the client the grant was issued to, if any.</param>
     /// <param name="grantType">The type of the revoked grant, if known.</param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -42,8 +44,7 @@ public interface IManagementAuditRecorder
         string tenantId,
         string? subjectId,
         string? clientId,
-        string? grantType,
-        CancellationToken cancellationToken
+        string? grantType
     );
 
     /// <summary>
@@ -55,9 +56,6 @@ public interface IManagementAuditRecorder
     /// <param name="clientId">The client filter applied to the revocation, if any.</param>
     /// <param name="sessionId">The session (<c>sid</c>) filter applied to the revocation, if any.</param>
     /// <param name="revokedCount">The number of grants that were revoked.</param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -67,8 +65,7 @@ public interface IManagementAuditRecorder
         string? subjectId,
         string? clientId,
         string? sessionId,
-        long revokedCount,
-        CancellationToken cancellationToken
+        long revokedCount
     );
 
     /// <summary>
@@ -81,9 +78,6 @@ public interface IManagementAuditRecorder
     /// <param name="subjectId">The subject whose sessions were revoked, if known.</param>
     /// <param name="sessionId">The opaque <c>sid</c> of the single session revoked, or <c>null</c> for a subject-wide revocation.</param>
     /// <param name="revokedCount">The number of sessions that were revoked.</param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -92,8 +86,7 @@ public interface IManagementAuditRecorder
         string tenantId,
         string? subjectId,
         string? sessionId,
-        long revokedCount,
-        CancellationToken cancellationToken
+        long revokedCount
     );
 
     /// <summary>
@@ -108,9 +101,6 @@ public interface IManagementAuditRecorder
     /// <param name="resourceValues">
     /// A non-sensitive snapshot of the client's values, or <c>null</c> when none is captured.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -119,8 +109,7 @@ public interface IManagementAuditRecorder
         string tenantId,
         string clientId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -137,9 +126,6 @@ public interface IManagementAuditRecorder
     /// A non-sensitive snapshot of the secret's metadata, or <c>null</c> when none is captured. Never
     /// contains secret material.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -149,8 +135,7 @@ public interface IManagementAuditRecorder
         string clientId,
         string secretId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -164,9 +149,6 @@ public interface IManagementAuditRecorder
     /// <param name="resourceValues">
     /// A non-sensitive snapshot of the team's values, or <c>null</c> when none is captured.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -174,8 +156,7 @@ public interface IManagementAuditRecorder
         HttpContext httpContext,
         string teamId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -190,9 +171,6 @@ public interface IManagementAuditRecorder
     /// <param name="resourceValues">
     /// A non-sensitive snapshot of the tenant's values, or <c>null</c> when none is captured.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -201,8 +179,7 @@ public interface IManagementAuditRecorder
         string teamId,
         string tenantId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -218,9 +195,6 @@ public interface IManagementAuditRecorder
     /// A non-sensitive snapshot of the secret's metadata, or <c>null</c> when none is captured. Never
     /// contains secret material.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -229,8 +203,7 @@ public interface IManagementAuditRecorder
         string tenantId,
         string secretId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -244,17 +217,13 @@ public interface IManagementAuditRecorder
     /// <param name="resourceValues">
     /// A non-sensitive snapshot of the resource's values, or <c>null</c> when none is captured.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
     ValueTask RecordPlatformChangedAsync(
         HttpContext httpContext,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -269,9 +238,6 @@ public interface IManagementAuditRecorder
     /// <param name="resourceValues">
     /// A non-sensitive snapshot of the resource server's values, or <c>null</c> when none is captured.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -280,8 +246,7 @@ public interface IManagementAuditRecorder
         string tenantId,
         string resourceServerId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -297,9 +262,6 @@ public interface IManagementAuditRecorder
     /// <param name="resourceValues">
     /// A non-sensitive snapshot of the scope's values, or <c>null</c> when none is captured.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -309,8 +271,7 @@ public interface IManagementAuditRecorder
         string resourceServerId,
         string scopeValue,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -327,9 +288,6 @@ public interface IManagementAuditRecorder
     /// A non-sensitive snapshot of the secret's metadata, or <c>null</c> when none is captured. Never
     /// contains secret material.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -339,8 +297,7 @@ public interface IManagementAuditRecorder
         string resourceServerId,
         string secretId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     );
 
     /// <summary>
@@ -354,16 +311,12 @@ public interface IManagementAuditRecorder
     /// The resource-change event to stamp and publish. The caller supplies the resource-specific fields (tenant,
     /// resource id, change type, non-sensitive snapshot, and outcome); the envelope fields are stamped by the recorder.
     /// </param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
     ValueTask RecordResourceChangeAsync(
         HttpContext httpContext,
-        ResourceChangeAuditEvent auditEvent,
-        CancellationToken cancellationToken
+        ResourceChangeAuditEvent auditEvent
     );
 
     /// <summary>
@@ -373,14 +326,12 @@ public interface IManagementAuditRecorder
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
     /// <param name="rotation">The rotation that was performed.</param>
     /// <param name="reason">Why the key rotated: one of the values in <see cref="MasterKeyChangeReasons"/>.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     // See ADR-1407 and ADR-1414.
     ValueTask RecordMasterKeyRotatedAsync(
         HttpContext httpContext,
         MasterKeyRotation rotation,
-        string reason,
-        CancellationToken cancellationToken
+        string reason
     );
 
     /// <summary>
@@ -391,14 +342,12 @@ public interface IManagementAuditRecorder
     /// <param name="rootKey">The root key after the change.</param>
     /// <param name="change">The change: one of the values in <see cref="RootKeyChanges"/>.</param>
     /// <param name="reason">Why the key changed: one of the values in <see cref="RootKeyChangeReasons"/>.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation.</returns>
     // See ADR-1414.
     ValueTask RecordRootKeyChangedAsync(
         HttpContext httpContext,
         OwnerRootKeyInfo rootKey,
         string change,
-        string reason,
-        CancellationToken cancellationToken
+        string reason
     );
 }

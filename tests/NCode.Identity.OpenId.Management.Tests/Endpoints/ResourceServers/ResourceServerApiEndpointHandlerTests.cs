@@ -125,12 +125,11 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
                 )
             )
             .Callback(
-                (HttpContext _, ResourceChangeAuditEvent auditEvent, CancellationToken _) =>
+                (HttpContext _, ResourceChangeAuditEvent auditEvent) =>
                     capture((RoleAssignmentChangedAuditEvent)auditEvent)
             )
             .Returns(ValueTask.CompletedTask)
@@ -158,8 +157,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -175,8 +173,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -191,8 +188,7 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
                     It.IsAny<string>(),
                     It.IsAny<string>(),
                     It.IsAny<string>(),
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)

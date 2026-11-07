@@ -295,8 +295,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     TeamId,
                     changeType,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -307,8 +306,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
                 )
             )
             .Returns(ValueTask.CompletedTask)
@@ -321,12 +319,11 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
                 )
             )
             .Callback(
-                (HttpContext _, ResourceChangeAuditEvent auditEvent, CancellationToken _) =>
+                (HttpContext _, ResourceChangeAuditEvent auditEvent) =>
                     capture((RoleAssignmentChangedAuditEvent)auditEvent)
             )
             .Returns(ValueTask.CompletedTask)
@@ -893,12 +890,11 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     TeamId,
                     ResourceChangeTypes.Created,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Callback(
-                (HttpContext _, string _, string changeType, JsonElement? _, CancellationToken _) =>
+                (HttpContext _, string _, string changeType, JsonElement? _) =>
                     recorded.Add($"team:{changeType}")
             )
             .Returns(ValueTask.CompletedTask)
@@ -1235,8 +1231,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
                     It.IsAny<HttpContext>(),
                     ChildTeamId,
                     ResourceChangeTypes.Created,
-                    It.IsAny<JsonElement?>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<JsonElement?>()
                 )
             )
             .Returns(ValueTask.CompletedTask)

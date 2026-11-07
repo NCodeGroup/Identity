@@ -25,8 +25,7 @@ internal static class ManagementAuditRecorderExtensions
         string tenantId,
         string localAccountId,
         string changeType,
-        JsonElement? resourceValues,
-        CancellationToken cancellationToken
+        JsonElement? resourceValues
     ) =>
         recorder.RecordResourceChangeAsync(
             httpContext,
@@ -38,7 +37,6 @@ internal static class ManagementAuditRecorderExtensions
                 ChangeType = changeType,
                 ResourceValues = resourceValues,
                 Outcome = AuditOutcome.Success,
-            },
-            cancellationToken
+            }
         );
 }

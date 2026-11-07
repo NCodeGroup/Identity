@@ -40,9 +40,6 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// <param name="httpContext">The <see cref="HttpContext"/> of the request.</param>
     /// <param name="assignment">The role assignment that was granted or revoked.</param>
     /// <param name="changeType">One of the values in <see cref="ResourceChangeTypes"/>.</param>
-    /// <param name="cancellationToken">
-    /// The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.
-    /// </param>
     /// <returns>
     /// A <see cref="ValueTask"/> that represents the asynchronous operation.
     /// </returns>
@@ -50,8 +47,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     protected internal virtual ValueTask RecordRoleAssignmentChangedAsync(
         HttpContext httpContext,
         PersistedRoleAssignment assignment,
-        string changeType,
-        CancellationToken cancellationToken
+        string changeType
     )
     {
         var ownerResource = ToOwnerResource(assignment);
@@ -68,8 +64,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
                 ChangeType = changeType,
                 ResourceValues = ToResourceValues(ownerResource),
                 Outcome = AuditOutcome.Success,
-            },
-            cancellationToken
+            }
         );
     }
 
@@ -229,8 +224,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         await RecordRoleAssignmentChangedAsync(
             httpContext,
             grant.Assignment,
-            ResourceChangeTypes.Created,
-            cancellationToken
+            ResourceChangeTypes.Created
         );
 
         return TypedResults.Created($"{ownersPath}/{grant.Assignment.PrincipalId}", ownerResource);
@@ -288,8 +282,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
                     await RecordRoleAssignmentChangedAsync(
                         httpContext,
                         removed,
-                        ResourceChangeTypes.Deleted,
-                        cancellationToken
+                        ResourceChangeTypes.Deleted
                     );
                 }
 

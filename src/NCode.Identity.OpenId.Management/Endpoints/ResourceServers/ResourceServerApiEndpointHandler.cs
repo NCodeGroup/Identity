@@ -394,8 +394,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServer.TenantId,
             resourceServer.ResourceServerId,
             ResourceChangeTypes.Created,
-            ToResourceValues(ToResourceServerResource(resourceServer)),
-            cancellationToken
+            ToResourceValues(ToResourceServerResource(resourceServer))
         );
 
         if (creatorAssignment is not null)
@@ -403,8 +402,7 @@ internal class ResourceServerApiEndpointHandler(
             await RecordRoleAssignmentChangedAsync(
                 httpContext,
                 creatorAssignment,
-                ResourceChangeTypes.Created,
-                cancellationToken
+                ResourceChangeTypes.Created
             );
         }
 
@@ -488,8 +486,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServer.TenantId,
             resourceServer.ResourceServerId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToResourceServerResource(resourceServer)),
-            cancellationToken
+            ToResourceValues(ToResourceServerResource(resourceServer))
         );
 
         return TypedResults.NoContent();
@@ -548,8 +545,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServer.TenantId,
             resourceServer.ResourceServerId,
             ResourceChangeTypes.Deleted,
-            resourceValues,
-            cancellationToken
+            resourceValues
         );
 
         return TypedResults.NoContent();
@@ -650,8 +646,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServerId,
             persistedScope.Value,
             ResourceChangeTypes.Created,
-            ToResourceValues(ToScopeResource(persistedScope)),
-            cancellationToken
+            ToResourceValues(ToScopeResource(persistedScope))
         );
 
         return TypedResults.Created(
@@ -766,8 +761,7 @@ internal class ResourceServerApiEndpointHandler(
                         IsSystem = false,
                     }
                 )
-            ),
-            cancellationToken
+            )
         );
 
         return TypedResults.NoContent();
@@ -840,8 +834,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServerId,
             scopeValue,
             ResourceChangeTypes.Deleted,
-            resourceValues: null,
-            cancellationToken
+            resourceValues: null
         );
 
         return TypedResults.NoContent();
@@ -1195,8 +1188,7 @@ internal class ResourceServerApiEndpointHandler(
             settings.TenantId,
             settings.ResourceServerId,
             ResourceChangeTypes.SettingsUpdated,
-            ToResourceValues(ToResourceServerSettingsResource(settings)),
-            cancellationToken
+            ToResourceValues(ToResourceServerSettingsResource(settings))
         );
 
         httpContext.Response.Headers.ETag = settings.ConcurrencyToken;
@@ -1388,8 +1380,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServerId,
             secretId,
             ResourceChangeTypes.Created,
-            ToResourceValues(ToSecretResource(generatedSecret.Secret)),
-            cancellationToken
+            ToResourceValues(ToSecretResource(generatedSecret.Secret))
         );
 
         httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
@@ -1507,8 +1498,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServerId,
             secretId,
             ResourceChangeTypes.Created,
-            ToResourceValues(importedSecretResource),
-            cancellationToken
+            ToResourceValues(importedSecretResource)
         );
 
         httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
@@ -1662,8 +1652,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServerId,
             secretId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToSecretResource(updated)),
-            cancellationToken
+            ToResourceValues(ToSecretResource(updated))
         );
 
         return TypedResults.NoContent();
@@ -1721,8 +1710,7 @@ internal class ResourceServerApiEndpointHandler(
             resourceServerId,
             secretId,
             ResourceChangeTypes.Deleted,
-            ToResourceValues(ToSecretResource(resourceServerSecret.Value)),
-            cancellationToken
+            ToResourceValues(ToSecretResource(resourceServerSecret.Value))
         );
 
         return TypedResults.NoContent();

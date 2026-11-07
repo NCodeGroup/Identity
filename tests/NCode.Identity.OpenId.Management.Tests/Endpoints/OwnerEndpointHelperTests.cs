@@ -103,12 +103,11 @@ public class OwnerEndpointHelperTests : IDisposable
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.IsAny<RoleAssignmentChangedAuditEvent>(),
-                    It.IsAny<CancellationToken>()
+                    It.IsAny<RoleAssignmentChangedAuditEvent>()
                 )
             )
-            .Callback<HttpContext, ResourceChangeAuditEvent, CancellationToken>(
-                (_, auditEvent, _) =>
+            .Callback<HttpContext, ResourceChangeAuditEvent>(
+                (_, auditEvent) =>
                     captured.Add(Assert.IsType<RoleAssignmentChangedAuditEvent>(auditEvent))
             )
             .Returns(ValueTask.CompletedTask)
@@ -398,14 +397,10 @@ public class OwnerEndpointHelperTests : IDisposable
         var httpContext = CreateHttpContext();
         recorder
             .Setup(x =>
-                x.RecordResourceChangeAsync(
-                    httpContext,
-                    It.IsAny<ResourceChangeAuditEvent>(),
-                    It.IsAny<CancellationToken>()
-                )
+                x.RecordResourceChangeAsync(httpContext, It.IsAny<ResourceChangeAuditEvent>())
             )
-            .Callback<HttpContext, ResourceChangeAuditEvent, CancellationToken>(
-                (_, auditEvent, _) => captured = auditEvent
+            .Callback<HttpContext, ResourceChangeAuditEvent>(
+                (_, auditEvent) => captured = auditEvent
             )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
@@ -419,8 +414,7 @@ public class OwnerEndpointHelperTests : IDisposable
         await handler.RecordRoleAssignmentChangedAsync(
             httpContext,
             Owner("p2", "a2"),
-            ResourceChangeTypes.Created,
-            CancellationToken.None
+            ResourceChangeTypes.Created
         );
 
         var auditEvent = Assert.IsType<RoleAssignmentChangedAuditEvent>(captured);

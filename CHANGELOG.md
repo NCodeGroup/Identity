@@ -2248,7 +2248,7 @@ describes the family as it is rather than its changes
   `ManagementApiEndpointHandler` (generic authorization, `GET` and collection helpers), `DefaultResourceValidator`,
   `Operations`, `TenantScopeResource`, the `ManagementEndpointGroups.Tenant` group-name constant for attaching a keyed
   `IEndpointProvider` to the tenant group, and the generic audit seam
-  `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent, ct)`. See
+  `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent)`. See
   [ADR-1057](docs/decisions/1057-local-account-eager-provisioning-and-management-seam.md),
   [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) and
   [ADR-1061](docs/decisions/1061-local-account-management-is-an-opt-in-capability.md).
@@ -5224,6 +5224,13 @@ describes the family as it is rather than its changes
   the management API grants or revokes, the creator's included, naming the acting administrator
   ([ADR-1449](docs/decisions/1449-every-role-assignment-the-management-api-grants-or-revokes-is-audited.md),
   [#583](https://github.com/NCodeGroup/Identity/issues/583)).
+
+- **A management audit record survives the request's cancellation.** Every `IManagementAuditRecorder` method records a
+  change that has committed, and the whole record, resolving the tenant's environment type included, runs on its own
+  30-second token, so a client that disconnects after the commit drops no audit event; a record that fails or times
+  out is logged and never fails the committed write, and the recorder's methods take no `CancellationToken`
+  ([#621](https://github.com/NCodeGroup/Identity/issues/621),
+  [ADR-1464](docs/decisions/1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)).
 
 - **An administrator's password reset ends the account's sessions.** After the reset commits, every session of the
   account's principal is terminated with the `password_reset` reason (`SessionTerminationReasons.PasswordReset`): its

@@ -59,8 +59,7 @@ internal class DefaultTenantPromoter(
             {
                 await ManagementAuditRecorder.RecordResourceChangeAsync(
                     httpContext,
-                    context.AuditEvents[i],
-                    cancellationToken
+                    context.AuditEvents[i]
                 );
             }
         }

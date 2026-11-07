@@ -342,8 +342,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.Is<ResourceChangeAuditEvent>(e => e.ResourceId == LocalAccountId),
-                    It.IsAny<CancellationToken>()
+                    It.Is<ResourceChangeAuditEvent>(e => e.ResourceId == LocalAccountId)
                 )
             )
             .Returns(ValueTask.CompletedTask)

@@ -273,8 +273,8 @@ internal class ClientApiEndpointHandler(
         clients.MapGet("/{clientId}/owners", ListOwnersAsync).Produces<RoleListResource>();
         clients
             .MapPost("/{clientId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         clients
             .MapDelete("/{clientId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -2572,7 +2572,7 @@ internal class ClientApiEndpointHandler(
         HttpContext httpContext,
         [FromRoute] string tenantId,
         [FromRoute] string clientId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
     )
     {

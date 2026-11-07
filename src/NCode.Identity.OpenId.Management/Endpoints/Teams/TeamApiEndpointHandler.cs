@@ -174,8 +174,8 @@ internal class TeamApiEndpointHandler(
         teams.MapGet("/{teamId}/owners", ListOwnersAsync).Produces<RoleListResource>();
         teams
             .MapPost("/{teamId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         teams
             .MapDelete("/{teamId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent)
@@ -184,8 +184,8 @@ internal class TeamApiEndpointHandler(
         teams.MapGet("/{teamId}/admins", ListAdminsAsync).Produces<RoleListResource>();
         teams
             .MapPost("/{teamId}/admins", AddAdminAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         teams
             .MapDelete("/{teamId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -1148,7 +1148,7 @@ internal class TeamApiEndpointHandler(
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
         [FromRoute] string teamId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
     ) =>
         await ProcessAddOwnerAsync(
@@ -1217,7 +1217,7 @@ internal class TeamApiEndpointHandler(
     internal virtual async ValueTask<IResult> AddAdminAsync(
         HttpContext httpContext,
         [FromRoute] string teamId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
     )
     {
@@ -1261,7 +1261,7 @@ internal class TeamApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        var ownerResource = ToOwnerResource(grant.Assignment);
+        var ownerResource = ToRoleHolderResource(grant.Assignment);
         if (!grant.IsAdded)
         {
             return TypedResults.Ok(ownerResource);

@@ -51,7 +51,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         string changeType
     )
     {
-        var ownerResource = ToOwnerResource(assignment);
+        var ownerResource = ToRoleHolderResource(assignment);
         return ManagementAuditRecorder.RecordResourceChangeAsync(
             httpContext,
             new RoleAssignmentChangedAuditEvent
@@ -70,11 +70,11 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     }
 
     /// <summary>
-    /// Maps an owner role assignment to its <see cref="OwnerResource"/> representation.
+    /// Maps an owner role assignment to its <see cref="RoleHolderResource"/> representation.
     /// </summary>
     /// <param name="assignment">The owner role assignment to map.</param>
-    /// <returns>The mapped <see cref="OwnerResource"/>.</returns>
-    internal virtual OwnerResource ToOwnerResource(PersistedRoleAssignment assignment) =>
+    /// <returns>The mapped <see cref="RoleHolderResource"/>.</returns>
+    internal virtual RoleHolderResource ToRoleHolderResource(PersistedRoleAssignment assignment) =>
         new()
         {
             AssignmentId = assignment.AssignmentId,
@@ -160,7 +160,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
             cancellationToken
         );
         var canChange = await canChangeAsync(storeManager, cancellationToken);
-        var items = assignments.Select(ToOwnerResource).ToList();
+        var items = assignments.Select(ToRoleHolderResource).ToList();
         var roleList = new RoleListResource { Items = items, CanChange = canChange };
         return TypedResults.Json(roleList);
     }
@@ -187,7 +187,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
         string tenantId,
         string resourceType,
         string resourceId,
-        AddOwnerRequest request,
+        AddRoleHolderRequest request,
         string ownersPath,
         Func<IStoreManager, CancellationToken, ValueTask<bool>> resourceExistsAsync,
         CancellationToken cancellationToken
@@ -233,7 +233,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        var ownerResource = ToOwnerResource(grant.Assignment);
+        var ownerResource = ToRoleHolderResource(grant.Assignment);
         if (!grant.IsAdded)
         {
             return TypedResults.Ok(ownerResource);

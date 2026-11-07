@@ -199,8 +199,8 @@ internal class ResourceServerApiEndpointHandler(
             .Produces<RoleListResource>();
         resourceServers
             .MapPost("/{resourceServerId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         resourceServers
             .MapDelete("/{resourceServerId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -879,7 +879,7 @@ internal class ResourceServerApiEndpointHandler(
         HttpContext httpContext,
         [FromRoute] string tenantId,
         [FromRoute] string resourceServerId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
     )
     {

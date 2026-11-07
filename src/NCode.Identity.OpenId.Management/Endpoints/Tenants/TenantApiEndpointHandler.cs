@@ -243,8 +243,8 @@ internal class TenantApiEndpointHandler(
         tenants.MapGet("/{tenantId}/owners", ListOwnersAsync).Produces<RoleListResource>();
         tenants
             .MapPost("/{tenantId}/owners", AddOwnerAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         tenants
             .MapDelete("/{tenantId}/owners/{principalId}", RemoveOwnerAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -252,8 +252,8 @@ internal class TenantApiEndpointHandler(
         tenants.MapGet("/{tenantId}/admins", ListAdminsAsync).Produces<RoleListResource>();
         tenants
             .MapPost("/{tenantId}/admins", AddAdminAsync)
-            .Produces<OwnerResource>(StatusCodes.Status201Created)
-            .Produces<OwnerResource>(StatusCodes.Status200OK);
+            .Produces<RoleHolderResource>(StatusCodes.Status201Created)
+            .Produces<RoleHolderResource>(StatusCodes.Status200OK);
         tenants
             .MapDelete("/{tenantId}/admins/{principalId}", RemoveAdminAsync)
             .Produces(StatusCodes.Status204NoContent);
@@ -2057,7 +2057,7 @@ internal class TenantApiEndpointHandler(
     internal virtual async ValueTask<IResult> AddOwnerAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
     )
     {
@@ -2131,7 +2131,7 @@ internal class TenantApiEndpointHandler(
     internal virtual async ValueTask<IResult> AddAdminAsync(
         HttpContext httpContext,
         [FromRoute] string tenantId,
-        [FromBody] AddOwnerRequest request,
+        [FromBody] AddRoleHolderRequest request,
         CancellationToken cancellationToken
     )
     {
@@ -2175,7 +2175,7 @@ internal class TenantApiEndpointHandler(
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        var ownerResource = ToOwnerResource(grant.Assignment);
+        var ownerResource = ToRoleHolderResource(grant.Assignment);
         if (!grant.IsAdded)
         {
             return TypedResults.Ok(ownerResource);

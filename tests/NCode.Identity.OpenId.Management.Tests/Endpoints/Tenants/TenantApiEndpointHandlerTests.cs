@@ -5331,7 +5331,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -5370,11 +5370,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
-        var created = Assert.IsType<Created<OwnerResource>>(result);
+        var created = Assert.IsType<Created<RoleHolderResource>>(result);
         Assert.Equal($"/tenants/{TenantId}/admins/principal-2", created.Location);
     }
 
@@ -5418,7 +5418,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -5463,7 +5463,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -5505,11 +5505,11 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
-        var ok = Assert.IsType<Ok<OwnerResource>>(result);
+        var ok = Assert.IsType<Ok<RoleHolderResource>>(result);
         Assert.Equal("principal-2", ok.Value?.PrincipalId);
     }
 
@@ -5538,7 +5538,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -5554,7 +5554,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -5572,7 +5572,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             "unknown-tenant",
-            new AddOwnerRequest { PrincipalId = "principal-2" },
+            new AddRoleHolderRequest { PrincipalId = "principal-2" },
             CancellationToken.None
         );
 
@@ -5589,7 +5589,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         var result = await Handler.AddAdminAsync(
             CreateHttpContext(authenticated: true),
             TenantId,
-            new AddOwnerRequest { PrincipalId = string.Empty },
+            new AddRoleHolderRequest { PrincipalId = string.Empty },
             CancellationToken.None
         );
 

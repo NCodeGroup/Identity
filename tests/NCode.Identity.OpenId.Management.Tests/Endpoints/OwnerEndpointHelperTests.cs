@@ -160,13 +160,13 @@ public class OwnerEndpointHelperTests : IDisposable
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
-            new AddOwnerRequest { PrincipalId = "p2" },
+            new AddRoleHolderRequest { PrincipalId = "p2" },
             "/clients/client-1/owners",
             Exists,
             CancellationToken.None
         );
 
-        Assert.IsType<Created<OwnerResource>>(result);
+        Assert.IsType<Created<RoleHolderResource>>(result);
         var auditEvent = Assert.Single(captured);
         Assert.Equal(ResourceChangeTypes.Created, auditEvent.ChangeType);
         Assert.Equal("a2", auditEvent.ResourceId);
@@ -212,14 +212,14 @@ public class OwnerEndpointHelperTests : IDisposable
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
-            new AddOwnerRequest { PrincipalId = "p2" },
+            new AddRoleHolderRequest { PrincipalId = "p2" },
             "/clients/client-1/owners",
             Exists,
             CancellationToken.None
         );
 
-        var ok = Assert.IsType<Ok<OwnerResource>>(result);
-        var owner = Assert.IsType<OwnerResource>(ok.Value);
+        var ok = Assert.IsType<Ok<RoleHolderResource>>(result);
+        var owner = Assert.IsType<RoleHolderResource>(ok.Value);
         Assert.Equal("a2", owner.AssignmentId);
     }
 
@@ -257,7 +257,7 @@ public class OwnerEndpointHelperTests : IDisposable
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
-            new AddOwnerRequest { PrincipalId = "p2" },
+            new AddRoleHolderRequest { PrincipalId = "p2" },
             "/clients/client-1/owners",
             Exists,
             CancellationToken.None
@@ -280,7 +280,7 @@ public class OwnerEndpointHelperTests : IDisposable
             TenantId,
             ResourceNodeTypes.Client,
             ResourceId,
-            new AddOwnerRequest { PrincipalId = "p2" },
+            new AddRoleHolderRequest { PrincipalId = "p2" },
             "/clients/client-1/owners",
             Missing,
             CancellationToken.None

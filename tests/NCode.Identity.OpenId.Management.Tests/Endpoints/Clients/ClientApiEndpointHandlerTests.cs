@@ -5172,7 +5172,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CreateHttpContext(authenticated: true),
             TenantId,
             ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
+            new AddRoleHolderRequest { PrincipalId = "principal-1" },
             CancellationToken.None
         );
 
@@ -5191,7 +5191,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CreateHttpContext(authenticated: true),
             TenantId,
             ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
+            new AddRoleHolderRequest { PrincipalId = "principal-1" },
             CancellationToken.None
         );
 
@@ -5213,7 +5213,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             CreateHttpContext(authenticated: true),
             TenantId,
             ClientId,
-            new AddOwnerRequest { PrincipalId = "principal-1" },
+            new AddRoleHolderRequest { PrincipalId = "principal-1" },
             CancellationToken.None
         );
 

@@ -304,7 +304,10 @@ public sealed class TeamStoreLifecycleTests : IDisposable
             await _store.RemoveAsync(TeamId, CancellationToken.None)
         );
 
-        Assert.Contains("still has one or more tenants", exception.Message);
+        Assert.Contains(
+            "still has one or more tenants, teams or machine clients",
+            exception.Message
+        );
     }
 
     [Fact]
@@ -359,6 +362,44 @@ public sealed class TeamStoreLifecycleTests : IDisposable
     public async Task HasDependentsAsync_WhenATenantExists_ReturnsTrue()
     {
         await SeedTenantInTeamAsync();
+
+        Assert.True(await _store.HasDependentsAsync(TeamId, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task HasDependentsAsync_WhenTheTeamOwnsAMachineClient_ReturnsTrue()
+    {
+        var team = _dbContext.SeedTeam(_idGenerator, TeamId);
+        var tenant = _dbContext.SeedTenant(_idGenerator, "tenant-1");
+        _dbContext
+            .Set<ClientEntity>()
+            .Add(
+                new ClientEntity
+                {
+                    Id = _idGenerator.CreateId(),
+                    TenantId = tenant.Id,
+                    NormalizedTenantId = tenant.NormalizedTenantId,
+                    ClientId = "machine-client",
+                    NormalizedClientId = "machine-client",
+                    PrincipalId = "principal-1",
+                    NormalizedPrincipalId = "principal-1",
+                    OwningNodeType = OpenIdResourceTypes.Team,
+                    OwningNodeId = team.TeamId,
+                    NormalizedOwningNodeId = team.NormalizedTeamId,
+                    ConcurrencyToken = string.Empty,
+                    SettingsConcurrencyToken = string.Empty,
+                    SecretsConcurrencyToken = string.Empty,
+                    IsDisabled = false,
+                    SettingsJson = JsonSerializer.SerializeToElement(
+                        new Dictionary<string, object>()
+                    ),
+                    ResourceServerId = null,
+                    Tenant = tenant,
+                    ResourceServer = null,
+                    Secrets = [],
+                }
+            );
+        await SaveAndClearAsync();
 
         Assert.True(await _store.HasDependentsAsync(TeamId, CancellationToken.None));
     }

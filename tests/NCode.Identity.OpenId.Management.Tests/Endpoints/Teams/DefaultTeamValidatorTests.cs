@@ -756,7 +756,7 @@ public sealed class DefaultTeamValidatorTests : IDisposable
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status409Conflict, error.StatusCode);
         Assert.Equal(
-            "The team cannot be deleted while it still has tenants or teams.",
+            "The team cannot be deleted while it still has tenants, teams or machine clients.",
             error.Detail
         );
     }

@@ -884,10 +884,10 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupValidSettings();
         SetupStore();
         SetupResourceId("generated-id");
+        SetupAuthorizeCreate(resourceServerId: null, error: null);
         MockClientValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedClient>(),
                     It.IsAny<IStoreManager>(),
                     It.IsAny<CancellationToken>()

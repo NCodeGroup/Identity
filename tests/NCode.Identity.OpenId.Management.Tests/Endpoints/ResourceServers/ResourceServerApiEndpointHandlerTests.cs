@@ -498,10 +498,10 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
             .Returns("generated-rs-id")
             .Verifiable();
         SetupStore();
+        SetupAuthorizeCreate(error: null);
         MockValidator
             .Setup(x =>
                 x.ValidateCreateAsync(
-                    It.IsAny<ClaimsPrincipal>(),
                     It.IsAny<PersistedResourceServer>(),
                     MockStoreManager.Object,
                     It.IsAny<CancellationToken>()

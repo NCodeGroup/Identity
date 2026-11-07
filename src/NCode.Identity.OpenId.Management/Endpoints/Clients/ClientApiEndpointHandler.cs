@@ -99,6 +99,18 @@ internal class ClientApiEndpointHandler(
         Math.Max(SharedSecretPolicy.MinimumEntropyBits, storedKeySizeBits / 8 * 3 / 4 * 8);
 
     /// <summary>
+    /// Gets the node above a client, whose authority sets its settings' limits: the node that owns a machine client,
+    /// else the client's tenant.
+    /// </summary>
+    /// <param name="client">The client to get the node above.</param>
+    /// <returns>The node above the client.</returns>
+    // See ADR-1418 and ADR-1466.
+    internal static ResourceNode GetNodeAbove(PersistedClient client) =>
+        client.OwningNodeType is not null && client.OwningNodeId is not null
+            ? ResourceNode.For(client.TenantId, client.OwningNodeType, client.OwningNodeId)
+            : ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId);
+
+    /// <summary>
     /// Returns the earlier of two instants.
     /// </summary>
     private static DateTimeOffset Min(DateTimeOffset left, DateTimeOffset right) =>
@@ -1040,9 +1052,7 @@ internal class ClientApiEndpointHandler(
             await using var storeManager = await StoreManagerFactory.CreateAsync(token);
             var store = storeManager.GetStore<IClientStore>();
             var client = await store.GetOrDefaultAsync(clientId, token);
-            return client is null
-                ? null
-                : ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId);
+            return client is null ? null : GetNodeAbove(client);
         }
 
         var limitNames = SettingSerializer.GetLimits(OpenIdSettingScopes.Client);
@@ -1207,11 +1217,7 @@ internal class ClientApiEndpointHandler(
         }
 
         var changedLimits = SettingSerializer.GetChangedLimits(clientSettings.Value, settingsValue);
-        var authorityAbove = ResourceNode.For(
-            client.TenantId,
-            ResourceNodeTypes.Tenant,
-            client.TenantId
-        );
+        var authorityAbove = GetNodeAbove(client);
         var limitRefusal = await GetLimitChangeRefusalOrDefaultAsync(
             httpContext,
             changedLimits,

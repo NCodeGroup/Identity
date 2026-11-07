@@ -786,6 +786,45 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
+    #region GetNodeAbove Tests
+
+    [Fact]
+    public void GetNodeAbove_ForAMachineClient_ReturnsItsOwningNode()
+    {
+        var template = CreateClient("ct-1");
+        var client = new PersistedClient
+        {
+            TenantId = template.TenantId,
+            ClientId = template.ClientId,
+            ConcurrencyToken = template.ConcurrencyToken,
+            IsDisabled = template.IsDisabled,
+            OwningNodeType = ResourceNodeTypes.Team,
+            OwningNodeId = "team-1",
+            Settings = template.Settings,
+            Secrets = template.Secrets,
+        };
+
+        var node = ClientApiEndpointHandler.GetNodeAbove(client);
+
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Team, node.ResourceType);
+        Assert.Equal("team-1", node.ResourceId);
+    }
+
+    [Fact]
+    public void GetNodeAbove_ForAnOrdinaryClient_ReturnsItsTenant()
+    {
+        var client = CreateClient("ct-1");
+
+        var node = ClientApiEndpointHandler.GetNodeAbove(client);
+
+        Assert.Equal(TenantId, node.TenantId);
+        Assert.Equal(ResourceNodeTypes.Tenant, node.ResourceType);
+        Assert.Equal(TenantId, node.ResourceId);
+    }
+
+    #endregion
+
     #region CreateClientAsync Tests
 
     [Fact]
@@ -1593,6 +1632,57 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
         Assert.Equal([OpenIdSettingNames.RateLimitClientPerMinute], json.Value?.Names);
+        Assert.False(json.Value?.CanChange);
+    }
+
+    [Fact]
+    public async Task GetSettingLimitsAsync_ForAMachineClient_ReportsCanChangeAgainstItsOwningNode()
+    {
+        SetupClientLimits(OpenIdSettingNames.RateLimitClientPerMinute);
+        SetupStore();
+        var template = CreateClient("client-ct");
+        var client = new PersistedClient
+        {
+            TenantId = template.TenantId,
+            ClientId = template.ClientId,
+            ConcurrencyToken = template.ConcurrencyToken,
+            IsDisabled = template.IsDisabled,
+            OwningNodeType = ResourceNodeTypes.Team,
+            OwningNodeId = "team-1",
+            Settings = template.Settings,
+            Secrets = template.Secrets,
+        };
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(client)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.Is<object?>(resource =>
+                        resource is ResourceNode
+                        && ((ResourceNode)resource).TenantId == TenantId
+                        && ((ResourceNode)resource).ResourceType == ResourceNodeTypes.Team
+                        && ((ResourceNode)resource).ResourceId == "team-1"
+                    ),
+                    It.Is<IEnumerable<IAuthorizationRequirement>>(requirements =>
+                        requirements.Single() == Operations.Update
+                    )
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Failed())
+            .Verifiable();
+
+        var result = await Handler.GetSettingLimitsAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<SettingLimitsResource>>(result);
         Assert.False(json.Value?.CanChange);
     }
 

@@ -91,6 +91,8 @@ internal class ClientStore(
             ConcurrencyToken = client.ConcurrencyToken,
             IsDisabled = client.IsDisabled,
             PrincipalId = client.PrincipalId,
+            OwningNodeType = client.OwningNodeType,
+            OwningNodeId = client.OwningNodeId,
             ResourceServerId = client.ResourceServer?.ResourceServerId,
             Settings = await MapSettingsAsync(client, cancellationToken),
             Secrets = await MapSecretsAsync(client, cancellationToken),
@@ -281,6 +283,11 @@ internal class ClientStore(
             NormalizedClientId = Normalize(persistedClient.ClientId),
             PrincipalId = persistedClient.PrincipalId,
             NormalizedPrincipalId = Normalize(persistedClient.PrincipalId),
+            OwningNodeType = persistedClient.OwningNodeType,
+            OwningNodeId = persistedClient.OwningNodeId,
+            NormalizedOwningNodeId = persistedClient.OwningNodeId is null
+                ? null
+                : Normalize(persistedClient.OwningNodeId),
             ConcurrencyToken = persistedClient.ConcurrencyToken,
             SettingsConcurrencyToken = persistedClient.Settings.ConcurrencyToken,
             SecretsConcurrencyToken = persistedClient.Secrets.ConcurrencyToken,

@@ -18,6 +18,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// </summary>
 [Index(nameof(TenantId), nameof(NormalizedClientId), IsUnique = true)]
 [Index(nameof(TenantId), nameof(NormalizedPrincipalId), IsUnique = true)]
+[Index(nameof(OwningNodeType), nameof(NormalizedOwningNodeId))]
 public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToken
 {
     /// <summary>
@@ -69,6 +70,33 @@ public sealed class ClientEntity : ISupportTenantEntity, ISupportConcurrencyToke
     [Unicode(false)]
     [MaxLength(OpenIdMaxLengths.PrincipalId)]
     public required string NormalizedPrincipalId { get; init; }
+
+    /// <summary>
+    /// Gets the type of the node that owns this client as its machine client, <c>platform</c> or <c>team</c>, or
+    /// <c>null</c> for an ordinary client. It is set when the client is created and never changes.
+    /// </summary>
+    // See ADR-1466.
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceType)]
+    public required string? OwningNodeType { get; init; }
+
+    /// <summary>
+    /// Gets the identifier of the node that owns this client: the team's identifier, or <c>platform</c>; <c>null</c>
+    /// for an ordinary client.
+    /// </summary>
+    // See ADR-1466.
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string? OwningNodeId { get; init; }
+
+    /// <summary>
+    /// Gets the normalized value of <see cref="OwningNodeId"/> so that lookups can be sargable for DBMS engines that
+    /// don't support case-insensitive indices.
+    /// </summary>
+    // See ADR-1466.
+    [Unicode(false)]
+    [MaxLength(MaxLengths.ResourceId)]
+    public required string? NormalizedOwningNodeId { get; init; }
 
     //
 

@@ -3,6 +3,7 @@
 
 using System.Security.Cryptography;
 using JetBrains.Annotations;
+using NCode.Identity.Jose.Exceptions;
 using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose.Algorithms;
@@ -44,7 +45,8 @@ public abstract class SignatureAlgorithm : KeyedAlgorithm
     }
 
     /// <summary>
-    /// Computes a digital signature.
+    /// Computes a digital signature with key material that the process holds. A key whose private half a key
+    /// management service holds signs through <see cref="SignAsync"/>.
     /// </summary>
     /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
     /// <param name="inputData">Contains the data to sign.</param>
@@ -57,6 +59,69 @@ public abstract class SignatureAlgorithm : KeyedAlgorithm
         Span<byte> signature,
         out int bytesWritten
     );
+
+    /// <summary>
+    /// Computes a digital signature with a key that the process holds or that a key management service holds. A
+    /// signature from a remote key is verified with the key's public half before it is returned. A local key signs
+    /// synchronously, so the returned task is already completed.
+    /// </summary>
+    /// <param name="secretKey">Contains the key material for the cryptographic algorithm.</param>
+    /// <param name="inputData">Contains the data to sign.</param>
+    /// <param name="signature">Destination for the calculated signature.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The number of bytes written to <paramref name="signature"/>.</returns>
+    /// <exception cref="JoseInvalidAlgorithmException">The remote key is not compatible with this algorithm.</exception>
+    /// <exception cref="JoseException">The signature buffer is too small, or the remote key's signature does not verify.</exception>
+    // See ADR-1472.
+    public virtual ValueTask<int> SignAsync(
+        SecretKey secretKey,
+        ReadOnlyMemory<byte> inputData,
+        Memory<byte> signature,
+        CancellationToken cancellationToken
+    )
+    {
+        if (secretKey is IRemoteSecretKey remoteKey)
+        {
+            if (!IsKeyCompatible(secretKey))
+                throw new JoseInvalidAlgorithmException(
+                    $"The key is not compatible with the algorithm '{Code}'."
+                );
+
+            return SignRemoteAsync(secretKey, remoteKey, inputData, signature, cancellationToken);
+        }
+
+        if (!TrySign(secretKey, inputData.Span, signature.Span, out var bytesWritten))
+            throw new JoseException("The signature buffer is too small.");
+
+        return ValueTask.FromResult(bytesWritten);
+    }
+
+    private async ValueTask<int> SignRemoteAsync(
+        SecretKey secretKey,
+        IRemoteSecretKey remoteKey,
+        ReadOnlyMemory<byte> inputData,
+        Memory<byte> signature,
+        CancellationToken cancellationToken
+    )
+    {
+        var bytesWritten = await remoteKey.SignAsync(Code, inputData, signature, cancellationToken);
+
+        if (!IsRemoteSignatureValid(secretKey, inputData, signature, bytesWritten))
+            throw new JoseException(
+                $"The remote key '{remoteKey.Binding.Reference.KeyId}' returned a signature that its public key does not verify."
+            );
+
+        return bytesWritten;
+    }
+
+    private bool IsRemoteSignatureValid(
+        SecretKey secretKey,
+        ReadOnlyMemory<byte> inputData,
+        Memory<byte> signature,
+        int bytesWritten
+    ) =>
+        bytesWritten == GetSignatureSizeBytes(secretKey.KeySizeBits)
+        && Verify(secretKey, inputData.Span, signature.Span[..bytesWritten]);
 
     /// <summary>
     /// Verifies a digital signature.

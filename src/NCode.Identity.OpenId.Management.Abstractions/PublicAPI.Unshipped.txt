@@ -75,7 +75,19 @@ NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesRe
 NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource.Capabilities.get -> System.Collections.Generic.Dictionary<string!, object!>!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource.Capabilities.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.ManagementCapabilitiesResource.ManagementCapabilitiesResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.Algorithm.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.Algorithm.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.Curve.get -> string?
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.Curve.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.KeySizeBits.get -> int
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.KeySizeBits.init -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.RemoteKeyAlgorithmCapabilityResource() -> void
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.SecretType.get -> string!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource.SecretType.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.Algorithms.get -> System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyAlgorithmCapabilityResource!>!
+NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.Algorithms.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.Name.get -> string!
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.Name.init -> void
 NCode.Identity.OpenId.Management.Contracts.Capabilities.RemoteKeyProviderCapabilityResource.RemoteKeyProviderCapabilityResource() -> void

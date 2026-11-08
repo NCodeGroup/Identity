@@ -88,8 +88,13 @@ public sealed class CapabilitiesProvidersTests : IDisposable
     }
 
     [Fact]
-    public async Task RemoteKeyProviderCapabilitiesProvider_AddsTheDescribedProviderNamesInOrder()
+    public async Task RemoteKeyProviderCapabilitiesProvider_AddsEachDescribedProviderWithTheAlgorithmsTheDeploymentAccepts()
     {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging();
+        serviceCollection.AddSecretsLibrary().AddJoseLibrary();
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
         var mockCatalog = MockRepository.Create<IRemoteKeyDescriptorCatalog>();
         mockCatalog
             .Setup(x => x.Providers)
@@ -98,8 +103,22 @@ public sealed class CapabilitiesProvidersTests : IDisposable
                 new RemoteKeyProviderDescriptor { Name = "aws-kms" },
             ])
             .Verifiable();
+        mockCatalog
+            .Setup(x => x.Algorithms)
+            .Returns([
+                CreateRow("aws-kms", "ES256", "ecc", 256, "P-256"),
+                CreateRow("aws-kms", "RS256", "rsa", 2048, null),
+                CreateRow("aws-kms", "XS999", "rsa", 2048, null),
+                CreateRow("google-cloud-kms", "PS256", "rsa", 3072, null),
+                CreateRow("other-kms", "RS256", "rsa", 2048, null),
+            ])
+            .Verifiable();
 
-        var provider = new RemoteKeyProviderCapabilitiesProvider(mockCatalog.Object);
+        var provider = new RemoteKeyProviderCapabilitiesProvider(
+            mockCatalog.Object,
+            serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
+            serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+        );
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
@@ -111,7 +130,34 @@ public sealed class CapabilitiesProvidersTests : IDisposable
             capabilities[RemoteKeyProviderCapabilitiesProvider.SectionName]
         );
         Assert.Equal(["aws-kms", "google-cloud-kms"], section.Select(x => x.Name));
+
+        Assert.Equal(
+            [("ES256", "ecc", 256, "P-256"), ("RS256", "rsa", 2048, (string?)null)],
+            section[0].Algorithms.Select(x => (x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
+        );
+        var googleAlgorithm = Assert.Single(section[1].Algorithms);
+        Assert.Equal("PS256", googleAlgorithm.Algorithm);
+        Assert.Equal(3072, googleAlgorithm.KeySizeBits);
+        Assert.Null(googleAlgorithm.Curve);
     }
+
+    private static RemoteSigningAlgorithm CreateRow(
+        string provider,
+        string algorithm,
+        string secretType,
+        int keySizeBits,
+        string? curve
+    ) =>
+        new()
+        {
+            Provider = provider,
+            Algorithm = algorithm,
+            SecretType = secretType,
+            KeySizeBits = keySizeBits,
+            Curve = curve,
+            KeySpec = "SPEC",
+            SigningAlgorithm = "SIGN",
+        };
 
     [Fact]
     public async Task AlgorithmCapabilitiesProvider_PublishesSignatureAndKeyManagementAlgorithms()

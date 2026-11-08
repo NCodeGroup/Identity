@@ -36,6 +36,8 @@
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
+- **Conflicts with:** [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
+  item 8, which names the one initial migration `Initial`; tracked in [#645](https://github.com/NCodeGroup/Identity/issues/645)
 
 ## Context
 

@@ -73,37 +73,35 @@ public class GoogleCloudKmsCallSettingsTests
     #region Creating Tests
 
     [Fact]
-    public void Creating_Settings_UsesExponentialBackoff()
+    public void Creating_Settings_MakesOneAttempt()
     {
         var retry = GoogleCloudKmsCallSettings.Creating.Retry;
 
         Assert.NotNull(retry);
-        Assert.Equal(3, retry.MaxAttempts);
-        Assert.Equal(TimeSpan.FromMilliseconds(200), retry.InitialBackoff);
-        Assert.Equal(TimeSpan.FromSeconds(4), retry.MaxBackoff);
-        Assert.Equal(2.0, retry.BackoffMultiplier);
-    }
-
-    [Fact]
-    public void Creating_ResourceExhausted_Retries()
-    {
-        var retry = GoogleCloudKmsCallSettings.Creating.Retry;
-
-        Assert.NotNull(retry);
-        Assert.True(Retries(retry.RetryFilter, StatusCode.ResourceExhausted));
+        Assert.Equal(1, retry.MaxAttempts);
     }
 
     [Theory]
+    [InlineData(StatusCode.ResourceExhausted)]
     [InlineData(StatusCode.Unavailable)]
     [InlineData(StatusCode.DeadlineExceeded)]
     [InlineData(StatusCode.NotFound)]
     [InlineData(StatusCode.AlreadyExists)]
-    public void Creating_OtherStatus_DoesNotRetry(StatusCode statusCode)
+    public void Creating_AnyStatus_DoesNotRetry(StatusCode statusCode)
     {
         var retry = GoogleCloudKmsCallSettings.Creating.Retry;
 
         Assert.NotNull(retry);
         Assert.False(Retries(retry.RetryFilter, statusCode));
+    }
+
+    [Fact]
+    public void Creating_NonRpcException_DoesNotRetry()
+    {
+        var retry = GoogleCloudKmsCallSettings.Creating.Retry;
+
+        Assert.NotNull(retry);
+        Assert.False(retry.RetryFilter(new InvalidOperationException()));
     }
 
     #endregion

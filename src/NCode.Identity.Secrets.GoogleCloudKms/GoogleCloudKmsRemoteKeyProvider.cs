@@ -312,7 +312,7 @@ internal class GoogleCloudKmsRemoteKeyProvider(
 
         var destroyRequest = new DestroyCryptoKeyVersionRequest { Name = keyId };
         var callSettings = CreateCallSettings(
-            GoogleCloudKmsCallSettings.Creating,
+            GoogleCloudKmsCallSettings.Retrying,
             cancellationToken
         );
 

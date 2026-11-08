@@ -1029,7 +1029,7 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
             .Verifiable();
 
     [Fact]
-    public async Task DestroyKeyAsync_Version_IsDestroyedWithTheCreatingSettings()
+    public async Task DestroyKeyAsync_Version_IsDestroyedWithTheRetryingSettings()
     {
         using var cancellationSource = new CancellationTokenSource();
         DestroyCryptoKeyVersionRequest? sent = null;
@@ -1048,7 +1048,7 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         await provider.DestroyKeyAsync(SignKeyName, cancellationSource.Token);
 
         Assert.Equal(SignKeyName, Assert.IsType<DestroyCryptoKeyVersionRequest>(sent).Name);
-        AssertSettings(sentSettings, GoogleCloudKmsCallSettings.Creating, cancellationSource.Token);
+        AssertSettings(sentSettings, GoogleCloudKmsCallSettings.Retrying, cancellationSource.Token);
     }
 
     [Theory]

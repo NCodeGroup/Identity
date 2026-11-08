@@ -14,15 +14,14 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 internal static class GoogleCloudKmsCallSettings
 {
     private const int RetryingMaxAttempts = 4;
-    private const int CreatingMaxAttempts = 3;
     private const double BackoffMultiplier = 2.0;
 
     private static TimeSpan InitialBackoff { get; } = TimeSpan.FromMilliseconds(200);
     private static TimeSpan MaxBackoff { get; } = TimeSpan.FromSeconds(4);
 
     /// <summary>
-    /// Gets the settings of a call that is safe to repeat, such as signing, reading a public key or reading a crypto
-    /// key version. The call is retried when Cloud KMS answers <see cref="StatusCode.ResourceExhausted"/>,
+    /// Gets the settings of a call that is safe to repeat, such as signing, reading a public key, reading a crypto
+    /// key version or destroying a crypto key version. The call is retried when Cloud KMS answers <see cref="StatusCode.ResourceExhausted"/>,
     /// <see cref="StatusCode.Unavailable"/> or <see cref="StatusCode.DeadlineExceeded"/>.
     /// </summary>
     public static CallSettings Retrying { get; } =
@@ -42,18 +41,17 @@ internal static class GoogleCloudKmsCallSettings
         );
 
     /// <summary>
-    /// Gets the settings of a call that creates or destroys a crypto key or a crypto key version. The call is retried
-    /// only when Cloud KMS answers <see cref="StatusCode.ResourceExhausted"/>, which says the request was not
-    /// processed.
+    /// Gets the settings of a call that creates a crypto key or a crypto key version. A call that creates a crypto key
+    /// or version is made once, because a repeated call can create a second one that nothing records.
     /// </summary>
     public static CallSettings Creating { get; } =
         CallSettings.FromRetry(
             RetrySettings.FromExponentialBackoff(
-                maxAttempts: CreatingMaxAttempts,
+                maxAttempts: 1,
                 initialBackoff: InitialBackoff,
                 maxBackoff: MaxBackoff,
                 backoffMultiplier: BackoffMultiplier,
-                retryFilter: RetrySettings.FilterForStatusCodes(StatusCode.ResourceExhausted),
+                retryFilter: static _ => false,
                 backoffJitter: RetrySettings.RandomJitter
             )
         );

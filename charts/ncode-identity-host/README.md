@@ -53,15 +53,18 @@ Rendering fails, before anything is applied, when:
 - `secretProtection.rootKeyProvider` is `aws-kms`, in any environment, and `secretProtection.awsKms.keyArn` is empty or
   is not the ARN of a KMS key or alias;
 - `secretProtection.rootKeyProvider` is `azure-key-vault`, in any environment, and
-  `secretProtection.azureKeyVault.keyId` is empty or is not the identifier of a Key Vault or Managed HSM key, or only
-  one of `secretProtection.azureKeyVault.workloadIdentity.tenantId` and `clientId` is set;
+  `secretProtection.azureKeyVault.keyId` is empty or is not the identifier of a Key Vault or Managed HSM key;
 - `secretProtection.rootKeyProvider` is `google-cloud-kms`, in any environment, and
-  `secretProtection.googleCloudKms.keyName` is empty or is not the resource name of a Cloud KMS crypto key, or
-  `secretProtection.googleCloudKms.workloadIdentityFederation.provider` is set and is not the resource name of a
-  workload identity pool provider;
+  `secretProtection.googleCloudKms.keyName` is empty or is not the resource name of a Cloud KMS crypto key;
 - a `secretProtection.remoteKeyProviders` value is malformed: `awsKms.region` is not a system name such as `us-west-2`,
   `awsKms.pendingWindowInDays` is outside 7 to 30, `azureKeyVault.vaultUri` is not an `https` URI, or
   `googleCloudKms.keyRing` is not the resource name of a key ring;
+- a key management service is used, as `secretProtection.rootKeyProvider`, in `secretProtection.ownerRootKeys.providers`
+  or under `secretProtection.remoteKeyProviders`, and its workload credentials are half set: only one of
+  `secretProtection.azureKeyVault.workloadIdentity.tenantId` and `clientId` is set, or
+  `secretProtection.googleCloudKms.workloadIdentityFederation.provider` is set and is not the resource name of a
+  workload identity pool provider. Workload credentials themselves are optional: a provider without them signs in
+  with the pod's ambient identity, such as EKS Pod Identity or Workload Identity Federation for GKE;
 - `environment` is `Production`, `secretProtection.recovery.publicKeyConfigMap` is empty, and
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
 - `replicaCount` is above 1 without `valkey.existingSecret`, because replicas share single-use state through Valkey;
@@ -447,7 +450,8 @@ the database provisions through it. `ci/remote-key-providers-values.yaml` shows 
 carries them: for AWS KMS the web identity (`secretProtection.awsKms.webIdentity.roleArn`), for Azure Key Vault the
 workload identity (`secretProtection.azureKeyVault.workloadIdentity.clientId` and `tenantId`), and for Google Cloud KMS
 the federation (`secretProtection.googleCloudKms.workloadIdentityFederation.provider`). A provider with no
-workload-identity values uses the pod's ambient identity. A pod never carries the credentials of a provider that is not
+workload-identity values uses the pod's ambient identity. The chart renders such a provider on purpose, as it does a
+root key provider, because a cluster can supply the identity itself; it refuses only a half-set value. A pod never carries the credentials of a provider that is not
 the root key provider, listed in `secretProtection.ownerRootKeys.providers` or configured here. One identity serves
 each vendor, so the root key, a tenant's root key and the tenant's signing keys share it.
 

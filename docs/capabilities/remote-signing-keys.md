@@ -170,16 +170,20 @@ provider already holds. Remote keys belong to tenants only, so the routes sit un
   and the optional `activatesWhen` and `retiresWhen`. It needs `Create` authority at the tenant, validates the request
   against the provider's mapping before it calls the KMS, and answers `201` with the secret. The key has `Origin`
   `generated`, so deleting the secret destroys the key in the KMS. A request that fails validation answers `400`, a
-  missing tenant `404`, a secret identifier that is taken `409` and a KMS failure or refusal `502`.
+  missing tenant `404`, a secret identifier the tenant already holds `409` before the KMS is called, a write that
+  lost a concurrency race `412` after the created key is destroyed and a KMS failure or refusal `502`.
 - **Binding a key.** `POST /api/tenants/{tenantId}/secrets/remote/import` takes an `ImportRemoteSecretRequest`:
   `remoteKeyProvider`, `remoteKeyId`, the key's public half as `secretType`, `format` and `keyMaterial`, `algorithm`,
   `expiresWhen` and the optional `activatesWhen` and `retiresWhen`. The `remoteKeyId` is the service's identifier for
   the key: an AWS KMS key ARN, an Azure Key Vault versioned key identifier, or a Google Cloud KMS crypto key version
-  resource name. The server stores the key only after it signs 32 random bytes through the referenced key and the
+  resource name. It holds at most 8,000 characters together with the provider name and a colon, the stored reference
+  `<provider>:<keyId>` (7,992 for `aws-kms`), and no control character and no leading or trailing white space. The
+  server stores the key only after it signs 32 random bytes through the referenced key and the
   supplied public half verifies the signature. The key has `Origin` `supplied`, so the server never destroys it. The
   route needs `Create` authority at the tenant and `Update` authority at the platform, because the deployment's identity
-  reaches every key the KMS lets it use. A key that does not prove it signs, or an unregistered provider, answers
-  `400`; a KMS failure or refusal answers `502`.
+  reaches every key the KMS lets it use. A key that does not prove it signs, an unregistered provider or an algorithm that is not a registered signature algorithm
+  for the key's type answers `400`; a secret identifier or `kid` the tenant already holds answers `409`; a KMS failure
+  or refusal answers `502`.
 - **Updating.** An update keeps the algorithm of a `remote` secret: a different algorithm answers `400`, because the
   key is bound to its algorithm.
 - **Capabilities.** The capabilities list the registered provider names in `remoteKeyProviders`, sorted ordinally, so a

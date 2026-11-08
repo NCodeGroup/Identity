@@ -41,7 +41,7 @@ public half the operator supplied.**
 2. **Remote keys have tenant-only routes in a handler of their own.** `TenantRemoteSecretApiEndpointHandler` maps
    `POST /api/tenants/{tenantId}/secrets/remote` (`CreateRemoteSecretRequest`) and
    `POST /api/tenants/{tenantId}/secrets/remote/import` (`ImportRemoteSecretRequest`). Both answer `201` with a
-   `SecretResource`. `CreateRemoteSecretRequest` carries `RemoteKeyProvider`, `SecretType`, `KeySizeBits`, `Curve`,
+   `SecretResource`, and declare their problem answers (`400`, `401`, `403`, `404`, `409`, `412`, `502`). `CreateRemoteSecretRequest` carries `RemoteKeyProvider`, `SecretType`, `KeySizeBits`, `Curve`,
    `Algorithm` and the lifecycle (`ActivatesWhen`, `RetiresWhen`, `ExpiresWhen`). `ImportRemoteSecretRequest` carries
    `RemoteKeyProvider`, `RemoteKeyId`, the public-import `SecretType`, `Format` and `KeyMaterial`, `Algorithm` and the
    lifecycle. The shared `CreateSecretRequest` and `ImportSecretRequest` stay as they are, because their routes also
@@ -54,17 +54,23 @@ public half the operator supplied.**
    `ManagedBy`, so the key keeps the lifecycle the request gives it with `Origin` `generated`, and removing the secret
    destroys the key in the KMS through `IRemoteSecretDestroyer`. A request that fails validation answers `400` without
    a KMS call, a missing tenant `404`, a generator that refuses its parameters `400`, a KMS failure or refusal `502`
-   (logged with the provider and secret identifiers), and a secret identifier that is taken `409` after the record is
-   handed to the destroyer.
+   (logged with the provider and secret identifiers), and a secret identifier the tenant already holds `409` before the KMS is
+   called. Once the KMS created the key, a record the store does not add or commit hands the key to
+   `IRemoteSecretDestroyer` before the failure propagates, so a write that lost a concurrency race answers `412` and
+   leaves no key behind.
 4. **Import binds a key the KMS holds and proves the binding.** The server imports the supplied public half under the
    client-key policy (`IClientKeyImporter.TryImportKey`, `Use` `sig`, [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md),
    [ADR-1104](1104-import-public-asymmetric-secret-material.md)) and stores it as a `remote` secret with `Origin`
-   `supplied` and no `ManagedBy`, so the server never destroys it. It reads the stored secret through the tenant load
+   `supplied` and no `ManagedBy`, so the server never destroys it. The `RemoteKeyId` is stored in the reference
+   `<provider>:<keyId>`, which holds at most 8,000 characters (`SecretMaxLengths.EncodedValue`), so the identifier
+   holds at most 8,000 less the provider name's length and the colon (7,992 for `aws-kms`); it holds no control
+   character and no leading or trailing white space. The algorithm is a registered signature algorithm for the key's
+   type. It reads the stored secret through the tenant load
    path (`ISecretSerializer.DeserializeRemoteSecret`), which refuses an unregistered provider, a missing mapping row or
    a size or curve that differs from the row, and signs 32 random bytes through the referenced key with
    `SignatureAlgorithm.SignAsync`, which verifies the KMS signature with the stored public half. A secret that does not
    load, a signature that does not verify, an unregistered provider or a missing row answers `400`; a KMS failure or
-   refusal is logged and answers `502`; a secret identifier or key identifier that is taken answers `409`; a missing
+   refusal is logged and answers `502`; a secret identifier or `kid` the tenant already holds answers `409` before the binding is proved; a missing
    tenant answers `404`.
 5. **Binding needs platform authority.** The import route authorizes `Operations.Create` at the tenant node, then
    `Operations.Update` at the platform node, both before any read. A tenant administrator alone cannot bind, because
@@ -78,7 +84,7 @@ public half the operator supplied.**
    reads a `remote` secret, which holds no master-key material (ADR-1471 rule 3), so a management request never loads
    a master key to check a binding.
 9. **The console shows the provider.** `SecretTable` shows a chip with the provider name beside a remote secret's
-   type. Dialogs that create or bind a remote key are separate work.
+   type. The dialogs that create or bind a remote key are tracked in [#687](https://github.com/NCodeGroup/Identity/issues/687).
 
 ## Options considered
 

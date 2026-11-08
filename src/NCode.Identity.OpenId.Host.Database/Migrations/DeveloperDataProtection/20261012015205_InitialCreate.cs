@@ -3,7 +3,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace NCode.Identity.OpenId.Host.Database.Migrations.DataProtection
+namespace NCode.Identity.OpenId.Host.Database.Migrations.DeveloperDataProtection
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

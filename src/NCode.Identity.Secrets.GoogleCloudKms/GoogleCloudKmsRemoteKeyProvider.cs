@@ -59,16 +59,16 @@ internal class GoogleCloudKmsRemoteKeyProvider(
     /// </summary>
     internal const string AlgorithmLabelKey = "ncode-identity-algorithm";
 
-    private static readonly TimeSpan InitialPollDelay = TimeSpan.FromMilliseconds(250);
-    private static readonly TimeSpan MaxPollDelay = TimeSpan.FromSeconds(4);
-    private static readonly TimeSpan PollTimeout = TimeSpan.FromSeconds(60);
+    private static TimeSpan InitialPollDelay { get; } = TimeSpan.FromMilliseconds(250);
+    private static TimeSpan MaxPollDelay { get; } = TimeSpan.FromSeconds(4);
+    private static TimeSpan PollTimeout { get; } = TimeSpan.FromSeconds(60);
 
     // The wire name of each algorithm, such as RSA_SIGN_PSS_3072_SHA256, is the original name of the enum member in
     // the protocol buffer definition.
-    private static readonly FrozenDictionary<
+    private static FrozenDictionary<
         string,
         CryptoKeyVersion.Types.CryptoKeyVersionAlgorithm
-    > KeySpecs = CreateKeySpecs();
+    > KeySpecs { get; } = CreateKeySpecs();
 
     private IGoogleCloudKmsClientFactory ClientFactory { get; } = clientFactory;
 

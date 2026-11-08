@@ -17,8 +17,8 @@ internal static class GoogleCloudKmsCallSettings
     private const int CreatingMaxAttempts = 3;
     private const double BackoffMultiplier = 2.0;
 
-    private static readonly TimeSpan InitialBackoff = TimeSpan.FromMilliseconds(200);
-    private static readonly TimeSpan MaxBackoff = TimeSpan.FromSeconds(4);
+    private static TimeSpan InitialBackoff { get; } = TimeSpan.FromMilliseconds(200);
+    private static TimeSpan MaxBackoff { get; } = TimeSpan.FromSeconds(4);
 
     /// <summary>
     /// Gets the settings of a call that is safe to repeat, such as signing, reading a public key or reading a crypto

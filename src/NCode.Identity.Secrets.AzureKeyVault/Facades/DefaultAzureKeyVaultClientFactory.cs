@@ -30,7 +30,7 @@ internal sealed class DefaultAzureKeyVaultClientFactory(TimeProvider timeProvide
     : IAzureKeyVaultClientFactory,
         IDisposable
 {
-    private static readonly TimeSpan DirectoryIdleTimeout = TimeSpan.FromDays(1);
+    private static TimeSpan DirectoryIdleTimeout { get; } = TimeSpan.FromDays(1);
 
     private Lazy<AzureDirectoryClients> OwnClients { get; } =
         new(() => AzureDirectoryClients.Create(directory: null));

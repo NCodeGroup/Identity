@@ -21,20 +21,20 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 // See ADR-1471.
 internal sealed class AzureKeyVaultSigningAlgorithms : IRemoteSigningAlgorithmSource
 {
-    private static readonly int[] RsaKeySizesBits = [2048, 3072, 4096];
+    private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
-    private static readonly (
+    private static (
         int HashSizeBits,
         HashAlgorithmName Digest,
         EccCurveSpecification Curve
-    )[] Hashes =
+    )[] Hashes { get; } =
     [
         (256, HashAlgorithmName.SHA256, EccCurveSpecification.P256),
         (384, HashAlgorithmName.SHA384, EccCurveSpecification.P384),
         (512, HashAlgorithmName.SHA512, EccCurveSpecification.P521),
     ];
 
-    private static readonly IReadOnlyList<RemoteSigningAlgorithm> Rows = CreateRows();
+    private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } = CreateRows();
 
     /// <inheritdoc />
     public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;

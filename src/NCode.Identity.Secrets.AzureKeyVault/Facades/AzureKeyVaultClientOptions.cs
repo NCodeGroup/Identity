@@ -20,12 +20,12 @@ internal static class AzureKeyVaultClientOptions
     /// <summary>
     /// The delay before the first retry; each later retry waits longer.
     /// </summary>
-    public static readonly TimeSpan Delay = TimeSpan.FromMilliseconds(500);
+    public static TimeSpan Delay { get; } = TimeSpan.FromMilliseconds(500);
 
     /// <summary>
     /// The longest delay between two retries.
     /// </summary>
-    public static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(8);
+    public static TimeSpan MaxDelay { get; } = TimeSpan.FromSeconds(8);
 
     /// <summary>
     /// Sets the retry of the options of a client to an exponential back-off.

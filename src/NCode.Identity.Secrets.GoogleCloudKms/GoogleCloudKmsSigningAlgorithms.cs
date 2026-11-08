@@ -26,9 +26,9 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 // See ADR-1471.
 internal sealed class GoogleCloudKmsSigningAlgorithms : IRemoteSigningAlgorithmSource
 {
-    private static readonly int[] RsaKeySizesBits = [2048, 3072, 4096];
+    private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
-    private static readonly IReadOnlyList<RemoteSigningAlgorithm> Rows = CreateRows();
+    private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } = CreateRows();
 
     /// <inheritdoc />
     public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;

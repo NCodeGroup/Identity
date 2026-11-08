@@ -36,7 +36,7 @@ internal sealed class DefaultGoogleCloudKmsClientFactory(TimeProvider timeProvid
     : IGoogleCloudKmsClientFactory,
         IDisposable
 {
-    private static readonly TimeSpan ImpersonatedIdleTimeout = TimeSpan.FromDays(1);
+    private static TimeSpan ImpersonatedIdleTimeout { get; } = TimeSpan.FromDays(1);
 
     private KeyManagementServiceClient? _client;
 

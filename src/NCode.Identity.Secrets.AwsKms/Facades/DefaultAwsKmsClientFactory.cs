@@ -38,7 +38,7 @@ internal sealed class DefaultAwsKmsClientFactory(TimeProvider timeProvider)
     : IAwsKmsClientFactory,
         IDisposable
 {
-    private static readonly TimeSpan AssumedRoleIdleTimeout = TimeSpan.FromDays(1);
+    private static TimeSpan AssumedRoleIdleTimeout { get; } = TimeSpan.FromDays(1);
 
     private ConcurrentDictionary<
         string,

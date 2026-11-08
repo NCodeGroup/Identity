@@ -110,7 +110,11 @@ public class JoseSerializerJsonTests : BaseTests
         Assert.False(root.TryGetProperty("signatures", out _));
 
         var parsed = JoseSerializer.Parse(token);
-        var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            parsed,
+            credentials.SecretKey,
+            CancellationToken.None
+        );
         var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("RS256", header.GetProperty("alg").GetString());
@@ -134,7 +138,11 @@ public class JoseSerializerJsonTests : BaseTests
         Assert.Equal(JsonValueKind.Array, signatures.ValueKind);
         Assert.Equal(1, signatures.GetArrayLength());
 
-        var decoded = JoseSerializer.Decode(token, credentials.SecretKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            token,
+            credentials.SecretKey,
+            CancellationToken.None
+        );
         Assert.Equal(Payload, decoded);
     }
 
@@ -157,8 +165,14 @@ public class JoseSerializerJsonTests : BaseTests
         var jsonElement = JsonElement.Parse(token);
         Assert.Equal(2, jsonElement.GetProperty("signatures").GetArrayLength());
 
-        Assert.Equal(Payload, JoseSerializer.Decode(token, rsa.SecretKey));
-        Assert.Equal(Payload, JoseSerializer.Decode(token, hmac.SecretKey));
+        Assert.Equal(
+            Payload,
+            await JoseSerializer.DecodeAsync(token, rsa.SecretKey, CancellationToken.None)
+        );
+        Assert.Equal(
+            Payload,
+            await JoseSerializer.DecodeAsync(token, hmac.SecretKey, CancellationToken.None)
+        );
     }
 
     [Fact]
@@ -184,7 +198,11 @@ public class JoseSerializerJsonTests : BaseTests
         Assert.Equal("rsa-1", unprotected.GetProperty("kid").GetString());
 
         var parsed = JoseSerializer.Parse(token);
-        var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            parsed,
+            credentials.SecretKey,
+            CancellationToken.None
+        );
         var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("rsa-1", header.GetProperty("kid").GetString());
@@ -223,7 +241,11 @@ public class JoseSerializerJsonTests : BaseTests
             .EncodeAsync(Payload, CancellationToken.None);
 
         var parsed = JoseSerializer.Parse(token);
-        var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            parsed,
+            credentials.SecretKey,
+            CancellationToken.None
+        );
         var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.False(header.GetProperty("b64").GetBoolean());
@@ -246,7 +268,11 @@ public class JoseSerializerJsonTests : BaseTests
             .EncodeAsync(NonAsciiPayload, CancellationToken.None);
 
         var parsed = JoseSerializer.Parse(token);
-        var decoded = JoseSerializer.Decode(parsed, credentials.SecretKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            parsed,
+            credentials.SecretKey,
+            CancellationToken.None
+        );
         Assert.Equal(NonAsciiPayload, decoded);
     }
 
@@ -300,7 +326,9 @@ public class JoseSerializerJsonTests : BaseTests
             .EncodeAsync(Payload, CancellationToken.None);
 
         var wrongKey = CreateRsaKey("rsa-2");
-        Assert.Throws<JoseIntegrityException>(() => JoseSerializer.Decode(token, wrongKey));
+        await Assert.ThrowsAsync<JoseIntegrityException>(async () =>
+            await JoseSerializer.DecodeAsync(token, wrongKey, CancellationToken.None)
+        );
     }
 
     #endregion
@@ -349,7 +377,11 @@ public class JoseSerializerJsonTests : BaseTests
         Assert.False(root.TryGetProperty("recipients", out _));
 
         var parsed = JoseSerializer.Parse(token);
-        var decoded = JoseSerializer.Decode(parsed, recipient.KeyManagementCredentials.SecretKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            parsed,
+            recipient.KeyManagementCredentials.SecretKey,
+            CancellationToken.None
+        );
         var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("RSA-OAEP", header.GetProperty("alg").GetString());
@@ -377,8 +409,22 @@ public class JoseSerializerJsonTests : BaseTests
         var jsonElement = JsonElement.Parse(token);
         Assert.Equal(2, jsonElement.GetProperty("recipients").GetArrayLength());
 
-        Assert.Equal(Payload, JoseSerializer.Decode(token, rsa.KeyManagementCredentials.SecretKey));
-        Assert.Equal(Payload, JoseSerializer.Decode(token, aes.KeyManagementCredentials.SecretKey));
+        Assert.Equal(
+            Payload,
+            await JoseSerializer.DecodeAsync(
+                token,
+                rsa.KeyManagementCredentials.SecretKey,
+                CancellationToken.None
+            )
+        );
+        Assert.Equal(
+            Payload,
+            await JoseSerializer.DecodeAsync(
+                token,
+                aes.KeyManagementCredentials.SecretKey,
+                CancellationToken.None
+            )
+        );
     }
 
     [Fact]
@@ -404,7 +450,11 @@ public class JoseSerializerJsonTests : BaseTests
         Assert.Equal("bar", jsonElement.GetProperty("unprotected").GetProperty("foo").GetString());
 
         var parsed = JoseSerializer.Parse(token);
-        var decoded = JoseSerializer.Decode(parsed, recipient.KeyManagementCredentials.SecretKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            parsed,
+            recipient.KeyManagementCredentials.SecretKey,
+            CancellationToken.None
+        );
         var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("bar", header.GetProperty("foo").GetString());
@@ -428,7 +478,11 @@ public class JoseSerializerJsonTests : BaseTests
             .EncodeAsync(Payload, CancellationToken.None);
 
         var parsed = JoseSerializer.Parse(token);
-        var decoded = JoseSerializer.Decode(parsed, recipient.KeyManagementCredentials.SecretKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            parsed,
+            recipient.KeyManagementCredentials.SecretKey,
+            CancellationToken.None
+        );
         var header = parsed.Header;
         Assert.Equal(Payload, decoded);
         Assert.Equal("DEF", header.GetProperty("zip").GetString());
@@ -457,7 +511,7 @@ public class JoseSerializerJsonTests : BaseTests
             .CreateEncoder(options)
             .EncodeAsync(Payload, CancellationToken.None);
 
-        Assert.Equal(Payload, JoseSerializer.Decode(token, key));
+        Assert.Equal(Payload, await JoseSerializer.DecodeAsync(token, key, CancellationToken.None));
     }
 
     [Fact]
@@ -516,7 +570,9 @@ public class JoseSerializerJsonTests : BaseTests
             .EncodeAsync(Payload, CancellationToken.None);
 
         var wrongKey = CreateRsaKey("rsa-2");
-        Assert.Throws<JoseEncryptionException>(() => JoseSerializer.Decode(token, wrongKey));
+        await Assert.ThrowsAsync<JoseEncryptionException>(async () =>
+            await JoseSerializer.DecodeAsync(token, wrongKey, CancellationToken.None)
+        );
     }
 
     #endregion

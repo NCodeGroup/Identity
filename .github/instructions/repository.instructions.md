@@ -46,8 +46,10 @@ and preferred over shims. Surface a fork for the user to decide **only** when th
 
 ### The product is described as it is — changes are not tracked
 
-Breaking changes are allowed and **never tracked**
-([ADR-1393](../../docs/decisions/1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md)).
+Breaking changes are allowed and **never tracked**: the family is a pre-release project, `pre-release: untracked` in
+the [Landing](../../AGENTS.md#landing) section of `AGENTS.md`, as
+[project-template ADR-0015](../../docs/decisions/project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
+decides.
 Every text a change writes — a `CHANGELOG.md` entry, a document, a code comment, an XML doc, a decision record's text,
 a test name, a commit message, a pull request's title and description — describes the product **as it is**: what a
 package, type, setting, endpoint or behavior is and does, never how it differs from an earlier unreleased state.
@@ -63,8 +65,7 @@ package, type, setting, endpoint or behavior is and does, never how it differs f
   [`CHANGELOG.md`](../../CHANGELOG.md) is a present-tense catalog of what the family does, under `### Added`
   (capabilities) and `### Security` (security posture and protections) only. A change edits it in place to match the
   code: it adds an entry, rewrites the entry whose capability it reshapes, and deletes the entry whose capability it
-  removes. This overrides the template's `### Changed`, `### Deprecated`, `### Removed` and `### Fixed` groups and its
-  `**Breaking:**` label.
+  removes, as the template's planning, review and landing commands do in a pre-release project.
 - **No breaking marker.** Commit subjects and pull request titles never carry the conventional-commit `!` marker
   (`feat:`, never `feat!:`), and no commit message or pull request description carries a `BREAKING CHANGE:` footer.
 - **Decision records relate through their metadata.** A record's `Status`, `Amends`, `Supersedes`, `Refines` and

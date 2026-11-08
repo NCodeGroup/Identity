@@ -122,6 +122,7 @@ NCode.Identity.OpenId.Tenants.Keys.TenantKeyChanges
 NCode.Identity.OpenId.Tenants.Keys.SecretManagers
 const NCode.Identity.OpenId.Tenants.Keys.SecretManagers.TenantKeyRollover = "tenant_key_rollover" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEventNames.Prefix = "tenant.key" -> string!
+const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.CustodyChanged = "custody_changed" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.Expired = "expired" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.NoActiveKey = "no_active_key" -> string!
 const NCode.Identity.OpenId.Tenants.Keys.TenantKeyChangeReasons.RetirementGraceRaised = "retirement_grace_raised" -> string!

@@ -32,6 +32,17 @@ internal static class TenantKeyTestData
         };
 
     /// <summary>
+    /// The name of the remote key provider the remote specifications are held by.
+    /// </summary>
+    public const string RemoteProviderName = "aws_kms";
+
+    public static TenantKeySpecification RemoteRs256 { get; } =
+        Rs256 with
+        {
+            RemoteKeyProvider = RemoteProviderName,
+        };
+
+    /// <summary>
     /// Creates a generated RSA key with the specified lifecycle, bound to the specified algorithm and, unless told
     /// otherwise, managed by the rollover.
     /// </summary>

@@ -32,4 +32,9 @@ internal readonly record struct TenantKeyRetirement
     /// Gets the instant the key expires: the end of the retirement grace, which covers every token it protected.
     /// </summary>
     public required DateTimeOffset ExpiresWhen { get; init; }
+
+    /// <summary>
+    /// Gets the reason for the retirement, one of the <see cref="TenantKeyChangeReasons"/>.
+    /// </summary>
+    public required string Reason { get; init; }
 }

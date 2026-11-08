@@ -131,6 +131,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
                 ActivatesWhen = held.ActivatesWhen,
                 RetiresWhen = Now,
                 ExpiresWhen = Now.AddDays(7),
+                Reason = TenantKeyChangeReasons.UnusedAlgorithm,
             }
         );
         var updated = SetupUpdateSecret();
@@ -157,6 +158,37 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Assert.Equal(TenantKeyChanges.Retired, auditEvent.Change);
         Assert.Equal(TenantKeyChangeReasons.UnusedAlgorithm, auditEvent.Reason);
         Assert.Equal(Now, auditEvent.RetiresWhen);
+    }
+
+    [Fact]
+    public async Task ApplyAsync_WhenThePlanRetiresAKeyForACustodyChange_RecordsTheRetirementReason()
+    {
+        var held = CreateSecret("held", Now.AddDays(-30), Now.AddDays(60));
+        var plan = new TenantKeyRolloverPlan { Now = Now };
+        plan.Retirements.Add(
+            new TenantKeyRetirement
+            {
+                Secret = held,
+                ActivatesWhen = held.ActivatesWhen,
+                RetiresWhen = Now.AddDays(2),
+                ExpiresWhen = Now.AddDays(9),
+                Reason = TenantKeyChangeReasons.CustodyChanged,
+            }
+        );
+        SetupUpdateSecret();
+
+        var result = await Rollover.ApplyAsync(
+            MockTenantStore.Object,
+            TenantId,
+            [held],
+            plan,
+            CancellationToken.None
+        );
+
+        var auditEvent = Assert.Single(result.AuditEvents);
+        Assert.Equal(TenantKeyChanges.Retired, auditEvent.Change);
+        Assert.Equal(TenantKeyChangeReasons.CustodyChanged, auditEvent.Reason);
+        Assert.Equal(Now.AddDays(2), auditEvent.RetiresWhen);
     }
 
     [Fact]
@@ -202,6 +234,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
                 ActivatesWhen = held.ActivatesWhen,
                 RetiresWhen = Now,
                 ExpiresWhen = Now.AddDays(7),
+                Reason = TenantKeyChangeReasons.UnusedAlgorithm,
             }
         );
 

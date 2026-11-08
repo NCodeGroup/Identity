@@ -87,7 +87,7 @@ internal sealed class DefaultTenantKeyRollover(
                     tenantId,
                     retired,
                     TenantKeyChanges.Retired,
-                    TenantKeyChangeReasons.UnusedAlgorithm,
+                    retirement.Reason,
                     plan.Now
                 )
             );

@@ -30,6 +30,12 @@ public static class TenantKeyChangeReasons
     public const string UnusedAlgorithm = "unused_algorithm";
 
     /// <summary>
+    /// The tenant's settings choose another custody for the key: its replacement, held by the new custody, is generated
+    /// to activate after the activation delay, and the key retires then.
+    /// </summary>
+    public const string CustodyChanged = "custody_changed";
+
+    /// <summary>
     /// The retirement grace, raised by the tenant's settings or by a longer token lifetime, reaches past the key's
     /// expiry, so the expiry moves to the end of the grace and no token the key protected outlives it.
     /// </summary>

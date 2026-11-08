@@ -88,7 +88,8 @@ key it created and could not keep.**
   constructing a provider.
 - `GetPublicKeyAsync` reads the public half of any key a provider holds, which binding a key
   ([ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md))
-  can use in place of a supplied public half ([#690](https://github.com/NCodeGroup/Identity/issues/690)).
+  reads in place of a supplied public half
+  ([ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)).
 
 ## References
 

@@ -9,9 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
-using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.Secrets;
-using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
@@ -24,8 +22,6 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
     private const string KeyId = "key-1";
 
     private ServiceProvider ServiceProvider { get; }
-    private MockRepository Mocks { get; } = new(MockBehavior.Strict);
-    private Mock<IClientKeyImporter> MockKeyImporter { get; }
     private StubKmsProvider Provider { get; } = new();
     private DefaultRemoteSecretImporter Importer { get; }
 
@@ -40,9 +36,8 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         serviceCollection.AddSingleton<IRemoteKeyDescriptorSource>(Provider);
         ServiceProvider = serviceCollection.BuildServiceProvider();
 
-        MockKeyImporter = Mocks.Create<IClientKeyImporter>();
         Importer = new DefaultRemoteSecretImporter(
-            MockKeyImporter.Object,
+            ServiceProvider.GetRequiredService<ISecretGenerator>(),
             ServiceProvider.GetRequiredService<ISecretSerializer>(),
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             NullLogger<DefaultRemoteSecretImporter>.Instance
@@ -53,24 +48,12 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        Mocks.Verify();
         await ServiceProvider.DisposeAsync();
         Provider.Dispose();
     }
 
     private static string EncodeSubjectPublicKeyInfo(ECDsa key) =>
         Base64Url.EncodeToString(key.ExportSubjectPublicKeyInfo());
-
-    private static PersistedSecret CreatePublicSecret(ECDsa key) =>
-        new PersistedSecretBuilder
-        {
-            SecretType = SecretTypes.Ecc,
-            SecretEncoding = SecretEncodings.Spki,
-            EncodedValue = EncodeSubjectPublicKeyInfo(key),
-            KeySizeBits = 256,
-            Algorithm = "ES256",
-            Use = "sig",
-        }.Build();
 
     private static PersistedSecret CreateRemoteSecret(
         ECDsa publicKey,
@@ -89,66 +72,115 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             Use = "sig",
         }.Build();
 
-    private static RemoteSecretImportRequest CreateImportRequest(ECDsa key) =>
+    private static BindRemoteSecretRequest CreateBindRequest(
+        string keyId = KeyId,
+        string algorithm = "ES256"
+    ) =>
         new()
         {
-            Key = new SecretKeyImportRequest
-            {
-                SecretId = "secret-1",
-                SecretType = SecretTypes.Ecc,
-                Format = SecretKeyImportFormats.Pem,
-                KeyMaterial = key.ExportSubjectPublicKeyInfoPem(),
-                Use = "sig",
-                Algorithm = "ES256",
-                CreatedWhen = DateTimeOffset.UnixEpoch,
-                ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
-            },
-            Reference = new RemoteKeyReference(StubKmsProvider.ProviderName, KeyId),
+            SecretId = "secret-1",
+            Provider = StubKmsProvider.ProviderName,
+            KeyId = keyId,
+            SecretType = SecretTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            Use = "sig",
+            Algorithm = algorithm,
+            CreatedWhen = DateTimeOffset.UnixEpoch,
+            ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
         };
 
-    #region TryImport Tests
+    #region ImportAsync Tests
 
     [Fact]
-    public void TryImport_WhenTheKeyImports_ReturnsASuppliedRemoteSecretThatNamesTheKey()
+    public async Task ImportAsync_WhenTheServiceHoldsTheKey_ReturnsASuppliedRemoteSecretWithTheServicesPublicKey()
     {
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request = CreateImportRequest(key);
-        PersistedSecret? publicSecret = CreatePublicSecret(key);
-        string? importError = null;
-        MockKeyImporter
-            .Setup(x => x.TryImportKey(request.Key, out publicSecret, out importError))
-            .Returns(true)
-            .Verifiable();
+        var result = await Importer.ImportAsync(CreateBindRequest(), CancellationToken.None);
 
-        var result = Importer.TryImport(request, out var secret, out var error);
-
-        Assert.True(result);
-        Assert.Null(error);
-        Assert.NotNull(secret);
+        Assert.True(result.IsBound);
+        Assert.Null(result.Error);
+        var secret = result.Secret;
         Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
         Assert.Equal("stub-kms:key-1", secret.EncodedValue);
-        Assert.Equal(EncodeSubjectPublicKeyInfo(key), secret.PublicKey);
+        Assert.Equal(EncodeSubjectPublicKeyInfo(Provider.Key), secret.PublicKey);
         Assert.Equal(SecretOrigins.Supplied, secret.Origin);
         Assert.Null(secret.ManagedBy);
     }
 
     [Fact]
-    public void TryImport_WhenTheImporterRefuses_ReturnsItsError()
+    public async Task ImportAsync_WhenTheProviderDoesNotReadTheKeyId_ReturnsBadRequest()
     {
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request = CreateImportRequest(key);
-        PersistedSecret? publicSecret = null;
-        string? importError = "The key is refused.";
-        MockKeyImporter
-            .Setup(x => x.TryImportKey(request.Key, out publicSecret, out importError))
-            .Returns(false)
-            .Verifiable();
+        var result = await Importer.ImportAsync(
+            CreateBindRequest(keyId: "missing"),
+            CancellationToken.None
+        );
 
-        var result = Importer.TryImport(request, out var secret, out var error);
+        Assert.False(result.IsBound);
+        Assert.NotNull(result.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+        Assert.Contains("'missing'", result.Error.Detail, StringComparison.Ordinal);
+    }
 
-        Assert.False(result);
-        Assert.Null(secret);
-        Assert.Equal("The key is refused.", error);
+    [Fact]
+    public async Task ImportAsync_WhenNoRowMatches_ReturnsBadRequest()
+    {
+        var result = await Importer.ImportAsync(
+            CreateBindRequest(algorithm: "ES384"),
+            CancellationToken.None
+        );
+
+        Assert.False(result.IsBound);
+        Assert.NotNull(result.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+        Assert.Contains(
+            "no signing algorithm 'ES384'",
+            result.Error.Detail,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task ImportAsync_WhenTheProviderRefusesTheKey_ReturnsBadRequest()
+    {
+        Provider.PublicKeyFailure = new CryptographicException("not a signing key");
+
+        var result = await Importer.ImportAsync(CreateBindRequest(), CancellationToken.None);
+
+        Assert.False(result.IsBound);
+        Assert.NotNull(result.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+        Assert.Contains("not a signing key", result.Error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ImportAsync_WhenTheServiceFails_ReturnsBadGateway()
+    {
+        Provider.PublicKeyFailure = new IOException("unreachable");
+
+        var result = await Importer.ImportAsync(CreateBindRequest(), CancellationToken.None);
+
+        Assert.False(result.IsBound);
+        Assert.NotNull(result.Error);
+        Assert.Equal(StatusCodes.Status502BadGateway, result.Error.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportAsync_WhenTheProviderFailsWithAnInvalidOperation_ReturnsBadGateway()
+    {
+        Provider.PublicKeyFailure = new InvalidOperationException(
+            "The Application Default Credentials are not available."
+        );
+
+        var result = await Importer.ImportAsync(CreateBindRequest(), CancellationToken.None);
+
+        Assert.False(result.IsBound);
+        Assert.NotNull(result.Error);
+        Assert.Equal(StatusCodes.Status502BadGateway, result.Error.StatusCode);
+        Assert.DoesNotContain(
+            "Application Default Credentials",
+            result.Error.Detail,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion
@@ -171,11 +203,12 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task VerifyBindingAsync_WhenThePublicKeyIsAnotherKeys_ReturnsBadRequest()
+    public async Task VerifyBindingAsync_WhenTheServiceSignsWithAnotherKey_ReturnsBadRequest()
     {
         using var otherKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        Provider.SigningKey = otherKey;
         var secret = CreateRemoteSecret(
-            otherKey,
+            Provider.Key,
             $"{StubKmsProvider.ProviderName}:{KeyId}",
             256,
             "ES256"
@@ -186,7 +219,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal(StatusCodes.Status400BadRequest, result.StatusCode);
         Assert.Equal(
-            "The key 'key-1' of the remote key provider 'stub-kms' does not sign with the private half of the supplied public key.",
+            "The key 'key-1' of the remote key provider 'stub-kms' does not sign with the private half of the public key the service returned.",
             result.Detail
         );
     }
@@ -277,6 +310,10 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
 
         public Exception? Failure { get; set; }
 
+        public Exception? PublicKeyFailure { get; set; }
+
+        public ECDsa? SigningKey { get; set; }
+
         public string Name => ProviderName;
 
         public IEnumerable<RemoteKeyProviderDescriptor> Providers { get; } =
@@ -295,10 +332,18 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
             CancellationToken cancellationToken
         )
         {
+            if (PublicKeyFailure is not null)
+            {
+                return ValueTask.FromException(PublicKeyFailure);
+            }
+
             if (!string.Equals(request.KeyId, KeyId, StringComparison.Ordinal))
             {
                 return ValueTask.FromException(
-                    new InvalidOperationException($"The key '{request.KeyId}' does not exist.")
+                    new ArgumentException(
+                        $"The key '{request.KeyId}' is not one the provider reads.",
+                        nameof(request)
+                    )
                 );
             }
 
@@ -324,7 +369,7 @@ public sealed class DefaultRemoteSecretImporterTests : IAsyncLifetime
                 );
             }
 
-            return Key.TrySignHash(
+            return (SigningKey ?? Key).TrySignHash(
                 request.Data.Span,
                 signature.Span,
                 DSASignatureFormat.Rfc3279DerSequence,

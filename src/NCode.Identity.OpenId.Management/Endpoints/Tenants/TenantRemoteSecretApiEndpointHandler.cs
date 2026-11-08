@@ -18,7 +18,6 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
-using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 
@@ -156,29 +155,31 @@ internal class TenantRemoteSecretApiEndpointHandler(
             return secretIdConflict;
         }
 
+        var generateRequest = new GenerateRemoteSecretRequest
+        {
+            SecretId = secretId,
+            Owner = SecretOwner.ForTenant(tenantId),
+            Provider = request.RemoteKeyProvider,
+            SecretType = request.SecretType,
+            KeySizeBits = parameters.KeySizeBits,
+            Curve = parameters.Curve,
+            Use = SecretKeyUses.Signature,
+            Algorithm = request.Algorithm,
+            CreatedWhen = createdWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
+        };
+
         PersistedSecret secret;
         try
         {
             secret = await SecretGenerator.GenerateRemoteSecretAsync(
-                new GenerateRemoteSecretRequest
-                {
-                    SecretId = secretId,
-                    Owner = SecretOwner.ForTenant(tenantId),
-                    Provider = request.RemoteKeyProvider,
-                    SecretType = request.SecretType,
-                    KeySizeBits = parameters.KeySizeBits,
-                    Curve = parameters.Curve,
-                    Use = SecretKeyUses.Signature,
-                    Algorithm = request.Algorithm,
-                    CreatedWhen = createdWhen,
-                    ActivatesWhen = request.ActivatesWhen,
-                    RetiresWhen = request.RetiresWhen,
-                    ExpiresWhen = request.ExpiresWhen,
-                },
+                generateRequest,
                 cancellationToken
             );
         }
-        catch (InvalidOperationException exception)
+        catch (RemoteSecretRefusedException exception)
         {
             Logger.SecretGenerationFailed(exception);
             return TypedResults.Problem(
@@ -211,22 +212,23 @@ internal class TenantRemoteSecretApiEndpointHandler(
 
     /// <summary>
     /// Binds a signing key that the key management service of a registered remote key provider already holds to a
-    /// tenant. The server proves the key signs with the supplied public half before it stores the key, and never
-    /// destroys it.
+    /// tenant. The server reads the key's public half from the service, checks it against the request's algorithm and
+    /// proves the key signs with it before it stores the key, and never destroys it.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
-    /// <param name="request">The <see cref="ImportRemoteSecretRequest"/> naming the key and its public half.</param>
+    /// <param name="request">The <see cref="ImportRemoteSecretRequest"/> naming the key, its type, size, curve and algorithm.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The bound secret.</response>
-    /// <response code="400">The request is not coherent or the key does not sign with the supplied public half.</response>
+    /// <response code="400">The request is not coherent, the provider refuses the key, its public half is not a key of the request's type, size and curve, or the key does not sign with it.</response>
     /// <response code="401">The caller is anonymous.</response>
     /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The tenant does not exist.</response>
     /// <response code="409">The tenant already holds a secret with the generated identifier or the same <c>kid</c>.</response>
     /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>
-    /// <response code="502">The key management service failed or refused the proof of the binding.</response>
+    /// <response code="502">The key management service failed or refused reading the key's public half or the proof of the binding.</response>
     // See ADR-1475.
+    // See ADR-1476.
     [EndpointName("api/tenants/secrets/import-remote")]
     internal virtual async ValueTask<IResult> ImportRemoteSecretAsync(
         HttpContext httpContext,
@@ -266,11 +268,13 @@ internal class TenantRemoteSecretApiEndpointHandler(
         }
 
         var createdWhen = TimeProvider.GetUtcNow();
-        var validationError = SecretValidator.ValidateImportRemote(request, createdWhen);
-        if (validationError is not null)
+        var validation = SecretValidator.ValidateImportRemote(request, createdWhen);
+        if (!validation.IsValid)
         {
-            return ToErrorResult(validationError);
+            return ToErrorResult(validation.Error);
         }
+
+        var parameters = validation.GenerationParameters;
 
         var secretId = CryptoService.GenerateResourceId();
 
@@ -280,30 +284,29 @@ internal class TenantRemoteSecretApiEndpointHandler(
             return secretIdConflict;
         }
 
-        var importRequest = new RemoteSecretImportRequest
+        var bindRequest = new BindRemoteSecretRequest
         {
-            Key = new SecretKeyImportRequest
-            {
-                SecretId = secretId,
-                SecretType = request.SecretType,
-                Format = request.Format,
-                KeyMaterial = request.KeyMaterial,
-                Use = SecretKeyUses.Signature,
-                Algorithm = request.Algorithm,
-                CreatedWhen = createdWhen,
-                ActivatesWhen = request.ActivatesWhen,
-                RetiresWhen = request.RetiresWhen,
-                ExpiresWhen = request.ExpiresWhen,
-            },
-            Reference = new RemoteKeyReference(request.RemoteKeyProvider, request.RemoteKeyId),
+            SecretId = secretId,
+            Provider = request.RemoteKeyProvider,
+            KeyId = request.RemoteKeyId,
+            SecretType = request.SecretType,
+            KeySizeBits = parameters.KeySizeBits,
+            Curve = parameters.Curve,
+            Use = SecretKeyUses.Signature,
+            Algorithm = request.Algorithm,
+            CreatedWhen = createdWhen,
+            ActivatesWhen = request.ActivatesWhen,
+            RetiresWhen = request.RetiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
         };
-        if (!RemoteSecretImporter.TryImport(importRequest, out var secret, out var importError))
+
+        var import = await RemoteSecretImporter.ImportAsync(bindRequest, cancellationToken);
+        if (!import.IsBound)
         {
-            return TypedResults.Problem(
-                detail: importError,
-                statusCode: StatusCodes.Status400BadRequest
-            );
+            return ToErrorResult(import.Error);
         }
+
+        var secret = import.Secret;
 
         var keyIdConflict = KeyIdConflictOrDefault(tenant.Secrets.Value, secret, "tenant");
         if (keyIdConflict is not null)

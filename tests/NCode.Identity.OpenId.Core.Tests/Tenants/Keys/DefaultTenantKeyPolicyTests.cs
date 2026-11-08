@@ -1474,6 +1474,8 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
         public IReadOnlyCollection<RemoteKeyProviderDescriptor> Providers { get; } =
             providerNames.Select(name => new RemoteKeyProviderDescriptor { Name = name }).ToList();
 
+        public IReadOnlyCollection<RemoteSigningAlgorithm> Algorithms { get; } = [];
+
         public bool TryGetAlgorithm(
             RemoteSigningAlgorithmSelector selector,
             [NotNullWhen(true)] out RemoteSigningAlgorithm? algorithm

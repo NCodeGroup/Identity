@@ -11,6 +11,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// <see cref="IRemoteKeyDescriptorSource"/> instances contribute, without constructing a provider.
 /// </summary>
 // See ADR-1474.
+// See ADR-1476.
 [PublicAPI]
 public interface IRemoteKeyDescriptorCatalog
 {
@@ -18,6 +19,12 @@ public interface IRemoteKeyDescriptorCatalog
     /// Gets the described remote key providers, in ordinal name order.
     /// </summary>
     IReadOnlyCollection<RemoteKeyProviderDescriptor> Providers { get; }
+
+    /// <summary>
+    /// Gets every row of the mapping vocabulary, ordered by provider, algorithm, secret type, key size and curve, each
+    /// compared ordinally. The rows of a provider that no source describes are listed too.
+    /// </summary>
+    IReadOnlyCollection<RemoteSigningAlgorithm> Algorithms { get; }
 
     /// <summary>
     /// Looks up the row of the mapping vocabulary that the selector names.

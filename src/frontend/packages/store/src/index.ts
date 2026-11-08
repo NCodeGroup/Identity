@@ -56,6 +56,8 @@ export {
   useCreateSecretMutation,
   useDeleteSecretMutation,
   useRotateSecretMutation,
+  useCreateRemoteSecretMutation,
+  useImportRemoteSecretMutation,
   useLazyGetSecretPublicKeyQuery,
   useListEncryptionKeysQuery,
   useRekeyEncryptionKeysMutation,

@@ -22,6 +22,7 @@ using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Contracts.Tenants;
 using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Tests.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -2401,7 +2402,66 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateSecretAsync_WhenDuplicate_ReturnsConflict()
+    public async Task CreateSecretAsync_WhenTheSecretIdIsTaken_ReturnsConflictWithoutGenerating()
+    {
+        SetupSecretCreateValidation();
+        SetupStore();
+        SetupTenant(CreateTenantHoldingSecret("generated-id"));
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenTheSecretIdIsTaken_ReturnsConflictWithoutImporting()
+    {
+        SetupStore();
+        SetupTenant(CreateTenantHoldingSecret("generated-id"));
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateImport(It.IsAny<ImportSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
+            .Returns((ManagementError?)null)
+            .Verifiable();
+
+        var result = await Handler.ImportSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            new ImportSecretRequest
+            {
+                SecretType = SecretTypes.Rsa,
+                Format = "jwk",
+                KeyMaterial = """{"kty":"RSA","n":"AQAB","e":"AQAB"}""",
+                ExpiresWhen = DateTimeOffset.UnixEpoch.AddDays(99),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenTheStoreRefusesTheSecret_Throws()
     {
         SetupSecretCreateValidation();
         SetupStore();
@@ -2420,21 +2480,29 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockTenantStore
             .Setup(x => x.AddSecretAsync(TenantId, generated, It.IsAny<CancellationToken>()))
-            .Throws(new InvalidOperationException("duplicate"))
+            .Throws(new InvalidOperationException("refused"))
             .Verifiable();
 
-        var httpContext = CreateHttpContext(authenticated: true);
-
-        var result = await Handler.CreateSecretAsync(
-            httpContext,
-            TenantId,
-            CreateSecretRequest(),
-            CancellationToken.None
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Handler.CreateSecretAsync(
+                CreateHttpContext(authenticated: true),
+                TenantId,
+                CreateSecretRequest(),
+                CancellationToken.None
+            )
         );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
+
+    private static PersistedTenant CreateTenantHoldingSecret(string secretId) =>
+        new PersistedTenantBuilder
+        {
+            TenantId = TenantId,
+            ConcurrencyToken = "tenant-ct",
+            DisplayName = "Tenant One",
+            SettingsConcurrencyToken = "settings-ct",
+            SecretsConcurrencyToken = "secrets-ct",
+            Secrets = [CreatePersistedSecret(secretId)],
+        }.Build();
 
     [Fact]
     public async Task CreateSecretAsync_WhenValidationFails_ReturnsBadRequest()
@@ -2472,6 +2540,38 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/tenants/{tenantId}/secrets", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/tenants/{tenantId}/secrets", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData(
+        "POST",
+        "/tenants/{tenantId}/secrets/import",
+        new[] { 400, 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/tenants/{tenantId}/secrets/{secretId}", new[] { 401, 403, 404 })]
+    [InlineData(
+        "GET",
+        "/tenants/{tenantId}/secrets/{secretId}/public-key",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData("PUT", "/tenants/{tenantId}/secrets/{secretId}", new[] { 400, 401, 403, 404, 412 })]
+    [InlineData("DELETE", "/tenants/{tenantId}/secrets/{secretId}", new[] { 401, 403, 404, 412 })]
+    public async Task Map_Always_DeclaresEveryProblemASecretRouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
     }
 
     #endregion

@@ -132,6 +132,61 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
 
     #endregion
 
+    #region Algorithms Property Tests
+
+    [Fact]
+    public void Algorithms_WhenSourcesContributeRows_ListsThemOrderedByProviderAlgorithmTypeSizeAndCurve()
+    {
+        var awsEs384 = CreateRow(algorithm: "ES384", keySizeBits: 384, curve: "P-384");
+        var awsEs256 = CreateRow();
+        var awsRs256Small = CreateRow(
+            algorithm: "RS256",
+            secretType: "rsa",
+            keySizeBits: 2048,
+            curve: null
+        );
+        var awsRs256Large = CreateRow(
+            algorithm: "RS256",
+            secretType: "rsa",
+            keySizeBits: 3072,
+            curve: null
+        );
+        var azure = CreateRow(provider: RemoteKeyProviderNames.AzureKeyVault);
+        var undescribed = CreateRow(provider: "other-kms");
+
+        var catalog = new DefaultRemoteKeyDescriptorCatalog([
+            CreateSource(
+                [CreateDescriptor(RemoteKeyProviderNames.AwsKms)],
+                undescribed,
+                awsRs256Large,
+                awsEs384
+            ),
+            CreateSource(
+                [CreateDescriptor(RemoteKeyProviderNames.AzureKeyVault)],
+                azure,
+                awsRs256Small,
+                awsEs256
+            ),
+        ]);
+
+        Assert.Equal(
+            [awsEs256, awsEs384, awsRs256Small, awsRs256Large, azure, undescribed],
+            catalog.Algorithms
+        );
+    }
+
+    [Fact]
+    public void Algorithms_WhenNoSourceContributesRows_IsEmpty()
+    {
+        var catalog = new DefaultRemoteKeyDescriptorCatalog([
+            CreateSource([CreateDescriptor(RemoteKeyProviderNames.AwsKms)]),
+        ]);
+
+        Assert.Empty(catalog.Algorithms);
+    }
+
+    #endregion
+
     #region TryGetAlgorithm Tests
 
     [Fact]

@@ -2410,6 +2410,48 @@ describe('managementApi owner-generic secrets and settings requests', () => {
     expect(captured[0]?.method).toBe('POST');
     expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual(body);
   });
+
+  it("createRemoteSecret POSTs the request body to the tenant's remote secrets path", async () => {
+    const captured = mockFetch(jsonResponse({ secretId: 's-3' }, 201));
+    const store = createStore();
+    const body = {
+      remoteKeyProvider: 'aws-kms',
+      secretType: 'ecc',
+      keySizeBits: 256,
+      curve: 'P-256',
+      algorithm: 'ES256',
+      expiresWhen: '2027-01-01T00:00:00Z',
+    };
+
+    await store.dispatch(
+      managementApi.endpoints.createRemoteSecret.initiate({ tenantId: 'acme', body }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/secrets/remote');
+    expect(captured[0]?.method).toBe('POST');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual(body);
+  });
+
+  it("importRemoteSecret POSTs the request body to the tenant's remote import path", async () => {
+    const captured = mockFetch(jsonResponse({ secretId: 's-4' }, 201));
+    const store = createStore();
+    const body = {
+      remoteKeyProvider: 'aws-kms',
+      remoteKeyId: 'key-1',
+      secretType: 'rsa',
+      keySizeBits: 2048,
+      algorithm: 'RS256',
+      expiresWhen: '2027-01-01T00:00:00Z',
+    };
+
+    await store.dispatch(
+      managementApi.endpoints.importRemoteSecret.initiate({ tenantId: 'acme', body }),
+    );
+
+    expect(captured[0]?.url).toBe('https://api.test/api/tenants/acme/secrets/remote/import');
+    expect(captured[0]?.method).toBe('POST');
+    expect(JSON.parse(captured[0]?.body ?? '{}')).toEqual(body);
+  });
 });
 
 /**
@@ -2524,6 +2566,46 @@ describe('managementApi owner-generic cache invalidation', () => {
     );
 
     expect(refetched).toEqual(['secrets:tenant-client']);
+  });
+
+  it("createRemoteSecret refetches only the tenant's secrets", async () => {
+    const refetched = await refetchedByOwnerMutation((s) =>
+      s.dispatch(
+        managementApi.endpoints.createRemoteSecret.initiate({
+          tenantId: 'acme',
+          body: {
+            remoteKeyProvider: 'aws-kms',
+            secretType: 'ecc',
+            keySizeBits: 256,
+            curve: 'P-256',
+            algorithm: 'ES256',
+            expiresWhen: '2027-01-01T00:00:00Z',
+          },
+        }),
+      ),
+    );
+
+    expect(refetched).toEqual(['secrets:tenant']);
+  });
+
+  it("importRemoteSecret refetches only the tenant's secrets", async () => {
+    const refetched = await refetchedByOwnerMutation((s) =>
+      s.dispatch(
+        managementApi.endpoints.importRemoteSecret.initiate({
+          tenantId: 'acme',
+          body: {
+            remoteKeyProvider: 'aws-kms',
+            remoteKeyId: 'key-1',
+            secretType: 'rsa',
+            keySizeBits: 2048,
+            algorithm: 'RS256',
+            expiresWhen: '2027-01-01T00:00:00Z',
+          },
+        }),
+      ),
+    );
+
+    expect(refetched).toEqual(['secrets:tenant']);
   });
 
   it('listSecrets still provides its owner tag when the request fails', async () => {

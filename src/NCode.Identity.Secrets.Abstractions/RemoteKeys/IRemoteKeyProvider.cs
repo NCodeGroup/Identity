@@ -56,6 +56,11 @@ public interface IRemoteKeyProvider
     /// <param name="subjectPublicKeyInfo">The writer that receives the DER-encoded <c>SubjectPublicKeyInfo</c>.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A task that completes when the public half is written.</returns>
+    /// <exception cref="ArgumentException">The request's key identifier is not one the provider reads, or its algorithm
+    /// row names a key specification the provider does not know.</exception>
+    /// <exception cref="CryptographicException">The provider refuses the key: its usage, specification or signing
+    /// algorithms do not match the request's algorithm row, or it holds no public key.</exception>
+    /// <exception cref="IOException">The service's response fails an integrity check.</exception>
     ValueTask GetPublicKeyAsync(
         RemotePublicKeyRequest request,
         IBufferWriter<byte> subjectPublicKeyInfo,

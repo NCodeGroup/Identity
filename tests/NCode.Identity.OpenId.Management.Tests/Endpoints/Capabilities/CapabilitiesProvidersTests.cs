@@ -8,7 +8,9 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Contracts.Capabilities;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
 using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.RemoteKeys;
@@ -88,7 +90,7 @@ public sealed class CapabilitiesProvidersTests : IDisposable
     }
 
     [Fact]
-    public async Task RemoteKeyProviderCapabilitiesProvider_AddsTheDescribedProviderNamesInOrder()
+    public async Task RemoteKeyProviderCapabilitiesProvider_WhenProvidersAreDescribed_AddsEachWithTheRowsTheValidatorAccepts()
     {
         var mockCatalog = MockRepository.Create<IRemoteKeyDescriptorCatalog>();
         mockCatalog
@@ -99,7 +101,55 @@ public sealed class CapabilitiesProvidersTests : IDisposable
             ])
             .Verifiable();
 
-        var provider = new RemoteKeyProviderCapabilitiesProvider(mockCatalog.Object);
+        var es256Row = CreateRow("aws-kms", "ES256", "ecc", 256, "P-256");
+        var rs256Row = CreateRow("aws-kms", "RS256", "rsa", 2048, null);
+        var unregisteredRow = CreateRow("aws-kms", "XS999", "rsa", 2048, null);
+        var ps256Row = CreateRow("google-cloud-kms", "PS256", "rsa", 3072, null);
+        var otherRow = CreateRow("other-kms", "RS256", "rsa", 2048, null);
+        mockCatalog
+            .Setup(x => x.Algorithms)
+            .Returns([es256Row, rs256Row, unregisteredRow, ps256Row, otherRow])
+            .Verifiable();
+
+        // The strict validator is never asked about the row of the provider that is not described.
+        var mockValidator = MockRepository.Create<ISecretValidator>();
+        mockValidator
+            .Setup(x => x.ValidateRemoteKey(es256Row.Selector))
+            .Returns(
+                SecretCreateValidation.Valid(
+                    new SecretKeyGenerationParameters { KeySizeBits = 256, Curve = "P-256" }
+                )
+            )
+            .Verifiable();
+        mockValidator
+            .Setup(x => x.ValidateRemoteKey(rs256Row.Selector))
+            .Returns(
+                SecretCreateValidation.Valid(
+                    new SecretKeyGenerationParameters { KeySizeBits = 2048 }
+                )
+            )
+            .Verifiable();
+        mockValidator
+            .Setup(x => x.ValidateRemoteKey(unregisteredRow.Selector))
+            .Returns(
+                SecretCreateValidation.Invalid(
+                    new ManagementError { StatusCode = 400, Detail = "refused" }
+                )
+            )
+            .Verifiable();
+        mockValidator
+            .Setup(x => x.ValidateRemoteKey(ps256Row.Selector))
+            .Returns(
+                SecretCreateValidation.Valid(
+                    new SecretKeyGenerationParameters { KeySizeBits = 3072 }
+                )
+            )
+            .Verifiable();
+
+        var provider = new RemoteKeyProviderCapabilitiesProvider(
+            mockCatalog.Object,
+            mockValidator.Object
+        );
         var capabilities = new Dictionary<string, object>();
 
         await provider.HandleAsync(
@@ -111,7 +161,34 @@ public sealed class CapabilitiesProvidersTests : IDisposable
             capabilities[RemoteKeyProviderCapabilitiesProvider.SectionName]
         );
         Assert.Equal(["aws-kms", "google-cloud-kms"], section.Select(x => x.Name));
+
+        Assert.Equal(
+            [("ES256", "ecc", 256, "P-256"), ("RS256", "rsa", 2048, (string?)null)],
+            section[0].Algorithms.Select(x => (x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
+        );
+        var googleAlgorithm = Assert.Single(section[1].Algorithms);
+        Assert.Equal("PS256", googleAlgorithm.Algorithm);
+        Assert.Equal(3072, googleAlgorithm.KeySizeBits);
+        Assert.Null(googleAlgorithm.Curve);
     }
+
+    private static RemoteSigningAlgorithm CreateRow(
+        string provider,
+        string algorithm,
+        string secretType,
+        int keySizeBits,
+        string? curve
+    ) =>
+        new()
+        {
+            Provider = provider,
+            Algorithm = algorithm,
+            SecretType = secretType,
+            KeySizeBits = keySizeBits,
+            Curve = curve,
+            KeySpec = "SPEC",
+            SigningAlgorithm = "SIGN",
+        };
 
     [Fact]
     public async Task AlgorithmCapabilitiesProvider_PublishesSignatureAndKeyManagementAlgorithms()

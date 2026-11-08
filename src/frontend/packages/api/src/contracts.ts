@@ -438,6 +438,40 @@ export type RotateSecretRequest = {
 };
 
 /**
+ * Mirror of `CreateRemoteSecretRequest`. `POST /api/tenants/{tenantId}/secrets/remote` creates the key in the
+ * provider's key management service (KMS), which keeps its private half, and reveals nothing.
+ */
+// See ADR-1475 and ADR-1476.
+export type CreateRemoteSecretRequest = {
+  readonly remoteKeyProvider: string;
+  readonly secretType: string;
+  readonly keySizeBits: number;
+  readonly curve?: string | null;
+  readonly algorithm: string;
+  readonly expiresWhen: string;
+  readonly activatesWhen?: string;
+  readonly retiresWhen?: string;
+};
+
+/**
+ * Mirror of `ImportRemoteSecretRequest`. `POST /api/tenants/{tenantId}/secrets/remote/import` reads the key's public
+ * half from the KMS, checks it is a key of the named type, size and curve, stores it once the key signs a challenge
+ * that half verifies, and never destroys a bound key.
+ */
+// See ADR-1475 and ADR-1476.
+export type ImportRemoteSecretRequest = {
+  readonly remoteKeyProvider: string;
+  readonly remoteKeyId: string;
+  readonly secretType: string;
+  readonly keySizeBits: number;
+  readonly curve?: string | null;
+  readonly algorithm: string;
+  readonly expiresWhen: string;
+  readonly activatesWhen?: string;
+  readonly retiresWhen?: string;
+};
+
+/**
  * Mirror of `CreatedSecretResource` — the create response. It carries the same metadata as
  * {@link SecretResource} plus `secretMaterial`: the one-time, base64url-encoded key material revealed only
  * here and never again (`null` for asymmetric secrets, which have no externally-held material). See ADR-1050.
@@ -522,6 +556,26 @@ export type AlgorithmCapability = {
 };
 
 /**
+ * Mirror of `RemoteKeyAlgorithmCapabilityResource` — one signing algorithm a remote key provider holds keys for, with
+ * the type, size and curve of the key.
+ */
+export type RemoteKeyAlgorithmCapability = {
+  readonly algorithm: string;
+  readonly secretType: string;
+  readonly keySizeBits: number;
+  readonly curve?: string | null;
+};
+
+/**
+ * Mirror of `RemoteKeyProviderCapabilityResource` — a remote key provider the deployment describes, with the signing
+ * algorithms it holds keys for.
+ */
+export type RemoteKeyProviderCapability = {
+  readonly name: string;
+  readonly algorithms: readonly RemoteKeyAlgorithmCapability[];
+};
+
+/**
  * Mirror of `ManagementCapabilitiesResource` — the server-wide management capabilities discovery document
  * returned by `GET /api/capabilities`. Intentionally extensible with additional capability sections over time.
  */
@@ -529,6 +583,7 @@ export type ManagementCapabilitiesResource = {
   readonly secretTypes: readonly SecretTypeCapability[];
   readonly eccCurves?: readonly EccCurveCapability[];
   readonly algorithms?: readonly AlgorithmCapability[];
+  readonly remoteKeyProviders?: readonly RemoteKeyProviderCapability[];
 };
 
 /**

@@ -1,33 +1,37 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Diagnostics.CodeAnalysis;
+using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
-/// Binds a key that a key management service already holds to a tenant. It imports the key's supplied public half
-/// as a <c>remote</c> secret, then proves the binding by signing a random challenge through the referenced key and
-/// verifying the signature with the stored public half, so a key that does not sign with the supplied public half is
-/// never stored.
+/// Binds a key that a key management service already holds to a tenant. It reads the key's public half from the
+/// service and stores it as a <c>remote</c> secret, then proves the binding by signing a random challenge through the
+/// referenced key and verifying the signature with the stored public half, so a key that does not sign with the public
+/// half the service returned is never stored.
 /// </summary>
 // See ADR-1475.
+// See ADR-1476.
 internal interface IRemoteSecretImporter
 {
     /// <summary>
-    /// Imports the public half of a key that a key management service holds, under the client-key policy, as a
-    /// <c>remote</c> secret that references the key. The secret is <c>supplied</c>, so the server never destroys the
-    /// key in the service.
+    /// Binds a key that a key management service holds as a <c>remote</c> secret that references it: reads the key's
+    /// public half from the service and checks it against the request's remote signing algorithm
+    /// (<see cref="ISecretGenerator.BindRemoteSecretAsync"/>). The secret is <c>supplied</c>, so the server never
+    /// destroys the key.
     /// </summary>
-    /// <param name="request">The public half of the key, the metadata to import it with, and the key's reference.</param>
-    /// <param name="secret">When this method returns <c>true</c>, the <c>remote</c> secret.</param>
-    /// <param name="error">When this method returns <c>false</c>, a human-readable reason the key is refused.</param>
-    /// <returns><c>true</c> when the key was imported; otherwise <c>false</c>.</returns>
-    bool TryImport(
-        RemoteSecretImportRequest request,
-        [NotNullWhen(true)] out PersistedSecret? secret,
-        [NotNullWhen(false)] out string? error
+    /// <param name="request">The key's reference, type, size, curve, algorithm and lifecycle.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>
+    /// The bound secret; a <c>400</c> when the provider refuses the key or its public half is not a key of the
+    /// request's type, size and curve; or a <c>502</c> when the key management service fails, refuses the deployment's
+    /// identity, or cannot be reached.
+    /// </returns>
+    ValueTask<RemoteSecretImportResult> ImportAsync(
+        BindRemoteSecretRequest request,
+        CancellationToken cancellationToken
     );
 
     /// <summary>

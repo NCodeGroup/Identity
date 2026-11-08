@@ -292,6 +292,7 @@ const NCode.Identity.Secrets.SecretEncodings.Remote = "remote" -> string!
 static NCode.Identity.Secrets.SecretEncodings.IsRemote(string! secretEncoding) -> bool
 static NCode.Identity.Secrets.SecretEncodings.IsUnprotected(string! secretEncoding) -> bool
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog.Algorithms.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm!>!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog.Providers.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderDescriptor!>!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorCatalog.TryGetAlgorithm(NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector selector, out NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm? algorithm) -> bool
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyDescriptorSource
@@ -327,6 +328,7 @@ NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Selector.get -> NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector

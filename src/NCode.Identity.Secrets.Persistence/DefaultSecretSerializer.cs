@@ -80,6 +80,22 @@ internal class DefaultSecretSerializer(
     }
 
     /// <inheritdoc />
+    // See ADR-1471.
+    public SecretKey DeserializeRemoteSecret(PersistedSecret persistedSecret)
+    {
+        ArgumentNullException.ThrowIfNull(persistedSecret);
+
+        if (!SecretEncodings.IsRemote(persistedSecret.SecretEncoding))
+        {
+            throw new InvalidOperationException(
+                $"The secret '{persistedSecret.SecretId}' holds '{persistedSecret.SecretEncoding}' key material, not a remote key."
+            );
+        }
+
+        return DeserializeSecretCore(null, persistedSecret, readStoredPublicKey: false);
+    }
+
+    /// <inheritdoc />
     // See ADR-1391.
     public IReadOnlyCollection<SecretVerifier> DeserializeVerifiers(
         ISecretProtector protector,

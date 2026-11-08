@@ -60,6 +60,23 @@ public interface ISecretSerializer
     SecretKey DeserializePublicSecret(PersistedSecret persistedSecret);
 
     /// <summary>
+    /// Deserializes a <see cref="PersistedSecret"/> instance whose encoding is <see cref="SecretEncodings.Remote"/> as
+    /// the key that its registered provider holds, from its stored <see cref="PersistedSecret.PublicKey"/>, without a
+    /// protector.
+    /// </summary>
+    /// <param name="persistedSecret">The <see cref="PersistedSecret"/> instance to deserialize into an <see cref="SecretKey"/> instance.</param>
+    /// <returns>The deserialized <see cref="SecretKey"/> instance.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when <paramref name="persistedSecret"/> is not a remote secret, or its provider, public key, algorithm
+    /// or mapping row is missing.
+    /// </exception>
+    /// <exception cref="FormatException">
+    /// Thrown when the remote key reference of <paramref name="persistedSecret"/> is malformed.
+    /// </exception>
+    // See ADR-1471.
+    SecretKey DeserializeRemoteSecret(PersistedSecret persistedSecret);
+
+    /// <summary>
     /// Deserializes a collection of <see cref="PersistedSecret"/> instances that hold one-way verifiers of shared
     /// secrets (<see cref="SecretEncodings.Verifier"/>) by unprotecting each verifier with a
     /// <see cref="ISecretProtector"/> and reading it into a <see cref="SecretVerifier"/>. A verifier is not key material,

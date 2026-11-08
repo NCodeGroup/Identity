@@ -49,6 +49,14 @@ public static class SecretEncodings
     public const string Verifier = "verifier";
 
     /// <summary>
+    /// Indicates that the stored value is the text form of a reference to a key that a key management service holds.
+    /// The private key never leaves the service, so the value is not secret material and is stored without
+    /// encryption.
+    /// </summary>
+    // See ADR-1471.
+    public const string Remote = "remote";
+
+    /// <summary>
     /// Determines whether a secret encoding holds only public key material, which is stored without encryption.
     /// Every other encoding holds private or symmetric material and is always stored encrypted.
     /// </summary>
@@ -65,6 +73,35 @@ public static class SecretEncodings
         return string.Equals(secretEncoding, Spki, StringComparison.Ordinal)
             || string.Equals(secretEncoding, X509, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Determines whether a secret encoding holds a reference to a key that a key management service holds.
+    /// </summary>
+    /// <param name="secretEncoding">The secret encoding to evaluate.</param>
+    /// <returns>
+    /// <see langword="true"/> when <paramref name="secretEncoding"/> is <see cref="Remote"/>; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
+    // See ADR-1471.
+    public static bool IsRemote(string secretEncoding)
+    {
+        ArgumentNullException.ThrowIfNull(secretEncoding);
+
+        return string.Equals(secretEncoding, Remote, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Determines whether a secret encoding holds no secret material, so the value is stored without encryption: public
+    /// key material or a reference to a key that a key management service holds.
+    /// </summary>
+    /// <param name="secretEncoding">The secret encoding to evaluate.</param>
+    /// <returns>
+    /// <see langword="true"/> when <see cref="IsPublic"/> or <see cref="IsRemote"/> is <see langword="true"/> for
+    /// <paramref name="secretEncoding"/>; otherwise, <see langword="false"/>.
+    /// </returns>
+    // See ADR-1471.
+    public static bool IsUnprotected(string secretEncoding) =>
+        IsPublic(secretEncoding) || IsRemote(secretEncoding);
 
     /// <summary>
     /// Determines whether a secret encoding holds a one-way verifier of a shared secret rather than key material.

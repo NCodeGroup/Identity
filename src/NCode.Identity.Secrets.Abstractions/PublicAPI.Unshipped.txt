@@ -283,3 +283,51 @@ NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.Dispose() -> void
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.KeyAccessClientCache(System.TimeProvider! timeProvider, System.TimeSpan idleTimeout) -> void
 NCode.Identity.Secrets.KeyWrapping.KeyAccessClientCache<TClient>.UseAsync<TResult>(string! key, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TClient!>>! create, System.Func<TClient!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResult>>! operation, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TResult>
+const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.AwsKms = "aws-kms" -> string!
+const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.AzureKeyVault = "azure-key-vault" -> string!
+const NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames.GoogleCloudKms = "google-cloud-kms" -> string!
+const NCode.Identity.Secrets.SecretEncodings.Remote = "remote" -> string!
+static NCode.Identity.Secrets.SecretEncodings.IsRemote(string! secretEncoding) -> bool
+static NCode.Identity.Secrets.SecretEncodings.IsUnprotected(string! secretEncoding) -> bool
+NCode.Identity.Secrets.RemoteKeys.IRemoteSigningAlgorithmSource
+NCode.Identity.Secrets.RemoteKeys.IRemoteSigningAlgorithmSource.Algorithms.get -> System.Collections.Generic.IEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm!>!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyProviderNames
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.KeyId.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.Provider.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.RemoteKeyReference() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.RemoteKeyReference(string! provider, string! keyId) -> void
+override NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.ToString() -> string!
+static NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.IsValidProviderName(string? name) -> bool
+static NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.TryParse(string? value, out NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference reference) -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Algorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Curve.get -> string?
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Curve.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.DigestAlgorithm.get -> System.Security.Cryptography.HashAlgorithmName?
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.DigestAlgorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.IsDerEncodedSignature.get -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.IsDerEncodedSignature.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySizeBits.get -> int
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySizeBits.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySpec.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySpec.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Algorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Curve.get -> string?
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Curve.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.KeySizeBits.get -> int
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.KeySizeBits.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Provider.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Provider.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.RemoteSigningAlgorithmSelector() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.SecretType.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.SecretType.init -> void

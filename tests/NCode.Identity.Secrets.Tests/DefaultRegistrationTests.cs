@@ -7,7 +7,7 @@ using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets;
 
-public sealed class DefaultRegistrationTests
+public sealed class DefaultRegistrationTests : BaseTests
 {
     #region AddSecretsLibrary Tests
 
@@ -25,22 +25,33 @@ public sealed class DefaultRegistrationTests
     }
 
     // See ADR-1471.
+    // See ADR-1474.
     [Fact]
-    public async Task AddSecretsLibrary_ResolvesTheRemoteKeyProviderCatalog()
+    public async Task AddSecretsLibrary_ResolvesTheRemoteKeyCatalogs()
     {
-        var providerMock = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
+        var providerMock = CreateStrictMock<IRemoteKeyProvider>();
         providerMock.Setup(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
+        var sourceMock = CreateStrictMock<IRemoteKeyDescriptorSource>();
+        sourceMock
+            .Setup(x => x.Providers)
+            .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
+            .Verifiable();
+        sourceMock.Setup(x => x.Algorithms).Returns([]).Verifiable();
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddSingleton(providerMock.Object);
+        serviceCollection.AddSingleton(sourceMock.Object);
         serviceCollection.AddSecretsLibrary();
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var catalog = serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>();
+        var descriptorCatalog = serviceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>();
+        var providerCatalog = serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>();
 
-        Assert.IsType<DefaultRemoteKeyProviderCatalog>(catalog);
-        Assert.True(catalog.TryGetProvider(RemoteKeyProviderNames.AwsKms, out var provider));
+        Assert.IsType<DefaultRemoteKeyDescriptorCatalog>(descriptorCatalog);
+        Assert.IsType<DefaultRemoteKeyProviderCatalog>(providerCatalog);
+        Assert.True(
+            providerCatalog.TryGetProvider(RemoteKeyProviderNames.AwsKms, out var provider)
+        );
         Assert.Same(providerMock.Object, provider);
-        providerMock.Verify();
     }
 
     #endregion

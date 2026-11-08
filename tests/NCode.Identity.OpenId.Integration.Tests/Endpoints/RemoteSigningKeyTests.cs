@@ -222,14 +222,13 @@ public class RemoteSigningKeyTests
             remote.Select(secret => secret.Algorithm).Order()
         );
 
-        var now = DateTimeOffset.UtcNow;
         foreach (var remoteSecret in remote)
         {
             var superseded = Assert.Single(
                 local,
                 secret => secret.Algorithm == remoteSecret.Algorithm
             );
-            Assert.True(remoteSecret.ActivatesWhen > now);
+            Assert.True(remoteSecret.ActivatesWhen > remoteSecret.CreatedWhen);
             Assert.Equal(
                 remoteSecret.ActivatesWhen,
                 secrets.Single(secret => secret.SecretId == superseded.SecretId).RetiresWhen
@@ -559,7 +558,9 @@ public class RemoteSigningKeyTests
     private static JsonElement DecodeJwtHeader(string jwt) =>
         JsonElement.Parse(Base64Url.DecodeFromChars(jwt.Split('.')[0]));
 
-    // Verifies the JWS signature with the published key that the header's kid names.
+    // Verifies the JWS signature with the published key that the header's kid names. It verifies with the published
+    // JWK through the platform's primitives, independent of the JOSE stack, so a shared misreading in the stack cannot
+    // pass.
     private static bool VerifyJwt(string jwt, IReadOnlyList<JsonElement> keys)
     {
         var parts = jwt.Split('.');
@@ -624,8 +625,12 @@ public class RemoteSigningKeyTests
     {
         var stopwatch = Stopwatch.StartNew();
         var secrets = await GetStoredSecretsAsync(factory, tenantId);
-        while (secrets.Count < count && stopwatch.Elapsed < TimeSpan.FromSeconds(15))
+        while (secrets.Count < count)
         {
+            Assert.True(
+                stopwatch.Elapsed < TimeSpan.FromSeconds(15),
+                $"The tenant '{tenantId}' holds {secrets.Count} of {count} secrets after 15 seconds."
+            );
             await Task.Delay(TimeSpan.FromMilliseconds(100));
             secrets = await GetStoredSecretsAsync(factory, tenantId);
         }
@@ -666,7 +671,7 @@ public class RemoteSigningKeyTests
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IRemoteKeyProvider>(provider);
-                services.AddSingleton<IRemoteSigningAlgorithmSource>(provider);
+                services.AddSingleton<IRemoteKeyDescriptorSource>(provider);
             });
         }
     }

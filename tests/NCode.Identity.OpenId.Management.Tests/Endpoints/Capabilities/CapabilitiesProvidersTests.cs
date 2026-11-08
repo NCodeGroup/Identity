@@ -88,18 +88,15 @@ public sealed class CapabilitiesProvidersTests : IDisposable
     }
 
     [Fact]
-    public async Task RemoteKeyProviderCapabilitiesProvider_AddsTheRegisteredProviderNamesInOrder()
+    public async Task RemoteKeyProviderCapabilitiesProvider_AddsTheDescribedProviderNamesInOrder()
     {
-        var mockGoogleProvider = MockRepository.Create<IRemoteKeyProvider>();
-        mockGoogleProvider.Setup(x => x.Name).Returns("google-cloud-kms").Verifiable();
-
-        var mockAwsProvider = MockRepository.Create<IRemoteKeyProvider>();
-        mockAwsProvider.Setup(x => x.Name).Returns("aws-kms").Verifiable();
-
-        var mockCatalog = MockRepository.Create<IRemoteKeyProviderCatalog>();
+        var mockCatalog = MockRepository.Create<IRemoteKeyDescriptorCatalog>();
         mockCatalog
             .Setup(x => x.Providers)
-            .Returns([mockGoogleProvider.Object, mockAwsProvider.Object])
+            .Returns([
+                new RemoteKeyProviderDescriptor { Name = "google-cloud-kms" },
+                new RemoteKeyProviderDescriptor { Name = "aws-kms" },
+            ])
             .Verifiable();
 
         var provider = new RemoteKeyProviderCapabilitiesProvider(mockCatalog.Object);

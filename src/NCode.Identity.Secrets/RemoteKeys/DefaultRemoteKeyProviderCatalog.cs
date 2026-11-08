@@ -8,33 +8,36 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IRemoteKeyProviderCatalog"/>. It holds the registered
-/// <see cref="IRemoteKeyProvider"/> instances by name and the rows that every registered
-/// <see cref="IRemoteSigningAlgorithmSource"/> contributes, including the rows of a provider that is not registered.
+/// <see cref="IRemoteKeyProvider"/> instances by name, and the registered providers are exactly the providers that
+/// <see cref="IRemoteKeyDescriptorCatalog"/> describes.
 /// </summary>
+/// <param name="providers">The registered remote key providers.</param>
+/// <param name="descriptorCatalog">The catalog of described remote key providers.</param>
+/// <exception cref="InvalidOperationException">A provider name is invalid or registered twice, a provider has no
+/// descriptor, or a descriptor has no provider.</exception>
 // See ADR-1471.
-internal sealed class DefaultRemoteKeyProviderCatalog : IRemoteKeyProviderCatalog
+// See ADR-1474.
+internal sealed class DefaultRemoteKeyProviderCatalog(
+    IEnumerable<IRemoteKeyProvider> providers,
+    IRemoteKeyDescriptorCatalog descriptorCatalog
+) : IRemoteKeyProviderCatalog
 {
-    private FrozenDictionary<string, IRemoteKeyProvider> ProvidersByName { get; }
-    private FrozenDictionary<
-        RemoteSigningAlgorithmSelector,
-        RemoteSigningAlgorithm
-    > AlgorithmsBySelector { get; }
+    private FrozenDictionary<string, IRemoteKeyProvider> ProvidersByName { get; } =
+        IndexProviders(providers, descriptorCatalog);
 
     /// <inheritdoc />
-    public IReadOnlyCollection<IRemoteKeyProvider> Providers { get; }
+    public bool TryGetProvider(string name, [NotNullWhen(true)] out IRemoteKeyProvider? provider) =>
+        ProvidersByName.TryGetValue(name, out provider);
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DefaultRemoteKeyProviderCatalog"/> class.
-    /// </summary>
-    /// <param name="providers">The registered remote key providers.</param>
-    /// <param name="sources">The registered sources of the mapping vocabulary's rows.</param>
-    /// <exception cref="InvalidOperationException">A provider name is invalid or registered twice, or two rows have
-    /// the same selector.</exception>
-    public DefaultRemoteKeyProviderCatalog(
+    private static FrozenDictionary<string, IRemoteKeyProvider> IndexProviders(
         IEnumerable<IRemoteKeyProvider> providers,
-        IEnumerable<IRemoteSigningAlgorithmSource> sources
+        IRemoteKeyDescriptorCatalog descriptorCatalog
     )
     {
+        var described = descriptorCatalog
+            .Providers.Select(x => x.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
         var byName = new Dictionary<string, IRemoteKeyProvider>(StringComparer.Ordinal);
         foreach (var provider in providers)
         {
@@ -51,42 +54,25 @@ internal sealed class DefaultRemoteKeyProviderCatalog : IRemoteKeyProviderCatalo
                     $"The remote key provider '{provider.Name}' is registered more than once."
                 );
             }
-        }
 
-        var bySelector = new Dictionary<RemoteSigningAlgorithmSelector, RemoteSigningAlgorithm>();
-        foreach (var algorithm in sources.SelectMany(source => source.Algorithms))
-        {
-            var selector = new RemoteSigningAlgorithmSelector
-            {
-                Provider = algorithm.Provider,
-                Algorithm = algorithm.Algorithm,
-                SecretType = algorithm.SecretType,
-                KeySizeBits = algorithm.KeySizeBits,
-                Curve = algorithm.Curve,
-            };
-
-            if (!bySelector.TryAdd(selector, algorithm))
+            if (!described.Contains(provider.Name))
             {
                 throw new InvalidOperationException(
-                    $"The remote signing algorithm for provider '{algorithm.Provider}', algorithm '{algorithm.Algorithm}', "
-                        + $"secret type '{algorithm.SecretType}', key size {algorithm.KeySizeBits} and curve '{algorithm.Curve}' "
-                        + "is registered more than once."
+                    $"The remote key provider '{provider.Name}' is not described by any IRemoteKeyDescriptorSource."
                 );
             }
         }
 
-        ProvidersByName = byName.ToFrozenDictionary(StringComparer.Ordinal);
-        AlgorithmsBySelector = bySelector.ToFrozenDictionary();
-        Providers = [.. byName.Values];
+        foreach (var name in described)
+        {
+            if (!byName.ContainsKey(name))
+            {
+                throw new InvalidOperationException(
+                    $"The remote key provider '{name}' is described but not registered."
+                );
+            }
+        }
+
+        return byName.ToFrozenDictionary(StringComparer.Ordinal);
     }
-
-    /// <inheritdoc />
-    public bool TryGetProvider(string name, [NotNullWhen(true)] out IRemoteKeyProvider? provider) =>
-        ProvidersByName.TryGetValue(name, out provider);
-
-    /// <inheritdoc />
-    public bool TryGetAlgorithm(
-        RemoteSigningAlgorithmSelector selector,
-        [NotNullWhen(true)] out RemoteSigningAlgorithm? algorithm
-    ) => AlgorithmsBySelector.TryGetValue(selector, out algorithm);
 }

@@ -84,7 +84,8 @@ reset the database with it.
 ### Remote signing keys
 
 A tenant's signing keys can be held in a key management service that signs every token, so the private key never
-leaves it. Each package's `Add<Vendor>RemoteKeyProviderIfConfigured` method registers its provider only when its
+leaves it. Each of the three provider packages holds both roles: it wraps the root key and holds the tenant's remote
+signing keys. Each package's `Add<Vendor>RemoteKeyProviderIfConfigured` method registers its provider only when its
 configuration section exists, and the reference host calls it, because registering a
 provider selects it and validates its settings when the host starts. A tenant selects a registered provider through the
 tenant setting `OpenId:Platform:Settings:tenant_signing_key_provider` (`aws-kms`, `azure-key-vault` or
@@ -192,7 +193,7 @@ dotnet run --project src/NCode.Identity.OpenId.Host --launch-profile Conformance
 The schema is managed by **EF Core migrations**, not `EnsureCreated()`
 ([ADR-1041](../../docs/decisions/1041-host-owned-ef-migrations-deliberate-outside-development.md)). The migrations live in the
 host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/OpenId` and
-`Migrations/DataProtection`; the published persistence library ships none.
+`Migrations/DeveloperDataProtection`; the published persistence library ships none.
 
 - The **migration worker** applies pending migrations before the `api` starts — the `api` never applies schema itself.
 - **Production** (any non-Development deployment) applies schema deliberately, once per release, before the rollout.
@@ -221,7 +222,7 @@ dotnet ef migrations add InitialCreate `
 ```
 
 The Data Protection context scaffolds the same way with `--context DeveloperDataProtectionDbContext` and
-`--output-dir Migrations/DataProtection`. Strip the UTF-8 BOM the scaffolder writes from each generated file.
+`--output-dir Migrations/DeveloperDataProtection`. Strip the UTF-8 BOM the scaffolder writes from each generated file.
 `InitialCreateTests` fails a context that holds any migration but `InitialCreate`, and a migration that changes data.
 Renaming, retiring or narrowing a setting edits its descriptor and needs no migration: a stored settings document that
 names an unregistered setting fails closed

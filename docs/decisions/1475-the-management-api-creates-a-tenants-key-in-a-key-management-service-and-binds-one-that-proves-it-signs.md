@@ -1,6 +1,6 @@
 # 1475. The management API creates a tenant's key in a key management service and binds one that proves it signs
 
-- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md))
+- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md); amended by [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md): the secret validator and the capabilities read `IRemoteKeyDescriptorCatalog`)
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 

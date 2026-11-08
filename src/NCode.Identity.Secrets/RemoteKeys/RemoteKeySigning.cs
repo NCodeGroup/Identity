@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using NCode.Buffers;
 
 namespace NCode.Identity.Secrets.RemoteKeys;
 
@@ -12,6 +13,8 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 // See ADR-1471.
 internal static class RemoteKeySigning
 {
+    private const int HashMaxSizeBytes = 64;
+
     /// <summary>
     /// Signs the input with the bound remote key and writes the signature to <paramref name="signature"/>.
     /// </summary>
@@ -31,36 +34,69 @@ internal static class RemoteKeySigning
         CancellationToken cancellationToken
     )
     {
-        var algorithm = binding.Algorithm;
+        if (binding.Algorithm.DigestAlgorithm is not { } digestAlgorithm)
+            return await SignDataAsync(binding, signingInput, signature, cancellationToken);
 
-        ReadOnlyMemory<byte> data = algorithm.DigestAlgorithm is { } digestAlgorithm
-            ? CryptographicOperations.HashData(digestAlgorithm, signingInput.Span)
-            : signingInput;
-
-        var providerSignature = await binding.Provider.SignAsync(
-            new RemoteSignatureRequest
-            {
-                KeyId = binding.Reference.KeyId,
-                Algorithm = algorithm,
-                Data = data,
-            },
-            cancellationToken
+        using var hashLease = BufferFactory.Rent(
+            HashMaxSizeBytes,
+            isSensitive: false,
+            out Memory<byte> hash
+        );
+        var hashLength = CryptographicOperations.HashData(
+            digestAlgorithm,
+            signingInput.Span,
+            hash.Span
         );
 
-        if (algorithm.IsDerEncodedSignature)
+        return await SignDataAsync(binding, hash[..hashLength], signature, cancellationToken);
+    }
+
+    private static async ValueTask<int> SignDataAsync(
+        RemoteKeyBinding binding,
+        ReadOnlyMemory<byte> data,
+        Memory<byte> signature,
+        CancellationToken cancellationToken
+    )
+    {
+        var algorithm = binding.Algorithm;
+        var request = new RemoteSignatureRequest
         {
-            var fieldSizeBytes = (algorithm.KeySizeBits + 7) / 8;
-            return EcdsaSignatureConverter.ConvertDerToIeeeP1363(
-                providerSignature,
-                fieldSizeBytes,
-                signature.Span
-            );
+            KeyId = binding.Reference.KeyId,
+            Algorithm = algorithm,
+            Data = data,
+        };
+
+        if (!algorithm.IsDerEncodedSignature)
+        {
+            var written = await binding.Provider.SignAsync(request, signature, cancellationToken);
+            return CheckWritten(written, signature.Length);
         }
 
-        if (providerSignature.Length > signature.Length)
-            throw new CryptographicException("The destination is too small for the signature.");
+        var fieldSizeBytes = (algorithm.KeySizeBits + 7) / 8;
 
-        providerSignature.CopyTo(signature);
-        return providerSignature.Length;
+        // Each INTEGER adds a sign byte, a tag and a length; the SEQUENCE adds a tag and a length.
+        using var derLease = BufferFactory.Rent(
+            checked(2 * fieldSizeBytes + 12),
+            isSensitive: false,
+            out Memory<byte> der
+        );
+        var derWritten = await binding.Provider.SignAsync(request, der, cancellationToken);
+        derWritten = CheckWritten(derWritten, der.Length);
+
+        return EcdsaSignatureConverter.ConvertDerToIeeeP1363(
+            der.Span[..derWritten],
+            fieldSizeBytes,
+            signature.Span
+        );
+    }
+
+    private static int CheckWritten(int written, int bufferLength)
+    {
+        if (written < 0 || written > bufferLength)
+            throw new CryptographicException(
+                "The provider reported a signature length that does not fit the buffer."
+            );
+
+        return written;
     }
 }

@@ -74,10 +74,17 @@ public class RemoteKeySigningTests : BaseTests
             .Setup(x =>
                 x.SignAsync(
                     It.Is<RemoteSignatureRequest>(r => HasRequest(r, algorithm, digest)),
+                    It.IsAny<Memory<byte>>(),
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(providerSignature)
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    providerSignature.CopyTo(destination);
+                    return ValueTask.FromResult(providerSignature.Length);
+                }
+            )
             .Verifiable();
         var signature = new byte[8];
 
@@ -101,10 +108,17 @@ public class RemoteKeySigningTests : BaseTests
             .Setup(x =>
                 x.SignAsync(
                     It.Is<RemoteSignatureRequest>(r => HasRequest(r, algorithm, SigningInput)),
+                    It.IsAny<Memory<byte>>(),
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(providerSignature)
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    providerSignature.CopyTo(destination);
+                    return ValueTask.FromResult(providerSignature.Length);
+                }
+            )
             .Verifiable();
         var signature = new byte[3];
 
@@ -130,10 +144,17 @@ public class RemoteKeySigningTests : BaseTests
             .Setup(x =>
                 x.SignAsync(
                     It.Is<RemoteSignatureRequest>(r => HasRequest(r, algorithm, digest)),
+                    It.IsAny<Memory<byte>>(),
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(der)
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    der.CopyTo(destination);
+                    return ValueTask.FromResult(der.Length);
+                }
+            )
             .Verifiable();
         var signature = new byte[64];
 
@@ -165,8 +186,20 @@ public class RemoteKeySigningTests : BaseTests
             DSASignatureFormat.Rfc3279DerSequence
         );
         Provider
-            .Setup(x => x.SignAsync(It.IsAny<RemoteSignatureRequest>(), CancellationToken.None))
-            .ReturnsAsync(der)
+            .Setup(x =>
+                x.SignAsync(
+                    It.IsAny<RemoteSignatureRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    der.CopyTo(destination);
+                    return ValueTask.FromResult(der.Length);
+                }
+            )
             .Verifiable();
         var signature = new byte[der.Length];
 
@@ -182,12 +215,54 @@ public class RemoteKeySigningTests : BaseTests
     }
 
     [Fact]
-    public async Task SignAsync_WhenCopiedSignatureExceedsTheDestination_Throws()
+    public async Task SignAsync_WhenRowIsNotDerEncoded_SignsIntoTheDestination()
+    {
+        var algorithm = CreateRsaRow(digestAlgorithm: null);
+        var signature = new byte[4];
+        Memory<byte> received = default;
+        Provider
+            .Setup(x =>
+                x.SignAsync(
+                    It.IsAny<RemoteSignatureRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    received = destination;
+                    ((ReadOnlySpan<byte>)[5, 6, 7]).CopyTo(destination.Span);
+                    return ValueTask.FromResult(3);
+                }
+            )
+            .Verifiable();
+
+        var written = await RemoteKeySigning.SignAsync(
+            CreateBinding(algorithm),
+            SigningInput,
+            signature,
+            CancellationToken.None
+        );
+
+        Assert.Equal(3, written);
+        Assert.Equal(new Memory<byte>(signature), received);
+        Assert.Equal([5, 6, 7, 0], signature);
+    }
+
+    [Fact]
+    public async Task SignAsync_WhenTheProviderReportsMoreBytesThanTheBuffer_Throws()
     {
         var algorithm = CreateRsaRow(HashAlgorithmName.SHA256);
         Provider
-            .Setup(x => x.SignAsync(It.IsAny<RemoteSignatureRequest>(), CancellationToken.None))
-            .ReturnsAsync([1, 2, 3, 4])
+            .Setup(x =>
+                x.SignAsync(
+                    It.IsAny<RemoteSignatureRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .ReturnsAsync(4)
             .Verifiable();
         var binding = CreateBinding(algorithm);
 
@@ -211,8 +286,20 @@ public class RemoteKeySigningTests : BaseTests
             DSASignatureFormat.Rfc3279DerSequence
         );
         Provider
-            .Setup(x => x.SignAsync(It.IsAny<RemoteSignatureRequest>(), CancellationToken.None))
-            .ReturnsAsync(der)
+            .Setup(x =>
+                x.SignAsync(
+                    It.IsAny<RemoteSignatureRequest>(),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    der.CopyTo(destination);
+                    return ValueTask.FromResult(der.Length);
+                }
+            )
             .Verifiable();
         var binding = CreateBinding(algorithm);
 

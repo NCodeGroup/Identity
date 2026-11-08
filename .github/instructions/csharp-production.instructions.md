@@ -838,14 +838,14 @@ than inlining the rationale.
 - ✅ **An EF Core model change re-scaffolds its context's `InitialCreate`.** Until the first stable release
   ([#535](https://github.com/NCodeGroup/Identity/issues/535)), each host context has one migration, `InitialCreate`,
   which creates its whole model and changes no data: `OpenIdDbContext` in `Migrations/OpenId` and
-  `DeveloperDataProtectionDbContext` in `Migrations/DataProtection` of `NCode.Identity.OpenId.Host.Database`. Any edit
-  to an entity, an `IEntityTypeConfiguration`, or a model contributor that changes a host context model deletes that
-  context's migration, designer file and model snapshot from its folder and scaffolds them again with
+  `DeveloperDataProtectionDbContext` in `Migrations/DeveloperDataProtection` of `NCode.Identity.OpenId.Host.Database`.
+  Any edit to an entity, an `IEntityTypeConfiguration`, or a model contributor that changes a host context model
+  deletes that context's migration, designer file and model snapshot from its folder and scaffolds them again with
   `dotnet ef migrations add InitialCreate --project src/NCode.Identity.OpenId.Host.Database --startup-project src/NCode.Identity.OpenId.Host.Database --context OpenIdDbContext --output-dir Migrations/OpenId`
-  (`--context DeveloperDataProtectionDbContext --output-dir Migrations/DataProtection` for the other context); the
-  database project carries the design-time factories, so it is both the project and the startup project. No migration
-  carries raw SQL or seed-data changes: `InitialCreateTests` fails a context that holds any migration but
-  `InitialCreate`, and a migration that changes data. The Definition of Done runs
+  (`--context DeveloperDataProtectionDbContext --output-dir Migrations/DeveloperDataProtection` for the other
+  context); the database project carries the design-time factories, so it is both the project and the startup
+  project. No migration carries raw SQL or seed-data changes: `InitialCreateTests` fails a context that holds any
+  migration but `InitialCreate`, and a migration that changes data. The Definition of Done runs
   `dotnet ef migrations has-pending-model-changes` for both contexts and fails on un-migrated model drift, so it is
   caught pre-push and in CI, not at runtime. The dev database is Postgres applied by the migration worker, so
   migrations are authoritative. A re-scaffold gives `InitialCreate` a fresh identifier, which the migration worker

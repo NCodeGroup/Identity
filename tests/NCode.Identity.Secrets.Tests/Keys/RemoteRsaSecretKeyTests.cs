@@ -87,11 +87,21 @@ public class RemoteRsaSecretKeyTests : BaseTests
                         && ReferenceEquals(r.Algorithm, Row)
                         && r.Data.ToArray().SequenceEqual(digest)
                     ),
+                    It.IsAny<Memory<byte>>(),
                     CancellationToken.None
                 )
             )
-            .ReturnsAsync(
-                LocalKey.SignHash(digest, HashAlgorithmName.SHA256, RSASignaturePadding.Pss)
+            .Returns(
+                (RemoteSignatureRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    var bytes = LocalKey.SignHash(
+                        digest,
+                        HashAlgorithmName.SHA256,
+                        RSASignaturePadding.Pss
+                    );
+                    bytes.CopyTo(destination);
+                    return ValueTask.FromResult(bytes.Length);
+                }
             )
             .Verifiable();
         var key = CreateKey();

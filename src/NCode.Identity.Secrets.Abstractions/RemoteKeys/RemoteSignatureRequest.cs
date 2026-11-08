@@ -24,7 +24,8 @@ public sealed class RemoteSignatureRequest
 
     /// <summary>
     /// Gets the data to sign: the digest when <see cref="RemoteSigningAlgorithm.DigestAlgorithm"/> of
-    /// <see cref="Algorithm"/> is set, otherwise the whole signing input.
+    /// <see cref="Algorithm"/> is set, otherwise the whole signing input. The memory is valid until the call to
+    /// <see cref="IRemoteKeyProvider.SignAsync"/> completes.
     /// </summary>
     public required ReadOnlyMemory<byte> Data { get; init; }
 }

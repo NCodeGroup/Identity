@@ -34,17 +34,29 @@ internal static class EcdsaSignatureConverter
         if (destination.Length < signatureSizeBytes)
             throw new CryptographicException("The destination is too small for the signature.");
 
-        ReadOnlyMemory<byte> r;
-        ReadOnlyMemory<byte> s;
+        ReadOnlySpan<byte> r;
+        ReadOnlySpan<byte> s;
         try
         {
-            var reader = new AsnReader(der.ToArray(), AsnEncodingRules.DER);
-            var sequence = reader.ReadSequence();
-            reader.ThrowIfNotEmpty();
+            AsnDecoder.ReadSequence(
+                der,
+                AsnEncodingRules.DER,
+                out var contentOffset,
+                out var contentLength,
+                out var consumed
+            );
+            if (consumed != der.Length)
+                throw new AsnContentException("The signature holds trailing data.");
 
-            r = sequence.ReadIntegerBytes();
-            s = sequence.ReadIntegerBytes();
-            sequence.ThrowIfNotEmpty();
+            var content = der.Slice(contentOffset, contentLength);
+            r = AsnDecoder.ReadIntegerBytes(content, AsnEncodingRules.DER, out var rConsumed);
+            s = AsnDecoder.ReadIntegerBytes(
+                content[rConsumed..],
+                AsnEncodingRules.DER,
+                out var sConsumed
+            );
+            if (rConsumed + sConsumed != contentLength)
+                throw new AsnContentException("The signature holds trailing data.");
         }
         catch (AsnContentException exception)
         {
@@ -56,8 +68,8 @@ internal static class EcdsaSignatureConverter
 
         destination = destination[..signatureSizeBytes];
         destination.Clear();
-        WriteField(r.Span, destination[..fieldSizeBytes]);
-        WriteField(s.Span, destination[fieldSizeBytes..]);
+        WriteField(r, destination[..fieldSizeBytes]);
+        WriteField(s, destination[fieldSizeBytes..]);
         return signatureSizeBytes;
     }
 

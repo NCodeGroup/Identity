@@ -100,7 +100,7 @@ Production projects are under `src/`, tests under `tests/`.
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | JOSE / JWT           | `NCode.Identity.Jose(.Abstractions)`, `.Jose.EdDsa`, `.Jose.Secp256k1`, `.Jose.SdJwt`, `.Jwt(.Abstractions)`, `.Jwk`, `NCode.Json`, `NCode.Time` |
 | COSE / CWT           | `NCode.Identity.Cose(.Abstractions)`, `NCode.Identity.Cwt(.Abstractions)`                                                          |
-| Secrets              | `NCode.Identity.Secrets(.Abstractions)`, `.Secrets.Persistence(.Abstractions)`, KMS adapters (key wrappers and remote key providers) `.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms` |
+| Secrets              | `NCode.Identity.Secrets(.Abstractions)`, `.Secrets.Persistence(.Abstractions)`, KMS adapters (key wrappers and remote key providers) `.Secrets.AwsKms`, `.AzureKeyVault`, `.GoogleCloudKms` |
 | OpenID protocol      | `NCode.Identity.OpenId.Abstractions`, `.Core`, `.Messages.Abstractions`                                                            |
 | Endpoints & grants   | `NCode.Identity.OpenId.Authentication(.Abstractions)`, `.Authentication.Interactive(.Abstractions)`, `NCode.AspNetCore`            |
 | Management API       | `NCode.Identity.OpenId.Management(.Abstractions)`                                                                                  |

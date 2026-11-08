@@ -32,15 +32,18 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
 
     public async Task DisposeAsync() => await Host.DisposeAsync();
 
-    private SelectiveDisclosureJwt Issue(params IEnumerable<string> disclosablePaths) =>
-        Host.Issuer.Issue(
+    private ValueTask<SelectiveDisclosureJwt> IssueAsync(
+        params IEnumerable<string> disclosablePaths
+    ) =>
+        Host.Issuer.IssueAsync(
             new SdJwtIssuanceOptions
             {
                 SigningCredentials = Host.IssuerCredentials,
                 Claims = JsonElement.Parse(ClaimsJson),
                 DisclosablePaths = [.. disclosablePaths],
                 HolderKey = Host.HolderJwk,
-            }
+            },
+            CancellationToken.None
         );
 
     private SdJwtKeyBindingOptions CreateKeyBinding() =>
@@ -54,9 +57,9 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     #region Parse Tests
 
     [Fact]
-    public void Parse_WithIssuedSdJwt_RoundTrips()
+    public async Task Parse_WithIssuedSdJwt_RoundTrips()
     {
-        var issued = Issue("/given_name", "/nationalities/0");
+        var issued = await IssueAsync("/given_name", "/nationalities/0");
 
         var parsed = Host.Holder.Parse(issued.ToString());
 
@@ -72,7 +75,7 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     public async Task Parse_WhenOverTheDisclosureLimit_Throws()
     {
         await using var host = new SdJwtTestHost(options => options.MaxDisclosureCount = 1);
-        var issued = Issue("/given_name", "/nationalities/0");
+        var issued = await IssueAsync("/given_name", "/nationalities/0");
 
         var exception = Assert.Throws<SdJwtException>(() => host.Holder.Parse(issued.ToString()));
 
@@ -84,9 +87,9 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     #region ResolveDisclosures Tests
 
     [Fact]
-    public void ResolveDisclosures_MapsEachDisclosureToItsPathAndParent()
+    public async Task ResolveDisclosures_MapsEachDisclosureToItsPathAndParent()
     {
-        var issued = Issue(
+        var issued = await IssueAsync(
             "/given_name",
             "/address",
             "/address/street_address",
@@ -133,9 +136,9 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     }
 
     [Fact]
-    public void ResolveDisclosures_WhenPayloadIsNotAnObject_Throws()
+    public async Task ResolveDisclosures_WhenPayloadIsNotAnObject_Throws()
     {
-        var jwt = Host.SignIssuerJwt("[]");
+        var jwt = await Host.SignIssuerJwt("[]");
         var sdJwt = new SelectiveDisclosureJwt(jwt, [], keyBindingJwt: null);
 
         var exception = Assert.Throws<SdJwtException>(() => Host.Holder.ResolveDisclosures(sdJwt));
@@ -144,9 +147,9 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     }
 
     [Fact]
-    public void ResolveDisclosures_WhenDigestAlgorithmIsUnregistered_Throws()
+    public async Task ResolveDisclosures_WhenDigestAlgorithmIsUnregistered_Throws()
     {
-        var jwt = Host.SignIssuerJwt("""{"_sd_alg":"sha-1","_sd":[]}""");
+        var jwt = await Host.SignIssuerJwt("""{"_sd_alg":"sha-1","_sd":[]}""");
         var sdJwt = new SelectiveDisclosureJwt(jwt, [], keyBindingJwt: null);
 
         var exception = Assert.Throws<SdJwtException>(() => Host.Holder.ResolveDisclosures(sdJwt));
@@ -159,16 +162,17 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
 
     #endregion
 
-    #region CreatePresentation Tests
+    #region CreatePresentationAsync Tests
 
     [Fact]
-    public void CreatePresentation_WithChosenDisclosures_PresentsOnlyThoseInIssuerOrder()
+    public async Task CreatePresentationAsync_WithChosenDisclosures_PresentsOnlyThoseInIssuerOrder()
     {
-        var issued = Issue("/given_name", "/nationalities/0", "/nationalities/1");
+        var issued = await IssueAsync("/given_name", "/nationalities/0", "/nationalities/1");
         var chosen = issued.Disclosures.Where(x => x.IsArrayElement).Reverse().ToArray();
 
-        var presentation = Host.Holder.CreatePresentation(
-            new SdJwtPresentationOptions { SdJwt = issued, Disclosures = chosen }
+        var presentation = await Host.Holder.CreatePresentationAsync(
+            new SdJwtPresentationOptions { SdJwt = issued, Disclosures = chosen },
+            CancellationToken.None
         );
 
         var parsed = Host.Holder.Parse(presentation);
@@ -181,13 +185,14 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     }
 
     [Fact]
-    public void CreatePresentation_WithNestedDisclosure_PresentsItsParentToo()
+    public async Task CreatePresentationAsync_WithNestedDisclosure_PresentsItsParentToo()
     {
-        var issued = Issue("/address", "/address/street_address");
+        var issued = await IssueAsync("/address", "/address/street_address");
         var street = Assert.Single(issued.Disclosures, x => x.ClaimName == "street_address");
 
-        var presentation = Host.Holder.CreatePresentation(
-            new SdJwtPresentationOptions { SdJwt = issued, Disclosures = [street] }
+        var presentation = await Host.Holder.CreatePresentationAsync(
+            new SdJwtPresentationOptions { SdJwt = issued, Disclosures = [street] },
+            CancellationToken.None
         );
 
         var parsed = Host.Holder.Parse(presentation);
@@ -198,29 +203,31 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     }
 
     [Fact]
-    public void CreatePresentation_WithNothingChosen_PresentsTheIssuerJwtAlone()
+    public async Task CreatePresentationAsync_WithNothingChosen_PresentsTheIssuerJwtAlone()
     {
-        var issued = Issue("/given_name");
+        var issued = await IssueAsync("/given_name");
 
-        var presentation = Host.Holder.CreatePresentation(
-            new SdJwtPresentationOptions { SdJwt = issued }
+        var presentation = await Host.Holder.CreatePresentationAsync(
+            new SdJwtPresentationOptions { SdJwt = issued },
+            CancellationToken.None
         );
 
         Assert.Equal($"{issued.IssuerSignedJwt}~", presentation);
     }
 
     [Fact]
-    public void CreatePresentation_WithKeyBinding_AppendsAKeyBindingJwtOverThePresentation()
+    public async Task CreatePresentationAsync_WithKeyBinding_AppendsAKeyBindingJwtOverThePresentation()
     {
-        var issued = Issue("/given_name");
+        var issued = await IssueAsync("/given_name");
 
-        var presentation = Host.Holder.CreatePresentation(
+        var presentation = await Host.Holder.CreatePresentationAsync(
             new SdJwtPresentationOptions
             {
                 SdJwt = issued,
                 Disclosures = issued.Disclosures,
                 KeyBinding = CreateKeyBinding(),
-            }
+            },
+            CancellationToken.None
         );
 
         var parsed = Host.Holder.Parse(presentation);
@@ -244,20 +251,22 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     }
 
     [Fact]
-    public void CreatePresentation_WithKeyBinding_HashesWithTheSdJwtDigestAlgorithm()
+    public async Task CreatePresentationAsync_WithKeyBinding_HashesWithTheSdJwtDigestAlgorithm()
     {
-        var issued = Host.Issuer.Issue(
+        var issued = await Host.Issuer.IssueAsync(
             new SdJwtIssuanceOptions
             {
                 SigningCredentials = Host.IssuerCredentials,
                 Claims = JsonElement.Parse(ClaimsJson),
                 DisclosablePaths = ["/given_name"],
                 DigestAlgorithm = SdJwtDigestAlgorithms.Sha384Name,
-            }
+            },
+            CancellationToken.None
         );
 
-        var presentation = Host.Holder.CreatePresentation(
-            new SdJwtPresentationOptions { SdJwt = issued, KeyBinding = CreateKeyBinding() }
+        var presentation = await Host.Holder.CreatePresentationAsync(
+            new SdJwtPresentationOptions { SdJwt = issued, KeyBinding = CreateKeyBinding() },
+            CancellationToken.None
         );
 
         var parsed = Host.Holder.Parse(presentation);
@@ -271,32 +280,35 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     }
 
     [Fact]
-    public void CreatePresentation_WhenTheSdJwtCarriesAKeyBindingJwt_DropsIt()
+    public async Task CreatePresentationAsync_WhenTheSdJwtCarriesAKeyBindingJwt_DropsIt()
     {
-        var issued = Issue("/given_name");
+        var issued = await IssueAsync("/given_name");
         var bound = Host.Holder.Parse(
-            Host.Holder.CreatePresentation(
-                new SdJwtPresentationOptions { SdJwt = issued, KeyBinding = CreateKeyBinding() }
+            await Host.Holder.CreatePresentationAsync(
+                new SdJwtPresentationOptions { SdJwt = issued, KeyBinding = CreateKeyBinding() },
+                CancellationToken.None
             )
         );
         Assert.True(bound.HasKeyBinding);
 
-        var presentation = Host.Holder.CreatePresentation(
-            new SdJwtPresentationOptions { SdJwt = bound }
+        var presentation = await Host.Holder.CreatePresentationAsync(
+            new SdJwtPresentationOptions { SdJwt = bound },
+            CancellationToken.None
         );
 
         Assert.False(Host.Holder.Parse(presentation).HasKeyBinding);
     }
 
     [Fact]
-    public void CreatePresentation_WithAForeignDisclosure_Throws()
+    public async Task CreatePresentationAsync_WithAForeignDisclosure_Throws()
     {
-        var issued = Issue("/given_name");
-        var other = Issue("/given_name");
+        var issued = await IssueAsync("/given_name");
+        var other = await IssueAsync("/given_name");
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            Host.Holder.CreatePresentation(
-                new SdJwtPresentationOptions { SdJwt = issued, Disclosures = other.Disclosures }
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Holder.CreatePresentationAsync(
+                new SdJwtPresentationOptions { SdJwt = issued, Disclosures = other.Disclosures },
+                CancellationToken.None
             )
         );
 
@@ -308,9 +320,9 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     }
 
     [Fact]
-    public void CreatePresentation_WhenKeyBindingKeyIsSymmetric_Throws()
+    public async Task CreatePresentationAsync_WhenKeyBindingKeyIsSymmetric_Throws()
     {
-        var issued = Issue("/given_name");
+        var issued = await IssueAsync("/given_name");
         var secretKeyFactory = Host.ServiceProvider.GetRequiredService<ISecretKeyFactory>();
         var symmetricKey = secretKeyFactory.CreateSymmetric(
             new KeyMetadata { KeyId = "hmac" },
@@ -323,9 +335,10 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
             Nonce = Nonce,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            Host.Holder.CreatePresentation(
-                new SdJwtPresentationOptions { SdJwt = issued, KeyBinding = keyBinding }
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Holder.CreatePresentationAsync(
+                new SdJwtPresentationOptions { SdJwt = issued, KeyBinding = keyBinding },
+                CancellationToken.None
             )
         );
 
@@ -335,13 +348,13 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
     [Theory]
     [InlineData("", Nonce, "audience")]
     [InlineData(Audience, "", "nonce")]
-    public void CreatePresentation_WhenKeyBindingInputIsEmpty_Throws(
+    public async Task CreatePresentationAsync_WhenKeyBindingInputIsEmpty_Throws(
         string audience,
         string nonce,
         string reason
     )
     {
-        var issued = Issue("/given_name");
+        var issued = await IssueAsync("/given_name");
         var keyBinding = new SdJwtKeyBindingOptions
         {
             SigningCredentials = Host.HolderCredentials,
@@ -349,9 +362,10 @@ public sealed class DefaultSdJwtHolderTests : IAsyncLifetime
             Nonce = nonce,
         };
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            Host.Holder.CreatePresentation(
-                new SdJwtPresentationOptions { SdJwt = issued, KeyBinding = keyBinding }
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await Host.Holder.CreatePresentationAsync(
+                new SdJwtPresentationOptions { SdJwt = issued, KeyBinding = keyBinding },
+                CancellationToken.None
             )
         );
 

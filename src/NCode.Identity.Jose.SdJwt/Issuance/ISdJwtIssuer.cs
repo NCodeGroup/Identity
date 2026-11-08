@@ -17,10 +17,14 @@ public interface ISdJwtIssuer
     /// Issues a Selective Disclosure JWT.
     /// </summary>
     /// <param name="options">The claims, the disclosable claims and the signing key.</param>
+    /// <param name="cancellationToken">A token that cancels the issuance.</param>
     /// <returns>The issued SD-JWT with every disclosure, whose <see cref="SelectiveDisclosureJwt.ToString"/> is the
     /// combined format handed to the holder.</returns>
     /// <exception cref="ArgumentException">The options are not usable: the signing key is not asymmetric, the claims
     /// are not an object or use a reserved name, a disclosable path is malformed or names nothing, a profile
     /// requirement is not met, the digest algorithm is not registered, or the holder key carries private material.</exception>
-    SelectiveDisclosureJwt Issue(SdJwtIssuanceOptions options);
+    ValueTask<SelectiveDisclosureJwt> IssueAsync(
+        SdJwtIssuanceOptions options,
+        CancellationToken cancellationToken
+    );
 }

@@ -293,7 +293,11 @@ are separate: review any such entries individually rather than assuming the repo
 How `/ship-plan` lands a reviewed plan; `/continue-plan`, `/run-issues` and `.githooks/pre-push` read it too.
 `integrate`: `pull-request` pushes the plan's branch and opens a pull request; `direct` pushes to the default branch.
 `release`: `none`; `tag` tags the plan's `Release:` version, or the next free one when another plan landed it first;
-`tag+release` also publishes a release from that version's section of `changelog`. `draft`: `no`; `yes` opens every
+`tag+release` also publishes a release from that version's section of `changelog`. `pre-release`: `tracked`, the
+default, tracks every change from the first release; `untracked` keeps the project pre-release until a version tag of
+1.0.0 or later, so every text describes the product as it is, the changelog's `## [Unreleased]` is a catalog that
+each plan edits in place, and a breaking change needs no deprecation or migration path, as project-template ADR-0015
+says. `draft`: `no`; `yes` opens every
 pull request as a draft, as `/ship-plan draft` does. `follow-ups`: `issues` files a plan's follow-ups as issues in
 this repository, `<owner/repo>` in that repository, and `none` files none. `follow-up-label`: the label those issues
 get. `gate`: `none`; a command that `/ship-plan` and `/run-issues` run from the repository root before each push,
@@ -307,7 +311,9 @@ the shell the workflow's commands run in. Here the `main`
 ruleset already requires pull requests through the merge queue
 ([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
 is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
-([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`; a pull request stays a draft until
+([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none`; the family has released nothing and
+stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)), so
+`pre-release` is `untracked`; a pull request stays a draft until
 its author reviews it ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),
 so `draft` is `yes`; `gate` is the push protocol's local pre-push gate
 ([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
@@ -318,6 +324,7 @@ merge takes, so `pr-format` is `none`.
 - integrate: pull-request
 - release: none
 - changelog: CHANGELOG.md
+- pre-release: untracked
 - draft: yes
 - follow-ups: issues
 - follow-up-label: follow-up

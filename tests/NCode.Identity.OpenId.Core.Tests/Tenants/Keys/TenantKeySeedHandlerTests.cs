@@ -293,7 +293,12 @@ public sealed class TenantKeySeedHandlerTests : BaseTests
                 )
             )
             .ReturnsAsync(
-                new TenantKeyRolloverResult { Secrets = secrets, AuditEvents = auditEvents }
+                new TenantKeyRolloverResult
+                {
+                    Secrets = secrets,
+                    AuditEvents = auditEvents,
+                    RemovedSecrets = [],
+                }
             )
             .Verifiable();
     }

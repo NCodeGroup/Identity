@@ -882,7 +882,12 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
                 )
             )
             .ReturnsAsync(
-                new TenantKeyRolloverResult { Secrets = [], AuditEvents = [.. auditEvents] }
+                new TenantKeyRolloverResult
+                {
+                    Secrets = [],
+                    AuditEvents = [.. auditEvents],
+                    RemovedSecrets = [],
+                }
             )
             .Verifiable();
 

@@ -107,6 +107,8 @@ NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.KeyId.get -> string!
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.KeyId.init -> void
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Reason.get -> string!
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.Reason.init -> void
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.RemoteKeyProvider.get -> string?
+NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.RemoteKeyProvider.init -> void
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.RetiresWhen.get -> System.DateTimeOffset
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.RetiresWhen.init -> void
 NCode.Identity.OpenId.Tenants.Keys.TenantKeyAuditEvent.SecretId.get -> string!

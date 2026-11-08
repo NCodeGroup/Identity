@@ -107,5 +107,26 @@ public sealed class TenantKeyAuditEventTests
         Assert.False(details.TryGetProperty("use", out _));
     }
 
+    [Fact]
+    public void Serialize_WhenARemoteKeyProviderHoldsTheKey_WritesItsNameAfterTheUse()
+    {
+        var auditEvent = CreateEvent() with { RemoteKeyProvider = "aws-kms" };
+
+        var details = ParseRecord(auditEvent).GetProperty("details");
+
+        Assert.Equal(
+            """{"reason":"successor","key_id":"kid-1","secret_type":"rsa","algorithm":"RS256","use":"sig","remote_key_provider":"aws-kms","activates_when":"2026-11-06T12:00:00+00:00","retires_when":"2027-02-04T12:00:00+00:00","expires_when":"2027-02-11T12:00:00+00:00"}""",
+            details.GetRawText()
+        );
+    }
+
+    [Fact]
+    public void Serialize_WhenTheServerHoldsTheKey_OmitsTheRemoteKeyProvider()
+    {
+        var details = ParseRecord(CreateEvent()).GetProperty("details");
+
+        Assert.False(details.TryGetProperty("remote_key_provider", out _));
+    }
+
     #endregion
 }

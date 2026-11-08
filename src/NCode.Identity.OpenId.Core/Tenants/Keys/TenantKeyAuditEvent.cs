@@ -52,6 +52,12 @@ public sealed record TenantKeyAuditEvent : AuditEvent, ISupportAuditDetails
     public required string? Use { get; init; }
 
     /// <summary>
+    /// Gets the name of the remote key provider that holds the key, or <c>null</c> when the key is held in the
+    /// server's store.
+    /// </summary>
+    public string? RemoteKeyProvider { get; init; }
+
+    /// <summary>
     /// Gets the instant the key activates.
     /// </summary>
     public required DateTimeOffset ActivatesWhen { get; init; }
@@ -87,8 +93,9 @@ public sealed record TenantKeyAuditEvent : AuditEvent, ISupportAuditDetails
 
     /// <inheritdoc />
     /// <remarks>
-    /// Writes the <c>reason</c>, the key's <c>key_id</c>, <c>secret_type</c>, <c>algorithm</c> and <c>use</c>, and
-    /// the instants <c>activates_when</c>, <c>retires_when</c> and <c>expires_when</c>.
+    /// Writes the <c>reason</c>, the key's <c>key_id</c>, <c>secret_type</c>, <c>algorithm</c> and <c>use</c>, the
+    /// <c>remote_key_provider</c> of a key a key management service holds, and the instants <c>activates_when</c>,
+    /// <c>retires_when</c> and <c>expires_when</c>.
     /// </remarks>
     public void WriteAuditDetails(Utf8JsonWriter writer)
     {
@@ -105,6 +112,11 @@ public sealed record TenantKeyAuditEvent : AuditEvent, ISupportAuditDetails
         if (Use is not null)
         {
             writer.WriteString("use", Use);
+        }
+
+        if (RemoteKeyProvider is not null)
+        {
+            writer.WriteString("remote_key_provider", RemoteKeyProvider);
         }
 
         writer.WriteString("activates_when", ActivatesWhen);

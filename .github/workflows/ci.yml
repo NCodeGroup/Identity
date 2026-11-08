@@ -53,7 +53,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Nerdbank.GitVersioning computes the version from commit height and FAILS on a shallow clone, which is the
           # actions/checkout default. The full history is required, not an optimization to trim.
@@ -62,14 +62,28 @@ jobs:
           persist-credentials: false
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
+
+      # A test project that targets an older .NET runs on that version's runtime, which build/Get-TestRuntimes.ps1 names.
+      - name: Find the .NET runtimes the tests target
+        id: runtimes
+        shell: pwsh
+        run: |
+          $channels = @(./build/Get-TestRuntimes.ps1)
+          if ($channels) { "channels<<EOF`n$($channels -join "`n")`nEOF" >> $env:GITHUB_OUTPUT }
+
+      - name: Setup the .NET runtimes the tests target
+        if: steps.runtimes.outputs.channels != ''
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: ${{ steps.runtimes.outputs.channels }}
 
       # No lock files are committed, so setup-dotnet's built-in cache cannot key itself. Key on the central package
       # manifest plus every project file: those are exactly the inputs that change the restore graph (ADR-1003).
       - name: Cache NuGet packages
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props', 'global.json', '.config/dotnet-tools.json', '**/*.csproj') }}
@@ -89,7 +103,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results
           path: artifacts/test-results/*.junit.xml
@@ -99,7 +113,7 @@ jobs:
       # The merged report: Cobertura.xml (what Codecov ingests) plus the browsable HTML report (index.html).
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage
           path: artifacts/coverage/
@@ -110,7 +124,7 @@ jobs:
       # reproduce what a release would publish, without granting this workflow any publish permission.
       - name: Upload packages
         if: success()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packages
           path: artifacts/packages/

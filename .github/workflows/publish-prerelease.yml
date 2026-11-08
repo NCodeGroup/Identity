@@ -42,7 +42,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Nerdbank.GitVersioning computes the version from the history and fails on a shallow clone.
           fetch-depth: 0
@@ -59,12 +59,25 @@ jobs:
           if (-not $onLine) { throw "The tag names a commit that is on neither main nor a release line." }
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
 
+      # A test project that targets an older .NET runs on that version's runtime, which build/Get-TestRuntimes.ps1 names.
+      - name: Find the .NET runtimes the tests target
+        id: runtimes
+        shell: pwsh
+        run: |
+          $channels = @(./build/Get-TestRuntimes.ps1)
+          if ($channels) { "channels<<EOF`n$($channels -join "`n")`nEOF" >> $env:GITHUB_OUTPUT }
+
+      - name: Setup the .NET runtimes the tests target
+        if: steps.runtimes.outputs.channels != ''
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: ${{ steps.runtimes.outputs.channels }}
       - name: Cache NuGet packages
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('Directory.Packages.props', 'global.json', '.config/dotnet-tools.json', '**/*.csproj') }}
@@ -87,7 +100,7 @@ jobs:
           "Publishing **$version**." >> $env:GITHUB_STEP_SUMMARY
 
       - name: Upload packages
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: nuget-packages
           path: |
@@ -110,7 +123,7 @@ jobs:
 
     steps:
       - name: Download packages
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: nuget-packages
           path: packages

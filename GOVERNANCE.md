@@ -39,10 +39,12 @@ any one host feature.
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
   each place in the gate tier that ADR-1263 assigns it. See [CONTRIBUTING](CONTRIBUTING.md).
 - Versioning is **lockstep** across the whole family via Nerdbank.GitVersioning (one root `version.json`,
-  [ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)). Validation-affecting or otherwise
-  breaking changes are **major** version bumps. Once GA, evolve the public surface backward-compatibly per
-  [`docs/api-compatibility.md`](docs/api-compatibility.md)
-  ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
+  [ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)). From the first stable release,
+  validation-affecting or otherwise breaking changes are **major** version bumps, and the public surface evolves
+  backward-compatibly per [`docs/api-compatibility.md`](docs/api-compatibility.md)
+  ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)); before it, a breaking change
+  needs no major version, deprecation step or migration path
+  ([project-template ADR-0015](docs/decisions/project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)).
 
 ## Releases, branches & tags
 

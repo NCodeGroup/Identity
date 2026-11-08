@@ -162,24 +162,22 @@ than inlining the rationale.
 - 👁 **A JSON-deserialized DTO captures unknown fields** with a
   `[JsonExtensionData] public Dictionary<string, JsonElement>? ExtensionData { get; set; }` member, so an unrecognized
   wire member round-trips instead of being silently dropped.
-- 👁 **A persisted-at-rest payload is schema-versioned, and a stored document that lacks what the serving code writes
-  fails closed.** A domain payload serialized into a stored JSON blob (the `PersistedGrant<TPayload>.Payload` path) is
-  written through the versioned seam `IPersistedPayloadSerializer`
+- 👁 **A persisted-at-rest payload is a schema-versioned envelope, and a stored document that lacks what the serving
+  code writes fails closed** — template
+  [Serialized and Stored Data](csharp.instructions.md#serialized-and-stored-data) and
+  [project-template ADR-0108](../../docs/decisions/project-template/0108-persisted-documents-are-versioned-and-additive.md).
+  A domain payload serialized into a stored JSON blob (the `PersistedGrant<TPayload>.Payload` path) is written through
+  `IPersistedPayloadSerializer`
   ([ADR-1113](../../docs/decisions/1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)), not a bare
-  `JsonSerializer` call. A stored document that lacks what the serving code writes — the envelope, or a member the
-  serving code always sets — is malformed: the reader throws rather than supplying a default or a fallback. Enums stay
-  string-valued, never ordinal. A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) carries the
-  `[JsonExtensionData]` bag above so a read-modify-write never drops a member it does not model. Payload members never
-  begin with `$` (reserved for the envelope). **Until the first stable release**
-  ([#535](https://github.com/NCodeGroup/Identity/issues/535)) a payload's shape changes in place at its current
-  version: a stored payload has one shape, a member the serving code always writes is `required`, and a member is
-  added, renamed, removed or retyped with no version bump and no upcaster; a stored record that lacks what the serving
-  code writes is malformed and fails closed
+  `JsonSerializer` call, and its members never begin with `$`. A stored document that lacks what the serving code
+  writes — the envelope, or a member the serving code always sets — is malformed: the reader throws rather than
+  supplying a default or a fallback
   ([ADR-1395](../../docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)).
-  **From the first stable release** the released shape evolves additively: a new member is optional (nullable or
-  defaulted), never `required` (`System.Text.Json` enforces `required` on read, breaking every stored row); a member is
-  never renamed, removed, or retyped in place; and a non-additive change bumps `[PersistedPayloadVersion(N)]` on the
-  payload and ships one `FromVersion → FromVersion + 1` `IPersistedPayloadUpcaster`.
+  A long-lived payload that is rewritten in place (`UpdatePayloadAsync`) carries the `[JsonExtensionData]` bag above so
+  a read-modify-write never drops a member it does not model. Until the first stable release
+  ([#535](https://github.com/NCodeGroup/Identity/issues/535)), a member the serving code always writes is `required`;
+  from it, a non-additive change bumps `[PersistedPayloadVersion(N)]` on the payload and ships one
+  `FromVersion → FromVersion + 1` `IPersistedPayloadUpcaster`.
 - 👁 **Buffer by default; stream deliberately** — template
   [Types and Collections](csharp.instructions.md#types-and-collections).
 - 👁 **Own every stored collection; pick the concrete type by usage** — template
@@ -1054,7 +1052,9 @@ organization) live in [`csharp-testing.instructions.md`](csharp-testing.instruct
 A change starts as a GitHub issue, and a change consumers can observe is decided and recorded as an ADR before or with
 its pull request, as
 [project-template ADR-0010](../../docs/decisions/project-template/0010-a-change-consumers-can-observe-is-decided-before-it-is-built.md)
-says. Record consumer-visible changes in [`CHANGELOG.md`](../../CHANGELOG.md) under `## [Unreleased]`.
+says. Keep the `## [Unreleased]` catalog of [`CHANGELOG.md`](../../CHANGELOG.md) matching the code, as
+[project-template ADR-0015](../../docs/decisions/project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
+says for a pre-release project.
 
 ## 10. XML documentation
 

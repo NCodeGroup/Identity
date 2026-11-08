@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
+- **Refines:** [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
 
 ## Context
 

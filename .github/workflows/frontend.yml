@@ -63,7 +63,7 @@ jobs:
       frontend: ${{ steps.diff.outputs.frontend }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
@@ -94,7 +94,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The built-bundle step runs `dotnet test`, and Nerdbank.GitVersioning computes the version from commit
           # height and FAILS on a shallow clone, which is the actions/checkout default. The full history is required.
@@ -105,7 +105,7 @@ jobs:
       # The Node major is pinned once, in src/frontend/.node-version, which is the same file NVS selects locally and the
       # Aspire AppHost reads (ADR-1152), so CI runs the runtime a developer machine runs.
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: src/frontend/.node-version
 
@@ -161,10 +161,25 @@ jobs:
       # only.
       - name: Setup .NET
         if: always()
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: global.json
 
+      # A test project that targets an older .NET runs on that version's runtime, which build/Get-TestRuntimes.ps1 names.
+      - name: Find the .NET runtimes the tests target
+        if: always()
+        id: runtimes
+        shell: pwsh
+        working-directory: .
+        run: |
+          $channels = @(./build/Get-TestRuntimes.ps1)
+          if ($channels) { "channels<<EOF`n$($channels -join "`n")`nEOF" >> $env:GITHUB_OUTPUT }
+
+      - name: Setup the .NET runtimes the tests target
+        if: always() && steps.runtimes.outputs.channels != ''
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: ${{ steps.runtimes.outputs.channels }}
       - name: Coverage report
         if: steps.test.outcome == 'success'
         shell: pwsh
@@ -198,7 +213,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-test-results
           path: src/frontend/*/*/test-results/junit.xml
@@ -207,7 +222,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: frontend-coverage
           path: artifacts/frontend-coverage/

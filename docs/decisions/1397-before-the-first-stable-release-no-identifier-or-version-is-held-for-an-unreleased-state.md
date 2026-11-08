@@ -7,7 +7,8 @@
   [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md))
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)
+- **Refines:** [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) and
+  [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
 
 ## Context
 

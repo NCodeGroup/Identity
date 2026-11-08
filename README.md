@@ -156,7 +156,7 @@ and shipped versions are serviced from `release/vX.Y` lines beside it
 | [`docs/capabilities/`](docs/capabilities/README.md) | What the product promises and why it's built that way: an overview first, then the architecture |
 | [`docs/decisions/`](docs/decisions/)             | Architecture Decision Records — the reasoning behind every non-obvious decision |
 | [GitHub issues](https://github.com/NCodeGroup/Identity/issues)           | The single source of truth for known pending work                              |
-| [`CHANGELOG.md`](CHANGELOG.md)       | Consumer-visible changes                                                       |
+| [`CHANGELOG.md`](CHANGELOG.md)       | What the family does until its first stable release, then each release's changes |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Build, conventions, and the change workflow                                    |
 | [`GOVERNANCE.md`](GOVERNANCE.md)     | Ownership, versioning, releases, and publishing                                |
 | [`SECURITY.md`](SECURITY.md)         | How to report a vulnerability                                                  |

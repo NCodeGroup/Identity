@@ -795,7 +795,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `UnwrapAsync`, which writes the key into an `IBufferWriter<byte>`) and returns `WrappedKey` (`WrapperName`, `KeyId`,
   `Ciphertext`); both, with `KeyWrapperNames`, live in `NCode.Identity.Secrets.Abstractions` under
   `NCode.Identity.Secrets.KeyWrapping`, and the offline recovery wrapper implements the same contract. The local wrapper
-  is configured through `LocalKeyWrapperOptions`, and the opt-in packages `NCode.Identity.Secrets.KeyWrapping.AwsKms`,
+  is configured through `LocalKeyWrapperOptions`, and the opt-in packages `NCode.Identity.Secrets.AwsKms`,
   `.AzureKeyVault` and `.GoogleCloudKms` register a wrapper with `Add<Vendor>KeyWrapper` and
   `<Vendor>KeyWrapperOptions`. `WrappedKeyCiphertext.GetByteCount` and `WrappedKeyCiphertext.Decode` decode a
   `WrappedKey.Ciphertext` stored as base64url into a caller-supplied span or `IBufferWriter<byte>` and throw
@@ -805,14 +805,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
   [#373](https://github.com/NCodeGroup/Identity/issues/373)).
 
-- **`NCode.Identity.Secrets.KeyWrapping.AwsKms` wraps the root key with AWS KMS.** `AddAwsKmsKeyWrapper` (`aws-kms`,
+- **`NCode.Identity.Secrets.AwsKms` wraps the root key with AWS KMS.** `AddAwsKmsKeyWrapper` (`aws-kms`,
   section `SecretProtection:RootKeyProviders:AwsKms`, a key or alias ARN) binds each wrap to its owner through the KMS
   encryption context and takes credentials from the AWS SDK's default chain, never from configuration. The reference
   host and the Helm chart wire it in; the chart federates the pod's service-account token with AWS
   (`secretProtection.awsKms`) only when `aws-kms` is selected, and refuses a malformed key ARN
   ([ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
 
-- **`NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms` and `NCode.Identity.Secrets.KeyWrapping.AzureKeyVault` wrap the
+- **`NCode.Identity.Secrets.GoogleCloudKms` and `NCode.Identity.Secrets.AzureKeyVault` wrap the
   root key with Google Cloud KMS and Azure Key Vault.** The Google Cloud KMS wrapper (`google-cloud-kms`,
   `AddGoogleCloudKmsKeyWrapper`, crypto key resource name in `SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName`)
   binds each wrap to its owner through the additional authenticated data and checks CRC32C checksums on every request

@@ -64,7 +64,7 @@ configuration.
   [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)
 - `src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IReferencedKeyWrapper.cs`,
-  `src/NCode.Identity.Secrets.KeyWrapping.AwsKms/AwsKmsKeyWrapper.cs`,
-  `src/NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms/GoogleCloudKmsKeyWrapper.cs`,
-  `src/NCode.Identity.Secrets.KeyWrapping.AzureKeyVault/AzureKeyVaultKeyWrapper.cs`
+  `src/NCode.Identity.Secrets.AwsKms/AwsKmsKeyWrapper.cs`,
+  `src/NCode.Identity.Secrets.GoogleCloudKms/GoogleCloudKmsKeyWrapper.cs`,
+  `src/NCode.Identity.Secrets.AzureKeyVault/AzureKeyVaultKeyWrapper.cs`
 - Issue [#174](https://github.com/NCodeGroup/Identity/issues/174)

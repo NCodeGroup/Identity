@@ -6,7 +6,7 @@
 |                    |                                                                                                                                                                                                                                                                                                                       |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**         | Available: a tenant's signing keys, in AWS KMS, Azure Key Vault (and Managed HSM) and Google Cloud KMS, chosen per tenant                                                                                                                                                                                             |
-| **Packages**       | `NCode.Identity.Secrets.Abstractions` (the remote vocabulary), `NCode.Identity.Secrets` and `NCode.Identity.Secrets.Persistence` (the key, its storage and its destruction), `NCode.Identity.Jose.Abstractions` and `NCode.Identity.Jose` (the asynchronous signing seam), `NCode.Identity.Secrets.KeyWrapping.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms` (the providers), `NCode.Identity.OpenId.Core` (the setting and the rollover) |
+| **Packages**       | `NCode.Identity.Secrets.Abstractions` (the remote vocabulary), `NCode.Identity.Secrets` and `NCode.Identity.Secrets.Persistence` (the key, its storage and its destruction), `NCode.Identity.Jose.Abstractions` and `NCode.Identity.Jose` (the asynchronous signing seam), `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms` (the providers), `NCode.Identity.OpenId.Core` (the setting and the rollover) |
 | **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
 | **Operator guide** | The reference host's [Remote signing keys](../../src/NCode.Identity.OpenId.Host/README.md#remote-signing-keys); the tenant setting `tenant_signing_key_provider`; the configuration sections under `SecretProtection:RemoteKeyProviders`                                                                          |
 
@@ -192,7 +192,7 @@ created. Its logs carry identifiers only, never an input, a digest or a signatur
   [`RemoteKeySigning`](../../src/NCode.Identity.Secrets/RemoteKeys/RemoteKeySigning.cs),
   [`SignatureAlgorithm`](../../src/NCode.Identity.Jose.Abstractions/Algorithms/SignatureAlgorithm.cs),
   [`DefaultRemoteSecretDestroyer`](../../src/NCode.Identity.Secrets.Persistence/DefaultRemoteSecretDestroyer.cs),
-  [`AwsKmsRemoteKeyProvider`](../../src/NCode.Identity.Secrets.KeyWrapping.AwsKms/AwsKmsRemoteKeyProvider.cs),
-  [`AzureKeyVaultRemoteKeyProvider`](../../src/NCode.Identity.Secrets.KeyWrapping.AzureKeyVault/AzureKeyVaultRemoteKeyProvider.cs),
-  [`GoogleCloudKmsRemoteKeyProvider`](../../src/NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms/GoogleCloudKmsRemoteKeyProvider.cs),
+  [`AwsKmsRemoteKeyProvider`](../../src/NCode.Identity.Secrets.AwsKms/AwsKmsRemoteKeyProvider.cs),
+  [`AzureKeyVaultRemoteKeyProvider`](../../src/NCode.Identity.Secrets.AzureKeyVault/AzureKeyVaultRemoteKeyProvider.cs),
+  [`GoogleCloudKmsRemoteKeyProvider`](../../src/NCode.Identity.Secrets.GoogleCloudKms/GoogleCloudKmsRemoteKeyProvider.cs),
   [`DefaultTenantKeyPolicy`](../../src/NCode.Identity.OpenId.Core/Tenants/Keys/DefaultTenantKeyPolicy.cs)

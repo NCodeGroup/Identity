@@ -1,0 +1,18 @@
+#nullable enable
+const NCode.Identity.Secrets.AwsKms.Options.AwsKmsKeyWrapperOptions.DefaultSectionName = "SecretProtection:RootKeyProviders:AwsKms" -> string!
+const NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.DefaultSectionName = "SecretProtection:RemoteKeyProviders:AwsKms" -> string!
+NCode.Identity.Secrets.AwsKms.DefaultRegistration
+NCode.Identity.Secrets.AwsKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!)
+NCode.Identity.Secrets.AwsKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddAwsKmsKeyWrapper(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Secrets.AwsKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddAwsKmsRemoteKeyProvider(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Secrets.AwsKms.DefaultRegistration.extension(NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!).AddAwsKmsRemoteKeyProviderIfConfigured(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> NCode.Registration.IServiceBuilder<NCode.Identity.Secrets.Persistence.SecretPersistenceLibrary>!
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsKeyWrapperOptions
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsKeyWrapperOptions.AwsKmsKeyWrapperOptions() -> void
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsKeyWrapperOptions.KeyArn.get -> string?
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsKeyWrapperOptions.KeyArn.set -> void
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.AwsKmsRemoteKeyProviderOptions() -> void
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.PendingWindowInDays.get -> int
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.PendingWindowInDays.set -> void
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.Region.get -> string?
+NCode.Identity.Secrets.AwsKms.Options.AwsKmsRemoteKeyProviderOptions.Region.set -> void

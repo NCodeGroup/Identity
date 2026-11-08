@@ -400,16 +400,27 @@ internal class AzureKeyVaultRemoteKeyProvider(
             throw new CryptographicException($"Azure Key Vault key '{keyId}' holds no public key.");
         }
 
-        if (webKey.KeyType == KeyType.Rsa || webKey.KeyType == KeyType.RsaHsm)
+        try
         {
-            using var rsa = webKey.ToRSA();
-            return rsa.ExportSubjectPublicKeyInfo();
-        }
+            if (webKey.KeyType == KeyType.Rsa || webKey.KeyType == KeyType.RsaHsm)
+            {
+                using var rsa = webKey.ToRSA();
+                return rsa.ExportSubjectPublicKeyInfo();
+            }
 
-        if (webKey.KeyType == KeyType.Ec || webKey.KeyType == KeyType.EcHsm)
+            if (webKey.KeyType == KeyType.Ec || webKey.KeyType == KeyType.EcHsm)
+            {
+                using var ecdsa = webKey.ToECDsa();
+                return ecdsa.ExportSubjectPublicKeyInfo();
+            }
+        }
+        catch (Exception exception)
+            when (exception is not CryptographicException and not OperationCanceledException)
         {
-            using var ecdsa = webKey.ToECDsa();
-            return ecdsa.ExportSubjectPublicKeyInfo();
+            throw new CryptographicException(
+                $"The key '{keyId}' holds a public key that cannot be read.",
+                exception
+            );
         }
 
         throw new CryptographicException(

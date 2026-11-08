@@ -470,6 +470,31 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         Assert.Contains(KeyVersionId, exception.Message);
     }
 
+    [Fact]
+    public async Task GetPublicKeyAsync_WhenThePublicKeyIsMalformed_ThrowsCryptographicException()
+    {
+        SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
+        SetupGetKey(
+            CreateKey(
+                KeyVersionId,
+                KeyModelFactory.JsonWebKey(KeyType.Rsa, e: new byte[] { 1, 0, 1 })
+            )
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(Rs256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyVersionId, exception.Message);
+    }
+
     #endregion
 
     #region SignAsync Tests

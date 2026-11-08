@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
@@ -112,6 +114,35 @@ public class BaseApiEndpointHandlerTests
         }.Build();
 
         var result = BaseApiEndpointHandler.GetRemoteKeyProvider(secret);
+
+        Assert.Null(result);
+    }
+
+    #endregion
+
+    #region SecretIdConflictOrDefault Tests
+
+    [Fact]
+    public void SecretIdConflictOrDefault_WhenASecretHasTheIdentifierInAnotherCase_ReturnsConflict()
+    {
+        var secrets = new[] { new PersistedSecretBuilder { SecretId = "Secret-1" }.Build() };
+
+        var result = BaseApiEndpointHandler.SecretIdConflictOrDefault(secrets, "secret-1");
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public void SecretIdConflictOrDefault_WhenNoSecretHasTheIdentifier_ReturnsNull()
+    {
+        var secrets = new[] { new PersistedSecretBuilder { SecretId = "secret-2" }.Build() };
+
+        var result = BaseApiEndpointHandler.SecretIdConflictOrDefault(secrets, "secret-1");
 
         Assert.Null(result);
     }

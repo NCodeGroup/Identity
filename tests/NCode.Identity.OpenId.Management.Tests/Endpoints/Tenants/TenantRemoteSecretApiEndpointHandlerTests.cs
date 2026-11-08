@@ -495,7 +495,42 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateRemoteSecretAsync_WhenTheSecretIdIsTaken_DestroysTheKeyAndReturnsConflict()
+    public async Task CreateRemoteSecretAsync_WhenTheSecretIdIsTaken_ReturnsConflictWithoutCallingTheProvider()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(
+            new PersistedTenantBuilder
+            {
+                TenantId = TenantId,
+                ConcurrencyToken = "tenant-ct",
+                DisplayName = "Tenant One",
+                SettingsConcurrencyToken = "settings-ct",
+                SecretsConcurrencyToken = "secrets-ct",
+                Secrets = [CreateRemoteSecret("generated-id")],
+            }.Build()
+        );
+        SetupValidCreateRemoteValidation();
+        SetupResourceId();
+
+        var result = await CreateHandler()
+            .CreateRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public async Task CreateRemoteSecretAsync_WhenTheStoreRefusesTheRecord_DestroysTheKeyAndRethrows()
     {
         SetupAuthorization(Operations.Create, AuthorizationResult.Success());
         SetupStore();
@@ -515,7 +550,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             .Verifiable();
         MockTenantStore
             .Setup(x => x.AddSecretAsync(TenantId, secret, It.IsAny<CancellationToken>()))
-            .Throws(new InvalidOperationException("duplicate"))
+            .Throws(new InvalidOperationException("refused"))
             .Verifiable();
         MockRemoteSecretDestroyer
             .Setup(x =>
@@ -528,16 +563,15 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
 
-        var result = await CreateHandler()
-            .CreateRemoteSecretAsync(
-                CreateHttpContext(),
-                TenantId,
-                CreateRemoteSecretRequest(),
-                CancellationToken.None
-            );
-
-        var problem = Assert.IsType<ProblemHttpResult>(result);
-        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await CreateHandler()
+                .CreateRemoteSecretAsync(
+                    CreateHttpContext(),
+                    TenantId,
+                    CreateRemoteSecretRequest(),
+                    CancellationToken.None
+                )
+        );
     }
 
     [Fact]
@@ -695,6 +729,42 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportRemoteSecretAsync_WhenTheSecretIdIsTaken_ReturnsConflictWithoutImporting()
+    {
+        SetupAuthorization(Operations.Create, AuthorizationResult.Success());
+        SetupAuthorization(Operations.Update, AuthorizationResult.Success());
+        SetupStore();
+        SetupTenant(
+            new PersistedTenantBuilder
+            {
+                TenantId = TenantId,
+                ConcurrencyToken = "tenant-ct",
+                DisplayName = "Tenant One",
+                SettingsConcurrencyToken = "settings-ct",
+                SecretsConcurrencyToken = "secrets-ct",
+                Secrets = [CreateRemoteSecret("generated-id")],
+            }.Build()
+        );
+        SetupImportRemoteValidation();
+        SetupResourceId();
+
+        var result = await CreateHandler()
+            .ImportRemoteSecretAsync(
+                CreateHttpContext(),
+                TenantId,
+                CreateImportRemoteSecretRequest(),
+                CancellationToken.None
+            );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
     }
 
     [Fact]

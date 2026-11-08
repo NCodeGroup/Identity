@@ -71,11 +71,25 @@ internal class TenantRemoteSecretApiEndpointHandler(
 
         tenants
             .MapPost("/{tenantId}/secrets/remote", CreateRemoteSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
+            .Produces<SecretResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status502BadGateway);
 
         tenants
             .MapPost("/{tenantId}/secrets/remote/import", ImportRemoteSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
+            .Produces<SecretResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
+            .ProducesProblem(StatusCodes.Status502BadGateway);
     }
 
     /// <summary>
@@ -90,7 +104,8 @@ internal class TenantRemoteSecretApiEndpointHandler(
     /// <response code="401">The caller is anonymous.</response>
     /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The tenant does not exist.</response>
-    /// <response code="409">A secret with the generated identifier already exists.</response>
+    /// <response code="409">The tenant already holds a secret with the generated identifier.</response>
+    /// <response code="412">Another request changed the tenant's secrets after this request read them; the created key is destroyed.</response>
     /// <response code="502">The key management service did not create the key.</response>
     // See ADR-1475.
     [EndpointName("api/tenants/secrets/create-remote")]
@@ -134,6 +149,12 @@ internal class TenantRemoteSecretApiEndpointHandler(
             ?? throw new InvalidOperationException("A valid request has generation parameters.");
 
         var secretId = CryptoService.GenerateResourceId();
+
+        var secretIdConflict = SecretIdConflictOrDefault(tenant.Secrets.Value, secretId);
+        if (secretIdConflict is not null)
+        {
+            return secretIdConflict;
+        }
 
         PersistedSecret secret;
         try
@@ -179,41 +200,13 @@ internal class TenantRemoteSecretApiEndpointHandler(
             await store.AddSecretAsync(tenantId, secret, cancellationToken);
             await storeManager.SaveChangesAsync(cancellationToken);
         }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            await RemoteSecretDestroyer.DestroyAsync([secret]);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
         catch
         {
             await RemoteSecretDestroyer.DestroyAsync([secret]);
             throw;
         }
 
-        var secretResource = ToSecretResource(secret);
-
-        await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
-            httpContext,
-            tenantId,
-            secretId,
-            ResourceChangeTypes.Created,
-            ToResourceValues(secretResource)
-        );
-
-        await NotifyTenantChangedAsync(
-            httpContext,
-            tenantId,
-            settingsChanged: false,
-            cancellationToken
-        );
-
-        // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
-        httpContext.Response.Headers.ETag = secret.ConcurrencyToken;
-        return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
+        return await AnswerCreatedAsync(httpContext, tenantId, secret, cancellationToken);
     }
 
     /// <summary>
@@ -230,7 +223,8 @@ internal class TenantRemoteSecretApiEndpointHandler(
     /// <response code="401">The caller is anonymous.</response>
     /// <response code="403">The caller lacks the authority the request needs.</response>
     /// <response code="404">The tenant does not exist.</response>
-    /// <response code="409">A secret with the generated identifier or the same <c>kid</c> already exists.</response>
+    /// <response code="409">The tenant already holds a secret with the generated identifier or the same <c>kid</c>.</response>
+    /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>
     /// <response code="502">The key management service failed or refused the proof of the binding.</response>
     // See ADR-1475.
     [EndpointName("api/tenants/secrets/import-remote")]
@@ -280,6 +274,12 @@ internal class TenantRemoteSecretApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var secretIdConflict = SecretIdConflictOrDefault(tenant.Secrets.Value, secretId);
+        if (secretIdConflict is not null)
+        {
+            return secretIdConflict;
+        }
+
         var importRequest = new RemoteSecretImportRequest
         {
             Key = new SecretKeyImportRequest
@@ -317,27 +317,33 @@ internal class TenantRemoteSecretApiEndpointHandler(
             return ToErrorResult(bindingError);
         }
 
-        try
-        {
-            await store.AddSecretAsync(tenantId, secret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
-
+        await store.AddSecretAsync(tenantId, secret, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        return await AnswerCreatedAsync(httpContext, tenantId, secret, cancellationToken);
+    }
+
+    /// <summary>
+    /// Records and announces a created tenant secret and answers <c>201 Created</c> with it.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="secret">The created <see cref="PersistedSecret"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <c>201 Created</c> result carrying the secret.</returns>
+    private async ValueTask<IResult> AnswerCreatedAsync(
+        HttpContext httpContext,
+        string tenantId,
+        PersistedSecret secret,
+        CancellationToken cancellationToken
+    )
+    {
         var secretResource = ToSecretResource(secret);
 
         await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
             httpContext,
             tenantId,
-            secretId,
+            secret.SecretId,
             ResourceChangeTypes.Created,
             ToResourceValues(secretResource)
         );
@@ -351,7 +357,10 @@ internal class TenantRemoteSecretApiEndpointHandler(
 
         // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = secret.ConcurrencyToken;
-        return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
+        return TypedResults.Created(
+            $"/tenants/{tenantId}/secrets/{secret.SecretId}",
+            secretResource
+        );
     }
 
     /// <summary>

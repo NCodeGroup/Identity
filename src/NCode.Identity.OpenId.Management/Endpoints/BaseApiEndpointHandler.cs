@@ -404,6 +404,31 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     }
 
     /// <summary>
+    /// Returns a <c>409 Conflict</c> when one of an owner's secrets already has the identifier, which identifiers
+    /// compare without regard to case.
+    /// </summary>
+    /// <param name="secrets">The owner's existing secrets.</param>
+    /// <param name="secretId">The identifier to check.</param>
+    /// <returns>The conflict result, or <c>null</c> when the identifier is free.</returns>
+    internal static IResult? SecretIdConflictOrDefault(
+        IEnumerable<PersistedSecret> secrets,
+        string secretId
+    )
+    {
+        if (
+            !secrets.Any(secret =>
+                string.Equals(secret.SecretId, secretId, StringComparison.OrdinalIgnoreCase)
+            )
+        )
+            return null;
+
+        return TypedResults.Problem(
+            detail: "A secret with the specified identifier already exists.",
+            statusCode: StatusCodes.Status409Conflict
+        );
+    }
+
+    /// <summary>
     /// Gets the platform's authority node: the one deployment root, addressed from the control-plane tenant the request
     /// runs under.
     /// </summary>

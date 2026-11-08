@@ -559,6 +559,18 @@ NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.RootKey.get -> NCo
 NCode.Identity.Secrets.Persistence.Protection.MasterKeyStatus.RootKey.init -> void
 NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.OwnerRootKeys.get -> NCode.Identity.Secrets.Persistence.Options.OwnerRootKeyOptions!
 NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.OwnerRootKeys.set -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.Deployment.get -> string?
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.Deployment.set -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.RemoteKeyOptions() -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepEnabled.get -> bool
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepEnabled.set -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepGracePeriod.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepGracePeriod.set -> void
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepInterval.get -> System.TimeSpan
+NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions.SweepInterval.set -> void
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.RemoteKeys.get -> NCode.Identity.Secrets.Persistence.Options.RemoteKeyOptions!
+NCode.Identity.Secrets.Persistence.Options.SecretProtectionOptions.RemoteKeys.set -> void
 NCode.Identity.Secrets.Persistence.Options.OwnerRootKeyOptions
 NCode.Identity.Secrets.Persistence.Options.OwnerRootKeyOptions.OwnerRootKeyOptions() -> void
 NCode.Identity.Secrets.Persistence.Options.OwnerRootKeyOptions.Providers.get -> string![]!

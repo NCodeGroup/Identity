@@ -570,6 +570,19 @@ describe('SecretsManager', () => {
       });
     });
 
+    it('closes the bind dialog without binding when it is cancelled', async () => {
+      const handlers = remoteHandlers();
+      await renderManager(handlers, withRemoteKeys);
+
+      fireEvent.click(screen.getByTestId('bind-remote-secret'));
+      fireEvent.click(screen.getByTestId('remote-bind-cancel'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('remote-bind-submit')).not.toBeInTheDocument(),
+      );
+      expect(handlers.onImportRemote).not.toHaveBeenCalled();
+    });
+
     it('surfaces a rejected bind with the server problem detail and keeps the dialog open', async () => {
       const handlers = remoteHandlers();
       const detail = 'Binding a key management service key needs update authority on the platform.';

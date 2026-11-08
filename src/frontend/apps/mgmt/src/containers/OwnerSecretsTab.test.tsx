@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { createAppStore, managementApi } from '@ncode/store';
 import type { SecretOwner, SecretResource } from '@ncode/api';
@@ -109,4 +109,86 @@ describe('OwnerSecretsTab offers the actions each owner supports', () => {
       expect(screen.queryByTestId('bind-remote-secret') !== null).toBe(bindsRemoteKeys);
     },
   );
+
+  describe('a tenant holds keys in a key management service', () => {
+    const tenant: SecretOwner = { kind: 'tenant', tenantId: 'acme' };
+
+    type Call = { readonly url: string; readonly method: string; readonly body: string };
+
+    /** Answers every request with the tenant's secrets, and records each request that was made. */
+    function installFetch(): Call[] {
+      const calls: Call[] = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: RequestInfo | URL) => {
+          const request = input as Request;
+          calls.push({
+            url: request.url,
+            method: request.method,
+            body: await request.clone().text(),
+          });
+          const body =
+            request.method === 'GET'
+              ? { concurrencyToken: 'c2', secrets: [symmetricSecret] }
+              : symmetricSecret;
+          return new Response(JSON.stringify(body), {
+            status: request.method === 'POST' ? 201 : 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }),
+      );
+      return calls;
+    }
+
+    it('creates a remote key through the tenant remote secrets path', async () => {
+      const calls = installFetch();
+      await renderTab('tenant', tenant);
+
+      fireEvent.click(screen.getByTestId('create-secret'));
+      fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: 'aws-kms' } });
+      fireEvent.change(screen.getByTestId('secret-remote-algorithm'), {
+        target: { value: 'ES256|ecc|256|P-256' },
+      });
+      fireEvent.click(screen.getByTestId('secret-form-submit'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('secret-form-submit')).not.toBeInTheDocument(),
+      );
+      const post = calls.find((call) => call.method === 'POST');
+      expect(post?.url).toBe('https://api.test/api/tenants/acme/secrets/remote');
+      expect(JSON.parse(post?.body ?? '{}')).toMatchObject({
+        remoteKeyProvider: 'aws-kms',
+        secretType: 'ecc',
+        keySizeBits: 256,
+        curve: 'P-256',
+        algorithm: 'ES256',
+      });
+    });
+
+    it('binds a key through the tenant remote import path', async () => {
+      const calls = installFetch();
+      await renderTab('tenant', tenant);
+
+      fireEvent.click(screen.getByTestId('bind-remote-secret'));
+      fireEvent.change(screen.getByTestId('remote-bind-key-id'), { target: { value: 'key-1' } });
+      fireEvent.change(screen.getByTestId('remote-bind-algorithm'), {
+        target: { value: 'ES256|ecc|256|P-256' },
+      });
+      fireEvent.click(screen.getByTestId('remote-bind-submit'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('remote-bind-submit')).not.toBeInTheDocument(),
+      );
+      const post = calls.find((call) => call.method === 'POST');
+      expect(post?.url).toBe('https://api.test/api/tenants/acme/secrets/remote/import');
+      expect(JSON.parse(post?.body ?? '{}')).toMatchObject({
+        remoteKeyProvider: 'aws-kms',
+        remoteKeyId: 'key-1',
+        secretType: 'ecc',
+        keySizeBits: 256,
+        curve: 'P-256',
+        algorithm: 'ES256',
+      });
+    });
+  });
 });

@@ -9,13 +9,14 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Facades;
 using NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms.Options;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Registration;
 
 namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 
 /// <summary>
 /// Provides opt-in extension methods for the <see cref="SecretPersistenceLibrary"/> builder to register the Google
-/// Cloud Key Management Service key wrapper.
+/// Cloud Key Management Service key wrapper and remote key provider.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -68,6 +69,63 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IKeyWrapper, GoogleCloudKmsKeyWrapper>()
+            );
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Registers the Google Cloud Key Management Service <see cref="IRemoteKeyProvider"/>, which creates tenant
+        /// signing keys that never leave the service, signs with them, and destroys them, together with the
+        /// <see cref="IRemoteSigningAlgorithmSource"/> that maps each JOSE signature algorithm to the crypto key version
+        /// algorithm of the service. The <c>SecretProtection:RemoteKeyProviders:GoogleCloudKms</c> section binds
+        /// <see cref="GoogleCloudKmsRemoteKeyProviderOptions"/> strictly and is validated when the host starts, so
+        /// registering the provider selects it. No client is created before the first key is created, signed with or
+        /// destroyed. Credentials come from Application Default Credentials, never from configuration.
+        /// </summary>
+        /// <param name="configuration">The <see cref="IConfiguration"/> holding the <c>SecretProtection:RemoteKeyProviders:GoogleCloudKms</c> section.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
+        [PublicAPI]
+        public IServiceBuilder<SecretPersistenceLibrary> AddGoogleCloudKmsRemoteKeyProvider(
+            IConfiguration configuration
+        )
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(configuration);
+
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection
+                .AddOptions<GoogleCloudKmsRemoteKeyProviderOptions>()
+                .Configure(options =>
+                    configuration
+                        .GetSection(GoogleCloudKmsRemoteKeyProviderOptions.DefaultSectionName)
+                        .BindStrictly(options)
+                )
+                .ValidateOnStart();
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<GoogleCloudKmsRemoteKeyProviderOptions>,
+                    GoogleCloudKmsRemoteKeyProviderOptionsValidator
+                >()
+            );
+
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<
+                IGoogleCloudKmsClientFactory,
+                DefaultGoogleCloudKmsClientFactory
+            >();
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IRemoteKeyProvider, GoogleCloudKmsRemoteKeyProvider>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IRemoteSigningAlgorithmSource,
+                    GoogleCloudKmsSigningAlgorithms
+                >()
             );
 
             return builder;

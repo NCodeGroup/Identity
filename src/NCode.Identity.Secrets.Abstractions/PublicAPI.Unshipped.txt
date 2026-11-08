@@ -352,7 +352,6 @@ NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.DestroyKeyAsync(string! key
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.Name.get -> string!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.SignAsync(NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<byte[]!>
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProviderCatalog
-NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProviderCatalog.Providers.get -> System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider!>!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProviderCatalog.TryGetProvider(string! name, out NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider? provider) -> bool
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyBinding.RemoteKeyBinding() -> void

@@ -16,11 +16,6 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 public interface IRemoteKeyProviderCatalog
 {
     /// <summary>
-    /// Gets the registered remote key providers.
-    /// </summary>
-    IReadOnlyCollection<IRemoteKeyProvider> Providers { get; }
-
-    /// <summary>
     /// Looks up the provider with the specified name.
     /// </summary>
     /// <param name="name">The provider name, compared ordinally. See <see cref="RemoteKeyProviderNames"/>.</param>

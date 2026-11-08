@@ -1,22 +1,28 @@
 import { useState } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import Box from '@mui/material/Box';
+import LinkIcon from '@mui/icons-material/Link';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import {
   ConfirmDialog,
   DataStateBoundary,
   ExportPublicKeyDialog,
+  RemoteSecretBindDialog,
   RevealSecretDialog,
   SecretFormDialog,
   SecretTable,
+  emptyRemoteSecretBindValues,
   emptySecretFormValues,
   type PublicKeyMaterial,
+  type RemoteSecretBindValues,
   type SecretFormValues,
 } from '@ncode/ui';
 import type {
+  CreateRemoteSecretRequest,
   CreateSecretRequest,
   CreatedSecretResource,
+  ImportRemoteSecretRequest,
   PublicKeyResource,
   RotateSecretRequest,
   SecretResource,
@@ -47,11 +53,25 @@ export type SecretsManagerProps = {
     body: RotateSecretRequest,
   ) => Promise<CreatedSecretResource>;
   readonly isRotating?: boolean;
+  /**
+   * Creates a tenant's signing key in a remote key provider's key management service, which keeps the private half;
+   * must reject with an {@link ApiError}-shaped error on failure. The custody choice is offered only when this is
+   * supplied (ADR-1475, ADR-1476).
+   */
+  readonly onCreateRemote?: (body: CreateRemoteSecretRequest) => Promise<SecretResource>;
+  /**
+   * Binds a key a remote key provider's key management service already holds; must reject with an
+   * {@link ApiError}-shaped error on failure. The bind action is shown only when this is supplied (ADR-1475,
+   * ADR-1476).
+   */
+  readonly onImportRemote?: (body: ImportRemoteSecretRequest) => Promise<SecretResource>;
+  readonly isBinding?: boolean;
 };
 
 type SecretDialogState =
   | { readonly kind: 'none' }
   | { readonly kind: 'create' }
+  | { readonly kind: 'bind' }
   | { readonly kind: 'reveal'; readonly created: CreatedSecretResource }
   | { readonly kind: 'export'; readonly secret: SecretResource }
   | { readonly kind: 'delete'; readonly secret: SecretResource }
@@ -76,12 +96,22 @@ function rotationGraceEnd(): Date {
   return end;
 }
 
-/** Seeds the create-secret form with the default expiry, as a `datetime-local` string. */
-function defaultSecretFormValues(): SecretFormValues {
+/** Seeds a dialog's expiry input with the default expiry, as a `datetime-local` string. */
+function defaultExpiryLocal(): string {
   const expiry = defaultExpiry();
   // Trim to minute precision for the `datetime-local` input (YYYY-MM-DDTHH:mm).
   const local = new Date(expiry.getTime() - expiry.getTimezoneOffset() * 60_000);
-  return { ...emptySecretFormValues, expiresWhen: local.toISOString().slice(0, 16) };
+  return local.toISOString().slice(0, 16);
+}
+
+/** Seeds the create-secret form with the default expiry, as a `datetime-local` string. */
+function defaultSecretFormValues(): SecretFormValues {
+  return { ...emptySecretFormValues, expiresWhen: defaultExpiryLocal() };
+}
+
+/** Seeds the bind dialog with the default expiry, as a `datetime-local` string. */
+function defaultBindValues(): RemoteSecretBindValues {
+  return { ...emptyRemoteSecretBindValues, expiresWhen: defaultExpiryLocal() };
 }
 
 /**
@@ -103,6 +133,9 @@ export function SecretsManager({
   onExportPublicKey,
   onRotate,
   isRotating = false,
+  onCreateRemote,
+  onImportRemote,
+  isBinding = false,
 }: SecretsManagerProps) {
   // Read the clock once, in a state initializer: reading it during render would make the table's output impure.
   const [now] = useState(() => Date.now());
@@ -110,6 +143,7 @@ export function SecretsManager({
   const [formError, setFormError] = useState<string>();
   const [deleteError, setDeleteError] = useState<string>();
   const [rotateError, setRotateError] = useState<string>();
+  const [bindError, setBindError] = useState<string>();
   const [publicKey, setPublicKey] = useState<PublicKeyMaterial>();
   const [exportError, setExportError] = useState<string>();
 
@@ -122,6 +156,11 @@ export function SecretsManager({
   const secretTypes = (capabilities?.secretTypes ?? []).map((capability) => capability.secretType);
   const eccCurves = capabilities?.eccCurves ?? [];
   const algorithms = capabilities?.algorithms ?? [];
+  // The remote key providers, with the algorithms each holds keys for, are discovered from the server too.
+  const remoteKeyProviders = capabilities?.remoteKeyProviders ?? [];
+  const canBindRemote =
+    onImportRemote !== undefined &&
+    remoteKeyProviders.some((provider) => provider.algorithms.length > 0);
   // A shared secret is rotated; a key is replaced by importing a new one (ADR-1320).
   const rotatableSecretTypes = (capabilities?.secretTypes ?? [])
     .filter((capability) => !capability.isAsymmetric)
@@ -163,6 +202,18 @@ export function SecretsManager({
   const handleCreate = async (values: SecretFormValues) => {
     setFormError(undefined);
     try {
+      if (values.custody.length > 0 && onCreateRemote) {
+        await onCreateRemote({
+          remoteKeyProvider: values.custody,
+          secretType: values.secretType,
+          keySizeBits: values.keySizeBits,
+          curve: values.curve.length > 0 ? values.curve : null,
+          algorithm: values.algorithm,
+          expiresWhen: new Date(values.expiresWhen).toISOString(),
+        });
+        setDialog(closed);
+        return;
+      }
       const created = await onCreate({
         secretType: values.secretType,
         keySizeBits: values.keySizeBits,
@@ -207,23 +258,59 @@ export function SecretsManager({
     }
   };
 
+  const handleBind = async (values: RemoteSecretBindValues) => {
+    if (!onImportRemote) {
+      return;
+    }
+    setBindError(undefined);
+    try {
+      await onImportRemote({
+        remoteKeyProvider: values.remoteKeyProvider,
+        remoteKeyId: values.remoteKeyId,
+        secretType: values.secretType,
+        keySizeBits: values.keySizeBits,
+        curve: values.curve.length > 0 ? values.curve : null,
+        algorithm: values.algorithm,
+        expiresWhen: new Date(values.expiresWhen).toISOString(),
+      });
+      setDialog(closed);
+    } catch (bindFailure) {
+      setBindError(apiErrorMessage(bindFailure as ApiError));
+    }
+  };
+
   return (
     <>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="h6" component="h3">
           Secrets
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => {
-            setFormError(undefined);
-            setDialog({ kind: 'create' });
-          }}
-          data-testid="create-secret"
-        >
-          Create secret
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {canBindRemote && (
+            <Button
+              variant="outlined"
+              startIcon={<LinkIcon />}
+              onClick={() => {
+                setBindError(undefined);
+                setDialog({ kind: 'bind' });
+              }}
+              data-testid="bind-remote-secret"
+            >
+              Bind KMS key
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => {
+              setFormError(undefined);
+              setDialog({ kind: 'create' });
+            }}
+            data-testid="create-secret"
+          >
+            Create secret
+          </Button>
+        </Box>
       </Box>
       <DataStateBoundary
         isLoading={isLoading}
@@ -250,7 +337,18 @@ export function SecretsManager({
         secretTypes={secretTypes}
         eccCurves={eccCurves}
         algorithms={algorithms}
+        remoteKeyProviders={onCreateRemote ? remoteKeyProviders : []}
         onSubmit={handleCreate}
+        onCancel={() => setDialog(closed)}
+      />
+
+      <RemoteSecretBindDialog
+        open={dialog.kind === 'bind'}
+        initialValues={defaultBindValues()}
+        isSubmitting={isBinding}
+        error={bindError}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={handleBind}
         onCancel={() => setDialog(closed)}
       />
 

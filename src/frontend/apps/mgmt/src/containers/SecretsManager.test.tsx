@@ -66,6 +66,16 @@ const exportRsaOnly: ManagementCapabilitiesResource = {
   ],
 };
 
+const withRemoteKeys: ManagementCapabilitiesResource = {
+  ...exportRsaOnly,
+  remoteKeyProviders: [
+    {
+      name: 'aws-kms',
+      algorithms: [{ algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' }],
+    },
+  ],
+};
+
 type Deferred<T> = {
   readonly promise: Promise<T>;
   readonly resolve: (value: T) => void;
@@ -468,6 +478,113 @@ describe('SecretsManager', () => {
         'The secret has no public key.',
       );
       expect(screen.queryByTestId('export-public-key-loading')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('remote keys', () => {
+    const remoteHandlers = () => ({
+      onCreateRemote: vi.fn<NonNullable<SecretsManagerProps['onCreateRemote']>>(),
+      onImportRemote: vi.fn<NonNullable<SecretsManagerProps['onImportRemote']>>(),
+    });
+
+    it('offers no custody and no bind action without the remote handlers', async () => {
+      await renderManager({}, withRemoteKeys);
+
+      expect(screen.queryByTestId('bind-remote-secret')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('create-secret'));
+      expect(screen.queryByTestId('secret-custody')).not.toBeInTheDocument();
+    });
+
+    it('creates a remote key from a provider algorithm without a reveal', async () => {
+      const handlers = remoteHandlers();
+      handlers.onCreateRemote.mockResolvedValue(rsaSecret);
+      const { onCreate } = await renderManager(handlers, withRemoteKeys);
+
+      fireEvent.click(screen.getByTestId('create-secret'));
+      const expires = (screen.getByTestId('secret-expires') as HTMLInputElement).value;
+      fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: 'aws-kms' } });
+      fireEvent.change(screen.getByTestId('secret-remote-algorithm'), {
+        target: { value: 'ES256|ecc|256|P-256' },
+      });
+      fireEvent.click(screen.getByTestId('secret-form-submit'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('secret-form-submit')).not.toBeInTheDocument(),
+      );
+      expect(handlers.onCreateRemote).toHaveBeenCalledExactlyOnceWith({
+        remoteKeyProvider: 'aws-kms',
+        secretType: 'ecc',
+        keySizeBits: 256,
+        curve: 'P-256',
+        algorithm: 'ES256',
+        expiresWhen: new Date(expires).toISOString(),
+      });
+      expect(onCreate).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('reveal-secret-material')).not.toBeInTheDocument();
+    });
+
+    it('surfaces a rejected remote create with the server problem detail', async () => {
+      const handlers = remoteHandlers();
+      const detail =
+        "The key management service of the remote key provider 'aws-kms' did not create the key.";
+      handlers.onCreateRemote.mockRejectedValue({ status: 502, data: { detail } });
+      await renderManager(handlers, withRemoteKeys);
+
+      fireEvent.click(screen.getByTestId('create-secret'));
+      fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: 'aws-kms' } });
+      fireEvent.change(screen.getByTestId('secret-remote-algorithm'), {
+        target: { value: 'ES256|ecc|256|P-256' },
+      });
+      fireEvent.click(screen.getByTestId('secret-form-submit'));
+
+      expect(await screen.findByTestId('secret-form-error')).toHaveTextContent(detail);
+      expect(screen.getByTestId('secret-form-submit')).toBeInTheDocument();
+    });
+
+    it('binds a key a key management service holds and closes the dialog', async () => {
+      const handlers = remoteHandlers();
+      handlers.onImportRemote.mockResolvedValue(rsaSecret);
+      await renderManager(handlers, withRemoteKeys);
+
+      fireEvent.click(screen.getByTestId('bind-remote-secret'));
+      const expires = (screen.getByTestId('remote-bind-expires') as HTMLInputElement).value;
+      fireEvent.change(screen.getByTestId('remote-bind-key-id'), {
+        target: { value: 'arn:aws:kms:eu-west-1:111122223333:key/k' },
+      });
+      fireEvent.change(screen.getByTestId('remote-bind-algorithm'), {
+        target: { value: 'ES256|ecc|256|P-256' },
+      });
+      fireEvent.click(screen.getByTestId('remote-bind-submit'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('remote-bind-submit')).not.toBeInTheDocument(),
+      );
+      expect(handlers.onImportRemote).toHaveBeenCalledExactlyOnceWith({
+        remoteKeyProvider: 'aws-kms',
+        remoteKeyId: 'arn:aws:kms:eu-west-1:111122223333:key/k',
+        secretType: 'ecc',
+        keySizeBits: 256,
+        curve: 'P-256',
+        algorithm: 'ES256',
+        expiresWhen: new Date(expires).toISOString(),
+      });
+    });
+
+    it('surfaces a rejected bind with the server problem detail and keeps the dialog open', async () => {
+      const handlers = remoteHandlers();
+      const detail = 'Binding a key management service key needs update authority on the platform.';
+      handlers.onImportRemote.mockRejectedValue({ status: 403, data: { detail } });
+      await renderManager(handlers, withRemoteKeys);
+
+      fireEvent.click(screen.getByTestId('bind-remote-secret'));
+      fireEvent.change(screen.getByTestId('remote-bind-key-id'), { target: { value: 'key-1' } });
+      fireEvent.change(screen.getByTestId('remote-bind-algorithm'), {
+        target: { value: 'ES256|ecc|256|P-256' },
+      });
+      fireEvent.click(screen.getByTestId('remote-bind-submit'));
+
+      expect(await screen.findByTestId('remote-bind-error')).toHaveTextContent(detail);
+      expect(screen.getByTestId('remote-bind-submit')).toBeInTheDocument();
     });
   });
 });

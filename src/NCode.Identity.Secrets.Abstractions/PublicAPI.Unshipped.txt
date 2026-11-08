@@ -328,6 +328,7 @@ NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Selector.get -> NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector

@@ -135,7 +135,7 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
     #region Algorithms Property Tests
 
     [Fact]
-    public void Algorithms_ListsEveryRowOrderedByProviderAlgorithmTypeSizeAndCurve()
+    public void Algorithms_WhenSourcesContributeRows_ListsThemOrderedByProviderAlgorithmTypeSizeAndCurve()
     {
         var awsEs384 = CreateRow(algorithm: "ES384", keySizeBits: 384, curve: "P-384");
         var awsEs256 = CreateRow();

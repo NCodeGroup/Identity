@@ -26,16 +26,7 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog : IRemoteKeyDescriptorCa
         var materialized = sources.ToArray();
         Algorithms = CollectAlgorithms(materialized);
         Providers = CollectProviders(materialized);
-        AlgorithmsBySelector = Algorithms.ToFrozenDictionary(
-            row => new RemoteSigningAlgorithmSelector
-            {
-                Provider = row.Provider,
-                Algorithm = row.Algorithm,
-                SecretType = row.SecretType,
-                KeySizeBits = row.KeySizeBits,
-                Curve = row.Curve,
-            }
-        );
+        AlgorithmsBySelector = Algorithms.ToFrozenDictionary(row => row.Selector);
     }
 
     private FrozenDictionary<
@@ -89,16 +80,7 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog : IRemoteKeyDescriptorCa
         var bySelector = new Dictionary<RemoteSigningAlgorithmSelector, RemoteSigningAlgorithm>();
         foreach (var algorithm in sources.SelectMany(source => source.Algorithms))
         {
-            var selector = new RemoteSigningAlgorithmSelector
-            {
-                Provider = algorithm.Provider,
-                Algorithm = algorithm.Algorithm,
-                SecretType = algorithm.SecretType,
-                KeySizeBits = algorithm.KeySizeBits,
-                Curve = algorithm.Curve,
-            };
-
-            if (!bySelector.TryAdd(selector, algorithm))
+            if (!bySelector.TryAdd(algorithm.Selector, algorithm))
             {
                 throw new InvalidOperationException(
                     $"The remote signing algorithm for provider '{algorithm.Provider}', algorithm '{algorithm.Algorithm}', "

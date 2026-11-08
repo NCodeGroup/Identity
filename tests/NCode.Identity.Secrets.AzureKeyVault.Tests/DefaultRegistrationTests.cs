@@ -116,14 +116,14 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
-        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+        var sources = provider.GetServices<IRemoteKeyDescriptorSource>().ToList();
         var options = provider
             .GetRequiredService<IOptions<AzureKeyVaultRemoteKeyProviderOptions>>()
             .Value;
 
         Assert.Contains(providers, x => x.Name == RemoteKeyProviderNames.AzureKeyVault);
         Assert.Contains(providers, x => x is AzureKeyVaultRemoteKeyProvider);
-        Assert.Contains(sources, x => x is AzureKeyVaultSigningAlgorithms);
+        Assert.Contains(sources, x => x is AzureKeyVaultRemoteKeyDescriptors);
         Assert.Equal(VaultUri, options.VaultUri);
         Assert.True(options.HardwareProtected);
     }
@@ -141,13 +141,14 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var catalog = provider.GetRequiredService<IRemoteKeyProviderCatalog>();
+        var descriptorCatalog = provider.GetRequiredService<IRemoteKeyDescriptorCatalog>();
 
         Assert.True(
             catalog.TryGetProvider(RemoteKeyProviderNames.AzureKeyVault, out var remoteProvider)
         );
         Assert.IsType<AzureKeyVaultRemoteKeyProvider>(remoteProvider);
         Assert.True(
-            catalog.TryGetAlgorithm(
+            descriptorCatalog.TryGetAlgorithm(
                 new RemoteSigningAlgorithmSelector
                 {
                     Provider = RemoteKeyProviderNames.AzureKeyVault,
@@ -182,8 +183,8 @@ public class DefaultRegistrationTests : BaseTests
         Assert.Single(
             serviceCollection,
             x =>
-                x.ServiceType == typeof(IRemoteSigningAlgorithmSource)
-                && x.ImplementationType == typeof(AzureKeyVaultSigningAlgorithms)
+                x.ServiceType == typeof(IRemoteKeyDescriptorSource)
+                && x.ImplementationType == typeof(AzureKeyVaultRemoteKeyDescriptors)
         );
         Assert.Single(
             serviceCollection,
@@ -250,10 +251,10 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
-        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+        var sources = provider.GetServices<IRemoteKeyDescriptorSource>().ToList();
 
         Assert.Contains(providers, x => x is AzureKeyVaultRemoteKeyProvider);
-        Assert.Contains(sources, x => x is AzureKeyVaultSigningAlgorithms);
+        Assert.Contains(sources, x => x is AzureKeyVaultRemoteKeyDescriptors);
     }
 
     [Fact]
@@ -275,8 +276,8 @@ public class DefaultRegistrationTests : BaseTests
             x => x is AzureKeyVaultRemoteKeyProvider
         );
         Assert.DoesNotContain(
-            provider.GetServices<IRemoteSigningAlgorithmSource>(),
-            x => x is AzureKeyVaultSigningAlgorithms
+            provider.GetServices<IRemoteKeyDescriptorSource>(),
+            x => x is AzureKeyVaultRemoteKeyDescriptors
         );
     }
 

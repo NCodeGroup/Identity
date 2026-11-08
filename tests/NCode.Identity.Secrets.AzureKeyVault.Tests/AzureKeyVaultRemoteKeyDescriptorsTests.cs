@@ -7,7 +7,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.AzureKeyVault.Tests;
 
-public class AzureKeyVaultSigningAlgorithmsTests
+public class AzureKeyVaultRemoteKeyDescriptorsTests
 {
     private static readonly HashAlgorithmName Sha256 = HashAlgorithmName.SHA256;
     private static readonly HashAlgorithmName Sha384 = HashAlgorithmName.SHA384;
@@ -45,12 +45,26 @@ public class AzureKeyVaultSigningAlgorithmsTests
         ("ES512", "ecc", 521, "P-521", "EC", Sha512),
     ];
 
+    #region Providers Tests
+
+    [Fact]
+    public void Providers_DescribesTheAzureKeyVaultProvider()
+    {
+        var source = new AzureKeyVaultRemoteKeyDescriptors();
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.Equal(RemoteKeyProviderNames.AzureKeyVault, descriptor.Name);
+    }
+
+    #endregion
+
     #region Algorithms Tests
 
     [Fact]
     public void Algorithms_Rows_MatchTheMapping()
     {
-        var source = new AzureKeyVaultSigningAlgorithms();
+        var source = new AzureKeyVaultRemoteKeyDescriptors();
 
         var rows = source.Algorithms.ToList();
 
@@ -74,7 +88,7 @@ public class AzureKeyVaultSigningAlgorithmsTests
     [Fact]
     public void Algorithms_Rows_HaveUniqueSelectors()
     {
-        var source = new AzureKeyVaultSigningAlgorithms();
+        var source = new AzureKeyVaultRemoteKeyDescriptors();
 
         var selectors = source
             .Algorithms.Select(x => (x.Provider, x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
@@ -86,7 +100,7 @@ public class AzureKeyVaultSigningAlgorithmsTests
     [Fact]
     public void Algorithms_EveryRow_SignsADigest()
     {
-        var source = new AzureKeyVaultSigningAlgorithms();
+        var source = new AzureKeyVaultRemoteKeyDescriptors();
 
         Assert.All(source.Algorithms, row => Assert.NotNull(row.DigestAlgorithm));
     }
@@ -94,7 +108,7 @@ public class AzureKeyVaultSigningAlgorithmsTests
     [Fact]
     public void Algorithms_ProvisionedDefaults_ArePresent()
     {
-        var source = new AzureKeyVaultSigningAlgorithms();
+        var source = new AzureKeyVaultRemoteKeyDescriptors();
 
         var rows = source.Algorithms.ToList();
 

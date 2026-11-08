@@ -27,12 +27,12 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
         VaultUri + "/keys/other-key/fedcba9876543210fedcba9876543210";
 
     private static readonly RemoteSigningAlgorithm Rs256 =
-        new AzureKeyVaultSigningAlgorithms().Algorithms.Single(x =>
+        new AzureKeyVaultRemoteKeyDescriptors().Algorithms.Single(x =>
             x.Algorithm == "RS256" && x.KeySizeBits == 3072
         );
 
     private static readonly RemoteSigningAlgorithm Es256 =
-        new AzureKeyVaultSigningAlgorithms().Algorithms.Single(x => x.Algorithm == "ES256");
+        new AzureKeyVaultRemoteKeyDescriptors().Algorithms.Single(x => x.Algorithm == "ES256");
 
     private static readonly KvSignatureAlgorithm Rs256Algorithm = new("RS256");
 

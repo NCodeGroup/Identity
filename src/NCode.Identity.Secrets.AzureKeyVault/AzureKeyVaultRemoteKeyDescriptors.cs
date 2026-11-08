@@ -8,8 +8,8 @@ using NCode.Identity.Secrets.RemoteKeys;
 namespace NCode.Identity.Secrets.AzureKeyVault;
 
 /// <summary>
-/// Provides the rows of the mapping from a JOSE signature algorithm to the Azure Key Vault key type and signature
-/// algorithm that create a key and sign for it.
+/// Describes the Azure Key Vault remote key provider and its rows of the mapping from a JOSE signature algorithm to the
+/// Azure Key Vault key type and signature algorithm that create a key and sign for it.
 /// </summary>
 /// <remarks>
 /// RSA keys of 2048, 3072 and 4096 bits sign with <c>RS256</c>, <c>RS384</c> and <c>RS512</c> (PKCS #1 v1.5) and with
@@ -19,8 +19,11 @@ namespace NCode.Identity.Secrets.AzureKeyVault;
 /// the service sign the digest of the signing input.
 /// </remarks>
 // See ADR-1471.
-internal sealed class AzureKeyVaultSigningAlgorithms : IRemoteSigningAlgorithmSource
+internal sealed class AzureKeyVaultRemoteKeyDescriptors : IRemoteKeyDescriptorSource
 {
+    private static IReadOnlyList<RemoteKeyProviderDescriptor> ProviderDescriptors { get; } =
+    [new() { Name = RemoteKeyProviderNames.AzureKeyVault }];
+
     private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
     private static (
@@ -35,6 +38,9 @@ internal sealed class AzureKeyVaultSigningAlgorithms : IRemoteSigningAlgorithmSo
     ];
 
     private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } = CreateRows();
+
+    /// <inheritdoc />
+    public IEnumerable<RemoteKeyProviderDescriptor> Providers => ProviderDescriptors;
 
     /// <inheritdoc />
     public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;

@@ -18,6 +18,7 @@ using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Persistence.Stores;
 using NCode.Registration.AspNetCore;
 
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
 /*
 
 POST api/tenants/{tenantId}/secrets/remote
+POST api/tenants/{tenantId}/secrets/remote/import
 
 */
 
@@ -40,6 +42,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
     ICryptoService cryptoService,
     ISecretValidator secretValidator,
     ISecretGenerator secretGenerator,
+    IRemoteSecretImporter remoteSecretImporter,
     IRemoteSecretDestroyer remoteSecretDestroyer,
     IManagementAuditRecorder managementAuditRecorder,
     TimeProvider timeProvider,
@@ -49,6 +52,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
     private ISecretValidator SecretValidator { get; } = secretValidator;
     private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private IRemoteSecretImporter RemoteSecretImporter { get; } = remoteSecretImporter;
     private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private TimeProvider TimeProvider { get; } = timeProvider;
@@ -67,6 +71,10 @@ internal class TenantRemoteSecretApiEndpointHandler(
 
         tenants
             .MapPost("/{tenantId}/secrets/remote", CreateRemoteSecretAsync)
+            .Produces<SecretResource>(StatusCodes.Status201Created);
+
+        tenants
+            .MapPost("/{tenantId}/secrets/remote/import", ImportRemoteSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created);
     }
 
@@ -202,5 +210,174 @@ internal class TenantRemoteSecretApiEndpointHandler(
         // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
         httpContext.Response.Headers.ETag = secret.ConcurrencyToken;
         return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
+    }
+
+    /// <summary>
+    /// Binds a signing key that the key management service of a registered remote key provider already holds to a
+    /// tenant. The server proves the key signs with the supplied public half before it stores the key, and never
+    /// destroys it.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="request">The <see cref="ImportRemoteSecretRequest"/> naming the key and its public half.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The bound secret.</response>
+    /// <response code="400">The request is not coherent or the key does not sign with the supplied public half.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">A secret with the generated identifier or the same <c>kid</c> already exists.</response>
+    /// <response code="502">The key management service failed or refused the proof of the binding.</response>
+    // See ADR-1475.
+    [EndpointName("api/tenants/secrets/import-remote")]
+    internal virtual async ValueTask<IResult> ImportRemoteSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromBody] ImportRemoteSecretRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Create,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
+        var platformRefusal = await GetPlatformRefusalOrDefaultAsync(
+            httpContext,
+            cancellationToken
+        );
+        if (platformRefusal is not null)
+        {
+            return platformRefusal;
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validationError = SecretValidator.ValidateImportRemote(request, createdWhen);
+        if (validationError is not null)
+        {
+            return ToErrorResult(validationError);
+        }
+
+        var secretId = CryptoService.GenerateResourceId();
+
+        var importRequest = new RemoteSecretImportRequest
+        {
+            Key = new SecretKeyImportRequest
+            {
+                SecretId = secretId,
+                SecretType = request.SecretType,
+                Format = request.Format,
+                KeyMaterial = request.KeyMaterial,
+                Use = SecretKeyUses.Signature,
+                Algorithm = request.Algorithm,
+                CreatedWhen = createdWhen,
+                ActivatesWhen = request.ActivatesWhen,
+                RetiresWhen = request.RetiresWhen,
+                ExpiresWhen = request.ExpiresWhen,
+            },
+            Reference = new RemoteKeyReference(request.RemoteKeyProvider, request.RemoteKeyId),
+        };
+        if (!RemoteSecretImporter.TryImport(importRequest, out var secret, out var importError))
+        {
+            return TypedResults.Problem(
+                detail: importError,
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        var keyIdConflict = KeyIdConflictOrDefault(tenant.Secrets.Value, secret, "tenant");
+        if (keyIdConflict is not null)
+        {
+            return keyIdConflict;
+        }
+
+        var bindingError = await RemoteSecretImporter.VerifyBindingAsync(secret, cancellationToken);
+        if (bindingError is not null)
+        {
+            return ToErrorResult(bindingError);
+        }
+
+        try
+        {
+            await store.AddSecretAsync(tenantId, secret, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            return TypedResults.Problem(
+                detail: "A secret with the specified identifier already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        var secretResource = ToSecretResource(secret);
+
+        await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
+            httpContext,
+            tenantId,
+            secretId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(secretResource)
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
+            cancellationToken
+        );
+
+        // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
+        httpContext.Response.Headers.ETag = secret.ConcurrencyToken;
+        return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
+    }
+
+    /// <summary>
+    /// Gets the refusal of a binding by a caller without <see cref="Operations.Update"/> authority at the platform
+    /// node, or <c>null</c> when the caller may bind the key.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <c>403 Forbidden</c> result, or <c>null</c> when the caller may update the platform.</returns>
+    // See ADR-1475.
+    internal virtual async ValueTask<IResult?> GetPlatformRefusalOrDefaultAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var authorizationResult = await AuthorizationService.AuthorizeAsync(
+            httpContext.User,
+            GetPlatformNode(httpContext),
+            Operations.Update
+        );
+        if (authorizationResult.Succeeded)
+        {
+            return null;
+        }
+
+        return TypedResults.Problem(
+            detail: "Binding a key that a key management service holds needs update authority on the platform: the deployment's identity reaches every key the service lets it use.",
+            statusCode: StatusCodes.Status403Forbidden
+        );
     }
 }

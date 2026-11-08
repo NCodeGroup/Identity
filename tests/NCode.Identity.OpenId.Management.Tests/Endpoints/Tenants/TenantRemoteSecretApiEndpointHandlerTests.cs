@@ -41,6 +41,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ISecretValidator> MockSecretValidator { get; }
     private Mock<ISecretGenerator> MockSecretGenerator { get; }
+    private Mock<IRemoteSecretImporter> MockRemoteSecretImporter { get; }
     private Mock<IRemoteSecretDestroyer> MockRemoteSecretDestroyer { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private Mock<IMediator> MockMediator { get; }
@@ -56,6 +57,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockSecretValidator = MockRepository.Create<ISecretValidator>();
         MockSecretGenerator = MockRepository.Create<ISecretGenerator>();
+        MockRemoteSecretImporter = MockRepository.Create<IRemoteSecretImporter>();
         MockRemoteSecretDestroyer = MockRepository.Create<IRemoteSecretDestroyer>();
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
 
@@ -78,6 +80,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
             MockCryptoService.Object,
             MockSecretValidator.Object,
             MockSecretGenerator.Object,
+            MockRemoteSecretImporter.Object,
             MockRemoteSecretDestroyer.Object,
             MockManagementAuditRecorder.Object,
             TimeProvider.System,

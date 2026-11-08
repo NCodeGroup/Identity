@@ -74,21 +74,6 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
         MockTenantStore = CreateStrictMock<ITenantStore>();
         MockMediator = CreateStrictMock<IMediator>();
 
-        // A tenant whose settings name no remote key provider holds its keys in the server's store, so its provisioned
-        // keys are the configured ones; a test that gives a tenant another custody sets up its own settings.
-        MockPolicy
-            .Setup(x =>
-                x.ForTenant(
-                    It.IsAny<IReadOnlyList<TenantKeySpecification>>(),
-                    It.IsAny<IReadOnlySettingCollection>()
-                )
-            )
-            .Returns(
-                (
-                    IReadOnlyList<TenantKeySpecification> specifications,
-                    IReadOnlySettingCollection _
-                ) => specifications
-            );
         TeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         PreviousTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
@@ -131,6 +116,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenATenantLacksAKeyItsSettingsUse_AnnouncesItsSettingsChange()
     {
+        SetupLocalCustody();
         SetupSpecifications();
         SetupStoreManager();
 
@@ -170,6 +156,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenAnAnnouncementFails_ContinuesWithTheNextTenant()
     {
+        SetupLocalCustody();
         SetupSpecifications();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
@@ -190,6 +177,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenATenantHoldsNoKey_LeavesItToItsFirstMaterialization()
     {
+        SetupLocalCustody();
         SetupSpecifications();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId, SecondTenantId);
@@ -207,6 +195,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenTheChangeAddsNoAlgorithmATenantUses_DoesNotReadItsKeys()
     {
+        SetupLocalCustody();
         SetupSpecifications();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
@@ -226,6 +215,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenTheChangeAddsAnAlgorithmATenantUses_AnnouncesItsSettingsChange()
     {
+        SetupLocalCustody();
         SetupSpecifications();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
@@ -245,6 +235,7 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenATenantsCustodyChangedWithTheSameAlgorithms_AnnouncesItsSettingsChange()
     {
+        SetupLocalCustody();
         SetupSpecifications();
         SetupStoreManager();
         SetupTenantPage(cursor: null, nextCursor: null, FirstTenantId);
@@ -421,6 +412,24 @@ public sealed class TenantKeyReconciliationHandlerTests : BaseTests
             .Verifiable();
         return settings;
     }
+
+    // A tenant whose settings name no remote key provider holds its keys in the server's store, so its provisioned
+    // keys are the configured ones; a test that gives a tenant another custody sets up its own settings.
+    private void SetupLocalCustody() =>
+        MockPolicy
+            .Setup(x =>
+                x.ForTenant(
+                    It.IsAny<IReadOnlyList<TenantKeySpecification>>(),
+                    It.IsAny<IReadOnlySettingCollection>()
+                )
+            )
+            .Returns(
+                (
+                    IReadOnlyList<TenantKeySpecification> specifications,
+                    IReadOnlySettingCollection _
+                ) => specifications
+            )
+            .Verifiable();
 
     // The tenant holds its keys in the custody of the provider that its effective settings name.
     private void SetupCustody(IReadOnlySettingCollection settings, string provider) =>

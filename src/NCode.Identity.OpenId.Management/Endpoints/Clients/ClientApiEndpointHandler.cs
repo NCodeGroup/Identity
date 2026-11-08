@@ -244,30 +244,71 @@ internal class ClientApiEndpointHandler(
             .MapGet("/{clientId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<ClientEffectiveSettingsResource>();
 
-        clients.MapGet("/{clientId}/secrets", GetSecretsAsync).Produces<ClientSecretsResource>();
+        clients
+            .MapGet("/{clientId}/secrets", GetSecretsAsync)
+            .Produces<ClientSecretsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         // The response reveals a secret once, so no cache may keep it (ADR-1345).
         clients
             .MapPost("/{clientId}/secrets", CreateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
             .WithNoStore();
         clients
             .MapPost("/{clientId}/secrets/import", ImportSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
-        clients.MapGet("/{clientId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
+            .Produces<SecretResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+        clients
+            .MapGet("/{clientId}/secrets/{secretId}", GetSecretAsync)
+            .Produces<SecretResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         clients
             .MapGet("/{clientId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
-            .Produces<PublicKeyResource>();
+            .Produces<PublicKeyResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         clients
             .MapPut("/{clientId}/secrets/{secretId}", UpdateSecretAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         clients
             .MapDelete("/{clientId}/secrets/{secretId}", DeleteSecretAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         // The response reveals a secret once, so no cache may keep it (ADR-1345).
         clients
             .MapPost("/{clientId}/secrets/{secretId}/rotate", RotateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
-            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
             .WithNoStore();
 
         clients.MapGet("/{clientId}/owners", ListOwnersAsync).Produces<RoleListResource>();
@@ -1740,6 +1781,12 @@ internal class ClientApiEndpointHandler(
     /// <param name="request">The <see cref="CreateSecretRequest"/> describing the secret to generate.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created secret.</response>
+    /// <response code="400">The request is not coherent or the secret could not be generated from its parameters.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The client does not exist.</response>
+    /// <response code="409">The client already holds a secret with the generated identifier, publishes its keys at a <c>jwks_uri</c>, or is managed by its host.</response>
+    /// <response code="412">Another request changed the client's secrets after this request read them.</response>
     [EndpointName("api/clients/secrets/create")]
     internal virtual async ValueTask<IResult> CreateSecretAsync(
         HttpContext httpContext,
@@ -1825,6 +1872,12 @@ internal class ClientApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var secretIdConflict = SecretIdConflictOrDefault(client.Secrets.Value, secretId);
+        if (secretIdConflict is not null)
+        {
+            return secretIdConflict;
+        }
+
         var protector = await SecretProtectorProvider.GetProtectorAsync(
             SecretOwner.ForTenant(client.TenantId),
             [],
@@ -1878,18 +1931,7 @@ internal class ClientApiEndpointHandler(
             );
         }
 
-        try
-        {
-            await store.AddSecretAsync(clientId, generatedSecret.Secret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddSecretAsync(clientId, generatedSecret.Secret, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -1923,6 +1965,13 @@ internal class ClientApiEndpointHandler(
     /// keeps its <c>kid</c>; any other key is identified by its secret identifier. The <c>kid</c> must be unique among
     /// the client's keys, and a client that publishes its keys at a <c>jwks_uri</c> cannot have keys registered for it.
     /// </remarks>
+    /// <response code="201">The imported secret.</response>
+    /// <response code="400">The request is not coherent or the key could not be imported.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The client does not exist.</response>
+    /// <response code="409">The client already holds a secret with the generated identifier or the same <c>kid</c>, publishes its keys at a <c>jwks_uri</c>, or is managed by its host.</response>
+    /// <response code="412">Another request changed the client's secrets after this request read them.</response>
     // See ADR-1104 and ADR-1161.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
@@ -1978,6 +2027,12 @@ internal class ClientApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var secretIdConflict = SecretIdConflictOrDefault(client.Secrets.Value, secretId);
+        if (secretIdConflict is not null)
+        {
+            return secretIdConflict;
+        }
+
         var importRequest = new SecretKeyImportRequest
         {
             SecretId = secretId,
@@ -2002,18 +2057,7 @@ internal class ClientApiEndpointHandler(
             return keyIdConflict;
         }
 
-        try
-        {
-            await store.AddSecretAsync(clientId, importedSecret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddSecretAsync(clientId, importedSecret, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -2303,6 +2347,12 @@ internal class ClientApiEndpointHandler(
     /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the rotated secret.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The replacement secret.</response>
+    /// <response code="400">The secret is not a shared secret or the replacement could not be generated from its parameters.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The client or the secret does not exist.</response>
+    /// <response code="409">The client already holds a secret with the generated identifier or is managed by its host.</response>
+    /// <response code="412">The <c>If-Match</c> token does not match the rotated secret, or another request changed the client's secrets after this request read them.</response>
     // See ADR-1320.
     [EndpointName("api/clients/secrets/rotate")]
     internal virtual async ValueTask<IResult> RotateSecretAsync(
@@ -2404,6 +2454,12 @@ internal class ClientApiEndpointHandler(
 
         var replacementId = CryptoService.GenerateResourceId();
 
+        var replacementIdConflict = SecretIdConflictOrDefault(client.Secrets.Value, replacementId);
+        if (replacementIdConflict is not null)
+        {
+            return replacementIdConflict;
+        }
+
         var protector = await SecretProtectorProvider.GetProtectorAsync(
             SecretOwner.ForTenant(client.TenantId),
             [],
@@ -2448,18 +2504,7 @@ internal class ClientApiEndpointHandler(
                 ? Max(requested, secret.CreatedWhen)
                 : secret.ExpiresWhen;
 
-        try
-        {
-            await store.AddSecretAsync(clientId, generatedSecret.Secret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddSecretAsync(clientId, generatedSecret.Secret, cancellationToken);
 
         PersistedSecret? shortened = null;
         if (rotatedExpiresWhen != secret.ExpiresWhen)

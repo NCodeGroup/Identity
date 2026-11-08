@@ -25,6 +25,7 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Tests.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Persistence.Tenants;
@@ -3718,6 +3719,78 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CreateSecretAsync_WhenTheSecretIdIsTaken_ReturnsConflictWithoutGenerating()
+    {
+        SetupSecretCreateValidation();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateClient("client-ct", EmptyObject(), CreatePersistedSecret("generated-id"))
+            )
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+        SetupRegisteredAuthenticationMethod(usesClientSecretAsKey: false);
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CreateSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenTheStoreRefusesTheSecret_Throws()
+    {
+        SetupSecretCreateValidation();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+        SetupRegisteredAuthenticationMethod(usesClientSecretAsKey: false);
+
+        var protector = SetupGenerateSecretProtector();
+        var generated = CreatePersistedSecret();
+        MockClientSecretIssuer
+            .Setup(x =>
+                x.GenerateClientSecret(
+                    protector,
+                    OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost,
+                    It.IsAny<SharedSecretRequest>()
+                )
+            )
+            .Returns(new GeneratedSecret { Secret = generated, SecretMaterial = "material" })
+            .Verifiable();
+        MockClientStore
+            .Setup(x => x.AddSecretAsync(ClientId, generated, It.IsAny<CancellationToken>()))
+            .Throws(new InvalidOperationException("refused"))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Handler.CreateSecretAsync(
+                CreateHttpContext(authenticated: true),
+                TenantId,
+                ClientId,
+                CreateSecretRequest(),
+                CancellationToken.None
+            )
+        );
+    }
+
+    [Fact]
     public async Task CreateSecretAsync_WhenTheClientIsHostManaged_ReturnsConflictWithoutWriting()
     {
         SetupStore();
@@ -3856,6 +3929,30 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenTheSecretIdIsTaken_ReturnsConflictWithoutImporting()
+    {
+        SetupImportClient(
+            CreateClient("client-ct", EmptyObject(), CreatePublicKeySecret("secret-2", "other-kid"))
+        );
+        SetupResourceId("secret-2");
+
+        var result = await Handler.ImportSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            CreateImportSecretRequest(),
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
     }
 
     [Fact]
@@ -4996,6 +5093,44 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
     }
 
+    [Fact]
+    public async Task RotateSecretAsync_WhenTheReplacementIdIsTaken_ReturnsConflictWithoutGenerating()
+    {
+        SetupSecretCreateValidation();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                CreateClient(
+                    "client-ct",
+                    EmptyObject(),
+                    CreatePersistedSecret("secret-1", "rotated-ct"),
+                    CreatePersistedSecret("generated-id")
+                )
+            )
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupResourceId();
+        SetupRegisteredAuthenticationMethod(usesClientSecretAsKey: false);
+
+        var result = await Handler.RotateSecretAsync(
+            CreateHttpContext(authenticated: true),
+            TenantId,
+            ClientId,
+            "secret-1",
+            new RotateSecretRequest { ExpiresWhen = DateTimeOffset.UnixEpoch.AddYears(3) },
+            "rotated-ct",
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
     #endregion
 
     #region ListOwnersAsync Tests
@@ -5447,6 +5582,51 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    #endregion
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/clients/{clientId}/secrets", new[] { 401, 403, 404 })]
+    [InlineData("POST", "/clients/{clientId}/secrets", new[] { 400, 401, 403, 404, 409, 412 })]
+    [InlineData(
+        "POST",
+        "/clients/{clientId}/secrets/import",
+        new[] { 400, 401, 403, 404, 409, 412 }
+    )]
+    [InlineData("GET", "/clients/{clientId}/secrets/{secretId}", new[] { 401, 403, 404 })]
+    [InlineData(
+        "GET",
+        "/clients/{clientId}/secrets/{secretId}/public-key",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData(
+        "PUT",
+        "/clients/{clientId}/secrets/{secretId}",
+        new[] { 400, 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "DELETE",
+        "/clients/{clientId}/secrets/{secretId}",
+        new[] { 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "POST",
+        "/clients/{clientId}/secrets/{secretId}/rotate",
+        new[] { 400, 401, 403, 404, 409, 412 }
+    )]
+    public async Task Map_Always_DeclaresEveryProblemASecretRouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
     }
 
     #endregion

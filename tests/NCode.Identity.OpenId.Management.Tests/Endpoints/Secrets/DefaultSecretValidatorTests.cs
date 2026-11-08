@@ -860,6 +860,60 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
     }
 
+    private static PersistedSecret CreateRemoteEccKey()
+    {
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        return new PersistedSecretBuilder
+        {
+            SecretId = "key-1",
+            Use = "sig",
+            Algorithm = "ES256",
+            ActivatesWhen = DateTimeOffset.UnixEpoch,
+            RetiresWhen = DateTimeOffset.UnixEpoch.AddYears(1),
+            SecretType = SecretTypes.Ecc,
+            SecretEncoding = SecretEncodings.Remote,
+            KeySizeBits = 256,
+            EncodedValue = "aws-kms:arn:aws:kms:us-west-2:111122223333:key/k",
+            PublicKey = Base64Url.EncodeToString(ecdsa.ExportSubjectPublicKeyInfo()),
+        }.Build();
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenARemoteKeysAlgorithmChanges_ReturnsBadRequest()
+    {
+        var error = Validator.ValidateUpdate(
+            CreateRemoteEccKey(),
+            CreateUpdateRequest("sig", "ES384")
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Contains("'ES256'", error.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenARemoteKeysAlgorithmIsRemoved_ReturnsBadRequest()
+    {
+        var error = Validator.ValidateUpdate(
+            CreateRemoteEccKey(),
+            CreateUpdateRequest("sig", null)
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+    }
+
+    [Fact]
+    public void ValidateUpdate_WhenARemoteKeyKeepsItsAlgorithm_ReturnsNull()
+    {
+        var error = Validator.ValidateUpdate(
+            CreateRemoteEccKey(),
+            CreateUpdateRequest("sig", "ES256")
+        );
+
+        Assert.Null(error);
+    }
+
     #endregion
 
     #region ValidateImport Tests

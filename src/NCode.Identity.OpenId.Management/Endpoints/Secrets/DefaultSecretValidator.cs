@@ -223,6 +223,17 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
+        // A remote key is bound to its algorithm, and a tenant with a remote key it cannot read does not load.
+        if (
+            SecretEncodings.IsRemote(secret.SecretEncoding)
+            && !string.Equals(request.Algorithm, secret.Algorithm, StringComparison.Ordinal)
+        )
+        {
+            return Error(
+                $"A key that a key management service holds is bound to its algorithm '{secret.Algorithm}', which an update keeps."
+            );
+        }
+
         // An instant the update omits keeps the stored one, so the update is judged as the handler will write it.
         if (
             !SecretLifecycle.TryResolveUpdate(

@@ -9,6 +9,7 @@ using System.Text.Json.Nodes;
 using NCode.Identity.Jwk;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
@@ -17,7 +18,8 @@ namespace NCode.Identity.Secrets.KeyTypes;
 /// asymmetric and therefore expose exportable and importable public-key material.
 /// </summary>
 internal sealed class RsaSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFactory)
-    : AsymmetricSecretKeyTypeDescriptor(secretKeyFactory)
+    : AsymmetricSecretKeyTypeDescriptor(secretKeyFactory),
+        IRemoteSecretKeyTypeDescriptor
 {
     /// <inheritdoc />
     public override string KeyType => SecretKeyTypes.Rsa;
@@ -110,6 +112,13 @@ internal sealed class RsaSecretKeyTypeDescriptor(ISecretKeyFactory secretKeyFact
         KeyMetadata metadata,
         ReadOnlySpan<byte> subjectPublicKeyInfo
     ) => SecretKeyFactory.CreateRsaSpki(metadata, subjectPublicKeyInfo);
+
+    /// <inheritdoc />
+    public SecretKey CreateRemoteKey(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> subjectPublicKeyInfo,
+        RemoteKeyBinding binding
+    ) => SecretKeyFactory.CreateRsaRemote(metadata, subjectPublicKeyInfo, binding);
 
     /// <inheritdoc />
     protected override JsonObject? WritePublicKeyJwk(AsymmetricSecretKey secretKey)

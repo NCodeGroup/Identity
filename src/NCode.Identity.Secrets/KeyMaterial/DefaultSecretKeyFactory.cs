@@ -9,6 +9,7 @@ using NCode.Buffers;
 using NCode.Extensions.DataProtection;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.KeyMaterial;
 
@@ -340,6 +341,28 @@ internal class DefaultSecretKeyFactory(
         return CreateRsaPublicKey(metadata, key, certificate);
     }
 
+    /// <inheritdoc />
+    public RsaSecretKey CreateRsaRemote(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> subjectPublicKeyInfo,
+        RemoteKeyBinding binding
+    )
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        RequireSecretType(binding, SecretKeyTypes.Rsa);
+
+        using var key = RSA.Create();
+        key.ImportSubjectPublicKeyInfo(subjectPublicKeyInfo, out _);
+        RequireKeySizeBits(binding, key.KeySize);
+
+        return new RemoteRsaSecretKey(
+            metadata,
+            key.KeySize,
+            subjectPublicKeyInfo.ToArray(),
+            binding
+        );
+    }
+
     #endregion
 
     #region ECC
@@ -425,6 +448,58 @@ internal class DefaultSecretKeyFactory(
         key.ImportSubjectPublicKeyInfo(bytes, out var bytesRead);
         Debug.Assert(bytesRead == bytes.Length);
         return CreateEccPublicKey(metadata, key, certificate);
+    }
+
+    /// <inheritdoc />
+    public EccSecretKey CreateEccRemote(
+        KeyMetadata metadata,
+        ReadOnlySpan<byte> subjectPublicKeyInfo,
+        RemoteKeyBinding binding
+    )
+    {
+        ArgumentNullException.ThrowIfNull(binding);
+        RequireSecretType(binding, SecretKeyTypes.Ecc);
+
+        using var key = ECDsa.Create();
+        key.ImportSubjectPublicKeyInfo(subjectPublicKeyInfo, out _);
+        RequireKeySizeBits(binding, key.KeySize);
+
+        var curveName = GetCurveName(key);
+        if (!string.Equals(curveName, binding.Algorithm.Curve, StringComparison.Ordinal))
+            throw new ArgumentException(
+                $"The remote key's curve '{curveName}' differs from the curve '{binding.Algorithm.Curve}' of its mapping row.",
+                nameof(subjectPublicKeyInfo)
+            );
+
+        return new RemoteEccSecretKey(
+            metadata,
+            curveName,
+            key.KeySize,
+            subjectPublicKeyInfo.ToArray(),
+            binding
+        );
+    }
+
+    #endregion
+
+    #region Remote
+
+    private static void RequireSecretType(RemoteKeyBinding binding, string secretType)
+    {
+        if (!string.Equals(binding.Algorithm.SecretType, secretType, StringComparison.Ordinal))
+            throw new ArgumentException(
+                $"The mapping row's secret type '{binding.Algorithm.SecretType}' is not '{secretType}'.",
+                nameof(binding)
+            );
+    }
+
+    private static void RequireKeySizeBits(RemoteKeyBinding binding, int keySizeBits)
+    {
+        if (binding.Algorithm.KeySizeBits != keySizeBits)
+            throw new ArgumentException(
+                $"The remote key's size '{keySizeBits}' bits differs from the size '{binding.Algorithm.KeySizeBits}' bits of its mapping row.",
+                nameof(binding)
+            );
     }
 
     #endregion

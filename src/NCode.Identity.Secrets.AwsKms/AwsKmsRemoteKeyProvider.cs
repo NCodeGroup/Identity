@@ -14,9 +14,10 @@ using NCode.Identity.Secrets.RemoteKeys;
 namespace NCode.Identity.Secrets.AwsKms;
 
 /// <summary>
-/// Provides an implementation of <see cref="IRemoteKeyProvider"/> that creates signing keys in AWS Key Management
-/// Service, signs with them, and schedules them for deletion, so the private half of a key never leaves the service.
-/// The provider reaches the service with the credentials of the deployment.
+/// Provides an implementation of <see cref="IRemoteKeyProvider"/> that creates signing, decryption and key agreement
+/// keys in AWS Key Management Service, signs, decrypts and agrees with them, and schedules them for deletion, so the
+/// private half of a key never leaves the service. The provider reaches the service with the credentials of the
+/// deployment.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -25,17 +26,19 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// uses the key goes to the region that the ARN names.
 /// </para>
 /// <para>
-/// The provider refuses a public key that is not a signing key of the requested specification for the requested
+/// The provider refuses a public key that is not a key of the requested usage and specification for the requested
 /// algorithm with a <see cref="CryptographicException"/>, and a response that names another key or another algorithm
-/// than requested with an <see cref="IOException"/>, because the call can be retried. Logs and messages carry
-/// identifiers only, never the signing input, a digest or a signature.
+/// than requested with an <see cref="IOException"/>, because the call can be retried. A ciphertext that the service
+/// refuses is a <see cref="CryptographicException"/>. Logs and messages carry identifiers only, never the signing
+/// input, a digest, a signature, a ciphertext, a plaintext or a shared secret.
 /// </para>
 /// <para>
-/// The call that creates a key is made once, by a client that never retries; the calls that read, sign and schedule
-/// deletion keep the retry of the SDK.
+/// The call that creates a key is made once, by a client that never retries; the calls that read, sign, decrypt, agree
+/// and schedule deletion keep the retry of the SDK.
 /// </para>
 /// </remarks>
 // See ADR-1471.
+// See ADR-1477.
 internal class AwsKmsRemoteKeyProvider(
     IAwsKmsClientFactory clientFactory,
     IOptions<AwsKmsRemoteKeyProviderOptions> options
@@ -95,8 +98,8 @@ internal class AwsKmsRemoteKeyProvider(
         var createRequest = new CreateKeyRequest
         {
             KeySpec = KeySpec.FindValue(row.KeySpec),
-            KeyUsage = KeyUsageType.SIGN_VERIFY,
-            Description = $"NCode.Identity signing key {request.SecretId} of {request.OwnerId}",
+            KeyUsage = GetKeyUsage(row),
+            Description = $"NCode.Identity key {request.SecretId} of {request.OwnerId}",
             Tags =
             [
                 new Tag { TagKey = OwnerTagKey, TagValue = request.OwnerId },
@@ -133,8 +136,8 @@ internal class AwsKmsRemoteKeyProvider(
     /// Thrown when the service reports a public key of another key than requested.
     /// </exception>
     /// <exception cref="CryptographicException">
-    /// Thrown when the service reports a public key that is missing or is not a signing key of the requested
-    /// specification for the requested algorithm.
+    /// Thrown when the service reports a public key that is missing or is not a key of the usage and specification of
+    /// the requested row, or that does not support the row's algorithm.
     /// </exception>
     public async ValueTask GetPublicKeyAsync(
         RemotePublicKeyRequest request,
@@ -175,9 +178,12 @@ internal class AwsKmsRemoteKeyProvider(
             );
         }
 
-        if (publicKey.KeyUsage != KeyUsageType.SIGN_VERIFY)
+        var expectedUsage = GetKeyUsage(row);
+        if (publicKey.KeyUsage != expectedUsage)
         {
-            throw new CryptographicException($"AWS KMS key '{keyId}' is not a signing key.");
+            throw new CryptographicException(
+                $"AWS KMS key '{keyId}' is not a {GetKindName(row)} key."
+            );
         }
 
         if (publicKey.KeySpec?.Value != row.KeySpec)
@@ -187,13 +193,30 @@ internal class AwsKmsRemoteKeyProvider(
             );
         }
 
-        if (
-            publicKey.SigningAlgorithms is not { } signingAlgorithms
-            || !signingAlgorithms.Contains(row.SigningAlgorithm, StringComparer.Ordinal)
-        )
+        var (supported, serviceAlgorithm) = row switch
+        {
+            RemoteSigningAlgorithm signing => (
+                publicKey.SigningAlgorithms,
+                signing.SigningAlgorithm
+            ),
+            RemoteDecryptionAlgorithm decryption => (
+                publicKey.EncryptionAlgorithms,
+                decryption.EncryptionAlgorithm
+            ),
+            RemoteKeyAgreementAlgorithm agreement => (
+                publicKey.KeyAgreementAlgorithms,
+                agreement.KeyAgreementAlgorithm
+            ),
+            _ => throw new ArgumentException(
+                "The mapping row is not a signing, decryption or key agreement row.",
+                nameof(request)
+            ),
+        };
+
+        if (supported is null || !supported.Contains(serviceAlgorithm, StringComparer.Ordinal))
         {
             throw new CryptographicException(
-                $"AWS KMS key '{keyId}' does not support the signing algorithm '{row.SigningAlgorithm}'."
+                $"AWS KMS key '{keyId}' does not support the {GetKindName(row)} algorithm '{serviceAlgorithm}'."
             );
         }
 
@@ -292,6 +315,245 @@ internal class AwsKmsRemoteKeyProvider(
         response.Signature.ReadExactly(signature.Span[..length]);
         return length;
     }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
+    /// Thrown when the key identifier of <paramref name="request"/> is not a KMS key ARN.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// Thrown when the service reports that another key or another algorithm decrypted the ciphertext.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the service refuses the ciphertext or the plaintext does not fit in the buffer.
+    /// </exception>
+    public async ValueTask<int> DecryptAsync(
+        RemoteDecryptionRequest request,
+        Memory<byte> plaintext,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var keyId = request.KeyId;
+        if (!AwsKmsKeyArn.IsValid(keyId))
+        {
+            throw new ArgumentException(
+                "The key identifier is not the ARN of a KMS key.",
+                nameof(request)
+            );
+        }
+
+        var row = request.Algorithm;
+        var region = AwsKmsKeyArn.GetRegion(keyId);
+
+        using var ciphertext = CreateReadOnlyStream(request.Ciphertext);
+        var decryptRequest = new DecryptRequest
+        {
+            KeyId = keyId,
+            CiphertextBlob = ciphertext,
+            EncryptionAlgorithm = EncryptionAlgorithmSpec.FindValue(row.EncryptionAlgorithm),
+        };
+
+        DecryptResponse response;
+        try
+        {
+            response = await ClientFactory.ExecuteAsync(
+                region,
+                access: null,
+                (client, token) =>
+                    new ValueTask<DecryptResponse>(client.DecryptAsync(decryptRequest, token)),
+                cancellationToken
+            );
+        }
+        catch (InvalidCiphertextException exception)
+        {
+            throw new CryptographicException(
+                $"AWS KMS key '{keyId}' refused the ciphertext.",
+                exception
+            );
+        }
+
+        try
+        {
+            if (!string.Equals(response.KeyId, keyId, StringComparison.Ordinal))
+            {
+                throw new IOException(
+                    $"AWS KMS key '{keyId}' was asked to decrypt, but the service reports another key decrypted the ciphertext."
+                );
+            }
+
+            if (
+                !string.Equals(
+                    response.EncryptionAlgorithm?.Value,
+                    row.EncryptionAlgorithm,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                throw new IOException(
+                    $"AWS KMS key '{keyId}' was asked to decrypt with '{row.EncryptionAlgorithm}', but the service reports another algorithm decrypted the ciphertext."
+                );
+            }
+
+            return CopyResult(
+                response.Plaintext,
+                plaintext,
+                $"The plaintext of AWS KMS key '{keyId}'"
+            );
+        }
+        finally
+        {
+            ZeroStream(response.Plaintext);
+        }
+    }
+
+    /// <inheritdoc />
+    /// <exception cref="ArgumentException">
+    /// Thrown when the key identifier of <paramref name="request"/> is not a KMS key ARN.
+    /// </exception>
+    /// <exception cref="IOException">
+    /// Thrown when the service reports that another key or another algorithm derived the shared secret.
+    /// </exception>
+    /// <exception cref="CryptographicException">
+    /// Thrown when the service refuses the peer public key or the shared secret does not fit in the buffer.
+    /// </exception>
+    public async ValueTask<int> DeriveSharedSecretAsync(
+        RemoteKeyAgreementRequest request,
+        Memory<byte> sharedSecret,
+        CancellationToken cancellationToken
+    )
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var keyId = request.KeyId;
+        if (!AwsKmsKeyArn.IsValid(keyId))
+        {
+            throw new ArgumentException(
+                "The key identifier is not the ARN of a KMS key.",
+                nameof(request)
+            );
+        }
+
+        var row = request.Algorithm;
+        var region = AwsKmsKeyArn.GetRegion(keyId);
+
+        using var peerPublicKey = CreateReadOnlyStream(request.PeerSubjectPublicKeyInfo);
+        var deriveRequest = new DeriveSharedSecretRequest
+        {
+            KeyId = keyId,
+            KeyAgreementAlgorithm = KeyAgreementAlgorithmSpec.FindValue(row.KeyAgreementAlgorithm),
+            PublicKey = peerPublicKey,
+        };
+
+        DeriveSharedSecretResponse response;
+        try
+        {
+            response = await ClientFactory.ExecuteAsync(
+                region,
+                access: null,
+                (client, token) =>
+                    new ValueTask<DeriveSharedSecretResponse>(
+                        client.DeriveSharedSecretAsync(deriveRequest, token)
+                    ),
+                cancellationToken
+            );
+        }
+        catch (InvalidKeyUsageException exception)
+        {
+            throw new CryptographicException(
+                $"AWS KMS key '{keyId}' refused the peer public key.",
+                exception
+            );
+        }
+
+        try
+        {
+            if (!string.Equals(response.KeyId, keyId, StringComparison.Ordinal))
+            {
+                throw new IOException(
+                    $"AWS KMS key '{keyId}' was asked to agree a key, but the service reports another key derived the shared secret."
+                );
+            }
+
+            if (
+                !string.Equals(
+                    response.KeyAgreementAlgorithm?.Value,
+                    row.KeyAgreementAlgorithm,
+                    StringComparison.Ordinal
+                )
+            )
+            {
+                throw new IOException(
+                    $"AWS KMS key '{keyId}' was asked to agree a key with '{row.KeyAgreementAlgorithm}', but the service reports another algorithm derived the shared secret."
+                );
+            }
+
+            return CopyResult(
+                response.SharedSecret,
+                sharedSecret,
+                $"The shared secret of AWS KMS key '{keyId}'"
+            );
+        }
+        finally
+        {
+            ZeroStream(response.SharedSecret);
+        }
+    }
+
+    private static MemoryStream CreateReadOnlyStream(ReadOnlyMemory<byte> data) =>
+        MemoryMarshal.TryGetArray(data, out var segment) && segment.Array is { } array
+            ? new MemoryStream(array, segment.Offset, segment.Count, writable: false)
+            : new MemoryStream(data.ToArray());
+
+    private static int CopyResult(MemoryStream? source, Memory<byte> destination, string subject)
+    {
+        if (source is null)
+        {
+            throw new CryptographicException($"{subject} is missing.");
+        }
+
+        var length = checked((int)source.Length);
+        if (length > destination.Length)
+        {
+            throw new CryptographicException($"{subject} does not fit in the buffer.");
+        }
+
+        source.Position = 0;
+        source.ReadExactly(destination.Span[..length]);
+        return length;
+    }
+
+    private static void ZeroStream(MemoryStream? stream)
+    {
+        if (stream is not null && stream.TryGetBuffer(out var buffer))
+        {
+            CryptographicOperations.ZeroMemory(buffer.AsSpan());
+        }
+    }
+
+    private static KeyUsageType GetKeyUsage(RemoteKeyAlgorithm row) =>
+        row switch
+        {
+            RemoteSigningAlgorithm => KeyUsageType.SIGN_VERIFY,
+            RemoteDecryptionAlgorithm => KeyUsageType.ENCRYPT_DECRYPT,
+            RemoteKeyAgreementAlgorithm => KeyUsageType.KEY_AGREEMENT,
+            _ => throw new ArgumentException(
+                "The mapping row is not a signing, decryption or key agreement row.",
+                nameof(row)
+            ),
+        };
+
+    private static string GetKindName(RemoteKeyAlgorithm row) =>
+        row switch
+        {
+            RemoteSigningAlgorithm => "signing",
+            RemoteDecryptionAlgorithm => "decryption",
+            RemoteKeyAgreementAlgorithm => "key agreement",
+            _ => throw new ArgumentException(
+                "The mapping row is not a signing, decryption or key agreement row.",
+                nameof(row)
+            ),
+        };
 
     /// <inheritdoc />
     /// <exception cref="ArgumentException">

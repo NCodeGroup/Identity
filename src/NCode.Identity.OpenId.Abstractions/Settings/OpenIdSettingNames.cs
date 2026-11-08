@@ -589,6 +589,13 @@ public static class OpenIdSettingNames
     public const string TenantKeyRetirementGrace = "tenant_key_retirement_grace";
 
     /// <summary>
+    /// Contains the name of the tenant <c>tenant_signing_key_provider</c> setting: the name of the registered remote
+    /// key provider that holds the tenant's signing keys; empty keeps them in the server's store. Not advertised in
+    /// discovery.
+    /// </summary>
+    public const string TenantSigningKeyProvider = "tenant_signing_key_provider";
+
+    /// <summary>
     /// Contains the name of the tenant <c>environment_type</c> setting: the name of the tenant's registered
     /// environment type, which selects that type's security profiles. Defaults to <c>production</c>. Not advertised in
     /// discovery.

@@ -170,29 +170,57 @@ internal class ResourceServerApiEndpointHandler(
 
         resourceServers
             .MapGet("/{resourceServerId}/secrets", GetSecretsAsync)
-            .Produces<ResourceServerSecretsResource>();
+            .Produces<ResourceServerSecretsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         // The response reveals a secret once, so no cache may keep it (ADR-1345).
         resourceServers
             .MapPost("/{resourceServerId}/secrets", CreateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed)
             .WithNoStore();
         resourceServers
             .MapPost("/{resourceServerId}/secrets/import", ImportSecretAsync)
             .Produces<SecretResource>(StatusCodes.Status201Created)
-            .Produces(StatusCodes.Status409Conflict);
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapGet("/{resourceServerId}/secrets/{secretId}", GetSecretAsync)
-            .Produces<SecretResource>();
+            .Produces<SecretResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapGet("/{resourceServerId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
-            .Produces<PublicKeyResource>();
+            .Produces<PublicKeyResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         resourceServers
             .MapPut("/{resourceServerId}/secrets/{secretId}", UpdateSecretAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         resourceServers
             .MapDelete("/{resourceServerId}/secrets/{secretId}", DeleteSecretAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         resourceServers
             .MapGet("/{resourceServerId}/owners", ListOwnersAsync)
@@ -1271,7 +1299,12 @@ internal class ResourceServerApiEndpointHandler(
     /// Creates a secret for a resource server. The generated key material is returned exactly once.
     /// </summary>
     /// <response code="201">The created secret, including its one-time key material.</response>
-    /// <response code="409">The resource server is a system resource server, which holds no keys.</response>
+    /// <response code="400">The request is not coherent or the secret could not be generated from its parameters.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The resource server does not exist.</response>
+    /// <response code="409">The resource server is a system resource server, which holds no keys, or already holds a secret with the generated identifier.</response>
+    /// <response code="412">Another request changed the resource server's secrets after this request read them.</response>
     [EndpointName("api/resource-servers/secrets/create")]
     internal virtual async ValueTask<IResult> CreateSecretAsync(
         HttpContext httpContext,
@@ -1321,6 +1354,12 @@ internal class ResourceServerApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var secretIdConflict = SecretIdConflictOrDefault(resourceServer.Secrets.Value, secretId);
+        if (secretIdConflict is not null)
+        {
+            return secretIdConflict;
+        }
+
         var protector = await SecretProtectorProvider.GetProtectorAsync(
             SecretOwner.ForTenant(resourceServer.TenantId),
             [],
@@ -1356,18 +1395,7 @@ internal class ResourceServerApiEndpointHandler(
             );
         }
 
-        try
-        {
-            await store.AddSecretAsync(resourceServerId, generatedSecret.Secret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddSecretAsync(resourceServerId, generatedSecret.Secret, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -1391,7 +1419,12 @@ internal class ResourceServerApiEndpointHandler(
     /// Imports a caller-supplied public key (JWK, PEM, or certificate) as a new resource-server secret.
     /// </summary>
     /// <response code="201">The imported secret.</response>
-    /// <response code="409">The resource server is a system resource server, which holds no keys.</response>
+    /// <response code="400">The request is not coherent or the key could not be imported.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The resource server does not exist.</response>
+    /// <response code="409">The resource server is a system resource server, which holds no keys, or already holds a secret with the generated identifier or the same <c>kid</c>.</response>
+    /// <response code="412">Another request changed the resource server's secrets after this request read them.</response>
     // See ADR-1104.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
@@ -1441,6 +1474,12 @@ internal class ResourceServerApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var secretIdConflict = SecretIdConflictOrDefault(resourceServer.Secrets.Value, secretId);
+        if (secretIdConflict is not null)
+        {
+            return secretIdConflict;
+        }
+
         var importRequest = new SecretKeyImportRequest
         {
             SecretId = secretId,
@@ -1472,18 +1511,7 @@ internal class ResourceServerApiEndpointHandler(
             return keyIdConflict;
         }
 
-        try
-        {
-            await store.AddSecretAsync(resourceServerId, importedSecret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddSecretAsync(resourceServerId, importedSecret, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
 

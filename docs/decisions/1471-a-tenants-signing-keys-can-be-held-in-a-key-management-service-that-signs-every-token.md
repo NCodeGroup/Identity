@@ -85,8 +85,9 @@ public keys without calling the service.**
    `AddSecretsLibrary` registers it.
 8. **Generation.** `ISecretGenerator.GenerateRemoteSecretAsync(GenerateRemoteSecretRequest)` resolves the lifecycle,
    requires a remote-capable descriptor, a registered provider and a row (each an `InvalidOperationException` before
-   any call to the service), creates the key, reads the returned public key and, when its size or curve differs from
-   the row, destroys the key it created and fails; otherwise it returns the remote record of rule 3.
+   any call to the service), creates the key, reads the returned public key and, when it cannot be read as the row's
+   key type or its size or curve differs from the row, hands the record it would return to `IRemoteSecretDestroyer`,
+   which destroys the key it created, and fails; otherwise it returns the remote record of rule 3.
 9. **A key the server created is destroyed after the commit that removes its record.** `IRemoteSecretDestroyer`
    takes the removed secrets and takes no token ([ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)).
    `DefaultRemoteSecretDestroyer` skips every secret that is not `remote` or whose `Origin` is not `generated`, runs

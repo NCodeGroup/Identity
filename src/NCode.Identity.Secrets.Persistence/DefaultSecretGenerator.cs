@@ -24,19 +24,24 @@ namespace NCode.Identity.Secrets.Persistence;
 /// key type. A shared secret that is only ever compared is stored as its one-way verifier, made by the registered
 /// <see cref="ISecretVerifierScheme"/> that <see cref="SharedSecretVerifierOptions"/> names for a generated secret or
 /// for a supplied one. A remote key is created by its registered <see cref="IRemoteKeyProvider"/>, which keeps the
-/// private key in a key management service, and only its public half and a reference to it are stored.
+/// private key in a key management service, and only its public half and a reference to it are stored. A remote key
+/// whose public half cannot be read or does not match its signing algorithm is handed to the
+/// <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service.
 /// </summary>
 // See ADR-1067, ADR-1110, ADR-1391 and ADR-1471.
 internal class DefaultSecretGenerator(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
     IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor,
-    IRemoteKeyProviderCatalog remoteKeyProviderCatalog
+    IRemoteKeyProviderCatalog remoteKeyProviderCatalog,
+    IRemoteSecretDestroyer remoteSecretDestroyer
 ) : ISecretGenerator
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
+
+    private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
 
     private ISecretVerifierScheme GeneratedSecretScheme { get; } =
         GetScheme(
@@ -181,24 +186,7 @@ internal class DefaultSecretGenerator(
             ExpiresWhen = request.ExpiresWhen,
         };
 
-        if (!HoldsRequestedKey(descriptor, metadata, created.SubjectPublicKeyInfo, algorithm))
-        {
-            try
-            {
-                await provider.DestroyKeyAsync(created.KeyId, cancellationToken);
-            }
-            catch (Exception)
-            {
-                // The mismatch is the error reported, so a failure to destroy the key does not replace it.
-            }
-
-            throw new InvalidOperationException(
-                $"The remote key provider '{request.Provider}' created a key that does not have the key size "
-                    + $"{algorithm.KeySizeBits} and curve '{algorithm.Curve}' of its signing algorithm '{algorithm.Algorithm}'."
-            );
-        }
-
-        return new PersistedSecret
+        var secret = new PersistedSecret
         {
             SecretId = request.SecretId,
             Use = request.Use,
@@ -215,22 +203,64 @@ internal class DefaultSecretGenerator(
             Origin = SecretOrigins.Generated,
             ManagedBy = request.ManagedBy,
         };
+
+        if (
+            !HoldsRequestedKey(
+                descriptor,
+                metadata,
+                created.SubjectPublicKeyInfo,
+                algorithm,
+                out var readFailure
+            )
+        )
+        {
+            // The record is handed to the destroyer, which is bounded, logged and independent of the caller's token,
+            // so the key the service created is not left without a record.
+            await RemoteSecretDestroyer.DestroyAsync([secret]);
+
+            throw readFailure is not null
+                ? new InvalidOperationException(
+                    $"The remote key provider '{request.Provider}' returned a public key that cannot be read as a "
+                        + $"'{request.SecretType}' key.",
+                    readFailure
+                )
+                : new InvalidOperationException(
+                    $"The remote key provider '{request.Provider}' created a key that does not have the key size "
+                        + $"{algorithm.KeySizeBits} and curve '{algorithm.Curve}' of its signing algorithm '{algorithm.Algorithm}'."
+                );
+        }
+
+        return secret;
     }
 
     // Reads the public key the service returned, which decides whether the key it created has the size and curve of
-    // the signing algorithm's row.
+    // the signing algorithm's row. A key that cannot be read is a key that is not held, and the failure is handed
+    // back.
     private static bool HoldsRequestedKey(
         ISecretKeyTypeDescriptor descriptor,
         KeyMetadata metadata,
         ReadOnlyMemory<byte> subjectPublicKeyInfo,
-        RemoteSigningAlgorithm algorithm
+        RemoteSigningAlgorithm algorithm,
+        out Exception? readFailure
     )
     {
-        var createdKey = descriptor.DeserializeKeyMaterial(
-            metadata,
-            SecretEncodings.Spki,
-            subjectPublicKeyInfo.Span
-        );
+        SecretKey createdKey;
+        try
+        {
+            createdKey = descriptor.DeserializeKeyMaterial(
+                metadata,
+                SecretEncodings.Spki,
+                subjectPublicKeyInfo.Span
+            );
+        }
+        catch (Exception exception)
+            when (exception is CryptographicException or ArgumentException or FormatException)
+        {
+            readFailure = exception;
+            return false;
+        }
+
+        readFailure = null;
         try
         {
             return createdKey.KeySizeBits == algorithm.KeySizeBits

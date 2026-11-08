@@ -1128,23 +1128,28 @@ internal class TenantApiEndpointHandler(
         await store.RemoveAsync(tenantId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        await ManagementAuditRecorder.RecordTenantChangedAsync(
-            httpContext,
-            tenant.TeamId,
-            tenant.TenantId,
-            ResourceChangeTypes.Deleted,
-            resourceValues
-        );
-
-        await NotifyTenantChangedAsync(
-            httpContext,
-            tenant.TenantId,
-            settingsChanged: false,
-            cancellationToken
-        );
-
         // See ADR-1471.
-        await RemoteSecretDestroyer.DestroyAsync(tenant.Secrets.Value);
+        try
+        {
+            await ManagementAuditRecorder.RecordTenantChangedAsync(
+                httpContext,
+                tenant.TeamId,
+                tenant.TenantId,
+                ResourceChangeTypes.Deleted,
+                resourceValues
+            );
+
+            await NotifyTenantChangedAsync(
+                httpContext,
+                tenant.TenantId,
+                settingsChanged: false,
+                cancellationToken
+            );
+        }
+        finally
+        {
+            await RemoteSecretDestroyer.DestroyAsync(tenant.Secrets.Value);
+        }
 
         return TypedResults.NoContent();
     }
@@ -2012,23 +2017,28 @@ internal class TenantApiEndpointHandler(
         await store.RemoveSecretAsync(tenantId, secretId, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
-            httpContext,
-            tenantId,
-            secretId,
-            ResourceChangeTypes.Deleted,
-            secretValues
-        );
-
-        await NotifyTenantChangedAsync(
-            httpContext,
-            tenantId,
-            settingsChanged: false,
-            cancellationToken
-        );
-
         // See ADR-1471.
-        await RemoteSecretDestroyer.DestroyAsync([secret]);
+        try
+        {
+            await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
+                httpContext,
+                tenantId,
+                secretId,
+                ResourceChangeTypes.Deleted,
+                secretValues
+            );
+
+            await NotifyTenantChangedAsync(
+                httpContext,
+                tenantId,
+                settingsChanged: false,
+                cancellationToken
+            );
+        }
+        finally
+        {
+            await RemoteSecretDestroyer.DestroyAsync([secret]);
+        }
 
         return TypedResults.NoContent();
     }

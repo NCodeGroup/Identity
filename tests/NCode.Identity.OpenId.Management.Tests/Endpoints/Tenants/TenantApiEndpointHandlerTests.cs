@@ -176,6 +176,105 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
+    // Records the order of the save and a failing announcement, which the destroyer follows.
+    private void SetupSaveWithFailingAnnouncement()
+    {
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => Events.Add("save"))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockMediator
+            .Setup(x =>
+                x.SendAsync(It.IsAny<TenantChangedCommand>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(() => Events.Add("announce"))
+            .Throws(new OperationCanceledException())
+            .Verifiable();
+    }
+
+    // The deleted secret's store reads: the record that the destroyer receives.
+    private void SetupDeleteSecretStore(out PersistedSecret secret)
+    {
+        SetupStore();
+        secret = CreatePersistedSecret();
+        MockTenantStore
+            .Setup(x =>
+                x.GetSecretOrDefaultAsync(TenantId, "secret-1", It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(secret)
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockTenantStore
+            .Setup(x => x.RemoveSecretAsync(TenantId, "secret-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+    }
+
+    // The deleted tenant's store reads; returns its one secret, which the destroyer receives.
+    private PersistedSecret SetupDeleteTenantStore()
+    {
+        SetupStore();
+        var first = CreatePersistedSecret("secret-1");
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PersistedTenantBuilder
+                {
+                    TenantId = TenantId,
+                    ConcurrencyToken = "tenant-ct",
+                    Secrets = [first],
+                }.Build()
+            )
+            .Verifiable();
+        MockTenantValidator
+            .Setup(x =>
+                x.ValidateDeleteAsync(
+                    It.IsAny<PersistedTenant>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.RemoveAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true)
+            .Verifiable();
+        SetupEffectiveSettingsResolver(CreateSettingCollection());
+        return first;
+    }
+
+    // A recorder that fails, to show the destroyer still runs.
+    private void SetupTenantSecretChangedAuditThrowing() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTenantSecretChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>()
+                )
+            )
+            .Throws(new InvalidOperationException())
+            .Verifiable();
+
+    // A recorder that fails, to show the destroyer still runs.
+    private void SetupTenantChangedAuditThrowing() =>
+        MockManagementAuditRecorder
+            .Setup(x =>
+                x.RecordTenantChangedAsync(
+                    It.IsAny<HttpContext>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<string>(),
+                    It.IsAny<JsonElement?>()
+                )
+            )
+            .Throws(new InvalidOperationException())
+            .Verifiable();
+
     // Only a request that updates a secret validates the update.
     private void SetupSecretUpdateValidation() =>
         MockSecretValidator
@@ -2843,6 +2942,59 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task DeleteSecretAsync_WhenTheAnnouncementThrows_StillDestroysTheRemovedSecretAndRethrows()
+    {
+        SetupTenantSecretChangedAudit();
+        SetupSaveWithFailingAnnouncement();
+        IReadOnlyCollection<PersistedSecret>? destroyed = null;
+        SetupRemoteSecretDestroy(removed => destroyed = removed);
+        SetupDeleteSecretStore(out var secret);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Handler.DeleteSecretAsync(
+                CreateHttpContext(authenticated: true),
+                TenantId,
+                "secret-1",
+                CancellationToken.None
+            )
+        );
+
+        Assert.Equal(["save", "announce", "destroy"], Events);
+        Assert.NotNull(destroyed);
+        Assert.Same(secret, Assert.Single(destroyed));
+        MockRemoteSecretDestroyer.Verify(
+            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task DeleteSecretAsync_WhenTheAuditThrows_StillDestroysTheRemovedSecretAndRethrows()
+    {
+        SetupTenantSecretChangedAuditThrowing();
+        SetupSave();
+        IReadOnlyCollection<PersistedSecret>? destroyed = null;
+        SetupRemoteSecretDestroy(removed => destroyed = removed);
+        SetupDeleteSecretStore(out var secret);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Handler.DeleteSecretAsync(
+                CreateHttpContext(authenticated: true),
+                TenantId,
+                "secret-1",
+                CancellationToken.None
+            )
+        );
+
+        Assert.NotNull(destroyed);
+        Assert.Same(secret, Assert.Single(destroyed));
+        MockRemoteSecretDestroyer.Verify(
+            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
+            Times.Once
+        );
+    }
+
+    [Fact]
     public async Task DeleteSecretAsync_WhenNotFound_DoesNotDestroyAnySecret()
     {
         SetupStore();
@@ -2939,6 +3091,59 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.Equal(["save", "announce", "destroy"], Events);
         Assert.NotNull(destroyed);
         Assert.Equal([first, second], destroyed);
+        MockRemoteSecretDestroyer.Verify(
+            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task DeleteTenantAsync_WhenTheAnnouncementThrows_StillDestroysTheTenantSecretsAndRethrows()
+    {
+        SetupTenantDeleteAuthorization(null);
+        SetupSaveWithFailingAnnouncement();
+        SetupTenantChangedAudit();
+        IReadOnlyCollection<PersistedSecret>? destroyed = null;
+        SetupRemoteSecretDestroy(removed => destroyed = removed);
+        var first = SetupDeleteTenantStore();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
+            await Handler.DeleteTenantAsync(
+                CreateHttpContext(authenticated: true),
+                TenantId,
+                CancellationToken.None
+            )
+        );
+
+        Assert.Equal(["save", "announce", "destroy"], Events);
+        Assert.NotNull(destroyed);
+        Assert.Same(first, Assert.Single(destroyed));
+        MockRemoteSecretDestroyer.Verify(
+            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
+            Times.Once
+        );
+    }
+
+    [Fact]
+    public async Task DeleteTenantAsync_WhenTheAuditThrows_StillDestroysTheTenantSecretsAndRethrows()
+    {
+        SetupTenantDeleteAuthorization(null);
+        SetupSave();
+        SetupTenantChangedAuditThrowing();
+        IReadOnlyCollection<PersistedSecret>? destroyed = null;
+        SetupRemoteSecretDestroy(removed => destroyed = removed);
+        var first = SetupDeleteTenantStore();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await Handler.DeleteTenantAsync(
+                CreateHttpContext(authenticated: true),
+                TenantId,
+                CancellationToken.None
+            )
+        );
+
+        Assert.NotNull(destroyed);
+        Assert.Same(first, Assert.Single(destroyed));
         MockRemoteSecretDestroyer.Verify(
             x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
             Times.Once

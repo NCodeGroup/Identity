@@ -1,13 +1,10 @@
 # 1393. The pre-release product is described as it is, and its changes are not tracked
 
-- **Status:** Accepted
+- **Status:** Superseded by
+  [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 - **Refines:** [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)
-- **Conflicts with:** the project template's changelog rule in
-  [`project-template.instructions.md`](../../.github/instructions/project-template.instructions.md), which groups
-  `## [Unreleased]` under `### Changed`, `### Deprecated`, `### Removed` and `### Fixed` as well as `### Added` and
-  `### Security`, and the `**Breaking:**` entry label its planning commands write; tracked in [#536](https://github.com/NCodeGroup/Identity/issues/536)
 
 ## Context
 

@@ -42,7 +42,7 @@ NCode.Identity.Jwt.DecodedJwt.EncodedToken.get -> string!
 NCode.Identity.Jwt.DecodedJwt.Header.get -> System.Text.Json.JsonElement
 NCode.Identity.Jwt.DecodedJwt.Payload.get -> System.Text.Json.JsonElement
 NCode.Identity.Jwt.Encoding.IJwtEncoder
-NCode.Identity.Jwt.Encoding.IJwtEncoder.Encode(NCode.Identity.Jwt.Encoding.JwtEncodingParameters! parameters) -> string!
+NCode.Identity.Jwt.Encoding.IJwtEncoder.EncodeAsync(NCode.Identity.Jwt.Encoding.JwtEncodingParameters! parameters, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.Jwt.Encoding.JwtEncodingParameters
 NCode.Identity.Jwt.Encoding.JwtEncodingParameters.AddKeyIdHeader.get -> bool
 NCode.Identity.Jwt.Encoding.JwtEncodingParameters.AddKeyIdHeader.init -> void

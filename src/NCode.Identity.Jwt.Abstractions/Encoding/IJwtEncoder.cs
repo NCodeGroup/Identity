@@ -18,6 +18,10 @@ public interface IJwtEncoder
     /// Encodes a JSON Web Token (JWT) using JWS or JWE compact serialization format.
     /// </summary>
     /// <param name="parameters">The <see cref="JwtEncodingParameters"/> instance that specifies how to encode the token.</param>
+    /// <param name="cancellationToken">A token that cancels the encoding.</param>
     /// <returns>The encoded JWT in compact serialization format.</returns>
-    string Encode(JwtEncodingParameters parameters);
+    ValueTask<string> EncodeAsync(
+        JwtEncodingParameters parameters,
+        CancellationToken cancellationToken
+    );
 }

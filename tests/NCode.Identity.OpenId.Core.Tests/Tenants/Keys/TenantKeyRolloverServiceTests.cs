@@ -78,16 +78,6 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         MockExpiringKeySet = CreateStrictMock<IExpiringKeySet>();
         MockEventPublisher = CreateStrictMock<IEventPublisher>();
         MockRemoteSecretDestroyer = CreateStrictMock<IRemoteSecretDestroyer>();
-
-        // A change that removes no key still reaches the destroyer, with an empty collection; a test that removes
-        // keys sets up its own call, so a destroyer call for any other keys fails the strict mock.
-        MockRemoteSecretDestroyer
-            .Setup(x =>
-                x.DestroyAsync(
-                    It.Is<IReadOnlyCollection<PersistedSecret>>(secrets => secrets.Count == 0)
-                )
-            )
-            .Returns(ValueTask.CompletedTask);
         MockMediator = CreateStrictMock<IMediator>();
         TeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
 
@@ -137,6 +127,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     [Fact]
     public async Task RollOverAsync_WhenATenantsPlanChangesKeys_AppliesItInItsOwnUnitOfWorkAndAnnouncesTheTenant()
     {
+        SetupNoKeysDestroyed();
         SetupSpecifications();
         SetupLease(acquired: true);
         SetupTeam();
@@ -165,6 +156,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     [Fact]
     public async Task RollOverAsync_WhenATenantsChangeIsCommitted_PublishesItsAuditEventsAfterTheSave()
     {
+        SetupNoKeysDestroyed();
         SetupSpecifications();
         SetupLease(acquired: true);
         SetupTeam();
@@ -240,6 +232,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         // The change is committed, so neither the publishing nor the announcement runs on the pass's token: a host
         // that stops after the commit cannot leave the change unrecorded or unannounced.
+        SetupNoKeysDestroyed();
         using var stopping = new CancellationTokenSource();
         SetupSpecifications();
         SetupLease(acquired: true);
@@ -287,6 +280,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         // The change is committed whatever the publisher did, so every replica must still evict the tenant, and the
         // next tenant is still rolled over.
+        SetupNoKeysDestroyed();
         SetupSpecifications();
         SetupLease(acquired: true);
         SetupTeam();
@@ -476,6 +470,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         // The publisher is strict: an event for the discarded change fails the test.
         SetupSpecifications();
+        SetupNoKeysDestroyed();
         SetupLease(acquired: true);
         SetupTeam();
         SetupStoreManager();
@@ -514,6 +509,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     public async Task RollOverAsync_WhenATenantFails_ContinuesWithTheNextTenant()
     {
         SetupSpecifications();
+        SetupNoKeysDestroyed();
         SetupLease(acquired: true);
         SetupTeam();
         SetupStoreManager();
@@ -542,6 +538,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         var firstTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var otherTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         SetupSpecifications();
+        SetupNoKeysDestroyed();
         SetupLease(acquired: true);
         SetupStoreManager();
         SetupTeams(
@@ -628,6 +625,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
         var firstChildSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         var secondChildSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         SetupSpecifications();
+        SetupNoKeysDestroyed();
         SetupLease(acquired: true);
         SetupStoreManager();
         MockTeamStore
@@ -697,6 +695,7 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
     {
         var otherTeamSettings = CreateStrictMock<IReadOnlySettingCollection>().Object;
         SetupSpecifications();
+        SetupNoKeysDestroyed();
         SetupLease(acquired: true);
         SetupStoreManager();
         SetupTeamPage((TeamId, false), (OtherTeamId, false));
@@ -1049,6 +1048,16 @@ public sealed class TenantKeyRolloverServiceTests : BaseTests
                 return ValueTask.CompletedTask;
             })
             .Verifiable(Times.Once);
+
+    // A change that removes no key still reaches the destroyer, with an empty collection; a test that removes
+    // keys sets up its own call, so a destroyer call for any other keys fails the strict mock.
+    private void SetupNoKeysDestroyed() =>
+        MockRemoteSecretDestroyer
+            .Setup(x =>
+                x.DestroyAsync(It.Is<IReadOnlyCollection<PersistedSecret>>(x => x.Count == 0))
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
 
     private static TenantKeyAuditEvent CreateAuditEvent(string secretId) =>
         new()

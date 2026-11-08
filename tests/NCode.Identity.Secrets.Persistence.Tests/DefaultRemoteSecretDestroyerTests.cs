@@ -10,32 +10,33 @@ using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.Persistence;
 
-public class DefaultRemoteSecretDestroyerTests : IDisposable
+public class DefaultRemoteSecretDestroyerTests : BaseTests
 {
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IRemoteKeyProvider> _provider;
-    private readonly Mock<ILogger<DefaultRemoteSecretDestroyer>> _logger = new(MockBehavior.Loose);
+    private readonly Mock<ILogger<DefaultRemoteSecretDestroyer>> _logger;
     private readonly DefaultRemoteSecretDestroyer _destroyer;
 
     public DefaultRemoteSecretDestroyerTests()
     {
-        _provider = _mocks.Create<IRemoteKeyProvider>();
+        _provider = CreateStrictMock<IRemoteKeyProvider>();
+        _logger = CreateStrictMock<ILogger<DefaultRemoteSecretDestroyer>>();
         _provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
-        // The logger is loose, and every test that expects an entry verifies it by event identifier.
-        _logger.Setup(x => x.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
+        var source = CreateStrictMock<IRemoteKeyDescriptorSource>();
+        source
+            .SetupGet(x => x.Providers)
+            .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
+            .Verifiable();
+        source.SetupGet(x => x.Algorithms).Returns([]).Verifiable();
 
         _destroyer = new DefaultRemoteSecretDestroyer(
-            new DefaultRemoteKeyProviderCatalog([_provider.Object], []),
+            new DefaultRemoteKeyProviderCatalog(
+                [_provider.Object],
+                new DefaultRemoteKeyDescriptorCatalog([source.Object])
+            ),
             new FakeTimeProvider(),
             _logger.Object
         );
-    }
-
-    public void Dispose()
-    {
-        _mocks.Verify();
-        GC.SuppressFinalize(this);
     }
 
     private static PersistedSecret CreateSecret(
@@ -71,6 +72,7 @@ public class DefaultRemoteSecretDestroyerTests : IDisposable
 
     private void ExpectLog(int eventId, Type? exceptionType)
     {
+        _logger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
         _logger
             .Setup(x =>
                 x.Log(
@@ -114,16 +116,16 @@ public class DefaultRemoteSecretDestroyerTests : IDisposable
     {
         var reference = Reference(RemoteKeyProviderNames.AwsKms, "key-a");
 
+        _provider
+            .Setup(x => x.DestroyKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Never());
+
         await _destroyer.DestroyAsync([
             CreateSecret("secret-local", reference, SecretEncodings.Pkcs8),
             CreateSecret("secret-public", reference, SecretEncodings.Spki),
             CreateSecret("secret-supplied", reference, origin: SecretOrigins.Supplied),
         ]);
-
-        _provider.Verify(
-            x => x.DestroyKeyAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
-            Times.Never()
-        );
     }
 
     [Fact]
@@ -143,10 +145,9 @@ public class DefaultRemoteSecretDestroyerTests : IDisposable
             CreateSecret("secret-a", Reference(RemoteKeyProviderNames.AwsKms, "key-a")),
             CreateSecret("secret-b", Reference(RemoteKeyProviderNames.AwsKms, "key-b")),
         ]);
-
-        _logger.Verify();
     }
 
+    // A provider may throw before it returns its task, and this test covers that path on purpose.
     [Fact]
     public async Task DestroyAsync_DestroyThrowsSynchronously_LogsAndDoesNotThrow()
     {
@@ -159,8 +160,6 @@ public class DefaultRemoteSecretDestroyerTests : IDisposable
         await _destroyer.DestroyAsync([
             CreateSecret("secret-a", Reference(RemoteKeyProviderNames.AwsKms, "key-a")),
         ]);
-
-        _logger.Verify();
     }
 
     [Fact]
@@ -176,8 +175,6 @@ public class DefaultRemoteSecretDestroyerTests : IDisposable
             CreateSecret("secret-a", "not-a-reference"),
             CreateSecret("secret-b", Reference(RemoteKeyProviderNames.AwsKms, "key-b")),
         ]);
-
-        _logger.Verify();
     }
 
     [Fact]
@@ -193,8 +190,6 @@ public class DefaultRemoteSecretDestroyerTests : IDisposable
             CreateSecret("secret-a", Reference(RemoteKeyProviderNames.AzureKeyVault, "key-a")),
             CreateSecret("secret-b", Reference(RemoteKeyProviderNames.AwsKms, "key-b")),
         ]);
-
-        _logger.Verify();
     }
 
     #endregion

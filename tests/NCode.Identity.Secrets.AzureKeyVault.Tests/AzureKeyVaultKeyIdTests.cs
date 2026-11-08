@@ -1,0 +1,238 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using Xunit;
+
+namespace NCode.Identity.Secrets.AzureKeyVault.Tests;
+
+public class AzureKeyVaultKeyIdTests
+{
+    private const string KeyId = "https://contoso.vault.azure.net/keys/ncode-identity-root";
+
+    private const string KeyVersionId = KeyId + "/0123456789abcdef0123456789abcdef";
+
+    private const string HttpKeyId = "http://contoso.vault.azure.net/keys/ncode-identity-root";
+
+    private const string SecretId = "https://contoso.vault.azure.net/secrets/ncode-identity-root";
+
+    private const string ShortVersionId = KeyId + "/0123456789abcdef0123456789abcde";
+
+    #region IsKeyId Tests
+
+    [Fact]
+    public void IsKeyId_KeyId_ReturnsTrue()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyId(KeyId);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsKeyId_KeyVersionId_ReturnsTrue()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyId(KeyVersionId);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsKeyId_ManagedHsmKeyId_ReturnsTrue()
+    {
+        const string value = "https://contoso.managedhsm.azure.net/keys/root";
+
+        var result = AzureKeyVaultKeyId.IsKeyId(value);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsKeyId_HttpScheme_ReturnsFalse()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyId(HttpKeyId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyId_SecretId_ReturnsFalse()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyId(SecretId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyId_ShortVersion_ReturnsFalse()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyId(ShortVersionId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyId_TrailingSlash_ReturnsFalse()
+    {
+        const string value = KeyId + "/";
+
+        var result = AzureKeyVaultKeyId.IsKeyId(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyId_TrailingNewline_ReturnsFalse()
+    {
+        const string value = KeyId + "\n";
+
+        var result = AzureKeyVaultKeyId.IsKeyId(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyId_Null_ReturnsFalse()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyId(null);
+
+        Assert.False(result);
+    }
+
+    #endregion
+
+    #region IsKeyVersionId Tests
+
+    [Fact]
+    public void IsKeyVersionId_KeyVersionId_ReturnsTrue()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyVersionId(KeyVersionId);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsKeyVersionId_KeyId_ReturnsFalse()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyVersionId(KeyId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyVersionId_HttpScheme_ReturnsFalse()
+    {
+        const string value = HttpKeyId + "/0123456789abcdef0123456789abcdef";
+
+        var result = AzureKeyVaultKeyId.IsKeyVersionId(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyVersionId_SecretId_ReturnsFalse()
+    {
+        const string value = SecretId + "/0123456789abcdef0123456789abcdef";
+
+        var result = AzureKeyVaultKeyId.IsKeyVersionId(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyVersionId_ShortVersion_ReturnsFalse()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyVersionId(ShortVersionId);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyVersionId_TrailingSlash_ReturnsFalse()
+    {
+        const string value = KeyVersionId + "/";
+
+        var result = AzureKeyVaultKeyId.IsKeyVersionId(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyVersionId_TrailingNewline_ReturnsFalse()
+    {
+        const string value = KeyVersionId + "\n";
+
+        var result = AzureKeyVaultKeyId.IsKeyVersionId(value);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsKeyVersionId_Null_ReturnsFalse()
+    {
+        var result = AzureKeyVaultKeyId.IsKeyVersionId(null);
+
+        Assert.False(result);
+    }
+
+    #endregion
+
+    #region GetKeyIdWithoutVersion Tests
+
+    [Fact]
+    public void GetKeyIdWithoutVersion_KeyVersionId_DropsTheVersion()
+    {
+        var result = AzureKeyVaultKeyId.GetKeyIdWithoutVersion(KeyVersionId);
+
+        Assert.Equal(KeyId, result);
+    }
+
+    [Fact]
+    public void GetKeyIdWithoutVersion_KeyId_ReturnsItUnchanged()
+    {
+        var result = AzureKeyVaultKeyId.GetKeyIdWithoutVersion(KeyId);
+
+        Assert.Equal(KeyId, result);
+    }
+
+    #endregion
+
+    #region IsVersionOf Tests
+
+    [Fact]
+    public void IsVersionOf_ReferenceWithoutVersion_AcceptsAnyVersionOfTheKey()
+    {
+        var result = AzureKeyVaultKeyId.IsVersionOf(
+            KeyVersionId,
+            KeyId.ToUpperInvariant().Replace("HTTPS", "https")
+        );
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsVersionOf_ReferenceWithVersion_AcceptsOnlyThatVersion()
+    {
+        Assert.True(AzureKeyVaultKeyId.IsVersionOf(KeyVersionId, KeyVersionId));
+        Assert.False(
+            AzureKeyVaultKeyId.IsVersionOf(
+                KeyId + "/ffffffffffffffffffffffffffffffff",
+                KeyVersionId
+            )
+        );
+    }
+
+    [Fact]
+    public void IsVersionOf_VersionOfAnotherKey_ReturnsFalse()
+    {
+        var other = "https://contoso.vault.azure.net/keys/other/0123456789abcdef0123456789abcdef";
+
+        Assert.False(AzureKeyVaultKeyId.IsVersionOf(other, KeyId));
+    }
+
+    [Fact]
+    public void IsVersionOf_ResultWithoutVersion_ReturnsFalse()
+    {
+        Assert.False(AzureKeyVaultKeyId.IsVersionOf(KeyId, KeyId));
+    }
+
+    #endregion
+}

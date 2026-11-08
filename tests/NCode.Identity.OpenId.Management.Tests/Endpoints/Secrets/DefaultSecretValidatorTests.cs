@@ -35,8 +35,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     private ServiceProvider ServiceProvider { get; }
     private DefaultSecretValidator Validator { get; }
     private MockRepository Mocks { get; } = new(MockBehavior.Strict);
-    private Mock<IRemoteKeyProviderCatalog> MockCatalog { get; }
-    private Mock<IRemoteKeyProvider> MockProvider { get; }
+    private Mock<IRemoteKeyDescriptorCatalog> MockCatalog { get; }
     private DefaultSecretValidator RemoteValidator { get; }
 
     public DefaultSecretValidatorTests()
@@ -64,11 +63,10 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
             ServiceProvider.GetRequiredService<ISecretSerializer>(),
-            ServiceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
+            ServiceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>()
         );
 
-        MockCatalog = Mocks.Create<IRemoteKeyProviderCatalog>();
-        MockProvider = Mocks.Create<IRemoteKeyProvider>();
+        MockCatalog = Mocks.Create<IRemoteKeyDescriptorCatalog>();
         RemoteValidator = new DefaultSecretValidator(
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
@@ -372,7 +370,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             serviceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             serviceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
             serviceProvider.GetRequiredService<ISecretSerializer>(),
-            serviceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
+            serviceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>()
         );
 
     // See ADR-1398: P-256 and brainpoolP256r1 are both 256 bits, so the size selects neither.
@@ -1000,20 +998,13 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
     private const string ProviderName = RemoteKeyProviderNames.AwsKms;
 
-    private void SetupProvider(string name, bool registered)
-    {
-        IRemoteKeyProvider? provider = registered ? MockProvider.Object : null;
+    private void SetupDescribedProviders(params string[] names) =>
         MockCatalog
-            .Setup(x => x.TryGetProvider(name, out provider))
-            .Returns(registered)
+            .Setup(x => x.Providers)
+            .Returns(
+                names.Select(name => new RemoteKeyProviderDescriptor { Name = name }).ToArray()
+            )
             .Verifiable();
-    }
-
-    private void SetupRegisteredProviders()
-    {
-        MockCatalog.Setup(x => x.Providers).Returns([MockProvider.Object]).Verifiable();
-        MockProvider.Setup(x => x.Name).Returns(ProviderName).Verifiable();
-    }
 
     private void SetupRow(RemoteSigningAlgorithmSelector selector, RemoteSigningAlgorithm? row)
     {
@@ -1063,7 +1054,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreateRemote_WhenTheProviderHoldsTheKey_ResolvesTheCurveAndLooksTheRowUp()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
         SetupRow(Es256Selector, Es256Row);
 
         var validation = RemoteValidator.ValidateCreateRemote(CreateRemoteRequest(), CreatedWhen);
@@ -1076,8 +1067,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreateRemote_WhenTheProviderIsNotRegistered_ReturnsBadRequest()
     {
-        SetupProvider("unknown", registered: false);
-        SetupRegisteredProviders();
+        SetupDescribedProviders(ProviderName);
 
         var error = RemoteValidator
             .ValidateCreateRemote(CreateRemoteRequest(provider: "unknown"), CreatedWhen)
@@ -1094,8 +1084,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreateRemote_WhenNoProviderIsRegistered_SaysSo()
     {
-        SetupProvider("unknown", registered: false);
-        MockCatalog.Setup(x => x.Providers).Returns(Array.Empty<IRemoteKeyProvider>()).Verifiable();
+        SetupDescribedProviders();
 
         var error = RemoteValidator
             .ValidateCreateRemote(CreateRemoteRequest(provider: "unknown"), CreatedWhen)
@@ -1130,7 +1119,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateCreateRemote_WhenTheProviderHasNoRowForTheKey_ReturnsBadRequest()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
         SetupRow(Es256Selector, null);
 
         var error = RemoteValidator.ValidateCreateRemote(CreateRemoteRequest(), CreatedWhen).Error;
@@ -1189,7 +1178,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheRequestIsCoherent_ReturnsNull()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
 
         var error = RemoteValidator.ValidateImportRemote(CreateImportRemoteRequest(), CreatedWhen);
 
@@ -1199,7 +1188,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheKeyIdentifierIsEmpty_ReturnsBadRequest()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
 
         var error = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(remoteKeyId: " "),
@@ -1217,7 +1206,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheKeyIdIsTooLong_ReturnsTheLengthError()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
         var maxKeyIdLength = SecretMaxLengths.EncodedValue - ProviderName.Length - 1;
 
         var error = RemoteValidator.ValidateImportRemote(
@@ -1236,7 +1225,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheKeyIdFitsExactly_ReturnsNull()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
         var maxKeyIdLength = SecretMaxLengths.EncodedValue - ProviderName.Length - 1;
 
         var error = RemoteValidator.ValidateImportRemote(
@@ -1250,7 +1239,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheKeyIdHoldsAControlCharacter_ReturnsTheCharacterError()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
 
         var error = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(remoteKeyId: "key\n1"),
@@ -1268,8 +1257,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheProviderIsNotRegistered_ReturnsBadRequest()
     {
-        SetupProvider("unknown", registered: false);
-        SetupRegisteredProviders();
+        SetupDescribedProviders(ProviderName);
 
         var error = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(provider: "unknown"),
@@ -1287,7 +1275,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheAlgorithmIsAKeyManagementAlgorithm_ReturnsBadRequest()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
 
         var error = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(algorithm: "RSA-OAEP"),
@@ -1305,7 +1293,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheAlgorithmSignsWithAnotherKeyType_ReturnsBadRequest()
     {
-        SetupProvider(ProviderName, registered: true);
+        SetupDescribedProviders(ProviderName);
 
         var error = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(algorithm: "RS256"),

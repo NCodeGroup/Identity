@@ -155,7 +155,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             ServiceProvider.GetRequiredService<IAlgorithmCollectionProvider>(),
             ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>(),
             ServiceProvider.GetRequiredService<ISecretSerializer>(),
-            ServiceProvider.GetRequiredService<IRemoteKeyProviderCatalog>()
+            ServiceProvider.GetRequiredService<IRemoteKeyDescriptorCatalog>()
         );
         MockSecretValidator
             .Setup(x =>

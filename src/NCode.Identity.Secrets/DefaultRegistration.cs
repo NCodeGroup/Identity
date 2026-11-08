@@ -50,7 +50,8 @@ public static class DefaultRegistration
         /// <item><description><see cref="ISecretKeyCollectionProviderFactory"/> - Factory for creating secret key collection providers.</description></item>
         /// <item><description><see cref="ISecretKeyFactory"/> - Factory for creating individual secret keys.</description></item>
         /// <item><description><see cref="ISecretKeyCollectionFactory"/> - Factory for creating secret key collections.</description></item>
-        /// <item><description><see cref="IRemoteKeyProviderCatalog"/> - Lookup over the registered remote key providers and signing algorithm rows.</description></item>
+        /// <item><description><see cref="IRemoteKeyDescriptorCatalog"/> - Lookup over the described remote key providers and signing algorithm rows.</description></item>
+        /// <item><description><see cref="IRemoteKeyProviderCatalog"/> - Lookup over the registered remote key providers.</description></item>
         /// </list>
         /// <para>
         /// Services are registered using <c>TryAddSingleton</c> semantics where applicable,
@@ -99,8 +100,13 @@ public static class DefaultRegistration
             // applications can register additional EccCurveSpecification services to support more curves.
             serviceCollection.TryAddSingleton<IEccCurveCatalog, DefaultEccCurveCatalog>();
 
-            // The remote key provider catalog holds the registered IRemoteKeyProvider services and the rows of the
-            // IRemoteSigningAlgorithmSource services (ADR-1471).
+            // The remote key descriptor catalog holds the provider descriptors and the rows of the
+            // IRemoteKeyDescriptorSource services, and the remote key provider catalog holds the registered
+            // IRemoteKeyProvider services (ADR-1471, ADR-1474).
+            serviceCollection.TryAddSingleton<
+                IRemoteKeyDescriptorCatalog,
+                DefaultRemoteKeyDescriptorCatalog
+            >();
             serviceCollection.TryAddSingleton<
                 IRemoteKeyProviderCatalog,
                 DefaultRemoteKeyProviderCatalog

@@ -12,14 +12,13 @@ using NCode.Identity.Secrets.Persistence.Options;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class MasterKeyFactoryTests : IDisposable
+public class MasterKeyFactoryTests : BaseTests
 {
     private static readonly DateTimeOffset Now = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
     // The mixed case proves that the row keeps the owner as given while the key and the key check normalize it.
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("Tenant-A");
 
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly Mock<IKeyWrapperCatalog> _catalog;
     private readonly FakeTimeProvider _timeProvider = new(Now);
     private readonly EphemeralKeyWrapper _provider = new();
@@ -29,14 +28,18 @@ public class MasterKeyFactoryTests : IDisposable
 
     public MasterKeyFactoryTests()
     {
-        _catalog = _mocks.Create<IKeyWrapperCatalog>();
+        _catalog = CreateStrictMock<IKeyWrapperCatalog>();
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        _disabledRecovery.Dispose();
-        _provider.Dispose();
-        _mocks.Verify();
+        if (disposing)
+        {
+            _disabledRecovery.Dispose();
+            _provider.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     private MasterKeyFactory CreateFactory(IRecoveryKeyWrapper recovery) =>
@@ -233,7 +236,7 @@ public class MasterKeyFactoryTests : IDisposable
 
         // The provider ignores the context of the other owner, so that the key check is the only defense that remains.
         var originalContext = CreateRootContext(created.Row.KeyId, Owner);
-        var provider = _mocks.Create<IKeyWrapper>();
+        var provider = CreateStrictMock<IKeyWrapper>();
         provider
             .Setup(x =>
                 x.UnwrapAsync(
@@ -326,7 +329,7 @@ public class MasterKeyFactoryTests : IDisposable
         var material = RandomNumberGenerator.GetBytes(
             SecretProtectionFormat.MasterKeySizeBytes - 1
         );
-        var provider = _mocks.Create<IKeyWrapper>();
+        var provider = CreateStrictMock<IKeyWrapper>();
         provider
             .Setup(x =>
                 x.UnwrapAsync(
@@ -383,7 +386,7 @@ public class MasterKeyFactoryTests : IDisposable
         var material = RandomNumberGenerator.GetBytes(
             SecretProtectionFormat.MasterKeySizeBytes + 1
         );
-        var provider = _mocks.Create<IKeyWrapper>();
+        var provider = CreateStrictMock<IKeyWrapper>();
         provider
             .Setup(x =>
                 x.UnwrapAsync(

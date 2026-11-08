@@ -136,9 +136,9 @@ never from configuration.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies (root key providers).
 - [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) — the chart
   refuses a release that the host would refuse.
-- [`GoogleCloudKmsKeyWrapper`](../../src/NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms/GoogleCloudKmsKeyWrapper.cs)
+- [`GoogleCloudKmsKeyWrapper`](../../src/NCode.Identity.Secrets.GoogleCloudKms/GoogleCloudKmsKeyWrapper.cs)
   and
-  [`AzureKeyVaultKeyWrapper`](../../src/NCode.Identity.Secrets.KeyWrapping.AzureKeyVault/AzureKeyVaultKeyWrapper.cs)
+  [`AzureKeyVaultKeyWrapper`](../../src/NCode.Identity.Secrets.AzureKeyVault/AzureKeyVaultKeyWrapper.cs)
   — the providers.
 - [`deployment.yaml`](../../charts/ncode-identity-host/templates/deployment.yaml) — the chart's credential wiring.
 - Google Cloud, "Verifying end-to-end data integrity" (CRC32C checksums on Cloud KMS requests and responses).

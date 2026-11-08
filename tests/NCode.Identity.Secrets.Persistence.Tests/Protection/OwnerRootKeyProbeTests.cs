@@ -7,20 +7,13 @@ using NCode.Identity.Secrets.KeyWrapping;
 
 namespace NCode.Identity.Secrets.Persistence.Protection;
 
-public class OwnerRootKeyProbeTests : IDisposable
+public class OwnerRootKeyProbeTests : BaseTests
 {
     private const string Reference = "kms://tenant-a/root";
 
     private static readonly ReferencedKey Key = new(Reference, null);
 
     private static readonly SecretOwner Owner = SecretOwner.ForTenant("tenant-a");
-
-    private readonly MockRepository _mocks = new(MockBehavior.Strict);
-
-    public void Dispose()
-    {
-        _mocks.Verify();
-    }
 
     [Fact]
     public async Task Probe_WorkingKey_ReturnsNullAndWrapsAndUnwrapsOnce()
@@ -77,7 +70,7 @@ public class OwnerRootKeyProbeTests : IDisposable
     {
         var access = new KeyAccess("test-identity-a", "tenant:tenant-a");
         var referencedKey = new ReferencedKey(Reference, access);
-        var mock = _mocks.Create<IReferencedKeyWrapper>();
+        var mock = CreateStrictMock<IReferencedKeyWrapper>();
         byte[]? probe = null;
         mock.Setup(x =>
                 x.WrapAsync(
@@ -147,7 +140,7 @@ public class OwnerRootKeyProbeTests : IDisposable
     [Fact]
     public async Task Probe_WrapperThatReturnsAnotherValue_ReportsAMismatch()
     {
-        var mock = _mocks.Create<IReferencedKeyWrapper>();
+        var mock = CreateStrictMock<IReferencedKeyWrapper>();
         mock.Setup(x =>
                 x.WrapAsync(
                     Key,
@@ -196,7 +189,7 @@ public class OwnerRootKeyProbeTests : IDisposable
     [Fact]
     public async Task Probe_LongFailureMessage_IsTruncated()
     {
-        var mock = _mocks.Create<IReferencedKeyWrapper>();
+        var mock = CreateStrictMock<IReferencedKeyWrapper>();
         mock.Setup(x =>
                 x.WrapAsync(
                     Key,
@@ -222,7 +215,7 @@ public class OwnerRootKeyProbeTests : IDisposable
     [Fact]
     public async Task Probe_CancelledToken_Propagates()
     {
-        var mock = _mocks.Create<IReferencedKeyWrapper>();
+        var mock = CreateStrictMock<IReferencedKeyWrapper>();
         using var source = new CancellationTokenSource();
         mock.Setup(x =>
                 x.WrapAsync(
@@ -260,7 +253,7 @@ public class OwnerRootKeyProbeTests : IDisposable
     [Fact]
     public async Task Probe_WrapsUnderTheProbeContextLabel()
     {
-        var mock = _mocks.Create<IReferencedKeyWrapper>();
+        var mock = CreateStrictMock<IReferencedKeyWrapper>();
         byte[]? context = null;
         mock.Setup(x =>
                 x.WrapAsync(

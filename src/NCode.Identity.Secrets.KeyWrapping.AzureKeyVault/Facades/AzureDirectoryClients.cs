@@ -3,13 +3,15 @@
 
 using System.Collections.Concurrent;
 using Azure.Identity;
+using Azure.Security.KeyVault.Keys;
 using Azure.Security.KeyVault.Keys.Cryptography;
 
 namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 
 /// <summary>
 /// Owns the <see cref="DefaultAzureCredential"/> that requests tokens for a Microsoft Entra directory, together with
-/// the <see cref="CryptographyClient"/> instances that use it.
+/// the <see cref="CryptographyClient"/> and <see cref="KeyClient"/> instances that use it, each configured by
+/// <see cref="AzureKeyVaultClientOptions"/>.
 /// </summary>
 /// <remarks>
 /// A client downloads its key on first use and then wraps locally with that key version for its whole lifetime, so a
@@ -24,6 +26,8 @@ internal sealed class AzureDirectoryClients
 
     private ConcurrentDictionary<string, CryptographyClient> Clients { get; } =
         new(StringComparer.Ordinal);
+
+    private ConcurrentDictionary<Uri, KeyClient> KeyClients { get; } = new();
 
     private AzureDirectoryClients(DefaultAzureCredential credential)
     {
@@ -57,7 +61,7 @@ internal sealed class AzureDirectoryClients
         {
             return Clients.GetOrAdd(
                 keyId,
-                static (_, state) => new CryptographyClient(new Uri(state.keyId), state.Credential),
+                static (_, state) => CreateClient(state.keyId, state.Credential),
                 (keyId, Credential)
             );
         }
@@ -65,6 +69,33 @@ internal sealed class AzureDirectoryClients
         // A cached client of a versionless identifier would keep wrapping with the version that was current when it was
         // created, even after the key is rotated and that version disabled. Wraps are rare, so downloading the key
         // again for each one is cheap.
-        return new CryptographyClient(new Uri(keyId), Credential);
+        return CreateClient(keyId, Credential);
     }
+
+    /// <summary>
+    /// Gets the client for the keys of a vault. The same client is returned for every call with the same vault.
+    /// </summary>
+    /// <param name="vaultUri">The URI of a Key Vault or Managed HSM, such as <c>https://contoso.vault.azure.net</c>.</param>
+    /// <returns>The <see cref="KeyClient"/> that creates, reads and disables the keys of the vault.</returns>
+    public KeyClient GetKeyClient(Uri vaultUri) =>
+        KeyClients.GetOrAdd(
+            vaultUri,
+            static (uri, credential) =>
+                new KeyClient(
+                    uri,
+                    credential,
+                    AzureKeyVaultClientOptions.Configure(new KeyClientOptions())
+                ),
+            Credential
+        );
+
+    private static CryptographyClient CreateClient(
+        string keyId,
+        DefaultAzureCredential credential
+    ) =>
+        new(
+            new Uri(keyId),
+            credential,
+            AzureKeyVaultClientOptions.Configure(new CryptographyClientOptions())
+        );
 }

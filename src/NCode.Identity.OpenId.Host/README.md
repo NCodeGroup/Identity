@@ -108,7 +108,10 @@ sign-only keys and destroys only the keys it created. The deployment's identity 
 - Google: `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeyVersions.create`, `.get`, `.viewPublicKey`, `.useToSign`
   and `.destroy` on the key ring.
 
-See [Remote signing keys](../../docs/capabilities/remote-signing-keys.md).
+The management API creates a tenant's key in a registered provider with `POST /api/tenants/{tenantId}/secrets/remote`
+and binds a key that a provider already holds, once it proves it signs, with
+`POST /api/tenants/{tenantId}/secrets/remote/import`. See
+[Remote signing keys](../../docs/capabilities/remote-signing-keys.md#management-api).
 
 ### Master keys
 

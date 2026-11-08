@@ -13,7 +13,7 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
         params RemoteSigningAlgorithm[] rows
     ) => CreateSource(Times.Once(), providers, rows);
 
-    // A catalog that fails on a repeated selector does so before it reads the providers.
+    // A catalog that fails on a repeated selector may fail before it reads the providers, so a test of that failure allows the read at most once.
     private IRemoteKeyDescriptorSource CreateSource(
         Times providersRead,
         RemoteKeyProviderDescriptor[] providers,
@@ -113,7 +113,7 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
 
     #endregion
 
-    #region Providers Tests
+    #region Providers Property Tests
 
     [Fact]
     public void Providers_ListsTheDescribedProvidersInOrdinalNameOrder()

@@ -1,0 +1,206 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
+using NCode.Identity.Cryptography;
+using NCode.Identity.Events.Audit;
+using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Contracts.Secrets;
+using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Logging;
+using NCode.Identity.OpenId.Persistence.Stores;
+using NCode.Identity.Secrets;
+using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Persistence.Stores;
+using NCode.Registration.AspNetCore;
+
+namespace NCode.Identity.OpenId.Management.Endpoints.Tenants;
+
+/*
+
+POST api/tenants/{tenantId}/secrets/remote
+
+*/
+
+/// <summary>
+/// Provides the API endpoints that manage the signing keys a tenant holds in the key management service of a
+/// registered remote key provider. The private half of such a key never leaves the service.
+/// </summary>
+// See ADR-1475.
+internal class TenantRemoteSecretApiEndpointHandler(
+    IStoreManagerFactory storeManagerFactory,
+    IAuthorizationService authorizationService,
+    ICryptoService cryptoService,
+    ISecretValidator secretValidator,
+    ISecretGenerator secretGenerator,
+    IRemoteSecretDestroyer remoteSecretDestroyer,
+    IManagementAuditRecorder managementAuditRecorder,
+    TimeProvider timeProvider,
+    ILogger<TenantRemoteSecretApiEndpointHandler> logger
+) : BaseApiEndpointHandler, IEndpointProvider
+{
+    private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
+    private ISecretValidator SecretValidator { get; } = secretValidator;
+    private ISecretGenerator SecretGenerator { get; } = secretGenerator;
+    private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
+    private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
+    private TimeProvider TimeProvider { get; } = timeProvider;
+    private ILogger<TenantRemoteSecretApiEndpointHandler> Logger { get; } = logger;
+
+    /// <inheritdoc />
+    protected override IAuthorizationService AuthorizationService { get; } = authorizationService;
+
+    /// <inheritdoc />
+    protected override ICryptoService CryptoService { get; } = cryptoService;
+
+    /// <inheritdoc />
+    public void Map(IEndpointRouteBuilder endpoints)
+    {
+        var tenants = endpoints.MapGroup("/tenants").WithTags(OpenIdConstants.EndpointTags.Tenants);
+
+        tenants
+            .MapPost("/{tenantId}/secrets/remote", CreateRemoteSecretAsync)
+            .Produces<SecretResource>(StatusCodes.Status201Created);
+    }
+
+    /// <summary>
+    /// Creates a tenant's signing key in the key management service of a registered remote key provider.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
+    /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
+    /// <param name="request">The <see cref="CreateRemoteSecretRequest"/> describing the key to create.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <response code="201">The created secret.</response>
+    /// <response code="400">The request is not coherent or the key could not be created from its parameters.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">A secret with the generated identifier already exists.</response>
+    /// <response code="502">The key management service did not create the key.</response>
+    // See ADR-1475.
+    [EndpointName("api/tenants/secrets/create-remote")]
+    internal virtual async ValueTask<IResult> CreateRemoteSecretAsync(
+        HttpContext httpContext,
+        [FromRoute] string tenantId,
+        [FromBody] CreateRemoteSecretRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        var authorizationFailure = await GetAuthorizationFailureAsync(
+            httpContext,
+            GetTenantNode(tenantId),
+            Operations.Create,
+            cancellationToken
+        );
+
+        if (authorizationFailure is not null)
+        {
+            return authorizationFailure;
+        }
+
+        await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
+        var store = storeManager.GetStore<ITenantStore>();
+
+        var tenant = await store.GetOrDefaultAsync(tenantId, cancellationToken);
+        if (tenant is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var createdWhen = TimeProvider.GetUtcNow();
+        var validation = SecretValidator.ValidateCreateRemote(request, createdWhen);
+        if (!validation.IsValid)
+        {
+            return ToErrorResult(validation.Error);
+        }
+
+        var parameters =
+            validation.GenerationParameters
+            ?? throw new InvalidOperationException("A valid request has generation parameters.");
+
+        var secretId = CryptoService.GenerateResourceId();
+
+        PersistedSecret secret;
+        try
+        {
+            secret = await SecretGenerator.GenerateRemoteSecretAsync(
+                new GenerateRemoteSecretRequest
+                {
+                    SecretId = secretId,
+                    Owner = SecretOwner.ForTenant(tenantId),
+                    Provider = request.RemoteKeyProvider,
+                    SecretType = request.SecretType,
+                    KeySizeBits = parameters.KeySizeBits,
+                    Curve = parameters.Curve,
+                    Use = SecretKeyUses.Signature,
+                    Algorithm = request.Algorithm,
+                    CreatedWhen = createdWhen,
+                    ActivatesWhen = request.ActivatesWhen,
+                    RetiresWhen = request.RetiresWhen,
+                    ExpiresWhen = request.ExpiresWhen,
+                },
+                cancellationToken
+            );
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.SecretGenerationFailed(exception);
+            return TypedResults.Problem(
+                detail: "The key could not be created in the key management service from the supplied parameters.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            Logger.RemoteKeyProviderFailed(request.RemoteKeyProvider, secretId, exception);
+            return TypedResults.Problem(
+                detail: $"The key management service of the remote key provider '{request.RemoteKeyProvider}' did not create the key.",
+                statusCode: StatusCodes.Status502BadGateway
+            );
+        }
+
+        try
+        {
+            await store.AddSecretAsync(tenantId, secret, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Logger.ResourceConflict(exception);
+            await RemoteSecretDestroyer.DestroyAsync([secret]);
+            return TypedResults.Problem(
+                detail: "A secret with the specified identifier already exists.",
+                statusCode: StatusCodes.Status409Conflict
+            );
+        }
+
+        await storeManager.SaveChangesAsync(cancellationToken);
+
+        var secretResource = ToSecretResource(secret);
+
+        await ManagementAuditRecorder.RecordTenantSecretChangedAsync(
+            httpContext,
+            tenantId,
+            secretId,
+            ResourceChangeTypes.Created,
+            ToResourceValues(secretResource)
+        );
+
+        await NotifyTenantChangedAsync(
+            httpContext,
+            tenantId,
+            settingsChanged: false,
+            cancellationToken
+        );
+
+        // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
+        httpContext.Response.Headers.ETag = secret.ConcurrencyToken;
+        return TypedResults.Created($"/tenants/{tenantId}/secrets/{secretId}", secretResource);
+    }
+}

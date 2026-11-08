@@ -502,6 +502,40 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
         await host.StopAsync();
     }
 
+    [Fact]
+    public async Task AddConfiguration_WhenHostStartsWithRemoteKeyProviderSections_Starts()
+    {
+        using var host = BuildHost(
+            new Dictionary<string, string?>
+            {
+                ["OpenId:TenantResolution:StrategyCode"] = "StaticSingle",
+                ["OpenId:TenantResolution:StaticSingle:TenantPath"] = "/",
+                ["SecretProtection:RootKeyProvider"] = "ephemeral",
+                ["SecretProtection:RemoteKeyProviders:AwsKms:Region"] = "us-west-2",
+                ["SecretProtection:RemoteKeyProviders:AzureKeyVault:VaultUri"] =
+                    "https://contoso.vault.azure.net",
+                ["SecretProtection:RemoteKeyProviders:GoogleCloudKms:KeyRing"] =
+                    "projects/p/locations/l/keyRings/r",
+            },
+            out var secretProtectorProvider
+        );
+
+        // The warmup that AddConfiguration registers loads the protector of the server when the host starts.
+        secretProtectorProvider
+            .Setup(x =>
+                x.GetProtectorAsync(
+                    SecretOwner.Platform,
+                    It.Is<IReadOnlyCollection<string>>(values => values.Count == 0),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(new ValueTask<ISecretProtector>(CreateStrictMock<ISecretProtector>().Object))
+            .Verifiable();
+
+        await host.StartAsync();
+        await host.StopAsync();
+    }
+
     private IHost BuildHost(
         Dictionary<string, string?> configurationData,
         out Mock<ISecretProtectorProvider> secretProtectorProvider

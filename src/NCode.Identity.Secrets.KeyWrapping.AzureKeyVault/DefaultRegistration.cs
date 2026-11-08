@@ -9,13 +9,14 @@ using Microsoft.Extensions.Options;
 using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 using NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Options;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Registration;
 
 namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault;
 
 /// <summary>
 /// Provides opt-in extension methods for the <see cref="SecretPersistenceLibrary"/> builder to register the Azure Key
-/// Vault key wrapper.
+/// Vault key wrapper and remote key provider.
 /// </summary>
 [PublicAPI]
 public static class DefaultRegistration
@@ -84,6 +85,64 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IKeyWrapper, AzureKeyVaultKeyWrapper>()
+            );
+
+            return builder;
+        }
+
+        /// <summary>
+        /// Registers the Azure Key Vault <see cref="IRemoteKeyProvider"/>, which creates tenant signing keys in Azure
+        /// Key Vault or Managed HSM that never leave the service, signs with them, and disables them, together with
+        /// the <see cref="IRemoteSigningAlgorithmSource"/> that maps each JOSE signature algorithm to the key type and
+        /// signature algorithm of the service. The <c>SecretProtection:RemoteKeyProviders:AzureKeyVault</c> section
+        /// binds <see cref="AzureKeyVaultRemoteKeyProviderOptions"/> strictly and is validated when the host starts,
+        /// so registering the provider selects it. No client is created before the first key is created, signed with
+        /// or destroyed. Credentials come from <see cref="Azure.Identity.DefaultAzureCredential"/>, never from
+        /// configuration.
+        /// </summary>
+        /// <param name="configuration">The <see cref="IConfiguration"/> holding the <c>SecretProtection:RemoteKeyProviders:AzureKeyVault</c> section.</param>
+        /// <returns>The same <see cref="IServiceBuilder{T}"/> so that calls can be chained.</returns>
+        [PublicAPI]
+        public IServiceBuilder<SecretPersistenceLibrary> AddAzureKeyVaultRemoteKeyProvider(
+            IConfiguration configuration
+        )
+        {
+            ArgumentNullException.ThrowIfNull(builder);
+            ArgumentNullException.ThrowIfNull(configuration);
+
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection
+                .AddOptions<AzureKeyVaultRemoteKeyProviderOptions>()
+                .Configure(options =>
+                    configuration
+                        .GetSection(AzureKeyVaultRemoteKeyProviderOptions.DefaultSectionName)
+                        .BindStrictly(options)
+                )
+                .ValidateOnStart();
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<AzureKeyVaultRemoteKeyProviderOptions>,
+                    AzureKeyVaultRemoteKeyProviderOptionsValidator
+                >()
+            );
+
+            serviceCollection.TryAddSingleton(TimeProvider.System);
+            serviceCollection.TryAddSingleton<
+                IAzureKeyVaultClientFactory,
+                DefaultAzureKeyVaultClientFactory
+            >();
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IRemoteKeyProvider, AzureKeyVaultRemoteKeyProvider>()
+            );
+
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IRemoteSigningAlgorithmSource,
+                    AzureKeyVaultSigningAlgorithms
+                >()
             );
 
             return builder;

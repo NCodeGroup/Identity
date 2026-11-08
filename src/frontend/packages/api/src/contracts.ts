@@ -395,6 +395,12 @@ export type SecretResource = {
    * secret, never one that uses it as a key, such as `client_secret_jwt` or an `HS256` request object.
    */
   readonly isVerifier: boolean;
+  // See ADR-1475.
+  /**
+   * The remote key provider whose key management service holds the key's private half, such as `aws-kms`, or `null`
+   * for a key the server holds.
+   */
+  readonly remoteKeyProvider: string | null;
 };
 
 /**

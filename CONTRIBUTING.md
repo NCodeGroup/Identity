@@ -5,9 +5,11 @@ enforced quality bar.
 
 ## Prerequisites
 
-- The .NET SDK pinned in [`global.json`](global.json) (10.0.x), and the runtime of each older .NET a test project
-  targets, which `./build/Get-TestRuntimes.ps1` names. The net10 targeting pack restores automatically.
-- PowerShell 7+ (`pwsh`) to run the Definition-of-Done script.
+- The .NET SDK that [`global.json`](global.json) selects (10.0.x), and the runtime of each older .NET a test project
+  targets, which `./build/Get-TestRuntimes.ps1` names. `./build/Install-Dotnet.ps1` installs both beside the .NET that
+  runs `dotnet`, or into the folder `-InstallDir` names; run it as an administrator, or with `sudo`, when .NET is
+  installed system-wide. The net10 targeting pack restores automatically.
+- PowerShell 7.4+ (`pwsh`) to run the Definition-of-Done script and `./build/Install-Dotnet.ps1`.
 - Local tools: run `dotnet tool restore` once after cloning to install the repo-pinned **CSharpier** formatter.
 - Git hooks: run `git config core.hooksPath .githooks` once after cloning to enable the repo-versioned hooks (see
   [Commit attribution](#commit-attribution)).

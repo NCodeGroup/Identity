@@ -15,6 +15,7 @@ using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Settings;
 using NCode.Mediator;
 
@@ -316,6 +317,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             KeySizeBits = secret.KeySizeBits,
             ManagedBy = secret.ManagedBy,
             IsVerifier = SecretEncodings.IsVerifier(secret.SecretEncoding),
+            RemoteKeyProvider = GetRemoteKeyProvider(secret),
         };
     }
 
@@ -347,6 +349,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
             KeySizeBits = secret.KeySizeBits,
             ManagedBy = secret.ManagedBy,
             IsVerifier = SecretEncodings.IsVerifier(secret.SecretEncoding),
+            RemoteKeyProvider = GetRemoteKeyProvider(secret),
             SecretMaterial = secretMaterial,
         };
     }
@@ -358,6 +361,20 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="secret">The <see cref="PersistedSecret"/> to identify.</param>
     /// <returns>The key identifier.</returns>
     internal static string GetKeyId(PersistedSecret secret) => secret.KeyId ?? secret.SecretId;
+
+    /// <summary>
+    /// Gets the name of the remote key provider whose key management service holds a secret's private half. The key
+    /// management service's own key identifier is never returned: it names the deployment's infrastructure.
+    /// </summary>
+    /// <param name="secret">The <see cref="PersistedSecret"/> to inspect.</param>
+    /// <returns>
+    /// The provider name, or <c>null</c> when the secret is not a remote key or its reference is malformed.
+    /// </returns>
+    internal static string? GetRemoteKeyProvider(PersistedSecret secret) =>
+        SecretEncodings.IsRemote(secret.SecretEncoding)
+        && RemoteKeyReference.TryParse(secret.EncodedValue, out var reference)
+            ? reference.Provider
+            : null;
 
     /// <summary>
     /// Returns a <c>409 Conflict</c> when one of an owner's existing keys is selected by the same <c>kid</c> as an
@@ -382,6 +399,31 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
 
         return TypedResults.Problem(
             detail: $"A key with the 'kid' value '{keyId}' is already registered for the {owner}.",
+            statusCode: StatusCodes.Status409Conflict
+        );
+    }
+
+    /// <summary>
+    /// Returns a <c>409 Conflict</c> when one of an owner's secrets already has the identifier, which identifiers
+    /// compare without regard to case.
+    /// </summary>
+    /// <param name="secrets">The owner's existing secrets.</param>
+    /// <param name="secretId">The identifier to check.</param>
+    /// <returns>The conflict result, or <c>null</c> when the identifier is free.</returns>
+    internal static IResult? SecretIdConflictOrDefault(
+        IEnumerable<PersistedSecret> secrets,
+        string secretId
+    )
+    {
+        if (
+            !secrets.Any(secret =>
+                string.Equals(secret.SecretId, secretId, StringComparison.OrdinalIgnoreCase)
+            )
+        )
+            return null;
+
+        return TypedResults.Problem(
+            detail: "A secret with the specified identifier already exists.",
             statusCode: StatusCodes.Status409Conflict
         );
     }

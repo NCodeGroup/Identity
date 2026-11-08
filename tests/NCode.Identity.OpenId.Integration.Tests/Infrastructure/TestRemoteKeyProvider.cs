@@ -80,6 +80,19 @@ public sealed class TestRemoteKeyProvider
     /// </summary>
     public IReadOnlyList<string> DestroyedKeyIds => [.. DestroyedKeys];
 
+    /// <summary>
+    /// Adds a key that the service already holds, one that the provider did not create, and returns its identifier.
+    /// The provider disposes the key.
+    /// </summary>
+    /// <param name="key">The key that the service holds.</param>
+    /// <returns>The identifier of the key in the service.</returns>
+    public string AddKey(AsymmetricAlgorithm key)
+    {
+        var keyId = $"{KeyIdPrefix}{Guid.NewGuid():N}";
+        Keys[keyId] = key;
+        return keyId;
+    }
+
     /// <inheritdoc />
     public ValueTask<RemoteKeyCreationResult> CreateKeyAsync(
         RemoteKeyCreationRequest request,

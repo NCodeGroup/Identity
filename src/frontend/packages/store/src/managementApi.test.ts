@@ -2371,6 +2371,7 @@ describe('managementApi owner-generic secrets and settings requests', () => {
       keySizeBits: 256,
       isVerifier: false,
       managedBy: null,
+      remoteKeyProvider: null,
       secretMaterial: 'issued-once',
     };
     mockFetch(jsonResponse(created));

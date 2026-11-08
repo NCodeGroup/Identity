@@ -26,6 +26,7 @@ const symmetricSecret: SecretResource = {
   secretType: 'symmetric',
   keySizeBits: 256,
   isVerifier: true,
+  remoteKeyProvider: null,
   managedBy: null,
 };
 

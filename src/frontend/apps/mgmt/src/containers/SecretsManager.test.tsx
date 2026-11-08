@@ -31,6 +31,7 @@ const rsaSecret: SecretResource = {
   secretType: 'rsa',
   keySizeBits: 2048,
   isVerifier: false,
+  remoteKeyProvider: null,
   managedBy: null,
 };
 

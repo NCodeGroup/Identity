@@ -11,6 +11,7 @@ using NCode.Identity.OpenId.Management.Contracts.Capabilities;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Capabilities;
 
@@ -84,6 +85,35 @@ public sealed class CapabilitiesProvidersTests : IDisposable
         var item = Assert.Single(section);
         Assert.Equal("P-256", item.CurveName);
         Assert.Equal(256, item.CurveSizeBits);
+    }
+
+    [Fact]
+    public async Task RemoteKeyProviderCapabilitiesProvider_AddsTheRegisteredProviderNamesInOrder()
+    {
+        var mockGoogleProvider = MockRepository.Create<IRemoteKeyProvider>();
+        mockGoogleProvider.Setup(x => x.Name).Returns("google-cloud-kms").Verifiable();
+
+        var mockAwsProvider = MockRepository.Create<IRemoteKeyProvider>();
+        mockAwsProvider.Setup(x => x.Name).Returns("aws-kms").Verifiable();
+
+        var mockCatalog = MockRepository.Create<IRemoteKeyProviderCatalog>();
+        mockCatalog
+            .Setup(x => x.Providers)
+            .Returns([mockGoogleProvider.Object, mockAwsProvider.Object])
+            .Verifiable();
+
+        var provider = new RemoteKeyProviderCapabilitiesProvider(mockCatalog.Object);
+        var capabilities = new Dictionary<string, object>();
+
+        await provider.HandleAsync(
+            new DiscoverManagementCapabilitiesCommand(CreateOpenIdContext(), capabilities),
+            CancellationToken.None
+        );
+
+        var section = Assert.IsType<List<RemoteKeyProviderCapabilityResource>>(
+            capabilities[RemoteKeyProviderCapabilitiesProvider.SectionName]
+        );
+        Assert.Equal(["aws-kms", "google-cloud-kms"], section.Select(x => x.Name));
     }
 
     [Fact]

@@ -25,7 +25,7 @@ public sealed class InitialCreateTests
 
         Assert.Equal(
             [
-                $"{HostMigrationCatalog.MigrationsNamespace}.DataProtection",
+                $"{HostMigrationCatalog.MigrationsNamespace}.DeveloperDataProtection",
                 $"{HostMigrationCatalog.MigrationsNamespace}.OpenId",
             ],
             namespaces
@@ -34,7 +34,7 @@ public sealed class InitialCreateTests
 
     [Theory]
     [InlineData("OpenId")]
-    [InlineData("DataProtection")]
+    [InlineData("DeveloperDataProtection")]
     public void HostContext_WhenEnumerated_HoldsOnlyInitialCreate(string context)
     {
         var migrations = HostMigrationCatalog

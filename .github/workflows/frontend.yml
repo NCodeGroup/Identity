@@ -23,6 +23,8 @@ on:
       - 'src/frontend/**'
       - '.github/workflows/frontend.yml'
       - '.github/workflows/codecov-upload.yml'
+      - '.github/actions/install-dotnet/**'
+      - 'build/Get-TestRuntimes.ps1'
       - 'build/test-report.ps1'
       - 'build/coverage-report.ps1'
       - '.config/dotnet-tools.json'
@@ -79,7 +81,7 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           if [ "$EVENT" != "pull_request" ]; then echo "frontend=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-          pattern='^(src/frontend/|\.github/workflows/frontend\.yml$|\.github/workflows/codecov-upload\.yml$|build/test-report\.ps1$|build/coverage-report\.ps1$|\.config/dotnet-tools\.json$|src/NCode\.Identity\.OpenId\.Authentication\.Interactive/|tests/NCode\.Identity\.OpenId\.Authentication\.Interactive\.Tests/)'
+          pattern='^(src/frontend/|\.github/workflows/frontend\.yml$|\.github/workflows/codecov-upload\.yml$|\.github/actions/install-dotnet/|build/Get-TestRuntimes\.ps1$|build/test-report\.ps1$|build/coverage-report\.ps1$|\.config/dotnet-tools\.json$|src/NCode\.Identity\.OpenId\.Authentication\.Interactive/|tests/NCode\.Identity\.OpenId\.Authentication\.Interactive\.Tests/)'
           # Capture the list first: piping into `grep -q` under pipefail fails on a large diff, because grep exits at
           # the first match and `git diff` then dies of SIGPIPE, which reads as "no frontend change".
           changed="$(git diff --name-only "$BASE" HEAD)"
@@ -159,27 +161,10 @@ jobs:
       # .NET coverage, so both tiers present coverage identically, and it runs the host's test against the built login
       # bundle below. Vitest writes no coverage when a test fails, so the coverage report follows a passing test step
       # only.
-      - name: Setup .NET
+      - name: Install .NET
         if: always()
-        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        with:
-          global-json-file: global.json
+        uses: ./.github/actions/install-dotnet
 
-      # A test project that targets an older .NET runs on that version's runtime, which build/Get-TestRuntimes.ps1 names.
-      - name: Find the .NET runtimes the tests target
-        if: always()
-        id: runtimes
-        shell: pwsh
-        working-directory: .
-        run: |
-          $channels = @(./build/Get-TestRuntimes.ps1)
-          if ($channels) { "channels<<EOF`n$($channels -join "`n")`nEOF" >> $env:GITHUB_OUTPUT }
-
-      - name: Setup the .NET runtimes the tests target
-        if: always() && steps.runtimes.outputs.channels != ''
-        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        with:
-          dotnet-version: ${{ steps.runtimes.outputs.channels }}
       - name: Coverage report
         if: steps.test.outcome == 'success'
         shell: pwsh

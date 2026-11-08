@@ -115,6 +115,25 @@ secretProtection:
     # azureKeyVault.workloadIdentity, googleCloudKms.workloadIdentityFederation) are mounted into the pods, so the host
     # can reach the tenant's key with the deployment's own identity.
     providers: []
+  # The key management services that hold tenants' signing keys (SecretProtection:RemoteKeyProviders), selected per
+  # tenant by the setting tenant_signing_key_provider. A provider is registered when its first value (region, vaultUri,
+  # keyRing) is set, and the pods then carry its workload credentials (awsKms.webIdentity,
+  # azureKeyVault.workloadIdentity, googleCloudKms.workloadIdentityFederation).
+  remoteKeyProviders:
+    awsKms:
+      # AWS region in which keys are created; empty registers no provider.
+      region: ""
+      # Days a deleted key waits before AWS destroys it, 7 to 30.
+      pendingWindowInDays: 30
+    azureKeyVault:
+      # Vault in which keys are created, such as https://<vault>.vault.azure.net; empty registers no provider.
+      vaultUri: ""
+      hardwareProtected: true
+    googleCloudKms:
+      # Key ring in which keys are created, projects/<project>/locations/<location>/keyRings/<ring>; empty registers
+      # no provider.
+      keyRing: ""
+      hardwareProtected: true
   # A one-off Job from the host image that rewraps every master key under the configured root key provider and
   # recovery public key (ADR-1408). Enable it for a release that changes the root key provider, the root key or the
   # recovery key pair, and disable it again once it has completed.

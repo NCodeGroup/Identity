@@ -7,8 +7,8 @@
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**         | Available: a tenant's signing keys, in AWS KMS, Azure Key Vault (and Managed HSM) and Google Cloud KMS, chosen per tenant                                                                                                                                                                                             |
 | **Packages**       | `NCode.Identity.Secrets.Abstractions` (the remote vocabulary), `NCode.Identity.Secrets` and `NCode.Identity.Secrets.Persistence` (the key, its storage and its destruction), `NCode.Identity.Jose.Abstractions` and `NCode.Identity.Jose` (the asynchronous signing seam), `NCode.Identity.Secrets.AwsKms`, `.AzureKeyVault` and `.GoogleCloudKms` (the providers), `NCode.Identity.OpenId.Core` (the setting and the rollover) |
-| **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md), [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
-| **Operator guide** | The reference host's [Remote signing keys](../../src/NCode.Identity.OpenId.Host/README.md#remote-signing-keys); the tenant setting `tenant_signing_key_provider`; the configuration sections under `SecretProtection:RemoteKeyProviders`                                                                          |
+| **Key decisions**  | [ADR-1471](../decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md), [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md), [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md), [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md), [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md), [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) |
+| **Operator guide** | The reference host's [Remote signing keys](../../src/NCode.Identity.OpenId.Host/README.md#remote-signing-keys); the tenant setting `tenant_signing_key_provider`; the configuration sections under `SecretProtection:RemoteKeyProviders`; the Helm chart's `secretProtection.remoteKeyProviders` values, in its [Tenant signing keys](../../charts/ncode-identity-host/README.md#tenant-signing-keys)                                                                          |
 
 ## The promises
 
@@ -23,6 +23,7 @@
 | 7   | **A key the server created is destroyed after the commit that removes its record, and a key it created but could not read, check or record is destroyed at once.** Never before, and never a key the server did not create.            |
 | 8   | **Repeatable calls are retried; a creation is made once.** Each SDK retries a throttled or unavailable read, signature or destruction with jittered back-off in one layer; a key creation is never retried, so a lost response cannot create a second key. |
 | 9   | **A host that cannot serve a key does not start.** A registered provider that has no mapping for a provisioned signature key stops the host, and a stored remote key that cannot be read stops its tenant from loading.                    |
+| 10  | **A bound key proves it signs.** A key an operator brings is stored only after it signs a challenge that the supplied public half verifies, and the server never destroys it. |
 
 ## Why this matters
 
@@ -141,6 +142,12 @@ reference host calls them.
 | `azure-key-vault`           | `SecretProtection:RemoteKeyProviders:AzureKeyVault`      | `VaultUri`; `HardwareProtected` (default `true`)                                  |
 | `google-cloud-kms`          | `SecretProtection:RemoteKeyProviders:GoogleCloudKms`     | `KeyRing`; `HardwareProtected` (default `true`)                                   |
 
+The reference host's Helm chart configures them with the `secretProtection.remoteKeyProviders` values (`awsKms.region`
+and `pendingWindowInDays`, `azureKeyVault.vaultUri` and `hardwareProtected`, `googleCloudKms.keyRing` and
+`hardwareProtected`). It registers a provider when its first value is set and mounts that vendor's workload identity
+into the pods; see the chart README's
+[Tenant signing keys](../../charts/ncode-identity-host/README.md#tenant-signing-keys).
+
 A tenant, a team or the platform selects a provider with the setting `tenant_signing_key_provider`, whose value is
 empty (local keys) or one of the registered provider names. The setting is environment-bound, so each environment chooses
 its own custody, and it carries from a platform or team document to the tenants beneath it, as
@@ -153,6 +160,41 @@ the tenant's signature keys over after the activation delay, and the superseded 
 > `AwsKmsRemoteKeyProviderOptions`, `AzureKeyVaultRemoteKeyProviderOptions`, `GoogleCloudKmsRemoteKeyProviderOptions`,
 > `OpenIdSettingKeys.TenantSigningKeyProvider`.
 
+## Management API
+
+The management API shows which provider holds a key, creates a tenant's key in a provider and binds a key that a
+provider already holds. Remote keys belong to tenants only, so the routes sit under a tenant.
+
+- **Reading.** A `remote` secret's `remoteKeyProvider` field names its provider, such as `aws-kms`, and is `null` for a
+  key the server holds. The KMS key identifier is never returned.
+- **Creating a key.** `POST /api/tenants/{tenantId}/secrets/remote` takes a `CreateRemoteSecretRequest`:
+  `remoteKeyProvider`, `secretType` (`rsa` or `ecc`), `keySizeBits`, an optional `curve`, `algorithm`, `expiresWhen`
+  and the optional `activatesWhen` and `retiresWhen`. It needs `Create` authority at the tenant, validates the request
+  against the provider's mapping before it calls the KMS, and answers `201` with the secret. The key has `Origin`
+  `generated`, so deleting the secret destroys the key in the KMS. A request that fails validation answers `400`, a
+  missing tenant `404`, a secret identifier the tenant already holds `409` before the KMS is called, a write that
+  lost a concurrency race `412` after the created key is destroyed and a KMS failure or refusal `502`.
+- **Binding a key.** `POST /api/tenants/{tenantId}/secrets/remote/import` takes an `ImportRemoteSecretRequest`:
+  `remoteKeyProvider`, `remoteKeyId`, the key's public half as `secretType`, `format` and `keyMaterial`, `algorithm`,
+  `expiresWhen` and the optional `activatesWhen` and `retiresWhen`. The `remoteKeyId` is the service's identifier for
+  the key: an AWS KMS key ARN, an Azure Key Vault versioned key identifier, or a Google Cloud KMS crypto key version
+  resource name. It holds at most 8,000 characters together with the provider name and a colon, the stored reference
+  `<provider>:<keyId>` (7,992 for `aws-kms`), and no control character and no leading or trailing white space. The
+  server stores the key only after it signs 32 random bytes through the referenced key and the
+  supplied public half verifies the signature. The key has `Origin` `supplied`, so the server never destroys it. The
+  route needs `Create` authority at the tenant and `Update` authority at the platform, because the deployment's identity
+  reaches every key the KMS lets it use. A key that does not prove it signs, an unregistered provider or an algorithm that is not a registered signature algorithm
+  for the key's type answers `400`; a secret identifier or `kid` the tenant already holds answers `409`; a KMS failure
+  or refusal answers `502`.
+- **Updating.** An update keeps the algorithm of a `remote` secret: a different algorithm answers `400`, because the
+  key is bound to its algorithm.
+- **Capabilities.** The capabilities list the registered provider names in `remoteKeyProviders`, sorted ordinally, so a
+  client offers only the providers a deployment registers.
+
+> [!TIP]
+> [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
+> `CreateRemoteSecretRequest`, `ImportRemoteSecretRequest`, `TenantRemoteSecretApiEndpointHandler`.
+
 ## Permissions
 
 The deployment's identity, resolved by each SDK's default credential chain, needs these permissions. No credential is
@@ -163,6 +205,9 @@ read from configuration.
 - **Azure:** the `Key Vault Crypto Officer` role on the vault (keys create, sign and update).
 - **Google:** `cloudkms.cryptoKeys.create` and `cloudkms.cryptoKeyVersions.create`, `.get`, `.viewPublicKey`,
   `.useToSign` and `.destroy` on the key ring.
+
+A key an operator binds needs only signing: AWS `kms:Sign`, Azure `Key Vault Crypto User` on the key, Google
+`cloudkms.cryptoKeyVersions.useToSign`.
 
 The server creates sign-only keys, hardware-protected by default on Azure and Google, and destroys only the keys it
 created. Its logs carry identifiers only, never an input, a digest or a signature.
@@ -180,9 +225,6 @@ created. Its logs carry identifiers only, never an input, a digest or a signatur
 - **Azure versions accumulate disabled.** Key Vault deletes whole keys only, so removing a record disables its version.
 - **Encryption keys are local.** Only a tenant's signing keys can be held in a service; decryption stays local, as do
   the platform's, clients', resource servers', the protocol client's, DPoP and BFF keys.
-- **There is no management or chart surface for it.** A deployment sets the provider sections in the host's
-  configuration and the tenant setting through the settings documents; the management API and the Helm chart do not
-  expose them.
 
 ## Further reading
 
@@ -190,6 +232,7 @@ created. Its logs carry identifiers only, never an input, a digest or a signatur
   [ADR-1472](../decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
   [ADR-1473](../decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
   [ADR-1474](../decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
+  [ADR-1475](../decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1468](../decisions/1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)

@@ -289,6 +289,176 @@ public class RemoteSigningKeyTests
 
     #endregion
 
+    #region Management Tests
+
+    [Fact]
+    public async Task PostRemoteSecret_WhenTheProviderIsRegistered_CreatesTheKeyInTheProviderAndNamesIt()
+    {
+        using var provider = new TestRemoteKeyProvider();
+        using var factory = new RemoteSigningApplicationFactory(
+            provider,
+            CreateStaticConfiguration()
+        );
+        using var client = factory.CreateClient();
+        await AuthorizeAsync(client);
+        var expiresWhen = GetExpiresWhen(factory);
+
+        using var response = await client.PostAsJsonAsync(
+            $"/api/tenants/{HostApplicationFactory.TenantId}/secrets/remote",
+            new
+            {
+                remoteKeyProvider = TestRemoteKeyProvider.ProviderName,
+                secretType = "ecc",
+                keySizeBits = 256,
+                algorithm = "ES256",
+                expiresWhen,
+            }
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+
+        var resource = JsonElement.Parse(body);
+        Assert.Equal(
+            TestRemoteKeyProvider.ProviderName,
+            resource.GetProperty("remoteKeyProvider").GetString()
+        );
+
+        var secretId = resource.GetProperty("secretId").GetString();
+        var secrets = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
+        var secret = Assert.Single(secrets, candidate => candidate.SecretId == secretId);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal(SecretOrigins.Generated, secret.Origin);
+        Assert.Null(secret.ManagedBy);
+        Assert.Contains(ParseKeyId(secret), provider.CreatedKeyIds);
+    }
+
+    [Fact]
+    public async Task PostRemoteSecretImport_WhenTheKeySignsWithTheSuppliedPublicKey_BindsIt()
+    {
+        using var provider = new TestRemoteKeyProvider();
+        using var factory = new RemoteSigningApplicationFactory(
+            provider,
+            CreateStaticConfiguration()
+        );
+        using var client = factory.CreateClient();
+        await AuthorizeAsync(client);
+
+        var secretId = await BindKeyAsync(factory, client, provider);
+
+        var secrets = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
+        var secret = Assert.Single(secrets, candidate => candidate.SecretId == secretId);
+        Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
+        Assert.Equal(SecretOrigins.Supplied, secret.Origin);
+        Assert.True(provider.SignatureCount > 0);
+    }
+
+    [Fact]
+    public async Task PostRemoteSecretImport_WhenThePublicKeyIsAnotherKeys_ReturnsBadRequest()
+    {
+        using var provider = new TestRemoteKeyProvider();
+        using var factory = new RemoteSigningApplicationFactory(
+            provider,
+            CreateStaticConfiguration()
+        );
+        using var client = factory.CreateClient();
+        await AuthorizeAsync(client);
+        var before = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
+
+        using var held = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        using var other = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var keyId = provider.AddKey(held);
+        var expiresWhen = GetExpiresWhen(factory);
+        var importBody = CreateImportBody(
+            keyId,
+            other.ExportSubjectPublicKeyInfoPem(),
+            expiresWhen
+        );
+
+        using var response = await PostImportAsync(client, importBody);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest, body);
+
+        var after = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
+        Assert.Equal(before.Count, after.Count);
+    }
+
+    [Fact]
+    public async Task DeleteSecret_WhenTheKeyWasBound_LeavesItInTheProvider()
+    {
+        using var provider = new TestRemoteKeyProvider();
+        using var factory = new RemoteSigningApplicationFactory(
+            provider,
+            CreateStaticConfiguration()
+        );
+        using var client = factory.CreateClient();
+        await AuthorizeAsync(client);
+        var secretId = await BindKeyAsync(factory, client, provider);
+
+        using var response = await client.DeleteAsync(
+            $"/api/tenants/{HostApplicationFactory.TenantId}/secrets/{secretId}"
+        );
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.NoContent, body);
+
+        Assert.Empty(provider.DestroyedKeyIds);
+    }
+
+    #endregion
+
+    private static async Task AuthorizeAsync(HttpClient client)
+    {
+        var accessToken = await GetBootstrapTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            accessToken
+        );
+    }
+
+    private static DateTimeOffset GetExpiresWhen(HostApplicationFactory factory) =>
+        factory.Services.GetRequiredService<TimeProvider>().GetUtcNow().AddYears(1);
+
+    private static async Task<string> BindKeyAsync(
+        HostApplicationFactory factory,
+        HttpClient client,
+        TestRemoteKeyProvider provider
+    )
+    {
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var keyId = provider.AddKey(
+            ECDsa.Create(key.ExportParameters(includePrivateParameters: true))
+        );
+        var expiresWhen = GetExpiresWhen(factory);
+        var importBody = CreateImportBody(keyId, key.ExportSubjectPublicKeyInfoPem(), expiresWhen);
+
+        using var response = await PostImportAsync(client, importBody);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+
+        return JsonElement.Parse(body).GetProperty("secretId").GetString() ?? string.Empty;
+    }
+
+    private static object CreateImportBody(
+        string keyId,
+        string publicKeyPem,
+        DateTimeOffset expiresWhen
+    ) =>
+        new
+        {
+            remoteKeyProvider = TestRemoteKeyProvider.ProviderName,
+            remoteKeyId = keyId,
+            secretType = "ecc",
+            format = "pem",
+            keyMaterial = publicKeyPem,
+            algorithm = "ES256",
+            expiresWhen,
+        };
+
+    private static Task<HttpResponseMessage> PostImportAsync(HttpClient client, object body) =>
+        client.PostAsJsonAsync(
+            $"/api/tenants/{HostApplicationFactory.TenantId}/secrets/remote/import",
+            body
+        );
+
     private static string ParseKeyId(PersistedSecret secret)
     {
         Assert.True(RemoteKeyReference.TryParse(secret.EncodedValue, out var reference));

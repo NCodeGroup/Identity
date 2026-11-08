@@ -290,6 +290,53 @@
             }
           }
         },
+        "remoteKeyProviders": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "awsKms": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "region": {
+                  "type": "string",
+                  "pattern": "^([a-z0-9]+(-[a-z0-9]+)+)?$"
+                },
+                "pendingWindowInDays": {
+                  "type": "integer",
+                  "minimum": 7,
+                  "maximum": 30
+                }
+              }
+            },
+            "azureKeyVault": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "vaultUri": {
+                  "type": "string",
+                  "pattern": "^(https://[A-Za-z0-9-]+([.][A-Za-z0-9-]+)+/?)?$"
+                },
+                "hardwareProtected": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "googleCloudKms": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "keyRing": {
+                  "type": "string",
+                  "pattern": "^(projects/[a-z0-9.:-]+/locations/[a-z0-9-]+/keyRings/[A-Za-z0-9_-]{1,63})?$"
+                },
+                "hardwareProtected": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
         "rewrapJob": {
           "type": "object",
           "additionalProperties": false,

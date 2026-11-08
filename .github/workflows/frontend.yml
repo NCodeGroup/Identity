@@ -165,6 +165,21 @@ jobs:
         with:
           global-json-file: global.json
 
+      # A test project that targets an older .NET runs on that version's runtime, which build/Get-TestRuntimes.ps1 names.
+      - name: Find the .NET runtimes the tests target
+        if: always()
+        id: runtimes
+        shell: pwsh
+        working-directory: .
+        run: |
+          $channels = @(./build/Get-TestRuntimes.ps1)
+          if ($channels) { "channels<<EOF`n$($channels -join "`n")`nEOF" >> $env:GITHUB_OUTPUT }
+
+      - name: Setup the .NET runtimes the tests target
+        if: always() && steps.runtimes.outputs.channels != ''
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ steps.runtimes.outputs.channels }}
       - name: Coverage report
         if: steps.test.outcome == 'success'
         shell: pwsh

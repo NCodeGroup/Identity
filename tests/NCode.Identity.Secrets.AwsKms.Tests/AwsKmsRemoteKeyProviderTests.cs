@@ -25,13 +25,31 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
     private const string OtherKeyArn =
         "arn:aws:kms:us-west-2:111122223333:key/abcd1234-34cd-12ab-56ef-0987654321ba";
 
-    private static readonly RemoteSigningAlgorithm Rs256 =
-        new AwsKmsRemoteKeyDescriptors().Algorithms.Single(x =>
-            x.Algorithm == "RS256" && x.KeySizeBits == 3072
-        );
+    private static RemoteSigningAlgorithm Rs256 { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RS256",
+            SecretType = SecretKeyTypes.Rsa,
+            KeySizeBits = 3072,
+            KeySpec = "RSA_3072",
+            SigningAlgorithm = "RSASSA_PKCS1_V1_5_SHA_256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+        };
 
-    private static readonly RemoteSigningAlgorithm Es256 =
-        new AwsKmsRemoteKeyDescriptors().Algorithms.Single(x => x.Algorithm == "ES256");
+    private static RemoteSigningAlgorithm Es256 { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ES256",
+            SecretType = SecretKeyTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            SigningAlgorithm = "ECDSA_SHA_256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+            IsDerEncodedSignature = true,
+        };
 
     private Mock<IAwsKmsClientFactory> ClientFactory { get; }
 

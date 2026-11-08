@@ -27,13 +27,30 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     private const string OtherKeyVersionId =
         VaultUri + "/keys/other-key/fedcba9876543210fedcba9876543210";
 
-    private static readonly RemoteSigningAlgorithm Rs256 =
-        new AzureKeyVaultRemoteKeyDescriptors().Algorithms.Single(x =>
-            x.Algorithm == "RS256" && x.KeySizeBits == 3072
-        );
+    private static RemoteSigningAlgorithm Rs256 { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AzureKeyVault,
+            Algorithm = "RS256",
+            SecretType = SecretKeyTypes.Rsa,
+            KeySizeBits = 3072,
+            KeySpec = "RSA",
+            SigningAlgorithm = "RS256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+        };
 
-    private static readonly RemoteSigningAlgorithm Es256 =
-        new AzureKeyVaultRemoteKeyDescriptors().Algorithms.Single(x => x.Algorithm == "ES256");
+    private static RemoteSigningAlgorithm Es256 { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AzureKeyVault,
+            Algorithm = "ES256",
+            SecretType = SecretKeyTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "EC",
+            SigningAlgorithm = "ES256",
+            DigestAlgorithm = HashAlgorithmName.SHA256,
+        };
 
     private static readonly KvSignatureAlgorithm Rs256Algorithm = new("RS256");
 
@@ -474,12 +491,7 @@ public class AzureKeyVaultRemoteKeyProviderTests : BaseTests
     public async Task GetPublicKeyAsync_WhenThePublicKeyIsMalformed_ThrowsCryptographicException()
     {
         SetupKeyClient<Response<KeyVaultKey>>(VaultUri);
-        SetupGetKey(
-            CreateKey(
-                KeyVersionId,
-                KeyModelFactory.JsonWebKey(KeyType.Rsa, e: new byte[] { 1, 0, 1 })
-            )
-        );
+        SetupGetKey(CreateKey(KeyVersionId, KeyModelFactory.JsonWebKey(KeyType.Rsa, e: [1, 0, 1])));
         var provider = CreateProvider();
 
         var exception = await Assert.ThrowsAsync<CryptographicException>(() =>

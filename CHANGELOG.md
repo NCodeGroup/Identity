@@ -910,10 +910,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   each JOSE algorithm onto a provider's key spec and signing algorithm (`RS*`, `PS*` and `ES*`). A change of custody
   hands each key over after the activation delay (`custody_changed`), a successor is a new version of its KMS key (a
   new tagged key on AWS KMS), a removed key the server created is destroyed in its KMS after the commit, and each SDK
-  retries throttling with jittered exponential back-off. `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`,
+  retries throttling with jittered exponential back-off. The management API creates a tenant's key in a registered
+  provider (`POST /api/tenants/{tenantId}/secrets/remote`) and binds a key a KMS already holds once a challenge it signs
+  verifies with the supplied public half (`POST /api/tenants/{tenantId}/secrets/remote/import`, which needs update
+  authority on the platform; the server never destroys a bound key); an update keeps a remote key's algorithm;
+  `SecretResource`'s `remoteKeyProvider` and the console's secrets table name the provider, and the capabilities
+  response lists `remoteKeyProviders`. The Helm chart's `secretProtection.remoteKeyProviders` configures each provider
+  and mounts its workload identity. `IRemoteKeyProvider`, `IRemoteKeyProviderCatalog`,
   `RemoteSigningAlgorithm`, `IRemoteSecretKey` and `IRemoteSecretKeyTypeDescriptor` are open, so a package adds a
   provider or a key type ([#165](https://github.com/NCodeGroup/Identity/issues/165),
-  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)).
+  [#648](https://github.com/NCodeGroup/Identity/issues/648), [#649](https://github.com/NCodeGroup/Identity/issues/649),
+  [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
+  [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm

@@ -19,6 +19,7 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Contracts.ResourceServers;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.OpenId.Management.Endpoints.Secrets;
+using NCode.Identity.OpenId.Management.Tests.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -1902,6 +1903,110 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
         Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
     }
 
+    private static PersistedResourceServer CreateResourceServerHoldingSecret() =>
+        new PersistedResourceServerBuilder
+        {
+            TenantId = TenantId,
+            ResourceServerId = ResourceServerId,
+            Secrets = [new PersistedSecretBuilder { SecretId = "secret-1" }.Build()],
+        }.Build();
+
+    [Fact]
+    public async Task CreateSecretAsync_WhenTheSecretIdIsTaken_ReturnsConflictWithoutGenerating()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServerHoldingSecret())
+            .Verifiable();
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateCreate(It.IsAny<CreateSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
+            .Returns(
+                (CreateSecretRequest request, DateTimeOffset _) =>
+                    SecretCreateValidation.Valid(
+                        new SecretKeyGenerationParameters
+                        {
+                            KeySizeBits = request.KeySizeBits,
+                            Curve = request.Curve,
+                        }
+                    )
+            )
+            .Verifiable();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("secret-1")
+            .Verifiable();
+
+        var result = await Handler.CreateSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new CreateSecretRequest
+            {
+                SecretType = "rsa",
+                KeySizeBits = 2048,
+                Use = null,
+                Algorithm = null,
+                ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
+    [Fact]
+    public async Task ImportSecretAsync_WhenTheSecretIdIsTaken_ReturnsConflictWithoutImporting()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupStore();
+        MockStore
+            .Setup(x => x.GetOrDefaultAsync(ResourceServerId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateResourceServerHoldingSecret())
+            .Verifiable();
+        MockSecretValidator
+            .Setup(x =>
+                x.ValidateImport(It.IsAny<ImportSecretRequest>(), It.IsAny<DateTimeOffset>())
+            )
+            .Returns((ManagementError?)null)
+            .Verifiable();
+        MockCryptoService
+            .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
+            .Returns("secret-1")
+            .Verifiable();
+
+        var result = await Handler.ImportSecretAsync(
+            CreateHttpContext(),
+            TenantId,
+            ResourceServerId,
+            new ImportSecretRequest
+            {
+                SecretType = "rsa",
+                Format = "jwk",
+                KeyMaterial = """{"kty":"RSA","n":"AQAB","e":"AQAB"}""",
+                Use = "sig",
+                Algorithm = "RS256",
+                ExpiresWhen = DateTimeOffset.UtcNow.AddYears(1),
+            },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+        Assert.Equal(
+            "A secret with the specified identifier already exists.",
+            problem.ProblemDetails.Detail
+        );
+    }
+
     [Fact]
     public async Task DeleteSecretAsync_WhenAuthorized_ReturnsNoContent()
     {
@@ -2162,4 +2267,52 @@ public sealed class ResourceServerApiEndpointHandlerTests : IDisposable
 
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
     }
+
+    #region Map Tests
+
+    [Theory]
+    [InlineData("GET", "/resource-servers/{resourceServerId}/secrets", new[] { 401, 403, 404 })]
+    [InlineData(
+        "POST",
+        "/resource-servers/{resourceServerId}/secrets",
+        new[] { 400, 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "POST",
+        "/resource-servers/{resourceServerId}/secrets/import",
+        new[] { 400, 401, 403, 404, 409, 412 }
+    )]
+    [InlineData(
+        "GET",
+        "/resource-servers/{resourceServerId}/secrets/{secretId}",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData(
+        "GET",
+        "/resource-servers/{resourceServerId}/secrets/{secretId}/public-key",
+        new[] { 401, 403, 404 }
+    )]
+    [InlineData(
+        "PUT",
+        "/resource-servers/{resourceServerId}/secrets/{secretId}",
+        new[] { 400, 401, 403, 404, 412 }
+    )]
+    [InlineData(
+        "DELETE",
+        "/resource-servers/{resourceServerId}/secrets/{secretId}",
+        new[] { 401, 403, 404, 412 }
+    )]
+    public async Task Map_Always_DeclaresEveryProblemASecretRouteAnswers(
+        string httpMethod,
+        string routePattern,
+        int[] statusCodes
+    )
+    {
+        Assert.Equal(
+            statusCodes,
+            await EndpointProblemMetadata.ReadStatusCodesAsync(Handler, httpMethod, routePattern)
+        );
+    }
+
+    #endregion
 }

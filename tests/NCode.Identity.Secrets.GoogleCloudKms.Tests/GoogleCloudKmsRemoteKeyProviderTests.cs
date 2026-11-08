@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using Google.Api.Gax.Grpc;
 using Google.Cloud.Kms.V1;
@@ -27,6 +28,12 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
         KeyRing + "/cryptoKeys/other/cryptoKeyVersions/1";
 
     private const string SignKeyName = KeyRing + "/cryptoKeys/signing/cryptoKeyVersions/7";
+
+    private static TimeSpan WaitTimeout { get; } = TimeSpan.FromSeconds(30);
+
+    private static TimeSpan PollInterval { get; } = TimeSpan.FromMilliseconds(1);
+
+    private static TimeSpan FakeTimeStep { get; } = TimeSpan.FromSeconds(1);
 
     private static RemoteSigningAlgorithm Rs256 { get; } =
         new()
@@ -256,23 +263,29 @@ public class GoogleCloudKmsRemoteKeyProviderTests : BaseTests
     }
 
     // The provider waits on the fake time, so the test moves it forward until the call completes.
-    private async Task AdvanceUntilCompletedAsync(Task task)
-    {
-        for (var i = 0; i < 500 && !task.IsCompleted; ++i)
-        {
-            TimeProvider.Advance(TimeSpan.FromSeconds(1));
-            await Task.Yield();
-        }
-    }
+    private Task AdvanceUntilCompletedAsync(Task task) =>
+        WaitUntilAsync(() => task.IsCompleted, () => TimeProvider.Advance(FakeTimeStep));
 
-    private static async Task WaitUntilAsync(Func<bool> condition)
+    private static async Task WaitUntilAsync(Func<bool> condition, Action? betweenPolls = null)
     {
-        for (var i = 0; i < 500 && !condition(); ++i)
+        var deadline =
+            Stopwatch.GetTimestamp() + (long)(WaitTimeout.TotalSeconds * Stopwatch.Frequency);
+        while (!condition())
         {
-            await Task.Yield();
-        }
+            if (Stopwatch.GetTimestamp() > deadline)
+            {
+                Assert.Fail(
+                    $"The provider did not reach the awaited state within {WaitTimeout.TotalSeconds} seconds."
+                );
+            }
 
-        Assert.True(condition());
+            await Task.Delay(PollInterval);
+
+            if (!condition())
+            {
+                betweenPolls?.Invoke();
+            }
+        }
     }
 
     private void SetupReadOfAnEnabledVersion(PublicKey publicKey)

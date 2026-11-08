@@ -3,14 +3,14 @@
 
 using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
-using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets.KeyMaterial;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
 /// <summary>
-/// The outcome of validating a <see cref="CreateSecretRequest"/>: either the parameters the key is generated with,
-/// resolved from the request against its algorithm, or the error that describes why the request is not coherent.
+/// The outcome of validating a request that creates a key or binds one a key management service holds: either the
+/// parameters of the key, resolved from the request against its algorithm, or the error that describes why the request
+/// is not coherent.
 /// </summary>
 [PublicAPI]
 public sealed class SecretCreateValidation
@@ -54,7 +54,7 @@ public sealed class SecretCreateValidation
     public bool IsValid => Error is null;
 
     /// <summary>
-    /// Gets the parameters the key is generated with: the request's size and curve, or, for a request that names an
+    /// Gets the parameters of the key: the request's size and curve, or, for a request that names an
     /// algorithm bound to curves and no curve, the one curve the algorithm accepts that has the requested size.
     /// <c>null</c> when the request is not coherent.
     /// </summary>

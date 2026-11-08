@@ -605,6 +605,14 @@ than inlining the rationale.
   `412`. See
   [ADR-1208](../../docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) and
   [ADR-1214](../../docs/decisions/1214-a-management-write-that-loses-a-race-is-answered-412.md).
+- 👁 **A management route answers `409` for a taken identifier from what it read, never from a store's exception.** A
+  route that adds to an owner's collection checks the owner it loaded before the add — a secret's identifier with
+  `BaseApiEndpointHandler.SecretIdConflictOrDefault`, an imported key's `kid` with `KeyIdConflictOrDefault` — and lets
+  the store's `InvalidOperationException` propagate, so a store failure, such as an owner deleted after the read, is
+  never reported as a conflict, and a lost race is answered `412` by `StoreConcurrencyEndpointFilter`. Every problem a
+  route answers is declared on its mapping with `ProducesProblem` (`TenantRemoteSecretApiEndpointHandler.Map`). See
+  [ADR-1186](../../docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) and
+  [ADR-1475](../../docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md).
 - 👁 **A stored settings document that cannot be honored is answered `409` once, by the management route group.** A
   management request resolves a document a store holds with
   `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the platform's committed one

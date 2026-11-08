@@ -4,6 +4,7 @@
 using JetBrains.Annotations;
 using NCode.Identity.OpenId.Management.Contracts.Secrets;
 using NCode.Identity.Secrets.Persistence.DataContracts;
+using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 
@@ -50,7 +51,8 @@ public interface ISecretValidator
     /// provider can create, and resolves the parameters the key is generated with. Everything is checked before the
     /// key management service is called: the lifecycle, a key type a key management service can hold, a registered
     /// provider, the generation parameters the signature algorithm resolves, and a row of the provider's mapping
-    /// vocabulary for the provider, algorithm, type, size and curve.
+    /// vocabulary for the provider, algorithm, type, size and curve. The key is checked by
+    /// <see cref="ValidateRemoteKey"/>.
     /// </summary>
     /// <param name="request">The <see cref="CreateRemoteSecretRequest"/> to validate.</param>
     /// <param name="createdWhen">The instant the secret is created at, which its activation cannot precede.</param>
@@ -63,17 +65,31 @@ public interface ISecretValidator
 
     /// <summary>
     /// Validates that the specified <see cref="ImportRemoteSecretRequest"/> describes a coherent binding of a key a key
-    /// management service holds: the lifecycle, the supplied public half's type, format and material, a key type a key
-    /// management service can hold, a registered provider, a non-empty key identifier, and a registered signature
-    /// algorithm. The supplied key material itself is parsed by the importer, and the binding is proved by a signature.
+    /// management service holds: the lifecycle, a key type a key management service can hold, a registered provider, a
+    /// key identifier the stored reference can hold, an algorithm that resolves the key's size and curve, and a row of
+    /// the provider's mapping for them. The key's public half is read from the service and checked against that row,
+    /// and the binding is proved by a signature. The key is checked by <see cref="ValidateRemoteKey"/>.
     /// </summary>
     /// <param name="request">The <see cref="ImportRemoteSecretRequest"/> to validate.</param>
     /// <param name="createdWhen">The instant the secret is created at, which its activation cannot precede.</param>
-    /// <returns>A <see cref="ManagementError"/> describing the first failed check, or <c>null</c> when valid.</returns>
-    ManagementError? ValidateImportRemote(
+    /// <returns>The resolved size and curve of the key, or the error that describes the first failed
+    /// check.</returns>
+    SecretCreateValidation ValidateImportRemote(
         ImportRemoteSecretRequest request,
         DateTimeOffset createdWhen
     );
+
+    /// <summary>
+    /// Validates that a registered remote key provider can hold the key the selector names, the one check a create and
+    /// a bind of such a key run and the capabilities apply to each row they offer: a key type a key management service
+    /// can hold, a described provider, the generation parameters the signature algorithm resolves from the selector's
+    /// size and curve, and a row of the provider's mapping vocabulary for the resolved key.
+    /// </summary>
+    /// <param name="selector">The provider, algorithm, secret type, key size and curve of the key.</param>
+    /// <returns>The resolved size and curve of the key, or the error that describes the first failed
+    /// check.</returns>
+    // See ADR-1476.
+    SecretCreateValidation ValidateRemoteKey(RemoteSigningAlgorithmSelector selector);
 
     /// <summary>
     /// Validates the metadata an <see cref="UpdateSecretRequest"/> declares for an existing key: the <c>use</c> is

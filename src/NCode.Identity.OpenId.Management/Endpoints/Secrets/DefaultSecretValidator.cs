@@ -28,6 +28,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// </remarks>
 // See ADR-1067.
 // See ADR-1474.
+// See ADR-1476.
 internal sealed class DefaultSecretValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
@@ -152,7 +153,22 @@ internal sealed class DefaultSecretValidator(
             return SecretCreateValidation.Invalid(lifecycleError);
         }
 
-        var secretType = request.SecretType;
+        var selector = new RemoteSigningAlgorithmSelector
+        {
+            Provider = request.RemoteKeyProvider,
+            Algorithm = request.Algorithm,
+            SecretType = request.SecretType,
+            KeySizeBits = request.KeySizeBits,
+            Curve = request.Curve,
+        };
+        return ValidateRemoteKey(selector);
+    }
+
+    /// <inheritdoc />
+    // See ADR-1476.
+    public SecretCreateValidation ValidateRemoteKey(RemoteSigningAlgorithmSelector selector)
+    {
+        var secretType = selector.SecretType;
         if (
             !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
             || descriptor is not IRemoteSecretKeyTypeDescriptor
@@ -163,46 +179,46 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        var providerName = request.RemoteKeyProvider;
-        if (!IsDescribed(providerName))
+        if (!IsDescribed(selector.Provider))
         {
-            return Invalid(DescribeUnregisteredProvider(providerName));
+            return Invalid(DescribeUnregisteredProvider(selector.Provider));
         }
 
         var requested = new RequestedKeyGeneration
         {
-            KeySizeBits = request.KeySizeBits,
-            Curve = request.Curve,
+            KeySizeBits = selector.KeySizeBits,
+            Curve = selector.Curve,
             Use = SecretKeyUses.Signature,
-            Algorithm = request.Algorithm,
+            Algorithm = selector.Algorithm,
         };
         var validation = ResolveGeneration(descriptor, requested);
+        return ValidateRemoteRow(selector, validation);
+    }
+
+    private SecretCreateValidation ValidateRemoteRow(
+        RemoteSigningAlgorithmSelector selector,
+        SecretCreateValidation validation
+    )
+    {
         if (!validation.IsValid)
         {
             return validation;
         }
 
         var resolved = validation.GenerationParameters;
-        if (
-            !RemoteKeyDescriptorCatalog.TryGetAlgorithm(
-                new RemoteSigningAlgorithmSelector
-                {
-                    Provider = providerName,
-                    Algorithm = request.Algorithm,
-                    SecretType = secretType,
-                    KeySizeBits = resolved.KeySizeBits,
-                    Curve = resolved.Curve,
-                },
-                out _
-            )
-        )
+        var resolvedSelector = selector with
+        {
+            KeySizeBits = resolved.KeySizeBits,
+            Curve = resolved.Curve,
+        };
+        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(resolvedSelector, out _))
         {
             var curveText = resolved.Curve is null
                 ? string.Empty
                 : $" on the curve '{resolved.Curve}'";
             return Invalid(
-                $"The remote key provider '{providerName}' holds no '{request.Algorithm}' key of the "
-                    + $"'{secretType}' type with {resolved.KeySizeBits} bits{curveText}."
+                $"The remote key provider '{selector.Provider}' holds no '{selector.Algorithm}' key of the "
+                    + $"'{selector.SecretType}' type with {resolved.KeySizeBits} bits{curveText}."
             );
         }
 
@@ -221,14 +237,6 @@ internal sealed class DefaultSecretValidator(
                 + string.Join(", ", names.Select(name => $"'{name}'"))
                 + ".";
     }
-
-    private string[] GetSignatureAlgorithmCodes(Type keyClrType) =>
-        AlgorithmCollectionProvider
-            .Collection.OfType<SignatureAlgorithm>()
-            .Where(algorithm => algorithm.TryGetKeyType(keyClrType, out _))
-            .Select(algorithm => algorithm.Code)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
 
     private SecretCreateValidation ResolveGeneration(
         ISecretKeyTypeDescriptor descriptor,
@@ -318,7 +326,8 @@ internal sealed class DefaultSecretValidator(
 
     /// <inheritdoc />
     // See ADR-1475.
-    public ManagementError? ValidateImportRemote(
+    // See ADR-1476.
+    public SecretCreateValidation ValidateImportRemote(
         ImportRemoteSecretRequest request,
         DateTimeOffset createdWhen
     )
@@ -333,45 +342,18 @@ internal sealed class DefaultSecretValidator(
         );
         if (lifecycleError is not null)
         {
-            return lifecycleError;
-        }
-
-        var secretType = request.SecretType;
-        var publicKeyError = ValidatePublicKeyImport(
-            secretType,
-            request.Format,
-            request.KeyMaterial
-        );
-        if (publicKeyError is not null)
-        {
-            return publicKeyError;
-        }
-
-        if (
-            !SecretKeyTypeCatalog.TryGet(secretType, out var descriptor)
-            || descriptor is not IRemoteSecretKeyTypeDescriptor
-        )
-        {
-            return Error(
-                $"The secret type '{secretType}' cannot be held in a key management service."
-            );
-        }
-
-        var providerName = request.RemoteKeyProvider;
-        if (!IsDescribed(providerName))
-        {
-            return Error(DescribeUnregisteredProvider(providerName));
+            return SecretCreateValidation.Invalid(lifecycleError);
         }
 
         if (string.IsNullOrWhiteSpace(request.RemoteKeyId))
         {
-            return Error("The key management service's key identifier must not be empty.");
+            return Invalid("The key management service's key identifier must not be empty.");
         }
 
-        var maxKeyIdLength = SecretMaxLengths.EncodedValue - providerName.Length - 1;
+        var maxKeyIdLength = SecretMaxLengths.EncodedValue - request.RemoteKeyProvider.Length - 1;
         if (request.RemoteKeyId.Length > maxKeyIdLength)
         {
-            return Error(
+            return Invalid(
                 $"The key management service's key identifier must be at most {maxKeyIdLength} characters."
             );
         }
@@ -381,27 +363,20 @@ internal sealed class DefaultSecretValidator(
             || request.RemoteKeyId.Trim().Length != request.RemoteKeyId.Length
         )
         {
-            return Error(
+            return Invalid(
                 "The key management service's key identifier must not hold control characters or surrounding white space."
             );
         }
 
-        if (
-            !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
-                request.Algorithm,
-                out var signatureAlgorithm
-            ) || !signatureAlgorithm.TryGetKeyType(descriptor.KeyClrType, out _)
-        )
+        var selector = new RemoteSigningAlgorithmSelector
         {
-            var codes = GetSignatureAlgorithmCodes(descriptor.KeyClrType);
-            return Error(
-                $"The algorithm '{request.Algorithm}' is not a registered signature algorithm for the '{secretType}' key type; expected "
-                    + string.Join(", ", codes.Select(code => $"'{code}'"))
-                    + "."
-            );
-        }
-
-        return null;
+            Provider = request.RemoteKeyProvider,
+            Algorithm = request.Algorithm,
+            SecretType = request.SecretType,
+            KeySizeBits = request.KeySizeBits,
+            Curve = request.Curve,
+        };
+        return ValidateRemoteKey(selector);
     }
 
     private ManagementError? ValidatePublicKeyImport(

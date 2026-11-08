@@ -27,7 +27,9 @@ namespace NCode.Identity.Secrets.Persistence;
 /// returns its identifier, and its public half is then read in a second call; the provider keeps the private key in a
 /// key management service, and only the public half and a reference to the key are stored. A remote key whose public
 /// half cannot be read or does not match its row, and a remote key whose creation is followed by any
-/// other failure, is handed to the <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service.
+/// other failure, is handed to the <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service. A request
+/// whose key type, provider or algorithm row cannot be resolved, and a key whose public half does not match its row,
+/// throw <see cref="RemoteSecretRefusedException"/>.
 /// </summary>
 // See ADR-1067, ADR-1110, ADR-1391, ADR-1471 and ADR-1478.
 internal class DefaultSecretGenerator(
@@ -133,30 +135,6 @@ internal class DefaultSecretGenerator(
     {
         // Every check that can refuse the request runs before the key management service is called, so a refused
         // request creates no key.
-        if (
-            !SecretKeyTypeCatalog.TryGet(request.SecretType, out var descriptor)
-            || descriptor is not IRemoteSecretKeyTypeDescriptor
-        )
-        {
-            throw new InvalidOperationException(
-                $"The '{request.SecretType}' secret type cannot be generated in a key management service."
-            );
-        }
-
-        var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
-            request.CreatedWhen,
-            request.ActivatesWhen,
-            request.RetiresWhen,
-            request.ExpiresWhen
-        );
-
-        if (!RemoteKeyProviderCatalog.TryGetProvider(request.Provider, out var provider))
-        {
-            throw new InvalidOperationException(
-                $"The remote key provider '{request.Provider}' is not registered."
-            );
-        }
-
         var selector = new RemoteKeyAlgorithmSelector
         {
             Provider = request.Provider,
@@ -165,22 +143,14 @@ internal class DefaultSecretGenerator(
             KeySizeBits = request.KeySizeBits,
             Curve = request.Curve,
         };
+        var signing = ResolveRemoteSigning(selector);
 
-        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var algorithm))
-        {
-            throw new InvalidOperationException(
-                $"The remote key provider '{request.Provider}' has no algorithm '{request.Algorithm}' "
-                    + $"for the '{request.SecretType}' secret type, key size {request.KeySizeBits} and curve '{request.Curve}'."
-            );
-        }
-
-        // See ADR-1477.
-        if (!string.Equals(request.Use, algorithm.Use, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                $"The remote key provider '{request.Provider}' holds '{request.Algorithm}' keys for the use '{algorithm.Use}', not '{request.Use}'."
-            );
-        }
+        var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
+            request.CreatedWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
 
         // See ADR-1478.
         var deployment = Options.Value.RemoteKeys.Deployment;
@@ -193,17 +163,16 @@ internal class DefaultSecretGenerator(
 
         var ownerId = request.Owner.ToString();
 
-        var created = await provider.CreateKeyAsync(
-            new RemoteKeyCreationRequest
-            {
-                OwnerId = ownerId,
-                SecretId = request.SecretId,
-                Algorithm = algorithm,
-                GroupName = RemoteKeyGroupName.Create(deployment, ownerId, algorithm),
-                Deployment = deployment,
-            },
-            cancellationToken
-        );
+        var creationRequest = new RemoteKeyCreationRequest
+        {
+            OwnerId = ownerId,
+            SecretId = request.SecretId,
+            Algorithm = signing.Algorithm,
+            GroupName = RemoteKeyGroupName.Create(deployment, ownerId, signing.Algorithm),
+            Deployment = deployment,
+        };
+
+        var created = await signing.Provider.CreateKeyAsync(creationRequest, cancellationToken);
 
         var metadata = new KeyMetadata
         {
@@ -226,52 +195,24 @@ internal class DefaultSecretGenerator(
             ExpiresWhen = request.ExpiresWhen,
             SecretType = request.SecretType,
             SecretEncoding = SecretEncodings.Remote,
-            KeySizeBits = algorithm.KeySizeBits,
-            EncodedValue = new RemoteKeyReference(provider.Name, created.KeyId).ToString(),
+            KeySizeBits = signing.Algorithm.KeySizeBits,
+            EncodedValue = new RemoteKeyReference(signing.Provider.Name, created.KeyId).ToString(),
             Origin = SecretOrigins.Generated,
             ManagedBy = request.ManagedBy,
         };
 
         try
         {
-            using var publicKeyBuffer = BufferFactory.CreatePooledBufferWriter(
-                isSensitive: false,
-                algorithm.KeySizeBits >> 3
-            );
-
-            await provider.GetPublicKeyAsync(
-                new RemotePublicKeyRequest { KeyId = created.KeyId, Algorithm = algorithm },
-                publicKeyBuffer,
+            var publicKey = await ReadRemotePublicKeyAsync(
+                signing,
+                created.KeyId,
+                metadata,
                 cancellationToken
             );
 
-            using var publicKeyLease = publicKeyBuffer.GetSpanLease(isSensitive: false);
-
-            if (
-                !HoldsRequestedKey(
-                    descriptor,
-                    metadata,
-                    publicKeyLease.Span,
-                    algorithm,
-                    out var readFailure
-                )
-            )
-            {
-                throw readFailure is not null
-                    ? new InvalidOperationException(
-                        $"The remote key provider '{request.Provider}' returned a public key that cannot be read as a "
-                            + $"'{request.SecretType}' key.",
-                        readFailure
-                    )
-                    : new InvalidOperationException(
-                        $"The remote key provider '{request.Provider}' created a key that does not have the key size "
-                            + $"{algorithm.KeySizeBits} and curve '{algorithm.Curve}' of its row '{algorithm.Algorithm}'."
-                    );
-            }
-
             return secret with
             {
-                PublicKey = Base64Url.Encode(publicKeyLease.Span),
+                PublicKey = publicKey,
             };
         }
         catch (Exception)
@@ -283,6 +224,154 @@ internal class DefaultSecretGenerator(
 
             throw;
         }
+    }
+
+    /// <inheritdoc />
+    // See ADR-1476.
+    public async ValueTask<PersistedSecret> BindRemoteSecretAsync(
+        BindRemoteSecretRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        // Every check that can refuse the request runs before the key management service is called.
+        var selector = new RemoteKeyAlgorithmSelector
+        {
+            Provider = request.Provider,
+            Algorithm = request.Algorithm,
+            SecretType = request.SecretType,
+            KeySizeBits = request.KeySizeBits,
+            Curve = request.Curve,
+        };
+        var signing = ResolveRemoteSigning(selector);
+
+        var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
+            request.CreatedWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+
+        var reference = new RemoteKeyReference(signing.Provider.Name, request.KeyId);
+
+        var metadata = new KeyMetadata
+        {
+            KeyId = request.SecretId,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
+        };
+
+        var publicKey = await ReadRemotePublicKeyAsync(
+            signing,
+            request.KeyId,
+            metadata,
+            cancellationToken
+        );
+
+        // A bound key is never destroyed: the service held it before the server did.
+        return new PersistedSecret
+        {
+            SecretId = request.SecretId,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = request.CreatedWhen,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
+            SecretType = request.SecretType,
+            SecretEncoding = SecretEncodings.Remote,
+            KeySizeBits = signing.Algorithm.KeySizeBits,
+            EncodedValue = reference.ToString(),
+            PublicKey = publicKey,
+            Origin = SecretOrigins.Supplied,
+            ManagedBy = null,
+        };
+    }
+
+    // Resolves, without calling the key management service, the descriptor of a key type a service can hold, the
+    // registered provider and the provider's signing algorithm row that the selector names.
+    private RemoteSigningResolution ResolveRemoteSigning(RemoteKeyAlgorithmSelector selector)
+    {
+        if (
+            !SecretKeyTypeCatalog.TryGet(selector.SecretType, out var descriptor)
+            || descriptor is not IRemoteSecretKeyTypeDescriptor
+        )
+        {
+            throw new RemoteSecretRefusedException(
+                $"The '{selector.SecretType}' secret type cannot be generated in a key management service."
+            );
+        }
+
+        if (!RemoteKeyProviderCatalog.TryGetProvider(selector.Provider, out var provider))
+        {
+            throw new RemoteSecretRefusedException(
+                $"The remote key provider '{selector.Provider}' is not registered."
+            );
+        }
+
+        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var algorithm))
+        {
+            throw new RemoteSecretRefusedException(
+                $"The remote key provider '{selector.Provider}' has no algorithm '{selector.Algorithm}' "
+                    + $"for the '{selector.SecretType}' secret type, key size {selector.KeySizeBits} and curve '{selector.Curve}'."
+            );
+        }
+
+        return new RemoteSigningResolution
+        {
+            Descriptor = descriptor,
+            Provider = provider,
+            Algorithm = algorithm,
+        };
+    }
+
+    // Reads the public half of the key from the service and checks that it is a key of the signing algorithm's type,
+    // size and curve.
+    private static async ValueTask<string> ReadRemotePublicKeyAsync(
+        RemoteSigningResolution signing,
+        string keyId,
+        KeyMetadata metadata,
+        CancellationToken cancellationToken
+    )
+    {
+        using var publicKeyBuffer = BufferFactory.CreatePooledBufferWriter(
+            isSensitive: false,
+            signing.Algorithm.KeySizeBits >> 3
+        );
+
+        await signing.Provider.GetPublicKeyAsync(
+            new RemotePublicKeyRequest { KeyId = keyId, Algorithm = signing.Algorithm },
+            publicKeyBuffer,
+            cancellationToken
+        );
+
+        using var publicKeyLease = publicKeyBuffer.GetSpanLease(isSensitive: false);
+
+        if (
+            !HoldsRequestedKey(
+                signing.Descriptor,
+                metadata,
+                publicKeyLease.Span,
+                signing.Algorithm,
+                out var readFailure
+            )
+        )
+        {
+            throw readFailure is not null
+                ? new RemoteSecretRefusedException(
+                    $"The remote key provider '{signing.Provider.Name}' returned a public key for the key '{keyId}' that cannot be read as a "
+                        + $"'{signing.Algorithm.SecretType}' key.",
+                    readFailure
+                )
+                : new RemoteSecretRefusedException(
+                    $"The key '{keyId}' of the remote key provider '{signing.Provider.Name}' does not have the key size "
+                        + $"{signing.Algorithm.KeySizeBits} and curve '{signing.Algorithm.Curve}' of its row '{signing.Algorithm.Algorithm}'."
+                );
+        }
+
+        return Base64Url.Encode(publicKeyLease.Span);
     }
 
     // Reads the public key the service returned, which decides whether the key it created has the size and curve of

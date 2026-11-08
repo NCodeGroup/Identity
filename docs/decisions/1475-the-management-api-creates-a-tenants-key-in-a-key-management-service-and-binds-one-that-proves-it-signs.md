@@ -1,6 +1,6 @@
 # 1475. The management API creates a tenant's key in a key management service and binds one that proves it signs
 
-- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md); amended by [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md): the secret validator and the capabilities read `IRemoteKeyDescriptorCatalog`; amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md))
+- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md); amended by [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md): the secret validator and the capabilities read `IRemoteKeyDescriptorCatalog`; amended by [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md): the bind reads the key's public half from the KMS, the capabilities list each provider's algorithms, and the console creates and binds remote keys; amended by [ADR-1477](1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 
@@ -84,7 +84,8 @@ public half the operator supplied.**
    reads a `remote` secret, which holds no master-key material (ADR-1471 rule 3), so a management request never loads
    a master key to check a binding.
 9. **The console shows the provider.** `SecretTable` shows a chip with the provider name beside a remote secret's
-   type. The dialogs that create or bind a remote key are tracked in [#687](https://github.com/NCodeGroup/Identity/issues/687).
+   type. [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)
+   decides the dialogs that create and bind a remote key.
 
 ## Options considered
 

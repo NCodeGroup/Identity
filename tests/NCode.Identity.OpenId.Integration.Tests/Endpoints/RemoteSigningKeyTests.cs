@@ -333,7 +333,7 @@ public class RemoteSigningKeyTests
     }
 
     [Fact]
-    public async Task PostRemoteSecretImport_WhenTheKeySignsWithTheSuppliedPublicKey_BindsIt()
+    public async Task PostRemoteSecretImport_WhenTheProviderHoldsTheKey_BindsItWithThePublicKeyTheProviderReturns()
     {
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteSigningApplicationFactory(
@@ -343,17 +343,27 @@ public class RemoteSigningKeyTests
         using var client = factory.CreateClient();
         await AuthorizeAsync(client);
 
-        var secretId = await BindKeyAsync(factory, client, provider);
+        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var keyId = provider.AddKey(
+            ECDsa.Create(key.ExportParameters(includePrivateParameters: true))
+        );
+        var importBody = CreateImportBody(keyId, GetExpiresWhen(factory));
+
+        using var response = await PostImportAsync(client, importBody);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.Created, body);
+        var secretId = JsonElement.Parse(body).GetProperty("secretId").GetString();
 
         var secrets = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
         var secret = Assert.Single(secrets, candidate => candidate.SecretId == secretId);
+        Assert.Equal(Base64Url.EncodeToString(key.ExportSubjectPublicKeyInfo()), secret.PublicKey);
         Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
         Assert.Equal(SecretOrigins.Supplied, secret.Origin);
         Assert.True(provider.SignatureCount > 0);
     }
 
     [Fact]
-    public async Task PostRemoteSecretImport_WhenThePublicKeyIsAnotherKeys_ReturnsBadRequest()
+    public async Task PostRemoteSecretImport_WhenTheKeyIsNotOfTheAlgorithmsKeyType_ReturnsBadRequest()
     {
         using var provider = new TestRemoteKeyProvider();
         using var factory = new RemoteSigningApplicationFactory(
@@ -364,15 +374,8 @@ public class RemoteSigningKeyTests
         await AuthorizeAsync(client);
         var before = await GetStoredSecretsAsync(factory, HostApplicationFactory.TenantId);
 
-        using var held = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        using var other = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var keyId = provider.AddKey(held);
-        var expiresWhen = GetExpiresWhen(factory);
-        var importBody = CreateImportBody(
-            keyId,
-            other.ExportSubjectPublicKeyInfoPem(),
-            expiresWhen
-        );
+        var keyId = provider.AddKey(RSA.Create(2048));
+        var importBody = CreateImportBody(keyId, GetExpiresWhen(factory));
 
         using var response = await PostImportAsync(client, importBody);
         var body = await response.Content.ReadAsStringAsync();
@@ -423,12 +426,8 @@ public class RemoteSigningKeyTests
         TestRemoteKeyProvider provider
     )
     {
-        using var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var keyId = provider.AddKey(
-            ECDsa.Create(key.ExportParameters(includePrivateParameters: true))
-        );
-        var expiresWhen = GetExpiresWhen(factory);
-        var importBody = CreateImportBody(keyId, key.ExportSubjectPublicKeyInfoPem(), expiresWhen);
+        var keyId = provider.AddKey(ECDsa.Create(ECCurve.NamedCurves.nistP256));
+        var importBody = CreateImportBody(keyId, GetExpiresWhen(factory));
 
         using var response = await PostImportAsync(client, importBody);
         var body = await response.Content.ReadAsStringAsync();
@@ -437,18 +436,14 @@ public class RemoteSigningKeyTests
         return JsonElement.Parse(body).GetProperty("secretId").GetString() ?? string.Empty;
     }
 
-    private static object CreateImportBody(
-        string keyId,
-        string publicKeyPem,
-        DateTimeOffset expiresWhen
-    ) =>
+    private static object CreateImportBody(string keyId, DateTimeOffset expiresWhen) =>
         new
         {
             remoteKeyProvider = TestRemoteKeyProvider.ProviderName,
             remoteKeyId = keyId,
             secretType = "ecc",
-            format = "pem",
-            keyMaterial = publicKeyPem,
+            keySizeBits = 256,
+            curve = "P-256",
             algorithm = "ES256",
             expiresWhen,
         };

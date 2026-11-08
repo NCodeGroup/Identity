@@ -195,23 +195,57 @@ internal class TenantApiEndpointHandler(
             .MapGet("/{tenantId}/effective-settings", GetEffectiveSettingsAsync)
             .Produces<TenantEffectiveSettingsResource>();
 
-        tenants.MapGet("/{tenantId}/secrets", GetSecretsAsync).Produces<TenantSecretsResource>();
+        tenants
+            .MapGet("/{tenantId}/secrets", GetSecretsAsync)
+            .Produces<TenantSecretsResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapPost("/{tenantId}/secrets", CreateSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
+            .Produces<SecretResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         tenants
             .MapPost("/{tenantId}/secrets/import", ImportSecretAsync)
-            .Produces<SecretResource>(StatusCodes.Status201Created);
-        tenants.MapGet("/{tenantId}/secrets/{secretId}", GetSecretAsync).Produces<SecretResource>();
+            .Produces<SecretResource>(StatusCodes.Status201Created)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
+        tenants
+            .MapGet("/{tenantId}/secrets/{secretId}", GetSecretAsync)
+            .Produces<SecretResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapGet("/{tenantId}/secrets/{secretId}/public-key", GetPublicKeyAsync)
-            .Produces<PublicKeyResource>();
+            .Produces<PublicKeyResource>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound);
         tenants
             .MapPut("/{tenantId}/secrets/{secretId}", UpdateSecretAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
         tenants
             .MapDelete("/{tenantId}/secrets/{secretId}", DeleteSecretAsync)
-            .Produces(StatusCodes.Status204NoContent);
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         tenants
             .MapGet("/{tenantId}/encryption-keys", GetEncryptionKeysAsync)
@@ -1615,6 +1649,12 @@ internal class TenantApiEndpointHandler(
     /// <param name="request">The <see cref="CreateSecretRequest"/> describing the secret to generate.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The created secret.</response>
+    /// <response code="400">The request is not coherent or the key could not be created from its parameters.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">The tenant already holds a secret with the generated identifier.</response>
+    /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>
     [EndpointName("api/tenants/secrets/create")]
     internal virtual async ValueTask<IResult> CreateSecretAsync(
         HttpContext httpContext,
@@ -1653,6 +1693,12 @@ internal class TenantApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var secretIdConflict = SecretIdConflictOrDefault(tenant.Secrets.Value, secretId);
+        if (secretIdConflict is not null)
+        {
+            return secretIdConflict;
+        }
+
         var protector = await SecretProtectorProvider.GetProtectorAsync(
             SecretOwner.ForTenant(tenantId),
             [],
@@ -1688,18 +1734,7 @@ internal class TenantApiEndpointHandler(
             );
         }
 
-        try
-        {
-            await store.AddSecretAsync(tenantId, generatedSecret.Secret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddSecretAsync(tenantId, generatedSecret.Secret, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -1728,6 +1763,13 @@ internal class TenantApiEndpointHandler(
     /// <summary>
     /// Imports a caller-supplied public key (JWK, PEM, or certificate) as a new tenant secret.
     /// </summary>
+    /// <response code="201">The imported secret.</response>
+    /// <response code="400">The request is not coherent or the key could not be imported.</response>
+    /// <response code="401">The caller is anonymous.</response>
+    /// <response code="403">The caller lacks the authority the request needs.</response>
+    /// <response code="404">The tenant does not exist.</response>
+    /// <response code="409">The tenant already holds a secret with the generated identifier or the same <c>kid</c>.</response>
+    /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>
     // See ADR-1104.
     internal virtual async ValueTask<IResult> ImportSecretAsync(
         HttpContext httpContext,
@@ -1766,6 +1808,12 @@ internal class TenantApiEndpointHandler(
 
         var secretId = CryptoService.GenerateResourceId();
 
+        var secretIdConflict = SecretIdConflictOrDefault(tenant.Secrets.Value, secretId);
+        if (secretIdConflict is not null)
+        {
+            return secretIdConflict;
+        }
+
         var importRequest = new SecretKeyImportRequest
         {
             SecretId = secretId,
@@ -1793,18 +1841,7 @@ internal class TenantApiEndpointHandler(
             return keyIdConflict;
         }
 
-        try
-        {
-            await store.AddSecretAsync(tenantId, importedSecret, cancellationToken);
-        }
-        catch (InvalidOperationException exception)
-        {
-            Logger.ResourceConflict(exception);
-            return TypedResults.Problem(
-                detail: "A secret with the specified identifier already exists.",
-                statusCode: StatusCodes.Status409Conflict
-            );
-        }
+        await store.AddSecretAsync(tenantId, importedSecret, cancellationToken);
 
         await storeManager.SaveChangesAsync(cancellationToken);
 

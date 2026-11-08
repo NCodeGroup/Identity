@@ -11,22 +11,35 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// descriptors and the rows that every registered <see cref="IRemoteKeyDescriptorSource"/> contributes, including the
 /// rows of a provider that no source describes.
 /// </summary>
-/// <param name="sources">The registered sources of provider descriptors and mapping vocabulary rows.</param>
-/// <exception cref="InvalidOperationException">A provider name is invalid or described twice, or two rows have the
-/// same selector.</exception>
 // See ADR-1474.
-internal sealed class DefaultRemoteKeyDescriptorCatalog(
-    IEnumerable<IRemoteKeyDescriptorSource> sources
-) : IRemoteKeyDescriptorCatalog
+// See ADR-1476.
+// See ADR-1477.
+internal sealed class DefaultRemoteKeyDescriptorCatalog : IRemoteKeyDescriptorCatalog
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DefaultRemoteKeyDescriptorCatalog"/> class.
+    /// </summary>
+    /// <param name="sources">The registered sources of provider descriptors and mapping vocabulary rows.</param>
+    /// <exception cref="InvalidOperationException">A provider name is invalid or described twice, or two rows have the
+    /// same selector.</exception>
+    public DefaultRemoteKeyDescriptorCatalog(IEnumerable<IRemoteKeyDescriptorSource> sources)
+    {
+        var materialized = sources.ToArray();
+        Algorithms = CollectAlgorithms(materialized);
+        Providers = CollectProviders(materialized);
+        AlgorithmsBySelector = Algorithms.ToFrozenDictionary(row => row.Selector);
+    }
+
     private FrozenDictionary<
         RemoteKeyAlgorithmSelector,
         RemoteKeyAlgorithm
-    > AlgorithmsBySelector { get; } = IndexAlgorithms(sources);
+    > AlgorithmsBySelector { get; }
 
     /// <inheritdoc />
-    public IReadOnlyCollection<RemoteKeyProviderDescriptor> Providers { get; } =
-        CollectProviders(sources);
+    public IReadOnlyCollection<RemoteKeyProviderDescriptor> Providers { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyCollection<RemoteKeyAlgorithm> Algorithms { get; }
 
     /// <inheritdoc />
     public bool TryGetAlgorithm(
@@ -61,23 +74,14 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog(
         return descriptors;
     }
 
-    private static FrozenDictionary<RemoteKeyAlgorithmSelector, RemoteKeyAlgorithm> IndexAlgorithms(
+    private static RemoteKeyAlgorithm[] CollectAlgorithms(
         IEnumerable<IRemoteKeyDescriptorSource> sources
     )
     {
         var bySelector = new Dictionary<RemoteKeyAlgorithmSelector, RemoteKeyAlgorithm>();
         foreach (var algorithm in sources.SelectMany(source => source.Algorithms))
         {
-            var selector = new RemoteKeyAlgorithmSelector
-            {
-                Provider = algorithm.Provider,
-                Algorithm = algorithm.Algorithm,
-                SecretType = algorithm.SecretType,
-                KeySizeBits = algorithm.KeySizeBits,
-                Curve = algorithm.Curve,
-            };
-
-            if (!bySelector.TryAdd(selector, algorithm))
+            if (!bySelector.TryAdd(algorithm.Selector, algorithm))
             {
                 throw new InvalidOperationException(
                     $"The remote key algorithm for provider '{algorithm.Provider}', algorithm '{algorithm.Algorithm}', "
@@ -87,6 +91,12 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog(
             }
         }
 
-        return bySelector.ToFrozenDictionary();
+        return bySelector
+            .Values.OrderBy(row => row.Provider, StringComparer.Ordinal)
+            .ThenBy(row => row.Algorithm, StringComparer.Ordinal)
+            .ThenBy(row => row.SecretType, StringComparer.Ordinal)
+            .ThenBy(row => row.KeySizeBits)
+            .ThenBy(row => row.Curve, StringComparer.Ordinal)
+            .ToArray();
     }
 }

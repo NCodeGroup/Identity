@@ -6,6 +6,7 @@ import {
   type AlgorithmOption,
   type SecretFormValues,
 } from './SecretFormDialog.js';
+import type { RemoteKeyProviderOption } from './remoteKeyAlgorithms.js';
 
 const initial: SecretFormValues = { ...emptySecretFormValues, expiresWhen: '2027-01-01T00:00' };
 
@@ -51,6 +52,17 @@ const eccCurves = [
   { curveName: 'P-384', curveSizeBits: 384 },
 ];
 
+const remoteKeyProviders: readonly RemoteKeyProviderOption[] = [
+  {
+    name: 'aws-kms',
+    algorithms: [
+      { algorithm: 'ES256', secretType: 'ecc', keySizeBits: 256, curve: 'P-256' },
+      { algorithm: 'RS256', secretType: 'rsa', keySizeBits: 2048, curve: null },
+    ],
+  },
+  { name: 'gcp-kms', algorithms: [{ algorithm: 'PS256', secretType: 'rsa', keySizeBits: 3072 }] },
+];
+
 /** Opens the discovered-algorithm picker and returns the labels of the options it offers. */
 function offeredAlgorithms(): (string | null)[] {
   fireEvent.mouseDown(screen.getByRole('combobox', { name: /Algorithm/ }));
@@ -78,6 +90,7 @@ describe('SecretFormDialog', () => {
       curve: '',
       use: '',
       algorithm: '',
+      custody: '',
       expiresWhen: '2027-01-01T00:00',
     });
   });
@@ -117,6 +130,7 @@ describe('SecretFormDialog', () => {
       curve: '',
       use: 'enc',
       algorithm: 'RSA-OAEP',
+      custody: '',
       expiresWhen: '2027-06-01T08:30',
     });
   });
@@ -246,6 +260,7 @@ describe('SecretFormDialog', () => {
       curve: '',
       use: 'sig',
       algorithm: 'ES384',
+      custody: '',
       expiresWhen: '2027-01-01T00:00',
     });
   });
@@ -480,6 +495,7 @@ describe('SecretFormDialog', () => {
       curve: 'P-384',
       use: 'enc',
       algorithm: 'ECDH-ES',
+      custody: '',
       expiresWhen: '2027-01-01T00:00',
     });
   });
@@ -530,6 +546,7 @@ describe('SecretFormDialog', () => {
       curve: 'Ed448',
       use: 'sig',
       algorithm: 'EdDSA',
+      custody: '',
       expiresWhen: '2027-01-01T00:00',
     });
   });
@@ -605,6 +622,7 @@ describe('SecretFormDialog', () => {
       curve: 'P-256',
       use: '',
       algorithm: '',
+      custody: '',
       expiresWhen: '2027-01-01T00:00',
     });
   });
@@ -650,6 +668,7 @@ describe('SecretFormDialog', () => {
       curve: '',
       use: '',
       algorithm: '',
+      custody: '',
       expiresWhen: '2027-01-01T00:00',
     });
   });
@@ -846,5 +865,154 @@ describe('SecretFormDialog', () => {
     expect(screen.getByTestId('secret-type')).toHaveValue('rsa');
     expect(screen.getByTestId('secret-key-size')).toHaveValue(2048);
     expect(screen.getByTestId('secret-expires')).toHaveValue('2030-01-01T00:00');
+  });
+
+  it('offers no custody without a remote key provider that lists an algorithm', () => {
+    const props = { initialValues: initial, secretTypes, onSubmit: vi.fn(), onCancel: vi.fn() };
+    const { rerender } = render(<SecretFormDialog {...props} open />);
+    expect(screen.queryByTestId('secret-custody')).not.toBeInTheDocument();
+
+    rerender(
+      <SecretFormDialog
+        {...props}
+        open
+        remoteKeyProviders={[{ name: 'aws-kms', algorithms: [] }]}
+      />,
+    );
+    expect(screen.queryByTestId('secret-custody')).not.toBeInTheDocument();
+  });
+
+  it('offers the server and each remote key provider as custody', () => {
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('secret-custody')).toHaveValue('');
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: /Custody/ }));
+    expect(
+      within(screen.getByRole('listbox'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Server', 'aws-kms', 'gcp-kms']);
+  });
+
+  it("creates a remote key from one of the provider's algorithms", () => {
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: 'aws-kms' } });
+    expect(screen.queryByTestId('secret-type')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('secret-key-size')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('secret-use')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('secret-algorithm')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/The key management service of aws-kms creates the key/),
+    ).toBeInTheDocument();
+    expect(offeredAlgorithms()).toEqual(['ES256 · ECC P-256', 'RS256 · RSA 2048 bits']);
+    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('secret-remote-algorithm'), {
+      target: { value: 'ES256|ecc|256|P-256' },
+    });
+    expect(screen.getByTestId('secret-form-submit')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      secretType: 'ecc',
+      keySizeBits: 256,
+      curve: 'P-256',
+      use: 'sig',
+      algorithm: 'ES256',
+      custody: 'aws-kms',
+      expiresWhen: '2027-01-01T00:00',
+    });
+  });
+
+  it('blocks a remote create until an algorithm is chosen and the expiry is given', () => {
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={{ ...initial, expiresWhen: '' }}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: 'gcp-kms' } });
+    expect(screen.getByTestId('secret-remote-algorithm')).toHaveValue('');
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('secret-remote-algorithm'), {
+      target: { value: 'PS256|rsa|3072|' },
+    });
+    expect(screen.getByTestId('secret-remote-algorithm')).toHaveValue('PS256|rsa|3072|');
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('secret-expires'), {
+      target: { value: '2027-06-01T08:30' },
+    });
+    expect(screen.getByTestId('secret-form-submit')).toBeEnabled();
+    fireEvent.click(screen.getByTestId('secret-form-submit'));
+
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith({
+      secretType: 'rsa',
+      keySizeBits: 3072,
+      curve: '',
+      use: 'sig',
+      algorithm: 'PS256',
+      custody: 'gcp-kms',
+      expiresWhen: '2027-06-01T08:30',
+    });
+  });
+
+  it("clears the algorithm when the custody provider changes and restores the server's inputs when it is chosen again", () => {
+    const onSubmit = vi.fn();
+    render(
+      <SecretFormDialog
+        open
+        secretTypes={secretTypes}
+        initialValues={initial}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: 'aws-kms' } });
+    fireEvent.change(screen.getByTestId('secret-remote-algorithm'), {
+      target: { value: 'RS256|rsa|2048|' },
+    });
+    expect(screen.getByTestId('secret-form-submit')).toBeEnabled();
+
+    fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: 'gcp-kms' } });
+    expect(screen.getByTestId('secret-remote-algorithm')).toHaveValue('');
+    expect(screen.getByTestId('secret-form-submit')).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('secret-custody'), { target: { value: '' } });
+    expect(screen.getByTestId('secret-custody')).toHaveValue('');
+    expect(screen.queryByTestId('secret-remote-algorithm')).not.toBeInTheDocument();
+    expect(screen.getByTestId('secret-type')).toBeInTheDocument();
+    expect(screen.getByTestId('secret-algorithm')).toBeInTheDocument();
+    expect(screen.getByText(/generated by the server and shown only once/)).toBeInTheDocument();
   });
 });

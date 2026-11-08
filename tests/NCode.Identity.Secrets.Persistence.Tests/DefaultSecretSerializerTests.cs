@@ -20,7 +20,7 @@ using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
-public class DefaultSecretSerializerTests
+public class DefaultSecretSerializerTests : IDisposable
 {
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
 
@@ -46,6 +46,7 @@ public class DefaultSecretSerializerTests
         IsDerEncodedSignature = true,
     };
 
+    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
     private readonly DefaultRemoteKeyDescriptorCatalog _remoteDescriptorCatalog;
@@ -78,23 +79,30 @@ public class DefaultSecretSerializerTests
         );
     }
 
-    private static DefaultRemoteKeyDescriptorCatalog CreateRemoteDescriptorCatalog()
+    public void Dispose()
     {
-        var source = new Mock<IRemoteKeyDescriptorSource>(MockBehavior.Strict);
+        _mocks.Verify();
+        GC.SuppressFinalize(this);
+    }
+
+    private DefaultRemoteKeyDescriptorCatalog CreateRemoteDescriptorCatalog()
+    {
+        var source = _mocks.Create<IRemoteKeyDescriptorSource>();
         source
             .SetupGet(x => x.Providers)
-            .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }]);
-        source.SetupGet(x => x.Algorithms).Returns([RsaRow, EccRow]);
+            .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
+            .Verifiable();
+        source.SetupGet(x => x.Algorithms).Returns([RsaRow, EccRow]).Verifiable();
 
         return new DefaultRemoteKeyDescriptorCatalog([source.Object]);
     }
 
-    private static DefaultRemoteKeyProviderCatalog CreateRemoteCatalog(
+    private DefaultRemoteKeyProviderCatalog CreateRemoteCatalog(
         DefaultRemoteKeyDescriptorCatalog descriptorCatalog
     )
     {
-        var provider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
-        provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms);
+        var provider = _mocks.Create<IRemoteKeyProvider>();
+        provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
         return new DefaultRemoteKeyProviderCatalog([provider.Object], descriptorCatalog);
     }

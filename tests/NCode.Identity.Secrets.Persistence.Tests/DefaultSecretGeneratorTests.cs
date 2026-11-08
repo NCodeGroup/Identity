@@ -20,7 +20,7 @@ using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
 
-public class DefaultSecretGeneratorTests
+public class DefaultSecretGeneratorTests : IDisposable
 {
     private static readonly SecretOwner TenantOwner = SecretOwner.ForTenant("tenant-one");
 
@@ -60,6 +60,7 @@ public class DefaultSecretGeneratorTests
         KeySpec = "ECC_SECG_P256K1",
     };
 
+    private readonly MockRepository _mocks = new(MockBehavior.Strict);
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultSecretVerifierSchemeCatalog _verifierCatalog;
     private readonly Mock<IRemoteKeyProvider> _remoteProvider;
@@ -88,10 +89,10 @@ public class DefaultSecretGeneratorTests
         _catalog = catalog;
         _verifierCatalog = TestSecretVerifierSchemes.CreateCatalog();
 
-        _remoteProvider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
+        _remoteProvider = _mocks.Create<IRemoteKeyProvider>();
         _remoteProvider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
-        var source = new Mock<IRemoteKeyDescriptorSource>(MockBehavior.Strict);
+        var source = _mocks.Create<IRemoteKeyDescriptorSource>();
         source
             .SetupGet(x => x.Providers)
             .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
@@ -106,7 +107,7 @@ public class DefaultSecretGeneratorTests
             _remoteDescriptorCatalog
         );
 
-        _remoteDestroyer = new Mock<IRemoteSecretDestroyer>(MockBehavior.Strict);
+        _remoteDestroyer = _mocks.Create<IRemoteSecretDestroyer>();
 
         _generator = CreateGenerator(new SharedSecretVerifierOptions());
         _serializer = new DefaultSecretSerializer(
@@ -115,6 +116,12 @@ public class DefaultSecretGeneratorTests
             new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
             new DefaultRemoteKeyDescriptorCatalog([])
         );
+    }
+
+    public void Dispose()
+    {
+        _mocks.Verify();
+        GC.SuppressFinalize(this);
     }
 
     private DefaultSecretGenerator CreateGenerator(SharedSecretVerifierOptions options) =>
@@ -1150,7 +1157,6 @@ public class DefaultSecretGeneratorTests
             CancellationToken.None
         );
 
-        _remoteProvider.Verify();
         Assert.Equal("remote-1", secret.SecretId);
         Assert.Equal(SecretTypes.Rsa, secret.SecretType);
         Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
@@ -1178,7 +1184,6 @@ public class DefaultSecretGeneratorTests
             CancellationToken.None
         );
 
-        _remoteProvider.Verify();
         Assert.Equal(SecretTypes.Ecc, secret.SecretType);
         Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
         Assert.Equal(256, secret.KeySizeBits);
@@ -1216,7 +1221,6 @@ public class DefaultSecretGeneratorTests
         );
 
         Assert.Contains($"'{secretType}'", exception.Message, StringComparison.Ordinal);
-        _remoteProvider.Verify();
     }
 
     [Fact]
@@ -1229,7 +1233,6 @@ public class DefaultSecretGeneratorTests
         );
 
         Assert.Contains("'unregistered-kms'", exception.Message, StringComparison.Ordinal);
-        _remoteProvider.Verify();
     }
 
     [Fact]
@@ -1242,7 +1245,6 @@ public class DefaultSecretGeneratorTests
         );
 
         Assert.Contains("'RS384'", exception.Message, StringComparison.Ordinal);
-        _remoteProvider.Verify();
     }
 
     // Expects one call to the destroyer with the one record the generator would have returned for the created key.
@@ -1274,11 +1276,6 @@ public class DefaultSecretGeneratorTests
             )
         );
 
-        _remoteProvider.Verify();
-        _remoteDestroyer.Verify(
-            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
-            Times.Once
-        );
         Assert.Contains("key size 4096", exception.Message, StringComparison.Ordinal);
     }
 
@@ -1295,11 +1292,6 @@ public class DefaultSecretGeneratorTests
             )
         );
 
-        _remoteProvider.Verify();
-        _remoteDestroyer.Verify(
-            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
-            Times.Once
-        );
         Assert.Contains("curve 'secp256k1'", exception.Message, StringComparison.Ordinal);
     }
 
@@ -1316,11 +1308,6 @@ public class DefaultSecretGeneratorTests
             )
         );
 
-        _remoteProvider.Verify();
-        _remoteDestroyer.Verify(
-            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
-            Times.Once
-        );
         Assert.Contains($"'{SecretTypes.Rsa}' key", exception.Message, StringComparison.Ordinal);
         Assert.NotNull(exception.InnerException);
     }
@@ -1338,11 +1325,6 @@ public class DefaultSecretGeneratorTests
             )
         );
 
-        _remoteProvider.Verify();
-        _remoteDestroyer.Verify(
-            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
-            Times.Once
-        );
         Assert.NotNull(exception.InnerException);
     }
 
@@ -1359,11 +1341,20 @@ public class DefaultSecretGeneratorTests
                 CancellationToken.None
             )
         );
+    }
 
-        _remoteProvider.Verify();
-        _remoteDestroyer.Verify(
-            x => x.DestroyAsync(It.IsAny<IReadOnlyCollection<PersistedSecret>>()),
-            Times.Once
+    [Fact]
+    public async Task GenerateRemoteSecretAsync_WhenCancelledWhileReadingThePublicKey_HandsTheCreatedKeyToTheDestroyerAndThrows()
+    {
+        SetupCreateKey(RsaRow);
+        SetupGetPublicKeyCall(RsaRow).ThrowsAsync(new OperationCanceledException()).Verifiable();
+        SetupDestroy();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+            await _generator.GenerateRemoteSecretAsync(
+                CreateRemoteRequest(),
+                CancellationToken.None
+            )
         );
     }
 
@@ -1382,9 +1373,6 @@ public class DefaultSecretGeneratorTests
                 CancellationToken.None
             )
         );
-
-        _remoteProvider.Verify();
-        _remoteDestroyer.Verify();
     }
 
     #endregion

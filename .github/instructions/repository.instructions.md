@@ -194,7 +194,7 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    ([ADR-1170](../../docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/decisions/`](../../docs/decisions/), a
-   consumer-visible change into [`CHANGELOG.md`](../../CHANGELOG.md), and pending work into a
+   change to what the family does into the [`CHANGELOG.md`](../../CHANGELOG.md) catalog, and pending work into a
    GitHub issue (naming each issue the change completes as `Closes #<number>` in the pull request description).
 3. **Drain volatile memory.** No durable knowledge may remain only in agent memory (`/memories/…`) or chat history:
    migrate anything durable into the repository and clear the memory so nothing survives solely as a volatile note.

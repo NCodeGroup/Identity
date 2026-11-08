@@ -1215,8 +1215,6 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheKeyIdentifierIsEmpty_ReturnsBadRequest()
     {
-        SetupDescribedProviders(ProviderName);
-
         var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(remoteKeyId: " "),
             CreatedWhen
@@ -1234,7 +1232,6 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheKeyIdIsTooLong_ReturnsTheLengthError()
     {
-        SetupDescribedProviders(ProviderName);
         var maxKeyIdLength = SecretMaxLengths.EncodedValue - ProviderName.Length - 1;
 
         var validation = RemoteValidator.ValidateImportRemote(
@@ -1269,8 +1266,6 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     [Fact]
     public void ValidateImportRemote_WhenTheKeyIdHoldsAControlCharacter_ReturnsTheCharacterError()
     {
-        SetupDescribedProviders(ProviderName);
-
         var validation = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(remoteKeyId: "key\n1"),
             CreatedWhen
@@ -1317,7 +1312,10 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.False(validation.IsValid);
         Assert.NotNull(validation.Error);
         Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
-        Assert.Contains("'RSA-OAEP'", validation.Error.Detail, StringComparison.Ordinal);
+        Assert.Equal(
+            "The algorithm 'RSA-OAEP' is intended for 'enc' use and is incompatible with the specified use 'sig'.",
+            validation.Error.Detail
+        );
     }
 
     [Fact]
@@ -1333,7 +1331,96 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.False(validation.IsValid);
         Assert.NotNull(validation.Error);
         Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
-        Assert.Contains("'RS256'", validation.Error.Detail, StringComparison.Ordinal);
+        Assert.Equal(
+            "The algorithm 'RS256' is not compatible with the key's type.",
+            validation.Error.Detail
+        );
+    }
+
+    #endregion
+
+    #region ValidateRemoteKey Tests
+
+    [Fact]
+    public void ValidateRemoteKey_WhenTheProviderHoldsTheRow_ResolvesTheKey()
+    {
+        SetupDescribedProviders(ProviderName);
+        SetupRow(Es256Selector, Es256Row);
+
+        var validation = RemoteValidator.ValidateRemoteKey(Es256Selector);
+
+        Assert.True(validation.IsValid);
+        Assert.Equal("P-256", validation.GenerationParameters.Curve);
+        Assert.Equal(256, validation.GenerationParameters.KeySizeBits);
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_WhenTheCurveIsNotNamed_LooksTheRowUpOnTheResolvedCurve()
+    {
+        SetupDescribedProviders(ProviderName);
+        SetupRow(Es256Selector, Es256Row);
+
+        var validation = RemoteValidator.ValidateRemoteKey(Es256Selector with { Curve = null });
+
+        Assert.True(validation.IsValid);
+        Assert.Equal("P-256", validation.GenerationParameters.Curve);
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_WhenTheAlgorithmIsNotRegistered_ReturnsBadRequest()
+    {
+        SetupDescribedProviders(ProviderName);
+
+        var validation = RemoteValidator.ValidateRemoteKey(
+            Es256Selector with
+            {
+                Algorithm = "XS999",
+            }
+        );
+
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+        Assert.Equal(
+            "The algorithm 'XS999' is not a supported signature or key-management algorithm.",
+            validation.Error.Detail
+        );
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_WhenTheSizeIsNotTheAlgorithms_ReturnsBadRequest()
+    {
+        SetupDescribedProviders(ProviderName);
+        var selector = new RemoteSigningAlgorithmSelector
+        {
+            Provider = ProviderName,
+            Algorithm = "RS256",
+            SecretType = SecretTypes.Rsa,
+            KeySizeBits = 1024,
+        };
+
+        var validation = RemoteValidator.ValidateRemoteKey(selector);
+
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+    }
+
+    [Fact]
+    public void ValidateRemoteKey_WhenTheProviderHasNoRow_ReturnsBadRequest()
+    {
+        SetupDescribedProviders(ProviderName);
+        SetupRow(Es256Selector, null);
+
+        var validation = RemoteValidator.ValidateRemoteKey(Es256Selector);
+
+        Assert.False(validation.IsValid);
+        Assert.NotNull(validation.Error);
+        Assert.Equal(StatusCodes.Status400BadRequest, validation.Error.StatusCode);
+        Assert.Equal(
+            "The remote key provider 'aws-kms' holds no 'ES256' key of the 'ecc' type with 256 bits on the curve 'P-256'.",
+            validation.Error.Detail
+        );
     }
 
     #endregion

@@ -61,24 +61,9 @@ jobs:
           # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
           persist-credentials: false
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        with:
-          global-json-file: global.json
-
-      # A test project that targets an older .NET runs on that version's runtime, which build/Get-TestRuntimes.ps1 names.
-      - name: Find the .NET runtimes the tests target
-        id: runtimes
-        shell: pwsh
-        run: |
-          $channels = @(./build/Get-TestRuntimes.ps1)
-          if ($channels) { "channels<<EOF`n$($channels -join "`n")`nEOF" >> $env:GITHUB_OUTPUT }
-
-      - name: Setup the .NET runtimes the tests target
-        if: steps.runtimes.outputs.channels != ''
-        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        with:
-          dotnet-version: ${{ steps.runtimes.outputs.channels }}
+      # The SDK global.json selects and the runtime of each older .NET a test project targets.
+      - name: Install .NET
+        uses: ./.github/actions/install-dotnet
 
       # No lock files are committed, so setup-dotnet's built-in cache cannot key itself. Key on the central package
       # manifest plus every project file: those are exactly the inputs that change the restore graph (ADR-1003).

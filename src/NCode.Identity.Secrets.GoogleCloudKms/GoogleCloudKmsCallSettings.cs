@@ -7,8 +7,9 @@ using Grpc.Core;
 namespace NCode.Identity.Secrets.GoogleCloudKms;
 
 /// <summary>
-/// Contains the <see cref="CallSettings"/> of the calls to Google Cloud KMS, so that the retry of a failed call, with
-/// jittered back-off, is done by the client library in one layer and with the same settings for every call.
+/// Contains the <see cref="CallSettings"/> of the calls to Google Cloud KMS: a call that is safe to repeat is retried,
+/// with jittered back-off, by the client library in one layer and with the same settings for every such call, and a
+/// call that creates a crypto key or a crypto key version is made once.
 /// </summary>
 // See ADR-1471.
 internal static class GoogleCloudKmsCallSettings
@@ -45,14 +46,15 @@ internal static class GoogleCloudKmsCallSettings
     /// or version is made once, because a repeated call can create a second one that nothing records.
     /// </summary>
     public static CallSettings Creating { get; } =
+        // An explicit retry setting overrides any retry the client's defaults give the method; one attempt uses no back-off.
         CallSettings.FromRetry(
             RetrySettings.FromExponentialBackoff(
                 maxAttempts: 1,
-                initialBackoff: InitialBackoff,
-                maxBackoff: MaxBackoff,
-                backoffMultiplier: BackoffMultiplier,
+                initialBackoff: TimeSpan.Zero,
+                maxBackoff: TimeSpan.Zero,
+                backoffMultiplier: 1.0,
                 retryFilter: static _ => false,
-                backoffJitter: RetrySettings.RandomJitter
+                backoffJitter: RetrySettings.NoJitter
             )
         );
 }

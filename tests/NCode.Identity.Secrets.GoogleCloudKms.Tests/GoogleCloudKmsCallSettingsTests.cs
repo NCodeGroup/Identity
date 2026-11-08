@@ -81,6 +81,17 @@ public class GoogleCloudKmsCallSettingsTests
         Assert.Equal(1, retry.MaxAttempts);
     }
 
+    [Fact]
+    public void Creating_Settings_HasNoBackoff()
+    {
+        var retry = GoogleCloudKmsCallSettings.Creating.Retry;
+
+        Assert.NotNull(retry);
+        Assert.Equal(TimeSpan.Zero, retry.InitialBackoff);
+        Assert.Equal(TimeSpan.Zero, retry.MaxBackoff);
+        Assert.Equal(1.0, retry.BackoffMultiplier);
+    }
+
     [Theory]
     [InlineData(StatusCode.ResourceExhausted)]
     [InlineData(StatusCode.Unavailable)]

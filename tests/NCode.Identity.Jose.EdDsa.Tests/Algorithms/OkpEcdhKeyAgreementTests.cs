@@ -708,7 +708,11 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
         var token = await JoseSerializer
             .CreateEncoder(options)
             .EncodeAsync(payload, CancellationToken.None);
-        var decoded = JoseSerializer.Decode(JoseSerializer.Parse(token), privateKey);
+        var decoded = await JoseSerializer.DecodeAsync(
+            JoseSerializer.Parse(token),
+            privateKey,
+            CancellationToken.None
+        );
 
         Assert.Equal(JsonSerializer.Serialize(payload), decoded);
     }
@@ -731,8 +735,12 @@ public sealed class OkpEcdhKeyAgreementTests : IAsyncDisposable
             );
         var signingKey = GenerateKey(OkpCurves.Ed25519Name, 256);
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            JoseSerializer.Decode(JoseSerializer.Parse(token), signingKey)
+        var exception = await Assert.ThrowsAsync<ArgumentException>(async () =>
+            await JoseSerializer.DecodeAsync(
+                JoseSerializer.Parse(token),
+                signingKey,
+                CancellationToken.None
+            )
         );
 
         Assert.Equal("secretKey", exception.ParamName);

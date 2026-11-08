@@ -26,8 +26,11 @@ internal static class SecretProtectionRegistration
 {
     private const string RootKeyProvidersSubsection = "RootKeyProviders";
 
+    private const string RemoteKeyProvidersSubsection = "RemoteKeyProviders";
+
     // Every direct child of the secret protection section. The children of RootKeyProviders belong to the root key
-    // providers, each of which binds its own, so strict binding does not close the set of providers.
+    // providers and the children of RemoteKeyProviders to the remote key providers, each of which binds its own, so
+    // strict binding does not close either set of providers.
     private static FrozenSet<string> SecretProtectionChildren { get; } =
         FrozenSet.Create(
             StringComparer.OrdinalIgnoreCase,
@@ -35,7 +38,8 @@ internal static class SecretProtectionRegistration
             nameof(SecretProtectionOptions.Recovery),
             nameof(SecretProtectionOptions.MasterKeys),
             nameof(SecretProtectionOptions.OwnerRootKeys),
-            RootKeyProvidersSubsection
+            RootKeyProvidersSubsection,
+            RemoteKeyProvidersSubsection
         );
 
     /// <summary>
@@ -54,8 +58,8 @@ internal static class SecretProtectionRegistration
     /// <param name="configuration">The <see cref="IConfiguration"/> that holds the
     /// <see cref="SecretProtectionOptions.DefaultSectionName"/> section.</param>
     /// <exception cref="InvalidOperationException">The section has a direct child other than the root key provider,
-    /// the recovery options, the master key options, the owner root key options and the root key provider
-    /// options.</exception>
+    /// the recovery options, the master key options, the owner root key options, the root key provider
+    /// options and the remote key provider options.</exception>
     public static void AddSecretProtection(
         IIdentityServerBuilder builder,
         IConfiguration configuration

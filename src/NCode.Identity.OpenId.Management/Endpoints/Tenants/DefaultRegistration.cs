@@ -20,6 +20,7 @@ internal static class DefaultRegistration
         public void AddTenantEndpoint()
         {
             builder.AddEndpoint<TenantApiEndpointHandler>();
+            builder.AddEndpoint<TenantRemoteSecretApiEndpointHandler>();
             builder.ServiceCollection.TryAddSingleton<ITenantValidator, DefaultTenantValidator>();
             builder.ServiceCollection.TryAddSingleton<
                 ITenantClientCoherenceChecker,

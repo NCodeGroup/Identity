@@ -28,4 +28,5 @@ internal static class EventIds
     public const int TeamSettingsUnreadable = Base + 12;
     public const int OwnerRootKeyUnavailable = Base + 13;
     public const int AuditPublishFailed = Base + 14;
+    public const int RemoteKeyProviderFailed = Base + 15;
 }

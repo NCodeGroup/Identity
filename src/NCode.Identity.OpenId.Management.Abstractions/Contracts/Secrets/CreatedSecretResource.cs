@@ -65,6 +65,12 @@ public sealed class CreatedSecretResource
     public required bool IsVerifier { get; init; }
 
     /// <summary>
+    /// Gets the name of the remote key provider whose key management service holds the key's private half, such as
+    /// <c>aws-kms</c>, or <c>null</c> for a key the server holds.
+    /// </summary>
+    public required string? RemoteKeyProvider { get; init; }
+
+    /// <summary>
     /// Gets the one-time unprotected key material, base64url-encoded, or <c>null</c> when the secret has no
     /// externally-held material to reveal (asymmetric secrets). This value appears only in this create response
     /// and is never persisted, logged, audited, or returned by any read path.

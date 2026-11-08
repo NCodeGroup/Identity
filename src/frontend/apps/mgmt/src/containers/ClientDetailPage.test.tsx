@@ -82,6 +82,7 @@ const createdSecret: CreatedSecretResource = {
   secretType: 'symmetric',
   keySizeBits: 256,
   isVerifier: true,
+  remoteKeyProvider: null,
   managedBy: null,
   secretMaterial: 'one-time-material',
 };
@@ -319,6 +320,7 @@ describe('ClientDetailPage', () => {
               secretType: 'rsa',
               keySizeBits: 2048,
               isVerifier: false,
+              remoteKeyProvider: null,
               managedBy: null,
             } satisfies SecretResource,
           ],

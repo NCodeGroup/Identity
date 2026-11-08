@@ -718,6 +718,61 @@ public class DefaultSecretSerializerTests
         Assert.Equal(expectedModulus, exported.ExportParameters(false).Modulus);
     }
 
+    [Fact]
+    public void DeserializeRemoteSecret_WhenRemote_ReturnsTheRemoteKeyWithoutAProtector()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RS256"
+        );
+
+        var secretKey = _serializer.DeserializeRemoteSecret(persisted);
+
+        var remoteKey = Assert.IsAssignableFrom<IRemoteSecretKey>(secretKey);
+        Assert.Equal(2048, secretKey.KeySizeBits);
+        Assert.Equal("aws-kms:key-1", remoteKey.Binding.Reference.ToString());
+        Assert.Same(RsaRow, remoteKey.Binding.Algorithm);
+    }
+
+    [Fact]
+    public void DeserializeRemoteSecret_WhenTheSecretIsNotRemote_ThrowsInvalidOperation()
+    {
+        var persisted = CreatePersistedSecret(
+            CreateProtector(),
+            SecretTypes.Symmetric,
+            256,
+            RandomNumberGenerator.GetBytes(32)
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeRemoteSecret(persisted)
+        );
+
+        Assert.Contains("secret-1", exception.Message);
+    }
+
+    [Fact]
+    public void DeserializeRemoteSecret_WhenTheProviderIsNotRegistered_ThrowsInvalidOperation()
+    {
+        using var rsa = RSA.Create(2048);
+        var persisted = CreateRemoteSecret(
+            SecretTypes.Rsa,
+            rsa.KeySize,
+            rsa.ExportSubjectPublicKeyInfo(),
+            "RS256",
+            "other-kms:key-1"
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            _serializer.DeserializeRemoteSecret(persisted)
+        );
+
+        Assert.Contains("other-kms", exception.Message);
+    }
+
     #endregion
 
     #region DeserializeVerifiers Tests

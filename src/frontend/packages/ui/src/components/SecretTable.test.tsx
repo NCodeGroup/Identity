@@ -12,6 +12,7 @@ const base = {
   createdWhen: '2026-01-01T12:00:00Z',
   activatesWhen: '2026-01-01T12:00:00Z',
   managedBy: null,
+  remoteKeyProvider: null,
 };
 
 const activeSecret: SecretRow = {
@@ -58,6 +59,17 @@ const upcomingSecret: SecretRow = {
   managedBy: 'tenant_key_rollover',
 };
 
+const remoteSecret: SecretRow = {
+  ...base,
+  secretId: 's-remote',
+  keyId: 's-remote',
+  secretType: 'rsa',
+  keySizeBits: 2048,
+  retiresWhen: '2099-01-01T12:00:00Z',
+  expiresWhen: '2099-01-01T12:00:00Z',
+  remoteKeyProvider: 'aws-kms',
+};
+
 const secrets: SecretRow[] = [activeSecret, expiredSecret, retiredSecret, upcomingSecret];
 
 describe('getSecretLifecycleState', () => {
@@ -97,6 +109,16 @@ describe('SecretTable', () => {
     render(<SecretTable secrets={secrets} now={now} />);
     expect(screen.getByTestId('secret-managed-s-retired')).toHaveTextContent('Managed');
     expect(screen.queryByTestId('secret-managed-s-active')).not.toBeInTheDocument();
+  });
+
+  it('shows the provider of a remote key', () => {
+    render(<SecretTable secrets={[...secrets, remoteSecret]} now={now} />);
+    expect(screen.getByTestId('secret-remote-s-remote')).toHaveTextContent('aws-kms');
+  });
+
+  it('shows no provider for a key the server holds', () => {
+    render(<SecretTable secrets={secrets} now={now} />);
+    expect(screen.queryByTestId('secret-remote-s-active')).toBeNull();
   });
 
   it('shows the key id each key is selected by', () => {

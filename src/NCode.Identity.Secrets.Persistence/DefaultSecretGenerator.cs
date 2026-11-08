@@ -6,11 +6,13 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Encoders;
+using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.KeyTypes;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Secrets.Persistence.Verifiers;
+using NCode.Identity.Secrets.RemoteKeys;
 using NCode.Identity.Secrets.Verifiers;
 
 namespace NCode.Identity.Secrets.Persistence;
@@ -21,16 +23,20 @@ namespace NCode.Identity.Secrets.Persistence;
 /// per-type generation logic is delegated to the registered <see cref="ISecretKeyTypeDescriptor"/> for the requested
 /// key type. A shared secret that is only ever compared is stored as its one-way verifier, made by the registered
 /// <see cref="ISecretVerifierScheme"/> that <see cref="SharedSecretVerifierOptions"/> names for a generated secret or
-/// for a supplied one.
+/// for a supplied one. A remote key is created by its registered <see cref="IRemoteKeyProvider"/>, which keeps the
+/// private key in a key management service, and only its public half and a reference to it are stored.
 /// </summary>
-// See ADR-1067, ADR-1110 and ADR-1391.
+// See ADR-1067, ADR-1110, ADR-1391 and ADR-1471.
 internal class DefaultSecretGenerator(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
-    IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor
+    IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor,
+    IRemoteKeyProviderCatalog remoteKeyProviderCatalog
 ) : ISecretGenerator
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
+
+    private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
 
     private ISecretVerifierScheme GeneratedSecretScheme { get; } =
         GetScheme(
@@ -103,6 +109,144 @@ internal class DefaultSecretGenerator(
         };
 
         return new GeneratedSecret { Secret = secret, SecretMaterial = material.SecretMaterial };
+    }
+
+    /// <inheritdoc />
+    // See ADR-1471.
+    public async ValueTask<PersistedSecret> GenerateRemoteSecretAsync(
+        GenerateRemoteSecretRequest request,
+        CancellationToken cancellationToken
+    )
+    {
+        // Every check that can refuse the request runs before the key management service is called, so a refused
+        // request creates no key.
+        if (
+            !SecretKeyTypeCatalog.TryGet(request.SecretType, out var descriptor)
+            || descriptor is not IRemoteSecretKeyTypeDescriptor
+        )
+        {
+            throw new InvalidOperationException(
+                $"The '{request.SecretType}' secret type cannot be generated in a key management service."
+            );
+        }
+
+        var (activatesWhen, retiresWhen) = SecretLifecycle.Resolve(
+            request.CreatedWhen,
+            request.ActivatesWhen,
+            request.RetiresWhen,
+            request.ExpiresWhen
+        );
+
+        if (!RemoteKeyProviderCatalog.TryGetProvider(request.Provider, out var provider))
+        {
+            throw new InvalidOperationException(
+                $"The remote key provider '{request.Provider}' is not registered."
+            );
+        }
+
+        var selector = new RemoteSigningAlgorithmSelector
+        {
+            Provider = request.Provider,
+            Algorithm = request.Algorithm,
+            SecretType = request.SecretType,
+            KeySizeBits = request.KeySizeBits,
+            Curve = request.Curve,
+        };
+
+        if (!RemoteKeyProviderCatalog.TryGetAlgorithm(selector, out var algorithm))
+        {
+            throw new InvalidOperationException(
+                $"The remote key provider '{request.Provider}' has no signing algorithm '{request.Algorithm}' "
+                    + $"for the '{request.SecretType}' secret type, key size {request.KeySizeBits} and curve '{request.Curve}'."
+            );
+        }
+
+        var created = await provider.CreateKeyAsync(
+            new RemoteKeyCreationRequest
+            {
+                OwnerId = request.Owner.ToString(),
+                SecretId = request.SecretId,
+                Algorithm = algorithm,
+            },
+            cancellationToken
+        );
+
+        var metadata = new KeyMetadata
+        {
+            KeyId = request.SecretId,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
+        };
+
+        if (!HoldsRequestedKey(descriptor, metadata, created.SubjectPublicKeyInfo, algorithm))
+        {
+            try
+            {
+                await provider.DestroyKeyAsync(created.KeyId, cancellationToken);
+            }
+            catch (Exception)
+            {
+                // The mismatch is the error reported, so a failure to destroy the key does not replace it.
+            }
+
+            throw new InvalidOperationException(
+                $"The remote key provider '{request.Provider}' created a key that does not have the key size "
+                    + $"{algorithm.KeySizeBits} and curve '{algorithm.Curve}' of its signing algorithm '{algorithm.Algorithm}'."
+            );
+        }
+
+        return new PersistedSecret
+        {
+            SecretId = request.SecretId,
+            Use = request.Use,
+            Algorithm = request.Algorithm,
+            CreatedWhen = request.CreatedWhen,
+            ActivatesWhen = activatesWhen,
+            RetiresWhen = retiresWhen,
+            ExpiresWhen = request.ExpiresWhen,
+            SecretType = request.SecretType,
+            SecretEncoding = SecretEncodings.Remote,
+            KeySizeBits = algorithm.KeySizeBits,
+            EncodedValue = new RemoteKeyReference(provider.Name, created.KeyId).ToString(),
+            PublicKey = Base64Url.Encode(created.SubjectPublicKeyInfo.Span),
+            Origin = SecretOrigins.Generated,
+            ManagedBy = request.ManagedBy,
+        };
+    }
+
+    // Reads the public key the service returned, which decides whether the key it created has the size and curve of
+    // the signing algorithm's row.
+    private static bool HoldsRequestedKey(
+        ISecretKeyTypeDescriptor descriptor,
+        KeyMetadata metadata,
+        ReadOnlyMemory<byte> subjectPublicKeyInfo,
+        RemoteSigningAlgorithm algorithm
+    )
+    {
+        var createdKey = descriptor.DeserializeKeyMaterial(
+            metadata,
+            SecretEncodings.Spki,
+            subjectPublicKeyInfo.Span
+        );
+        try
+        {
+            return createdKey.KeySizeBits == algorithm.KeySizeBits
+                && string.Equals(
+                    (createdKey as AsymmetricSecretKey)?.CurveName,
+                    algorithm.Curve,
+                    StringComparison.Ordinal
+                );
+        }
+        finally
+        {
+            if (createdKey is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+        }
     }
 
     /// <inheritdoc />

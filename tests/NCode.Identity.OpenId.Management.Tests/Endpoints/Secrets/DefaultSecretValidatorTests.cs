@@ -1009,6 +1009,12 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
             .Verifiable();
     }
 
+    private void SetupRegisteredProviders()
+    {
+        MockCatalog.Setup(x => x.Providers).Returns([MockProvider.Object]).Verifiable();
+        MockProvider.Setup(x => x.Name).Returns(ProviderName).Verifiable();
+    }
+
     private void SetupRow(RemoteSigningAlgorithmSelector selector, RemoteSigningAlgorithm? row)
     {
         MockCatalog
@@ -1071,6 +1077,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     public void ValidateCreateRemote_WhenTheProviderIsNotRegistered_ReturnsBadRequest()
     {
         SetupProvider("unknown", registered: false);
+        SetupRegisteredProviders();
 
         var error = RemoteValidator
             .ValidateCreateRemote(CreateRemoteRequest(provider: "unknown"), CreatedWhen)
@@ -1078,7 +1085,28 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
-        Assert.Equal("The remote key provider 'unknown' is not registered.", error.Detail);
+        Assert.Equal(
+            "The remote key provider 'unknown' is not registered; expected 'aws-kms'.",
+            error.Detail
+        );
+    }
+
+    [Fact]
+    public void ValidateCreateRemote_WhenNoProviderIsRegistered_SaysSo()
+    {
+        SetupProvider("unknown", registered: false);
+        MockCatalog.Setup(x => x.Providers).Returns(Array.Empty<IRemoteKeyProvider>()).Verifiable();
+
+        var error = RemoteValidator
+            .ValidateCreateRemote(CreateRemoteRequest(provider: "unknown"), CreatedWhen)
+            .Error;
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The remote key provider 'unknown' is not registered; the deployment registers no remote key provider.",
+            error.Detail
+        );
     }
 
     [Fact]
@@ -1241,6 +1269,7 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
     public void ValidateImportRemote_WhenTheProviderIsNotRegistered_ReturnsBadRequest()
     {
         SetupProvider("unknown", registered: false);
+        SetupRegisteredProviders();
 
         var error = RemoteValidator.ValidateImportRemote(
             CreateImportRemoteRequest(provider: "unknown"),
@@ -1249,7 +1278,10 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
 
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
-        Assert.Equal("The remote key provider 'unknown' is not registered.", error.Detail);
+        Assert.Equal(
+            "The remote key provider 'unknown' is not registered; expected 'aws-kms'.",
+            error.Detail
+        );
     }
 
     [Fact]
@@ -1265,7 +1297,25 @@ public sealed class DefaultSecretValidatorTests : IAsyncLifetime
         Assert.NotNull(error);
         Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
         Assert.Equal(
-            "The algorithm 'RSA-OAEP' is not a registered signature algorithm.",
+            "The algorithm 'RSA-OAEP' is not a registered signature algorithm for the 'ecc' key type; expected 'ES256', 'ES384', 'ES512', 'X-ES256-BP'.",
+            error.Detail
+        );
+    }
+
+    [Fact]
+    public void ValidateImportRemote_WhenTheAlgorithmSignsWithAnotherKeyType_ReturnsBadRequest()
+    {
+        SetupProvider(ProviderName, registered: true);
+
+        var error = RemoteValidator.ValidateImportRemote(
+            CreateImportRemoteRequest(algorithm: "RS256"),
+            CreatedWhen
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status400BadRequest, error.StatusCode);
+        Assert.Equal(
+            "The algorithm 'RS256' is not a registered signature algorithm for the 'ecc' key type; expected 'ES256', 'ES384', 'ES512', 'X-ES256-BP'.",
             error.Detail
         );
     }

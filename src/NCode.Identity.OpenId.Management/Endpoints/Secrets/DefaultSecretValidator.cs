@@ -115,13 +115,14 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        return ResolveGeneration(
-            descriptor,
-            request.KeySizeBits,
-            request.Curve,
-            use,
-            request.Algorithm
-        );
+        var requested = new RequestedKeyGeneration
+        {
+            KeySizeBits = request.KeySizeBits,
+            Curve = request.Curve,
+            Use = use,
+            Algorithm = request.Algorithm,
+        };
+        return ResolveGeneration(descriptor, requested);
     }
 
     /// <inheritdoc />
@@ -158,16 +159,17 @@ internal sealed class DefaultSecretValidator(
         var providerName = request.RemoteKeyProvider;
         if (!RemoteKeyProviderCatalog.TryGetProvider(providerName, out _))
         {
-            return Invalid($"The remote key provider '{providerName}' is not registered.");
+            return Invalid(DescribeUnregisteredProvider(providerName));
         }
 
-        var validation = ResolveGeneration(
-            descriptor,
-            request.KeySizeBits,
-            request.Curve,
-            SecretKeyUses.Signature,
-            request.Algorithm
-        );
+        var requested = new RequestedKeyGeneration
+        {
+            KeySizeBits = request.KeySizeBits,
+            Curve = request.Curve,
+            Use = SecretKeyUses.Signature,
+            Algorithm = request.Algorithm,
+        };
+        var validation = ResolveGeneration(descriptor, requested);
         if (!validation.IsValid)
         {
             return validation;
@@ -200,14 +202,37 @@ internal sealed class DefaultSecretValidator(
         return validation;
     }
 
+    private string DescribeUnregisteredProvider(string providerName)
+    {
+        var names = RemoteKeyProviderCatalog
+            .Providers.Select(provider => provider.Name)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        return names.Count == 0
+            ? $"The remote key provider '{providerName}' is not registered; the deployment registers no remote key provider."
+            : $"The remote key provider '{providerName}' is not registered; expected "
+                + string.Join(", ", names.Select(name => $"'{name}'"))
+                + ".";
+    }
+
+    private string[] GetSignatureAlgorithmCodes(Type keyClrType) =>
+        AlgorithmCollectionProvider
+            .Collection.OfType<SignatureAlgorithm>()
+            .Where(algorithm => algorithm.TryGetKeyType(keyClrType, out _))
+            .Select(algorithm => algorithm.Code)
+            .Order(StringComparer.Ordinal)
+            .ToArray();
+
     private SecretCreateValidation ResolveGeneration(
         ISecretKeyTypeDescriptor descriptor,
-        int keySizeBits,
-        string? curve,
-        string? use,
-        string? algorithm
+        RequestedKeyGeneration requested
     )
     {
+        var keySizeBits = requested.KeySizeBits;
+        var curve = requested.Curve;
+        var use = requested.Use;
+        var algorithm = requested.Algorithm;
+
         // When an algorithm is specified, its registered metadata is authoritative for the use, the key type, the legal
         // key sizes and the curve the key is generated on: two curves can share a key size, so the key is generated on
         // the requested curve or on the one curve the algorithm accepts that has the requested size, never on whichever
@@ -328,7 +353,7 @@ internal sealed class DefaultSecretValidator(
         var providerName = request.RemoteKeyProvider;
         if (!RemoteKeyProviderCatalog.TryGetProvider(providerName, out _))
         {
-            return Error($"The remote key provider '{providerName}' is not registered.");
+            return Error(DescribeUnregisteredProvider(providerName));
         }
 
         if (string.IsNullOrWhiteSpace(request.RemoteKeyId))
@@ -357,12 +382,15 @@ internal sealed class DefaultSecretValidator(
         if (
             !AlgorithmCollectionProvider.Collection.TryGetSignatureAlgorithm(
                 request.Algorithm,
-                out _
-            )
+                out var signatureAlgorithm
+            ) || !signatureAlgorithm.TryGetKeyType(descriptor.KeyClrType, out _)
         )
         {
+            var codes = GetSignatureAlgorithmCodes(descriptor.KeyClrType);
             return Error(
-                $"The algorithm '{request.Algorithm}' is not a registered signature algorithm."
+                $"The algorithm '{request.Algorithm}' is not a registered signature algorithm for the '{secretType}' key type; expected "
+                    + string.Join(", ", codes.Select(code => $"'{code}'"))
+                    + "."
             );
         }
 
@@ -417,7 +445,7 @@ internal sealed class DefaultSecretValidator(
             );
         }
 
-        // A remote key is bound to its algorithm, and a tenant with a remote key it cannot read does not load.
+        // An update keeps the algorithm of a key that a key management service holds (ADR-1475).
         if (
             SecretEncodings.IsRemote(secret.SecretEncoding)
             && !string.Equals(request.Algorithm, secret.Algorithm, StringComparison.Ordinal)

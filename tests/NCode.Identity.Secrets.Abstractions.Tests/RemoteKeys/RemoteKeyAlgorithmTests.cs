@@ -60,6 +60,44 @@ public class RemoteKeyAlgorithmTests
 
     #endregion
 
+    #region Selector Tests
+
+    [Fact]
+    public void Selector_DecryptionRow_NamesItsProviderAlgorithmTypeSizeAndCurve()
+    {
+        var row = new RemoteDecryptionAlgorithm
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = "rsa",
+            KeySizeBits = 3072,
+            Curve = "none",
+            KeySpec = "RSA_3072",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
+
+        var selector = row.Selector;
+
+        Assert.Equal(RemoteKeyProviderNames.AwsKms, selector.Provider);
+        Assert.Equal("RSA-OAEP-256", selector.Algorithm);
+        Assert.Equal("rsa", selector.SecretType);
+        Assert.Equal(3072, selector.KeySizeBits);
+        Assert.Equal("none", selector.Curve);
+    }
+
+    [Fact]
+    public void Selector_RowsOfDifferentKindsWithTheSameValues_AreEqual()
+    {
+        RemoteKeyAlgorithm signing = CreateSigningRow();
+        RemoteKeyAlgorithm decryption = CreateDecryptionRow();
+        RemoteKeyAlgorithm keyAgreement = CreateKeyAgreementRow();
+
+        Assert.Equal(signing.Selector, decryption.Selector);
+        Assert.Equal(signing.Selector, keyAgreement.Selector);
+    }
+
+    #endregion
+
     #region Equals Tests
 
     [Fact]

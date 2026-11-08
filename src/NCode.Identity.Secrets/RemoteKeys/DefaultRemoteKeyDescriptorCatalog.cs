@@ -8,8 +8,8 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 
 /// <summary>
 /// Provides the default implementation of <see cref="IRemoteKeyDescriptorCatalog"/>. It holds the provider
-/// descriptors and the rows that every registered <see cref="IRemoteKeyDescriptorSource"/> contributes, including the
-/// rows of a provider that no source describes.
+/// descriptors and the rows of every kind that every registered <see cref="IRemoteKeyDescriptorSource"/> contributes,
+/// including the rows of a provider that no source describes.
 /// </summary>
 // See ADR-1474.
 // See ADR-1476.

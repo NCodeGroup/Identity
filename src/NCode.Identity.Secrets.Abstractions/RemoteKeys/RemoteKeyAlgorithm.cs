@@ -39,6 +39,21 @@ public abstract record RemoteKeyAlgorithm
     public string? Curve { get; init; }
 
     /// <summary>
+    /// Gets the <see cref="RemoteKeyAlgorithmSelector"/> that identifies the row: its provider, algorithm, secret type,
+    /// key size and curve.
+    /// </summary>
+    // See ADR-1476.
+    public RemoteKeyAlgorithmSelector Selector =>
+        new()
+        {
+            Provider = Provider,
+            Algorithm = Algorithm,
+            SecretType = SecretType,
+            KeySizeBits = KeySizeBits,
+            Curve = Curve,
+        };
+
+    /// <summary>
     /// Gets the key management service's name for the key's type and size, used when the service creates the key.
     /// </summary>
     public required string KeySpec { get; init; }

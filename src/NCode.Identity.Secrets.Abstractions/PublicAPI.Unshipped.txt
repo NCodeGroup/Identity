@@ -330,6 +330,7 @@ NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Provider.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Provider.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.SecretType.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.SecretType.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Selector.get -> NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithmSelector
 abstract NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Use.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.DigestAlgorithm.get -> System.Security.Cryptography.HashAlgorithmName?

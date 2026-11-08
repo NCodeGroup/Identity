@@ -216,10 +216,29 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
             ),
         ]);
 
-        Assert.Equal(
+        Assert.Equal<RemoteKeyAlgorithm>(
             [awsEs256, awsEs384, awsRs256Small, awsRs256Large, azure, undescribed],
             catalog.Algorithms
         );
+    }
+
+    [Fact]
+    public void Algorithms_WhenSourcesContributeRowsOfEveryKind_ListsThemAll()
+    {
+        var signing = CreateRow();
+        var decryption = CreateDecryptionRow();
+        var keyAgreement = CreateKeyAgreementRow();
+
+        var catalog = new DefaultRemoteKeyDescriptorCatalog([
+            CreateSource(
+                [CreateDescriptor(RemoteKeyProviderNames.AwsKms)],
+                decryption,
+                signing,
+                keyAgreement
+            ),
+        ]);
+
+        Assert.Equal<RemoteKeyAlgorithm>([keyAgreement, signing, decryption], catalog.Algorithms);
     }
 
     [Fact]

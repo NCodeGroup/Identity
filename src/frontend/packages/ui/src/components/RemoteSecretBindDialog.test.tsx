@@ -127,6 +127,101 @@ describe('RemoteSecretBindDialog', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
+  it('falls back to the first offered provider when the seeded provider is not offered', () => {
+    const onSubmit = vi.fn();
+    render(
+      <RemoteSecretBindDialog
+        open
+        initialValues={{ ...initial, remoteKeyProvider: 'empty-kms' }}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('remote-bind-provider')).toHaveValue('aws-kms');
+    expect(offeredAlgorithms()).toEqual(['ES256 · ECC P-256', 'RS256 · RSA 2048 bits']);
+  });
+
+  it('offers no provider and blocks submit when no provider lists an algorithm', () => {
+    render(
+      <RemoteSecretBindDialog
+        open
+        initialValues={initial}
+        remoteKeyProviders={[{ name: 'empty-kms', algorithms: [] }]}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('remote-bind-provider')).toHaveValue('');
+    expect(screen.getByTestId('remote-bind-algorithm')).toHaveValue('');
+    fireEvent.change(screen.getByTestId('remote-bind-key-id'), { target: { value: 'key-1' } });
+    expect(screen.getByTestId('remote-bind-submit')).toBeDisabled();
+  });
+
+  it('blocks submit when the expiry is empty', () => {
+    render(
+      <RemoteSecretBindDialog
+        open
+        initialValues={{ ...initial, expiresWhen: '' }}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId('remote-bind-key-id'), { target: { value: 'key-1' } });
+    fireEvent.change(screen.getByTestId('remote-bind-algorithm'), {
+      target: { value: 'RS256|rsa|2048|' },
+    });
+    expect(screen.getByTestId('remote-bind-submit')).toBeDisabled();
+
+    fireEvent.change(screen.getByTestId('remote-bind-expires'), {
+      target: { value: '2027-06-01T08:30' },
+    });
+    expect(screen.getByTestId('remote-bind-submit')).toBeEnabled();
+  });
+
+  it('disables the actions while submitting', () => {
+    render(
+      <RemoteSecretBindDialog
+        open
+        isSubmitting
+        initialValues={{ ...initial, remoteKeyId: 'key-1' }}
+        remoteKeyProviders={remoteKeyProviders}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('remote-bind-submit')).toBeDisabled();
+    expect(screen.getByTestId('remote-bind-cancel')).toBeDisabled();
+  });
+
+  it('renders nothing while closed and reseeds from the initial values when it opens again', () => {
+    const props = { remoteKeyProviders, onSubmit: vi.fn(), onCancel: vi.fn() };
+    const { rerender } = render(
+      <RemoteSecretBindDialog {...props} open={false} initialValues={initial} />,
+    );
+    expect(screen.queryByTestId('remote-bind-key-id')).not.toBeInTheDocument();
+
+    rerender(
+      <RemoteSecretBindDialog
+        {...props}
+        open
+        initialValues={{ ...initial, remoteKeyId: 'seeded-key', expiresWhen: '2030-01-01T00:00' }}
+      />,
+    );
+    expect(screen.getByTestId('remote-bind-key-id')).toHaveValue('seeded-key');
+    expect(screen.getByTestId('remote-bind-expires')).toHaveValue('2030-01-01T00:00');
+
+    fireEvent.change(screen.getByTestId('remote-bind-key-id'), { target: { value: 'edited' } });
+    rerender(<RemoteSecretBindDialog {...props} open={false} initialValues={initial} />);
+    rerender(<RemoteSecretBindDialog {...props} open initialValues={initial} />);
+    expect(screen.getByTestId('remote-bind-key-id')).toHaveValue('');
+  });
+
   it('shows the given error', () => {
     render(
       <RemoteSecretBindDialog

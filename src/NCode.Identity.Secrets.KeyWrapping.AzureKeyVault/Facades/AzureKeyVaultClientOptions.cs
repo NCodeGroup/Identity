@@ -9,7 +9,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AzureKeyVault.Facades;
 /// Configures the retry of every Azure Key Vault client that the package creates, so a transient failure is retried
 /// once, by the SDK, with an exponential back-off and no other layer retrying it.
 /// </summary>
-// See ADR-1260.
+// See ADR-1471.
 internal static class AzureKeyVaultClientOptions
 {
     /// <summary>

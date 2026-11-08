@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.GoogleCloudKms;
 /// Contains the <see cref="CallSettings"/> of the calls to Google Cloud KMS, so that the retry of a failed call, with
 /// jittered back-off, is done by the client library in one layer and with the same settings for every call.
 /// </summary>
-// See ADR-1260.
+// See ADR-1471.
 internal static class GoogleCloudKmsCallSettings
 {
     private const int RetryingMaxAttempts = 4;

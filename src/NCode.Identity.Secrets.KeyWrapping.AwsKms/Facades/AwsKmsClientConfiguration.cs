@@ -11,7 +11,7 @@ namespace NCode.Identity.Secrets.KeyWrapping.AwsKms.Facades;
 /// Creates the configuration of every <see cref="AmazonKeyManagementServiceClient"/>, so that the retry of a failed
 /// call, with jittered back-off, is done by the SDK in one layer and with the same settings for every client.
 /// </summary>
-// See ADR-1235.
+// See ADR-1471.
 internal static class AwsKmsClientConfiguration
 {
     /// <summary>

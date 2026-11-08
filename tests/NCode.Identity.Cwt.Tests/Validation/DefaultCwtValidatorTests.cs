@@ -47,14 +47,15 @@ public class DefaultCwtValidatorTests
             ExpiresAt = now + TimeSpan.FromHours(1),
         };
 
-    private static byte[] IssueWithoutExpiration(CwtTestHost host) =>
-        host.Issuer.Issue(
+    private static ValueTask<byte[]> IssueWithoutExpirationAsync(CwtTestHost host) =>
+        host.Issuer.IssueAsync(
             new CwtIssuanceParameters
             {
                 Credentials = new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
                 Issuer = Issuer,
                 Audiences = [Audience],
-            }
+            },
+            CancellationToken.None
         );
 
     private static CwtValidationParameters Lifetime(
@@ -76,13 +77,13 @@ public class DefaultCwtValidatorTests
             ClockSkew = clockSkew ?? TimeSpan.FromMinutes(5),
         };
 
-    private static byte[] IssueLifetime(
+    private static ValueTask<byte[]> IssueLifetimeAsync(
         CwtTestHost host,
         DateTimeOffset? notBefore,
         DateTimeOffset? issuedAt,
         DateTimeOffset? expiresAt
     ) =>
-        host.Issuer.Issue(
+        host.Issuer.IssueAsync(
             new CwtIssuanceParameters
             {
                 Credentials = new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
@@ -91,23 +92,28 @@ public class DefaultCwtValidatorTests
                 NotBefore = notBefore,
                 IssuedAt = issuedAt,
                 ExpiresAt = expiresAt,
-            }
+            },
+            CancellationToken.None
         );
 
-    private static byte[] SignClaims(CwtTestHost host, Dictionary<CoseLabel, CoseValue> claims) =>
-        host.Serializer.EncodeSign1(
+    private static ValueTask<byte[]> SignClaimsAsync(
+        CwtTestHost host,
+        Dictionary<CoseLabel, CoseValue> claims
+    ) =>
+        host.Serializer.EncodeSign1Async(
             host.Serializer.EncodeMap(claims),
             new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
     private static CoseValue NumericDate(DateTimeOffset instant) =>
         CoseValue.FromInt64(instant.ToUnixTimeSeconds());
 
-    private static byte[] IssueTyped(CwtTestHost host, bool typed)
+    private static async ValueTask<byte[]> IssueTypedAsync(CwtTestHost host, bool typed)
     {
         var issuance = Issuance(host, CwtTestHost.StartTime);
-        return host.Issuer.Issue(
+        return await host.Issuer.IssueAsync(
             new CwtIssuanceParameters
             {
                 Credentials = issuance.Credentials,
@@ -115,7 +121,8 @@ public class DefaultCwtValidatorTests
                 Audiences = [Audience],
                 ExpiresAt = issuance.ExpiresAt,
                 TokenType = typed ? "application/example+cwt" : null,
-            }
+            },
+            CancellationToken.None
         );
     }
 
@@ -300,7 +307,7 @@ public class DefaultCwtValidatorTests
             Issuer = Issuer,
             ExpiresAt = CwtTestHost.StartTime + TimeSpan.FromHours(1),
         };
-        var token = host.Issuer.Issue(issuance);
+        var token = await host.Issuer.IssueAsync(issuance, CancellationToken.None);
 
         var result = await Validate(host, token, Parameters(host));
 
@@ -311,13 +318,14 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_TokenWithoutAudienceAndNoneNamed_IsValid()
     {
         await using var host = new CwtTestHost();
-        var token = host.Issuer.Issue(
+        var token = await host.Issuer.IssueAsync(
             new CwtIssuanceParameters
             {
                 Credentials = new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
                 Issuer = Issuer,
                 ExpiresAt = CwtTestHost.StartTime + TimeSpan.FromHours(1),
-            }
+            },
+            CancellationToken.None
         );
         var parameters = new CwtValidationParameters
         {
@@ -335,7 +343,7 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_TokenWithoutExpiration_ReportsInvalidLifetime()
     {
         await using var host = new CwtTestHost();
-        var token = IssueWithoutExpiration(host);
+        var token = await IssueWithoutExpirationAsync(host);
 
         var result = await Validate(host, token, Parameters(host));
 
@@ -346,7 +354,7 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_TokenWithoutExpirationWhenNotRequired_IsValid()
     {
         await using var host = new CwtTestHost();
-        var token = IssueWithoutExpiration(host);
+        var token = await IssueWithoutExpirationAsync(host);
 
         var result = await Validate(
             host,
@@ -368,7 +376,10 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_LifetimeBeyondTheMaximum_ReportsInvalidLifetime()
     {
         await using var host = new CwtTestHost();
-        var token = host.Issuer.Issue(Issuance(host, CwtTestHost.StartTime));
+        var token = await host.Issuer.IssueAsync(
+            Issuance(host, CwtTestHost.StartTime),
+            CancellationToken.None
+        );
 
         var result = await Validate(
             host,
@@ -393,7 +404,10 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_RequiredNotBeforeMissing_ReportsInvalidLifetime()
     {
         await using var host = new CwtTestHost();
-        var token = host.Issuer.Issue(Issuance(host, CwtTestHost.StartTime));
+        var token = await host.Issuer.IssueAsync(
+            Issuance(host, CwtTestHost.StartTime),
+            CancellationToken.None
+        );
 
         var result = await Validate(host, token, Lifetime(host, requireNotBefore: true));
 
@@ -405,7 +419,7 @@ public class DefaultCwtValidatorTests
     {
         await using var host = new CwtTestHost();
         var now = CwtTestHost.StartTime;
-        var token = SignClaims(
+        var token = await SignClaimsAsync(
             host,
             new Dictionary<CoseLabel, CoseValue>
             {
@@ -425,7 +439,7 @@ public class DefaultCwtValidatorTests
     {
         await using var host = new CwtTestHost();
         var now = CwtTestHost.StartTime;
-        var token = SignClaims(
+        var token = await SignClaimsAsync(
             host,
             new Dictionary<CoseLabel, CoseValue>
             {
@@ -453,7 +467,7 @@ public class DefaultCwtValidatorTests
     {
         await using var host = new CwtTestHost();
         var now = CwtTestHost.StartTime;
-        var token = IssueLifetime(
+        var token = await IssueLifetimeAsync(
             host,
             now + TimeSpan.FromMinutes(minutes),
             now,
@@ -477,7 +491,7 @@ public class DefaultCwtValidatorTests
     {
         await using var host = new CwtTestHost();
         var now = CwtTestHost.StartTime;
-        var token = IssueLifetime(
+        var token = await IssueLifetimeAsync(
             host,
             null,
             now + TimeSpan.FromMinutes(minutes),
@@ -501,7 +515,7 @@ public class DefaultCwtValidatorTests
     {
         await using var host = new CwtTestHost();
         var now = CwtTestHost.StartTime;
-        var token = IssueLifetime(
+        var token = await IssueLifetimeAsync(
             host,
             now - TimeSpan.FromMinutes(notBeforeMinutesAgo),
             now,
@@ -522,7 +536,10 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_ClockSkewAtTheMaximum_AcceptsAnIssuedToken()
     {
         await using var host = new CwtTestHost();
-        var token = host.Issuer.Issue(Issuance(host, CwtTestHost.StartTime));
+        var token = await host.Issuer.IssueAsync(
+            Issuance(host, CwtTestHost.StartTime),
+            CancellationToken.None
+        );
 
         var result = await Validate(host, token, Lifetime(host, clockSkew: TimeSpan.MaxValue));
 
@@ -533,7 +550,10 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_RequiredClaimMissing_ReportsMissingClaim()
     {
         await using var host = new CwtTestHost();
-        var token = host.Issuer.Issue(Issuance(host, CwtTestHost.StartTime));
+        var token = await host.Issuer.IssueAsync(
+            Issuance(host, CwtTestHost.StartTime),
+            CancellationToken.None
+        );
 
         var result = await Validate(
             host,
@@ -558,7 +578,7 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_DeclaredTokenType_IsValid()
     {
         await using var host = new CwtTestHost();
-        var token = IssueTyped(host, typed: true);
+        var token = await IssueTypedAsync(host, typed: true);
 
         var result = await Validate(host, token, ExpectingType(host, "application/example+cwt"));
 
@@ -569,7 +589,7 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_OtherTokenType_ReportsInvalidTokenType()
     {
         await using var host = new CwtTestHost();
-        var token = IssueTyped(host, typed: true);
+        var token = await IssueTypedAsync(host, typed: true);
 
         var result = await Validate(host, token, ExpectingType(host, "other"));
 
@@ -580,7 +600,7 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_UndeclaredTokenType_ReportsInvalidTokenType()
     {
         await using var host = new CwtTestHost();
-        var token = IssueTyped(host, typed: false);
+        var token = await IssueTypedAsync(host, typed: false);
 
         var result = await Validate(host, token, ExpectingType(host, "application/example+cwt"));
 
@@ -593,7 +613,7 @@ public class DefaultCwtValidatorTests
         await using var host = new CwtTestHost();
         var key = host.Aes("enc");
         var issuance = Issuance(host, CwtTestHost.StartTime);
-        var token = host.Issuer.Issue(
+        var token = await host.Issuer.IssueAsync(
             new CwtIssuanceParameters
             {
                 Credentials = issuance.Credentials,
@@ -601,7 +621,8 @@ public class DefaultCwtValidatorTests
                 Audiences = [Audience],
                 ExpiresAt = issuance.ExpiresAt,
                 EncryptionCredentials = new CoseCredentials(key, CoseAlgorithms.A128Gcm),
-            }
+            },
+            CancellationToken.None
         );
 
         var accepted = await Validate(
@@ -631,7 +652,7 @@ public class DefaultCwtValidatorTests
         await using var host = new CwtTestHost();
         var key = host.Aes("enc");
         var issuance = Issuance(host, CwtTestHost.StartTime);
-        var token = host.Issuer.Issue(
+        var token = await host.Issuer.IssueAsync(
             new CwtIssuanceParameters
             {
                 Credentials = issuance.Credentials,
@@ -639,7 +660,8 @@ public class DefaultCwtValidatorTests
                 Audiences = [Audience],
                 ExpiresAt = issuance.ExpiresAt,
                 EncryptionCredentials = new CoseCredentials(key, CoseAlgorithms.A128Gcm),
-            }
+            },
+            CancellationToken.None
         );
 
         var refused = await Validate(host, token, Parameters(host));
@@ -738,10 +760,11 @@ public class DefaultCwtValidatorTests
         var claims = host.Serializer.EncodeMap(
             new Dictionary<CoseLabel, CoseValue> { [CwtClaimKeys.Issuer] = CoseValue.FromInt64(1) }
         );
-        var token = host.Serializer.EncodeSign1(
+        var token = await host.Serializer.EncodeSign1Async(
             claims,
             new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var result = await Validate(host, token, Parameters(host));
@@ -753,10 +776,11 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_ContentThatIsNotAMap_ReportsInvalidToken()
     {
         await using var host = new CwtTestHost();
-        var token = host.Serializer.EncodeSign1(
+        var token = await host.Serializer.EncodeSign1Async(
             Hex("01"),
             new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
-            new CoseEncodingOptions()
+            new CoseEncodingOptions(),
+            CancellationToken.None
         );
 
         var result = await Validate(host, token, Parameters(host));
@@ -933,7 +957,7 @@ public class DefaultCwtValidatorTests
                 ),
             }
         );
-        var token = host.Serializer.EncodeSign1(
+        var token = await host.Serializer.EncodeSign1Async(
             claims,
             new CoseCredentials(host.EcPrivateKey(), CoseAlgorithms.Es256),
             new CoseEncodingOptions
@@ -942,7 +966,8 @@ public class DefaultCwtValidatorTests
                 {
                     [CoseHeaderLabels.Type] = CoseValue.FromInt64(61),
                 },
-            }
+            },
+            CancellationToken.None
         );
 
         var result = await Validate(host, token, ExpectingType(host, "application/example+cwt"));
@@ -954,7 +979,7 @@ public class DefaultCwtValidatorTests
     public async Task ValidateAsync_TokenWithoutIssuer_ReportsInvalidIssuer()
     {
         await using var host = new CwtTestHost();
-        var token = SignClaims(
+        var token = await SignClaimsAsync(
             host,
             new Dictionary<CoseLabel, CoseValue>
             {
@@ -975,14 +1000,15 @@ public class DefaultCwtValidatorTests
     {
         await using var host = new CwtTestHost();
         var issuance = Issuance(host, CwtTestHost.StartTime);
-        var token = host.Issuer.Issue(
+        var token = await host.Issuer.IssueAsync(
             new CwtIssuanceParameters
             {
                 Credentials = issuance.Credentials,
                 Issuer = Issuer,
                 Audiences = ["coap://other.example.com"],
                 ExpiresAt = issuance.ExpiresAt,
-            }
+            },
+            CancellationToken.None
         );
 
         var result = await Validate(host, token, Parameters(host));
@@ -1000,7 +1026,7 @@ public class DefaultCwtValidatorTests
     )
     {
         await using var host = new CwtTestHost();
-        var token = SignClaims(
+        var token = await SignClaimsAsync(
             host,
             new Dictionary<CoseLabel, CoseValue>
             {
@@ -1028,7 +1054,7 @@ public class DefaultCwtValidatorTests
         await using var host = new CwtTestHost();
         var key = host.Aes("enc");
         var issuance = Issuance(host, CwtTestHost.StartTime);
-        var token = host.Issuer.Issue(
+        var token = await host.Issuer.IssueAsync(
             new CwtIssuanceParameters
             {
                 Credentials = issuance.Credentials,
@@ -1039,7 +1065,8 @@ public class DefaultCwtValidatorTests
                     CoseAlgorithms.A128Gcm,
                     [new CoseRecipient(new CoseCredentials(key, CoseAlgorithms.A128Kw))]
                 ),
-            }
+            },
+            CancellationToken.None
         );
 
         var result = await Validate(

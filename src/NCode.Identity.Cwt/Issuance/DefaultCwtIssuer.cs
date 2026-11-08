@@ -28,7 +28,10 @@ internal class DefaultCwtIssuer(
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     /// <inheritdoc />
-    public byte[] Issue(CwtIssuanceParameters parameters)
+    public async ValueTask<byte[]> IssueAsync(
+        CwtIssuanceParameters parameters,
+        CancellationToken cancellationToken
+    )
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentNullException.ThrowIfNull(parameters.Credentials);
@@ -56,7 +59,12 @@ internal class DefaultCwtIssuer(
         };
         var authenticated =
             parameters.Credentials.Algorithm.Kind == CoseAlgorithmKind.Signature
-                ? Serializer.EncodeSign1(claimsSet, parameters.Credentials, options)
+                ? await Serializer.EncodeSign1Async(
+                    claimsSet,
+                    parameters.Credentials,
+                    options,
+                    cancellationToken
+                )
                 : Serializer.EncodeMac0(claimsSet, parameters.Credentials, options);
 
         var token = authenticated;

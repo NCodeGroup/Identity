@@ -78,7 +78,7 @@ NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.TokenType.init -> void
 NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.WriteCwtTag.get -> bool
 NCode.Identity.Cwt.Issuance.CwtIssuanceParameters.WriteCwtTag.init -> void
 NCode.Identity.Cwt.Issuance.ICwtIssuer
-NCode.Identity.Cwt.Issuance.ICwtIssuer.Issue(NCode.Identity.Cwt.Issuance.CwtIssuanceParameters! parameters) -> byte[]!
+NCode.Identity.Cwt.Issuance.ICwtIssuer.IssueAsync(NCode.Identity.Cwt.Issuance.CwtIssuanceParameters! parameters, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<byte[]!>
 NCode.Identity.Cwt.Validation.CwtValidationFailureCodes
 NCode.Identity.Cwt.Validation.CwtValidationParameters
 NCode.Identity.Cwt.Validation.CwtValidationParameters.ClockSkew.get -> System.TimeSpan

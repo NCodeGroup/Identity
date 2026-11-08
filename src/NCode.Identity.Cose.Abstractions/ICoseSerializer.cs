@@ -29,13 +29,15 @@ public interface ICoseSerializer
     /// <param name="content">The content.</param>
     /// <param name="credentials">The signing key and its signature algorithm.</param>
     /// <param name="options">The header parameters and the encoding choices.</param>
+    /// <param name="cancellationToken">A token to cancel the signing.</param>
     /// <returns>The encoded message.</returns>
     /// <exception cref="ArgumentException">The algorithm is not a registered signature algorithm, the key does not suit
     /// it, or a header parameter is owned by the library or invalid.</exception>
-    byte[] EncodeSign1(
-        ReadOnlySpan<byte> content,
+    ValueTask<byte[]> EncodeSign1Async(
+        ReadOnlyMemory<byte> content,
         CoseCredentials credentials,
-        CoseEncodingOptions options
+        CoseEncodingOptions options,
+        CancellationToken cancellationToken
     );
 
     /// <summary>
@@ -44,13 +46,15 @@ public interface ICoseSerializer
     /// <param name="content">The content.</param>
     /// <param name="signers">The signers; at least one.</param>
     /// <param name="options">The header parameters and the encoding choices.</param>
+    /// <param name="cancellationToken">A token to cancel the signing.</param>
     /// <returns>The encoded message.</returns>
     /// <exception cref="ArgumentException">There is no signer or too many, an algorithm is not a registered signature
     /// algorithm, a key does not suit its algorithm, or a header parameter is owned by the library or invalid.</exception>
-    byte[] EncodeSign(
-        ReadOnlySpan<byte> content,
+    ValueTask<byte[]> EncodeSignAsync(
+        ReadOnlyMemory<byte> content,
         IReadOnlyList<CoseSigner> signers,
-        CoseEncodingOptions options
+        CoseEncodingOptions options,
+        CancellationToken cancellationToken
     );
 
     /// <summary>

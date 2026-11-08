@@ -268,8 +268,8 @@ NCode.Identity.Cose.ICoseSerializer.EncodeEncrypt0(System.ReadOnlySpan<byte> con
 NCode.Identity.Cose.ICoseSerializer.EncodeMac(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseRecipients! recipients, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
 NCode.Identity.Cose.ICoseSerializer.EncodeMac0(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
 NCode.Identity.Cose.ICoseSerializer.EncodeMap(System.Collections.Generic.IReadOnlyDictionary<NCode.Identity.Cose.CoseLabel, NCode.Identity.Cose.CoseValue!>! map) -> byte[]!
-NCode.Identity.Cose.ICoseSerializer.EncodeSign(System.ReadOnlySpan<byte> content, System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseSigner!>! signers, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
-NCode.Identity.Cose.ICoseSerializer.EncodeSign1(System.ReadOnlySpan<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options) -> byte[]!
+NCode.Identity.Cose.ICoseSerializer.EncodeSign1Async(System.ReadOnlyMemory<byte> content, NCode.Identity.Cose.CoseCredentials! credentials, NCode.Identity.Cose.CoseEncodingOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<byte[]!>
+NCode.Identity.Cose.ICoseSerializer.EncodeSignAsync(System.ReadOnlyMemory<byte> content, System.Collections.Generic.IReadOnlyList<NCode.Identity.Cose.CoseSigner!>! signers, NCode.Identity.Cose.CoseEncodingOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<byte[]!>
 NCode.Identity.Cose.ICoseSerializer.Inspect(System.ReadOnlyMemory<byte> message, NCode.Identity.Cose.CoseMessageType? untaggedMessageType) -> NCode.Identity.Cose.CoseMessageInfo!
 NCode.Identity.Cose.ICoseSerializer.Verify(System.ReadOnlyMemory<byte> message, NCode.Identity.Cose.CoseVerificationParameters! parameters) -> NCode.Identity.Cose.CoseVerifiedMessage!
 NCode.Identity.Cose.Keys.CoseEllipticCurve

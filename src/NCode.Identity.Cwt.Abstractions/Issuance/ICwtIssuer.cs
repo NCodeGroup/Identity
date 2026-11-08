@@ -17,8 +17,12 @@ public interface ICwtIssuer
     /// Issues a CWT.
     /// </summary>
     /// <param name="parameters">The claims and the protection of the token.</param>
+    /// <param name="cancellationToken">A token to cancel the signing.</param>
     /// <returns>The encoded token.</returns>
     /// <exception cref="ArgumentException">A parameter is invalid, such as an additional claim that the typed members
     /// own, or an expiration time that is not after the start of the token.</exception>
-    byte[] Issue(CwtIssuanceParameters parameters);
+    ValueTask<byte[]> IssueAsync(
+        CwtIssuanceParameters parameters,
+        CancellationToken cancellationToken
+    );
 }

@@ -10,6 +10,7 @@ namespace NCode.Identity.Secrets.RemoteKeys;
 /// </summary>
 // See ADR-1474.
 // See ADR-1477.
+// See ADR-1478.
 [PublicAPI]
 public sealed class RemoteKeyCreationRequest
 {
@@ -33,4 +34,9 @@ public sealed class RemoteKeyCreationRequest
     /// for one algorithm and key specification. It is a valid key name for every provider.
     /// </summary>
     public required string GroupName { get; init; }
+
+    /// <summary>
+    /// Gets the name of the deployment, which the key carries as a tag or label.
+    /// </summary>
+    public required string Deployment { get; init; }
 }

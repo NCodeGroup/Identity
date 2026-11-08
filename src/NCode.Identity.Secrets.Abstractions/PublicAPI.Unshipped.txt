@@ -365,6 +365,7 @@ NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.DecryptAsync(NCode.Identity
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.DeriveSharedSecretAsync(NCode.Identity.Secrets.RemoteKeys.RemoteKeyAgreementRequest! request, System.Memory<byte> sharedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.DestroyKeyAsync(string! keyId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.GetPublicKeyAsync(NCode.Identity.Secrets.RemoteKeys.RemotePublicKeyRequest! request, System.Buffers.IBufferWriter<byte>! subjectPublicKeyInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.ListKeysAsync(NCode.Identity.Secrets.RemoteKeys.RemoteKeyListRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IAsyncEnumerable<NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing!>!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.Name.get -> string!
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProvider.SignAsync(NCode.Identity.Secrets.RemoteKeys.RemoteSignatureRequest! request, System.Memory<byte> signature, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
 NCode.Identity.Secrets.RemoteKeys.IRemoteKeyProviderCatalog
@@ -397,6 +398,8 @@ NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.RemoteKeyCreationRequest() -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.Algorithm.get -> NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.Deployment.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.Deployment.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.GroupName.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.GroupName.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationRequest.OwnerId.get -> string!
@@ -407,6 +410,22 @@ NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult.RemoteKeyCreationResult() -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult.KeyId.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteKeyCreationResult.KeyId.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.RemoteKeyListing() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.CreatedWhen.get -> System.DateTimeOffset
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.CreatedWhen.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.GroupName.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.GroupName.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.KeyId.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.KeyId.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.OwnerId.get -> string?
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.OwnerId.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.SecretId.get -> string?
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListing.SecretId.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListRequest
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListRequest.RemoteKeyListRequest() -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListRequest.Deployment.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyListRequest.Deployment.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemotePublicKeyRequest
 NCode.Identity.Secrets.RemoteKeys.RemotePublicKeyRequest.Algorithm.get -> NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm!
 NCode.Identity.Secrets.RemoteKeys.RemotePublicKeyRequest.Algorithm.init -> void

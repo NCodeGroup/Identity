@@ -132,4 +132,18 @@ public interface IRemoteKeyProvider
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>A task that completes when the key is destroyed.</returns>
     ValueTask DestroyKeyAsync(string keyId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Lists the enabled keys in the provider's configured location that the server created for the deployment: each
+    /// carries an <c>ncid-</c> group and the request's deployment. A key that is disabled, scheduled for deletion or
+    /// destroyed, or whose tags cannot be read, is not listed.
+    /// </summary>
+    /// <param name="request">The deployment whose keys to list.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>The keys, streamed as the service returns them.</returns>
+    // See ADR-1478.
+    IAsyncEnumerable<RemoteKeyListing> ListKeysAsync(
+        RemoteKeyListRequest request,
+        CancellationToken cancellationToken
+    );
 }

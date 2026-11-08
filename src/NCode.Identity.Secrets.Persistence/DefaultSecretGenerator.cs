@@ -26,7 +26,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// for a supplied one. A remote key is created by its registered <see cref="IRemoteKeyProvider"/> in one call that
 /// returns its identifier, and its public half is then read in a second call; the provider keeps the private key in a
 /// key management service, and only the public half and a reference to the key are stored. A remote key whose public
-/// half cannot be read or does not match its signing algorithm, and a remote key whose creation is followed by any
+/// half cannot be read or does not match its row, and a remote key whose creation is followed by any
 /// other failure, is handed to the <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service.
 /// </summary>
 // See ADR-1067, ADR-1110, ADR-1391 and ADR-1471.
@@ -154,7 +154,7 @@ internal class DefaultSecretGenerator(
             );
         }
 
-        var selector = new RemoteSigningAlgorithmSelector
+        var selector = new RemoteKeyAlgorithmSelector
         {
             Provider = request.Provider,
             Algorithm = request.Algorithm,
@@ -166,8 +166,16 @@ internal class DefaultSecretGenerator(
         if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var algorithm))
         {
             throw new InvalidOperationException(
-                $"The remote key provider '{request.Provider}' has no signing algorithm '{request.Algorithm}' "
+                $"The remote key provider '{request.Provider}' has no algorithm '{request.Algorithm}' "
                     + $"for the '{request.SecretType}' secret type, key size {request.KeySizeBits} and curve '{request.Curve}'."
+            );
+        }
+
+        // See ADR-1477.
+        if (!string.Equals(request.Use, algorithm.Use, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"The remote key provider '{request.Provider}' holds '{request.Algorithm}' keys for the use '{algorithm.Use}', not '{request.Use}'."
             );
         }
 
@@ -244,7 +252,7 @@ internal class DefaultSecretGenerator(
                     )
                     : new InvalidOperationException(
                         $"The remote key provider '{request.Provider}' created a key that does not have the key size "
-                            + $"{algorithm.KeySizeBits} and curve '{algorithm.Curve}' of its signing algorithm '{algorithm.Algorithm}'."
+                            + $"{algorithm.KeySizeBits} and curve '{algorithm.Curve}' of its row '{algorithm.Algorithm}'."
                     );
             }
 
@@ -265,13 +273,13 @@ internal class DefaultSecretGenerator(
     }
 
     // Reads the public key the service returned, which decides whether the key it created has the size and curve of
-    // the signing algorithm's row. A key that cannot be read is a key that is not held, and the failure is handed
+    // the row. A key that cannot be read is a key that is not held, and the failure is handed
     // back.
     private static bool HoldsRequestedKey(
         ISecretKeyTypeDescriptor descriptor,
         KeyMetadata metadata,
         ReadOnlySpan<byte> subjectPublicKeyInfo,
-        RemoteSigningAlgorithm algorithm,
+        RemoteKeyAlgorithm algorithm,
         out Exception? readFailure
     )
     {

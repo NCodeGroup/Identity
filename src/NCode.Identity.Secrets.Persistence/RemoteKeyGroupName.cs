@@ -25,7 +25,7 @@ internal static class RemoteKeyGroupName
     /// <param name="ownerId">The identifier of the owner, such as a tenant, whose key to create.</param>
     /// <param name="algorithm">The row of the mapping vocabulary that selects the key's type, size and curve.</param>
     /// <returns>The group name.</returns>
-    public static string Create(string ownerId, RemoteSigningAlgorithm algorithm)
+    public static string Create(string ownerId, RemoteKeyAlgorithm algorithm)
     {
         var text =
             $"{ownerId}\n{algorithm.Provider}\n{algorithm.Algorithm}\n{algorithm.KeySpec}\n{algorithm.KeySizeBits}\n{algorithm.Curve}";

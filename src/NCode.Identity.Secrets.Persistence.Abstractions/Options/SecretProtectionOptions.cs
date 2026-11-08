@@ -9,7 +9,8 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 /// <summary>
 /// Contains the options that configure how stored secrets are protected, bound from the
 /// <see cref="DefaultSectionName"/> configuration section. Each root key provider binds its own options from a child
-/// of the <c>RootKeyProviders</c> section, so the options a provider needs are not part of this type.
+/// of the <c>RootKeyProviders</c> section, and each remote key provider from a child of the
+/// <c>RemoteKeyProviders</c> section, so the options a provider needs are not part of this type.
 /// </summary>
 // See ADR-1235.
 [PublicAPI]

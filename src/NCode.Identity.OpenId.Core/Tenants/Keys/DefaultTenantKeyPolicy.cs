@@ -276,7 +276,7 @@ internal class DefaultTenantKeyPolicy(
         // See ADR-1471 and ADR-1477: an empty setting keeps every key in the server's store; otherwise the provider holds
         // every provisioned key.
         if (
-            !settings.TryGetValue(OpenIdSettingKeys.TenantSigningKeyProvider, out var provider)
+            !settings.TryGetValue(OpenIdSettingKeys.TenantKeyProvider, out var provider)
             || string.IsNullOrEmpty(provider)
         )
         {

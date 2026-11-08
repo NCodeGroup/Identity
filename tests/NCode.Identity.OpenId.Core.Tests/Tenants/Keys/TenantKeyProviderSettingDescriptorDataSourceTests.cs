@@ -11,12 +11,12 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.Tenants.Keys;
 
-public class TenantSigningKeySettingDescriptorDataSourceTests : BaseTests
+public class TenantKeyProviderSettingDescriptorDataSourceTests : BaseTests
 {
     private Mock<INullChangeToken> MockNullChangeToken { get; }
     private Mock<IRemoteKeyDescriptorCatalog> MockCatalog { get; }
 
-    public TenantSigningKeySettingDescriptorDataSourceTests()
+    public TenantKeyProviderSettingDescriptorDataSourceTests()
     {
         MockNullChangeToken = CreateStrictMock<INullChangeToken>();
         MockCatalog = CreateStrictMock<IRemoteKeyDescriptorCatalog>();
@@ -24,7 +24,7 @@ public class TenantSigningKeySettingDescriptorDataSourceTests : BaseTests
 
     #region Helpers
 
-    private TenantSigningKeySettingDescriptorDataSource CreateDataSource(params string[] names)
+    private TenantKeyProviderSettingDescriptorDataSource CreateDataSource(params string[] names)
     {
         var providers = names
             .Select(name => new RemoteKeyProviderDescriptor { Name = name })
@@ -32,19 +32,19 @@ public class TenantSigningKeySettingDescriptorDataSourceTests : BaseTests
 
         MockCatalog.Setup(x => x.Providers).Returns(providers).Verifiable();
 
-        return new TenantSigningKeySettingDescriptorDataSource(
+        return new TenantKeyProviderSettingDescriptorDataSource(
             MockNullChangeToken.Object,
             MockCatalog.Object
         );
     }
 
     private static SettingDescriptor<string> GetDescriptor(
-        TenantSigningKeySettingDescriptorDataSource dataSource
+        TenantKeyProviderSettingDescriptorDataSource dataSource
     ) =>
         Assert.IsType<SettingDescriptor<string>>(
             Assert.Single(
                 dataSource.Collection,
-                descriptor => descriptor.Name == OpenIdSettingNames.TenantSigningKeyProvider
+                descriptor => descriptor.Name == OpenIdSettingNames.TenantKeyProvider
             )
         );
 
@@ -55,7 +55,7 @@ public class TenantSigningKeySettingDescriptorDataSourceTests : BaseTests
     [Fact]
     public void GetChangeToken_WhenCalled_ReturnsTheNullChangeToken()
     {
-        var dataSource = new TenantSigningKeySettingDescriptorDataSource(
+        var dataSource = new TenantKeyProviderSettingDescriptorDataSource(
             MockNullChangeToken.Object,
             MockCatalog.Object
         );
@@ -70,13 +70,13 @@ public class TenantSigningKeySettingDescriptorDataSourceTests : BaseTests
     #region Collection Tests
 
     [Fact]
-    public void Collection_WhenEnumerated_DescribesOnlyTheTenantSigningKeyProviderSetting()
+    public void Collection_WhenEnumerated_DescribesOnlyTheTenantKeyProviderSetting()
     {
         var dataSource = CreateDataSource("aws-kms");
 
         var descriptor = Assert.Single(dataSource.Collection);
 
-        Assert.Equal(OpenIdSettingNames.TenantSigningKeyProvider, descriptor.Name);
+        Assert.Equal(OpenIdSettingNames.TenantKeyProvider, descriptor.Name);
     }
 
     [Fact]

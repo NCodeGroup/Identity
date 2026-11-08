@@ -568,10 +568,9 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.TenantKeyRetirementGrace);
 
     /// <summary>
-    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_signing_key_provider' setting.
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'tenant_key_provider' setting.
     /// </summary>
-    public static SettingKey<string> TenantSigningKeyProvider =>
-        new(OpenIdSettingNames.TenantSigningKeyProvider);
+    public static SettingKey<string> TenantKeyProvider => new(OpenIdSettingNames.TenantKeyProvider);
 
     /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'environment_type' setting.

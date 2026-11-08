@@ -37,7 +37,7 @@ public class RemoteSigningKeyTests
     private const string RootIssuer = "http://localhost";
     private const string IssuerTemplate = "https://{tenantId}.auth.test";
     private const string JwksPath = "/oauth2/jwks";
-    private const string ProviderSettingName = OpenIdSettingNames.TenantSigningKeyProvider;
+    private const string ProviderSettingName = OpenIdSettingNames.TenantKeyProvider;
     private const string ProviderSettingConfigKey =
         $"OpenId:Platform:Settings:{ProviderSettingName}";
 

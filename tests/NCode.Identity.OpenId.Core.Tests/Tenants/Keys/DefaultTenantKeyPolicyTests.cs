@@ -1555,7 +1555,7 @@ public sealed class DefaultTenantKeyPolicyTests : BaseTests, IAsyncLifetime
     {
         var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
-            .Setup(x => x.TryGetValue(OpenIdSettingKeys.TenantSigningKeyProvider, out provider))
+            .Setup(x => x.TryGetValue(OpenIdSettingKeys.TenantKeyProvider, out provider))
             .Returns(provider is not null)
             .Verifiable();
         return mockSettings;

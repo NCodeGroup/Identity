@@ -46,9 +46,6 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
 
     private static TenantKeySpecification RemoteRs256 => TenantKeyTestData.RemoteRs256;
 
-    // The provider name a remote key's reference holds, which the audit event of the key carries.
-    private const string RemoteProviderReferenceName = "aws-kms";
-
     #region ApplyAsync Tests
 
     [Fact]
@@ -162,7 +159,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         var auditEvent = Assert.Single(result.AuditEvents);
         Assert.Equal(TenantKeyChanges.Generated, auditEvent.Change);
         Assert.Equal(generated.SecretId, auditEvent.SecretId);
-        Assert.Equal(RemoteProviderReferenceName, auditEvent.RemoteKeyProvider);
+        Assert.Equal(TenantKeyTestData.RemoteProviderName, auditEvent.RemoteKeyProvider);
     }
 
     [Fact]
@@ -190,7 +187,12 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Assert.Equal(2, localRequests.Count);
         Assert.Equal(4, added.Count);
         Assert.Equal(
-            [RemoteProviderReferenceName, null, RemoteProviderReferenceName, null],
+            [
+                TenantKeyTestData.RemoteProviderName,
+                null,
+                TenantKeyTestData.RemoteProviderName,
+                null,
+            ],
             result.AuditEvents.Select(auditEvent => auditEvent.RemoteKeyProvider)
         );
     }
@@ -467,7 +469,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         Assert.Equal([expired], result.RemovedSecrets);
         var auditEvent = Assert.Single(result.AuditEvents);
         Assert.Equal(TenantKeyChanges.Removed, auditEvent.Change);
-        Assert.Equal(RemoteProviderReferenceName, auditEvent.RemoteKeyProvider);
+        Assert.Equal(TenantKeyTestData.RemoteProviderName, auditEvent.RemoteKeyProvider);
     }
 
     [Fact]
@@ -518,7 +520,7 @@ public sealed class DefaultTenantKeyRolloverTests : BaseTests
         CreateSecret(secretId, activatesWhen, retiresWhen, createdWhen) with
         {
             SecretEncoding = SecretEncodings.Remote,
-            EncodedValue = $"{RemoteProviderReferenceName}:{secretId}",
+            EncodedValue = $"{TenantKeyTestData.RemoteProviderName}:{secretId}",
         };
 
     private static PersistedSecret CreateSecret(

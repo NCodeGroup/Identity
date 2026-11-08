@@ -22,6 +22,9 @@ internal class JoseEncryptionEncoder(
     protected override JsonSerializerOptions? PayloadJsonOptions => EncryptionOptions.JsonOptions;
 
     /// <inheritdoc />
-    public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload) =>
-        JoseSerializer.Encode(tokenWriter, payload, EncryptionOptions);
+    public override ValueTask EncodeAsync(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlyMemory<byte> payload,
+        CancellationToken cancellationToken
+    ) => JoseSerializer.EncodeAsync(tokenWriter, payload, EncryptionOptions, cancellationToken);
 }

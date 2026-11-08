@@ -6,18 +6,18 @@ using System.Diagnostics;
 using System.Text.Json;
 using NCode.Buffers;
 using NCode.Disposables;
-using NCode.Identity.Jose.Algorithms;
+using NCode.Encoders;
 using NCode.Identity.Jose.Exceptions;
-using NCode.Identity.Secrets.Keys;
 
 namespace NCode.Identity.Jose;
 
 partial class JoseSerializer
 {
-    private void EncodeJsonJws(
+    private async ValueTask EncodeJsonJwsAsync(
         IBufferWriter<char> tokenWriter,
-        ReadOnlySpan<byte> payload,
-        JoseSigningOptions signingOptions
+        ReadOnlyMemory<byte> payload,
+        JoseSigningOptions signingOptions,
+        CancellationToken cancellationToken
     )
     {
         /*
@@ -51,7 +51,25 @@ partial class JoseSerializer
         var encodePayload = signingOptions.EncodePayload;
 
         // the payload is shared by every signature, so it is only encoded once
-        using var payloadLease = EncodeJose(encodePayload, payload, out var encodedPayload);
+        using var payloadLease = RentJwsPayloadChars(
+            encodePayload,
+            payload.Span,
+            out var encodedPayload
+        );
+
+        // every signature is computed first, in order, because a signature may be awaited
+        var signed = new List<(string EncodedHeader, string EncodedSignature)>(signatures.Count);
+        foreach (var signature in signatures)
+        {
+            signed.Add(
+                await SignJwsSignatureAsync(
+                    signature,
+                    encodedPayload,
+                    encodePayload,
+                    cancellationToken
+                )
+            );
+        }
 
         using var jsonBuffer = BufferFactory.CreatePooledBufferWriter(isSensitive: false, 1024);
 
@@ -60,17 +78,17 @@ partial class JoseSerializer
             writer.WriteStartObject();
 
             if (!signingOptions.DetachPayload)
-                writer.WriteString(JoseClaimNames.Json.Payload, encodedPayload);
+                writer.WriteString(JoseClaimNames.Json.Payload, encodedPayload.Span);
 
             if (format == JoseSerializationFormat.General)
             {
                 writer.WritePropertyName(JoseClaimNames.Json.Signatures);
                 writer.WriteStartArray();
 
-                foreach (var signature in signatures)
+                foreach (var (signature, parts) in signatures.Zip(signed))
                 {
                     writer.WriteStartObject();
-                    WriteJwsSignatureMembers(writer, signature, encodedPayload, encodePayload);
+                    WriteJwsSignatureMembers(writer, signature, parts);
                     writer.WriteEndObject();
                 }
 
@@ -78,7 +96,7 @@ partial class JoseSerializer
             }
             else
             {
-                WriteJwsSignatureMembers(writer, signatures.First(), encodedPayload, encodePayload);
+                WriteJwsSignatureMembers(writer, signatures.First(), signed[0]);
             }
 
             writer.WriteEndObject();
@@ -87,12 +105,48 @@ partial class JoseSerializer
         EncodeJose(b64: false, jsonBuffer.AsReadOnlySequence, tokenWriter);
     }
 
-    private void WriteJwsSignatureMembers(
-        Utf8JsonWriter writer,
-        JoseSignatureOptions signature,
-        ReadOnlySpan<char> encodedPayload,
-        bool encodePayload
+    private static IDisposable RentJwsPayloadChars(
+        bool encodePayload,
+        ReadOnlySpan<byte> payload,
+        out ReadOnlyMemory<char> encodedPayload
     )
+    {
+        var byteCount = payload.Length;
+        if (byteCount == 0)
+        {
+            encodedPayload = ReadOnlyMemory<char>.Empty;
+            return Disposable.Empty;
+        }
+
+        var charCount = encodePayload
+            ? Base64Url.GetCharCountForEncode(byteCount)
+            : SecureEncoding.UTF8.GetMaxCharCount(byteCount);
+
+        var lease = BufferFactory.Rent(charCount, isSensitive: true, out Memory<char> buffer);
+        try
+        {
+            int charsWritten;
+            if (encodePayload)
+            {
+                var result = Base64Url.TryEncode(payload, buffer.Span, out charsWritten);
+                Debug.Assert(result);
+            }
+            else
+            {
+                charsWritten = SecureEncoding.UTF8.GetChars(payload, buffer.Span);
+            }
+
+            encodedPayload = buffer[..charsWritten];
+            return lease;
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+    }
+
+    private string EncodeJwsProtectedHeader(JoseSignatureOptions signature, bool encodePayload)
     {
         var (secretKey, signatureAlgorithm) = signature.SigningCredentials;
 
@@ -103,10 +157,50 @@ partial class JoseSerializer
             encodePayload
         );
 
-        // "protected": BASE64URL(UTF8(JWS Protected Header))
+        // BASE64URL(UTF8(JWS Protected Header))
         using var headerLease = SerializeToUtf8(header, options: null, out var headerBytes);
         using var encodedHeaderLease = EncodeJose(b64: true, headerBytes, out var encodedHeader);
-        writer.WriteString(JoseClaimNames.Json.Protected, encodedHeader);
+        return new string(encodedHeader);
+    }
+
+    private async ValueTask<(string EncodedHeader, string EncodedSignature)> SignJwsSignatureAsync(
+        JoseSignatureOptions signature,
+        ReadOnlyMemory<char> encodedPayload,
+        bool encodePayload,
+        CancellationToken cancellationToken
+    )
+    {
+        var (secretKey, signatureAlgorithm) = signature.SigningCredentials;
+
+        var encodedHeader = EncodeJwsProtectedHeader(signature, encodePayload);
+
+        if (signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits) == 0)
+            return (encodedHeader, string.Empty);
+
+        using var inputLease = RentJwsSigningInput(
+            encodedHeader,
+            encodedPayload.Span,
+            out var signingInput
+        );
+
+        var encodedSignature = await SignJwsAsync(
+            secretKey,
+            signatureAlgorithm,
+            signingInput,
+            cancellationToken
+        );
+
+        return (encodedHeader, encodedSignature);
+    }
+
+    private void WriteJwsSignatureMembers(
+        Utf8JsonWriter writer,
+        JoseSignatureOptions signature,
+        (string EncodedHeader, string EncodedSignature) signed
+    )
+    {
+        // "protected": BASE64URL(UTF8(JWS Protected Header))
+        writer.WriteString(JoseClaimNames.Json.Protected, signed.EncodedHeader);
 
         // "header": JWS Unprotected Header (optional)
         if (signature.UnprotectedHeaders is not null)
@@ -116,52 +210,7 @@ partial class JoseSerializer
         }
 
         // "signature": BASE64URL(JWS Signature)
-        using var signatureLease = ComputeJwsSignature(
-            secretKey,
-            signatureAlgorithm,
-            encodedHeader,
-            encodedPayload,
-            out var encodedSignature
-        );
-        writer.WriteString(JoseClaimNames.Json.Signature, encodedSignature);
-    }
-
-    private static IDisposable ComputeJwsSignature(
-        SecretKey secretKey,
-        SignatureAlgorithm signatureAlgorithm,
-        ReadOnlySpan<char> encodedHeader,
-        ReadOnlySpan<char> encodedPayload,
-        out ReadOnlySpan<char> encodedSignature
-    )
-    {
-        var signatureByteCount = signatureAlgorithm.GetSignatureSizeBytes(secretKey.KeySizeBits);
-        if (signatureByteCount == 0)
-        {
-            encodedSignature = ReadOnlySpan<char>.Empty;
-            return Disposable.Empty;
-        }
-
-        using var inputLease = GetSignatureInput(
-            encodedHeader,
-            encodedPayload,
-            out var signatureInput
-        );
-
-        using var signatureBytesLease = BufferFactory.Rent(
-            signatureByteCount,
-            isSensitive: false,
-            out Span<byte> signatureBytes
-        );
-
-        var signResult = signatureAlgorithm.TrySign(
-            secretKey,
-            signatureInput,
-            signatureBytes,
-            out var signatureBytesWritten
-        );
-        Debug.Assert(signResult && signatureBytesWritten == signatureByteCount);
-
-        return EncodeJose(b64: true, signatureBytes, out encodedSignature);
+        writer.WriteString(JoseClaimNames.Json.Signature, signed.EncodedSignature);
     }
 
     private void WriteJsonHeaderObject(

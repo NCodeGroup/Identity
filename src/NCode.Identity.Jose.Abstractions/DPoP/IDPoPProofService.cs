@@ -20,10 +20,15 @@ public interface IDPoPProofService
     /// Creates a DPoP proof for one HTTP request.
     /// </summary>
     /// <param name="options">The signing credentials and the request the proof is bound to.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The compact <c>dpop+jwt</c> proof.</returns>
     /// <exception cref="ArgumentException">The signing key is not an asymmetric key, or its public key cannot be
     /// exported as a JSON Web Key.</exception>
-    string CreateProof(DPoPProofCreationOptions options);
+    // See ADR-1472.
+    ValueTask<string> CreateProofAsync(
+        DPoPProofCreationOptions options,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Validates a DPoP proof against the HTTP request it accompanies.

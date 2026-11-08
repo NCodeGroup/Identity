@@ -40,7 +40,10 @@ internal class DefaultDPoPProofService(
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     /// <inheritdoc />
-    public string CreateProof(DPoPProofCreationOptions options)
+    public async ValueTask<string> CreateProofAsync(
+        DPoPProofCreationOptions options,
+        CancellationToken cancellationToken
+    )
     {
         var signingCredentials = options.SigningCredentials;
         var secretKey = signingCredentials.SecretKey;
@@ -102,7 +105,7 @@ internal class DefaultDPoPProofService(
         };
 
         var encoder = JoseSerializer.CreateEncoder(new JoseSigningOptions(signature));
-        return encoder.Encode(payload);
+        return await encoder.EncodeAsync(payload, cancellationToken);
     }
 
     /// <inheritdoc />

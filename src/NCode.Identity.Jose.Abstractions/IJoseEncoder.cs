@@ -10,8 +10,10 @@ namespace NCode.Identity.Jose;
 /// Provides an abstraction to encode a JOSE token. An instance is created from a set of options (via
 /// <see cref="IJoseSerializer.CreateEncoder(JoseSigningOptions)"/> or
 /// <see cref="IJoseSerializer.CreateEncoder(JoseEncryptionOptions)"/>) and carries all the credentials and options
-/// needed to encode, so the <c>Encode</c> methods only require the payload and an optional destination.
+/// needed to encode, so the <c>EncodeAsync</c> methods only require the payload and an optional destination. Every
+/// encode is asynchronous because a signing key may be held by a remote key management service.
 /// </summary>
+// See ADR-1472.
 [PublicAPI]
 public abstract class JoseEncoder
 {
@@ -20,56 +22,96 @@ public abstract class JoseEncoder
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JOSE token.</param>
     /// <param name="payload">The payload to encode.</param>
-    public abstract void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload);
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A task that completes when the token is written to <paramref name="tokenWriter"/>.</returns>
+    public abstract ValueTask EncodeAsync(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlyMemory<byte> payload,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to encode.</typeparam>
     /// <returns>The encoded JOSE token.</returns>
-    public abstract string Encode<T>(T payload);
+    public abstract ValueTask<string> EncodeAsync<T>(
+        T payload,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JOSE token.</param>
     /// <param name="payload">The payload to encode.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <typeparam name="T">The type of the payload to encode.</typeparam>
-    public abstract void Encode<T>(IBufferWriter<char> tokenWriter, T payload);
+    /// <returns>A task that completes when the token is written to <paramref name="tokenWriter"/>.</returns>
+    public abstract ValueTask EncodeAsync<T>(
+        IBufferWriter<char> tokenWriter,
+        T payload,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The encoded JOSE token.</returns>
-    public abstract string Encode(string payload);
+    public abstract ValueTask<string> EncodeAsync(
+        string payload,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JOSE token.</param>
     /// <param name="payload">The payload to encode.</param>
-    public abstract void Encode(IBufferWriter<char> tokenWriter, string payload);
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A task that completes when the token is written to <paramref name="tokenWriter"/>.</returns>
+    public abstract ValueTask EncodeAsync(
+        IBufferWriter<char> tokenWriter,
+        string payload,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The encoded JOSE token.</returns>
-    public abstract string Encode(ReadOnlySpan<char> payload);
+    public abstract ValueTask<string> EncodeAsync(
+        ReadOnlyMemory<char> payload,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="tokenWriter">The destination for the encoded JOSE token.</param>
     /// <param name="payload">The payload to encode.</param>
-    public abstract void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<char> payload);
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns>A task that completes when the token is written to <paramref name="tokenWriter"/>.</returns>
+    public abstract ValueTask EncodeAsync(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlyMemory<char> payload,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Encodes a JOSE token given the specified payload.
     /// </summary>
     /// <param name="payload">The payload to encode.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The encoded JOSE token.</returns>
-    public abstract string Encode(ReadOnlySpan<byte> payload);
+    public abstract ValueTask<string> EncodeAsync(
+        ReadOnlyMemory<byte> payload,
+        CancellationToken cancellationToken
+    );
 }

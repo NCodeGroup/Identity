@@ -29,14 +29,14 @@ abstract NCode.Identity.Jose.Algorithms.SignatureAlgorithm.GetSignatureSizeBytes
 abstract NCode.Identity.Jose.Algorithms.SignatureAlgorithm.HashAlgorithmName.get -> System.Security.Cryptography.HashAlgorithmName
 abstract NCode.Identity.Jose.Algorithms.SignatureAlgorithm.TrySign(NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<byte> inputData, System.Span<byte> signature, out int bytesWritten) -> bool
 abstract NCode.Identity.Jose.Algorithms.SignatureAlgorithm.Verify(NCode.Identity.Secrets.Keys.SecretKey! secretKey, System.ReadOnlySpan<byte> inputData, System.ReadOnlySpan<byte> signature) -> bool
-abstract NCode.Identity.Jose.JoseEncoder.Encode(string! payload) -> string!
-abstract NCode.Identity.Jose.JoseEncoder.Encode(System.Buffers.IBufferWriter<char>! tokenWriter, string! payload) -> void
-abstract NCode.Identity.Jose.JoseEncoder.Encode(System.Buffers.IBufferWriter<char>! tokenWriter, System.ReadOnlySpan<byte> payload) -> void
-abstract NCode.Identity.Jose.JoseEncoder.Encode(System.Buffers.IBufferWriter<char>! tokenWriter, System.ReadOnlySpan<char> payload) -> void
-abstract NCode.Identity.Jose.JoseEncoder.Encode(System.ReadOnlySpan<byte> payload) -> string!
-abstract NCode.Identity.Jose.JoseEncoder.Encode(System.ReadOnlySpan<char> payload) -> string!
-abstract NCode.Identity.Jose.JoseEncoder.Encode<T>(System.Buffers.IBufferWriter<char>! tokenWriter, T payload) -> void
-abstract NCode.Identity.Jose.JoseEncoder.Encode<T>(T payload) -> string!
+abstract NCode.Identity.Jose.JoseEncoder.EncodeAsync(string! payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+abstract NCode.Identity.Jose.JoseEncoder.EncodeAsync(System.Buffers.IBufferWriter<char>! tokenWriter, string! payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.Jose.JoseEncoder.EncodeAsync(System.Buffers.IBufferWriter<char>! tokenWriter, System.ReadOnlyMemory<byte> payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.Jose.JoseEncoder.EncodeAsync(System.Buffers.IBufferWriter<char>! tokenWriter, System.ReadOnlyMemory<char> payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.Jose.JoseEncoder.EncodeAsync(System.ReadOnlyMemory<byte> payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+abstract NCode.Identity.Jose.JoseEncoder.EncodeAsync(System.ReadOnlyMemory<char> payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
+abstract NCode.Identity.Jose.JoseEncoder.EncodeAsync<T>(System.Buffers.IBufferWriter<char>! tokenWriter, T payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+abstract NCode.Identity.Jose.JoseEncoder.EncodeAsync<T>(T payload, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 abstract NCode.Identity.Jose.JoseToken.Header.get -> System.Text.Json.JsonElement
 abstract NCode.Identity.Jose.JoseToken.ProtectionType.get -> string!
 abstract NCode.Identity.Jose.JoseToken.SerializationFormat.get -> NCode.Identity.Jose.JoseSerializationFormat
@@ -449,7 +449,7 @@ NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.HttpUri.init -> void
 NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.Lifetime.get -> System.TimeSpan
 NCode.Identity.Jose.DPoP.DPoPProofValidationParameters.Lifetime.init -> void
 NCode.Identity.Jose.DPoP.IDPoPProofService
-NCode.Identity.Jose.DPoP.IDPoPProofService.CreateProof(NCode.Identity.Jose.DPoP.DPoPProofCreationOptions! options) -> string!
+NCode.Identity.Jose.DPoP.IDPoPProofService.CreateProofAsync(NCode.Identity.Jose.DPoP.DPoPProofCreationOptions! options, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<string!>
 NCode.Identity.Jose.DPoP.IDPoPProofService.TryValidateProof(string! proofJwt, NCode.Identity.Jose.DPoP.DPoPProofValidationParameters! parameters, out NCode.Identity.Jose.DPoP.DPoPProof? proof, out string? error) -> bool
 NCode.Identity.Jose.Algorithms.AlgorithmCollectionExtensions.extension(NCode.Identity.Jose.Algorithms.IAlgorithmCollection!).TryGetKeyedAlgorithm(string! code, out NCode.Identity.Jose.Algorithms.KeyedAlgorithm? algorithm, out string? impliedUse) -> bool
 NCode.Identity.Jose.Algorithms.AlgorithmKeyType.Accepts(System.Type! keyClrType) -> bool

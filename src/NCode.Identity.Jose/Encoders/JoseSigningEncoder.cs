@@ -20,6 +20,9 @@ internal class JoseSigningEncoder(JoseSerializer joseSerializer, JoseSigningOpti
     protected override JsonSerializerOptions? PayloadJsonOptions => SigningOptions.JsonOptions;
 
     /// <inheritdoc />
-    public override void Encode(IBufferWriter<char> tokenWriter, ReadOnlySpan<byte> payload) =>
-        JoseSerializer.Encode(tokenWriter, payload, SigningOptions);
+    public override ValueTask EncodeAsync(
+        IBufferWriter<char> tokenWriter,
+        ReadOnlyMemory<byte> payload,
+        CancellationToken cancellationToken
+    ) => JoseSerializer.EncodeAsync(tokenWriter, payload, SigningOptions, cancellationToken);
 }

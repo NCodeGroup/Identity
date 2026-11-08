@@ -64,6 +64,7 @@ public class DefaultSecretGeneratorTests
     private readonly DefaultSecretVerifierSchemeCatalog _verifierCatalog;
     private readonly Mock<IRemoteKeyProvider> _remoteProvider;
     private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
+    private readonly DefaultRemoteKeyDescriptorCatalog _remoteDescriptorCatalog;
     private readonly Mock<IRemoteSecretDestroyer> _remoteDestroyer;
     private readonly DefaultSecretGenerator _generator;
     private readonly DefaultSecretSerializer _serializer;
@@ -90,14 +91,19 @@ public class DefaultSecretGeneratorTests
         _remoteProvider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
         _remoteProvider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
-        var source = new Mock<IRemoteSigningAlgorithmSource>(MockBehavior.Strict);
+        var source = new Mock<IRemoteKeyDescriptorSource>(MockBehavior.Strict);
+        source
+            .SetupGet(x => x.Providers)
+            .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
+            .Verifiable();
         source
             .SetupGet(x => x.Algorithms)
             .Returns([RsaRow, LargeRsaRow, EccRow, OtherCurveEccRow])
             .Verifiable();
+        _remoteDescriptorCatalog = new DefaultRemoteKeyDescriptorCatalog([source.Object]);
         _remoteCatalog = new DefaultRemoteKeyProviderCatalog(
             [_remoteProvider.Object],
-            [source.Object]
+            _remoteDescriptorCatalog
         );
 
         _remoteDestroyer = new Mock<IRemoteSecretDestroyer>(MockBehavior.Strict);
@@ -106,7 +112,8 @@ public class DefaultSecretGeneratorTests
         _serializer = new DefaultSecretSerializer(
             catalog,
             _verifierCatalog,
-            new DefaultRemoteKeyProviderCatalog([], [])
+            new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
+            new DefaultRemoteKeyDescriptorCatalog([])
         );
     }
 
@@ -116,6 +123,7 @@ public class DefaultSecretGeneratorTests
             _verifierCatalog,
             Microsoft.Extensions.Options.Options.Create(options),
             _remoteCatalog,
+            _remoteDescriptorCatalog,
             _remoteDestroyer.Object
         );
 

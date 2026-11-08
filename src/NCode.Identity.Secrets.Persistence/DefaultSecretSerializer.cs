@@ -29,7 +29,8 @@ namespace NCode.Identity.Secrets.Persistence;
 internal class DefaultSecretSerializer(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
-    IRemoteKeyProviderCatalog remoteKeyProviderCatalog
+    IRemoteKeyProviderCatalog remoteKeyProviderCatalog,
+    IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog
 ) : ISecretSerializer
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
@@ -38,6 +39,9 @@ internal class DefaultSecretSerializer(
         secretVerifierSchemeCatalog;
 
     private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
+
+    private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
+        remoteKeyDescriptorCatalog;
 
     /// <inheritdoc />
     public IReadOnlyCollection<SecretKey> DeserializeSecrets(
@@ -321,7 +325,7 @@ internal class DefaultSecretSerializer(
             }
         }
 
-        if (!RemoteKeyProviderCatalog.TryGetAlgorithm(selector, out var algorithm))
+        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var algorithm))
         {
             throw new InvalidOperationException(
                 $"The secret '{secretId}' has no remote signing algorithm for provider '{selector.Provider}', "

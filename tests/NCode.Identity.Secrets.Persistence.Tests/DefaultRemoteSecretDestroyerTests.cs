@@ -22,11 +22,21 @@ public class DefaultRemoteSecretDestroyerTests : IDisposable
         _provider = _mocks.Create<IRemoteKeyProvider>();
         _provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms).Verifiable();
 
+        var source = _mocks.Create<IRemoteKeyDescriptorSource>();
+        source
+            .SetupGet(x => x.Providers)
+            .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }])
+            .Verifiable();
+        source.SetupGet(x => x.Algorithms).Returns([]).Verifiable();
+
         // The logger is loose, and every test that expects an entry verifies it by event identifier.
         _logger.Setup(x => x.IsEnabled(It.IsAny<LogLevel>())).Returns(true);
 
         _destroyer = new DefaultRemoteSecretDestroyer(
-            new DefaultRemoteKeyProviderCatalog([_provider.Object], []),
+            new DefaultRemoteKeyProviderCatalog(
+                [_provider.Object],
+                new DefaultRemoteKeyDescriptorCatalog([source.Object])
+            ),
             new FakeTimeProvider(),
             _logger.Object
         );

@@ -48,6 +48,7 @@ public class DefaultSecretSerializerTests
 
     private readonly DefaultSecretKeyTypeCatalog _catalog;
     private readonly DefaultRemoteKeyProviderCatalog _remoteCatalog;
+    private readonly DefaultRemoteKeyDescriptorCatalog _remoteDescriptorCatalog;
     private readonly DefaultSecretSerializer _serializer;
 
     public DefaultSecretSerializerTests()
@@ -67,23 +68,35 @@ public class DefaultSecretSerializerTests
         ]);
 
         _catalog = catalog;
-        _remoteCatalog = CreateRemoteCatalog();
+        _remoteDescriptorCatalog = CreateRemoteDescriptorCatalog();
+        _remoteCatalog = CreateRemoteCatalog(_remoteDescriptorCatalog);
         _serializer = new DefaultSecretSerializer(
             catalog,
             TestSecretVerifierSchemes.CreateCatalog(),
-            _remoteCatalog
+            _remoteCatalog,
+            _remoteDescriptorCatalog
         );
     }
 
-    private static DefaultRemoteKeyProviderCatalog CreateRemoteCatalog()
+    private static DefaultRemoteKeyDescriptorCatalog CreateRemoteDescriptorCatalog()
+    {
+        var source = new Mock<IRemoteKeyDescriptorSource>(MockBehavior.Strict);
+        source
+            .SetupGet(x => x.Providers)
+            .Returns([new RemoteKeyProviderDescriptor { Name = RemoteKeyProviderNames.AwsKms }]);
+        source.SetupGet(x => x.Algorithms).Returns([RsaRow, EccRow]);
+
+        return new DefaultRemoteKeyDescriptorCatalog([source.Object]);
+    }
+
+    private static DefaultRemoteKeyProviderCatalog CreateRemoteCatalog(
+        DefaultRemoteKeyDescriptorCatalog descriptorCatalog
+    )
     {
         var provider = new Mock<IRemoteKeyProvider>(MockBehavior.Strict);
         provider.SetupGet(x => x.Name).Returns(RemoteKeyProviderNames.AwsKms);
 
-        var source = new Mock<IRemoteSigningAlgorithmSource>(MockBehavior.Strict);
-        source.SetupGet(x => x.Algorithms).Returns([RsaRow, EccRow]);
-
-        return new DefaultRemoteKeyProviderCatalog([provider.Object], [source.Object]);
+        return new DefaultRemoteKeyProviderCatalog([provider.Object], descriptorCatalog);
     }
 
     private static PersistedSecret CreateRemoteSecret(
@@ -707,7 +720,8 @@ public class DefaultSecretSerializerTests
         var serializer = new DefaultSecretSerializer(
             _catalog,
             TestSecretVerifierSchemes.CreateCatalog(),
-            new DefaultRemoteKeyProviderCatalog([], [])
+            new DefaultRemoteKeyProviderCatalog([], new DefaultRemoteKeyDescriptorCatalog([])),
+            new DefaultRemoteKeyDescriptorCatalog([])
         );
 
         var secretKey = serializer.DeserializePublicSecret(persisted);
@@ -800,7 +814,8 @@ public class DefaultSecretSerializerTests
         var serializer = new DefaultSecretSerializer(
             _catalog,
             new DefaultSecretVerifierSchemeCatalog([new PlainTextSecretVerifierScheme()]),
-            _remoteCatalog
+            _remoteCatalog,
+            _remoteDescriptorCatalog
         );
         var protector = CreateProtector();
         var persisted = CreateVerifierSecret(protector, "$test-plain$secret");

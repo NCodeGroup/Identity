@@ -34,12 +34,16 @@ internal class DefaultSecretGenerator(
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
     IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor,
     IRemoteKeyProviderCatalog remoteKeyProviderCatalog,
+    IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog,
     IRemoteSecretDestroyer remoteSecretDestroyer
 ) : ISecretGenerator
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
 
     private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
+
+    private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
+        remoteKeyDescriptorCatalog;
 
     private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
 
@@ -158,7 +162,7 @@ internal class DefaultSecretGenerator(
             Curve = request.Curve,
         };
 
-        if (!RemoteKeyProviderCatalog.TryGetAlgorithm(selector, out var algorithm))
+        if (!RemoteKeyDescriptorCatalog.TryGetAlgorithm(selector, out var algorithm))
         {
             throw new InvalidOperationException(
                 $"The remote key provider '{request.Provider}' has no signing algorithm '{request.Algorithm}' "

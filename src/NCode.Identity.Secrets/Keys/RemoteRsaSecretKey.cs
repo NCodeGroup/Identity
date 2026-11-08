@@ -10,9 +10,10 @@ namespace NCode.Identity.Secrets.Keys;
 /// <summary>
 /// Provides an <see cref="RsaSecretKey"/> whose private half a key management service holds. The key keeps the
 /// service's public half (as a <c>SubjectPublicKeyInfo</c>), so it exports and verifies like any public <c>RSA</c> key,
-/// and it signs by asking the service through its <see cref="RemoteKeyBinding"/>.
+/// and it signs or decrypts by asking the service through its <see cref="RemoteKeyBinding"/>.
 /// </summary>
 // See ADR-1471.
+// See ADR-1477.
 internal sealed class RemoteRsaSecretKey(
     KeyMetadata metadata,
     int modulusSizeBits,
@@ -56,6 +57,30 @@ internal sealed class RemoteRsaSecretKey(
 
         return RemoteKeySigning.SignAsync(Binding, signingInput, signature, cancellationToken);
     }
+
+    /// <inheritdoc />
+    public ValueTask<int> DecryptAsync(
+        string algorithm,
+        ReadOnlyMemory<byte> ciphertext,
+        Memory<byte> plaintext,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!string.Equals(algorithm, Binding.Algorithm.Algorithm, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                $"The remote key is bound to the algorithm '{Binding.Algorithm.Algorithm}' and cannot decrypt with '{algorithm}'."
+            );
+
+        return RemoteKeyDecryption.DecryptAsync(Binding, ciphertext, plaintext, cancellationToken);
+    }
+
+    /// <inheritdoc />
+    public ValueTask<int> DeriveSharedSecretAsync(
+        string algorithm,
+        ReadOnlyMemory<byte> peerSubjectPublicKeyInfo,
+        Memory<byte> sharedSecret,
+        CancellationToken cancellationToken
+    ) => throw new InvalidOperationException("An RSA key does not agree keys.");
 
     /// <inheritdoc />
     protected override void AppendMembers(StringBuilder builder)

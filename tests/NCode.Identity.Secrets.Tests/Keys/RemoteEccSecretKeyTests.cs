@@ -27,6 +27,17 @@ public class RemoteEccSecretKeyTests : BaseTests
         IsDerEncodedSignature = true,
     };
 
+    private static readonly RemoteKeyAgreementAlgorithm AgreementRow = new()
+    {
+        Provider = RemoteKeyProviderNames.AwsKms,
+        Algorithm = "ECDH-ES",
+        SecretType = "ecc",
+        KeySizeBits = 256,
+        Curve = "P-256",
+        KeySpec = "ECC_NIST_P256",
+        KeyAgreementAlgorithm = "ECDH",
+    };
+
     private Mock<IRemoteKeyProvider> Provider { get; }
 
     private ECDsa LocalKey { get; } = ECDsa.Create(ECCurve.NamedCurves.nistP256);
@@ -44,7 +55,9 @@ public class RemoteEccSecretKeyTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private RemoteEccSecretKey CreateKey() =>
+    private RemoteEccSecretKey CreateKey() => CreateKey(Row);
+
+    private RemoteEccSecretKey CreateKey(RemoteKeyAlgorithm row) =>
         new(
             new KeyMetadata { KeyId = "kid" },
             EccCurveSpecification.P256.CurveName,
@@ -54,7 +67,7 @@ public class RemoteEccSecretKeyTests : BaseTests
             {
                 Provider = Provider.Object,
                 Reference = new RemoteKeyReference(RemoteKeyProviderNames.AwsKms, KeyId),
-                Algorithm = Row,
+                Algorithm = row,
             }
         );
 
@@ -147,6 +160,78 @@ public class RemoteEccSecretKeyTests : BaseTests
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await key.SignAsync("ES384", SigningInput, new byte[96], CancellationToken.None)
+        );
+    }
+
+    #endregion
+
+    #region DeriveSharedSecretAsync Tests
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_WhenAlgorithmIsTheRows_AgreesThroughTheProvider()
+    {
+        byte[] peerPublicKey = [5, 6, 7, 8];
+        byte[] providerSecret = [4, 3, 2, 1];
+        Provider
+            .Setup(x =>
+                x.DeriveSharedSecretAsync(
+                    It.Is<RemoteKeyAgreementRequest>(r =>
+                        r.KeyId == KeyId
+                        && ReferenceEquals(r.Algorithm, AgreementRow)
+                        && r.PeerSubjectPublicKeyInfo.ToArray().SequenceEqual(peerPublicKey)
+                    ),
+                    It.IsAny<Memory<byte>>(),
+                    CancellationToken.None
+                )
+            )
+            .Returns(
+                (RemoteKeyAgreementRequest _, Memory<byte> destination, CancellationToken _) =>
+                {
+                    providerSecret.CopyTo(destination);
+                    return ValueTask.FromResult(providerSecret.Length);
+                }
+            )
+            .Verifiable();
+        var key = CreateKey(AgreementRow);
+        var sharedSecret = new byte[6];
+
+        var written = await key.DeriveSharedSecretAsync(
+            AgreementRow.Algorithm,
+            peerPublicKey,
+            sharedSecret,
+            CancellationToken.None
+        );
+
+        Assert.Equal(4, written);
+        Assert.Equal([4, 3, 2, 1, 0, 0], sharedSecret);
+    }
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_WhenAlgorithmDiffersFromTheRows_ThrowsWithoutCallingTheProvider()
+    {
+        var key = CreateKey(AgreementRow);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await key.DeriveSharedSecretAsync(
+                "ECDH-ES+A128KW",
+                new byte[4],
+                new byte[32],
+                CancellationToken.None
+            )
+        );
+    }
+
+    #endregion
+
+    #region DecryptAsync Tests
+
+    [Fact]
+    public async Task DecryptAsync_Always_ThrowsWithoutCallingTheProvider()
+    {
+        var key = CreateKey(AgreementRow);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await key.DecryptAsync("RSA-OAEP", new byte[4], new byte[8], CancellationToken.None)
         );
     }
 

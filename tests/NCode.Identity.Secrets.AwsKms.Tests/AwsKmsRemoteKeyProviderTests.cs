@@ -51,6 +51,29 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             IsDerEncodedSignature = true,
         };
 
+    private static RemoteDecryptionAlgorithm RsaOaep256 { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = SecretKeyTypes.Rsa,
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
+
+    private static RemoteKeyAgreementAlgorithm EcdhEs { get; } =
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ECDH-ES",
+            SecretType = SecretKeyTypes.Ecc,
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            KeyAgreementAlgorithm = "ECDH",
+        };
+
     private Mock<IAwsKmsClientFactory> ClientFactory { get; }
 
     private Mock<IAmazonKeyManagementService> Client { get; }
@@ -76,7 +99,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             )
         );
 
-    private static RemoteKeyCreationRequest CreateCreationRequest(RemoteSigningAlgorithm row) =>
+    private static RemoteKeyCreationRequest CreateCreationRequest(RemoteKeyAlgorithm row) =>
         new()
         {
             OwnerId = "tenant-1",
@@ -157,24 +180,47 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
             .Verifiable();
 
     private static GetPublicKeyResponse CreatePublicKey(
-        RemoteSigningAlgorithm row,
+        RemoteKeyAlgorithm row,
         byte[]? publicKey,
         string keyId = KeyArn,
         KeyUsageType? usage = null,
         string? keySpec = null,
-        List<string>? signingAlgorithms = null
+        List<string>? signingAlgorithms = null,
+        List<string>? encryptionAlgorithms = null,
+        List<string>? keyAgreementAlgorithms = null
     ) =>
-        new()
+        row switch
         {
-            KeyId = keyId,
-            PublicKey = publicKey is null ? null : new MemoryStream(publicKey),
-            KeyUsage = usage ?? KeyUsageType.SIGN_VERIFY,
-            KeySpec = KeySpec.FindValue(keySpec ?? row.KeySpec),
-            SigningAlgorithms = signingAlgorithms ?? [row.SigningAlgorithm],
+            RemoteDecryptionAlgorithm decryption => new GetPublicKeyResponse
+            {
+                KeyId = keyId,
+                PublicKey = publicKey is null ? null : new MemoryStream(publicKey),
+                KeyUsage = usage ?? KeyUsageType.ENCRYPT_DECRYPT,
+                KeySpec = KeySpec.FindValue(keySpec ?? row.KeySpec),
+                EncryptionAlgorithms = encryptionAlgorithms ?? [decryption.EncryptionAlgorithm],
+            },
+            RemoteKeyAgreementAlgorithm agreement => new GetPublicKeyResponse
+            {
+                KeyId = keyId,
+                PublicKey = publicKey is null ? null : new MemoryStream(publicKey),
+                KeyUsage = usage ?? KeyUsageType.KEY_AGREEMENT,
+                KeySpec = KeySpec.FindValue(keySpec ?? row.KeySpec),
+                KeyAgreementAlgorithms =
+                    keyAgreementAlgorithms ?? [agreement.KeyAgreementAlgorithm],
+            },
+            RemoteSigningAlgorithm signing => new GetPublicKeyResponse
+            {
+                KeyId = keyId,
+                PublicKey = publicKey is null ? null : new MemoryStream(publicKey),
+                KeyUsage = usage ?? KeyUsageType.SIGN_VERIFY,
+                KeySpec = KeySpec.FindValue(keySpec ?? row.KeySpec),
+                SigningAlgorithms = signingAlgorithms ?? [signing.SigningAlgorithm],
+            },
+            _ => throw new ArgumentException("Unknown row kind.", nameof(row)),
         };
 
     private static RemotePublicKeyRequest CreatePublicKeyRequest(
-        RemoteSigningAlgorithm row,
+        RemoteKeyAlgorithm row,
         string keyId = KeyArn
     ) => new() { KeyId = keyId, Algorithm = row };
 
@@ -195,7 +241,7 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         var createRequest = Assert.IsType<CreateKeyRequest>(sent);
         Assert.Equal(KeySpec.RSA_3072, createRequest.KeySpec);
         Assert.Equal(KeyUsageType.SIGN_VERIFY, createRequest.KeyUsage);
-        Assert.Equal("NCode.Identity signing key secret-1 of tenant-1", createRequest.Description);
+        Assert.Equal("NCode.Identity key secret-1 of tenant-1", createRequest.Description);
         Assert.Equal(4, createRequest.Tags.Count);
         Assert.Equal("tenant-1", Tag(createRequest, "ncode-identity:owner"));
         Assert.Equal("secret-1", Tag(createRequest, "ncode-identity:secret"));
@@ -216,6 +262,40 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
 
         var createRequest = Assert.IsType<CreateKeyRequest>(sent);
         Assert.Equal(KeySpec.ECC_NIST_P256, createRequest.KeySpec);
+    }
+
+    [Fact]
+    public async Task CreateKeyAsync_DecryptionRow_SendsEncryptDecryptUsage()
+    {
+        var request = CreateCreationRequest(RsaOaep256);
+        CreateKeyRequest? sent = null;
+        SetupClientWithoutRetry<CreateKeyResponse>("us-west-2");
+        SetupCreateKey(KeyArn, captured => sent = captured);
+        var provider = CreateProvider();
+
+        await provider.CreateKeyAsync(request, CancellationToken.None);
+
+        var createRequest = Assert.IsType<CreateKeyRequest>(sent);
+        Assert.Equal(KeySpec.RSA_2048, createRequest.KeySpec);
+        Assert.Equal(KeyUsageType.ENCRYPT_DECRYPT, createRequest.KeyUsage);
+        Assert.Equal("RSA-OAEP-256", Tag(createRequest, "ncode-identity:algorithm"));
+    }
+
+    [Fact]
+    public async Task CreateKeyAsync_KeyAgreementRow_SendsKeyAgreementUsage()
+    {
+        var request = CreateCreationRequest(EcdhEs);
+        CreateKeyRequest? sent = null;
+        SetupClientWithoutRetry<CreateKeyResponse>("us-west-2");
+        SetupCreateKey(KeyArn, captured => sent = captured);
+        var provider = CreateProvider();
+
+        await provider.CreateKeyAsync(request, CancellationToken.None);
+
+        var createRequest = Assert.IsType<CreateKeyRequest>(sent);
+        Assert.Equal(KeySpec.ECC_NIST_P256, createRequest.KeySpec);
+        Assert.Equal(KeyUsageType.KEY_AGREEMENT, createRequest.KeyUsage);
+        Assert.Equal("ECDH-ES", Tag(createRequest, "ncode-identity:algorithm"));
     }
 
     [Fact]
@@ -367,6 +447,116 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
         );
 
         Assert.Contains(Rs256.SigningAlgorithm, exception.Message);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_DecryptionRow_WritesThePublicKey()
+    {
+        var spki = RandomNumberGenerator.GetBytes(294);
+        SetupClient<GetPublicKeyResponse>("us-west-2");
+        SetupGetPublicKey(CreatePublicKey(RsaOaep256, spki), KeyArn);
+        var provider = CreateProvider();
+        var writer = new ArrayBufferWriter<byte>();
+
+        await provider.GetPublicKeyAsync(
+            CreatePublicKeyRequest(RsaOaep256),
+            writer,
+            CancellationToken.None
+        );
+
+        Assert.Equal(spki, writer.WrittenSpan.ToArray());
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_DecryptionRowWithSigningUsage_Throws()
+    {
+        SetupClient<GetPublicKeyResponse>("us-west-2");
+        SetupGetPublicKey(
+            CreatePublicKey(RsaOaep256, [1, 2, 3], usage: KeyUsageType.SIGN_VERIFY),
+            KeyArn
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(RsaOaep256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains("is not a decryption key", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_DecryptionRowWithoutTheEncryptionAlgorithm_Throws()
+    {
+        SetupClient<GetPublicKeyResponse>("us-west-2");
+        SetupGetPublicKey(
+            CreatePublicKey(RsaOaep256, [1, 2, 3], encryptionAlgorithms: ["RSAES_OAEP_SHA_1"]),
+            KeyArn
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(RsaOaep256),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(RsaOaep256.EncryptionAlgorithm, exception.Message);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_KeyAgreementRowWithEncryptionUsage_Throws()
+    {
+        SetupClient<GetPublicKeyResponse>("us-west-2");
+        SetupGetPublicKey(
+            CreatePublicKey(EcdhEs, [1, 2, 3], usage: KeyUsageType.ENCRYPT_DECRYPT),
+            KeyArn
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(EcdhEs),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains("is not a key agreement key", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetPublicKeyAsync_KeyAgreementRowWithoutTheAgreementAlgorithm_Throws()
+    {
+        SetupClient<GetPublicKeyResponse>("us-west-2");
+        SetupGetPublicKey(
+            CreatePublicKey(EcdhEs, [1, 2, 3], keyAgreementAlgorithms: ["OTHER"]),
+            KeyArn
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .GetPublicKeyAsync(
+                    CreatePublicKeyRequest(EcdhEs),
+                    new ArrayBufferWriter<byte>(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(EcdhEs.KeyAgreementAlgorithm, exception.Message);
     }
 
     [Fact]
@@ -643,6 +833,536 @@ public class AwsKmsRemoteKeyProviderTests : BaseTests
                         Data = new byte[32],
                     },
                     new byte[512],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Equal("request", exception.ParamName);
+    }
+
+    #endregion
+
+    #region DecryptAsync Tests
+
+    private void SetupDecrypt(DecryptResponse response, Action<DecryptRequest>? capture = null) =>
+        Client
+            .Setup(x => x.DecryptAsync(It.IsAny<DecryptRequest>(), It.IsAny<CancellationToken>()))
+            .Callback<DecryptRequest, CancellationToken>((request, _) => capture?.Invoke(request))
+            .ReturnsAsync(response)
+            .Verifiable();
+
+    private static RemoteDecryptionRequest CreateDecryptionRequest(
+        ReadOnlyMemory<byte> ciphertext,
+        string keyId = KeyArn
+    ) =>
+        new()
+        {
+            KeyId = keyId,
+            Algorithm = RsaOaep256,
+            Ciphertext = ciphertext,
+        };
+
+    [Fact]
+    public async Task DecryptAsync_SendsCiphertextAndAlgorithm_WritesPlaintext()
+    {
+        var ciphertext = RandomNumberGenerator.GetBytes(256);
+        var plaintext = RandomNumberGenerator.GetBytes(32);
+        SetupClient<DecryptResponse>("eu-central-1");
+        DecryptRequest? sent = null;
+        byte[]? sentCiphertext = null;
+        SetupDecrypt(
+            new DecryptResponse
+            {
+                KeyId = OtherRegionKeyArn,
+                EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256,
+                Plaintext = new MemoryStream(plaintext),
+            },
+            request =>
+            {
+                sent = request;
+                sentCiphertext = request.CiphertextBlob.ToArray();
+            }
+        );
+        var provider = CreateProvider(region: "us-west-2");
+        var buffer = new byte[64];
+
+        var written = await provider.DecryptAsync(
+            CreateDecryptionRequest(ciphertext, OtherRegionKeyArn),
+            buffer,
+            CancellationToken.None
+        );
+
+        Assert.Equal(plaintext, buffer[..written]);
+        var request = Assert.IsType<DecryptRequest>(sent);
+        Assert.Equal(OtherRegionKeyArn, request.KeyId);
+        Assert.Equal(EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256, request.EncryptionAlgorithm);
+        Assert.Equal(ciphertext, sentCiphertext);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ArrayBackedCiphertext_SendsTheCallersMemoryWithoutCopying()
+    {
+        var data = RandomNumberGenerator.GetBytes(40);
+        var original = data[4];
+        SetupClient<DecryptResponse>("us-west-2");
+        byte[]? sentCiphertext = null;
+        SetupDecrypt(
+            new DecryptResponse
+            {
+                KeyId = KeyArn,
+                EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256,
+                Plaintext = new MemoryStream([1, 2, 3]),
+            },
+            request =>
+            {
+                data[4] ^= 0xFF;
+                sentCiphertext = request.CiphertextBlob.ToArray();
+            }
+        );
+        var provider = CreateProvider();
+
+        await provider.DecryptAsync(
+            CreateDecryptionRequest(data.AsMemory(4, 32)),
+            new byte[64],
+            CancellationToken.None
+        );
+
+        var ciphertext = Assert.IsType<byte[]>(sentCiphertext);
+        Assert.Equal(32, ciphertext.Length);
+        Assert.Equal((byte)(original ^ 0xFF), ciphertext[0]);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ResponsePlaintext_IsZeroedAfterTheCopy()
+    {
+        var plaintext = RandomNumberGenerator.GetBytes(32);
+        var responseBuffer = (byte[])plaintext.Clone();
+        SetupClient<DecryptResponse>("us-west-2");
+        SetupDecrypt(
+            new DecryptResponse
+            {
+                KeyId = KeyArn,
+                EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256,
+                Plaintext = new MemoryStream(
+                    responseBuffer,
+                    0,
+                    responseBuffer.Length,
+                    writable: true,
+                    publiclyVisible: true
+                ),
+            }
+        );
+        var provider = CreateProvider();
+        var buffer = new byte[64];
+
+        var written = await provider.DecryptAsync(
+            CreateDecryptionRequest(new byte[256]),
+            buffer,
+            CancellationToken.None
+        );
+
+        Assert.Equal(plaintext, buffer[..written]);
+        Assert.All(responseBuffer, x => Assert.Equal(0, x));
+    }
+
+    [Fact]
+    public async Task DecryptAsync_InvalidCiphertext_ThrowsCryptographicException()
+    {
+        SetupClient<DecryptResponse>("us-west-2");
+        Client
+            .Setup(x => x.DecryptAsync(It.IsAny<DecryptRequest>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidCiphertextException("invalid"))
+            .Verifiable();
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[256]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+        Assert.IsType<InvalidCiphertextException>(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ResponseNamesAnotherKey_ThrowsIOException()
+    {
+        SetupClient<DecryptResponse>("us-west-2");
+        SetupDecrypt(
+            new DecryptResponse
+            {
+                KeyId = OtherKeyArn,
+                EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256,
+                Plaintext = new MemoryStream([1, 2, 3]),
+            }
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[256]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ResponseNamesAnotherAlgorithm_ThrowsIOException()
+    {
+        SetupClient<DecryptResponse>("us-west-2");
+        SetupDecrypt(
+            new DecryptResponse
+            {
+                KeyId = KeyArn,
+                EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_1,
+                Plaintext = new MemoryStream([1, 2, 3]),
+            }
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[256]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(RsaOaep256.EncryptionAlgorithm, exception.Message);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_PlaintextLongerThanTheBuffer_Throws()
+    {
+        SetupClient<DecryptResponse>("us-west-2");
+        SetupDecrypt(
+            new DecryptResponse
+            {
+                KeyId = KeyArn,
+                EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256,
+                Plaintext = new MemoryStream(RandomNumberGenerator.GetBytes(32)),
+            }
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[256]),
+                    new byte[31],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_ResponseWithoutPlaintext_Throws()
+    {
+        SetupClient<DecryptResponse>("us-west-2");
+        SetupDecrypt(
+            new DecryptResponse
+            {
+                KeyId = KeyArn,
+                EncryptionAlgorithm = EncryptionAlgorithmSpec.RSAES_OAEP_SHA_256,
+            }
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[256]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
+
+    [Fact]
+    public async Task DecryptAsync_KeyIdIsNotAnArn_Throws()
+    {
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider
+                .DecryptAsync(
+                    CreateDecryptionRequest(new byte[256], "not-an-arn"),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Equal("request", exception.ParamName);
+    }
+
+    #endregion
+
+    #region DeriveSharedSecretAsync Tests
+
+    private void SetupDeriveSharedSecret(
+        DeriveSharedSecretResponse response,
+        Action<DeriveSharedSecretRequest>? capture = null
+    ) =>
+        Client
+            .Setup(x =>
+                x.DeriveSharedSecretAsync(
+                    It.IsAny<DeriveSharedSecretRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<DeriveSharedSecretRequest, CancellationToken>(
+                (request, _) => capture?.Invoke(request)
+            )
+            .ReturnsAsync(response)
+            .Verifiable();
+
+    private static RemoteKeyAgreementRequest CreateAgreementRequest(
+        ReadOnlyMemory<byte> peerSubjectPublicKeyInfo,
+        string keyId = KeyArn
+    ) =>
+        new()
+        {
+            KeyId = keyId,
+            Algorithm = EcdhEs,
+            PeerSubjectPublicKeyInfo = peerSubjectPublicKeyInfo,
+        };
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_SendsPeerKeyAndEcdh_WritesSecret()
+    {
+        var peerKey = RandomNumberGenerator.GetBytes(91);
+        var secret = RandomNumberGenerator.GetBytes(32);
+        SetupClient<DeriveSharedSecretResponse>("eu-central-1");
+        DeriveSharedSecretRequest? sent = null;
+        byte[]? sentPeerKey = null;
+        SetupDeriveSharedSecret(
+            new DeriveSharedSecretResponse
+            {
+                KeyId = OtherRegionKeyArn,
+                KeyAgreementAlgorithm = KeyAgreementAlgorithmSpec.ECDH,
+                SharedSecret = new MemoryStream(secret),
+            },
+            request =>
+            {
+                sent = request;
+                sentPeerKey = request.PublicKey.ToArray();
+            }
+        );
+        var provider = CreateProvider(region: "us-west-2");
+        var buffer = new byte[64];
+
+        var written = await provider.DeriveSharedSecretAsync(
+            CreateAgreementRequest(peerKey, OtherRegionKeyArn),
+            buffer,
+            CancellationToken.None
+        );
+
+        Assert.Equal(secret, buffer[..written]);
+        var request = Assert.IsType<DeriveSharedSecretRequest>(sent);
+        Assert.Equal(OtherRegionKeyArn, request.KeyId);
+        Assert.Equal(KeyAgreementAlgorithmSpec.ECDH, request.KeyAgreementAlgorithm);
+        Assert.Equal(peerKey, sentPeerKey);
+    }
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_ResponseSharedSecret_IsZeroedAfterTheCopy()
+    {
+        var secret = RandomNumberGenerator.GetBytes(32);
+        var responseBuffer = (byte[])secret.Clone();
+        SetupClient<DeriveSharedSecretResponse>("us-west-2");
+        SetupDeriveSharedSecret(
+            new DeriveSharedSecretResponse
+            {
+                KeyId = KeyArn,
+                KeyAgreementAlgorithm = KeyAgreementAlgorithmSpec.ECDH,
+                SharedSecret = new MemoryStream(
+                    responseBuffer,
+                    0,
+                    responseBuffer.Length,
+                    writable: true,
+                    publiclyVisible: true
+                ),
+            }
+        );
+        var provider = CreateProvider();
+        var buffer = new byte[64];
+
+        var written = await provider.DeriveSharedSecretAsync(
+            CreateAgreementRequest(new byte[91]),
+            buffer,
+            CancellationToken.None
+        );
+
+        Assert.Equal(secret, buffer[..written]);
+        Assert.All(responseBuffer, x => Assert.Equal(0, x));
+    }
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_InvalidKeyUsage_ThrowsCryptographicException()
+    {
+        SetupClient<DeriveSharedSecretResponse>("us-west-2");
+        Client
+            .Setup(x =>
+                x.DeriveSharedSecretAsync(
+                    It.IsAny<DeriveSharedSecretRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ThrowsAsync(new InvalidKeyUsageException("invalid"))
+            .Verifiable();
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DeriveSharedSecretAsync(
+                    CreateAgreementRequest(new byte[91]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+        Assert.IsType<InvalidKeyUsageException>(exception.InnerException);
+    }
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_ResponseNamesAnotherKey_ThrowsIOException()
+    {
+        SetupClient<DeriveSharedSecretResponse>("us-west-2");
+        SetupDeriveSharedSecret(
+            new DeriveSharedSecretResponse
+            {
+                KeyId = OtherKeyArn,
+                KeyAgreementAlgorithm = KeyAgreementAlgorithmSpec.ECDH,
+                SharedSecret = new MemoryStream([1, 2, 3]),
+            }
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .DeriveSharedSecretAsync(
+                    CreateAgreementRequest(new byte[91]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_ResponseNamesAnotherAlgorithm_ThrowsIOException()
+    {
+        SetupClient<DeriveSharedSecretResponse>("us-west-2");
+        SetupDeriveSharedSecret(
+            new DeriveSharedSecretResponse
+            {
+                KeyId = KeyArn,
+                KeyAgreementAlgorithm = KeyAgreementAlgorithmSpec.FindValue("OTHER"),
+                SharedSecret = new MemoryStream([1, 2, 3]),
+            }
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<IOException>(() =>
+            provider
+                .DeriveSharedSecretAsync(
+                    CreateAgreementRequest(new byte[91]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(EcdhEs.KeyAgreementAlgorithm, exception.Message);
+    }
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_SecretLongerThanTheBuffer_Throws()
+    {
+        SetupClient<DeriveSharedSecretResponse>("us-west-2");
+        SetupDeriveSharedSecret(
+            new DeriveSharedSecretResponse
+            {
+                KeyId = KeyArn,
+                KeyAgreementAlgorithm = KeyAgreementAlgorithmSpec.ECDH,
+                SharedSecret = new MemoryStream(RandomNumberGenerator.GetBytes(32)),
+            }
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DeriveSharedSecretAsync(
+                    CreateAgreementRequest(new byte[91]),
+                    new byte[31],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_ResponseWithoutSharedSecret_Throws()
+    {
+        SetupClient<DeriveSharedSecretResponse>("us-west-2");
+        SetupDeriveSharedSecret(
+            new DeriveSharedSecretResponse
+            {
+                KeyId = KeyArn,
+                KeyAgreementAlgorithm = KeyAgreementAlgorithmSpec.ECDH,
+            }
+        );
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<CryptographicException>(() =>
+            provider
+                .DeriveSharedSecretAsync(
+                    CreateAgreementRequest(new byte[91]),
+                    new byte[64],
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        Assert.Contains(KeyArn, exception.Message);
+    }
+
+    [Fact]
+    public async Task DeriveSharedSecretAsync_KeyIdIsNotAnArn_Throws()
+    {
+        var provider = CreateProvider();
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            provider
+                .DeriveSharedSecretAsync(
+                    CreateAgreementRequest(new byte[91], "not-an-arn"),
+                    new byte[64],
                     CancellationToken.None
                 )
                 .AsTask()

@@ -20,8 +20,8 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog(
 ) : IRemoteKeyDescriptorCatalog
 {
     private FrozenDictionary<
-        RemoteSigningAlgorithmSelector,
-        RemoteSigningAlgorithm
+        RemoteKeyAlgorithmSelector,
+        RemoteKeyAlgorithm
     > AlgorithmsBySelector { get; } = IndexAlgorithms(sources);
 
     /// <inheritdoc />
@@ -30,8 +30,8 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog(
 
     /// <inheritdoc />
     public bool TryGetAlgorithm(
-        RemoteSigningAlgorithmSelector selector,
-        [NotNullWhen(true)] out RemoteSigningAlgorithm? algorithm
+        RemoteKeyAlgorithmSelector selector,
+        [NotNullWhen(true)] out RemoteKeyAlgorithm? algorithm
     ) => AlgorithmsBySelector.TryGetValue(selector, out algorithm);
 
     private static RemoteKeyProviderDescriptor[] CollectProviders(
@@ -61,15 +61,14 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog(
         return descriptors;
     }
 
-    private static FrozenDictionary<
-        RemoteSigningAlgorithmSelector,
-        RemoteSigningAlgorithm
-    > IndexAlgorithms(IEnumerable<IRemoteKeyDescriptorSource> sources)
+    private static FrozenDictionary<RemoteKeyAlgorithmSelector, RemoteKeyAlgorithm> IndexAlgorithms(
+        IEnumerable<IRemoteKeyDescriptorSource> sources
+    )
     {
-        var bySelector = new Dictionary<RemoteSigningAlgorithmSelector, RemoteSigningAlgorithm>();
+        var bySelector = new Dictionary<RemoteKeyAlgorithmSelector, RemoteKeyAlgorithm>();
         foreach (var algorithm in sources.SelectMany(source => source.Algorithms))
         {
-            var selector = new RemoteSigningAlgorithmSelector
+            var selector = new RemoteKeyAlgorithmSelector
             {
                 Provider = algorithm.Provider,
                 Algorithm = algorithm.Algorithm,
@@ -81,7 +80,7 @@ internal sealed class DefaultRemoteKeyDescriptorCatalog(
             if (!bySelector.TryAdd(selector, algorithm))
             {
                 throw new InvalidOperationException(
-                    $"The remote signing algorithm for provider '{algorithm.Provider}', algorithm '{algorithm.Algorithm}', "
+                    $"The remote key algorithm for provider '{algorithm.Provider}', algorithm '{algorithm.Algorithm}', "
                         + $"secret type '{algorithm.SecretType}', key size {algorithm.KeySizeBits} and curve '{algorithm.Curve}' "
                         + "is registered more than once."
                 );

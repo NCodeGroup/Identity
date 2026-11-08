@@ -10,14 +10,14 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
 {
     private IRemoteKeyDescriptorSource CreateSource(
         RemoteKeyProviderDescriptor[] providers,
-        params RemoteSigningAlgorithm[] rows
+        params RemoteKeyAlgorithm[] rows
     ) => CreateSource(Times.Once(), providers, rows);
 
     // A catalog that fails on a repeated selector may fail before it reads the providers, so a test of that failure allows the read at most once.
     private IRemoteKeyDescriptorSource CreateSource(
         Times providersRead,
         RemoteKeyProviderDescriptor[] providers,
-        RemoteSigningAlgorithm[] rows
+        RemoteKeyAlgorithm[] rows
     )
     {
         var mock = CreateStrictMock<IRemoteKeyDescriptorSource>();
@@ -49,7 +49,30 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
             IsDerEncodedSignature = true,
         };
 
-    private static RemoteSigningAlgorithmSelector CreateSelector(
+    private static RemoteDecryptionAlgorithm CreateDecryptionRow() =>
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "RSA-OAEP-256",
+            SecretType = "rsa",
+            KeySizeBits = 2048,
+            KeySpec = "RSA_2048",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
+
+    private static RemoteKeyAgreementAlgorithm CreateKeyAgreementRow() =>
+        new()
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ECDH-ES",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            KeyAgreementAlgorithm = "ECDH",
+        };
+
+    private static RemoteKeyAlgorithmSelector CreateSelector(
         string provider = RemoteKeyProviderNames.AwsKms,
         string algorithm = "ES256",
         string secretType = "ecc",
@@ -104,6 +127,30 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
         {
             CreateSource(Times.AtMostOnce(), [], [CreateRow()]),
             CreateSource(Times.AtMostOnce(), [], [CreateRow()]),
+        };
+
+        Assert.Throws<InvalidOperationException>(() =>
+            new DefaultRemoteKeyDescriptorCatalog(sources)
+        );
+    }
+
+    [Fact]
+    public void Constructor_DecryptionAndSigningRowsWithOneSelector_Throws()
+    {
+        var decryptionRow = new RemoteDecryptionAlgorithm
+        {
+            Provider = RemoteKeyProviderNames.AwsKms,
+            Algorithm = "ES256",
+            SecretType = "ecc",
+            KeySizeBits = 256,
+            Curve = "P-256",
+            KeySpec = "ECC_NIST_P256",
+            EncryptionAlgorithm = "RSAES_OAEP_SHA_256",
+        };
+        var sources = new[]
+        {
+            CreateSource(Times.AtMostOnce(), [], [CreateRow()]),
+            CreateSource(Times.AtMostOnce(), [], [decryptionRow]),
         };
 
         Assert.Throws<InvalidOperationException>(() =>
@@ -202,6 +249,33 @@ public class DefaultRemoteKeyDescriptorCatalogTests : BaseTests
 
         Assert.False(catalog.TryGetAlgorithm(selector, out var row));
         Assert.Null(row);
+    }
+
+    [Fact]
+    public void TryGetAlgorithm_DecryptionRow_ReturnsIt()
+    {
+        var row = CreateDecryptionRow();
+        var catalog = new DefaultRemoteKeyDescriptorCatalog([CreateSource([], row)]);
+        var selector = CreateSelector(
+            algorithm: "RSA-OAEP-256",
+            secretType: "rsa",
+            keySizeBits: 2048,
+            curve: null
+        );
+
+        Assert.True(catalog.TryGetAlgorithm(selector, out var algorithm));
+        Assert.Same(row, algorithm);
+    }
+
+    [Fact]
+    public void TryGetAlgorithm_KeyAgreementRow_ReturnsIt()
+    {
+        var row = CreateKeyAgreementRow();
+        var catalog = new DefaultRemoteKeyDescriptorCatalog([CreateSource([], row)]);
+        var selector = CreateSelector(algorithm: "ECDH-ES");
+
+        Assert.True(catalog.TryGetAlgorithm(selector, out var algorithm));
+        Assert.Same(row, algorithm);
     }
 
     [Fact]

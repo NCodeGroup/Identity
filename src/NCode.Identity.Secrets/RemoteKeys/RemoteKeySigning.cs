@@ -27,6 +27,7 @@ internal static class RemoteKeySigning
     /// The signature that the provider returns does not fit <paramref name="signature"/>, or is not a valid DER
     /// encoded ECDSA signature when the row says that it is.
     /// </exception>
+    /// <exception cref="InvalidOperationException">The binding's row is not a signing row.</exception>
     public static async ValueTask<int> SignAsync(
         RemoteKeyBinding binding,
         ReadOnlyMemory<byte> signingInput,
@@ -34,8 +35,19 @@ internal static class RemoteKeySigning
         CancellationToken cancellationToken
     )
     {
-        if (binding.Algorithm.DigestAlgorithm is not { } digestAlgorithm)
-            return await SignDataAsync(binding, signingInput, signature, cancellationToken);
+        if (binding.Algorithm is not RemoteSigningAlgorithm algorithm)
+            throw new InvalidOperationException(
+                $"The remote key is bound to the '{binding.Algorithm.Algorithm}' row, which does not sign."
+            );
+
+        if (algorithm.DigestAlgorithm is not { } digestAlgorithm)
+            return await SignDataAsync(
+                binding,
+                algorithm,
+                signingInput,
+                signature,
+                cancellationToken
+            );
 
         using var hashLease = BufferFactory.Rent(
             HashMaxSizeBytes,
@@ -48,17 +60,23 @@ internal static class RemoteKeySigning
             hash.Span
         );
 
-        return await SignDataAsync(binding, hash[..hashLength], signature, cancellationToken);
+        return await SignDataAsync(
+            binding,
+            algorithm,
+            hash[..hashLength],
+            signature,
+            cancellationToken
+        );
     }
 
     private static async ValueTask<int> SignDataAsync(
         RemoteKeyBinding binding,
+        RemoteSigningAlgorithm algorithm,
         ReadOnlyMemory<byte> data,
         Memory<byte> signature,
         CancellationToken cancellationToken
     )
     {
-        var algorithm = binding.Algorithm;
         var request = new RemoteSignatureRequest
         {
             KeyId = binding.Reference.KeyId,

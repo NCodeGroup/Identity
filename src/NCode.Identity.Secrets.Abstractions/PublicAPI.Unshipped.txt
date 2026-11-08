@@ -310,25 +310,36 @@ NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.RemoteKeyReference(string! 
 override NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.ToString() -> string!
 static NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.IsValidProviderName(string? name) -> bool
 static NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference.TryParse(string? value, out NCode.Identity.Secrets.RemoteKeys.RemoteKeyReference reference) -> bool
+NCode.Identity.Secrets.RemoteKeys.RemoteDecryptionAlgorithm
+NCode.Identity.Secrets.RemoteKeys.RemoteDecryptionAlgorithm.EncryptionAlgorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteDecryptionAlgorithm.EncryptionAlgorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAgreementAlgorithm
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAgreementAlgorithm.KeyAgreementAlgorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAgreementAlgorithm.KeyAgreementAlgorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Algorithm.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Algorithm.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Curve.get -> string?
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Curve.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.KeySizeBits.get -> int
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.KeySizeBits.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.KeySpec.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.KeySpec.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Provider.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Provider.init -> void
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.SecretType.get -> string!
+NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.SecretType.init -> void
+abstract NCode.Identity.Secrets.RemoteKeys.RemoteKeyAlgorithm.Use.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Algorithm.get -> string!
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Algorithm.init -> void
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Curve.get -> string?
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Curve.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.DigestAlgorithm.get -> System.Security.Cryptography.HashAlgorithmName?
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.DigestAlgorithm.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.IsDerEncodedSignature.get -> bool
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.IsDerEncodedSignature.init -> void
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySizeBits.get -> int
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySizeBits.init -> void
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySpec.get -> string!
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.KeySpec.init -> void
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.get -> string!
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Provider.init -> void
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.get -> string!
-NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SecretType.init -> void
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.SigningAlgorithm.init -> void
+override NCode.Identity.Secrets.RemoteKeys.RemoteDecryptionAlgorithm.Use.get -> string!
+override NCode.Identity.Secrets.RemoteKeys.RemoteKeyAgreementAlgorithm.Use.get -> string!
+override NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithm.Use.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Algorithm.get -> string!
 NCode.Identity.Secrets.RemoteKeys.RemoteSigningAlgorithmSelector.Algorithm.init -> void

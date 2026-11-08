@@ -414,8 +414,13 @@ internal class AzureKeyVaultRemoteKeyProvider(
                 return ecdsa.ExportSubjectPublicKeyInfo();
             }
         }
+        // The SDK's conversions refuse a malformed public key with these types; the platform's import throws CryptographicException.
         catch (Exception exception)
-            when (exception is not CryptographicException and not OperationCanceledException)
+            when (exception
+                    is InvalidOperationException
+                        or ArgumentException
+                        or NotSupportedException
+            )
         {
             throw new CryptographicException(
                 $"The key '{keyId}' holds a public key that cannot be read.",

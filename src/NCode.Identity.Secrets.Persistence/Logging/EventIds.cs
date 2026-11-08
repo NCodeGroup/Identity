@@ -138,4 +138,15 @@ internal static class EventIds
     /// The completion of a committed owner root key change is left to the validation service.
     /// </summary>
     public const int OwnerRootKeyCompletionDeferred = Base + 25;
+
+    /// <summary>
+    /// The key of a removed remote secret was not destroyed because its reference is malformed or its provider is not
+    /// registered.
+    /// </summary>
+    public const int RemoteKeyDestroySkipped = Base + 26;
+
+    /// <summary>
+    /// The key service failed to destroy the key of a removed remote secret.
+    /// </summary>
+    public const int RemoteKeyDestroyFailed = Base + 27;
 }

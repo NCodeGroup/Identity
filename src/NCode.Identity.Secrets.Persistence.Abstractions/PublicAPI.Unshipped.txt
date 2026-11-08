@@ -125,6 +125,8 @@ NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretEncoding.
 NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret.SecretEncoding.init -> void
 NCode.Identity.Secrets.Persistence.ISecretImporter
 NCode.Identity.Secrets.Persistence.ISecretImporter.ImportSecret(NCode.Identity.Secrets.Persistence.SecretKeyImportRequest! request) -> NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!
+NCode.Identity.Secrets.Persistence.IRemoteSecretDestroyer
+NCode.Identity.Secrets.Persistence.IRemoteSecretDestroyer.DestroyAsync(System.Collections.Generic.IReadOnlyCollection<NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret!>! removedSecrets) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Algorithm.get -> string?
 NCode.Identity.Secrets.Persistence.SecretKeyImportRequest.Algorithm.init -> void

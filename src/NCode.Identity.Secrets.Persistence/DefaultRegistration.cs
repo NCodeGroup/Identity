@@ -89,6 +89,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ISecretSerializer, DefaultSecretSerializer>();
             serviceCollection.TryAddSingleton<ISecretGenerator, DefaultSecretGenerator>();
             serviceCollection.TryAddSingleton<ISecretImporter, DefaultSecretImporter>();
+            serviceCollection.TryAddSingleton<
+                IRemoteSecretDestroyer,
+                DefaultRemoteSecretDestroyer
+            >();
 
             // Shared secret verifiers: a package adds a scheme by registering another ISecretVerifierScheme, and a scheme
             // with a work factor takes its turns from the one ISecretVerificationGate. See ADR-1391.

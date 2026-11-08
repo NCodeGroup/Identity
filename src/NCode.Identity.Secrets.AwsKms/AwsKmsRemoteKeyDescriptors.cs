@@ -8,8 +8,8 @@ using NCode.Identity.Secrets.RemoteKeys;
 namespace NCode.Identity.Secrets.AwsKms;
 
 /// <summary>
-/// Provides the rows of the mapping from a JOSE signature algorithm to the AWS Key Management Service key
-/// specification and signing algorithm that create a key and sign for it.
+/// Describes the AWS KMS remote key provider and its rows of the mapping from a JOSE signature algorithm to the
+/// AWS Key Management Service key specification and signing algorithm that create a key and sign for it.
 /// </summary>
 /// <remarks>
 /// RSA keys of 2048, 3072 and 4096 bits sign with <c>RS256</c>, <c>RS384</c> and <c>RS512</c> (PKCS #1 v1.5) and with
@@ -18,8 +18,11 @@ namespace NCode.Identity.Secrets.AwsKms;
 /// Every row has the service sign the digest of the signing input.
 /// </remarks>
 // See ADR-1471.
-internal sealed class AwsKmsSigningAlgorithms : IRemoteSigningAlgorithmSource
+internal sealed class AwsKmsRemoteKeyDescriptors : IRemoteKeyDescriptorSource
 {
+    private static IReadOnlyList<RemoteKeyProviderDescriptor> ProviderDescriptors { get; } =
+    [new() { Name = RemoteKeyProviderNames.AwsKms }];
+
     private static int[] RsaKeySizesBits { get; } = [2048, 3072, 4096];
 
     private static (
@@ -34,6 +37,9 @@ internal sealed class AwsKmsSigningAlgorithms : IRemoteSigningAlgorithmSource
     ];
 
     private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } = CreateRows();
+
+    /// <inheritdoc />
+    public IEnumerable<RemoteKeyProviderDescriptor> Providers => ProviderDescriptors;
 
     /// <inheritdoc />
     public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;

@@ -74,8 +74,8 @@ public static class DefaultRegistration
         /// <summary>
         /// Registers the AWS Key Management Service <see cref="IRemoteKeyProvider"/>, which creates tenant signing
         /// keys that never leave the service, signs with them, and schedules them for deletion, together with the
-        /// <see cref="IRemoteSigningAlgorithmSource"/> that maps each JOSE signature algorithm to the key
-        /// specification and signing algorithm of the service. The
+        /// <see cref="IRemoteKeyDescriptorSource"/> that describes the provider and maps each JOSE signature
+        /// algorithm to the key specification and signing algorithm of the service. The
         /// <c>SecretProtection:RemoteKeyProviders:AwsKms</c> section binds
         /// <see cref="AwsKmsRemoteKeyProviderOptions"/> strictly and is validated when the host starts, so
         /// registering the provider selects it. No client is created before the first key is created, signed with or
@@ -118,8 +118,8 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
-                    IRemoteSigningAlgorithmSource,
-                    AwsKmsSigningAlgorithms
+                    IRemoteKeyDescriptorSource,
+                    AwsKmsRemoteKeyDescriptors
                 >()
             );
 
@@ -128,7 +128,7 @@ public static class DefaultRegistration
 
         /// <summary>
         /// Registers the AWS Key Management Service <see cref="IRemoteKeyProvider"/> and its
-        /// <see cref="IRemoteSigningAlgorithmSource"/> as <c>AddAwsKmsRemoteKeyProvider</c> does, but only when
+        /// <see cref="IRemoteKeyDescriptorSource"/> as <c>AddAwsKmsRemoteKeyProvider</c> does, but only when
         /// the <c>SecretProtection:RemoteKeyProviders:AwsKms</c> section exists. Registering a remote key provider
         /// selects it and validates its options when the host starts, so this method registers it only when its
         /// configuration section exists.

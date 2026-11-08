@@ -7,7 +7,7 @@ using Xunit;
 
 namespace NCode.Identity.Secrets.AwsKms.Tests;
 
-public class AwsKmsSigningAlgorithmsTests
+public class AwsKmsRemoteKeyDescriptorsTests
 {
     private static readonly HashAlgorithmName Sha256 = HashAlgorithmName.SHA256;
     private static readonly HashAlgorithmName Sha384 = HashAlgorithmName.SHA384;
@@ -47,12 +47,26 @@ public class AwsKmsSigningAlgorithmsTests
         ("ES512", "ecc", 521, "P-521", "ECC_NIST_P521", "ECDSA_SHA_512", Sha512, true),
     ];
 
+    #region Providers Tests
+
+    [Fact]
+    public void Providers_DescribesTheAwsKmsProvider()
+    {
+        var source = new AwsKmsRemoteKeyDescriptors();
+
+        var descriptor = Assert.Single(source.Providers);
+
+        Assert.Equal(RemoteKeyProviderNames.AwsKms, descriptor.Name);
+    }
+
+    #endregion
+
     #region Algorithms Tests
 
     [Fact]
     public void Algorithms_Rows_MatchTheMapping()
     {
-        var source = new AwsKmsSigningAlgorithms();
+        var source = new AwsKmsRemoteKeyDescriptors();
 
         var rows = source.Algorithms.ToList();
 
@@ -76,7 +90,7 @@ public class AwsKmsSigningAlgorithmsTests
     [Fact]
     public void Algorithms_Rows_HaveUniqueSelectors()
     {
-        var source = new AwsKmsSigningAlgorithms();
+        var source = new AwsKmsRemoteKeyDescriptors();
 
         var selectors = source
             .Algorithms.Select(x => (x.Provider, x.Algorithm, x.SecretType, x.KeySizeBits, x.Curve))
@@ -88,7 +102,7 @@ public class AwsKmsSigningAlgorithmsTests
     [Fact]
     public void Algorithms_EveryRow_SignsADigest()
     {
-        var source = new AwsKmsSigningAlgorithms();
+        var source = new AwsKmsRemoteKeyDescriptors();
 
         Assert.All(source.Algorithms, row => Assert.NotNull(row.DigestAlgorithm));
     }
@@ -96,7 +110,7 @@ public class AwsKmsSigningAlgorithmsTests
     [Fact]
     public void Algorithms_ProvisionedDefaults_ArePresent()
     {
-        var source = new AwsKmsSigningAlgorithms();
+        var source = new AwsKmsRemoteKeyDescriptors();
 
         var rows = source.Algorithms.ToList();
 

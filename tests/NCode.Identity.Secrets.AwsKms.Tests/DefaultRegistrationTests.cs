@@ -146,12 +146,12 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
-        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+        var sources = provider.GetServices<IRemoteKeyDescriptorSource>().ToList();
         var options = provider.GetRequiredService<IOptions<AwsKmsRemoteKeyProviderOptions>>().Value;
 
         Assert.Contains(providers, x => x.Name == RemoteKeyProviderNames.AwsKms);
         Assert.Contains(providers, x => x is AwsKmsRemoteKeyProvider);
-        Assert.Contains(sources, x => x is AwsKmsSigningAlgorithms);
+        Assert.Contains(sources, x => x is AwsKmsRemoteKeyDescriptors);
         Assert.Equal("us-west-2", options.Region);
         Assert.Equal(30, options.PendingWindowInDays);
     }
@@ -167,11 +167,12 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var catalog = provider.GetRequiredService<IRemoteKeyProviderCatalog>();
+        var descriptorCatalog = provider.GetRequiredService<IRemoteKeyDescriptorCatalog>();
 
         Assert.True(catalog.TryGetProvider(RemoteKeyProviderNames.AwsKms, out var remoteProvider));
         Assert.IsType<AwsKmsRemoteKeyProvider>(remoteProvider);
         Assert.True(
-            catalog.TryGetAlgorithm(
+            descriptorCatalog.TryGetAlgorithm(
                 new RemoteSigningAlgorithmSelector
                 {
                     Provider = RemoteKeyProviderNames.AwsKms,
@@ -204,8 +205,8 @@ public class DefaultRegistrationTests : BaseTests
         Assert.Single(
             serviceCollection,
             x =>
-                x.ServiceType == typeof(IRemoteSigningAlgorithmSource)
-                && x.ImplementationType == typeof(AwsKmsSigningAlgorithms)
+                x.ServiceType == typeof(IRemoteKeyDescriptorSource)
+                && x.ImplementationType == typeof(AwsKmsRemoteKeyDescriptors)
         );
         Assert.Single(
             serviceCollection,
@@ -265,10 +266,10 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
         var providers = provider.GetServices<IRemoteKeyProvider>().ToList();
-        var sources = provider.GetServices<IRemoteSigningAlgorithmSource>().ToList();
+        var sources = provider.GetServices<IRemoteKeyDescriptorSource>().ToList();
 
         Assert.Contains(providers, x => x is AwsKmsRemoteKeyProvider);
-        Assert.Contains(sources, x => x is AwsKmsSigningAlgorithms);
+        Assert.Contains(sources, x => x is AwsKmsRemoteKeyDescriptors);
     }
 
     [Fact]
@@ -290,8 +291,8 @@ public class DefaultRegistrationTests : BaseTests
             x => x is AwsKmsRemoteKeyProvider
         );
         Assert.DoesNotContain(
-            provider.GetServices<IRemoteSigningAlgorithmSource>(),
-            x => x is AwsKmsSigningAlgorithms
+            provider.GetServices<IRemoteKeyDescriptorSource>(),
+            x => x is AwsKmsRemoteKeyDescriptors
         );
     }
 

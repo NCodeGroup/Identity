@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using NCode.Identity.Secrets;
@@ -17,7 +18,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// </summary>
 public sealed class TestRemoteKeyProvider
     : IRemoteKeyProvider,
-        IRemoteSigningAlgorithmSource,
+        IRemoteKeyDescriptorSource,
         IDisposable
 {
     /// <summary>
@@ -27,7 +28,7 @@ public sealed class TestRemoteKeyProvider
 
     private const string KeyIdPrefix = "test-kms-key-";
 
-    private static readonly IReadOnlyList<RemoteSigningAlgorithm> Rows =
+    private static IReadOnlyList<RemoteSigningAlgorithm> Rows { get; } =
     [
         CreateRsaRow("RS256", "RSASSA_PKCS1_V1_5_SHA_256"),
         CreateRsaRow("PS256", "RSASSA_PSS_SHA_256"),
@@ -58,6 +59,10 @@ public sealed class TestRemoteKeyProvider
     public string Name => ProviderName;
 
     /// <inheritdoc />
+    public IEnumerable<RemoteKeyProviderDescriptor> Providers { get; } =
+    [new RemoteKeyProviderDescriptor { Name = ProviderName }];
+
+    /// <inheritdoc />
     public IEnumerable<RemoteSigningAlgorithm> Algorithms => Rows;
 
     /// <summary>
@@ -82,58 +87,108 @@ public sealed class TestRemoteKeyProvider
     )
     {
         var algorithm = request.Algorithm;
-        AsymmetricAlgorithm key = algorithm.SecretType switch
+        AsymmetricAlgorithm key;
+        switch (algorithm.SecretType)
         {
-            SecretKeyTypes.Rsa => RSA.Create(algorithm.KeySizeBits),
-            SecretKeyTypes.Ecc => ECDsa.Create(ECCurve.NamedCurves.nistP256),
-            _ => throw new InvalidOperationException(
-                $"The provider holds no '{algorithm.SecretType}' key."
-            ),
-        };
+            case SecretKeyTypes.Rsa:
+                key = RSA.Create(algorithm.KeySizeBits);
+                break;
+            case SecretKeyTypes.Ecc:
+                key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+                break;
+            default:
+                return ValueTask.FromException<RemoteKeyCreationResult>(
+                    new InvalidOperationException(
+                        $"The provider holds no '{algorithm.SecretType}' key."
+                    )
+                );
+        }
 
         var keyId = $"{KeyIdPrefix}{Guid.NewGuid():N}";
         Keys[keyId] = key;
         CreatedKeys.Enqueue(keyId);
 
-        return ValueTask.FromResult(
-            new RemoteKeyCreationResult
-            {
-                KeyId = keyId,
-                SubjectPublicKeyInfo = key.ExportSubjectPublicKeyInfo(),
-            }
-        );
+        return ValueTask.FromResult(new RemoteKeyCreationResult { KeyId = keyId });
     }
 
     /// <inheritdoc />
-    public ValueTask<byte[]> SignAsync(
-        RemoteSignatureRequest request,
+    public ValueTask GetPublicKeyAsync(
+        RemotePublicKeyRequest request,
+        IBufferWriter<byte> subjectPublicKeyInfo,
         CancellationToken cancellationToken
     )
     {
         if (!Keys.TryGetValue(request.KeyId, out var key))
         {
-            throw new InvalidOperationException($"The key '{request.KeyId}' does not exist.");
+            return ValueTask.FromException(
+                new InvalidOperationException($"The key '{request.KeyId}' does not exist.")
+            );
         }
 
-        var digest =
-            request.Algorithm.DigestAlgorithm
-            ?? throw new InvalidOperationException("The provider signs a digest.");
+        subjectPublicKeyInfo.Write(key.ExportSubjectPublicKeyInfo());
+        return ValueTask.CompletedTask;
+    }
 
-        var signature = key switch
+    /// <inheritdoc />
+    public ValueTask<int> SignAsync(
+        RemoteSignatureRequest request,
+        Memory<byte> signature,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!Keys.TryGetValue(request.KeyId, out var key))
         {
-            RSA rsa => rsa.SignHash(
-                request.Data.Span,
-                digest,
-                request.Algorithm.Algorithm.StartsWith("PS", StringComparison.Ordinal)
-                    ? RSASignaturePadding.Pss
-                    : RSASignaturePadding.Pkcs1
-            ),
-            ECDsa ecdsa => ecdsa.SignHash(request.Data.Span, DSASignatureFormat.Rfc3279DerSequence),
-            _ => throw new InvalidOperationException($"The key '{request.KeyId}' cannot sign."),
-        };
+            return ValueTask.FromException<int>(
+                new InvalidOperationException($"The key '{request.KeyId}' does not exist.")
+            );
+        }
+
+        var digest = request.Algorithm.DigestAlgorithm;
+        if (digest is null)
+        {
+            return ValueTask.FromException<int>(
+                new InvalidOperationException("The provider signs a digest.")
+            );
+        }
+
+        int bytesWritten;
+        bool isWritten;
+        switch (key)
+        {
+            case RSA rsa:
+                isWritten = rsa.TrySignHash(
+                    request.Data.Span,
+                    signature.Span,
+                    digest.Value,
+                    request.Algorithm.Algorithm.StartsWith("PS", StringComparison.Ordinal)
+                        ? RSASignaturePadding.Pss
+                        : RSASignaturePadding.Pkcs1,
+                    out bytesWritten
+                );
+                break;
+            case ECDsa ecdsa:
+                isWritten = ecdsa.TrySignHash(
+                    request.Data.Span,
+                    signature.Span,
+                    DSASignatureFormat.Rfc3279DerSequence,
+                    out bytesWritten
+                );
+                break;
+            default:
+                return ValueTask.FromException<int>(
+                    new InvalidOperationException($"The key '{request.KeyId}' cannot sign.")
+                );
+        }
+
+        if (!isWritten)
+        {
+            return ValueTask.FromException<int>(
+                new CryptographicException("The signature does not fit in the buffer.")
+            );
+        }
 
         Interlocked.Increment(ref _signatureCount);
-        return ValueTask.FromResult(signature);
+        return ValueTask.FromResult(bytesWritten);
     }
 
     /// <inheritdoc />

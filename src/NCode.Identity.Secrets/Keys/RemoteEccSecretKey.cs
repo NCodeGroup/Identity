@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Security.Cryptography;
+using System.Text;
 using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.Keys;
@@ -75,6 +76,9 @@ internal sealed class RemoteEccSecretKey(
     }
 
     /// <inheritdoc />
-    protected override string FormatToString() =>
-        $"{base.FormatToString()[..^2]}, Provider = '{Binding.Reference.Provider}' }}";
+    protected override void AppendMembers(StringBuilder builder)
+    {
+        base.AppendMembers(builder);
+        builder.Append(", Provider = '").Append(Binding.Reference.Provider).Append('\'');
+    }
 }

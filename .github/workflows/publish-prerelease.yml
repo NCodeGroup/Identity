@@ -58,24 +58,10 @@ jobs:
           $onLine = $lines | Where-Object { git merge-base --is-ancestor HEAD $_; $LASTEXITCODE -eq 0 }
           if (-not $onLine) { throw "The tag names a commit that is on neither main nor a release line." }
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        with:
-          global-json-file: global.json
+      # The SDK global.json selects and the runtime of each older .NET a test project targets.
+      - name: Install .NET
+        uses: ./.github/actions/install-dotnet
 
-      # A test project that targets an older .NET runs on that version's runtime, which build/Get-TestRuntimes.ps1 names.
-      - name: Find the .NET runtimes the tests target
-        id: runtimes
-        shell: pwsh
-        run: |
-          $channels = @(./build/Get-TestRuntimes.ps1)
-          if ($channels) { "channels<<EOF`n$($channels -join "`n")`nEOF" >> $env:GITHUB_OUTPUT }
-
-      - name: Setup the .NET runtimes the tests target
-        if: steps.runtimes.outputs.channels != ''
-        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
-        with:
-          dotnet-version: ${{ steps.runtimes.outputs.channels }}
       - name: Cache NuGet packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

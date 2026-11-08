@@ -144,7 +144,7 @@ public interface ISecretGenerator
     /// <param name="request">The <see cref="GenerateRemoteSecretRequest"/> describing the secret to generate.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="PersistedSecret"/> with the <see cref="SecretEncodings.Remote"/> encoding.</returns>
-    /// <exception cref="System.InvalidOperationException">The secret type does not support remote keys, the provider
+    /// <exception cref="RemoteSecretRefusedException">The secret type does not support remote keys, the provider
     /// is not registered, no remote signing algorithm matches the request, or the key the service created does not
     /// have the requested size or curve. No key is created for the first three; for the last, and for
     /// any other failure after the service creates the key, the key is destroyed.</exception>
@@ -165,11 +165,13 @@ public interface ISecretGenerator
     /// <param name="request">The <see cref="BindRemoteSecretRequest"/> describing the key to bind.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
     /// <returns>The <see cref="PersistedSecret"/> with the <see cref="SecretEncodings.Remote"/> encoding.</returns>
-    /// <exception cref="System.InvalidOperationException">The secret type does not support remote keys, the provider
-    /// is not registered, no remote signing algorithm matches the request, or the public half the service returns
-    /// cannot be read as a key of the secret type or does not have the algorithm's size or curve. The provider's own
-    /// exceptions propagate, such as <see cref="System.ArgumentException"/> for a key identifier it does not read and
-    /// <see cref="System.Security.Cryptography.CryptographicException"/> for a key it refuses.</exception>
+    /// <exception cref="RemoteSecretRefusedException">The secret type does not support remote keys, the provider is
+    /// not registered, no remote signing algorithm matches the request, or the public half the service returns cannot
+    /// be read as a key of the secret type or does not have the algorithm's size or curve.</exception>
+    /// <exception cref="System.ArgumentException">The request's key identifier is empty, or the provider does not read
+    /// it.</exception>
+    /// <exception cref="System.Security.Cryptography.CryptographicException">The provider refuses the
+    /// key.</exception>
     // See ADR-1476.
     ValueTask<PersistedSecret> BindRemoteSecretAsync(
         BindRemoteSecretRequest request,

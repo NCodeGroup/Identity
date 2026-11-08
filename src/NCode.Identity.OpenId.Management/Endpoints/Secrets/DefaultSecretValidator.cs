@@ -27,11 +27,12 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// metadata the crypto runtime uses to validate a key is what gates its creation here.
 /// </remarks>
 // See ADR-1067.
+// See ADR-1474.
 internal sealed class DefaultSecretValidator(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretSerializer secretSerializer,
-    IRemoteKeyProviderCatalog remoteKeyProviderCatalog
+    IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog
 ) : ISecretValidator
 {
     private static ManagementError Error(string detail) =>
@@ -75,7 +76,13 @@ internal sealed class DefaultSecretValidator(
 
     private ISecretSerializer SecretSerializer { get; } = secretSerializer;
 
-    private IRemoteKeyProviderCatalog RemoteKeyProviderCatalog { get; } = remoteKeyProviderCatalog;
+    private IRemoteKeyDescriptorCatalog RemoteKeyDescriptorCatalog { get; } =
+        remoteKeyDescriptorCatalog;
+
+    private bool IsDescribed(string providerName) =>
+        RemoteKeyDescriptorCatalog.Providers.Any(provider =>
+            string.Equals(provider.Name, providerName, StringComparison.Ordinal)
+        );
 
     /// <inheritdoc />
     // See ADR-1389 and ADR-1392.
@@ -157,7 +164,7 @@ internal sealed class DefaultSecretValidator(
         }
 
         var providerName = request.RemoteKeyProvider;
-        if (!RemoteKeyProviderCatalog.TryGetProvider(providerName, out _))
+        if (!IsDescribed(providerName))
         {
             return Invalid(DescribeUnregisteredProvider(providerName));
         }
@@ -177,7 +184,7 @@ internal sealed class DefaultSecretValidator(
 
         var resolved = validation.GenerationParameters;
         if (
-            !RemoteKeyProviderCatalog.TryGetAlgorithm(
+            !RemoteKeyDescriptorCatalog.TryGetAlgorithm(
                 new RemoteSigningAlgorithmSelector
                 {
                     Provider = providerName,
@@ -204,7 +211,7 @@ internal sealed class DefaultSecretValidator(
 
     private string DescribeUnregisteredProvider(string providerName)
     {
-        var names = RemoteKeyProviderCatalog
+        var names = RemoteKeyDescriptorCatalog
             .Providers.Select(provider => provider.Name)
             .Order(StringComparer.Ordinal)
             .ToList();
@@ -351,7 +358,7 @@ internal sealed class DefaultSecretValidator(
         }
 
         var providerName = request.RemoteKeyProvider;
-        if (!RemoteKeyProviderCatalog.TryGetProvider(providerName, out _))
+        if (!IsDescribed(providerName))
         {
             return Error(DescribeUnregisteredProvider(providerName));
         }

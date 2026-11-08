@@ -99,6 +99,7 @@ internal class TenantApiEndpointHandler(
     ITenantEnvironmentCatalog tenantEnvironmentCatalog,
     ITenantClientCoherenceChecker tenantClientCoherenceChecker,
     IResourceOwnershipService resourceOwnershipService,
+    IRemoteSecretDestroyer remoteSecretDestroyer,
     IManagementAuditRecorder managementAuditRecorder,
     ILogger<TenantApiEndpointHandler> logger
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
@@ -124,6 +125,7 @@ internal class TenantApiEndpointHandler(
     private ITenantEnvironmentCatalog TenantEnvironmentCatalog { get; } = tenantEnvironmentCatalog;
     private ITenantClientCoherenceChecker TenantClientCoherenceChecker { get; } =
         tenantClientCoherenceChecker;
+    private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
 
     /// <inheritdoc />
     protected override IManagementAuditRecorder ManagementAuditRecorder { get; } =
@@ -1141,6 +1143,9 @@ internal class TenantApiEndpointHandler(
             cancellationToken
         );
 
+        // See ADR-1471.
+        await RemoteSecretDestroyer.DestroyAsync(tenant.Secrets.Value);
+
         return TypedResults.NoContent();
     }
 
@@ -2021,6 +2026,9 @@ internal class TenantApiEndpointHandler(
             settingsChanged: false,
             cancellationToken
         );
+
+        // See ADR-1471.
+        await RemoteSecretDestroyer.DestroyAsync([secret]);
 
         return TypedResults.NoContent();
     }

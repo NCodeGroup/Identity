@@ -127,14 +127,20 @@ public class DefaultSecretGeneratorTests : BaseTests
         );
     }
 
-    private DefaultSecretGenerator CreateGenerator(SharedSecretVerifierOptions options) =>
+    private DefaultSecretGenerator CreateGenerator(
+        SharedSecretVerifierOptions options,
+        string? deployment = "test"
+    ) =>
         new(
             _catalog,
             _verifierCatalog,
             Microsoft.Extensions.Options.Options.Create(options),
             _remoteCatalog,
             _remoteDescriptorCatalog,
-            _remoteDestroyer.Object
+            _remoteDestroyer.Object,
+            Microsoft.Extensions.Options.Options.Create(
+                new SecretProtectionOptions { RemoteKeys = { Deployment = deployment } }
+            )
         );
 
     // Opens the envelope of a stored verifier to its text.
@@ -1111,7 +1117,9 @@ public class DefaultSecretGeneratorTests : BaseTests
                     request.OwnerId == "tenant:tenant-one"
                     && request.SecretId == "remote-1"
                     && ReferenceEquals(request.Algorithm, row)
-                    && request.GroupName == RemoteKeyGroupName.Create("tenant:tenant-one", row)
+                    && request.GroupName
+                        == RemoteKeyGroupName.Create("test", "tenant:tenant-one", row)
+                    && request.Deployment == "test"
                 ),
                 CancellationToken.None
             )
@@ -1280,6 +1288,22 @@ public class DefaultSecretGeneratorTests : BaseTests
         Assert.Equal("RSA-OAEP-256", secret.Algorithm);
         Assert.Equal(SecretEncodings.Remote, secret.SecretEncoding);
         Assert.Equal(Base64Url.Encode(spki), secret.PublicKey);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task GenerateRemoteSecretAsync_DeploymentUnset_ThrowsBeforeCreating(
+        string? deployment
+    )
+    {
+        var generator = CreateGenerator(new SharedSecretVerifierOptions(), deployment);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await generator.GenerateRemoteSecretAsync(CreateRemoteRequest(), CancellationToken.None)
+        );
+
+        Assert.Equal("SecretProtection:RemoteKeys:Deployment is not set.", exception.Message);
     }
 
     // Expects one call to the destroyer with the one record the generator would have returned for the created key.

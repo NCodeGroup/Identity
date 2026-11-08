@@ -29,14 +29,15 @@ namespace NCode.Identity.Secrets.Persistence;
 /// half cannot be read or does not match its row, and a remote key whose creation is followed by any
 /// other failure, is handed to the <see cref="IRemoteSecretDestroyer"/>, which destroys it in its service.
 /// </summary>
-// See ADR-1067, ADR-1110, ADR-1391 and ADR-1471.
+// See ADR-1067, ADR-1110, ADR-1391, ADR-1471 and ADR-1478.
 internal class DefaultSecretGenerator(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
     IOptions<SharedSecretVerifierOptions> verifierOptionsAccessor,
     IRemoteKeyProviderCatalog remoteKeyProviderCatalog,
     IRemoteKeyDescriptorCatalog remoteKeyDescriptorCatalog,
-    IRemoteSecretDestroyer remoteSecretDestroyer
+    IRemoteSecretDestroyer remoteSecretDestroyer,
+    IOptions<SecretProtectionOptions> options
 ) : ISecretGenerator
 {
     private ISecretKeyTypeCatalog SecretKeyTypeCatalog { get; } = secretKeyTypeCatalog;
@@ -47,6 +48,8 @@ internal class DefaultSecretGenerator(
         remoteKeyDescriptorCatalog;
 
     private IRemoteSecretDestroyer RemoteSecretDestroyer { get; } = remoteSecretDestroyer;
+
+    private IOptions<SecretProtectionOptions> Options { get; } = options;
 
     private ISecretVerifierScheme GeneratedSecretScheme { get; } =
         GetScheme(
@@ -179,6 +182,15 @@ internal class DefaultSecretGenerator(
             );
         }
 
+        // See ADR-1478.
+        var deployment = Options.Value.RemoteKeys.Deployment;
+        if (string.IsNullOrEmpty(deployment))
+        {
+            throw new InvalidOperationException(
+                "SecretProtection:RemoteKeys:Deployment is not set."
+            );
+        }
+
         var ownerId = request.Owner.ToString();
 
         var created = await provider.CreateKeyAsync(
@@ -187,7 +199,8 @@ internal class DefaultSecretGenerator(
                 OwnerId = ownerId,
                 SecretId = request.SecretId,
                 Algorithm = algorithm,
-                GroupName = RemoteKeyGroupName.Create(ownerId, algorithm),
+                GroupName = RemoteKeyGroupName.Create(deployment, ownerId, algorithm),
+                Deployment = deployment,
             },
             cancellationToken
         );

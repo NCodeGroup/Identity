@@ -11,24 +11,26 @@ namespace NCode.Identity.Secrets.Persistence;
 /// Provides the name of the stable key in a key management service whose versions are one owner's successive keys for
 /// one algorithm and key specification.
 /// </summary>
-// See ADR-1474.
+// See ADR-1474 and ADR-1478.
 internal static class RemoteKeyGroupName
 {
     private const string Prefix = "ncid-";
     private const int HashBytes = 16;
 
     /// <summary>
-    /// Creates the group name for an owner and a row of the mapping vocabulary. It is <c>ncid-</c> followed by the
-    /// lowercase hexadecimal of the first 16 bytes of the SHA-256 hash of the owner, provider, algorithm, key
-    /// specification, key size and curve, which makes it 37 characters and a valid key name for every provider.
+    /// Creates the group name for a deployment, an owner and a row of the mapping vocabulary. It is <c>ncid-</c>
+    /// followed by the lowercase hexadecimal of the first 16 bytes of the SHA-256 hash of the deployment, owner,
+    /// provider, algorithm, key specification, key size and curve, which makes it 37 characters and a valid key name
+    /// for every provider.
     /// </summary>
+    /// <param name="deployment">The name of the deployment that creates the key.</param>
     /// <param name="ownerId">The identifier of the owner, such as a tenant, whose key to create.</param>
     /// <param name="algorithm">The row of the mapping vocabulary that selects the key's type, size and curve.</param>
     /// <returns>The group name.</returns>
-    public static string Create(string ownerId, RemoteKeyAlgorithm algorithm)
+    public static string Create(string deployment, string ownerId, RemoteKeyAlgorithm algorithm)
     {
         var text =
-            $"{ownerId}\n{algorithm.Provider}\n{algorithm.Algorithm}\n{algorithm.KeySpec}\n{algorithm.KeySizeBits}\n{algorithm.Curve}";
+            $"{deployment}\n{ownerId}\n{algorithm.Provider}\n{algorithm.Algorithm}\n{algorithm.KeySpec}\n{algorithm.KeySizeBits}\n{algorithm.Curve}";
 
         using var lease = BufferFactory.Rent(
             SecureEncoding.UTF8.GetByteCount(text),

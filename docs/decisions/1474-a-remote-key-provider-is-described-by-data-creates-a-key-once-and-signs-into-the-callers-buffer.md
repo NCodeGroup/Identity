@@ -1,6 +1,6 @@
 # 1474. A remote key provider is described by data, creates a key once and signs into the caller's buffer
 
-- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md))
+- **Status:** Accepted (amends [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) and [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 
@@ -33,8 +33,11 @@ key it created and could not keep.**
    `Algorithms` (`RemoteSigningAlgorithm` rows); a package registers one so anyone adds rows, and a source may describe
    no provider. `IRemoteKeyDescriptorCatalog` is built from sources only and exposes `Providers` (ordinal name order)
    and `TryGetAlgorithm`. `IRemoteKeyProviderCatalog` exposes only `TryGetProvider`, and its construction fails when the
-   registered providers and the described providers differ. The setting data source and `DefaultTenantKeyPolicy` read
-   the descriptor catalog, so a validator never constructs a provider. A provider's constructor does no I/O, reads no
+   registered providers and the described providers differ. The setting data source, `DefaultTenantKeyPolicy`, and the
+   management API's `DefaultSecretValidator` and `remoteKeyProviders` capability
+   ([ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)
+   rules 3, 4 and 7) read the descriptor catalog, so a validator never constructs a provider. A provider's
+   constructor does no I/O, reads no
    options value and creates no client; a provider documents this on its type.
 2. **Creation returns the identifier, and a second call reads the key (`CreateKeyAsync`, `GetPublicKeyAsync`).**
    `IRemoteKeyProvider.CreateKeyAsync` returns `RemoteKeyCreationResult` (`KeyId`) as soon as the service reports the
@@ -81,7 +84,11 @@ key it created and could not keep.**
 - Azure creation costs one more read (`GetKey`), because creation and the public-key read are two phases.
 - A key that the server created and could not keep is destroyed in one place, whichever provider created it.
 - A signature written into the caller's buffer allocates no array for a non-DER row.
-- A setting or a policy is validated without constructing a provider.
+- A setting, a policy or a management request is validated, and the capabilities list the providers, without
+  constructing a provider.
+- `GetPublicKeyAsync` reads the public half of any key a provider holds, which binding a key
+  ([ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md))
+  can use in place of a supplied public half ([#690](https://github.com/NCodeGroup/Identity/issues/690)).
 
 ## References
 

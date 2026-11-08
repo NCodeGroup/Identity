@@ -23,8 +23,13 @@ internal sealed class DPoPProofKey(
 
     public string JwkThumbprint { get; } = jwkThumbprint;
 
-    public string CreateProof(HttpMethod method, Uri requestUri, string? accessToken) =>
-        ProofService.CreateProof(
+    public ValueTask<string> CreateProofAsync(
+        HttpMethod method,
+        Uri requestUri,
+        string? accessToken,
+        CancellationToken cancellationToken
+    ) =>
+        ProofService.CreateProofAsync(
             new DPoPProofCreationOptions
             {
                 SigningCredentials = Credentials,
@@ -32,7 +37,8 @@ internal sealed class DPoPProofKey(
                 HttpUri = requestUri.AbsoluteUri,
                 AccessToken = accessToken,
                 Nonce = NonceCache.Get(requestUri),
-            }
+            },
+            cancellationToken
         );
 
     public void RecordNonce(Uri requestUri, string nonce) => NonceCache.Set(requestUri, nonce);

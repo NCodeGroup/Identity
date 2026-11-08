@@ -264,7 +264,12 @@ internal class ClientRequestSender(
         if (dpopKey is not null)
             request.Headers.TryAddWithoutValidation(
                 OpenIdProtocol.DPoP.HeaderName,
-                dpopKey.CreateProof(HttpMethod.Post, uri, accessToken: null)
+                await dpopKey.CreateProofAsync(
+                    HttpMethod.Post,
+                    uri,
+                    accessToken: null,
+                    cancellationToken
+                )
             );
 
         request.Content = new FormUrlEncodedContent(formParameters);

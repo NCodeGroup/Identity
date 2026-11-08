@@ -112,7 +112,7 @@ it names it on a `**Refines:**` line, and one that still contradicts it on a `**
 that tracks the alignment. Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Ten family records override template records:
+so a bare ADR number names one record. Eight family records override template records:
 
 - [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
@@ -135,15 +135,6 @@ so a bare ADR number names one record. Ten family records override template reco
   same choice for `NCode.Identity.OpenId.Authentication`'s guarded outbound client, so no package of the family
   carries `Microsoft.Extensions.Http.Resilience`, and the build fails a shipping package that would replace its
   consumers' logging generator.
-- [ADR-1393](docs/decisions/1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md) overrides the
-  project template's Keep a Changelog grouping and its `**Breaking:**` entry label, because nothing is shipped: until
-  the first stable release, `## [Unreleased]` is a present-tense catalog of what the family does under `### Added` and
-  `### Security` only, and no commit subject or pull request title carries the conventional-commit `!` marker.
-- [ADR-1395](docs/decisions/1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md)
-  supersedes project-template ADR-0108's reading of a document without `$ver` as version 1, because every grant payload
-  the family stores is an envelope from its first document, so one without it is malformed and rejected; and, until the
-  first stable release, its additive-by-default rule, because no stored shape is one a reader must keep: a payload's
-  shape changes in place, with no version bump or upcaster.
 - [ADR-1424](docs/decisions/1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
   supersedes project-template ADR-0129's decision 6 for the management API, which answers a caller without authority
   `403` for any identifier, because it authorizes at a node before it reads, so the answer discloses nothing.
@@ -374,7 +365,8 @@ renamed member, and no upgrade, migration or compatibility note. A fix to unrele
 fixed behavior is gets described as a capability. `CHANGELOG.md`'s `## [Unreleased]` is a present-tense catalog under
 `### Added` and `### Security` only, edited in place to match the code, and no commit subject or pull request title
 carries the conventional-commit `!` breaking marker
-([ADR-1393](docs/decisions/1393-the-pre-release-product-is-described-as-it-is-and-its-changes-are-not-tracked.md)). Full
+([project-template ADR-0015](docs/decisions/project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md),
+which the Landing section's `pre-release: untracked` selects). Full
 statement: the [design posture](.github/instructions/repository.instructions.md#design-posture-greenfield-pre-release).
 
 ## Copilot cloud agent sessions

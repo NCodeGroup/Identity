@@ -369,9 +369,13 @@ public sealed class DefaultTokenServiceTests : BaseTests, IAsyncLifetime
 
         JwtEncodingParameters? encoded = null;
         MockJwtEncoder
-            .Setup(x => x.Encode(It.IsAny<JwtEncodingParameters>()))
-            .Callback((JwtEncodingParameters parameters) => encoded = parameters)
-            .Returns("access-token-jwt")
+            .Setup(x =>
+                x.EncodeAsync(It.IsAny<JwtEncodingParameters>(), It.IsAny<CancellationToken>())
+            )
+            .Callback(
+                (JwtEncodingParameters parameters, CancellationToken _) => encoded = parameters
+            )
+            .ReturnsAsync("access-token-jwt")
             .Verifiable();
         MockAuditEventRecorder
             .Setup(x =>

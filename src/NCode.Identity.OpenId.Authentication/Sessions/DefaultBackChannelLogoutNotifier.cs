@@ -160,7 +160,7 @@ internal class DefaultBackChannelLogoutNotifier(
             },
         };
 
-        var logoutToken = JwtEncoder.Encode(parameters);
+        var logoutToken = await JwtEncoder.EncodeAsync(parameters, cancellationToken);
 
         // Delivery runs as a durable, retryable dispatch job so a failed POST is retried out of band (and can run on a
         // durable dispatcher adapter); it never fails the logout request.

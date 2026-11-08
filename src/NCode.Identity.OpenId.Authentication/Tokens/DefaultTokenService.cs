@@ -265,7 +265,7 @@ internal class DefaultTokenService(
             ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims,
         };
 
-        var jwt = JwtEncoder.Encode(parameters);
+        var jwt = await JwtEncoder.EncodeAsync(parameters, cancellationToken);
         var securityToken = new SecurityToken
         {
             TokenType = tokenContext.TokenType,
@@ -435,7 +435,7 @@ internal class DefaultTokenService(
             ExtraEncryptionHeaderClaims = tokenRequest.ExtraEncryptionHeaderClaims,
         };
 
-        var jwt = JwtEncoder.Encode(parameters);
+        var jwt = await JwtEncoder.EncodeAsync(parameters, cancellationToken);
         var securityToken = new SecurityToken
         {
             TokenType = tokenContext.TokenType,
